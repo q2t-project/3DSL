@@ -21,10 +21,12 @@
     table { border-collapse: collapse; margin-top: 1em; width: 100%; }
     th, td { border: 1px solid #ccc; padding: 4px; font-size: 0.9em; }
     th { background: #f0f0f0; }
+    input[type="text"], input[type="number"] { width: 100%; }
+    .section { margin-top: 2em; }
   </style>
 </head>
 <body>
-  <h1>3DSD-modeler (Phase 1)</h1>
+  <h1>3DSD-modeler (Phase 2: Node Editing)</h1>
 
   <div class="toolbar">
     <input type="file" id="fileInput" accept=".json" />
@@ -34,13 +36,31 @@
   <div id="status">未検証</div>
   <div id="errors"></div>
 
+  <div class="section">
+    <h2>ノード一覧</h2>
+    <button id="addNodeBtn">ノード追加</button>
+    <table id="nodesTable">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>X</th>
+          <th>Y</th>
+          <th>Z</th>
+          <th>ラベル</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
   <script type="module">
     import Ajv from "ajv";
 
     let schema3dss = null;
     let modelData = null;
 
-    // スキーマをロード
+    // スキーマ読込
     fetch("../schemas/3DSS.schema.json")
       .then(r => r.json())
       .then(s => { schema3dss = s; setStatus("✅ スキーマ読込完了", "ok"); restoreFromLocal(); })
@@ -54,15 +74,16 @@
       const text = await file.text();
       try {
         const json = JSON.parse(text);
-        validateJson(json);
         modelData = json;
+        renderNodes();
+        validateJson(json);
         localStorage.setItem("3dsd:model:current", JSON.stringify(modelData));
       } catch (err) {
         setStatus("❌ JSONパース失敗: " + err.message, "error");
       }
     });
 
-    // 保存（ダウンロード）
+    // 保存
     document.getElementById("saveBtn").addEventListener("click", () => {
       if (!modelData) { setStatus("⚠ データなし", "error"); return; }
       const blob = new Blob([JSON.stringify(modelData, null, 2) + "\n"], { type: "application/json" });
@@ -74,12 +95,67 @@
       setStatus("💾 保存完了: model.json", "ok");
     });
 
+    // ノード追加
+    document.getElementById("addNodeBtn").addEventListener("click", () => {
+      if (!modelData) return;
+      const newId = "n" + (modelData.nodes.length + 1);
+      const newNode = {
+        id: newId,
+        position: [0, 0, 0],
+        label: { text: newId }
+      };
+      modelData.nodes.push(newNode);
+      renderNodes();
+      validateJson(modelData);
+      localStorage.setItem("3dsd:model:current", JSON.stringify(modelData));
+    });
+
+    // ノード描画
+    function renderNodes() {
+      const tbody = document.querySelector("#nodesTable tbody");
+      tbody.innerHTML = "";
+      if (!modelData || !modelData.nodes) return;
+
+      modelData.nodes.forEach((node, index) => {
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+          <td><input type="text" value="${node.id}"></td>
+          <td><input type="number" value="${node.position[0]}"></td>
+          <td><input type="number" value="${node.position[1]}"></td>
+          <td><input type="number" value="${node.position[2]}"></td>
+          <td><input type="text" value="${node.label.text}"></td>
+          <td><button data-index="${index}" class="deleteBtn">削除</button></td>
+        `;
+
+        // 入力変更時に反映
+        const inputs = tr.querySelectorAll("input");
+        inputs[0].addEventListener("input", e => { node.id = e.target.value; saveAndValidate(); });
+        inputs[1].addEventListener("input", e => { node.position[0] = parseFloat(e.target.value); saveAndValidate(); });
+        inputs[2].addEventListener("input", e => { node.position[1] = parseFloat(e.target.value); saveAndValidate(); });
+        inputs[3].addEventListener("input", e => { node.position[2] = parseFloat(e.target.value); saveAndValidate(); });
+        inputs[4].addEventListener("input", e => { node.label.text = e.target.value; saveAndValidate(); });
+
+        // 削除ボタン
+        tr.querySelector(".deleteBtn").addEventListener("click", () => {
+          modelData.nodes.splice(index, 1);
+          renderNodes();
+          saveAndValidate();
+        });
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    // 保存 & バリデーション
+    function saveAndValidate() {
+      localStorage.setItem("3dsd:model:current", JSON.stringify(modelData));
+      validateJson(modelData);
+    }
+
     // JSONバリデーション
     function validateJson(json) {
-      if (!schema3dss) {
-        setStatus("⚠ スキーマ未読込", "error");
-        return;
-      }
+      if (!schema3dss) return;
       const ajv = new Ajv({ allErrors: true, strict: false });
       const validate = ajv.compile(schema3dss);
       const valid = validate(json);
@@ -95,14 +171,12 @@
     // localStorage 復元
     function restoreFromLocal() {
       const saved = localStorage.getItem("3dsd:model:current");
-      if (!saved) {
-        setStatus("ℹ️ 保存データなし", "ok");
-        return;
-      }
+      if (!saved) return;
       try {
         const json = JSON.parse(saved);
-        validateJson(json);
         modelData = json;
+        renderNodes();
+        validateJson(json);
         setStatus("🔄 localStorageから復元済", "ok");
       } catch (err) {
         setStatus("❌ 復元失敗: " + err.message, "error");
