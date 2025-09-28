@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>3DSD-modeler</title>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "ajv": "https://esm.sh/ajv@8/dist/2020?bundle"
+      }
+    }
+  </script>
+</head>
+<body>
+  <h1>3DSD-modeler (Phase 1)</h1>
+  <input type="file" id="fileInput" accept=".json" />
+  <button id="saveBtn">保存（ダウンロード）</button>
+  <pre id="log">Ready.</pre>
+
+  <script type="module">
+    import Ajv from "ajv";
+
+    let schema3dss = null;
+    let modelData = null;
+
+    // スキーマ読込
+    fetch("../schemas/3DSS.schema.json")
+      .then(r => r.json())
+      .then(s => { schema3dss = s; log("✅ 3DSS.schema.json 読込完了"); });
+
+    // ファイル読込
+    document.getElementById("fileInput").addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const text = await file.text();
+      try {
+        const json = JSON.parse(text);
+
+        const ajv = new Ajv({ allErrors: true, strict: false });
+        const validate = ajv.compile(schema3dss);
+        const valid = validate(json);
+        if (!valid) {
+          log("❌ バリデーションエラー:\n" + JSON.stringify(validate.errors, null, 2));
+        } else {
+          log("✅ 読込成功 & バリデーションOK");
+          modelData = json;
+          localStorage.setItem("3dsd:model:current", JSON.stringify(modelData));
+        }
+      } catch (err) {
+        log("❌ JSONパース失敗: " + err.message);
+      }
+    });
+
+    // 保存
+    document.getElementById("saveBtn").addEventListener("click", () => {
+      if (!modelData) { log("⚠ データなし"); return; }
+      const blob = new Blob([JSON.stringify(modelData, null, 2) + "\n"], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "model.json";
+      a.click();
+      URL.revokeObjectURL(a.href);
+      log("💾 保存完了: model.json");
+    });
+
+    function log(msg) {
+      document.getElementById("log").textContent = msg;
+      console.log(msg);
+    }
+  </script>
+</body>
+</html>
