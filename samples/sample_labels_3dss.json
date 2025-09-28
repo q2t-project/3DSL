@@ -1,0 +1,86 @@
+{
+  "meta": {
+    "title": "Label Directions",
+    "author": "q2t-project",
+    "created": "2025-09-16",
+    "tags": [
+      "demo",
+      "labelPos"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "a",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "color": "#5aa9ff",
+      "label": {
+        "text": "Top"
+      }
+    },
+    {
+      "id": "b",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "color": "#ff5555",
+      "label": {
+        "text": "Bottom"
+      }
+    },
+    {
+      "id": "c",
+      "position": [
+        0,
+        2,
+        0
+      ],
+      "color": "#55ff55",
+      "label": {
+        "text": "Left"
+      }
+    },
+    {
+      "id": "d",
+      "position": [
+        -2,
+        0,
+        0
+      ],
+      "color": "#ffaa00",
+      "label": {
+        "text": "Right"
+      }
+    },
+    {
+      "id": "e",
+      "position": [
+        0,
+        0,
+        2
+      ],
+      "color": "#aa55ff",
+      "label": {
+        "text": "Front"
+      }
+    },
+    {
+      "id": "f",
+      "position": [
+        0,
+        0,
+        -2
+      ],
+      "color": "#00ffaa",
+      "label": {
+        "text": "Back"
+      }
+    }
+  ],
+  "edges": []
+}
