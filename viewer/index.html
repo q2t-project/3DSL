@@ -81,7 +81,7 @@
         <div class="spacer"></div>
         <button id="btnLoad">File読込</button>
         <button id="btnUrlLoad">URL読込</button>
-        <button id="btnReset" data-i18n="reset">再描画</button>
+        <button id="btnReset">再描画</button>
         <div id="layersMenu" style="position:relative;">
           <button id="btnLayers">レイヤ▼</button>
           <div id="layersDropdown"
@@ -448,21 +448,6 @@ function showMeta(meta,data){
           d.className = 'error-item';
           d.textContent = e;
           box.appendChild(d);
-        });
-      }
-
-      let dict = {};
-      async function loadLocale(lang) {
-        try {
-          const res = await fetch(`./assets/i18n/${lang}.json`);
-          dict = await res.json();
-          applyI18n();
-        } catch(e) {}
-      }
-      function t(key) { return dict[key] || key; }
-      function applyI18n() {
-        document.querySelectorAll('[data-i18n]').forEach(el => {
-          el.textContent = t(el.dataset.i18n);
         });
       }
 
