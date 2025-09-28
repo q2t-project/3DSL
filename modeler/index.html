@@ -11,12 +11,28 @@
       }
     }
   </script>
+
+  <style>
+    body { font-family: sans-serif; margin: 1em; }
+    .toolbar { margin-bottom: 1em; }
+    #status { padding: 0.5em; margin-bottom: 1em; }
+    #status.ok { background: #e6ffe6; color: #060; }
+    #status.error { background: #ffe6e6; color: #900; }
+    table { border-collapse: collapse; margin-top: 1em; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 4px; font-size: 0.9em; }
+    th { background: #f0f0f0; }
+  </style>
 </head>
 <body>
   <h1>3DSD-modeler (Phase 1)</h1>
-  <input type="file" id="fileInput" accept=".json" />
-  <button id="saveBtn">保存（ダウンロード）</button>
-  <pre id="log">Ready.</pre>
+
+  <div class="toolbar">
+    <input type="file" id="fileInput" accept=".json" />
+    <button id="saveBtn">保存（ダウンロード）</button>
+  </div>
+
+  <div id="status">未検証</div>
+  <div id="errors"></div>
 
   <script type="module">
     import Ajv from "ajv";
@@ -24,10 +40,11 @@
     let schema3dss = null;
     let modelData = null;
 
-    // スキーマ読込
+    // スキーマをロード
     fetch("../schemas/3DSS.schema.json")
       .then(r => r.json())
-      .then(s => { schema3dss = s; log("✅ 3DSS.schema.json 読込完了"); });
+      .then(s => { schema3dss = s; setStatus("✅ スキーマ読込完了", "ok"); })
+      .catch(err => setStatus("❌ スキーマ読込失敗: " + err, "error"));
 
     // ファイル読込
     document.getElementById("fileInput").addEventListener("change", async (e) => {
@@ -37,37 +54,77 @@
       const text = await file.text();
       try {
         const json = JSON.parse(text);
-
-        const ajv = new Ajv({ allErrors: true, strict: false });
-        const validate = ajv.compile(schema3dss);
-        const valid = validate(json);
-        if (!valid) {
-          log("❌ バリデーションエラー:\n" + JSON.stringify(validate.errors, null, 2));
-        } else {
-          log("✅ 読込成功 & バリデーションOK");
-          modelData = json;
-          localStorage.setItem("3dsd:model:current", JSON.stringify(modelData));
-        }
+        validateJson(json);
+        modelData = json;
+        localStorage.setItem("3dsd:model:current", JSON.stringify(modelData));
       } catch (err) {
-        log("❌ JSONパース失敗: " + err.message);
+        setStatus("❌ JSONパース失敗: " + err.message, "error");
       }
     });
 
-    // 保存
+    // 保存（ダウンロード）
     document.getElementById("saveBtn").addEventListener("click", () => {
-      if (!modelData) { log("⚠ データなし"); return; }
+      if (!modelData) { setStatus("⚠ データなし", "error"); return; }
       const blob = new Blob([JSON.stringify(modelData, null, 2) + "\n"], { type: "application/json" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = "model.json";
       a.click();
       URL.revokeObjectURL(a.href);
-      log("💾 保存完了: model.json");
+      setStatus("💾 保存完了: model.json", "ok");
     });
 
-    function log(msg) {
-      document.getElementById("log").textContent = msg;
-      console.log(msg);
+    // JSONバリデーション
+    function validateJson(json) {
+      if (!schema3dss) {
+        setStatus("⚠ スキーマ未読込", "error");
+        return;
+      }
+      const ajv = new Ajv({ allErrors: true, strict: false });
+      const validate = ajv.compile(schema3dss);
+      const valid = validate(json);
+      if (!valid) {
+        setStatus("❌ バリデーションエラー", "error");
+        renderErrors(validate.errors);
+      } else {
+        setStatus("✅ 読込成功 & バリデーションOK", "ok");
+        clearErrors();
+      }
+    }
+
+    // ステータス表示
+    function setStatus(msg, type) {
+      const el = document.getElementById("status");
+      el.textContent = msg;
+      el.className = type;
+    }
+
+    // エラー一覧表示
+    function renderErrors(errors) {
+      const container = document.getElementById("errors");
+      container.innerHTML = "";
+      if (!errors || errors.length === 0) return;
+
+      const table = document.createElement("table");
+      table.innerHTML = `
+        <tr><th>インスタンスパス</th><th>メッセージ</th></tr>
+      `;
+      errors.forEach(err => {
+        const tr = document.createElement("tr");
+        const tdPath = document.createElement("td");
+        tdPath.textContent = err.instancePath || "(root)";
+        const tdMsg = document.createElement("td");
+        tdMsg.textContent = err.message;
+        tr.appendChild(tdPath);
+        tr.appendChild(tdMsg);
+        table.appendChild(tr);
+      });
+      container.appendChild(table);
+    }
+
+    // エラー消去
+    function clearErrors() {
+      document.getElementById("errors").innerHTML = "";
     }
   </script>
 </body>
