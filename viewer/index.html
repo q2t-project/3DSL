@@ -607,13 +607,7 @@ document.getElementById("btnUrlLoad").addEventListener("click", async () => {
         showErrors(msgs);
       }
 
-      async function loadDigidiorama(path) {
-        const res = await fetch(path);
-        return res.json();
-      }
-
       loadSchemas();
-
       loadLocale('ja');
 
       const ro = new ResizeObserver(() => {
