@@ -561,10 +561,16 @@ document.getElementById("btnUrlLoad").addEventListener("click", async () => {
 
       async function loadSchemas() {
         try {
-            const [modelSchema, manifestSchema] = await Promise.all([
-              fetch('/3DSL/schemas/3DSS.schema.json').then(r => r.ok ? r.json() : Promise.reject(new Error('3DSS schema not found'))),
-              fetch('/3DSL/schemas/manifest.schema.json').then(r => r.ok ? r.json() : Promise.reject(new Error('manifest schema not found')))
-            ]);
+          const [modelSchema, manifestSchema] = await Promise.all([
+            fetch('/3DSL/schemas/3DSS.schema.json').then(r => {
+              if (!r.ok) throw new Error("3DSS.schema.json not found");
+              return r.json();
+            }),
+            fetch('/3DSL/schemas/manifest.schema.json').then(r => {
+              if (!r.ok) throw new Error("manifest.schema.json not found");
+              return r.json();
+            })
+          ]);
 
           validateModel = ajv.compile(modelSchema);
           validateManifest = ajv.compile(manifestSchema);
