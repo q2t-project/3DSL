@@ -43,7 +43,7 @@
     // スキーマをロード
     fetch("../schemas/3DSS.schema.json")
       .then(r => r.json())
-      .then(s => { schema3dss = s; setStatus("✅ スキーマ読込完了", "ok"); })
+      .then(s => { schema3dss = s; setStatus("✅ スキーマ読込完了", "ok"); restoreFromLocal(); })
       .catch(err => setStatus("❌ スキーマ読込失敗: " + err, "error"));
 
     // ファイル読込
@@ -89,6 +89,23 @@
       } else {
         setStatus("✅ 読込成功 & バリデーションOK", "ok");
         clearErrors();
+      }
+    }
+
+    // localStorage 復元
+    function restoreFromLocal() {
+      const saved = localStorage.getItem("3dsd:model:current");
+      if (!saved) {
+        setStatus("ℹ️ 保存データなし", "ok");
+        return;
+      }
+      try {
+        const json = JSON.parse(saved);
+        validateJson(json);
+        modelData = json;
+        setStatus("🔄 localStorageから復元済", "ok");
+      } catch (err) {
+        setStatus("❌ 復元失敗: " + err.message, "error");
       }
     }
 
