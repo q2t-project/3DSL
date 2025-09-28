@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>digidiorama viewer/</title>
+    <title>3DSD viewer/</title>
     <link rel="icon" href="data:,">
     <style>
       :root { --bg: #0b1020; --fg: #e6edf3; --accent: #5aa9ff; }
@@ -560,11 +560,12 @@ document.getElementById("btnUrlLoad").addEventListener("click", async () => {
       let validateManifest = null;
 
       async function loadSchemas() {
-        try {        
+        try {
             const [modelSchema, manifestSchema] = await Promise.all([
-            fetch('/digidiorama/digidiorama.schema.json').then(r => r.ok ? r.json() : Promise.reject(new Error('model schema not found'))),
-            fetch('/digidiorama/manifest.schema.json').then(r => r.ok ? r.json() : Promise.reject(new Error('manifest schema not found')))
-          ]);
+              fetch('/3DSL/schemas/3DSS.schema.json').then(r => r.ok ? r.json() : Promise.reject(new Error('3DSS schema not found'))),
+              fetch('/3DSL/schemas/manifest.schema.json').then(r => r.ok ? r.json() : Promise.reject(new Error('manifest schema not found')))
+            ]);
+
           validateModel = ajv.compile(modelSchema);
           validateManifest = ajv.compile(manifestSchema);
         } catch(err) {
