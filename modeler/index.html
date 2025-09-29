@@ -139,6 +139,7 @@ table input, table select {
         const json = JSON.parse(text);
         modelData = json;
         renderNodes();
+        renderEdges(); 
         validateJson(json);
         localStorage.setItem("3dsd:model:current", JSON.stringify(modelData));
       } catch (err) {
@@ -240,12 +241,23 @@ table input, table select {
 
     // fontSize（スクロール可能）
     const fontSizeCell = document.createElement("td");
-    fontSizeCell.appendChild(
-      createNumberCell(node.label?.fontSize ?? 16, val => {
-        node.label.fontSize = val;
-        saveAndValidate();
-      })
-    );
+   // ノード fontSize
+fontSizeCell.appendChild(
+  createNumberCell(node.label?.fontSize ?? 16, val => {
+    node.label.fontSize = val;
+    saveAndValidate();
+  }, 1, "pow2")
+);
+
+// エッジ fontSize
+fontSizeCell.appendChild(
+  createNumberCell(edge.label?.fontSize ?? 10, val => {
+    edge.label = edge.label || {};
+    edge.label.fontSize = val;
+    saveAndValidate();
+  }, 1, "pow2")
+);
+
     tr.appendChild(fontSizeCell);
 
     // plane
@@ -454,29 +466,42 @@ function renderEdges() {
       saveAndValidate();
     }
 
-function createNumberCell(value, onChange, step = 1) {
+function createNumberCell(value, onChange, step = 1, mode = "linear") {
   const input = document.createElement("input");
   input.type = "number";
   input.value = value;
   input.style.width = "60px";
 
-  // スクロールで値変更
   input.addEventListener("wheel", e => {
     e.preventDefault();
-    let delta = e.deltaY < 0 ? step : -step;
-    if (e.shiftKey) delta *= 10;
-    if (e.ctrlKey) delta *= 100;
-    input.value = parseFloat(input.value || 0) + delta;
-    onChange(parseFloat(input.value));
+    let current = parseFloat(input.value || 0);
+
+    if (mode === "pow2") {
+      // 2の累乗ステップ
+      if (e.deltaY < 0) {
+        current = current <= 0 ? 1 : current * 2;
+      } else {
+        current = current <= 0.125 ? 0.125 : current / 2;
+      }
+    } else {
+      // 通常の線形ステップ
+      let delta = e.deltaY < 0 ? step : -step;
+      if (e.shiftKey) delta *= 10;
+      if (e.ctrlKey) delta *= 100;
+      current += delta;
+    }
+
+    input.value = current;
+    onChange(current);
   });
 
-  // 手入力でも反映
   input.addEventListener("change", () => {
     onChange(parseFloat(input.value));
   });
 
   return input;
 }
+
 
   // JSONバリデーション
     function validateJson(json) {
@@ -501,6 +526,7 @@ function createNumberCell(value, onChange, step = 1) {
         const json = JSON.parse(saved);
         modelData = json;
         renderNodes();
+        renderEdges(); 
         validateJson(json);
         setStatus("🔄 localStorageから復元済", "ok");
       } catch (err) {
