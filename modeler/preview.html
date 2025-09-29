@@ -59,13 +59,11 @@
 
     function onMessage(event) {
       const msg = event.data;
-      console.log("📩 Received message:", msg);
       if (msg.type === "updateModel") {
         updateScenePreview(msg.data);
       }
     }
 
-    // === ラベル描画関数（Viewerと同じ方式） ===
     function makeLabelPlane(text, options = {}) {
       const fontSize   = options.fontSize   ?? 32;
       const fontFamily = options.fontFamily ?? "Arial";
@@ -103,22 +101,17 @@
       switch (plane) {
         case "yz":
           mesh.rotation.y = Math.PI / 2;
-          mesh.rotation.z = Math.PI / 2;
           break;
         case "zx":
           mesh.rotation.x = Math.PI / 2;
-          mesh.rotation.y += Math.PI;
           break;
-        // xy の場合は回転不要
       }
       if (direction) mesh.rotation.z += THREE.MathUtils.degToRad(direction);
 
       return mesh;
     }
 
-    // === モデル更新処理（唯一の updateScene 定義） ===
     function updateScenePreview(model) {
-      console.log("🔧 updateScene called with:", model);
       objectsGroup.clear();
       if (!model) return;
 
@@ -139,14 +132,7 @@
           objectsGroup.add(mesh);
 
           if (nlabel.text) {
-            const labelMesh = makeLabelPlane(nlabel.text, {
-              fontSize: nlabel.fontSize || 24,
-              color: nlabel.color || "#000",
-              background: nlabel.background,
-              opacity: nlabel.opacity ?? 1.0,
-              plane: nlabel.plane || "xy",
-              direction: nlabel.direction || 0
-            });
+            const labelMesh = makeLabelPlane(nlabel.text, nlabel);
             labelMesh.position.set(mesh.position.x, mesh.position.y + 0.3, mesh.position.z);
             objectsGroup.add(labelMesh);
           }
@@ -174,14 +160,7 @@
             const elabel = e.label || {};
             if (elabel.text) {
               const mid = new THREE.Vector3().addVectors(src.position, tgt.position).multiplyScalar(0.5);
-              const labelMesh = makeLabelPlane(elabel.text, {
-                fontSize: elabel.fontSize || 20,
-                color: elabel.color || "#000",
-                background: elabel.background,
-                opacity: elabel.opacity ?? 1.0,
-                plane: elabel.plane || "xy",
-                direction: elabel.direction || 0
-              });
+              const labelMesh = makeLabelPlane(elabel.text, elabel);
               labelMesh.position.copy(mid).add(new THREE.Vector3(0, 0.2, 0));
               objectsGroup.add(labelMesh);
             }
@@ -189,63 +168,36 @@
         });
       }
 
-// === auxiliary 描画 ===
-if (model.auxiliary) {
-  model.auxiliary.forEach(aux => {
-    if (aux.type === "axis") {
-      const len = aux.length ?? 5;
-      const colors = aux.colors ?? {x: "#ff0000", y: "#00ff00", z: "#0000ff"};
+      // === auxiliary 描画 ===
+      if (model.auxiliary) {
+        model.auxiliary.forEach(aux => {
+          if (aux.type === "axis") {
+            const len = aux.length ?? 5;
+            const helper = new THREE.AxesHelper(len);
+            objectsGroup.add(helper);
+          }
 
-      // X 軸
-      const xMat = new THREE.LineBasicMaterial({ color: new THREE.Color(colors.x) });
-      const xGeo = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0,0,0),
-        new THREE.Vector3(len,0,0)
-      ]);
-      objectsGroup.add(new THREE.Line(xGeo, xMat));
+          if (aux.type === "grid") {
+            const size = aux.sizeU ?? 10;
+            const divisions = aux.divisionsU ?? 10;
+            const color = aux.color ?? "#444444";
+            const opacity = aux.opacity ?? 0.3;
+            const plane = aux.plane ?? "xy";
 
-      // Y 軸
-      const yMat = new THREE.LineBasicMaterial({ color: new THREE.Color(colors.y) });
-      const yGeo = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0,0,0),
-        new THREE.Vector3(0,len,0)
-      ]);
-      objectsGroup.add(new THREE.Line(yGeo, yMat));
+            const grid = new THREE.GridHelper(size, divisions, color, color);
+            grid.material.opacity = opacity;
+            grid.material.transparent = true;
 
-      // Z 軸
-      const zMat = new THREE.LineBasicMaterial({ color: new THREE.Color(colors.z) });
-      const zGeo = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0,0,0),
-        new THREE.Vector3(0,0,len)
-      ]);
-      objectsGroup.add(new THREE.Line(zGeo, zMat));
-    }
-
-    if (aux.type === "grid") {
-      const sizeU = aux.sizeU ?? 10;
-      const sizeV = aux.sizeV ?? 10;
-      const divU  = aux.divisionsU ?? 10;
-      const divV  = aux.divisionsV ?? 10;
-      const color = aux.color ?? "#444444";
-      const opacity = aux.opacity ?? 0.3;
-      const plane = aux.plane ?? "xy";
-
-      const grid = new THREE.GridHelper(sizeU, divU, color, color);
-      grid.material.opacity = opacity;
-      grid.material.transparent = true;
-
-      if (plane === "yz") {
-        grid.rotation.z = Math.PI/2;
-        grid.rotation.y = Math.PI/2;
-      } else if (plane === "zx") {
-        grid.rotation.x = Math.PI/2;
+            if (plane === "xy") {
+              grid.rotation.x = Math.PI / 2;  // XZ → XY
+            } else if (plane === "yz") {
+              grid.rotation.z = Math.PI / 2;  // XZ → YZ
+            }
+            objectsGroup.add(grid);
+          }
+        });
       }
-      objectsGroup.add(grid);
-    }
-  });
-}
 
-      // === Fit to Scene ===
       fitCameraToObjects(objectsGroup, camera, controls);
     }
 
