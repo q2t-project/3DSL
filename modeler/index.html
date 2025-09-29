@@ -185,13 +185,12 @@ table input, table select {
     }
 
 
-
     // ノード描画
     function renderNodes() {
-  const tbody = document.querySelector("#nodesTable tbody");
-  tbody.innerHTML = "";
-
-  nodes.forEach((node, i) => {
+      const tbody = document.querySelector("#nodesTable tbody");
+      tbody.innerHTML = "";
+      if (!modelData || !modelData.nodes) return;
+      modelData.nodes.forEach((node, i) => {
     const tr = document.createElement("tr");
 
     // ID
@@ -295,9 +294,9 @@ table input, table select {
     const delButton = document.createElement("button");
     delButton.textContent = "除";
     delButton.addEventListener("click", () => {
-      nodes.splice(i, 1);
-      saveAndValidate();
-      renderNodes();
+        modelData.nodes.splice(i, 1);
+         saveAndValidate();
+        renderNodes();
     });
     actionCell.appendChild(delButton);
     tr.appendChild(actionCell);
