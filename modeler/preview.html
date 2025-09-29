@@ -138,6 +138,43 @@
         }
         }
 
+function updateScene(model) {
+  objectsGroup.clear();
+  if (!model) return;
+
+  // ノード描画 … (省略: 前のコードそのまま)
+  // エッジ描画 … (省略: 前のコードそのまま)
+
+  // === Fit to Scene ===
+  fitCameraToObjects(objectsGroup, camera, controls);
+}
+
+function fitCameraToObjects(group, camera, controls) {
+  if (group.children.length === 0) return;
+
+  const box = new THREE.Box3().setFromObject(group);
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+
+  // 中心にカメラターゲットを合わせる
+  controls.target.copy(center);
+
+  // 一番大きい寸法を基準に距離を決める
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const fov = camera.fov * (Math.PI / 180);
+  let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
+
+  // 少し余白を持たせる
+  cameraZ *= 1.5;
+
+  camera.position.set(center.x + cameraZ, center.y + cameraZ, center.z + cameraZ);
+  camera.near = cameraZ / 100;
+  camera.far = cameraZ * 100;
+  camera.updateProjectionMatrix();
+
+  controls.update();
+}
+
   function animate() {
     requestAnimationFrame(animate);
     controls.update();
