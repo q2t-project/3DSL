@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>3DSD Preview</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://esm.sh/three@0.158.0",
+        "OrbitControls": "https://esm.sh/three@0.158.0/examples/jsm/controls/OrbitControls.js"
+      }
+    }
+  </script>
+  <script type="module">
+    import * as THREE from "three";
+    import { OrbitControls } from "OrbitControls";
+
+    let scene, camera, renderer, controls;
+    let objectsGroup = new THREE.Group();
+
+    init();
+    animate();
+
+    function init() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xf0f0f0);
+
+      camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+      camera.position.set(5, 5, 5);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      controls = new OrbitControls(camera, renderer.domElement);
+
+      const light = new THREE.DirectionalLight(0xffffff, 1);
+      light.position.set(5, 10, 7);
+      scene.add(light);
+      scene.add(new THREE.AmbientLight(0x888888));
+
+      scene.add(objectsGroup);
+
+      window.addEventListener("resize", onWindowResize);
+      window.addEventListener("message", onMessage);
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function onMessage(event) {
+      const msg = event.data;
+      if (msg.type === "updateModel") {
+        updateScene(msg.data);
+      }
+    }
+
+    function updateScene(model) {
+      // 既存オブジェクトをクリア
+      objectsGroup.clear();
+
+      if (!model) return;
+
+      // ノード描画
+      const nodeMaterial = new THREE.MeshPhongMaterial({ color: 0x0077ff });
+      const nodeGeo = new THREE.SphereGeometry(0.1, 16, 16);
+
+      if (model.nodes) {
+        model.nodes.forEach(n => {
+          const mesh = new THREE.Mesh(nodeGeo, nodeMaterial.clone());
+          if (n.position) {
+            mesh.position.set(n.position[0], n.position[1], n.position[2]);
+          }
+          objectsGroup.add(mesh);
+        });
+      }
+
+      // エッジ描画
+      if (model.edges) {
+        model.edges.forEach(e => {
+          const src = model.nodes.find(n => n.id === e.source);
+          const tgt = model.nodes.find(n => n.id === e.target);
+          if (src && tgt && src.position && tgt.position) {
+            const points = [
+              new THREE.Vector3(...src.position),
+              new THREE.Vector3(...tgt.position)
+            ];
+            const geo = new THREE.BufferGeometry().setFromPoints(points);
+            const mat = new THREE.LineBasicMaterial({ color: 0x000000 });
+            const line = new THREE.Line(geo, mat);
+            objectsGroup.add(line);
+          }
+        });
+      }
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+  </script>
+</body>
+</html>
