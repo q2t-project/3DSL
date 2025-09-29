@@ -87,7 +87,16 @@
           if (n.position) {
             mesh.position.set(n.position[0], n.position[1], n.position[2]);
           }
-          objectsGroup.add(mesh);
+        if (nlabel.text) {
+          const sprite = makeTextSprite(nlabel.text, {
+            fontSize: nlabel.fontSize || 24,
+        color: nlabel.color || "#000",
+        background: nlabel.background,
+        opacity: nlabel.opacity != null ? nlabel.opacity : 1.0
+        });
+        sprite.position.set(mesh.position.x, mesh.position.y + 0.3, mesh.position.z);
+        objectsGroup.add(sprite);
+        }
         });
       }
 
@@ -124,6 +133,44 @@
     controls.update();
     renderer.render(scene, camera);
   }
+
+function makeTextSprite(message, parameters = {}) {
+  const fontSize = parameters.fontSize || 24;
+  const fontFace = "sans-serif";
+  const color = parameters.color || "#000000";
+  const background = parameters.background || null;
+  const opacity = parameters.opacity != null ? parameters.opacity : 1.0;
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+
+  ctx.font = `${fontSize}px ${fontFace}`;
+  const textWidth = ctx.measureText(message).width;
+
+  canvas.width = textWidth + 20;
+  canvas.height = fontSize * 2;
+  ctx.font = `${fontSize}px ${fontFace}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  if (background) {
+    ctx.fillStyle = background;
+    ctx.globalAlpha = opacity;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.globalAlpha = 1.0;
+  }
+
+  ctx.fillStyle = color;
+  ctx.fillText(message, canvas.width / 2, canvas.height / 2);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+  const sprite = new THREE.Sprite(material);
+
+  sprite.scale.set(canvas.width / 100, canvas.height / 100, 1);
+  return sprite;
+}
+
 </script>
 </body>
 </html>
