@@ -51,6 +51,7 @@
   <div class="toolbar">
     <input type="file" id="fileInput" accept=".json" />
     <button id="saveBtn">保存（ダウンロード）</button>
+    <button id="previewBtn">プレビューを開く</button>
   </div>
 
   <div id="status">未検証</div>
@@ -109,6 +110,7 @@
 
     let schema3dss = null;
     let modelData = null;
+    let previewWindow = null;
 
     // スキーマ読込
     fetch("../schemas/3DSS.schema.json")
@@ -145,7 +147,33 @@
       setStatus("💾 保存完了: model.json", "ok");
     });
 
- // ノード描画
+    // プレビュー
+    document.getElementById("previewBtn").addEventListener("click", () => {
+      if (!previewWindow || previewWindow.closed) {
+        previewWindow = window.open("preview.html", "3DSDPreview", "width=800,height=600");
+        setStatus("🔲 プレビューウィンドウを開きました", "ok");
+      } else {
+        previewWindow.focus();
+      }
+    // 開いた直後にもデータ送信
+      if (modelData) {
+        setTimeout(() => {
+        previewWindow.postMessage({ type: "updateModel", data: modelData }, "*");
+        }, 500);
+      }
+    });
+
+    // saveAndValidate でプレビュー更新も送信
+    function saveAndValidate() {
+      localStorage.setItem("3dsd:model:current", JSON.stringify(modelData));
+      validateJson(modelData);
+
+      if (previewWindow && !previewWindow.closed) {
+        previewWindow.postMessage({ type: "updateModel", data: modelData }, "*");
+      }
+    }
+
+    // ノード描画
     function renderNodes() {
       const tbody = document.querySelector("#nodesTable tbody");
       tbody.innerHTML = "";
