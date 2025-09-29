@@ -68,84 +68,78 @@
       objectsGroup.clear(); // 既存オブジェクトをクリア
       if (!model) return;
 
-      // ノード描画
-      const nodeGeo = new THREE.SphereGeometry(0.1, 16, 16);
+  // ノード描画
+  const nodeGeo = new THREE.SphereGeometry(0.1, 16, 16);
+  if (model.nodes) {
+    model.nodes.forEach(n => {
+      const nlabel = n.label || {};
+      const color = nlabel.color || "#0077ff";
+      const opacity = nlabel.opacity != null ? nlabel.opacity : 1.0;
 
-      if (model.nodes) {
-        model.nodes.forEach(n => {
-          const nlabel = n.label || {};
-          const color = nlabel.color || "#0077ff";
-          const opacity = nlabel.opacity != null ? nlabel.opacity : 1.0;
+      const mat = new THREE.MeshPhongMaterial({
+        color: new THREE.Color(color),
+        opacity, transparent: opacity < 1.0
+      });
+      const mesh = new THREE.Mesh(nodeGeo, mat);
+      if (n.position) mesh.position.set(...n.position);
+      objectsGroup.add(mesh);
 
-          const mat = new THREE.MeshPhongMaterial({
-            color: new THREE.Color(color),
-            opacity: opacity,
-            transparent: opacity < 1.0
-          });
-
-          const mesh = new THREE.Mesh(nodeGeo, mat);
-          if (n.position) {
-            mesh.position.set(n.position[0], n.position[1], n.position[2]);
-          }
-        if (nlabel.text) {
-          const sprite = makeLabelPlane(nlabel.text, {
-            fontSize: nlabel.fontSize || 24,
-        color: nlabel.color || "#000",
-        background: nlabel.background,
-        opacity: nlabel.opacity != null ? nlabel.opacity : 1.0
+      if (nlabel.text) {
+        const labelMesh = makeLabelPlane(nlabel.text, {
+          fontSize: nlabel.fontSize || 24,
+          color: nlabel.color || "#000",
+          background: nlabel.background,
+          opacity: nlabel.opacity ?? 1.0,
+          plane: nlabel.plane || "xy",
+          direction: nlabel.direction || 0
         });
-        sprite.position.set(mesh.position.x, mesh.position.y + 0.3, mesh.position.z);
-        objectsGroup.add(sprite);
-        }
-        });
+        labelMesh.position.set(mesh.position.x, mesh.position.y + 0.3, mesh.position.z);
+        objectsGroup.add(labelMesh);
       }
+    });
+  }
 
 // エッジ描画
-    if (model.edges) {
-      model.edges.forEach(e => {
-        const src = model.nodes.find(n => n.id === e.source);
-        const tgt = model.nodes.find(n => n.id === e.target);
-        if (src && tgt && src.position && tgt.position) {
-          const points = [
-            new THREE.Vector3(...src.position),
-            new THREE.Vector3(...tgt.position)
-          ];
-          const geo = new THREE.BufferGeometry().setFromPoints(points);
+  if (model.edges) {
+    model.edges.forEach(e => {
+      const src = model.nodes.find(n => n.id === e.source);
+      const tgt = model.nodes.find(n => n.id === e.target);
+      if (src && tgt && src.position && tgt.position) {
+        const points = [new THREE.Vector3(...src.position), new THREE.Vector3(...tgt.position)];
+        const geo = new THREE.BufferGeometry().setFromPoints(points);
 
-          const color = e.color || "#000000";
-          const opacity = e.opacity != null ? e.opacity : 1.0;
+        const color = e.color || "#000";
+        const opacity = e.opacity != null ? e.opacity : 1.0;
+        const mat = new THREE.LineBasicMaterial({ color: new THREE.Color(color), opacity, transparent: opacity < 1.0 });
+        const line = new THREE.Line(geo, mat);
+        objectsGroup.add(line);
 
-          const mat = new THREE.LineBasicMaterial({
-            color: new THREE.Color(color),
-            opacity: opacity,
-            transparent: opacity < 1.0
-          });
-
-          const line = new THREE.Line(geo, mat);
+        const elabel = e.label || {};
         if (elabel.text) {
           const mid = new THREE.Vector3().addVectors(src.position, tgt.position).multiplyScalar(0.5);
-          const sprite = makeLabelPlane(elabel.text, {
+          const labelMesh = makeLabelPlane(elabel.text, {
             fontSize: elabel.fontSize || 20,
             color: elabel.color || "#000",
             background: elabel.background,
-            opacity: elabel.opacity != null ? elabel.opacity : 1.0
+            opacity: elabel.opacity ?? 1.0,
+            plane: elabel.plane || "xy",
+            direction: elabel.direction || 0
           });
           labelMesh.position.copy(mid).add(new THREE.Vector3(0, 0.2, 0));
-          objectsGroup.add(sprite);
+          objectsGroup.add(labelMesh);
         }
-        }
-        });
-        }
-        }
+      }
+    });
+  }
+
+  // === Fit to Scene ===
+  fitCameraToObjects(objectsGroup, camera, controls);
+}
 
 function updateScene(model) {
   objectsGroup.clear();
   if (!model) return;
 
-  // ノード描画 … (省略: 前のコードそのまま)
-  // エッジ描画 … (省略: 前のコードそのまま)
-
-  // === Fit to Scene ===
   fitCameraToObjects(objectsGroup, camera, controls);
 }
 
