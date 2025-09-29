@@ -1,86 +1,41 @@
 {
   "meta": {
-    "title": "Label Directions",
-    "author": "q2t-project",
-    "created": "2025-09-16",
-    "tags": [
-      "demo",
-      "labelPos"
-    ]
+    "title": "Labels Sample",
+    "version": "1.0.0",
+    "date": "2025-09-30T12:00:00Z"
   },
   "nodes": [
     {
-      "id": "a",
+      "id": "n1",
       "position": [
         0,
         0,
         0
       ],
-      "color": "#5aa9ff",
       "label": {
-        "text": "Top"
+        "text": "ラベル1"
       }
     },
     {
-      "id": "b",
+      "id": "n2",
       "position": [
-        2,
-        0,
+        1,
+        1,
         0
       ],
-      "color": "#ff5555",
       "label": {
-        "text": "Bottom"
-      }
-    },
-    {
-      "id": "c",
-      "position": [
-        0,
-        2,
-        0
-      ],
-      "color": "#55ff55",
-      "label": {
-        "text": "Left"
-      }
-    },
-    {
-      "id": "d",
-      "position": [
-        -2,
-        0,
-        0
-      ],
-      "color": "#ffaa00",
-      "label": {
-        "text": "Right"
-      }
-    },
-    {
-      "id": "e",
-      "position": [
-        0,
-        0,
-        2
-      ],
-      "color": "#aa55ff",
-      "label": {
-        "text": "Front"
-      }
-    },
-    {
-      "id": "f",
-      "position": [
-        0,
-        0,
-        -2
-      ],
-      "color": "#00ffaa",
-      "label": {
-        "text": "Back"
+        "text": "ラベル2"
       }
     }
   ],
-  "edges": []
+  "edges": [
+    {
+      "source": "n1",
+      "target": "n2"
+    }
+  ],
+"auxiliary": [
+  { "type": "axis", "length": 10, "colors": { "x": "#ff0000", "y": "#00ff00", "z": "#0000ff" } },
+  { "type": "grid", "shape": "rect", "sizeU": 10, "sizeV": 10, "divisionsU": 10, "divisionsV": 10, "color": "#444444", "opacity": 0.3, "plane": "xy" }
+  ]
 }
