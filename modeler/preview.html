@@ -57,12 +57,12 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    function onMessage(event) {
-      const msg = event.data;
-      if (msg.type === "updateModel") {
-        updateScene(msg.data);
-      }
-    }
+//    function onMessage(event) {
+//      const msg = event.data;
+//      if (msg.type === "updateModel") {
+//        updateScene(msg.data);
+//      }
+//    }
 
     function updateScene(model) {
       objectsGroup.clear(); // 既存オブジェクトをクリア
