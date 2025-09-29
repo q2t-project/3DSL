@@ -289,7 +289,45 @@
       saveAndValidate();
     }
 
-    // JSONバリデーション
+// 数値入力セル生成時に呼ぶ関数
+function createNumberCell(initialValue, onChange) {
+  const cell = document.createElement("input");
+  cell.type = "number";
+  cell.value = initialValue ?? 0;
+
+  // --- フォーカス時のみホイール操作を有効化 ---
+  function wheelHandler(e) {
+    e.preventDefault();
+    let step = 1;
+    if (e.shiftKey) step = 10;
+    if (e.ctrlKey) step = 100;
+
+    let val = parseFloat(cell.value) || 0;
+    if (e.deltaY < 0) {
+      val += step;  // ホイール上
+    } else {
+      val -= step;  // ホイール下
+    }
+    cell.value = val;
+    onChange(val);
+  }
+
+  cell.addEventListener("focus", () => {
+    cell.addEventListener("wheel", wheelHandler, { passive: false });
+  });
+  cell.addEventListener("blur", () => {
+    cell.removeEventListener("wheel", wheelHandler);
+  });
+
+  // 通常の入力変更
+  cell.addEventListener("change", () => {
+    onChange(parseFloat(cell.value) || 0);
+  });
+
+  return cell;
+}
+
+  // JSONバリデーション
     function validateJson(json) {
       if (!schema3dss) return;
       const ajv = new Ajv({ allErrors: true, strict: false });
