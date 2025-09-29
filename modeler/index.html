@@ -26,10 +26,21 @@
     #status { padding: 0.5em; margin-bottom: 1em; }
     #status.ok { background: #e6ffe6; color: #060; }
     #status.error { background: #ffe6e6; color: #900; }
-    table { border-collapse: collapse; margin-top: 1em; width: 100%; }
-    th, td { border: 1px solid #ccc; padding: 4px; font-size: 0.9em; }
-    th { background: #f0f0f0; }
-    input, select { width: 100%; border: none; background: transparent; text-align: center; }
+    table {
+  border-collapse: collapse;
+  margin: 10px 0;
+  width: auto;
+}
+table th, table td {
+  border: 1px solid #ccc;
+  padding: 2px 4px;
+  text-align: center;
+  min-width: 60px; /* 数値セルが潰れないよう最低幅を確保 */
+}
+table input, table select {
+  width: 100%;
+  box-sizing: border-box;
+}
     input.default, select.default { color: #888; }
     .required { background: #ffe; }
     .section {
