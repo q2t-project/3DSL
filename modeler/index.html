@@ -289,12 +289,6 @@
       saveAndValidate();
     }
 
-    // 保存 & バリデーション
-    function saveAndValidate() {
-      localStorage.setItem("3dsd:model:current", JSON.stringify(modelData));
-      validateJson(modelData);
-    }
-
     // JSONバリデーション
     function validateJson(json) {
       if (!schema3dss) return;
