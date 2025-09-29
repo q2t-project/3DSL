@@ -65,18 +65,25 @@
     }
 
     function updateScene(model) {
-      // 既存オブジェクトをクリア
-      objectsGroup.clear();
-
+      objectsGroup.clear(); // 既存オブジェクトをクリア
       if (!model) return;
 
       // ノード描画
-      const nodeMaterial = new THREE.MeshPhongMaterial({ color: 0x0077ff });
       const nodeGeo = new THREE.SphereGeometry(0.1, 16, 16);
 
       if (model.nodes) {
         model.nodes.forEach(n => {
-          const mesh = new THREE.Mesh(nodeGeo, nodeMaterial.clone());
+          const nlabel = n.label || {};
+          const color = nlabel.color || "#0077ff";
+          const opacity = nlabel.opacity != null ? nlabel.opacity : 1.0;
+
+          const mat = new THREE.MeshPhongMaterial({
+            color: new THREE.Color(color),
+            opacity: opacity,
+            transparent: opacity < 1.0
+          });
+
+          const mesh = new THREE.Mesh(nodeGeo, mat);
           if (n.position) {
             mesh.position.set(n.position[0], n.position[1], n.position[2]);
           }
@@ -84,30 +91,39 @@
         });
       }
 
-      // エッジ描画
-      if (model.edges) {
-        model.edges.forEach(e => {
-          const src = model.nodes.find(n => n.id === e.source);
-          const tgt = model.nodes.find(n => n.id === e.target);
-          if (src && tgt && src.position && tgt.position) {
-            const points = [
-              new THREE.Vector3(...src.position),
-              new THREE.Vector3(...tgt.position)
-            ];
-            const geo = new THREE.BufferGeometry().setFromPoints(points);
-            const mat = new THREE.LineBasicMaterial({ color: 0x000000 });
-            const line = new THREE.Line(geo, mat);
-            objectsGroup.add(line);
-          }
-        });
-      }
-    }
+// エッジ描画
+    if (model.edges) {
+      model.edges.forEach(e => {
+        const src = model.nodes.find(n => n.id === e.source);
+        const tgt = model.nodes.find(n => n.id === e.target);
+        if (src && tgt && src.position && tgt.position) {
+          const points = [
+            new THREE.Vector3(...src.position),
+            new THREE.Vector3(...tgt.position)
+          ];
+          const geo = new THREE.BufferGeometry().setFromPoints(points);
 
-    function animate() {
-      requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene, camera);
+          const color = e.color || "#000000";
+          const opacity = e.opacity != null ? e.opacity : 1.0;
+
+          const mat = new THREE.LineBasicMaterial({
+            color: new THREE.Color(color),
+            opacity: opacity,
+            transparent: opacity < 1.0
+          });
+
+          const line = new THREE.Line(geo, mat);
+          objectsGroup.add(line);
+        }
+      });
     }
-  </script>
+  }
+
+  function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+  }
+</script>
 </body>
 </html>
