@@ -136,13 +136,6 @@
   fitCameraToObjects(objectsGroup, camera, controls);
 }
 
-function updateScene(model) {
-  objectsGroup.clear();
-  if (!model) return;
-
-  fitCameraToObjects(objectsGroup, camera, controls);
-}
-
 function fitCameraToObjects(group, camera, controls) {
   if (group.children.length === 0) return;
 
