@@ -1,210 +1,561 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>3DSD-modeler (Phase 2: Node Editing)</title>
+  <meta charset="UTF-8" />
+  <title>3DSD-modeler</title>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "ajv": "https://esm.sh/ajv@8/dist/2020?bundle"
+      }
+    }
+  </script>
+
   <style>
-    body { font-family: sans-serif; margin: 10px; }
-    h1 { font-size: 20px; }
-    table { border-collapse: collapse; margin: 10px 0; }
-    th, td { border: 1px solid #ccc; padding: 2px 4px; text-align: center; }
-    th { background: #f8f8f8; }
-    input { width: 80px; }
-    .ok { background: #cfc; padding: 10px; }
-    .error { background: #fcc; padding: 10px; }
-    .container { display: flex; justify-content: space-between; }
-    .nodes, .edges { flex: 1; overflow-x: auto; }
-  </style>
+    body { 
+        font-family: sans-serif; margin: 1em;
+        display: grid;
+        grid-template-columns: 1fr 2fr 1fr; /* 左:ノード 中央:プレビュー 右:エッジ */
+        grid-gap: 1em;
+    }
+    .toolbar {
+        margin-bottom: 1em;
+        grid-column: 1 / span 3; /* ヘッダーは横並び */
+    }
+    #status { padding: 0.5em; margin-bottom: 1em; }
+    #status.ok { background: #e6ffe6; color: #060; }
+    #status.error { background: #ffe6e6; color: #900; }
+    table {
+  border-collapse: collapse;
+  margin: 10px 0;
+  width: auto;
+}
+table th, table td {
+  border: 1px solid #ccc;
+  padding: 2px 4px;
+  text-align: center;
+  min-width: 60px; /* 数値セルが潰れないよう最低幅を確保 */
+}
+table input, table select {
+  width: 100%;
+  box-sizing: border-box;
+}
+    input.default, select.default { color: #888; }
+    .required { background: #ffe; }
+    .section {
+        overflow: auto;
+        max-height: 80vh;
+        margin-top: 2em; }
+    #preview {
+      border: 1px solid #ccc;
+      background: #fafafa;
+      min-height: 400px;
+      text-align: center;
+      line-height: 400px;
+      color: #888;
+</style>
 </head>
 <body>
   <h1>3DSD-modeler (Phase 2: Node Editing)</h1>
-  <input type="file" id="fileInput">
-  <button onclick="download()">保存（ダウンロード）</button>
-  <button onclick="openPreview()">プレビューを開く</button>
-  <div id="status">未検証</div>
 
-  <div class="container">
-    <div class="edges">
-      <h2>エッジ一覧</h2>
-      <table id="edgesTable"></table>
-    </div>
-    <div class="nodes">
-      <h2>ノード一覧</h2>
-      <table id="nodesTable"></table>
-    </div>
+  <div class="toolbar">
+    <input type="file" id="fileInput" accept=".json" />
+    <button id="saveBtn">保存（ダウンロード）</button>
+    <button id="previewBtn">プレビューを開く</button>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/ajv@8/dist/ajv.bundle.js"></script>
-  <script>
-    let model = { meta:{}, nodes:[], edges:[], auxiliary:[] };
+  <div id="status">未検証</div>
+  <div id="errors"></div>
+
+<div class="section" id="nodesSection">
+  <h2>ノード一覧</h2>
+    <table id="nodesTable">
+      <thead>
+        <tr>
+          <th class="required">ID</th>
+          <th>X</th>
+          <th>Y</th>
+          <th>Z</th>
+          <th class="required">label.text</th>
+          <th>fontSize</th>
+          <th>plane</th>
+          <th>color</th>
+          <th>background</th>
+          <th>opacity</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="section" id="preview">
+
+  </div>
+
+  <div class="section" id="edgesSection">
+    <h2>エッジ一覧</h2>
+    <table id="edgesTable">
+      <thead>
+        <tr>
+          <th class="required">Source</th>
+          <th class="required">Target</th>
+          <th>color</th>
+          <th>opacity</th>
+          <th>label.text</th>
+          <th>fontSize</th>
+          <th>plane</th>
+          <th>label.color</th>
+          <th>label.background</th>
+          <th>label.opacity</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script type="module">
+    import Ajv from "ajv";
+
+    let schema3dss = null;
+    let modelData = null;
     let previewWindow = null;
 
-    function saveAndValidate() {
-      localStorage.setItem("model", JSON.stringify(model));
-      document.getElementById("status").className = "ok";
-      document.getElementById("status").innerText = "localStorageから復元済";
-      if (previewWindow && !previewWindow.closed) {
-        previewWindow.postMessage({ type:"updateModel", data:model }, "*");
-      }
-    }
+    // スキーマ読込
+    fetch("../schemas/3DSS.schema.json")
+      .then(r => r.json())
+      .then(s => { schema3dss = s; setStatus("✅ スキーマ読込完了", "ok"); restoreFromLocal(); })
+      .catch(err => setStatus("❌ スキーマ読込失敗: " + err, "error"));
 
-    function loadFromLocalStorage() {
-      const saved = localStorage.getItem("model");
-      if (saved) {
-        try {
-          model = JSON.parse(saved);
-          renderNodes();
-          renderEdges();
-          document.getElementById("status").className = "ok";
-          document.getElementById("status").innerText = "localStorageから復元済";
-        } catch(e) {
-          document.getElementById("status").className = "error";
-          document.getElementById("status").innerText = "復元失敗: " + e.message;
-        }
-      }
-    }
-
-    document.getElementById("fileInput").addEventListener("change", e => {
+    // ファイル読込
+    document.getElementById("fileInput").addEventListener("change", async (e) => {
       const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onload = ev => {
-        try {
-          model = JSON.parse(ev.target.result);
-          renderNodes();
-          renderEdges();
-          saveAndValidate();
-          document.getElementById("status").className = "ok";
-          document.getElementById("status").innerText = "読込成功 & バリデーションOK";
-        } catch(err) {
-          document.getElementById("status").className = "error";
-          document.getElementById("status").innerText = "JSONパース失敗: " + err.message;
-        }
-      };
-      reader.readAsText(file);
+      if (!file) return;
+
+      const text = await file.text();
+      try {
+        const json = JSON.parse(text);
+        modelData = json;
+        renderNodes();
+        renderEdges(); 
+        validateJson(json);
+        localStorage.setItem("3dsd:model:current", JSON.stringify(modelData));
+      } catch (err) {
+        setStatus("❌ JSONパース失敗: " + err.message, "error");
+      }
     });
 
-    function download() {
-      const blob = new Blob([JSON.stringify(model,null,2)], {type:"application/json"});
+    // 保存
+    document.getElementById("saveBtn").addEventListener("click", () => {
+      if (!modelData) { setStatus("⚠ データなし", "error"); return; }
+      const blob = new Blob([JSON.stringify(modelData, null, 2) + "\n"], { type: "application/json" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = "model.json";
       a.click();
+      URL.revokeObjectURL(a.href);
+      setStatus("💾 保存完了: model.json", "ok");
+    });
+
+    // プレビュー
+    document.getElementById("previewBtn").addEventListener("click", () => {
+      if (!previewWindow || previewWindow.closed) {
+        previewWindow = window.open("preview.html", "3DSDPreview", "width=800,height=600");
+        setStatus("🔲 プレビューウィンドウを開きました", "ok");
+      } else {
+        previewWindow.focus();
+      }
+    // 開いた直後にもデータ送信
+      if (modelData) {
+        setTimeout(() => {
+        previewWindow.postMessage({ type: "updateModel", data: modelData }, "*");
+        }, 500);
+      }
+    });
+
+    // saveAndValidate でプレビュー更新も送信
+    function saveAndValidate() {
+      localStorage.setItem("3dsd:model:current", JSON.stringify(modelData));
+      validateJson(modelData);
+
+      if (previewWindow && !previewWindow.closed) {
+        previewWindow.postMessage({ type: "updateModel", data: modelData }, "*");
+      }
     }
 
-    function openPreview() {
-      previewWindow = window.open("preview.html","3DSD Preview","width=800,height=600");
-      setTimeout(()=>{ 
-        if (previewWindow) previewWindow.postMessage({type:"updateModel",data:model},"*"); 
-      },1000);
-    }
 
-    function createNumberCell(value, onChange, step=1, mode="linear") {
-      const input = document.createElement("input");
-      input.type = "number";
-      input.value = value;
-      input.step = step;
-      input.addEventListener("change", ()=> onChange(parseFloat(input.value)));
-
-      input.addEventListener("wheel", e=>{
-        e.preventDefault();
-        if (mode==="linear") {
-          const newVal = parseFloat(input.value||0) + (e.deltaY<0? step:-step);
-          input.value = newVal;
-          onChange(newVal);
-        } else if (mode==="pow2") {
-          let current = parseFloat(input.value||1);
-          if (current<=0) current=1;
-          if (e.deltaY<0) current*=2;
-          else current/=2;
-          input.value=current;
-          onChange(current);
-        }
-      });
-      const td = document.createElement("td");
-      td.appendChild(input);
-      return td;
-    }
-
-    function createTextCell(value,onChange) {
-      const input=document.createElement("input");
-      input.type="text"; input.value=value||"";
-      input.addEventListener("change",()=> onChange(input.value));
-      const td=document.createElement("td"); td.appendChild(input); return td;
-    }
-
-    function createColorCell(value,onChange){
-      const input=document.createElement("input");
-      input.type="color"; input.value=value||"#000000";
-      input.addEventListener("input",()=> onChange(input.value));
-      const td=document.createElement("td"); td.appendChild(input); return td;
-    }
-
+    // ノード描画
     function renderNodes() {
-      const tbl=document.getElementById("nodesTable");
-      tbl.innerHTML="";
-      const header=tbl.insertRow();
-      ["ID","X","Y","Z","label.text","fontSize","plane"].forEach(h=>{
-        const th=document.createElement("th"); th.innerText=h; header.appendChild(th);
+      const tbody = document.querySelector("#nodesTable tbody");
+      tbody.innerHTML = "";
+      if (!modelData || !modelData.nodes) return;
+      modelData.nodes.forEach((node, i) => {
+    const tr = document.createElement("tr");
+
+    // ID
+    const idCell = document.createElement("td");
+    idCell.textContent = node.id;
+    tr.appendChild(idCell);
+
+    // X, Y, Z
+    const xCell = document.createElement("td");
+    xCell.appendChild(
+      createNumberCell(node.position?.[0] ?? 0, val => {
+        node.position[0] = val;
+        saveAndValidate();
+      })
+    );
+    tr.appendChild(xCell);
+
+    const yCell = document.createElement("td");
+    yCell.appendChild(
+      createNumberCell(node.position?.[1] ?? 0, val => {
+        node.position[1] = val;
+        saveAndValidate();
+      })
+    );
+    tr.appendChild(yCell);
+
+    const zCell = document.createElement("td");
+    zCell.appendChild(
+      createNumberCell(node.position?.[2] ?? 0, val => {
+        node.position[2] = val;
+        saveAndValidate();
+      })
+    );
+    tr.appendChild(zCell);
+
+    // label.text
+    const textCell = document.createElement("td");
+    const textInput = document.createElement("input");
+    textInput.type = "text";
+    textInput.value = node.label?.text || "";
+    textInput.addEventListener("input", () => {
+      node.label.text = textInput.value;
+      saveAndValidate();
+    });
+    textCell.appendChild(textInput);
+    tr.appendChild(textCell);
+
+    // fontSize（スクロール可能）
+    const fontSizeCell = document.createElement("td");
+   // ノード fontSize
+fontSizeCell.appendChild(
+  createNumberCell(node.label?.fontSize ?? 16, val => {
+    node.label.fontSize = val;
+    saveAndValidate();
+  }, 1, "pow2")
+);
+
+    tr.appendChild(fontSizeCell);
+
+    // plane
+    const planeCell = document.createElement("td");
+    const planeSelect = document.createElement("select");
+    ["xy", "yz", "zx"].forEach(opt => {
+      const option = document.createElement("option");
+      option.value = opt;
+      option.textContent = opt;
+      if (node.label?.plane === opt) option.selected = true;
+      planeSelect.appendChild(option);
+    });
+    planeSelect.addEventListener("change", () => {
+      node.label.plane = planeSelect.value;
+      saveAndValidate();
+    });
+    planeCell.appendChild(planeSelect);
+    tr.appendChild(planeCell);
+
+    // color, background
+    ["color", "background"].forEach(key => {
+      const cell = document.createElement("td");
+      const input = document.createElement("input");
+      input.type = "color";
+      input.value = node.label?.[key] || "#000000";
+      input.addEventListener("input", () => {
+        node.label[key] = input.value;
+        saveAndValidate();
       });
-      model.nodes.forEach(node=>{
-        const tr=tbl.insertRow();
-        tr.appendChild(createTextCell(node.id||"",val=>{node.id=val; saveAndValidate();}));
-        tr.appendChild(createNumberCell(node.position?.[0]??0,val=>{
-          node.position=node.position||[0,0,0]; node.position[0]=val; saveAndValidate();
-        },1,"linear"));
-        tr.appendChild(createNumberCell(node.position?.[1]??0,val=>{
-          node.position=node.position||[0,0,0]; node.position[1]=val; saveAndValidate();
-        },1,"linear"));
-        tr.appendChild(createNumberCell(node.position?.[2]??0,val=>{
-          node.position=node.position||[0,0,0]; node.position[2]=val; saveAndValidate();
-        },1,"linear"));
-        tr.appendChild(createTextCell(node.label?.text||"",val=>{
-          node.label=node.label||{}; node.label.text=val; saveAndValidate();
-        }));
-        tr.appendChild(createNumberCell(node.label?.fontSize??16,val=>{
-          node.label=node.label||{}; node.label.fontSize=val; saveAndValidate();
-        },1,"pow2"));
-        tr.appendChild(createTextCell(node.label?.plane||"xy",val=>{
-          node.label=node.label||{}; node.label.plane=val; saveAndValidate();
-        }));
-      });
+      cell.appendChild(input);
+      tr.appendChild(cell);
+    });
+
+    // opacity（スクロール可能）
+    const opacityCell = document.createElement("td");
+    opacityCell.appendChild(
+      createNumberCell(node.label?.opacity ?? 1, val => {
+        node.label.opacity = val;
+        saveAndValidate();
+      }, 0.1) // 小数対応
+    );
+    tr.appendChild(opacityCell);
+
+    // 削除ボタン
+    const actionCell = document.createElement("td");
+    const delButton = document.createElement("button");
+    delButton.textContent = "除";
+    delButton.addEventListener("click", () => {
+        modelData.nodes.splice(i, 1);
+         saveAndValidate();
+        renderNodes();
+    });
+    actionCell.appendChild(delButton);
+    tr.appendChild(actionCell);
+
+    tbody.appendChild(tr);
+  });
+}
+
+    // エッジ描画
+function renderEdges() {
+  const tbody = document.querySelector("#edgesTable tbody");
+  tbody.innerHTML = "";
+  if (!modelData || !modelData.edges) return;
+
+  modelData.edges.forEach((edge, i) => {
+    const tr = document.createElement("tr");
+
+    // Source
+    const srcCell = document.createElement("td");
+    srcCell.textContent = edge.source;
+    tr.appendChild(srcCell);
+
+    // Target
+    const tgtCell = document.createElement("td");
+    tgtCell.textContent = edge.target;
+    tr.appendChild(tgtCell);
+
+    // color
+    const colorCell = document.createElement("td");
+    const colorInput = document.createElement("input");
+    colorInput.type = "color";
+    colorInput.value = edge.color || "#000000";
+    colorInput.addEventListener("input", () => {
+      edge.color = colorInput.value;
+      saveAndValidate();
+    });
+    colorCell.appendChild(colorInput);
+    tr.appendChild(colorCell);
+
+    // opacity（ホイール対応）
+    const opacityCell = document.createElement("td");
+    opacityCell.appendChild(
+      createNumberCell(edge.opacity ?? 1, val => {
+        edge.opacity = val;
+        saveAndValidate();
+      }, 0.1)
+    );
+    tr.appendChild(opacityCell);
+
+    // label.text
+    const textCell = document.createElement("td");
+    const textInput = document.createElement("input");
+    textInput.type = "text";
+    textInput.value = edge.label?.text || "";
+    textInput.addEventListener("input", () => {
+      edge.label = edge.label || {};
+      edge.label.text = textInput.value;
+      saveAndValidate();
+    });
+    textCell.appendChild(textInput);
+    tr.appendChild(textCell);
+
+    // label.fontSize（ホイール対応）
+    const fontSizeCell = document.createElement("td");
+    fontSizeCell.appendChild(
+      createNumberCell(edge.label?.fontSize ?? 10, val => {
+        edge.label = edge.label || {};
+        edge.label.fontSize = val;
+        saveAndValidate();
+      })
+    );
+    tr.appendChild(fontSizeCell);
+
+    // label.plane
+    const planeCell = document.createElement("td");
+    const planeSelect = document.createElement("select");
+    ["xy", "yz", "zx"].forEach(opt => {
+      const option = document.createElement("option");
+      option.value = opt;
+      option.textContent = opt;
+      if (edge.label?.plane === opt) option.selected = true;
+      planeSelect.appendChild(option);
+    });
+    planeSelect.addEventListener("change", () => {
+      edge.label = edge.label || {};
+      edge.label.plane = planeSelect.value;
+      saveAndValidate();
+    });
+    planeCell.appendChild(planeSelect);
+    tr.appendChild(planeCell);
+
+    // label.color
+    const lcolorCell = document.createElement("td");
+    const lcolorInput = document.createElement("input");
+    lcolorInput.type = "color";
+    lcolorInput.value = edge.label?.color || "#000000";
+    lcolorInput.addEventListener("input", () => {
+      edge.label = edge.label || {};
+      edge.label.color = lcolorInput.value;
+      saveAndValidate();
+    });
+    lcolorCell.appendChild(lcolorInput);
+    tr.appendChild(lcolorCell);
+
+    // label.background
+    const lbgCell = document.createElement("td");
+    const lbgInput = document.createElement("input");
+    lbgInput.type = "color";
+    lbgInput.value = edge.label?.background || "#ffffff";
+    lbgInput.addEventListener("input", () => {
+      edge.label = edge.label || {};
+      edge.label.background = lbgInput.value;
+      saveAndValidate();
+    });
+    lbgCell.appendChild(lbgInput);
+    tr.appendChild(lbgCell);
+
+    // label.opacity（ホイール対応）
+    const lopCell = document.createElement("td");
+    lopCell.appendChild(
+      createNumberCell(edge.label?.opacity ?? 1, val => {
+        edge.label = edge.label || {};
+        edge.label.opacity = val;
+        saveAndValidate();
+      }, 0.1)
+    );
+    tr.appendChild(lopCell);
+
+    // 削除ボタン
+    const actionCell = document.createElement("td");
+    const delButton = document.createElement("button");
+    delButton.textContent = "削除";
+    delButton.addEventListener("click", () => {
+      modelData.edges.splice(i, 1);
+      saveAndValidate();
+      renderEdges();
+    });
+    actionCell.appendChild(delButton);
+    tr.appendChild(actionCell);
+
+    tbody.appendChild(tr);
+  });
+}
+
+    // 共通 updateField
+    function updateField(e, obj, key, parseFn) {
+      const val = e.target.value.trim();
+      if (val === "" || (key==="background" && val==="")) {
+        delete obj[key];
+        e.target.classList.add("default");
+      } else {
+        obj[key] = parseFn ? parseFn(val) : val;
+        e.target.classList.remove("default");
+      }
+      saveAndValidate();
     }
 
-    function renderEdges(){
-      const tbl=document.getElementById("edgesTable");
-      tbl.innerHTML="";
-      const header=tbl.insertRow();
-      ["Source","Target","color","opacity","label.text","fontSize","plane","label.color","label.background","label.opacity"].forEach(h=>{
-        const th=document.createElement("th"); th.innerText=h; header.appendChild(th);
-      });
-      model.edges.forEach(edge=>{
-        const tr=tbl.insertRow();
-        tr.appendChild(createTextCell(edge.source||"",val=>{edge.source=val; saveAndValidate();}));
-        tr.appendChild(createTextCell(edge.target||"",val=>{edge.target=val; saveAndValidate();}));
-        tr.appendChild(createColorCell(edge.color||"#000000",val=>{edge.color=val; saveAndValidate();}));
-        tr.appendChild(createNumberCell(edge.opacity??1,val=>{edge.opacity=val; saveAndValidate();},0.1,"linear"));
-        tr.appendChild(createTextCell(edge.label?.text||"",val=>{
-          edge.label=edge.label||{}; edge.label.text=val; saveAndValidate();
-        }));
-        tr.appendChild(createNumberCell(edge.label?.fontSize??10,val=>{
-          edge.label=edge.label||{}; edge.label.fontSize=val; saveAndValidate();
-        },1,"pow2"));
-        tr.appendChild(createTextCell(edge.label?.plane||"xy",val=>{
-          edge.label=edge.label||{}; edge.label.plane=val; saveAndValidate();
-        }));
-        tr.appendChild(createColorCell(edge.label?.color||"#000000",val=>{
-          edge.label=edge.label||{}; edge.label.color=val; saveAndValidate();
-        }));
-        tr.appendChild(createColorCell(edge.label?.background||"#ffffff",val=>{
-          edge.label=edge.label||{}; edge.label.background=val; saveAndValidate();
-        }));
-        tr.appendChild(createNumberCell(edge.label?.opacity??1,val=>{
-          edge.label=edge.label||{}; edge.label.opacity=val; saveAndValidate();
-        },0.1,"linear"));
-      });
+function createNumberCell(value, onChange, step = 1, mode = "linear") {
+  const input = document.createElement("input");
+  input.type = "number";
+  input.value = value;
+  input.style.width = "60px";
+
+  input.addEventListener("wheel", e => {
+    e.preventDefault();
+    let current = parseFloat(input.value || 0);
+
+    if (mode === "pow2") {
+      // 2の累乗ステップ
+      if (e.deltaY < 0) {
+        current = current <= 0 ? 1 : current * 2;
+      } else {
+        current = current <= 0.125 ? 0.125 : current / 2;
+      }
+    } else {
+      // 通常の線形ステップ
+      let delta = e.deltaY < 0 ? step : -step;
+      if (e.shiftKey) delta *= 10;
+      if (e.ctrlKey) delta *= 100;
+      current += delta;
     }
 
-    loadFromLocalStorage();
+    input.value = current;
+    onChange(current);
+  });
+
+  input.addEventListener("change", () => {
+    onChange(parseFloat(input.value));
+  });
+
+  return input;
+}
+
+
+  // JSONバリデーション
+    function validateJson(json) {
+      if (!schema3dss) return;
+      const ajv = new Ajv({ allErrors: true, strict: false });
+      const validate = ajv.compile(schema3dss);
+      const valid = validate(json);
+      if (!valid) {
+        setStatus("❌ バリデーションエラー", "error");
+        renderErrors(validate.errors);
+      } else {
+        setStatus("✅ 読込成功 & バリデーションOK", "ok");
+        clearErrors();
+      }
+    }
+
+    // localStorage 復元
+    function restoreFromLocal() {
+      const saved = localStorage.getItem("3dsd:model:current");
+      if (!saved) return;
+      try {
+        const json = JSON.parse(saved);
+        modelData = json;
+        renderNodes();
+        renderEdges(); 
+        validateJson(json);
+        setStatus("🔄 localStorageから復元済", "ok");
+      } catch (err) {
+        setStatus("❌ 復元失敗: " + err.message, "error");
+      }
+    }
+
+    // ステータス表示
+    function setStatus(msg, type) {
+      const el = document.getElementById("status");
+      el.textContent = msg;
+      el.className = type;
+    }
+
+    // エラー一覧表示
+ function renderErrors(errors) {
+      const container = document.getElementById("errors");
+      container.innerHTML = "";
+      if (!errors || errors.length === 0) return;
+      const table = document.createElement("table");
+      table.innerHTML = `<tr><th>インスタンスパス</th><th>メッセージ</th></tr>`;
+      errors.forEach(err => {
+        const tr = document.createElement("tr");
+        const tdPath = document.createElement("td");
+        tdPath.textContent = err.instancePath || "(root)";
+        const tdMsg = document.createElement("td");
+        tdMsg.textContent = err.message;
+        tr.appendChild(tdPath);
+        tr.appendChild(tdMsg);
+        table.appendChild(tr);
+      });
+      container.appendChild(table);
+    }
+
+    // エラー消去
+    function clearErrors() {
+      document.getElementById("errors").innerHTML = "";
+    }
   </script>
 </body>
 </html>
