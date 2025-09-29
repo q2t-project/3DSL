@@ -189,6 +189,62 @@
         });
       }
 
+// === auxiliary 描画 ===
+if (model.auxiliary) {
+  model.auxiliary.forEach(aux => {
+    if (aux.type === "axis") {
+      const len = aux.length ?? 5;
+      const colors = aux.colors ?? {x: "#ff0000", y: "#00ff00", z: "#0000ff"};
+
+      // X 軸
+      const xMat = new THREE.LineBasicMaterial({ color: new THREE.Color(colors.x) });
+      const xGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0,0,0),
+        new THREE.Vector3(len,0,0)
+      ]);
+      objectsGroup.add(new THREE.Line(xGeo, xMat));
+
+      // Y 軸
+      const yMat = new THREE.LineBasicMaterial({ color: new THREE.Color(colors.y) });
+      const yGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0,0,0),
+        new THREE.Vector3(0,len,0)
+      ]);
+      objectsGroup.add(new THREE.Line(yGeo, yMat));
+
+      // Z 軸
+      const zMat = new THREE.LineBasicMaterial({ color: new THREE.Color(colors.z) });
+      const zGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0,0,0),
+        new THREE.Vector3(0,0,len)
+      ]);
+      objectsGroup.add(new THREE.Line(zGeo, zMat));
+    }
+
+    if (aux.type === "grid") {
+      const sizeU = aux.sizeU ?? 10;
+      const sizeV = aux.sizeV ?? 10;
+      const divU  = aux.divisionsU ?? 10;
+      const divV  = aux.divisionsV ?? 10;
+      const color = aux.color ?? "#444444";
+      const opacity = aux.opacity ?? 0.3;
+      const plane = aux.plane ?? "xy";
+
+      const grid = new THREE.GridHelper(sizeU, divU, color, color);
+      grid.material.opacity = opacity;
+      grid.material.transparent = true;
+
+      if (plane === "yz") {
+        grid.rotation.z = Math.PI/2;
+        grid.rotation.y = Math.PI/2;
+      } else if (plane === "zx") {
+        grid.rotation.x = Math.PI/2;
+      }
+      objectsGroup.add(grid);
+    }
+  });
+}
+
       // === Fit to Scene ===
       fitCameraToObjects(objectsGroup, camera, controls);
     }
