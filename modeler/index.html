@@ -89,9 +89,14 @@
         <tr>
           <th class="required">Source</th>
           <th class="required">Target</th>
-          <th>色</th>
-          <th>不透明度</th>
-          <th>ラベル</th>
+          <th>color</th>
+          <th>opacity</th>
+          <th>label.text</th>
+          <th>fontSize</th>
+          <th>plane</th>
+          <th>label.color</th>
+          <th>label.background</th>
+          <th>label.opacity</th>
           <th>操作</th>
         </tr>
       </thead>
@@ -155,7 +160,7 @@
           <td><input type="number" value="${node.position?.[1] ?? 0}"></td>
           <td><input type="number" value="${node.position?.[2] ?? 0}"></td>
           <td><input type="text" class="required" value="${nlabel.text ?? ""}"></td>
-          <td><input type="number" value="${nlabel.fontSize ?? 10}" class="${nlabel.fontSize==null ? "default":""}"></td>
+          <td><input type="number" value="${nlabel.fontSize ?? 16}" class="${nlabel.fontSize==null ? "default":""}"></td>
           <td>
             <select class="${nlabel.plane==null ? "default":""}">
               <option value="xy" ${nlabel.plane==="xy"?"selected":""}>xy</option>
@@ -168,38 +173,18 @@
           <td><input type="number" step="0.1" value="${nlabel.opacity ?? 1.0}" class="${nlabel.opacity==null?"default":""}"></td>
           <td><button data-index="${index}" class="deleteBtn">除</button></td>
         `;
-const elabel = edge.label || {};
-tr.innerHTML = `
-  <td><input type="text" value="${edge.source}"></td>
-  <td><input type="text" value="${edge.target}"></td>
-  <td><input type="text" value="${edge.color ?? ""}"></td>
-  <td><input type="number" step="0.1" value="${edge.opacity ?? 1.0}"></td>
-  <td><input type="text" value="${elabel.text ?? ""}"></td>
-  <td><input type="number" value="${e.fontSize ?? 10}" class="${elabel.fontSize==null?"default":""}"></td>
-  <td>
-    <select class="${elabel.plane==null?"default":""}">
-      <option value="xy" ${elabel.plane==="xy"?"selected":""}>xy</option>
-      <option value="yz" ${elabel.plane==="yz"?"selected":""}>yz</option>
-      <option value="zx" ${elabel.plane==="zx"?"selected":""}>zx</option>
-    </select>
-  </td>
-  <td><input type="text" value="${elabel.color ?? "#000"}" class="${elabel.color==null?"default":""}"></td>
-  <td><input type="text" value="${elabel.background ?? ""}" class="${elabel.background==null?"default":""}"></td>
-  <td><input type="number" step="0.1" value="${elabel.opacity ?? 1.0}" class="${elabel.opacity==null?"default":""}"></td>
-  <td><button data-index="${index}" class="deleteEdgeBtn">除</button></td>
-`;
 
         const inputs = tr.querySelectorAll("input, select");
         inputs[0].addEventListener("input", e => { node.id = e.target.value; saveAndValidate(); });
         inputs[1].addEventListener("input", e => { node.position[0] = parseFloat(e.target.value); saveAndValidate(); });
         inputs[2].addEventListener("input", e => { node.position[1] = parseFloat(e.target.value); saveAndValidate(); });
         inputs[3].addEventListener("input", e => { node.position[2] = parseFloat(e.target.value); saveAndValidate(); });
-        inputs[4].addEventListener("input", e => { nlabel.text = e.target.value; node.nlabel = nlabel; saveAndValidate(); });
-        inputs[5].addEventListener("input", e => { updateField(e, nlabel, "fontSize"); });
-        inputs[6].addEventListener("change", e => { updateField(e, nlabel, "plane"); });
-        inputs[7].addEventListener("input", e => { updateField(e, nlabel, "color"); });
-        inputs[8].addEventListener("input", e => { updateField(e, nlabel, "background"); });
-        inputs[9].addEventListener("input", e => { updateField(e, nlabel, "opacity", parseFloat); });
+        inputs[4].addEventListener("input", e => { nlabel.text = e.target.value; node.label = nlabel; saveAndValidate(); });
+        inputs[5].addEventListener("input", e => { updateField(e, nlabel, "fontSize"); node.label = nlabel; });
+        inputs[6].addEventListener("change", e => { updateField(e, nlabel, "plane"); node.label = nlabel; });
+        inputs[7].addEventListener("input", e => { updateField(e, nlabel, "color"); node.label = nlabel; });
+        inputs[8].addEventListener("input", e => { updateField(e, nlabel, "background"); node.label = nlabel; });
+        inputs[9].addEventListener("input", e => { updateField(e, nlabel, "opacity", parseFloat); node.label = nlabel; });
 
         tr.querySelector(".deleteBtn").addEventListener("click", () => {
           modelData.nodes.splice(index, 1);
@@ -212,6 +197,58 @@ tr.innerHTML = `
       renderEdges();
     }
 
+    // エッジ描画
+    function renderEdges() {
+      const tbody = document.querySelector("#edgesTable tbody");
+      tbody.innerHTML = "";
+        if (!modelData || !modelData.edges) return;
+
+    modelData.edges.forEach((edge, index) => {
+      const tr = document.createElement("tr");
+      const elabel = edge.label || {};
+      tr.innerHTML = `
+<td><input type="text" value="${edge.source}"></td>
+          <td><input type="text" value="${edge.target}"></td>
+          <td><input type="text" value="${edge.color ?? ""}"></td>
+          <td><input type="number" step="0.1" value="${edge.opacity ?? 1.0}"></td>
+          <td><input type="text" value="${elabel.text ?? ""}"></td>
+          <td><input type="number" value="${elabel.fontSize ?? 10}" class="${elabel.fontSize==null?"default":""}"></td>
+          <td>
+            <select class="${elabel.plane==null?"default":""}">
+              <option value="xy" ${elabel.plane==="xy"?"selected":""}>xy</option>
+              <option value="yz" ${elabel.plane==="yz"?"selected":""}>yz</option>
+              <option value="zx" ${elabel.plane==="zx"?"selected":""}>zx</option>
+            </select>
+          </td>
+          <td><input type="text" value="${elabel.color ?? "#000"}" class="${elabel.color==null?"default":""}"></td>
+          <td><input type="text" value="${elabel.background ?? ""}" class="${elabel.background==null?"default":""}"></td>
+          <td><input type="number" step="0.1" value="${elabel.opacity ?? 1.0}" class="${elabel.opacity==null?"default":""}"></td>
+          <td><button data-index="${index}" class="deleteEdgeBtn">除</button></td>
+        `;
+
+        const inputs = tr.querySelectorAll("input, select");
+        inputs[0].addEventListener("input", e => { edge.source = e.target.value; saveAndValidate(); });
+        inputs[1].addEventListener("input", e => { edge.target = e.target.value; saveAndValidate(); });
+        inputs[2].addEventListener("input", e => { edge.color = e.target.value; saveAndValidate(); });
+        inputs[3].addEventListener("input", e => { edge.opacity = parseFloat(e.target.value); saveAndValidate(); });
+        inputs[4].addEventListener("input", e => { elabel.text = e.target.value; edge.label = elabel; saveAndValidate(); });
+        inputs[5].addEventListener("input", e => { updateField(e, elabel, "fontSize"); edge.label = elabel; });
+        inputs[6].addEventListener("change", e => { updateField(e, elabel, "plane"); edge.label = elabel; });
+        inputs[7].addEventListener("input", e => { updateField(e, elabel, "color"); edge.label = elabel; });
+        inputs[8].addEventListener("input", e => { updateField(e, elabel, "background"); edge.label = elabel; });
+        inputs[9].addEventListener("input", e => { updateField(e, elabel, "opacity", parseFloat); edge.label = elabel; });
+
+        tr.querySelector(".deleteEdgeBtn").addEventListener("click", () => {
+          modelData.edges.splice(index, 1);
+          renderEdges();
+          saveAndValidate();
+        });
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    // 共通 updateField
     function updateField(e, obj, key, parseFn) {
       const val = e.target.value.trim();
       if (val === "" || (key==="background" && val==="")) {
@@ -223,42 +260,6 @@ tr.innerHTML = `
       }
       saveAndValidate();
     }
-
-
-
-    // エッジ描画
-    function renderEdges() {
-      const tbody = document.querySelector("#edgesTable tbody");
-      tbody.innerHTML = "";
-        if (!modelData || !modelData.edges) return;
-
-    modelData.edges.forEach((edge, index) => {
-      const tr = document.createElement("tr");
-
-      tr.innerHTML = `
-        <td><input type="text" value="${edge.source}"></td>
-        <td><input type="text" value="${edge.target}"></td>
-        <td><input type="text" value="${edge.color || ""}"></td>
-        <td><input type="number" step="0.1" value="${edge.opacity ?? 1.0}"></td>
-        <td><input type="text" value="${edge.elabel?.text || ""}"></td>
-        <td><button data-index="${index}" class="deleteEdgeBtn">除</button></td>
-    `;
-
-        const inputs = tr.querySelectorAll("input");
-        inputs[0].addEventListener("input", e => { edge.source = e.target.value; saveAndValidate(); });
-        inputs[1].addEventListener("input", e => { edge.target = e.target.value; saveAndValidate(); });
-        inputs[2].addEventListener("input", e => { edge.color = e.target.value; saveAndValidate(); });
-        inputs[3].addEventListener("input", e => { edge.opacity = parseFloat(e.target.value); saveAndValidate(); });
-        inputs[4].addEventListener("input", e => { edge.elabel.text = e.target.value; saveAndValidate(); });
-
-      tr.querySelector(".deleteEdgeBtn").addEventListener("click", () => {
-        modelData.edges.splice(index, 1);
-        renderEdges();
-        saveAndValidate();
-      });
-      tbody.appendChild(tr);
-    });
-  }
 
     // 保存 & バリデーション
     function saveAndValidate() {
