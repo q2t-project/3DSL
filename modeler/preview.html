@@ -88,7 +88,7 @@
             mesh.position.set(n.position[0], n.position[1], n.position[2]);
           }
         if (nlabel.text) {
-          const sprite = makeTextSprite(nlabel.text, {
+          const sprite = makeLabelPlane(nlabel.text, {
             fontSize: nlabel.fontSize || 24,
         color: nlabel.color || "#000",
         background: nlabel.background,
@@ -124,13 +124,13 @@
           const line = new THREE.Line(geo, mat);
         if (elabel.text) {
           const mid = new THREE.Vector3().addVectors(src.position, tgt.position).multiplyScalar(0.5);
-          const sprite = makeTextSprite(elabel.text, {
+          const sprite = makeLabelPlane(elabel.text, {
             fontSize: elabel.fontSize || 20,
             color: elabel.color || "#000",
             background: elabel.background,
             opacity: elabel.opacity != null ? elabel.opacity : 1.0
           });
-          sprite.position.copy(mid).add(new THREE.Vector3(0, 0.2, 0));
+          labelMesh.position.copy(mid).add(new THREE.Vector3(0, 0.2, 0));
           objectsGroup.add(sprite);
         }
         }
