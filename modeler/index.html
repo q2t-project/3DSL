@@ -148,44 +148,44 @@
 
       modelData.nodes.forEach((node, index) => {
         const tr = document.createElement("tr");
-        const label = node.label || {};
+        const nlabel = node.label || {};
         tr.innerHTML = `
           <td><input type="text" class="required" value="${node.id ?? ""}"></td>
           <td><input type="number" value="${node.position?.[0] ?? 0}"></td>
           <td><input type="number" value="${node.position?.[1] ?? 0}"></td>
           <td><input type="number" value="${node.position?.[2] ?? 0}"></td>
-          <td><input type="text" class="required" value="${label.text ?? ""}"></td>
-          <td><input type="number" value="${label.fontSize ?? 10}" class="${label.fontSize==null ? "default":""}"></td>
+          <td><input type="text" class="required" value="${nlabel.text ?? ""}"></td>
+          <td><input type="number" value="${nlabel.fontSize ?? 10}" class="${nlabel.fontSize==null ? "default":""}"></td>
           <td>
-            <select class="${label.plane==null ? "default":""}">
-              <option value="xy" ${label.plane==="xy"?"selected":""}>xy</option>
-              <option value="yz" ${label.plane==="yz"?"selected":""}>yz</option>
-              <option value="zx" ${label.plane==="zx"?"selected":""}>zx</option>
+            <select class="${nlabel.plane==null ? "default":""}">
+              <option value="xy" ${nlabel.plane==="xy"?"selected":""}>xy</option>
+              <option value="yz" ${nlabel.plane==="yz"?"selected":""}>yz</option>
+              <option value="zx" ${nlabel.plane==="zx"?"selected":""}>zx</option>
             </select>
           </td>
-          <td><input type="text" value="${label.color ?? "#000"}" class="${label.color==null?"default":""}"></td>
-          <td><input type="text" value="${label.background ?? ""}" class="${label.background==null?"default":""}"></td>
-          <td><input type="number" step="0.1" value="${label.opacity ?? 1.0}" class="${label.opacity==null?"default":""}"></td>
+          <td><input type="text" value="${nlabel.color ?? "#000"}" class="${nlabel.color==null?"default":""}"></td>
+          <td><input type="text" value="${nlabel.background ?? ""}" class="${nlabel.background==null?"default":""}"></td>
+          <td><input type="number" step="0.1" value="${nlabel.opacity ?? 1.0}" class="${nlabel.opacity==null?"default":""}"></td>
           <td><button data-index="${index}" class="deleteBtn">除</button></td>
         `;
-const label = edge.label || {};
+const elabel = edge.label || {};
 tr.innerHTML = `
   <td><input type="text" value="${edge.source}"></td>
   <td><input type="text" value="${edge.target}"></td>
   <td><input type="text" value="${edge.color ?? ""}"></td>
   <td><input type="number" step="0.1" value="${edge.opacity ?? 1.0}"></td>
-  <td><input type="text" value="${label.text ?? ""}"></td>
-  <td><input type="number" value="${label.fontSize ?? 10}" class="${label.fontSize==null?"default":""}"></td>
+  <td><input type="text" value="${elabel.text ?? ""}"></td>
+  <td><input type="number" value="${e.fontSize ?? 10}" class="${elabel.fontSize==null?"default":""}"></td>
   <td>
-    <select class="${label.plane==null?"default":""}">
-      <option value="xy" ${label.plane==="xy"?"selected":""}>xy</option>
-      <option value="yz" ${label.plane==="yz"?"selected":""}>yz</option>
-      <option value="zx" ${label.plane==="zx"?"selected":""}>zx</option>
+    <select class="${elabel.plane==null?"default":""}">
+      <option value="xy" ${elabel.plane==="xy"?"selected":""}>xy</option>
+      <option value="yz" ${elabel.plane==="yz"?"selected":""}>yz</option>
+      <option value="zx" ${elabel.plane==="zx"?"selected":""}>zx</option>
     </select>
   </td>
-  <td><input type="text" value="${label.color ?? "#000"}" class="${label.color==null?"default":""}"></td>
-  <td><input type="text" value="${label.background ?? ""}" class="${label.background==null?"default":""}"></td>
-  <td><input type="number" step="0.1" value="${label.opacity ?? 1.0}" class="${label.opacity==null?"default":""}"></td>
+  <td><input type="text" value="${elabel.color ?? "#000"}" class="${elabel.color==null?"default":""}"></td>
+  <td><input type="text" value="${elabel.background ?? ""}" class="${elabel.background==null?"default":""}"></td>
+  <td><input type="number" step="0.1" value="${elabel.opacity ?? 1.0}" class="${elabel.opacity==null?"default":""}"></td>
   <td><button data-index="${index}" class="deleteEdgeBtn">除</button></td>
 `;
 
@@ -194,12 +194,12 @@ tr.innerHTML = `
         inputs[1].addEventListener("input", e => { node.position[0] = parseFloat(e.target.value); saveAndValidate(); });
         inputs[2].addEventListener("input", e => { node.position[1] = parseFloat(e.target.value); saveAndValidate(); });
         inputs[3].addEventListener("input", e => { node.position[2] = parseFloat(e.target.value); saveAndValidate(); });
-        inputs[4].addEventListener("input", e => { label.text = e.target.value; node.label = label; saveAndValidate(); });
-        inputs[5].addEventListener("input", e => { updateField(e, label, "fontSize"); });
-        inputs[6].addEventListener("change", e => { updateField(e, label, "plane"); });
-        inputs[7].addEventListener("input", e => { updateField(e, label, "color"); });
-        inputs[8].addEventListener("input", e => { updateField(e, label, "background"); });
-        inputs[9].addEventListener("input", e => { updateField(e, label, "opacity", parseFloat); });
+        inputs[4].addEventListener("input", e => { nlabel.text = e.target.value; node.nlabel = nlabel; saveAndValidate(); });
+        inputs[5].addEventListener("input", e => { updateField(e, nlabel, "fontSize"); });
+        inputs[6].addEventListener("change", e => { updateField(e, nlabel, "plane"); });
+        inputs[7].addEventListener("input", e => { updateField(e, nlabel, "color"); });
+        inputs[8].addEventListener("input", e => { updateField(e, nlabel, "background"); });
+        inputs[9].addEventListener("input", e => { updateField(e, nlabel, "opacity", parseFloat); });
 
         tr.querySelector(".deleteBtn").addEventListener("click", () => {
           modelData.nodes.splice(index, 1);
@@ -240,7 +240,7 @@ tr.innerHTML = `
         <td><input type="text" value="${edge.target}"></td>
         <td><input type="text" value="${edge.color || ""}"></td>
         <td><input type="number" step="0.1" value="${edge.opacity ?? 1.0}"></td>
-        <td><input type="text" value="${edge.label?.text || ""}"></td>
+        <td><input type="text" value="${edge.elabel?.text || ""}"></td>
         <td><button data-index="${index}" class="deleteEdgeBtn">除</button></td>
     `;
 
@@ -249,7 +249,7 @@ tr.innerHTML = `
         inputs[1].addEventListener("input", e => { edge.target = e.target.value; saveAndValidate(); });
         inputs[2].addEventListener("input", e => { edge.color = e.target.value; saveAndValidate(); });
         inputs[3].addEventListener("input", e => { edge.opacity = parseFloat(e.target.value); saveAndValidate(); });
-        inputs[4].addEventListener("input", e => { edge.label.text = e.target.value; saveAndValidate(); });
+        inputs[4].addEventListener("input", e => { edge.elabel.text = e.target.value; saveAndValidate(); });
 
       tr.querySelector(".deleteEdgeBtn").addEventListener("click", () => {
         modelData.edges.splice(index, 1);
