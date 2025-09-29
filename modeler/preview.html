@@ -61,7 +61,7 @@
       const msg = event.data;
       console.log("📩 Received message:", msg);
       if (msg.type === "updateModel") {
-        updateScene(msg.data);
+        updateScenePreview(msg.data);
       }
     }
 
