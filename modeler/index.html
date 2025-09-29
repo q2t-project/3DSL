@@ -170,13 +170,13 @@
     document.getElementById("addEdgeBtn").addEventListener("click", () => {
       if (!modelData) return;
       const newEdge = {
-      from: modelData.nodes.length > 0 ? modelData.nodes[0].id : "",
-      to: modelData.nodes.length > 1 ? modelData.nodes[1].id : "",
+      source: modelData.nodes.length > 0 ? modelData.nodes[0].id : "",
+      target: modelData.nodes.length > 1 ? modelData.nodes[1].id : "",
       color: "#ffffff",
       opacity: 1.0,
       label: { text: "edge" }
       };
-    modelData.edges.push(newEdge);
+      modelData.edges.push(newEdge);
       renderEdges();
       saveAndValidate();
     });
@@ -191,8 +191,8 @@
       const tr = document.createElement("tr");
 
       tr.innerHTML = `
-        <td><input type="text" value="${edge.from}"></td>
-        <td><input type="text" value="${edge.to}"></td>
+        <td><input type="text" value="${edge.source}"></td>
+        <td><input type="text" value="${edge.target}"></td>
         <td><input type="text" value="${edge.color || ""}"></td>
         <td><input type="number" step="0.1" value="${edge.opacity ?? 1.0}"></td>
         <td><input type="text" value="${edge.label?.text || ""}"></td>
@@ -200,8 +200,8 @@
     `;
 
         const inputs = tr.querySelectorAll("input");
-        inputs[0].addEventListener("input", e => { edge.from = e.target.value; saveAndValidate(); });
-        inputs[1].addEventListener("input", e => { edge.to = e.target.value; saveAndValidate(); });
+        inputs[0].addEventListener("input", e => { edge.source = e.target.value; saveAndValidate(); });
+        inputs[1].addEventListener("input", e => { edge.target = e.target.value; saveAndValidate(); });
         inputs[2].addEventListener("input", e => { edge.color = e.target.value; saveAndValidate(); });
         inputs[3].addEventListener("input", e => { edge.opacity = parseFloat(e.target.value); saveAndValidate(); });
         inputs[4].addEventListener("input", e => { edge.label.text = e.target.value; saveAndValidate(); });
