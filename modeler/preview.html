@@ -218,6 +218,23 @@ function makeLabelPlane(text, options = {}) {
   return mesh;
 }
 
+function onMessage(event) {
+  const msg = event.data;
+  console.log("📩 Received message:", msg);   // ←追加
+  if (msg.type === "updateModel") {
+    updateScene(msg.data);
+  }
+}
+
+function updateScene(model) {
+  console.log("🔧 updateScene called with:", model);
+  objectsGroup.clear();
+  if (!model) return;
+  …
+}
+
+
+
 </script>
 </body>
 </html>
