@@ -122,11 +122,21 @@
           });
 
           const line = new THREE.Line(geo, mat);
-          objectsGroup.add(line);
+        if (elabel.text) {
+          const mid = new THREE.Vector3().addVectors(src.position, tgt.position).multiplyScalar(0.5);
+          const sprite = makeTextSprite(elabel.text, {
+            fontSize: elabel.fontSize || 20,
+            color: elabel.color || "#000",
+            background: elabel.background,
+            opacity: elabel.opacity != null ? elabel.opacity : 1.0
+          });
+          sprite.position.copy(mid).add(new THREE.Vector3(0, 0.2, 0));
+          objectsGroup.add(sprite);
         }
-      });
-    }
-  }
+        }
+        });
+        }
+        }
 
   function animate() {
     requestAnimationFrame(animate);
