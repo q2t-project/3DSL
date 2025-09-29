@@ -306,55 +306,140 @@ table input, table select {
 }
 
     // エッジ描画
-    function renderEdges() {
-      const tbody = document.querySelector("#edgesTable tbody");
-      tbody.innerHTML = "";
-        if (!modelData || !modelData.edges) return;
+function renderEdges() {
+  const tbody = document.querySelector("#edgesTable tbody");
+  tbody.innerHTML = "";
+  if (!modelData || !modelData.edges) return;
 
-    modelData.edges.forEach((edge, index) => {
-      const tr = document.createElement("tr");
-      const elabel = edge.label || {};
-      tr.innerHTML = `
-<td><input type="text" value="${edge.source}"></td>
-          <td><input type="text" value="${edge.target}"></td>
-          <td><input type="text" value="${edge.color ?? ""}"></td>
-          <td><input type="number" step="0.1" value="${edge.opacity ?? 1.0}"></td>
-          <td><input type="text" value="${elabel.text ?? ""}"></td>
-          <td><input type="number" value="${elabel.fontSize ?? 10}" class="${elabel.fontSize==null?"default":""}"></td>
-          <td>
-            <select class="${elabel.plane==null?"default":""}">
-              <option value="xy" ${elabel.plane==="xy"?"selected":""}>xy</option>
-              <option value="yz" ${elabel.plane==="yz"?"selected":""}>yz</option>
-              <option value="zx" ${elabel.plane==="zx"?"selected":""}>zx</option>
-            </select>
-          </td>
-          <td><input type="text" value="${elabel.color ?? "#000"}" class="${elabel.color==null?"default":""}"></td>
-          <td><input type="text" value="${elabel.background ?? ""}" class="${elabel.background==null?"default":""}"></td>
-          <td><input type="number" step="0.1" value="${elabel.opacity ?? 1.0}" class="${elabel.opacity==null?"default":""}"></td>
-          <td><button data-index="${index}" class="deleteEdgeBtn">除</button></td>
-        `;
+  modelData.edges.forEach((edge, i) => {
+    const tr = document.createElement("tr");
 
-        const inputs = tr.querySelectorAll("input, select");
-        inputs[0].addEventListener("input", e => { edge.source = e.target.value; saveAndValidate(); });
-        inputs[1].addEventListener("input", e => { edge.target = e.target.value; saveAndValidate(); });
-        inputs[2].addEventListener("input", e => { edge.color = e.target.value; saveAndValidate(); });
-        inputs[3].addEventListener("input", e => { edge.opacity = parseFloat(e.target.value); saveAndValidate(); });
-        inputs[4].addEventListener("input", e => { elabel.text = e.target.value; edge.label = elabel; saveAndValidate(); });
-        inputs[5].addEventListener("input", e => { updateField(e, elabel, "fontSize"); edge.label = elabel; });
-        inputs[6].addEventListener("change", e => { updateField(e, elabel, "plane"); edge.label = elabel; });
-        inputs[7].addEventListener("input", e => { updateField(e, elabel, "color"); edge.label = elabel; });
-        inputs[8].addEventListener("input", e => { updateField(e, elabel, "background"); edge.label = elabel; });
-        inputs[9].addEventListener("input", e => { updateField(e, elabel, "opacity", parseFloat); edge.label = elabel; });
+    // Source
+    const srcCell = document.createElement("td");
+    srcCell.textContent = edge.source;
+    tr.appendChild(srcCell);
 
-        tr.querySelector(".deleteEdgeBtn").addEventListener("click", () => {
-          modelData.edges.splice(index, 1);
-          renderEdges();
-          saveAndValidate();
-        });
+    // Target
+    const tgtCell = document.createElement("td");
+    tgtCell.textContent = edge.target;
+    tr.appendChild(tgtCell);
 
-        tbody.appendChild(tr);
-      });
-    }
+    // color
+    const colorCell = document.createElement("td");
+    const colorInput = document.createElement("input");
+    colorInput.type = "color";
+    colorInput.value = edge.color || "#000000";
+    colorInput.addEventListener("input", () => {
+      edge.color = colorInput.value;
+      saveAndValidate();
+    });
+    colorCell.appendChild(colorInput);
+    tr.appendChild(colorCell);
+
+    // opacity（ホイール対応）
+    const opacityCell = document.createElement("td");
+    opacityCell.appendChild(
+      createNumberCell(edge.opacity ?? 1, val => {
+        edge.opacity = val;
+        saveAndValidate();
+      }, 0.1)
+    );
+    tr.appendChild(opacityCell);
+
+    // label.text
+    const textCell = document.createElement("td");
+    const textInput = document.createElement("input");
+    textInput.type = "text";
+    textInput.value = edge.label?.text || "";
+    textInput.addEventListener("input", () => {
+      edge.label = edge.label || {};
+      edge.label.text = textInput.value;
+      saveAndValidate();
+    });
+    textCell.appendChild(textInput);
+    tr.appendChild(textCell);
+
+    // label.fontSize（ホイール対応）
+    const fontSizeCell = document.createElement("td");
+    fontSizeCell.appendChild(
+      createNumberCell(edge.label?.fontSize ?? 10, val => {
+        edge.label = edge.label || {};
+        edge.label.fontSize = val;
+        saveAndValidate();
+      })
+    );
+    tr.appendChild(fontSizeCell);
+
+    // label.plane
+    const planeCell = document.createElement("td");
+    const planeSelect = document.createElement("select");
+    ["xy", "yz", "zx"].forEach(opt => {
+      const option = document.createElement("option");
+      option.value = opt;
+      option.textContent = opt;
+      if (edge.label?.plane === opt) option.selected = true;
+      planeSelect.appendChild(option);
+    });
+    planeSelect.addEventListener("change", () => {
+      edge.label = edge.label || {};
+      edge.label.plane = planeSelect.value;
+      saveAndValidate();
+    });
+    planeCell.appendChild(planeSelect);
+    tr.appendChild(planeCell);
+
+    // label.color
+    const lcolorCell = document.createElement("td");
+    const lcolorInput = document.createElement("input");
+    lcolorInput.type = "color";
+    lcolorInput.value = edge.label?.color || "#000000";
+    lcolorInput.addEventListener("input", () => {
+      edge.label = edge.label || {};
+      edge.label.color = lcolorInput.value;
+      saveAndValidate();
+    });
+    lcolorCell.appendChild(lcolorInput);
+    tr.appendChild(lcolorCell);
+
+    // label.background
+    const lbgCell = document.createElement("td");
+    const lbgInput = document.createElement("input");
+    lbgInput.type = "color";
+    lbgInput.value = edge.label?.background || "#ffffff";
+    lbgInput.addEventListener("input", () => {
+      edge.label = edge.label || {};
+      edge.label.background = lbgInput.value;
+      saveAndValidate();
+    });
+    lbgCell.appendChild(lbgInput);
+    tr.appendChild(lbgCell);
+
+    // label.opacity（ホイール対応）
+    const lopCell = document.createElement("td");
+    lopCell.appendChild(
+      createNumberCell(edge.label?.opacity ?? 1, val => {
+        edge.label = edge.label || {};
+        edge.label.opacity = val;
+        saveAndValidate();
+      }, 0.1)
+    );
+    tr.appendChild(lopCell);
+
+    // 削除ボタン
+    const actionCell = document.createElement("td");
+    const delButton = document.createElement("button");
+    delButton.textContent = "削除";
+    delButton.addEventListener("click", () => {
+      modelData.edges.splice(i, 1);
+      saveAndValidate();
+      renderEdges();
+    });
+    actionCell.appendChild(delButton);
+    tr.appendChild(actionCell);
+
+    tbody.appendChild(tr);
+  });
+}
 
     // 共通 updateField
     function updateField(e, obj, key, parseFn) {
