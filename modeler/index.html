@@ -178,9 +178,8 @@
   function initApp(){ /* TODO: 実装 */ }
 
   function commit() {
-    saveAndValidate();
     pushState(modelData);
-    updateCounts();
+    saveAndValidate();
   }
 
   // ============================================================
@@ -373,7 +372,7 @@ function saveAndValidate() {
       e.preventDefault();
       onRedo();
     }
-  });
+  }, { capture: true }); // ← キャプチャ段階で拾う
 
     // localStorage復元
     const saved = localStorage.getItem(localStorageKey);
