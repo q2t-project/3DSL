@@ -684,6 +684,13 @@ function onNodeClick(nodeId) {
   }
 }
 
+// 例: Raycasterでノードヒットしたとき
+if (intersects.length > 0) {
+  const picked = intersects[0].object;
+  const nodeId = picked.userData.id;
+  onNodeClick(nodeId);
+}
+
   // ============================================================
   // 補助要素 (Aux) [§5]
   // - grid/axis の追加・削除・編集
