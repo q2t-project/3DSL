@@ -203,17 +203,15 @@
 }
 
 function newModel() {
-  modelData = {
-    meta: { 
-      version: "v2", 
-      title: "untitled",
-      date: new Date().toISOString().split("T")[0]  // yyyy-mm-dd 形式
+  return {
+    meta: {
+      version: "v2",     // ★必須
+      date: new Date().toISOString() // 必須なら追加
     },
     nodes: [],
     edges: [],
-    auxiliary: []
+    aux: []
   };
-  saveAndValidate();
 }
 
 function openFile(evt) {
