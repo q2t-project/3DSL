@@ -340,6 +340,8 @@ function saveAndValidate() {
     document.getElementById("btnNew").addEventListener("click", newModel);
     document.getElementById("btnSave").addEventListener("click", saveFile);
     document.getElementById("fileOpen").addEventListener("change", openFile);
+    document.getElementById("btnNodeAdd").addEventListener("click", addNode);
+    document.getElementById("btnEdgeAdd").addEventListener("click", addEdge);
 
     // localStorage復元
     const saved = localStorage.getItem(localStorageKey);
@@ -489,6 +491,17 @@ function createSelectCell(value, options, onChange) {
   });
 }
 
+function addNode() {
+  if (!modelData) return;
+  const newId = "n" + (modelData.nodes.length + 1);
+  modelData.nodes.push({
+    id: newId,
+    pos: [0,0,0],
+    label: { text: "", fontSize: 16, plane: "xy", color: "#000000", background: "", opacity: 1 }
+  });
+  saveAndValidate();
+  renderNodes();
+}
 
   // ============================================================
   // エッジ編集 [§4]
@@ -563,6 +576,22 @@ function renderEdges() {
   });
 }
 
+function addEdge() {
+  if (!modelData) return;
+  if (modelData.nodes.length < 2) {
+    showError("エッジ追加には少なくとも2ノード必要です");
+    return;
+  }
+  modelData.edges.push({
+    source: modelData.nodes[0].id,
+    target: modelData.nodes[1].id,
+    color: "#000000",
+    opacity: 1,
+    label: { text: "" }
+  });
+  saveAndValidate();
+  renderEdges();
+}
 
   // ============================================================
   // 補助要素 (Auxiliary) [§5]
