@@ -404,7 +404,7 @@ function createTextCell(value, onChange) {
   const input = document.createElement("input");
   input.type = "text";
   input.value = value;
-  input.addEventListener("change", () => onChange(input.value));
+  input.addEventListener("change", () => { onChange(input.value); commit(); });
   td.appendChild(input);
   return td;
 }
@@ -414,7 +414,7 @@ function createNumberCell(value, onChange) {
   const input = document.createElement("input");
   input.type = "number";
   input.value = value;
-  input.addEventListener("change", () => onChange(Number(input.value)));
+  input.addEventListener("change", () => { onChange(Number(input.value)); commit(); });
   td.appendChild(input);
   return td;
 }
@@ -422,16 +422,14 @@ function createNumberCell(value, onChange) {
 function createSelectCell(value, options, onChange) {
   const td = document.createElement("td");
   const select = document.createElement("select");
-
-  options.forEach(opt => {
-    const option = document.createElement("option");
-    option.value = opt;
-    option.textContent = opt;
-    if (opt === value) option.selected = true;
-    select.appendChild(option);
-  });
-
-  select.addEventListener("change", () => onChange(select.value));
+  for (const option of options) {
+    const optionElement = document.createElement("option");
+    optionElement.value = option;
+    optionElement.textContent = option;
+    if (option === value) optionElement.selected = true;
+    select.appendChild(optionElement);
+  }
+  select.addEventListener("change", () => { onChange(select.value); commit(); });
   td.appendChild(select);
   return td;
 }
