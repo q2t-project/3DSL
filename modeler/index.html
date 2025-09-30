@@ -273,6 +273,9 @@ function saveAndValidate() {
   if (!modelData) return;
   // localStorage保存
   localStorage.setItem(localStorageKey, JSON.stringify(modelData));
+  const ok = validateModel();
+  setModel(modelData);
+  return ok;
 
   // バリデーション
   const errors = [];
