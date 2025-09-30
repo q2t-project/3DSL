@@ -222,50 +222,15 @@ function openFile(evt) {
     reader.readAsText(file);
   }
 
-  function setModel(json) {
-    modelData = json;
-    // TODO: ノード/エッジ/aux 表の再描画（後で実装）
-  }
-
-  function validateModel() {
-    const errors = [];
-
-    // schema check
-    if (schema) {
-      const valid = ajv.validate(schema, modelData);
-      if (!valid) {
-        errors.push(...ajv.errors.map(e => `${e.instancePath} ${e.message}`));
-      }
-    }
-
-    // version check
-    if (modelData?.meta?.version !== "v2") {
-      errors.push("meta.version must be 'v2'");
-    }
-
-    // uniqueness check
-    const nodeIds = new Set();
-    for (const n of modelData.nodes || []) {
-      if (nodeIds.has(n.id)) errors.push(`duplicate node id: ${n.id}`);
-      nodeIds.add(n.id);
-    }
-    for (const e of modelData.edges || []) {
-      if (!nodeIds.has(e.source)) errors.push(`edge source not found: ${e.source}`);
-      if (!nodeIds.has(e.target)) errors.push(`edge target not found: ${e.target}`);
-    }
-
-    showValidation(errors);
-    return errors.length === 0;
-  }
-
-  // 一本化 saveAndValidate
-  function saveAndValidate() {
-    if (!modelData) return;
-    localStorage.setItem(localStorageKey, JSON.stringify(modelData));
-    const ok = validateModel();
-    // TODO: プレビュー送信 / Undo履歴push / UI更新 は後で実装
-    return ok;
-  }
+function saveFile() {
+  if (!modelData) return;
+  const blob = new Blob([JSON.stringify(modelData, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = (modelData.meta?.title || "3dsd_model") + ".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
 
   // ============================================================
   // モデル適用＆UI反映 [全体]
@@ -278,8 +243,52 @@ function openFile(evt) {
   //   - (4) Undo/Redo の状態（canUndo/canRedo）に合わせUI更新
   //   ※ 二重定義禁止／ここに集約（運用ルール）
   // ============================================================
-  function setModel(json){ /* TODO */ }
-  function saveAndValidate(){ /* TODO（一本化） */ }
+function setModel(json) {
+  modelData = json;
+  // TODO: ノード/エッジ/Aux 表の再描画
+  // TODO: 3Dビューの再描画
+  // TODO: counts/stats更新
+}
+
+function saveAndValidate() {
+  if (!modelData) return;
+  // localStorage保存
+  localStorage.setItem(localStorageKey, JSON.stringify(modelData));
+
+  // バリデーション
+  const errors = [];
+  if (schema) {
+    const valid = ajv.validate(schema, modelData);
+    if (!valid) {
+      errors.push(...ajv.errors.map(e => `${e.instancePath} ${e.message}`));
+    }
+  }
+
+  // version check
+  if (modelData?.meta?.version !== "v2") {
+    errors.push("meta.version must be 'v2'");
+  }
+
+  // uniqueness check
+  const nodeIds = new Set();
+  for (const n of modelData.nodes || []) {
+    if (nodeIds.has(n.id)) errors.push(`duplicate node id: ${n.id}`);
+    nodeIds.add(n.id);
+  }
+  for (const e of modelData.edges || []) {
+    if (!nodeIds.has(e.source)) errors.push(`edge source not found: ${e.source}`);
+    if (!nodeIds.has(e.target)) errors.push(`edge target not found: ${e.target}`);
+  }
+
+  // エラー表示
+  showValidation(errors);
+
+  // TODO: プレビュー送信 (postMessage)
+  // TODO: Undo/Redo ステータス更新 (canUndo/canRedo に応じて)
+  // TODO: UI更新（statusバーなど）
+
+  return errors.length === 0;
+}
 
   // ============================================
   // エラーハンドリング
