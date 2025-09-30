@@ -163,6 +163,7 @@
   // ============================================================
   let modelData = null;
   let schema = null;
+  let ajv = new Ajv({ allErrors: true });
   let previewWindow = null;
   const localStorageKey = "3dsd:model:current";
 
@@ -186,10 +187,85 @@
   // - 一意性チェック: ID重複 / edge参照整合
   // - versionチェック: meta.version === "v2" 必須
   // ============================================================
-  function newModel(){ /* TODO */ }
-  function openFile(evt){ /* TODO */ }
-  function saveFile(){ /* TODO */ }
-  function validateModel(){ /* TODO */ }
+  async function loadSchema() {
+    try {
+      const res = await fetch("./draft-2020-12-schema.json");
+      schema = await res.json();
+      ajv = new Ajv({ allErrors: true });
+      ajv.compile(schema);
+    } catch (e) {
+      showError("スキーマ読み込み失敗: " + e.message);
+    }
+  }
+  function newModel() {
+    modelData = {
+      meta: { version: "v2", title: "untitled" },
+      nodes: [],
+      edges: [],
+      auxiliary: []
+    };
+    saveAndValidate();
+  }
+function openFile(evt) {
+    const file = evt.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const json = JSON.parse(e.target.result);
+        setModel(json);
+        saveAndValidate();
+      } catch (err) {
+        showError("JSON parse error: " + err.message);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function setModel(json) {
+    modelData = json;
+    // TODO: ノード/エッジ/aux 表の再描画（後で実装）
+  }
+
+  function validateModel() {
+    const errors = [];
+
+    // schema check
+    if (schema) {
+      const valid = ajv.validate(schema, modelData);
+      if (!valid) {
+        errors.push(...ajv.errors.map(e => `${e.instancePath} ${e.message}`));
+      }
+    }
+
+    // version check
+    if (modelData?.meta?.version !== "v2") {
+      errors.push("meta.version must be 'v2'");
+    }
+
+    // uniqueness check
+    const nodeIds = new Set();
+    for (const n of modelData.nodes || []) {
+      if (nodeIds.has(n.id)) errors.push(`duplicate node id: ${n.id}`);
+      nodeIds.add(n.id);
+    }
+    for (const e of modelData.edges || []) {
+      if (!nodeIds.has(e.source)) errors.push(`edge source not found: ${e.source}`);
+      if (!nodeIds.has(e.target)) errors.push(`edge target not found: ${e.target}`);
+    }
+
+    showValidation(errors);
+    return errors.length === 0;
+  }
+
+  // 一本化 saveAndValidate
+  function saveAndValidate() {
+    if (!modelData) return;
+    localStorage.setItem(localStorageKey, JSON.stringify(modelData));
+    const ok = validateModel();
+    // TODO: プレビュー送信 / Undo履歴push / UI更新 は後で実装
+    return ok;
+  }
 
   // ============================================================
   // モデル適用＆UI反映 [全体]
@@ -204,6 +280,45 @@
   // ============================================================
   function setModel(json){ /* TODO */ }
   function saveAndValidate(){ /* TODO（一本化） */ }
+
+  // ============================================
+  // エラーハンドリング
+  // ============================================
+  function showValidation(errors) {
+    const status = document.getElementById("statusText");
+    const errDiv = document.getElementById("errors");
+    if (errors.length === 0) {
+      status.textContent = "OK";
+      status.style.color = "lightgreen";
+      errDiv.innerHTML = "";
+    } else {
+      status.textContent = "エラーあり";
+      status.style.color = "red";
+      errDiv.innerHTML = "<ul>" + errors.map(e => `<li>${e}</li>`).join("") + "</ul>";
+    }
+  }
+  function showError(msg) {
+    showValidation([msg]);
+  }
+
+  // ============================================
+  // 起動時処理
+  // ============================================
+  window.addEventListener("DOMContentLoaded", async () => {
+    await loadSchema();
+    document.getElementById("btnNew").addEventListener("click", newModel);
+    document.getElementById("btnSave").addEventListener("click", saveFile);
+    document.getElementById("fileOpen").addEventListener("change", openFile);
+
+    // localStorage復元
+    const saved = localStorage.getItem(localStorageKey);
+    if (saved) {
+      try { setModel(JSON.parse(saved)); }
+      catch(e){}
+    }
+    saveAndValidate();
+  });
+
 
   // ============================================================
   // ノード編集 [§3]
