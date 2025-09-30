@@ -394,6 +394,17 @@ function createSelectCell(value, options, onChange) {
   return td;
 }
 
+function updateCounts() {
+  const c  = document.getElementById("counts");
+  const mv = document.getElementById("metaVersion");
+  const n = modelData?.nodes?.length ?? 0;
+  const e = modelData?.edges?.length ?? 0;
+  const a = modelData?.auxiliary?.length ?? 0;
+
+  c.textContent  = ` nodes:${n} edges:${e} aux:${a}`;
+  mv.textContent = modelData?.meta?.version ? ` ver:${modelData.meta.version}` : "";
+}
+
   // ============================================================
   // ノード編集 [§3]
   // - 追加: 既定位置（原点近傍）に新規ID
