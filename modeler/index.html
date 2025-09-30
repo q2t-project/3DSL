@@ -202,15 +202,20 @@
   }
 }
 
-  function newModel() {
-    modelData = {
-      meta: { version: "v2", title: "untitled" },
-      nodes: [],
-      edges: [],
-      auxiliary: []
-    };
-    saveAndValidate();
-  }
+function newModel() {
+  modelData = {
+    meta: { 
+      version: "v2", 
+      title: "untitled",
+      date: new Date().toISOString().split("T")[0]  // yyyy-mm-dd 形式
+    },
+    nodes: [],
+    edges: [],
+    auxiliary: []
+  };
+  saveAndValidate();
+}
+
 function openFile(evt) {
     const file = evt.target.files[0];
     if (!file) return;
@@ -342,6 +347,39 @@ function saveAndValidate() {
     saveAndValidate();
   });
 
+  // ============================================
+  // 共通ユーティリティ
+  // ============================================
+// ============================================
+// 起動処理
+// ============================================
+window.addEventListener("DOMContentLoaded", async () => {
+  await loadSchema();
+  ...
+});
+
+// ============================================
+// 共通ユーティリティ
+// ============================================
+function createTextCell(value, onChange) {
+  const td = document.createElement("td");
+  const input = document.createElement("input");
+  input.type = "text";
+  input.value = value;
+  input.addEventListener("change", () => onChange(input.value));
+  td.appendChild(input);
+  return td;
+}
+
+function createNumberCell(value, onChange) {
+  const td = document.createElement("td");
+  const input = document.createElement("input");
+  input.type = "number";
+  input.value = value;
+  input.addEventListener("change", () => onChange(Number(input.value)));
+  td.appendChild(input);
+  return td;
+}
 
   // ============================================================
   // ノード編集 [§3]
@@ -356,6 +394,27 @@ function saveAndValidate() {
   function deleteSelectedNodes(){ /* TODO */ }
   function onNodeCellEdit(/* row, col, value */){ /* TODO */ }
   function onNodeDrag(/* id, newPos */){ /* TODO */ }
+
+function createTextCell(value, onChange) {
+  const td = document.createElement("td");
+  const input = document.createElement("input");
+  input.type = "text";
+  input.value = value;
+  input.addEventListener("change", () => onChange(input.value));
+  td.appendChild(input);
+  return td;
+}
+
+function createNumberCell(value, onChange) {
+  const td = document.createElement("td");
+  const input = document.createElement("input");
+  input.type = "number";
+  input.value = value;
+  input.addEventListener("change", () => onChange(Number(input.value)));
+  td.appendChild(input);
+  return td;
+}
+
 
   // ノード表の再描画
   function renderNodes() {
