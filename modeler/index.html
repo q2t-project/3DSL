@@ -1,576 +1,292 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <title>3DSD-modeler</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
 
+  <!-- ImportMap: Three / OrbitControls / Ajv -->
   <script type="importmap">
-    {
-      "imports": {
-        "ajv": "https://esm.sh/ajv@8/dist/2020?bundle"
-      }
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+      "ajv": "https://esm.sh/ajv@8/dist/2020?bundle"
     }
+  }
   </script>
 
   <style>
-    body { 
-        font-family: sans-serif; margin: 1em;
-        display: grid;
-        grid-template-columns: 1fr 2fr 1fr; /* 左:ノード 中央:プレビュー 右:エッジ */
-        grid-gap: 1em;
-    }
-    .toolbar {
-        margin-bottom: 1em;
-        grid-column: 1 / span 3; /* ヘッダーは横並び */
-    }
-    #status { padding: 0.5em; margin-bottom: 1em; }
-    #status.ok { background: #e6ffe6; color: #060; }
-    #status.error { background: #ffe6e6; color: #900; }
-    table {
-  border-collapse: collapse;
-  margin: 10px 0;
-  width: auto;
-}
-table th, table td {
-  border: 1px solid #ccc;
-  padding: 2px 4px;
-  text-align: center;
-  min-width: 60px; /* 数値セルが潰れないよう最低幅を確保 */
-}
-table input, table select {
-  width: 100%;
-  box-sizing: border-box;
-}
-    input.default, select.default { color: #888; }
-    .required { background: #ffe; }
-    .section {
-        overflow: auto;
-        max-height: 80vh;
-        margin-top: 2em; }
-    #preview {
-      border: 1px solid #ccc;
-      background: #fafafa;
-      min-height: 400px;
-      text-align: center;
-      line-height: 400px;
-      color: #888;
-</style>
+    /* レイアウト: ヘッダー + 3カラム（左=リスト, 中央=3D, 右=プロパティ） */
+    html,body{height:100%;margin:0}
+    #app{display:grid;grid-template-rows:auto 1fr;height:100%}
+    header{display:flex;gap:.5rem;align-items:center;background:#222;color:#fff;padding:.5rem}
+    main{display:grid;grid-template-columns:300px 1fr 320px;min-height:0}
+    #left,#right{background:#f5f5f5;overflow:auto;padding:.5rem}
+    #viewer{background:#000;position:relative}
+    #statusbar{background:#111;color:#ccc;padding:.25rem .5rem;font:12px/1.6 system-ui}
+    .row{display:flex;gap:.5rem;align-items:center}
+    .spacer{flex:1}
+  </style>
 </head>
 <body>
-  <h1>3DSD-modeler (Phase 2: Node Editing)</h1>
+<div id="app">
 
-  <div class="toolbar">
-    <input type="file" id="fileInput" accept=".json" />
-    <button id="saveBtn">保存（ダウンロード）</button>
-    <button id="previewBtn">プレビューを開く</button>
+  <!-- =========================================================
+       ヘッダー（UI 操作）  [modeler_spec.md: §8 UI操作]
+       - 新規, 開く, 保存
+       - プレビュー（別ウィンドウ: preview.html + postMessage）
+       - Undo / Redo（history.js）
+       - Layers表示切替（Nodes/Edges/Labels/Auxiliary）
+       ========================================================= -->
+  <header>
+    <!-- JSON I/O -->
+    <button id="btnNew">新規</button>            <!-- 空の v2 JSON 生成 -->
+    <input  id="fileOpen" type="file" accept=".json" />
+    <button id="btnSave">保存</button>            <!-- Blob ダウンロード -->
+
+    <!-- プレビュー分離 -->
+    <button id="btnPreview">プレビュー</button>   <!-- window.open("preview.html") -->
+
+    <!-- Undo/Redo -->
+    <button id="btnUndo" disabled>Undo</button>   <!-- Ctrl+Z / Cmd+Z -->
+    <button id="btnRedo" disabled>Redo</button>   <!-- Ctrl+Y / Shift+Ctrl+Z -->
+
+    <div class="spacer"></div>
+
+    <!-- Layers（表示ON/OFF） -->
+    <div class="row" id="layersRow">
+      <label><input type="checkbox" id="layerNodes"   checked>Nodes</label>
+      <label><input type="checkbox" id="layerEdges"   checked>Edges</label>
+      <label><input type="checkbox" id="layerLabels"  checked>Labels</label>
+      <label><input type="checkbox" id="layerAux"     checked>Aux</label>
+    </div>
+  </header>
+
+  <main>
+    <!-- =========================================================
+         左ペイン：ノード／エッジ一覧 [§3 ノード編集, §4 エッジ編集]
+         - それぞれテーブル（ID/pos/label.*, source/target/label.* など）
+         - 追加・削除・編集（CRUD）
+         - source/target はノードIDドロップダウン
+         - 編集のたびに pushState()（Undo/Redo）
+         ========================================================= -->
+    <section id="left">
+      <h3>ノード一覧</h3>
+      <div class="row">
+        <button id="btnNodeAdd">ノード追加</button>
+        <button id="btnNodeDel" disabled>選択削除</button>
+      </div>
+      <!-- ノード表: ID | X | Y | Z | label.text | fontSize | plane | color | background | opacity -->
+      <table id="tblNodes">
+        <thead>
+          <tr>
+            <th>ID</th><th>X</th><th>Y</th><th>Z</th>
+            <th>label.text</th><th>fontSize</th><th>plane</th>
+            <th>color</th><th>background</th><th>opacity</th>
+          </tr>
+        </thead>
+        <tbody><!-- JSで行を構築（セル編集 = 即時反映 + pushState） --></tbody>
+      </table>
+
+      <h3 style="margin-top:1rem">エッジ一覧</h3>
+      <div class="row">
+        <button id="btnEdgeAdd">エッジ追加</button>
+        <button id="btnEdgeDel" disabled>選択削除</button>
+      </div>
+      <!-- エッジ表: source | target | color | opacity | label.text | fontSize | plane | label.color | label.background | label.opacity -->
+      <table id="tblEdges">
+        <thead>
+          <tr>
+            <th>source</th><th>target</th>
+            <th>color</th><th>opacity</th>
+            <th>label.text</th><th>fontSize</th><th>plane</th>
+            <th>label.color</th><th>label.background</th><th>label.opacity</th>
+          </tr>
+        </thead>
+        <tbody><!-- JSで行を構築（source/targetはノードIDドロップダウン） --></tbody>
+      </table>
+    </section>
+
+    <!-- =========================================================
+         中央：3Dビュー [§1 基本構成, §5 Auxiliary, §8 Layers]
+         - Three.js Canvas
+         - OrbitControls
+         - Layer別グループ（nodes/edges/labels/aux）
+         - ドラッグでノード座標変更 → JSON反映 → pushState
+         ========================================================= -->
+    <section id="viewer">
+      <!-- CanvasはJSで作成/挿入。レイヤ切替は Group.visible 切替で対応 -->
+      <!-- Fit to Scene / カメラ状態保持（共有URLは将来拡張） -->
+    </section>
+
+    <!-- =========================================================
+         右ペイン：プロパティ編集 [§6 プロパティ編集パネル]
+         - 選択対象（ノード/エッジ/Aux）に応じたフォーム切替
+         - 現段階は表セル編集が主。将来、ここにフォームを段階移行
+         ========================================================= -->
+    <section id="right">
+      <h3>プロパティ</h3>
+      <!-- 選択対象が無い場合は案内表示 -->
+      <div id="propEmpty">左の一覧または3Dビューで対象を選択してください。</div>
+      <!-- 選択ノード用フォーム（将来拡張）：id / pos[x,y,z] / label.* -->
+      <!-- 選択エッジ用フォーム（将来拡張）：source/target / label.* -->
+      <!-- 選択Aux用フォーム（将来拡張）：grid/axis 各属性 -->
+    </section>
+  </main>
+
+  <!-- ステータス＆エラー表示（共通） [§2 JSON I/O バリデーション] -->
+  <div id="statusbar">
+    <span id="statusText">未検証</span>
+    <span id="metaVersion"></span>
+    <span id="counts"></span>
+    <!-- バリデーションエラーは下部にテーブルで可視化（簡易ログ） -->
   </div>
+  <div id="errors"><!-- Ajv errors table --></div>
 
-  <div id="status">未検証</div>
-  <div id="errors"></div>
+</div>
 
-<div class="section" id="nodesSection">
-  <h2>ノード一覧</h2>
-    <table id="nodesTable">
-      <thead>
-        <tr>
-          <th class="required">ID</th>
-          <th>X</th>
-          <th>Y</th>
-          <th>Z</th>
-          <th class="required">label.text</th>
-          <th>fontSize</th>
-          <th>plane</th>
-          <th>color</th>
-          <th>background</th>
-          <th>opacity</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
+<script type="module">
+  import * as THREE from "three";
+  import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+  import Ajv from "ajv";
+  /* Undo/Redo は独立モジュール（history.js） [§7 ストレージと履歴管理] */
+  import { initHistory, pushState, undo, redo, canUndo, canRedo } from "./history.js";
 
-  <div class="section" id="preview">
+  // ============================================================
+  // アプリ状態（単一ソース・オブ・トゥルース）
+  //   modelData: 現在の3DSS v2 JSON
+  //   schema: 3DSS.schema.json（Ajv）
+  //   previewWindow: 別窓ハンドル
+  //   groups: {nodes, edges, labels, aux} Three.js グループ
+  //   localStorageKey: "3dsd:model:current"
+  // ============================================================
+  let modelData = null;
+  let schema = null;
+  let previewWindow = null;
+  const localStorageKey = "3dsd:model:current";
 
-  </div>
+  // ============================================================
+  // 初期化シーケンス [§1, §2, §7]
+  // - Threeシーン/カメラ/レンダラ/Controls 構築
+  // - Ajvスキーマ読込
+  // - localStorage から復元（あれば）
+  // - history.initHistory() と最初の pushState()
+  // - UIイベント紐付け（ボタン/ショートカット/テーブル編集）
+  // - レイヤーチェックボックス → Group.visible 連動
+  // ============================================================
+  function initApp(){ /* TODO: 実装 */ }
 
-  <div class="section" id="edgesSection">
-    <h2>エッジ一覧</h2>
-    <table id="edgesTable">
-      <thead>
-        <tr>
-          <th class="required">Source</th>
-          <th class="required">Target</th>
-          <th>color</th>
-          <th>opacity</th>
-          <th>label.text</th>
-          <th>fontSize</th>
-          <th>plane</th>
-          <th>label.color</th>
-          <th>label.background</th>
-          <th>label.opacity</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
+  // ============================================================
+  // JSON I/O [§2]
+  // - 新規: v2 の空雛形生成（meta/nodes/edges/auxiliary）
+  // - 開く: ファイル選択 → JSON.parse → validate → setModel()
+  // - 保存: Blob ダウンロード
+  // - バリデーション: Ajv.validate(schema, modelData)
+  // - 一意性チェック: ID重複 / edge参照整合
+  // - versionチェック: meta.version === "v2" 必須
+  // ============================================================
+  function newModel(){ /* TODO */ }
+  function openFile(evt){ /* TODO */ }
+  function saveFile(){ /* TODO */ }
+  function validateModel(){ /* TODO */ }
 
-  <script type="module">
-    import Ajv from "ajv";
+  // ============================================================
+  // モデル適用＆UI反映 [全体]
+  // - setModel(json): modelData更新 → テーブル再描画 → 3D再描画
+  // - counts/stats 更新、エラー表示更新、localStorage保存
+  // - saveAndValidate(): ★一本化ルール★
+  //   - (1) modelData を保存(localStorage)
+  //   - (2) validate（Ajv + 一意性 + version）
+  //   - (3) プレビューへ postMessage（preview が開いていれば）
+  //   - (4) Undo/Redo の状態（canUndo/canRedo）に合わせUI更新
+  //   ※ 二重定義禁止／ここに集約（運用ルール）
+  // ============================================================
+  function setModel(json){ /* TODO */ }
+  function saveAndValidate(){ /* TODO（一本化） */ }
 
-    let schema3dss = null;
-    let modelData = null;
-    let previewWindow = null;
+  // ============================================================
+  // ノード編集 [§3]
+  // - 追加: 既定位置（原点近傍）に新規ID
+  // - 削除: 選択ノードを除去（関連エッジも削除）
+  // - 編集: セル編集で即時反映（id/pos/label.*）
+  // - 3Dビュー: ノードクリックで選択／ドラッグで pos 更新
+  // - ラベル管理: nlabel（ノード専用）と elabel（エッジ専用）を厳密分離
+  // - 各操作後: pushState() → saveAndValidate()
+  // ============================================================
+  function addNode(){ /* TODO */ }
+  function deleteSelectedNodes(){ /* TODO */ }
+  function onNodeCellEdit(/* row, col, value */){ /* TODO */ }
+  function onNodeDrag(/* id, newPos */){ /* TODO */ }
 
-    // スキーマ読込
-    fetch("../schemas/3DSS.schema.json")
-      .then(r => r.json())
-      .then(s => { schema3dss = s; setStatus("✅ スキーマ読込完了", "ok"); restoreFromLocal(); })
-      .catch(err => setStatus("❌ スキーマ読込失敗: " + err, "error"));
+  // ============================================================
+  // エッジ編集 [§4]
+  // - 追加: source/target をノードIDドロップダウンで指定
+  // - 削除: 選択エッジ除去
+  // - 編集: color/opacity/label.*（elabel）をセル編集
+  // - 各操作後: pushState() → saveAndValidate()
+  // ============================================================
+  function addEdge(){ /* TODO */ }
+  function deleteSelectedEdges(){ /* TODO */ }
+  function onEdgeCellEdit(/* row, col, value */){ /* TODO */ }
 
-    // ファイル読込
-    document.getElementById("fileInput").addEventListener("change", async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+  // ============================================================
+  // 補助要素 (Auxiliary) [§5]
+  // - grid/axis の追加・削除・編集
+  // - Layers チェックボックスで可視切替
+  // - 各操作後: pushState() → saveAndValidate()
+  // ============================================================
+  function addGrid(){ /* TODO（将来：plane/size/divisions/color/opacity） */ }
+  function addAxis(){ /* TODO（将来：length/colors） */ }
+  function editAux(/* index, patch */){ /* TODO */ }
+  function removeAux(/* index */){ /* TODO */ }
 
-      const text = await file.text();
-      try {
-        const json = JSON.parse(text);
-        modelData = json;
-        renderNodes();
-        renderEdges(); 
-        validateJson(json);
-        localStorage.setItem("3dsd:model:current", JSON.stringify(modelData));
-      } catch (err) {
-        setStatus("❌ JSONパース失敗: " + err.message, "error");
-      }
-    });
+  // ============================================================
+  // プロパティ編集パネル [§6]
+  // - 選択対象に応じてフォームを差し替え（現段階は表セルが主）
+  // - 値変更 → modelData 更新 → pushState → saveAndValidate
+  // ============================================================
+  function renderPropertyPanel(){ /* TODO */ }
 
-    // 保存
-    document.getElementById("saveBtn").addEventListener("click", () => {
-      if (!modelData) { setStatus("⚠ データなし", "error"); return; }
-      const blob = new Blob([JSON.stringify(modelData, null, 2) + "\n"], { type: "application/json" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "model.json";
-      a.click();
-      URL.revokeObjectURL(a.href);
-      setStatus("💾 保存完了: model.json", "ok");
-    });
+  // ============================================================
+  // ストレージ & 履歴管理 [§7]
+  // - localStorage 自動保存＆復元
+  // - history.js: initHistory / pushState / undo / redo / canUndo / canRedo
+  // - Undo/Redo ボタン活性/非活性切替、ショートカット割当
+  // ============================================================
+  function initHistorySystem(){ /* TODO */ }
+  function onUndo(){ /* state = undo(); if(state) setModel(state) */ }
+  function onRedo(){ /* state = redo(); if(state) setModel(state) */ }
 
-    // プレビュー
-    document.getElementById("previewBtn").addEventListener("click", () => {
-      if (!previewWindow || previewWindow.closed) {
-        previewWindow = window.open("preview.html", "3DSDPreview", "width=800,height=600");
-        setStatus("🔲 プレビューウィンドウを開きました", "ok");
-      } else {
-        previewWindow.focus();
-      }
-    // 開いた直後にもデータ送信
-      if (modelData) {
-        setTimeout(() => {
-        previewWindow.postMessage({ type: "updateModel", data: modelData }, "*");
-        }, 500);
-      }
-    });
+  // ============================================================
+  // プレビュー連携（別ウィンドウ） [§8 プレビュー]
+  // - openPreview(): preview.html を window.open
+  // - saveAndValidate() から postMessage({type:"updateModel",data})
+  // - preview が閉じられた場合のハンドリング
+  // ============================================================
+  function openPreview(){ /* TODO */ }
+  function postToPreview(){ /* TODO: previewWindow && postMessage */ }
 
-    // saveAndValidate でプレビュー更新も送信
-    function saveAndValidate() {
-      localStorage.setItem("3dsd:model:current", JSON.stringify(modelData));
-      validateJson(modelData);
+  // ============================================================
+  // Three.js レンダリング [§1, §5, §8]
+  // - シーン/カメラ/レンダラ/Controls 準備
+  // - Group: nodes / edges / labels / aux
+  // - Layers チェックボックスで Group.visible を切替
+  // - Fit to Scene（モデル更新後に実行）
+  // ============================================================
+  function initThree(){ /* TODO */ }
+  function renderThree(){ /* TODO */ }
+  function fitToScene(){ /* TODO */ }
 
-      if (previewWindow && !previewWindow.closed) {
-        previewWindow.postMessage({ type: "updateModel", data: modelData }, "*");
-      }
-    }
+  // ============================================================
+  // 運用ルール（重要） [§11]
+  // - saveAndValidate は一本化（重複定義禁止）
+  // - 軽量版/短縮版は出さない。常に完全版をベースに改修
+  // - 更新ファイルは都度一覧化し明示
+  // ============================================================
 
-
-    // ノード描画
-    function renderNodes() {
-      const tbody = document.querySelector("#nodesTable tbody");
-      tbody.innerHTML = "";
-      if (!modelData || !modelData.nodes) return;
-      modelData.nodes.forEach((node, i) => {
-    const tr = document.createElement("tr");
-
-    // ID
-    const idCell = document.createElement("td");
-    idCell.textContent = node.id;
-    tr.appendChild(idCell);
-
-    // X, Y, Z
-    const xCell = document.createElement("td");
-    xCell.appendChild(
-      createNumberCell(node.position?.[0] ?? 0, val => {
-        node.position[0] = val;
-        saveAndValidate();
-      })
-    );
-    tr.appendChild(xCell);
-
-    const yCell = document.createElement("td");
-    yCell.appendChild(
-      createNumberCell(node.position?.[1] ?? 0, val => {
-        node.position[1] = val;
-        saveAndValidate();
-      })
-    );
-    tr.appendChild(yCell);
-
-    const zCell = document.createElement("td");
-    zCell.appendChild(
-      createNumberCell(node.position?.[2] ?? 0, val => {
-        node.position[2] = val;
-        saveAndValidate();
-      })
-    );
-    tr.appendChild(zCell);
-
-    // label.text
-    const textCell = document.createElement("td");
-    const textInput = document.createElement("input");
-    textInput.type = "text";
-    textInput.value = node.label?.text || "";
-    textInput.addEventListener("input", () => {
-      node.label.text = textInput.value;
-      saveAndValidate();
-    });
-    textCell.appendChild(textInput);
-    tr.appendChild(textCell);
-
-    // fontSize（スクロール可能）
-    const fontSizeCell = document.createElement("td");
-   // ノード fontSize
-fontSizeCell.appendChild(
-  createNumberCell(node.label?.fontSize ?? 16, val => {
-    node.label.fontSize = val;
-    saveAndValidate();
-  }, 1, "pow2")
-);
-
-    // ノードの fontSize (2のn乗, 最大512)
-    tr.appendChild(createNumberCell(node.label?.fontSize ?? 16, val => {
-      node.label = node.label || {};
-      node.label.fontSize = val;
-      saveAndValidate();
-    }, 1, "pow2", 1, 512));
-
-    // plane
-    const planeCell = document.createElement("td");
-    const planeSelect = document.createElement("select");
-    ["xy", "yz", "zx"].forEach(opt => {
-      const option = document.createElement("option");
-      option.value = opt;
-      option.textContent = opt;
-      if (node.label?.plane === opt) option.selected = true;
-      planeSelect.appendChild(option);
-    });
-    planeSelect.addEventListener("change", () => {
-      node.label.plane = planeSelect.value;
-      saveAndValidate();
-    });
-    planeCell.appendChild(planeSelect);
-    tr.appendChild(planeCell);
-
-    // color, background
-    ["color", "background"].forEach(key => {
-      const cell = document.createElement("td");
-      const input = document.createElement("input");
-      input.type = "color";
-      input.value = node.label?.[key] || "#000000";
-      input.addEventListener("input", () => {
-        node.label[key] = input.value;
-        saveAndValidate();
-      });
-      cell.appendChild(input);
-      tr.appendChild(cell);
-    });
-
-    // opacity（スクロール可能）
-    const opacityCell = document.createElement("td");
-    opacityCell.appendChild(
-      createNumberCell(node.label?.opacity ?? 1, val => {
-        node.label.opacity = val;
-        saveAndValidate();
-      }, 0.1) // 小数対応
-    );
-    tr.appendChild(opacityCell);
-
-    // 削除ボタン
-    const actionCell = document.createElement("td");
-    const delButton = document.createElement("button");
-    delButton.textContent = "除";
-    delButton.addEventListener("click", () => {
-        modelData.nodes.splice(i, 1);
-         saveAndValidate();
-        renderNodes();
-    });
-    actionCell.appendChild(delButton);
-    tr.appendChild(actionCell);
-
-    tbody.appendChild(tr);
-  });
-}
-
-    // エッジ描画
-function renderEdges() {
-  const tbody = document.querySelector("#edgesTable tbody");
-  tbody.innerHTML = "";
-  if (!modelData || !modelData.edges) return;
-
-  modelData.edges.forEach((edge, i) => {
-    const tr = document.createElement("tr");
-
-    // Source
-    const srcCell = document.createElement("td");
-    srcCell.textContent = edge.source;
-    tr.appendChild(srcCell);
-
-    // Target
-    const tgtCell = document.createElement("td");
-    tgtCell.textContent = edge.target;
-    tr.appendChild(tgtCell);
-
-    // color
-    const colorCell = document.createElement("td");
-    const colorInput = document.createElement("input");
-    colorInput.type = "color";
-    colorInput.value = edge.color || "#000000";
-    colorInput.addEventListener("input", () => {
-      edge.color = colorInput.value;
-      saveAndValidate();
-    });
-    colorCell.appendChild(colorInput);
-    tr.appendChild(colorCell);
-
-    // opacity（ホイール対応）
-    const opacityCell = document.createElement("td");
-    opacityCell.appendChild(
-      createNumberCell(edge.opacity ?? 1, val => {
-        edge.opacity = val;
-        saveAndValidate();
-      }, 0.1)
-    );
-    tr.appendChild(opacityCell);
-
-    // label.text
-    const textCell = document.createElement("td");
-    const textInput = document.createElement("input");
-    textInput.type = "text";
-    textInput.value = edge.label?.text || "";
-    textInput.addEventListener("input", () => {
-      edge.label = edge.label || {};
-      edge.label.text = textInput.value;
-      saveAndValidate();
-    });
-    textCell.appendChild(textInput);
-    tr.appendChild(textCell);
-
-    // label.fontSize（ホイール対応）
-    const fontSizeCell = document.createElement("td");
-    fontSizeCell.appendChild(
-      createNumberCell(edge.label?.fontSize ?? 10, val => {
-        edge.label = edge.label || {};
-        edge.label.fontSize = val;
-        saveAndValidate();
-      })
-    );
-    // フォントサイズ (2のn乗, 最大512)
-    tr.appendChild(createNumberCell(edge.label?.fontSize ?? 16, val => {
-      edge.label = edge.label || {};
-      edge.label.fontSize = val;
-      saveAndValidate();
-    }, 1, "pow2", 1, 512));
-
-
-    // label.plane
-    const planeCell = document.createElement("td");
-    const planeSelect = document.createElement("select");
-    ["xy", "yz", "zx"].forEach(opt => {
-      const option = document.createElement("option");
-      option.value = opt;
-      option.textContent = opt;
-      if (edge.label?.plane === opt) option.selected = true;
-      planeSelect.appendChild(option);
-    });
-    planeSelect.addEventListener("change", () => {
-      edge.label = edge.label || {};
-      edge.label.plane = planeSelect.value;
-      saveAndValidate();
-    });
-    planeCell.appendChild(planeSelect);
-    tr.appendChild(planeCell);
-
-    // label.color
-    const lcolorCell = document.createElement("td");
-    const lcolorInput = document.createElement("input");
-    lcolorInput.type = "color";
-    lcolorInput.value = edge.label?.color || "#000000";
-    lcolorInput.addEventListener("input", () => {
-      edge.label = edge.label || {};
-      edge.label.color = lcolorInput.value;
-      saveAndValidate();
-    });
-    lcolorCell.appendChild(lcolorInput);
-    tr.appendChild(lcolorCell);
-
-    // label.background
-    const lbgCell = document.createElement("td");
-    const lbgInput = document.createElement("input");
-    lbgInput.type = "color";
-    lbgInput.value = edge.label?.background || "#ffffff";
-    lbgInput.addEventListener("input", () => {
-      edge.label = edge.label || {};
-      edge.label.background = lbgInput.value;
-      saveAndValidate();
-    });
-    lbgCell.appendChild(lbgInput);
-    tr.appendChild(lbgCell);
-
-    // label.opacity（ホイール対応）
-    const lopCell = document.createElement("td");
-    lopCell.appendChild(
-      createNumberCell(edge.label?.opacity ?? 1, val => {
-        edge.label = edge.label || {};
-        edge.label.opacity = val;
-        saveAndValidate();
-      }, 0.1)
-    );
-    tr.appendChild(lopCell);
-
-    // 削除ボタン
-    const actionCell = document.createElement("td");
-    const delButton = document.createElement("button");
-    delButton.textContent = "削除";
-    delButton.addEventListener("click", () => {
-      modelData.edges.splice(i, 1);
-      saveAndValidate();
-      renderEdges();
-    });
-    actionCell.appendChild(delButton);
-    tr.appendChild(actionCell);
-
-    tbody.appendChild(tr);
-  });
-}
-
-    // 共通 updateField
-    function updateField(e, obj, key, parseFn) {
-      const val = e.target.value.trim();
-      if (val === "" || (key==="background" && val==="")) {
-        delete obj[key];
-        e.target.classList.add("default");
-      } else {
-        obj[key] = parseFn ? parseFn(val) : val;
-        e.target.classList.remove("default");
-      }
-      saveAndValidate();
-    }
-
-function createNumberCell(value, onChange, step=1, mode="linear", min=-Infinity, max=Infinity) {
-  const input = document.createElement("input");
-  input.type = "number";
-  input.value = value;
-  input.step = step;
-  input.min = min;
-  input.max = max;
-  input.addEventListener("change", () => {
-    let val = parseFloat(input.value);
-    if (val < min) val = min;
-    if (val > max) val = max;
-    input.value = val;
-    onChange(val);
-  });
-
-  input.addEventListener("wheel", e => {
-    e.preventDefault();
-    if (mode === "linear") {
-      let newVal = parseFloat(input.value || 0) + (e.deltaY < 0 ? step : -step);
-      if (newVal < min) newVal = min;
-      if (newVal > max) newVal = max;
-      input.value = newVal;
-      onChange(newVal);
-    } else if (mode === "pow2") {
-      let current = parseFloat(input.value || 1);
-      if (current <= 0) current = 1;
-      if (e.deltaY < 0) current *= 2;
-      else current /= 2;
-      if (current < min) current = min;
-      if (current > max) current = max;
-      input.value = current;
-      onChange(current);
-    }
-  });
-
-  const td = document.createElement("td");
-  td.appendChild(input);
-  return td;
-}
-
-
-  // JSONバリデーション
-    function validateJson(json) {
-      if (!schema3dss) return;
-      const ajv = new Ajv({ allErrors: true, strict: false });
-      const validate = ajv.compile(schema3dss);
-      const valid = validate(json);
-      if (!valid) {
-        setStatus("❌ バリデーションエラー", "error");
-        renderErrors(validate.errors);
-      } else {
-        setStatus("✅ 読込成功 & バリデーションOK", "ok");
-        clearErrors();
-      }
-    }
-
-    // localStorage 復元
-    function restoreFromLocal() {
-      const saved = localStorage.getItem("3dsd:model:current");
-      if (!saved) return;
-      try {
-        const json = JSON.parse(saved);
-        modelData = json;
-        renderNodes();
-        renderEdges(); 
-        validateJson(json);
-        setStatus("🔄 localStorageから復元済", "ok");
-      } catch (err) {
-        setStatus("❌ 復元失敗: " + err.message, "error");
-      }
-    }
-
-    // ステータス表示
-    function setStatus(msg, type) {
-      const el = document.getElementById("status");
-      el.textContent = msg;
-      el.className = type;
-    }
-
-    // エラー一覧表示
- function renderErrors(errors) {
-      const container = document.getElementById("errors");
-      container.innerHTML = "";
-      if (!errors || errors.length === 0) return;
-      const table = document.createElement("table");
-      table.innerHTML = `<tr><th>インスタンスパス</th><th>メッセージ</th></tr>`;
-      errors.forEach(err => {
-        const tr = document.createElement("tr");
-        const tdPath = document.createElement("td");
-        tdPath.textContent = err.instancePath || "(root)";
-        const tdMsg = document.createElement("td");
-        tdMsg.textContent = err.message;
-        tr.appendChild(tdPath);
-        tr.appendChild(tdMsg);
-        table.appendChild(tr);
-      });
-      container.appendChild(table);
-    }
-
-    // エラー消去
-    function clearErrors() {
-      document.getElementById("errors").innerHTML = "";
-    }
-  </script>
+  // 起動
+  // window.addEventListener("DOMContentLoaded", initApp);
+</script>
 </body>
 </html>

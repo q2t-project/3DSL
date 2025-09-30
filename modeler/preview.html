@@ -1,233 +1,41 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>3DSD Preview</title>
-  <style>
-    body { margin: 0; overflow: hidden; }
-    canvas { display: block; }
-  </style>
+  <meta charset="utf-8" />
+  <title>3DSD-preview (viewer-only)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <style>html,body{height:100%;margin:0;background:#000}#viewer{width:100%;height:100%}</style>
 </head>
 <body>
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://esm.sh/three@0.158.0",
-        "OrbitControls": "https://esm.sh/three@0.158.0/examples/jsm/controls/OrbitControls.js"
-      }
-    }
-  </script>
+  <div id="viewer"><!-- Three.js Canvas --></div>
+
   <script type="module">
     import * as THREE from "three";
-    import { OrbitControls } from "OrbitControls";
+    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
-    let scene, camera, renderer, controls;
-    let objectsGroup = new THREE.Group();
+    // 表示専用（編集ロジックなし） [modeler_spec.md: §8 プレビュー]
+    // - window.message で {type:"updateModel", data} を受信して描画更新
+    // - Layers（Nodes/Edges/Labels/Aux）の可視切替は viewer 相当
+    // - Fit to Scene は更新毎に実行
 
-    init();
-    animate();
+    function init(){ /* TODO: scene/camera/renderer/controls/groups */ }
+    function updateFromModel(/* json */){ /* TODO: nodes/edges/labels/aux 描画 */ }
+    function fitToScene(){ /* TODO */ }
 
-    function init() {
-      scene = new THREE.Scene();
-      scene.background = new THREE.Color(0xf0f0f0);
+    // 受信
+    window.addEventListener("message", (e) => {
+      // if(e.data?.type==="updateModel") updateFromModel(e.data.data);
+    });
 
-      camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
-      camera.position.set(5, 5, 5);
-
-      renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      document.body.appendChild(renderer.domElement);
-
-      controls = new OrbitControls(camera, renderer.domElement);
-
-      const light = new THREE.DirectionalLight(0xffffff, 1);
-      light.position.set(5, 10, 7);
-      scene.add(light);
-      scene.add(new THREE.AmbientLight(0x888888));
-
-      scene.add(objectsGroup);
-
-      window.addEventListener("resize", onWindowResize);
-      window.addEventListener("message", onMessage);
-    }
-
-    function onWindowResize() {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-
-    function onMessage(event) {
-      const msg = event.data;
-      if (msg.type === "updateModel") {
-        updateScenePreview(msg.data);
-      }
-    }
-
-    function makeLabelPlane(text, options = {}) {
-      const fontSize   = options.fontSize   ?? 32;
-      const fontFamily = options.fontFamily ?? "Arial";
-      const color      = options.color      ?? "black";
-      const opacity    = options.opacity    ?? 1.0;
-      const background = options.background ?? null;
-      const plane      = options.plane      ?? "xy";
-      const direction  = options.direction  ?? 0;
-      const worldScale = 0.01;
-
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      ctx.font = `${fontSize}px ${fontFamily}`;
-      const metrics = ctx.measureText(text);
-      canvas.width  = metrics.width + 20;
-      canvas.height = fontSize * 1.5;
-      ctx.font = `${fontSize}px ${fontFamily}`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-
-      if (background) {
-        ctx.fillStyle = background;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      }
-      ctx.fillStyle = color;
-      ctx.fillText(text, canvas.width/2, canvas.height/2);
-
-      const texture = new THREE.CanvasTexture(canvas);
-      const mat = new THREE.MeshBasicMaterial({
-        map: texture, transparent: true, opacity, side: THREE.DoubleSide
-      });
-      const geom = new THREE.PlaneGeometry(canvas.width * worldScale, canvas.height * worldScale);
-      const mesh = new THREE.Mesh(geom, mat);
-
-      switch (plane) {
-        case "yz":
-          mesh.rotation.y = Math.PI / 2;
-          break;
-        case "zx":
-          mesh.rotation.x = Math.PI / 2;
-          break;
-      }
-      if (direction) mesh.rotation.z += THREE.MathUtils.degToRad(direction);
-
-      return mesh;
-    }
-
-    function updateScenePreview(model) {
-      objectsGroup.clear();
-      if (!model) return;
-
-      // ノード描画
-      const nodeGeo = new THREE.SphereGeometry(0.1, 16, 16);
-      if (model.nodes) {
-        model.nodes.forEach(n => {
-          const nlabel = n.label || {};
-          const color = nlabel.color || "#0077ff";
-          const opacity = nlabel.opacity != null ? nlabel.opacity : 1.0;
-
-          const mat = new THREE.MeshPhongMaterial({
-            color: new THREE.Color(color),
-            opacity, transparent: opacity < 1.0
-          });
-          const mesh = new THREE.Mesh(nodeGeo, mat);
-          if (n.position) mesh.position.set(...n.position);
-          objectsGroup.add(mesh);
-
-          if (nlabel.text) {
-            const labelMesh = makeLabelPlane(nlabel.text, nlabel);
-            labelMesh.position.set(mesh.position.x, mesh.position.y + 0.3, mesh.position.z);
-            objectsGroup.add(labelMesh);
-          }
-        });
-      }
-
-      // エッジ描画
-      if (model.edges) {
-        model.edges.forEach(e => {
-          const src = model.nodes.find(n => n.id === e.source);
-          const tgt = model.nodes.find(n => n.id === e.target);
-          if (src && tgt && src.position && tgt.position) {
-            const points = [new THREE.Vector3(...src.position), new THREE.Vector3(...tgt.position)];
-            const geo = new THREE.BufferGeometry().setFromPoints(points);
-
-            const color = e.color || "#000";
-            const opacity = e.opacity != null ? e.opacity : 1.0;
-            const mat = new THREE.LineBasicMaterial({
-              color: new THREE.Color(color),
-              opacity, transparent: opacity < 1.0
-            });
-            const line = new THREE.Line(geo, mat);
-            objectsGroup.add(line);
-
-            const elabel = e.label || {};
-            if (elabel.text) {
-              const mid = new THREE.Vector3().addVectors(src.position, tgt.position).multiplyScalar(0.5);
-              const labelMesh = makeLabelPlane(elabel.text, elabel);
-              labelMesh.position.copy(mid).add(new THREE.Vector3(0, 0.2, 0));
-              objectsGroup.add(labelMesh);
-            }
-          }
-        });
-      }
-
-      // === auxiliary 描画 ===
-      if (model.auxiliary) {
-        model.auxiliary.forEach(aux => {
-          if (aux.type === "axis") {
-            const len = aux.length ?? 5;
-            const helper = new THREE.AxesHelper(len);
-            objectsGroup.add(helper);
-          }
-
-          if (aux.type === "grid") {
-            const size = aux.sizeU ?? 10;
-            const divisions = aux.divisionsU ?? 10;
-            const color = aux.color ?? "#444444";
-            const opacity = aux.opacity ?? 0.3;
-            const plane = aux.plane ?? "xy";
-
-            const grid = new THREE.GridHelper(size, divisions, color, color);
-            grid.material.opacity = opacity;
-            grid.material.transparent = true;
-
-            if (plane === "xy") {
-              grid.rotation.x = Math.PI / 2;  // XZ → XY
-            } else if (plane === "yz") {
-              grid.rotation.z = Math.PI / 2;  // XZ → YZ
-            }
-            objectsGroup.add(grid);
-          }
-        });
-      }
-
-      fitCameraToObjects(objectsGroup, camera, controls);
-    }
-
-    function fitCameraToObjects(group, camera, controls) {
-      if (group.children.length === 0) return;
-
-      const box = new THREE.Box3().setFromObject(group);
-      const size = box.getSize(new THREE.Vector3());
-      const center = box.getCenter(new THREE.Vector3());
-
-      controls.target.copy(center);
-
-      const maxDim = Math.max(size.x, size.y, size.z);
-      const fov = camera.fov * (Math.PI / 180);
-      let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
-      cameraZ *= 1.5;
-
-      camera.position.set(center.x + cameraZ, center.y + cameraZ, center.z + cameraZ);
-      camera.near = cameraZ / 100;
-      camera.far = cameraZ * 100;
-      camera.updateProjectionMatrix();
-
-      controls.update();
-    }
-
-    function animate() {
-      requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene, camera);
-    }
+    // window.addEventListener("DOMContentLoaded", init);
   </script>
 </body>
 </html>
