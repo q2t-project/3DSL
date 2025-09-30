@@ -448,7 +448,20 @@ function updateCounts() {
   function onNodeDrag(/* id, newPos */){ /* TODO */ }
 
   // ノード表の再描画
-function renderNodes() {}
+function renderNodes() {
+  const tbody = document.querySelector("#tblNodes tbody");
+  tbody.innerHTML = "";
+  for (const node of modelData.nodes) {
+    const tr = document.createElement("tr");
+    tr.appendChild(createTextCell(node.id, v => { node.id = v; commit(); }));
+    tr.appendChild(createNumberCell(node.pos?.[0] ?? 0, v => { node.pos[0] = v; commit(); }));
+    tr.appendChild(createNumberCell(node.pos?.[1] ?? 0, v => { node.pos[1] = v; commit(); }));
+    tr.appendChild(createNumberCell(node.pos?.[2] ?? 0, v => { node.pos[2] = v; commit(); }));
+    tr.appendChild(createTextCell(node.label?.text ?? "", v => { node.label.text = v; commit(); }));
+    // 他の列（fontSize, plane, color, background, opacity）も同様に
+    tbody.appendChild(tr);
+  }
+}
 function addNode() {
     if (!modelData) return;
     const newId = "n" + (modelData.nodes.length + 1);
@@ -467,7 +480,20 @@ function addNode() {
   function deleteSelectedEdges(){ /* TODO */ }
   function onEdgeCellEdit(/* row, col, value */){ /* TODO */ }
 
-  function renderEdges() {}
+function renderEdges() {
+  const tbody = document.querySelector("#tblEdges tbody");
+  tbody.innerHTML = "";
+  for (const edge of modelData.edges) {
+    const tr = document.createElement("tr");
+    tr.appendChild(createSelectCell(edge.source, modelData.nodes.map(n => n.id), v => { edge.source = v; commit(); }));
+    tr.appendChild(createSelectCell(edge.target, modelData.nodes.map(n => n.id), v => { edge.target = v; commit(); }));
+    tr.appendChild(createTextCell(edge.color ?? "#000000", v => { edge.color = v; commit(); }));
+    tr.appendChild(createNumberCell(edge.opacity ?? 1, v => { edge.opacity = v; commit(); }));
+    tr.appendChild(createTextCell(edge.label?.text ?? "", v => { edge.label.text = v; commit(); }));
+    // 他の列（fontSize, plane, label.color, label.background, label.opacity）も同様に
+    tbody.appendChild(tr);
+  }
+}
 
 function addEdge() {
     if (!modelData) return;
