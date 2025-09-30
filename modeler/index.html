@@ -164,6 +164,9 @@
   let modelData = null;
   let schema = null;
   let ajv = new Ajv({ allErrors: true });
+
+
+
   let previewWindow = null;
   const localStorageKey = "3dsd:model:current";
 
@@ -255,7 +258,13 @@ function saveFile() {
   //   ※ 二重定義禁止／ここに集約（運用ルール）
   // ============================================================
 function setModel(json) {
-  modelData = json;
+  // auxが無ければ空配列を補う
+  if (!Array.isArray(json.aux)) json.aux = [];
+  if (!Array.isArray(json.nodes)) json.nodes = [];
+  if (!Array.isArray(json.edges)) json.edges = [];
+  if (!json.meta) json.meta = { version:"v2", title:"untitled", date:new Date().toI
+
+    modelData = json;
 
   // ノード一覧を再描画
   renderNodes();
