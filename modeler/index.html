@@ -138,7 +138,6 @@
   <!-- ステータス＆エラー表示（共通） [§2 JSON I/O バリデーション] -->
   <div id="statusbar">
     <span id="statusText">未検証</span>
-    <span id="metaVersion"></span>
     <span id="counts"></span>
     <!-- バリデーションエラーは下部にテーブルで可視化（簡易ログ） -->
   </div>
@@ -426,7 +425,6 @@ function createSelectCell(value, options, onChange) {
 
 function updateCounts() {
   const c  = document.getElementById("counts");
-  const mv = document.getElementById("metaVersion");
   const n = modelData?.nodes?.length ?? 0;
   const e = modelData?.edges?.length ?? 0;
   const a = modelData?.aux?.length ?? 0;
