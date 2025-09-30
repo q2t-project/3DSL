@@ -371,6 +371,23 @@ function createNumberCell(value, onChange) {
   return td;
 }
 
+function createSelectCell(value, options, onChange) {
+  const td = document.createElement("td");
+  const select = document.createElement("select");
+
+  options.forEach(opt => {
+    const option = document.createElement("option");
+    option.value = opt;
+    option.textContent = opt;
+    if (opt === value) option.selected = true;
+    select.appendChild(option);
+  });
+
+  select.addEventListener("change", () => onChange(select.value));
+  td.appendChild(select);
+  return td;
+}
+
   // ============================================================
   // ノード編集 [§3]
   // - 追加: 既定位置（原点近傍）に新規ID
@@ -480,6 +497,69 @@ function createNumberCell(value, onChange) {
   function addEdge(){ /* TODO */ }
   function deleteSelectedEdges(){ /* TODO */ }
   function onEdgeCellEdit(/* row, col, value */){ /* TODO */ }
+
+function renderEdges() {
+  const tbody = document.querySelector("#tblEdges tbody");
+  tbody.innerHTML = "";
+
+  (modelData.edges || []).forEach((edge, idx) => {
+    const tr = document.createElement("tr");
+
+    // --- Source (ノードID選択) ---
+    tr.appendChild(createSelectCell(
+      edge.source ?? "",
+      modelData.nodes.map(n => n.id),
+      val => {
+        edge.source = val;
+        saveAndValidate();
+      }
+    ));
+
+    // --- Target (ノードID選択) ---
+    tr.appendChild(createSelectCell(
+      edge.target ?? "",
+      modelData.nodes.map(n => n.id),
+      val => {
+        edge.target = val;
+        saveAndValidate();
+      }
+    ));
+
+    // --- Color ---
+    tr.appendChild(createTextCell(edge.color ?? "#000000", val => {
+      edge.color = val;
+      saveAndValidate();
+    }));
+
+    // --- Opacity ---
+    tr.appendChild(createNumberCell(edge.opacity ?? 1, val => {
+      edge.opacity = val;
+      saveAndValidate();
+    }));
+
+    // --- Label.text ---
+    tr.appendChild(createTextCell(edge.label?.text ?? "", val => {
+      if (!edge.label) edge.label = {};
+      edge.label.text = val;
+      saveAndValidate();
+    }));
+
+    // --- 削除ボタン ---
+    const delTd = document.createElement("td");
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "削除";
+    delBtn.addEventListener("click", () => {
+      modelData.edges.splice(idx, 1);
+      saveAndValidate();
+      renderEdges();
+    });
+    delTd.appendChild(delBtn);
+    tr.appendChild(delTd);
+
+    tbody.appendChild(tr);
+  });
+}
+
 
   // ============================================================
   // 補助要素 (Auxiliary) [§5]
