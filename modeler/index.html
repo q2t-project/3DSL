@@ -314,7 +314,7 @@ function saveAndValidate() {
 
   // TODO: プレビュー送信 (postMessage)
 
-    // Undo/Redo ステータス更新
+  // Undo/Redo ステータス更新
     document.getElementById("btnUndo").disabled = !canUndo();
     document.getElementById("btnRedo").disabled = !canRedo();
 
@@ -322,7 +322,6 @@ function saveAndValidate() {
 
   return errors.length === 0;
 }
-
 
   // ============================================
   // エラーハンドリング
