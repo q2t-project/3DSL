@@ -1,18 +1,39 @@
-// history.js  [modeler_spec.md: §7 ストレージと履歴管理]
-// 目的: 編集履歴の独立管理（index.html から疎結合に利用）
+// history.js
+let stack = [];
+let idx = -1;
 
-/** 初期化（履歴最大数 limit デフォルト=100） */
-export function initHistory(/* limit=100 */){ /* TODO */ }
+const clone = (s) => JSON.parse(JSON.stringify(s));
 
-/** 現在のモデル状態を push（JSONディープコピー or 文字列化） */
-export function pushState(/* state */){ /* TODO */ }
+export function initHistory(initialState = null) {
+  stack = [];
+  idx = -1;
+  if (initialState !== null) pushState(initialState);
+}
 
-/** 1つ前の状態を返す（無ければ null） */
-export function undo(){ /* TODO: pop→redoStackへ→前状態を返す */ }
+export function pushState(state) {
+  const snap = clone(state);
+  if (idx >= 0) {
+    const cur = JSON.stringify(stack[idx]);
+    const nxt = JSON.stringify(snap);
+    if (cur === nxt) return; // 変化なしは積まない
+  }
+  // 未来の履歴を切り落とす
+  if (idx < stack.length - 1) stack = stack.slice(0, idx + 1);
+  stack.push(snap);
+  idx = stack.length - 1;
+}
 
-/** 1つ先の状態を返す（無ければ null） */
-export function redo(){ /* TODO: redoStack→history へ→復元 */ }
+export function canUndo() { return idx > 0; }
+export function canRedo() { return idx >= 0 && idx < stack.length - 1; }
 
-/** 実行可否（UIボタン活性制御用） */
-export function canUndo(){ /* TODO */ }
-export function canRedo(){ /* TODO */ }
+export function undo() {
+  if (!canUndo()) return null;
+  idx -= 1;
+  return clone(stack[idx]);
+}
+
+export function redo() {
+  if (!canRedo()) return null;
+  idx += 1;
+  return clone(stack[idx]);
+}
