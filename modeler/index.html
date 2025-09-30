@@ -189,7 +189,7 @@
   // ============================================================
   async function loadSchema() {
     try {
-      const res = await fetch("./draft-2020-12-schema.json");
+      const res = await fetch("../schemas/draft-2020-12-schema.json");
       schema = await res.json();
       ajv = new Ajv({ allErrors: true });
       ajv.compile(schema);
