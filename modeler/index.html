@@ -165,6 +165,8 @@
   let schema = null;
   let ajv = new Ajv({ allErrors: true });
   let previewWindow = null;
+  let lastSelectedNodeId = null;
+  let lastSelectedEdgeIndex = null;
   const localStorageKey = "3dsd:model:current";
 
   // 選択管理（行クリックでトグル選択）
@@ -463,12 +465,32 @@ function renderNodes() {
     const tr = document.createElement("tr");
     tr.dataset.id = node.id;
     if (selectedNodeIds.has(node.id)) tr.classList.add("selected");
-    tr.addEventListener("click", () => {
-      if (selectedNodeIds.has(node.id)) selectedNodeIds.delete(node.id);
-      else selectedNodeIds.add(node.id);
-      renderNodes();
-      updateSelectionUI();
-    });
+    tr.addEventListener("click", (event) => {
+  if (event.shiftKey && lastSelectedNodeId) {
+    // 範囲選択
+    const ids = modelData.nodes.map(n => n.id);
+    const start = ids.indexOf(lastSelectedNodeId);
+    const end = ids.indexOf(node.id);
+    if (start >= 0 && end >= 0) {
+      const [min, max] = [Math.min(start, end), Math.max(start, end)];
+      for (let i = min; i <= max; i++) {
+        selectedNodeIds.add(ids[i]);
+      }
+    }
+  } else if (event.ctrlKey || event.metaKey) {
+    // 個別トグル
+    if (selectedNodeIds.has(node.id)) selectedNodeIds.delete(node.id);
+    else selectedNodeIds.add(node.id);
+    lastSelectedNodeId = node.id;
+  } else {
+    // 単独選択
+    selectedNodeIds.clear();
+    selectedNodeIds.add(node.id);
+    lastSelectedNodeId = node.id;
+  }
+  renderNodes();
+  updateSelectionUI();
+});
 
     // 既存のセル生成ロジックを維持しつつ、最小構成を確保
     // ID
@@ -545,12 +567,26 @@ function renderEdges() {
     const tr = document.createElement("tr");
     tr.dataset.index = String(i);
     if (selectedEdgeIdx.has(i)) tr.classList.add("selected");
-    tr.addEventListener("click", () => {
-      if (selectedEdgeIdx.has(i)) selectedEdgeIdx.delete(i);
-      else selectedEdgeIdx.add(i);
-      renderEdges();
-      updateSelectionUI();
-    });
+    tr.addEventListener("click", (event) => {
+  if (event.shiftKey && lastSelectedEdgeIndex !== null) {
+    const start = lastSelectedEdgeIndex;
+    const end = i;
+    const [min, max] = [Math.min(start, end), Math.max(start, end)];
+    for (let j = min; j <= max; j++) {
+      selectedEdgeIdx.add(j);
+    }
+  } else if (event.ctrlKey || event.metaKey) {
+    if (selectedEdgeIdx.has(i)) selectedEdgeIdx.delete(i);
+    else selectedEdgeIdx.add(i);
+    lastSelectedEdgeIndex = i;
+  } else {
+    selectedEdgeIdx.clear();
+    selectedEdgeIdx.add(i);
+    lastSelectedEdgeIndex = i;
+  }
+  renderEdges();
+  updateSelectionUI();
+});
 
     // source
     const tdS = document.createElement("td");
