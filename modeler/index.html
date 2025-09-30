@@ -27,6 +27,7 @@
     #statusbar{background:#111;color:#ccc;padding:.25rem .5rem;font:12px/1.6 system-ui}
     .row{display:flex;gap:.5rem;align-items:center}
     .spacer{flex:1}
+    tr.selected { background: #cde8ff; }
   </style>
 </head>
 <body>
@@ -166,6 +167,15 @@
   let previewWindow = null;
   const localStorageKey = "3dsd:model:current";
 
+  // 選択管理（行クリックでトグル選択）
+const selectedNodeIds = new Set();
+const selectedEdgeIdx = new Set();
+
+function updateSelectionUI() {
+  document.getElementById("btnNodeDel").disabled = selectedNodeIds.size === 0;
+  document.getElementById("btnEdgeDel").disabled = selectedEdgeIdx.size === 0;
+}
+
   // ============================================================
   // 初期化シーケンス [§1, §2, §7]
   // - Threeシーン/カメラ/レンダラ/Controls 構築
@@ -175,6 +185,9 @@
   // - UIイベント紐付け（ボタン/ショートカット/テーブル編集）
   // - レイヤーチェックボックス → Group.visible 連動
   // ============================================================
+    document.getElementById("btnNodeDel").addEventListener("click", deleteSelectedNodes);
+    document.getElementById("btnEdgeDel").addEventListener("click", deleteSelectedEdges);
+  
   function initApp(){ /* TODO: 実装 */ }
 
   function commit() {
@@ -451,15 +464,49 @@ function renderNodes() {
   tbody.innerHTML = "";
   for (const node of modelData.nodes) {
     const tr = document.createElement("tr");
-    tr.appendChild(createTextCell(node.id, v => { node.id = v; commit(); }));
-    tr.appendChild(createNumberCell(node.pos?.[0] ?? 0, v => { node.pos[0] = v; commit(); }));
-    tr.appendChild(createNumberCell(node.pos?.[1] ?? 0, v => { node.pos[1] = v; commit(); }));
-    tr.appendChild(createNumberCell(node.pos?.[2] ?? 0, v => { node.pos[2] = v; commit(); }));
-    tr.appendChild(createTextCell(node.label?.text ?? "", v => { node.label.text = v; commit(); }));
-    // 他の列（fontSize, plane, color, background, opacity）も同様に
+    tr.dataset.id = node.id;
+    if (selectedNodeIds.has(node.id)) tr.classList.add("selected");
+    tr.addEventListener("click", () => {
+      if (selectedNodeIds.has(node.id)) selectedNodeIds.delete(node.id);
+      else selectedNodeIds.add(node.id);
+      renderNodes();
+      updateSelectionUI();
+    });
+
+    // 既存のセル生成ロジックを維持しつつ、最小構成を確保
+    // ID
+    const tdId = document.createElement("td");
+    const idInp = document.createElement("input");
+    idInp.type = "text";
+    idInp.value = node.id;
+    idInp.addEventListener("change", () => { node.id = idInp.value; commit(); });
+    tdId.appendChild(idInp);
+    tr.appendChild(tdId);
+
+    // X Y Z
+    for (let i = 0; i < 3; i++) {
+      const td = document.createElement("td");
+      const inp = document.createElement("input");
+      inp.type = "number";
+      inp.value = node.pos?.[i] ?? 0;
+      inp.addEventListener("change", () => { node.pos[i] = Number(inp.value); commit(); });
+      td.appendChild(inp);
+      tr.appendChild(td);
+    }
+
+    // label.text
+    const tdText = document.createElement("td");
+    const textInp = document.createElement("input");
+    textInp.type = "text";
+    textInp.value = node.label?.text ?? "";
+    textInp.addEventListener("change", () => { node.label.text = textInp.value; commit(); });
+    tdText.appendChild(textInp);
+    tr.appendChild(tdText);
+
     tbody.appendChild(tr);
   }
 }
+
 function addNode() {
     if (!modelData) return;
     const newId = "n" + (modelData.nodes.length + 1);
@@ -467,6 +514,23 @@ function addNode() {
     commit();
     renderNodes();
   }
+
+  function deleteSelectedNodes() {
+  if (selectedNodeIds.size === 0) return;
+
+  // ノード本体を削除
+  modelData.nodes = modelData.nodes.filter(n => !selectedNodeIds.has(n.id));
+
+  // 削除されたノードを参照するエッジを同時に掃除
+  const aliveIds = new Set(modelData.nodes.map(n => n.id));
+  modelData.edges = modelData.edges.filter(e => aliveIds.has(e.source) && aliveIds.has(e.target));
+
+  selectedNodeIds.clear();
+  commit();            // ← 履歴に積む（Undoで戻せる）
+  renderNodes();
+  renderEdges();
+  updateSelectionUI();
+}
 
   // ============================================================
   // エッジ編集 [§4]
@@ -481,16 +545,54 @@ function addNode() {
 function renderEdges() {
   const tbody = document.querySelector("#tblEdges tbody");
   tbody.innerHTML = "";
-  for (const edge of modelData.edges) {
+  modelData.edges.forEach((edge, i) => {
     const tr = document.createElement("tr");
-    tr.appendChild(createSelectCell(edge.source, modelData.nodes.map(n => n.id), v => { edge.source = v; commit(); }));
-    tr.appendChild(createSelectCell(edge.target, modelData.nodes.map(n => n.id), v => { edge.target = v; commit(); }));
-    tr.appendChild(createTextCell(edge.color ?? "#000000", v => { edge.color = v; commit(); }));
-    tr.appendChild(createNumberCell(edge.opacity ?? 1, v => { edge.opacity = v; commit(); }));
-    tr.appendChild(createTextCell(edge.label?.text ?? "", v => { edge.label.text = v; commit(); }));
-    // 他の列（fontSize, plane, label.color, label.background, label.opacity）も同様に
+    tr.dataset.index = String(i);
+    if (selectedEdgeIdx.has(i)) tr.classList.add("selected");
+    tr.addEventListener("click", () => {
+      if (selectedEdgeIdx.has(i)) selectedEdgeIdx.delete(i);
+      else selectedEdgeIdx.add(i);
+      renderEdges();
+      updateSelectionUI();
+    });
+
+    // source
+    const tdS = document.createElement("td");
+    const selS = document.createElement("select");
+    for (const n of modelData.nodes) {
+      const o = document.createElement("option");
+      o.value = n.id; o.textContent = n.id;
+      if (edge.source === n.id) o.selected = true;
+      selS.appendChild(o);
+    }
+    selS.addEventListener("change", () => { edge.source = selS.value; commit(); });
+    tdS.appendChild(selS);
+    tr.appendChild(tdS);
+
+    // target
+    const tdT = document.createElement("td");
+    const selT = document.createElement("select");
+    for (const n of modelData.nodes) {
+      const o = document.createElement("option");
+      o.value = n.id; o.textContent = n.id;
+      if (edge.target === n.id) o.selected = true;
+      selT.appendChild(o);
+    }
+    selT.addEventListener("change", () => { edge.target = selT.value; commit(); });
+    tdT.appendChild(selT);
+    tr.appendChild(tdT);
+
+    // label.text
+    const tdText = document.createElement("td");
+    const textInp = document.createElement("input");
+    textInp.type = "text";
+    textInp.value = edge.label?.text ?? "";
+    textInp.addEventListener("change", () => { (edge.label ||= {}).text = textInp.value; commit(); });
+    tdText.appendChild(textInp);
+    tr.appendChild(tdText);
+
     tbody.appendChild(tr);
-  }
+  });
 }
 
 function addEdge() {
@@ -500,6 +602,17 @@ function addEdge() {
     commit();
     renderEdges();
   }
+
+function deleteSelectedEdges() {
+  if (selectedEdgeIdx.size === 0) return;
+
+  modelData.edges = modelData.edges.filter((_, i) => !selectedEdgeIdx.has(i));
+
+  selectedEdgeIdx.clear();
+  commit();            // ← 履歴に積む
+  renderEdges();
+  updateSelectionUI();
+}
 
   // ============================================================
   // 補助要素 (Aux) [§5]
