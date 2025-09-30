@@ -616,45 +616,6 @@ function renderEdges() {
   });
 }
 
-    // source
-    const tdS = document.createElement("td");
-    const selS = document.createElement("select");
-    for (const n of modelData.nodes) {
-      const o = document.createElement("option");
-      o.value = n.id; o.textContent = n.id;
-      if (edge.source === n.id) o.selected = true;
-      selS.appendChild(o);
-    }
-    selS.addEventListener("change", () => { edge.source = selS.value; commit(); });
-    tdS.appendChild(selS);
-    tr.appendChild(tdS);
-
-    // target
-    const tdT = document.createElement("td");
-    const selT = document.createElement("select");
-    for (const n of modelData.nodes) {
-      const o = document.createElement("option");
-      o.value = n.id; o.textContent = n.id;
-      if (edge.target === n.id) o.selected = true;
-      selT.appendChild(o);
-    }
-    selT.addEventListener("change", () => { edge.target = selT.value; commit(); });
-    tdT.appendChild(selT);
-    tr.appendChild(tdT);
-
-    // label.text
-    const tdText = document.createElement("td");
-    const textInp = document.createElement("input");
-    textInp.type = "text";
-    textInp.value = edge.label?.text ?? "";
-    textInp.addEventListener("change", () => { (edge.label ||= {}).text = textInp.value; commit(); });
-    tdText.appendChild(textInp);
-    tr.appendChild(tdText);
-
-    tbody.appendChild(tr);
-  });
-}
-
 function addEdge() {
   // 新しいエッジを未設定で追加
   modelData.edges.push({ source: "", target: "", label: { text: "" } });
