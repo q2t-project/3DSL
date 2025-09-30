@@ -60,7 +60,7 @@
         "required": ["source", "target"]
       }
     },
-    "auxiliary": {
+    "aux": {
       "type": "array",
       "items": {
         "type": "object",
