@@ -203,15 +203,18 @@
 }
 
 function newModel() {
-  return {
+  const json = {
     meta: {
-      version: "v2",     // ★必須
-      date: new Date().toISOString() // 必須なら追加
+      version: "v2",
+      title: "untitled",
+      date: new Date().toISOString().split("T")[0]
     },
     nodes: [],
     edges: [],
     aux: []
   };
+  setModel(json);
+  saveAndValidate();
 }
 
 function openFile(evt) {
@@ -336,7 +339,9 @@ function saveAndValidate() {
   // ============================================
   window.addEventListener("DOMContentLoaded", async () => {
     await loadSchema();
-    document.getElementById("btnNew").addEventListener("click", newModel);
+document.getElementById("btnNew").addEventListener("click", () => {
+  newModel();
+});
     document.getElementById("btnSave").addEventListener("click", saveFile);
     document.getElementById("fileOpen").addEventListener("change", openFile);
     document.getElementById("btnNodeAdd").addEventListener("click", addNode);
