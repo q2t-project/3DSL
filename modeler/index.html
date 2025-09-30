@@ -262,7 +262,7 @@ function setModel(json) {
   if (!Array.isArray(json.aux)) json.aux = [];
   if (!Array.isArray(json.nodes)) json.nodes = [];
   if (!Array.isArray(json.edges)) json.edges = [];
-  if (!json.meta) json.meta = { version:"v2", title:"untitled", date:new Date().toI
+  if (!json.meta) json.meta = { version:"v2", title:"untitled", date:new Date().toISOString() };
 
     modelData = json;
 
