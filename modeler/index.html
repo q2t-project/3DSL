@@ -294,11 +294,6 @@ function saveAndValidate() {
     }
   }
 
-  // version check
-  if (modelData?.meta?.version !== "v2") {
-    errors.push("meta.version must be 'v2'");
-  }
-
   // uniqueness check
   const nodeIds = new Set();
   for (const n of modelData.nodes || []) {
