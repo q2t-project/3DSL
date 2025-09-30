@@ -385,27 +385,6 @@ function createNumberCell(value, onChange) {
   function onNodeCellEdit(/* row, col, value */){ /* TODO */ }
   function onNodeDrag(/* id, newPos */){ /* TODO */ }
 
-function createTextCell(value, onChange) {
-  const td = document.createElement("td");
-  const input = document.createElement("input");
-  input.type = "text";
-  input.value = value;
-  input.addEventListener("change", () => onChange(input.value));
-  td.appendChild(input);
-  return td;
-}
-
-function createNumberCell(value, onChange) {
-  const td = document.createElement("td");
-  const input = document.createElement("input");
-  input.type = "number";
-  input.value = value;
-  input.addEventListener("change", () => onChange(Number(input.value)));
-  td.appendChild(input);
-  return td;
-}
-
-
   // ノード表の再描画
   function renderNodes() {
   const tbody = document.querySelector("#tblNodes tbody");
