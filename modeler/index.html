@@ -59,7 +59,7 @@
       <label><input type="checkbox" id="layerNodes"   checked>Nodes</label>
       <label><input type="checkbox" id="layerEdges"   checked>Edges</label>
       <label><input type="checkbox" id="layerLabels"  checked>Labels</label>
-      <label><input type="checkbox" id="layerAux"     checked>Aux</label>
+      <label><input type="checkbox" id="layerAuxiliary"     checked>Auxiliary</label>
     </div>
   </header>
 
@@ -112,7 +112,7 @@
          中央：3Dビュー [§1 基本構成, §5 Auxiliary, §8 Layers]
          - Three.js Canvas
          - OrbitControls
-         - Layer別グループ（nodes/edges/labels/aux）
+         - Layer別グループ（nodes/edges/labels/auxiliary）
          - ドラッグでノード座標変更 → JSON反映 → pushState
          ========================================================= -->
     <section id="viewer">
@@ -122,7 +122,7 @@
 
     <!-- =========================================================
          右ペイン：プロパティ編集 [§6 プロパティ編集パネル]
-         - 選択対象（ノード/エッジ/Aux）に応じたフォーム切替
+         - 選択対象（ノード/エッジ/Auxiliary）に応じたフォーム切替
          - 現段階は表セル編集が主。将来、ここにフォームを段階移行
          ========================================================= -->
     <section id="right">
@@ -131,7 +131,7 @@
       <div id="propEmpty">左の一覧または3Dビューで対象を選択してください。</div>
       <!-- 選択ノード用フォーム（将来拡張）：id / pos[x,y,z] / label.* -->
       <!-- 選択エッジ用フォーム（将来拡張）：source/target / label.* -->
-      <!-- 選択Aux用フォーム（将来拡張）：grid/axis 各属性 -->
+      <!-- 選択Auxiliary用フォーム（将来拡張）：grid/axis 各属性 -->
     </section>
   </main>
 
@@ -158,7 +158,7 @@
   //   modelData: 現在の3DSS v2 JSON
   //   schema: 3DSS.schema.json（Ajv）
   //   previewWindow: 別窓ハンドル
-  //   groups: {nodes, edges, labels, aux} Three.js グループ
+  //   groups: {nodes, edges, labels, auxiliary} Three.js グループ
   //   localStorageKey: "3dsd:model:current"
   // ============================================================
   let modelData = null;
@@ -211,7 +211,7 @@ function newModel() {
     },
     nodes: [],
     edges: [],
-    aux: []
+    auxiliary: []
   };
   setModel(json);
   saveAndValidate();
@@ -266,7 +266,7 @@ function setModel(json) {
     updateCounts();
   }
 
-  // TODO: Aux 表の再描画
+  // TODO: Auxiliary 表の再描画
   // TODO: 3Dビューの再描画
   // TODO: counts/stats更新
 }
@@ -308,11 +308,16 @@ function saveAndValidate() {
   showValidation(errors);
 
   // TODO: プレビュー送信 (postMessage)
-  // TODO: Undo/Redo ステータス更新
+
+    // Undo/Redo ステータス更新
+    document.getElementById("btnUndo").disabled = !canUndo();
+    document.getElementById("btnRedo").disabled = !canRedo();
+
   // TODO: ステータスバー更新
 
   return errors.length === 0;
 }
+
 
   // ============================================
   // エラーハンドリング
@@ -339,13 +344,30 @@ function saveAndValidate() {
   // ============================================
   window.addEventListener("DOMContentLoaded", async () => {
     await loadSchema();
-document.getElementById("btnNew").addEventListener("click", () => {
+    initHistory();
+
+    document.getElementById("btnNew").addEventListener("click", () => {
   newModel();
 });
     document.getElementById("btnSave").addEventListener("click", saveFile);
     document.getElementById("fileOpen").addEventListener("change", openFile);
     document.getElementById("btnNodeAdd").addEventListener("click", addNode);
     document.getElementById("btnEdgeAdd").addEventListener("click", addEdge);
+
+    document.getElementById("btnUndo").addEventListener("click", onUndo);
+    document.getElementById("btnRedo").addEventListener("click", onRedo);
+
+// ショートカット
+  window.addEventListener("keydown", e => {
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "z") {
+      e.preventDefault();
+      onUndo();
+    }
+    if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === "y" || (e.shiftKey && e.key.toLowerCase() === "z"))) {
+      e.preventDefault();
+      onRedo();
+    }
+  });
 
     // localStorage復元
     const saved = localStorage.getItem(localStorageKey);
@@ -354,6 +376,7 @@ document.getElementById("btnNew").addEventListener("click", () => {
       catch(e){}
     }
     saveAndValidate();
+    pushState(modelData); 
   });
 
   // ============================================
@@ -404,7 +427,7 @@ function updateCounts() {
   const e = modelData?.edges?.length ?? 0;
   const a = modelData?.auxiliary?.length ?? 0;
 
-  c.textContent  = ` nodes:${n} edges:${e} aux:${a}`;
+  c.textContent  = ` nodes:${n} edges:${e} auxiliary?:${a}`;
   mv.textContent = modelData?.meta?.version ? ` ver:${modelData.meta.version}` : "";
 }
 
@@ -634,8 +657,8 @@ function addEdge() {
   // ============================================================
   function addGrid(){ /* TODO（将来：plane/size/divisions/color/opacity） */ }
   function addAxis(){ /* TODO（将来：length/colors） */ }
-  function editAux(/* index, patch */){ /* TODO */ }
-  function removeAux(/* index */){ /* TODO */ }
+  function editAuxiliary?(/* index, patch */){ /* TODO */ }
+  function removeAuxiliary?(/* index */){ /* TODO */ }
 
   // ============================================================
   // プロパティ編集パネル [§6]
@@ -651,8 +674,21 @@ function addEdge() {
   // - Undo/Redo ボタン活性/非活性切替、ショートカット割当
   // ============================================================
   function initHistorySystem(){ /* TODO */ }
-  function onUndo(){ /* state = undo(); if(state) setModel(state) */ }
-  function onRedo(){ /* state = redo(); if(state) setModel(state) */ }
+
+function onUndo(){
+  const state = undo();
+  if (state) {
+    setModel(state);
+    saveAndValidate();
+  }
+}
+function onRedo(){
+  const state = redo();
+  if (state) {
+    setModel(state);
+    saveAndValidate();
+  }
+}
 
   // ============================================================
   // プレビュー連携（別ウィンドウ） [§8 プレビュー]
@@ -666,7 +702,7 @@ function addEdge() {
   // ============================================================
   // Three.js レンダリング [§1, §5, §8]
   // - シーン/カメラ/レンダラ/Controls 準備
-  // - Group: nodes / edges / labels / aux
+  // - Group: nodes / edges / labels / auxiliary
   // - Layers チェックボックスで Group.visible を切替
   // - Fit to Scene（モデル更新後に実行）
   // ============================================================
