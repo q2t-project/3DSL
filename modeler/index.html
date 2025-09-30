@@ -350,17 +350,7 @@ function saveAndValidate() {
   // ============================================
   // 共通ユーティリティ
   // ============================================
-// ============================================
-// 起動処理
-// ============================================
-window.addEventListener("DOMContentLoaded", async () => {
-  await loadSchema();
-  ...
-});
 
-// ============================================
-// 共通ユーティリティ
-// ============================================
 function createTextCell(value, onChange) {
   const td = document.createElement("td");
   const input = document.createElement("input");
