@@ -28,6 +28,7 @@
     .row{display:flex;gap:.5rem;align-items:center}
     .spacer{flex:1}
     tr.selected { background: #cde8ff; }
+    td.cell-missing { background: #ffe0e0; }
   </style>
 </head>
 <body>
@@ -316,10 +317,12 @@ function saveAndValidate() {
     if (nodeIds.has(n.id)) errors.push(`duplicate node id: ${n.id}`);
     nodeIds.add(n.id);
   }
-  for (const e of modelData.edges || []) {
-    if (!nodeIds.has(e.source)) errors.push(`edge source not found: ${e.source}`);
-    if (!nodeIds.has(e.target)) errors.push(`edge target not found: ${e.target}`);
-  }
+for (const e of modelData.edges || []) {
+  if (!e.source) errors.push("edge missing source");
+  if (!e.target) errors.push("edge missing target");
+  if (!nodeIds.has(e.source)) errors.push(`edge source not found: ${e.source}`);
+  if (!nodeIds.has(e.target)) errors.push(`edge target not found: ${e.target}`);
+}
 
   // UI更新
   setModel(modelData);
@@ -569,25 +572,49 @@ function renderEdges() {
     tr.dataset.index = String(i);
     if (selectedEdgeIdx.has(i)) tr.classList.add("selected");
     tr.addEventListener("click", (event) => {
-  if (event.shiftKey && lastSelectedEdgeIndex !== null) {
-    const start = lastSelectedEdgeIndex;
-    const end = i;
-    const [min, max] = [Math.min(start, end), Math.max(start, end)];
-    for (let j = min; j <= max; j++) {
-      selectedEdgeIdx.add(j);
-    }
-  } else if (event.ctrlKey || event.metaKey) {
-    if (selectedEdgeIdx.has(i)) selectedEdgeIdx.delete(i);
-    else selectedEdgeIdx.add(i);
-    lastSelectedEdgeIndex = i;
-  } else {
-    selectedEdgeIdx.clear();
-    selectedEdgeIdx.add(i);
-    lastSelectedEdgeIndex = i;
-  }
-  renderEdges();
-  updateSelectionUI();
-});
+      if (event.shiftKey && lastSelectedEdgeIndex !== null) {
+        const [min, max] = [Math.min(lastSelectedEdgeIndex, i), Math.max(lastSelectedEdgeIndex, i)];
+        for (let j = min; j <= max; j++) {
+          selectedEdgeIdx.add(j);
+        }
+      } else if (event.ctrlKey || event.metaKey) {
+        if (selectedEdgeIdx.has(i)) selectedEdgeIdx.delete(i);
+        else selectedEdgeIdx.add(i);
+        lastSelectedEdgeIndex = i;
+      } else {
+        selectedEdgeIdx.clear();
+        selectedEdgeIdx.add(i);
+        lastSelectedEdgeIndex = i;
+      }
+      renderEdges();
+      updateSelectionUI();
+    });
+
+    // source セル
+    const tdS = createSelectCell(
+      edge.source,
+      modelData.nodes.map(n => n.id),
+      newValue => { edge.source = newValue; }
+    );
+    if (!edge.source) tdS.classList.add("cell-missing");
+    tr.appendChild(tdS);
+
+    // target セル
+    const tdT = createSelectCell(
+      edge.target,
+      modelData.nodes.map(n => n.id),
+      newValue => { edge.target = newValue; }
+    );
+    if (!edge.target) tdT.classList.add("cell-missing");
+    tr.appendChild(tdT);
+
+    // label.text
+    const tdText = createTextCell(edge.label?.text, newValue => { (edge.label ||= {}).text = newValue; });
+    tr.appendChild(tdText);
+
+    tbody.appendChild(tr);
+  });
+}
 
     // source
     const tdS = document.createElement("td");
@@ -629,12 +656,11 @@ function renderEdges() {
 }
 
 function addEdge() {
-    if (!modelData) return;
-    if (modelData.nodes.length < 2) return;
-    modelData.edges.push({ source: modelData.nodes[0].id, target: modelData.nodes[1].id });
-    commit();
-    renderEdges();
-  }
+  // 新しいエッジを未設定で追加
+  modelData.edges.push({ source: "", target: "", label: { text: "" } });
+  commit();
+  renderEdges();
+}
 
 function deleteSelectedEdges() {
   if (selectedEdgeIdx.size === 0) return;
