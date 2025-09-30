@@ -19,7 +19,7 @@
         "type": "object",
         "properties": {
           "id": { "type": "string" },
-          "position": {
+          "pos": {
             "type": "array",
             "items": { "type": "number" },
             "minItems": 3,
@@ -43,7 +43,7 @@
             "required": ["text"]
           }
         },
-        "required": ["id", "position", "label"]
+        "required": ["id", "pos", "label"]
       }
     },
     "edges": {
@@ -71,5 +71,5 @@
       }
     }
   },
-  "required": ["meta", "nodes", "edges", "auxiliary"]
+  "required": ["meta", "nodes", "edges", "aux"]
 }
