@@ -37,7 +37,7 @@
        - 新規, 開く, 保存
        - プレビュー（別ウィンドウ: preview.html + postMessage）
        - Undo / Redo（history.js）
-       - Layers表示切替（Nodes/Edges/Labels/Auxiliary）
+       - Layers表示切替（Nodes/Edges/Labels/Aux）
        ========================================================= -->
   <header>
     <!-- JSON I/O -->
@@ -59,7 +59,7 @@
       <label><input type="checkbox" id="layerNodes"   checked>Nodes</label>
       <label><input type="checkbox" id="layerEdges"   checked>Edges</label>
       <label><input type="checkbox" id="layerLabels"  checked>Labels</label>
-      <label><input type="checkbox" id="layerAuxiliary"     checked>Auxiliary</label>
+      <label><input type="checkbox" id="layerAux"     checked>Aux</label>
     </div>
   </header>
 
@@ -109,10 +109,10 @@
     </section>
 
     <!-- =========================================================
-         中央：3Dビュー [§1 基本構成, §5 Auxiliary, §8 Layers]
+         中央：3Dビュー [§1 基本構成, §5 Aux, §8 Layers]
          - Three.js Canvas
          - OrbitControls
-         - Layer別グループ（nodes/edges/labels/auxiliary）
+         - Layer別グループ（nodes/edges/labels/aux）
          - ドラッグでノード座標変更 → JSON反映 → pushState
          ========================================================= -->
     <section id="viewer">
@@ -122,7 +122,7 @@
 
     <!-- =========================================================
          右ペイン：プロパティ編集 [§6 プロパティ編集パネル]
-         - 選択対象（ノード/エッジ/Auxiliary）に応じたフォーム切替
+         - 選択対象（ノード/エッジ/Aux）に応じたフォーム切替
          - 現段階は表セル編集が主。将来、ここにフォームを段階移行
          ========================================================= -->
     <section id="right">
@@ -131,7 +131,7 @@
       <div id="propEmpty">左の一覧または3Dビューで対象を選択してください。</div>
       <!-- 選択ノード用フォーム（将来拡張）：id / pos[x,y,z] / label.* -->
       <!-- 選択エッジ用フォーム（将来拡張）：source/target / label.* -->
-      <!-- 選択Auxiliary用フォーム（将来拡張）：grid/axis 各属性 -->
+      <!-- 選択Aux用フォーム（将来拡張）：grid/axis 各属性 -->
     </section>
   </main>
 
@@ -158,7 +158,7 @@
   //   modelData: 現在の3DSS v2 JSON
   //   schema: 3DSS.schema.json（Ajv）
   //   previewWindow: 別窓ハンドル
-  //   groups: {nodes, edges, labels, auxiliary} Three.js グループ
+  //   groups: {nodes, edges, labels, aux} Three.js グループ
   //   localStorageKey: "3dsd:model:current"
   // ============================================================
   let modelData = null;
@@ -180,7 +180,7 @@
 
   // ============================================================
   // JSON I/O [§2]
-  // - 新規: v2 の空雛形生成（meta/nodes/edges/auxiliary）
+  // - 新規: v2 の空雛形生成（meta/nodes/edges/aux）
   // - 開く: ファイル選択 → JSON.parse → validate → setModel()
   // - 保存: Blob ダウンロード
   // - バリデーション: Ajv.validate(schema, modelData)
@@ -211,7 +211,7 @@ function newModel() {
     },
     nodes: [],
     edges: [],
-    auxiliary: []
+    aux: []
   };
   setModel(json);
   saveAndValidate();
@@ -266,7 +266,7 @@ function setModel(json) {
     updateCounts();
   }
 
-  // TODO: Auxiliary 表の再描画
+  // TODO: Aux 表の再描画
   // TODO: 3Dビューの再描画
   // TODO: counts/stats更新
 }
@@ -425,9 +425,9 @@ function updateCounts() {
   const mv = document.getElementById("metaVersion");
   const n = modelData?.nodes?.length ?? 0;
   const e = modelData?.edges?.length ?? 0;
-  const a = modelData?.auxiliary?.length ?? 0;
+  const a = modelData?.aux?.length ?? 0;
 
-  c.textContent  = ` nodes:${n} edges:${e} auxiliary?:${a}`;
+  c.textContent  = ` nodes:${n} edges:${e} aux?:${a}`;
   mv.textContent = modelData?.meta?.version ? ` ver:${modelData.meta.version}` : "";
 }
 
@@ -650,15 +650,15 @@ function addEdge() {
 }
 
   // ============================================================
-  // 補助要素 (Auxiliary) [§5]
+  // 補助要素 (Aux) [§5]
   // - grid/axis の追加・削除・編集
   // - Layers チェックボックスで可視切替
   // - 各操作後: pushState() → saveAndValidate()
   // ============================================================
   function addGrid(){ /* TODO（将来：plane/size/divisions/color/opacity） */ }
   function addAxis(){ /* TODO（将来：length/colors） */ }
-  function editAuxiliary(/* index, patch */){ /* TODO */ }
-  function removeAuxiliary(/* index */){ /* TODO */ }
+  function editAux(/* index, patch */){ /* TODO */ }
+  function removeAux(/* index */){ /* TODO */ }
 
   // ============================================================
   // プロパティ編集パネル [§6]
@@ -702,7 +702,7 @@ function onRedo(){
   // ============================================================
   // Three.js レンダリング [§1, §5, §8]
   // - シーン/カメラ/レンダラ/Controls 準備
-  // - Group: nodes / edges / labels / auxiliary
+  // - Group: nodes / edges / labels / aux
   // - Layers チェックボックスで Group.visible を切替
   // - Fit to Scene（モデル更新後に実行）
   // ============================================================
