@@ -250,10 +250,17 @@ function saveFile() {
   // ============================================================
 function setModel(json) {
   modelData = json;
-  renderNodes();   // ← ノード一覧を再描画
-  // TODO: renderEdges();
-  // TODO: renderAux();
-  // TODO: 3Dビュー再描画
+
+  // ノード一覧を再描画
+  renderNodes();
+
+  // エッジ一覧を再描画（次ステップで実装する予定）
+  if (typeof renderEdges === "function") {
+    renderEdges();
+  }
+
+  // TODO: Aux 表の再描画
+  // TODO: 3Dビューの再描画
   // TODO: counts/stats更新
 }
 
