@@ -424,18 +424,44 @@ function createNumberCell(value, onChange) {
   return td;
 }
 
-function createSelectCell(value, options, onChange) {
+function createAutoCompleteCell(value, options, onChange) {
   const td = document.createElement("td");
-  const select = document.createElement("select");
-  for (const option of options) {
-    const optionElement = document.createElement("option");
-    optionElement.value = option;
-    optionElement.textContent = option;
-    if (option === value) optionElement.selected = true;
-    select.appendChild(optionElement);
-  }
-  select.addEventListener("change", () => { onChange(select.value); commit(); });
-  td.appendChild(select);
+
+  // 入力ボックス
+  const input = document.createElement("input");
+  input.type = "text";
+  input.value = value || "";
+
+  // 候補リスト
+  const dataList = document.createElement("datalist");
+  const listId = "list-" + Math.random().toString(36).substr(2, 9);
+  dataList.id = listId;
+
+  // 候補を流し込み
+  options.forEach(opt => {
+    const option = document.createElement("option");
+    option.value = opt;
+    dataList.appendChild(option);
+  });
+
+  // 入力欄に datalist を紐づけ
+  input.setAttribute("list", listId);
+
+  // 値変更時の処理
+  input.addEventListener("change", () => {
+    const newValue = input.value;
+    onChange(newValue);
+
+    // 値が候補に存在しない場合は背景赤にする
+    if (!options.includes(newValue)) {
+      input.style.backgroundColor = "#ffdddd";
+    } else {
+      input.style.backgroundColor = "";
+    }
+  });
+
+  td.appendChild(input);
+  td.appendChild(dataList);
   return td;
 }
 
@@ -591,22 +617,22 @@ function renderEdges() {
     });
 
     // source セル
-    const tdS = createSelectCell(
-      edge.source,
-      modelData.nodes.map(n => n.id),
-      newValue => { edge.source = newValue; }
-    );
-    if (!edge.source) tdS.classList.add("cell-missing");
-    tr.appendChild(tdS);
+  const tdS = createAutoCompleteCell(
+    edge.source,
+    modelData.nodes.map(n => n.id),
+    newValue => { edge.source = newValue; }
+  );
+  if (!edge.source) tdS.classList.add("cell-missing");
+  tr.appendChild(tdS);
 
     // target セル
-    const tdT = createSelectCell(
-      edge.target,
-      modelData.nodes.map(n => n.id),
-      newValue => { edge.target = newValue; }
-    );
-    if (!edge.target) tdT.classList.add("cell-missing");
-    tr.appendChild(tdT);
+  const tdT = createAutoCompleteCell(
+    edge.target,
+    modelData.nodes.map(n => n.id),
+    newValue => { edge.target = newValue; }
+  );
+  if (!edge.target) tdT.classList.add("cell-missing");
+  tr.appendChild(tdT);
 
     // label.text
     const tdText = createTextCell(edge.label?.text, newValue => { (edge.label ||= {}).text = newValue; });
