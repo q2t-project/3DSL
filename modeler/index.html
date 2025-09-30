@@ -473,6 +473,7 @@ function renderNodes() {
     const end = ids.indexOf(node.id);
     if (start >= 0 && end >= 0) {
       const [min, max] = [Math.min(start, end), Math.max(start, end)];
+      selectedNodeIds.clear(); // 範囲選択は一度クリアして範囲全体を選択
       for (let i = min; i <= max; i++) {
         selectedNodeIds.add(ids[i]);
       }
