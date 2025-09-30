@@ -168,6 +168,8 @@
   let previewWindow = null;
   let lastSelectedNodeId = null;
   let lastSelectedEdgeIndex = null;
+  let editingEdgeField = null; // "source" or "target"
+  let editingEdgeIndex = null; // 編集対象のedge行インデックス
   const localStorageKey = "3dsd:model:current";
 
   // 選択管理（行クリックでトグル選択）
@@ -624,6 +626,11 @@ function renderEdges() {
   );
   if (!edge.source) tdS.classList.add("cell-missing");
   tr.appendChild(tdS);
+  // sourceセルをクリックしたら「source編集中」に設定
+  tdS.addEventListener("click", () => {
+    editingEdgeField = "source";
+    editingEdgeIndex = i;  // i は edge の行インデックス
+  });
 
     // target セル
   const tdT = createAutoCompleteCell(
@@ -633,6 +640,10 @@ function renderEdges() {
   );
   if (!edge.target) tdT.classList.add("cell-missing");
   tr.appendChild(tdT);
+  tdT.addEventListener("click", () => {
+    editingEdgeField = "target";
+    editingEdgeIndex = i;
+  });
 
     // label.text
     const tdText = createTextCell(edge.label?.text, newValue => { (edge.label ||= {}).text = newValue; });
@@ -658,6 +669,19 @@ function deleteSelectedEdges() {
   commit();            // ← 履歴に積む
   renderEdges();
   updateSelectionUI();
+}
+
+function onNodeClick(nodeId) {
+  if (editingEdgeField && editingEdgeIndex != null) {
+    const edge = modelData.edges[editingEdgeIndex];
+    edge[editingEdgeField] = nodeId;
+    commit();
+    renderEdges();
+
+    // リセット
+    editingEdgeField = null;
+    editingEdgeIndex = null;
+  }
 }
 
   // ============================================================
