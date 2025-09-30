@@ -163,9 +163,6 @@
   let modelData = null;
   let schema = null;
   let ajv = new Ajv({ allErrors: true });
-
-
-
   let previewWindow = null;
   const localStorageKey = "3dsd:model:current";
 
@@ -179,6 +176,12 @@
   // - レイヤーチェックボックス → Group.visible 連動
   // ============================================================
   function initApp(){ /* TODO: 実装 */ }
+
+  function commit() {
+    saveAndValidate();
+    pushState(modelData);
+    updateCounts();
+  }
 
   // ============================================================
   // JSON I/O [§2]
@@ -216,7 +219,7 @@ function newModel() {
     aux: []
   };
   setModel(json);
-  saveAndValidate();
+  commit();
 }
 
 function openFile(evt) {
@@ -227,7 +230,7 @@ function openFile(evt) {
       try {
         const json = JSON.parse(e.target.result);
         setModel(json);
-        saveAndValidate();
+        commit();
       } catch (err) {
         showError("JSON parse error: " + err.message);
       }
@@ -378,8 +381,7 @@ function saveAndValidate() {
       try { setModel(JSON.parse(saved)); }
       catch(e){}
     }
-    saveAndValidate();
-    pushState(modelData); 
+    commit();
   });
 
   // ============================================
@@ -446,110 +448,14 @@ function updateCounts() {
   function onNodeDrag(/* id, newPos */){ /* TODO */ }
 
   // ノード表の再描画
-  function renderNodes() {
-  const tbody = document.querySelector("#tblNodes tbody");
-  tbody.innerHTML = "";
-if (!modelData.nodes || modelData.nodes.length === 0) {
-  const tr = document.createElement("tr");
-  const td = document.createElement("td");
-  td.colSpan = 10;
-  td.style.color = "#888";
-  td.textContent = "（ノードなし）「ノード追加」を押してください";
-  tr.appendChild(td);
-  tbody.appendChild(tr);
-  return;
-}
-
-  (modelData.nodes || []).forEach((node, idx) => {
-    const tr = document.createElement("tr");
-
-    // --- ID ---
-    tr.appendChild(createTextCell(node.id ?? "", val => {
-      node.id = val;
-      saveAndValidate();
-    }));
-
-    // --- Position (x, y, z) ---
-    ["x", "y", "z"].forEach((axis, i) => {
-      tr.appendChild(createNumberCell(
-        Array.isArray(node.pos) ? node.pos[i] ?? 0 : 0,
-        val => {
-          if (!Array.isArray(node.pos)) node.pos = [0, 0, 0];
-          node.pos[i] = val;
-          saveAndValidate();
-        }
-      ));
-    });
-
-    // --- Label.text ---
-    tr.appendChild(createTextCell(node.label?.text ?? "", val => {
-      if (!node.label) node.label = {};
-      node.label.text = val;
-      saveAndValidate();
-    }));
-
-    // --- Label.fontSize ---
-    tr.appendChild(createNumberCell(node.label?.fontSize ?? 16, val => {
-      if (!node.label) node.label = {};
-      node.label.fontSize = val;
-      saveAndValidate();
-    }));
-
-    // --- Label.plane ---
-    tr.appendChild(createTextCell(node.label?.plane ?? "xy", val => {
-      if (!node.label) node.label = {};
-      node.label.plane = val;
-      saveAndValidate();
-    }));
-
-    // --- Label.color ---
-    tr.appendChild(createTextCell(node.label?.color ?? "#000000", val => {
-      if (!node.label) node.label = {};
-      node.label.color = val;
-      saveAndValidate();
-    }));
-
-    // --- Label.background ---
-    tr.appendChild(createTextCell(node.label?.background ?? "", val => {
-      if (!node.label) node.label = {};
-      node.label.background = val;
-      saveAndValidate();
-    }));
-
-    // --- Label.opacity ---
-    tr.appendChild(createNumberCell(node.label?.opacity ?? 1, val => {
-      if (!node.label) node.label = {};
-      node.label.opacity = val;
-      saveAndValidate();
-    }));
-
-    // --- 削除ボタン ---
-    const delTd = document.createElement("td");
-    const delBtn = document.createElement("button");
-    delBtn.textContent = "削除";
-    delBtn.addEventListener("click", () => {
-      modelData.nodes.splice(idx, 1);
-      saveAndValidate();
-      renderNodes();
-    });
-    delTd.appendChild(delBtn);
-    tr.appendChild(delTd);
-
-    tbody.appendChild(tr);
-  });
-}
-
+function renderNodes() {}
 function addNode() {
-  if (!modelData) return;
-  const newId = "n" + (modelData.nodes.length + 1);
-  modelData.nodes.push({
-    id: newId,
-    pos: [0,0,0],
-    label: { text: "", fontSize: 16, plane: "xy", color: "#000000", background: "", opacity: 1 }
-  });
-  saveAndValidate();
-  renderNodes();
-}
+    if (!modelData) return;
+    const newId = "n" + (modelData.nodes.length + 1);
+    modelData.nodes.push({ id: newId, pos:[0,0,0], label:{text:""} });
+    commit();
+    renderNodes();
+  }
 
   // ============================================================
   // エッジ編集 [§4]
@@ -561,94 +467,15 @@ function addNode() {
   function deleteSelectedEdges(){ /* TODO */ }
   function onEdgeCellEdit(/* row, col, value */){ /* TODO */ }
 
-function renderEdges() {
-  const tbody = document.querySelector("#tblEdges tbody");
-  tbody.innerHTML = "";
-if (!modelData.edges || modelData.edges.length === 0) {
-  const tr = document.createElement("tr");
-  const td = document.createElement("td");
-  td.colSpan = 10;
-  td.style.color = "#888";
-  td.textContent = "（エッジなし）「エッジ追加」を押してください";
-  tr.appendChild(td);
-  tbody.appendChild(tr);
-  return;
-}
-
-  (modelData.edges || []).forEach((edge, idx) => {
-    const tr = document.createElement("tr");
-
-    // --- Source (ノードID選択) ---
-    tr.appendChild(createSelectCell(
-      edge.source ?? "",
-      modelData.nodes.map(n => n.id),
-      val => {
-        edge.source = val;
-        saveAndValidate();
-      }
-    ));
-
-    // --- Target (ノードID選択) ---
-    tr.appendChild(createSelectCell(
-      edge.target ?? "",
-      modelData.nodes.map(n => n.id),
-      val => {
-        edge.target = val;
-        saveAndValidate();
-      }
-    ));
-
-    // --- Color ---
-    tr.appendChild(createTextCell(edge.color ?? "#000000", val => {
-      edge.color = val;
-      saveAndValidate();
-    }));
-
-    // --- Opacity ---
-    tr.appendChild(createNumberCell(edge.opacity ?? 1, val => {
-      edge.opacity = val;
-      saveAndValidate();
-    }));
-
-    // --- Label.text ---
-    tr.appendChild(createTextCell(edge.label?.text ?? "", val => {
-      if (!edge.label) edge.label = {};
-      edge.label.text = val;
-      saveAndValidate();
-    }));
-
-    // --- 削除ボタン ---
-    const delTd = document.createElement("td");
-    const delBtn = document.createElement("button");
-    delBtn.textContent = "削除";
-    delBtn.addEventListener("click", () => {
-      modelData.edges.splice(idx, 1);
-      saveAndValidate();
-      renderEdges();
-    });
-    delTd.appendChild(delBtn);
-    tr.appendChild(delTd);
-
-    tbody.appendChild(tr);
-  });
-}
+  function renderEdges() {}
 
 function addEdge() {
-  if (!modelData) return;
-  if (modelData.nodes.length < 2) {
-    showError("エッジ追加には少なくとも2ノード必要です");
-    return;
+    if (!modelData) return;
+    if (modelData.nodes.length < 2) return;
+    modelData.edges.push({ source: modelData.nodes[0].id, target: modelData.nodes[1].id });
+    commit();
+    renderEdges();
   }
-  modelData.edges.push({
-    source: modelData.nodes[0].id,
-    target: modelData.nodes[1].id,
-    color: "#000000",
-    opacity: 1,
-    label: { text: "" }
-  });
-  saveAndValidate();
-  renderEdges();
-}
 
   // ============================================================
   // 補助要素 (Aux) [§5]
