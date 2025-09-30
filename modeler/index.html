@@ -188,15 +188,20 @@
   // - versionチェック: meta.version === "v2" 必須
   // ============================================================
   async function loadSchema() {
-    try {
-      const res = await fetch("../schemas/draft-2020-12-schema.json");
-      schema = await res.json();
-      ajv = new Ajv({ allErrors: true });
-      ajv.compile(schema);
-    } catch (e) {
-      showError("スキーマ読み込み失敗: " + e.message);
-    }
+  try {
+    // 3DSS用スキーマを読み込む（draft-2020-12はAjvに既に内蔵されている）
+    const res = await fetch("../schemas/3DSS.schema.json");
+    schema = await res.json();
+
+    // Ajv初期化（strict:false で未知format警告を抑制）
+    ajv = new Ajv({ allErrors: true, strict: false });
+    ajv.compile(schema);
+
+  } catch (e) {
+    showError("スキーマ読み込み失敗: " + e.message);
   }
+}
+
   function newModel() {
     modelData = {
       meta: { version: "v2", title: "untitled" },
