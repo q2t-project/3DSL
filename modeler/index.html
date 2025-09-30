@@ -262,6 +262,7 @@ function setModel(json) {
   // エッジ一覧を再描画（次ステップで実装する予定）
   if (typeof renderEdges === "function") {
     renderEdges();
+    updateCounts(); /
   }
 
   // TODO: Aux 表の再描画
@@ -410,6 +411,16 @@ function createSelectCell(value, options, onChange) {
   function renderNodes() {
   const tbody = document.querySelector("#tblNodes tbody");
   tbody.innerHTML = "";
+if (!modelData.nodes || modelData.nodes.length === 0) {
+  const tr = document.createElement("tr");
+  const td = document.createElement("td");
+  td.colSpan = 10;
+  td.style.color = "#888";
+  td.textContent = "（ノードなし）「ノード追加」を押してください";
+  tr.appendChild(td);
+  tbody.appendChild(tr);
+  return;
+
 
   (modelData.nodes || []).forEach((node, idx) => {
     const tr = document.createElement("tr");
@@ -515,6 +526,16 @@ function addNode() {
 function renderEdges() {
   const tbody = document.querySelector("#tblEdges tbody");
   tbody.innerHTML = "";
+if (!modelData.edges || modelData.edges.length === 0) {
+  const tr = document.createElement("tr");
+  const td = document.createElement("td");
+  td.colSpan = 10;
+  td.style.color = "#888";
+  td.textContent = "（エッジなし）「エッジ追加」を押してください";
+  tr.appendChild(td);
+  tbody.appendChild(tr);
+  return;
+}
 
   (modelData.edges || []).forEach((edge, idx) => {
     const tr = document.createElement("tr");
