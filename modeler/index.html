@@ -343,6 +343,91 @@ function saveAndValidate() {
   function onNodeCellEdit(/* row, col, value */){ /* TODO */ }
   function onNodeDrag(/* id, newPos */){ /* TODO */ }
 
+  // ノード表の再描画
+  function renderNodes() {
+  const tbody = document.querySelector("#tblNodes tbody");
+  tbody.innerHTML = "";
+
+  (modelData.nodes || []).forEach((node, idx) => {
+    const tr = document.createElement("tr");
+
+    // --- ID ---
+    tr.appendChild(createTextCell(node.id ?? "", val => {
+      node.id = val;
+      saveAndValidate();
+    }));
+
+    // --- Position (x, y, z) ---
+    ["x", "y", "z"].forEach((axis, i) => {
+      tr.appendChild(createNumberCell(
+        Array.isArray(node.pos) ? node.pos[i] ?? 0 : 0,
+        val => {
+          if (!Array.isArray(node.pos)) node.pos = [0, 0, 0];
+          node.pos[i] = val;
+          saveAndValidate();
+        }
+      ));
+    });
+
+    // --- Label.text ---
+    tr.appendChild(createTextCell(node.label?.text ?? "", val => {
+      if (!node.label) node.label = {};
+      node.label.text = val;
+      saveAndValidate();
+    }));
+
+    // --- Label.fontSize ---
+    tr.appendChild(createNumberCell(node.label?.fontSize ?? 16, val => {
+      if (!node.label) node.label = {};
+      node.label.fontSize = val;
+      saveAndValidate();
+    }));
+
+    // --- Label.plane ---
+    tr.appendChild(createTextCell(node.label?.plane ?? "xy", val => {
+      if (!node.label) node.label = {};
+      node.label.plane = val;
+      saveAndValidate();
+    }));
+
+    // --- Label.color ---
+    tr.appendChild(createTextCell(node.label?.color ?? "#000000", val => {
+      if (!node.label) node.label = {};
+      node.label.color = val;
+      saveAndValidate();
+    }));
+
+    // --- Label.background ---
+    tr.appendChild(createTextCell(node.label?.background ?? "", val => {
+      if (!node.label) node.label = {};
+      node.label.background = val;
+      saveAndValidate();
+    }));
+
+    // --- Label.opacity ---
+    tr.appendChild(createNumberCell(node.label?.opacity ?? 1, val => {
+      if (!node.label) node.label = {};
+      node.label.opacity = val;
+      saveAndValidate();
+    }));
+
+    // --- 削除ボタン ---
+    const delTd = document.createElement("td");
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "削除";
+    delBtn.addEventListener("click", () => {
+      modelData.nodes.splice(idx, 1);
+      saveAndValidate();
+      renderNodes();
+    });
+    delTd.appendChild(delBtn);
+    tr.appendChild(delTd);
+
+    tbody.appendChild(tr);
+  });
+}
+
+
   // ============================================================
   // エッジ編集 [§4]
   // - 追加: source/target をノードIDドロップダウンで指定
