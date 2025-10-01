@@ -300,35 +300,34 @@ function setModel(json) {
 }
 
 function saveAndValidate(){
-      if (!modelData) return;
+  if (!modelData) return;
 
-      localStorage.setItem(localStorageKey, JSON.stringify(modelData));
+  localStorage.setItem(localStorageKey, JSON.stringify(modelData));
 
-      let errors = [];
-      let valid = true;
+  let errors = [];
+  let valid = true;
 
-      if(schema){
-        valid = ajv.validate(schema, modelData);
-        if(!valid){
-          errors.push(...ajv.errors.map(e => `${e.instancePath} ${e.message}`));
-        }
-      }
-
-      // TODO: uniqueness checksなど
-
-      showValidation(errors);
-
-      // プレビュー送信
-      if(valid){
-        postToPreview(modelData);
-      }
-
-      document.getElementById("btnUndo").disabled = !canUndo();
-      document.getElementById("btnRedo").disabled = !canRedo();
-
-      return errors.length===0;
+  if(schema){
+    valid = ajv.validate(schema, modelData);
+    if(!valid){
+      errors.push(...ajv.errors.map(e => `${e.instancePath} ${e.message}`));
     }
+  }
 
+  // TODO: uniqueness checksなど
+
+  showValidation(errors);
+
+  // プレビュー送信
+  if(valid){
+    postToPreview(modelData);
+  }
+
+  document.getElementById("btnUndo").disabled = !canUndo();
+  document.getElementById("btnRedo").disabled = !canRedo();
+
+  return errors.length===0;
+}
 
   // UI更新
   setModel(modelData);
