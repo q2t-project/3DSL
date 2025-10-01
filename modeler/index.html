@@ -829,9 +829,9 @@ function afterValidateAndMaybePost(valid) {
 
   // 起動
   // window.addEventListener("DOMContentLoaded", initApp);
-    window.addEventListener("DOMContentLoaded",()=>{
+  window.addEventListener("DOMContentLoaded",()=>{
       document.getElementById("btnPreview").addEventListener("click", openPreview);
-      document.getElementById("btnSave").addEventListener("click", saveAndValidate);
+      document.getElementById("btnSave").addEventListener("click", saveFile); // ←ファイル保存専用に戻す
       document.getElementById("btnNew").addEventListener("click", newModel);
       loadSchema();
     });
