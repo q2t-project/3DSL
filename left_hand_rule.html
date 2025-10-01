@@ -158,8 +158,15 @@ function addEllipseArc3(center, normal, rx, ry, start, end, color, segments=64) 
 // modelData の描画
 for (const node of modelData.nodes) {
   for (const prim of node.geometry.primitives) {
-    if (prim.type === "line3") addLine3(prim.a, prim.b, prim.color);
-    if (prim.type === "arc3") addArc3(prim.center, prim.normal, prim.radius, prim.start, prim.end, prim.color);
+    if (prim.type === "line3") {
+      addLine3(prim.a, prim.b, prim.color);
+    }
+    if (prim.type === "arc3") {
+      addArc3(prim.center, prim.normal, prim.radius, prim.start, prim.end, prim.color);
+    }
+    if (prim.type === "ellipseArc3") {
+      addEllipseArc3(prim.center, prim.normal, prim.rx, prim.ry, prim.start, prim.end, prim.color);
+    }
   }
 }
 
