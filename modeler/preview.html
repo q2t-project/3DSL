@@ -58,6 +58,26 @@ function init(){
   onResize();
   animate();
 
+
+
+
+const saved = localStorage.getItem("3dss-model");
+if(saved){
+  try {
+    const json = JSON.parse(saved);
+    console.log("Restored from localStorage:", json);
+    updateFromModel(json);
+  } catch(e){
+    console.warn("Failed to restore model from localStorage:", e);
+  }
+} else {
+  console.log("No saved model found in localStorage");
+}
+
+
+
+
+
 // === localStorageから最新モデルを復元 ===
   const saved = localStorage.getItem("3dss-model");
   if(saved){
@@ -232,23 +252,6 @@ function fitToScene(){
   });
 
 init();
-
-
-
-const saved = localStorage.getItem("3dss-model");
-if(saved){
-  try {
-    const json = JSON.parse(saved);
-    console.log("Restored from localStorage:", json);
-    updateFromModel(json);
-  } catch(e){
-    console.warn("Failed to restore model from localStorage:", e);
-  }
-} else {
-  console.log("No saved model found in localStorage");
-}
-
-
 
 </script>
 </body>
