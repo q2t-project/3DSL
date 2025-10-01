@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>左手の法則（簡易3Dハンド）</title>
+  <style>
+    html, body { height: 100%; margin: 0; background: #0b0f14; color: #e5e7eb; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", "Helvetica", Arial, sans-serif; }
+    #app { position: fixed; inset: 0; display: grid; grid-template-rows: auto 1fr; }
+    header { padding: 10px 14px; background: #0f172a; border-bottom: 1px solid #1f2937; display: flex; gap: 12px; align-items: center; }
+    header h1 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: .02em; }
+    header .hint { opacity: .75; font-size: 12px; }
+    canvas { display: block; }
+    .legend { position: absolute; right: 12px; top: 60px; background: rgba(15, 23, 42, .85); border: 1px solid #1f2937; border-radius: 10px; padding: 10px 12px; font-size: 12px; line-height: 1.5; backdrop-filter: blur(8px); }
+    .legend b { font-weight: 700; }
+    .legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>左手の法則（親指=力F / 人差し指=磁界B / 中指=電流I）</h1>
+      <div class="hint">ドラッグで回転、ホイールで拡大縮小、右ドラッグで平行移動</div>
+    </header>
+    <div id="scene-root"></div>
+    <div class="legend">
+      <div><span class="dot" style="background:#ef4444"></span><b>親指</b> = 力 F（+X）</div>
+      <div><span class="dot" style="background:#22c55e"></span><b>人差し指</b> = 磁界 B（+Y）</div>
+      <div><span class="dot" style="background:#3b82f6"></span><b>中指</b> = 電流 I（+Z）</div>
+      <div style="margin-top:6px; opacity:.75;">※ 左手を模した簡易モデル（球と円柱の組み合わせ）</div>
+    </div>
+  </div>
+
+  <!-- Three.js & Controls -->
+  <script type="module">
+    import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+    import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+
+    const root = document.getElementById('scene-root');
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight - 48);
+    renderer.setClearColor(0x0b0f14, 1);
+    root.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / (window.innerHeight - 48), 0.1, 2000);
+    camera.position.set(6, 5, 9);
+    camera.lookAt(0, 1, 0);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+
+    // Lights
+    {
+      const hemi = new THREE.HemisphereLight(0xffffff, 0x222233, 0.8);
+      hemi.position.set(0, 1, 0);
+      scene.add(hemi);
+
+      const dir = new THREE.DirectionalLight(0xffffff, 0.9);
+      dir.position.set(6, 8, 10);
+      dir.castShadow = false;
+      scene.add(dir);
+    }
+
+    // Ground (soft)
+    {
+      const geo = new THREE.CircleGeometry(20, 64);
+      const mat = new THREE.MeshBasicMaterial({ color: 0x0b1220, transparent: true, opacity: 0.8 });
+      const ground = new THREE.Mesh(geo, mat);
+      ground.rotation.x = -Math.PI / 2;
+      ground.position.y = -1.25;
+      scene.add(ground);
+    }
+
+    // Axes-like arrows for F(+X, red), B(+Y, green), I(+Z, blue)
+    function arrow(color, from, to, radius = 0.06) {
+      const group = new THREE.Group();
+
+      const dir = new THREE.Vector3().subVectors(to, from);
+      const len = dir.length();
+      const arrowLen = Math.max(0.4, Math.min(len * 0.18, 0.8));
+      const bodyLen = len - arrowLen;
+      dir.normalize();
+
+      // Cylinder body
+      const bodyGeo = new THREE.CylinderGeometry(radius, radius, Math.max(0.001, bodyLen), 24, 1, true);
+      const bodyMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9 });
+      const body = new THREE.Mesh(bodyGeo, bodyMat);
+      // orient
+      const mid = new THREE.Vector3().addVectors(from, dir.clone().multiplyScalar(bodyLen / 2));
+      body.position.copy(mid);
+      body.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+      group.add(body);
+
+      // Cone head
+      const coneGeo = new THREE.ConeGeometry(radius * 2, arrowLen, 24);
+      const coneMat = new THREE.MeshBasicMaterial({ color });
+      const head = new THREE.Mesh(coneGeo, coneMat);
+      head.position.copy(new THREE.Vector3().addVectors(from, dir.clone().multiplyScalar(bodyLen + arrowLen / 2)));
+      head.quaternion.copy(body.quaternion);
+      group.add(head);
+
+      scene.add(group);
+      return group;
+    }
+
+    // Simple text sprites
+    function textSprite(text, color = '#e5e7eb') {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const pad = 24;
+      ctx.font = '24px system-ui, -apple-system, Segoe UI, Roboto, Noto Sans JP, sans-serif';
+      const w = Math.ceil(ctx.measureText(text).width) + pad * 2;
+      const h = 48 + pad;
+      canvas.width = w;
+      canvas.height = h;
+      // redraw with scale
+      const ctx2 = canvas.getContext('2d');
+      ctx2.font = '24px system-ui, -apple-system, Segoe UI, Roboto, Noto Sans JP, sans-serif';
+      ctx2.fillStyle = 'rgba(15,23,42,0.9)';
+      ctx2.fillRect(0, 0, w, h);
+      ctx2.strokeStyle = 'rgba(31,41,55,1)';
+      ctx2.strokeRect(0.5, 0.5, w-1, h-1);
+      ctx2.fillStyle = color;
+      ctx2.textBaseline = 'middle';
+      ctx2.fillText(text, pad, h/2);
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.minFilter = THREE.LinearFilter;
+      const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+      const spr = new THREE.Sprite(mat);
+      const scale = 0.01;
+      spr.scale.set(w * scale, h * scale, 1);
+      return spr;
+    }
+
+    // Create a rounded "palm" using a sphere and a slightly flattened box
+    function createPalm() {
+      const g1 = new THREE.SphereGeometry(1.15, 32, 32);
+      const m1 = new THREE.MeshStandardMaterial({ color: 0xb8bfc9, metalness: 0.1, roughness: 0.7 });
+      const s1 = new THREE.Mesh(g1, m1);
+      s1.position.set(0, 0, 0);
+      s1.scale.set(1.0, 0.8, 1.0);
+
+      const g2 = new THREE.BoxGeometry(2.0, 0.8, 1.2);
+      const m2 = new THREE.MeshStandardMaterial({ color: 0x9aa3ad, metalness: 0.1, roughness: 0.8 });
+      const b2 = new THREE.Mesh(g2, m2);
+      b2.position.set(0, -0.2, -0.05);
+      b2.rotation.set(0.05, 0, 0);
+
+      const group = new THREE.Group();
+      group.add(s1, b2);
+      return group;
+    }
+
+    function jointSphere(r = 0.14, color = 0xd1d5db) {
+      return new THREE.Mesh(
+        new THREE.SphereGeometry(r, 24, 24),
+        new THREE.MeshStandardMaterial({ color, metalness: 0.05, roughness: 0.6 })
+      );
+    }
+
+    function phalanx(length = 1.0, radiusTop = 0.13, radiusBottom = 0.16, color = 0xbfc7d1) {
+      const geo = new THREE.CylinderGeometry(radiusTop, radiusBottom, length, 24);
+      const mat = new THREE.MeshStandardMaterial({ color, metalness: 0.05, roughness: 0.6 });
+      const mesh = new THREE.Mesh(geo, mat);
+      return mesh;
+    }
+
+    // Build a finger from 3 segments (approx). dir is a unit vector.
+    function buildFinger({ base, dir, bend1 = 15, bend2 = 10, seg1 = 1.1, seg2 = 0.9, seg3 = 0.7, color = 0xbfc7d1 }) {
+      const g = new THREE.Group();
+
+      const d = dir.clone().normalize();
+      const up = new THREE.Vector3(0, 1, 0);
+      const side = new THREE.Vector3().crossVectors(d, up).normalize();
+      const slight = side.multiplyScalar(0.06); // small lateral offset to make it organic
+
+      // proximal
+      const f1 = phalanx(seg1, 0.15, 0.19, color);
+      f1.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d);
+      f1.position.copy(base.clone().add(d.clone().multiplyScalar(seg1 / 2))).add(slight);
+      g.add(f1);
+
+      const j1 = jointSphere();
+      j1.position.copy(base.clone().add(d.clone().multiplyScalar(seg1))).add(slight);
+      g.add(j1);
+
+      // middle (bend by bend1 degrees around side axis)
+      const d2 = d.clone().applyAxisAngle(side, THREE.MathUtils.degToRad(-bend1));
+      const f2 = phalanx(seg2, 0.13, 0.16, color);
+      f2.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d2);
+      f2.position.copy(j1.position.clone().add(d2.clone().multiplyScalar(seg2 / 2)));
+      g.add(f2);
+
+      const j2 = jointSphere();
+      j2.position.copy(j1.position.clone().add(d2.clone().multiplyScalar(seg2)));
+      g.add(j2);
+
+      // distal (bend again)
+      const d3 = d2.clone().applyAxisAngle(side, THREE.MathUtils.degToRad(-bend2));
+      const f3 = phalanx(seg3, 0.12, 0.14, color);
+      f3.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d3);
+      f3.position.copy(j2.position.clone().add(d3.clone().multiplyScalar(seg3 / 2)));
+      g.add(f3);
+
+      const tip = jointSphere(0.12, 0xe5e7eb);
+      tip.position.copy(j2.position.clone().add(d3.clone().multiplyScalar(seg3)));
+      g.add(tip);
+
+      return g;
+    }
+
+    // Build thumb, index, middle (F,B,I). Ensure LEFT hand orientation.
+    const hand = new THREE.Group();
+    scene.add(hand);
+
+    const palm = createPalm();
+    palm.position.set(0, 0, 0);
+    hand.add(palm);
+
+    // Base anchors on palm (approx layout for left hand)
+    const baseThumb  = new THREE.Vector3(-0.8, -0.2,  0.1); // left side (negative X) for LEFT hand root; then thumb runs to +X or -X?
+    const baseIndex  = new THREE.Vector3( 0.2,  0.6,  0.0);
+    const baseMiddle = new THREE.Vector3(-0.05, 0.55, 0.25);
+
+    // For left-hand rule axes mapping:
+    // F (thumb)  -> +X (red)
+    // B (index)  -> +Y (green)
+    // I (middle) -> +Z (blue)
+    // We'll orient the finger directions accordingly.
+    const dirThumb  = new THREE.Vector3(1, 0.05, 0.1).normalize();  // mostly +X
+    const dirIndex  = new THREE.Vector3(0.05, 1, 0.0).normalize();  // +Y
+    const dirMiddle = new THREE.Vector3(0.0, 0.02, 1).normalize();   // +Z
+
+    // Fingers
+    const thumb  = buildFinger({ base: baseThumb, dir: dirThumb, bend1: 5, bend2: 5, seg1: 0.9, seg2: 0.7, seg3: 0.55 });
+    const indexF = buildFinger({ base: baseIndex, dir: dirIndex, bend1: 10, bend2: 8, seg1: 1.1, seg2: 0.9, seg3: 0.7 });
+    const midF   = buildFinger({ base: baseMiddle, dir: dirMiddle, bend1: 12, bend2: 10, seg1: 1.2, seg2: 1.0, seg3: 0.8 });
+
+    hand.add(thumb, indexF, midF);
+
+    // Color the fingers subtly with tints matching arrows
+    thumb.traverse(o => { if (o.isMesh) o.material.color.lerp(new THREE.Color(0xef4444), 0.15); });
+    indexF.traverse(o => { if (o.isMesh) o.material.color.lerp(new THREE.Color(0x22c55e), 0.15); });
+    midF.traverse(o => { if (o.isMesh) o.material.color.lerp(new THREE.Color(0x3b82f6), 0.15); });
+
+    // Add axis arrows (from palm center)
+    const origin = new THREE.Vector3(0, 0, 0);
+    arrow(0xef4444, origin, new THREE.Vector3(3.5, 0, 0)); // +X F
+    arrow(0x22c55e, origin, new THREE.Vector3(0, 3.5, 0)); // +Y B
+    arrow(0x3b82f6, origin, new THREE.Vector3(0, 0, 3.5)); // +Z I
+
+    // Text sprites
+    const sThumb  = textSprite('親指 = 力 F (+X)', '#ef4444'); sThumb.position.set(3.8, 0.2, 0);
+    const sIndex  = textSprite('人差し指 = 磁界 B (+Y)', '#22c55e'); sIndex.position.set(0.2, 3.9, 0);
+    const sMiddle = textSprite('中指 = 電流 I (+Z)', '#3b82f6'); sMiddle.position.set(0.2, 0.2, 4.0);
+    scene.add(sThumb, sIndex, sMiddle);
+
+    // A subtle grid to help orientation
+    const grid = new THREE.GridHelper(30, 30, 0x2f3645, 0x1f2735);
+    grid.position.y = -1.25;
+    scene.add(grid);
+
+    // Bounding frame (transparent cube) for context
+    const box = new THREE.Box3().setFromObject(hand);
+    const size = new THREE.Vector3(); box.getSize(size);
+    const helper = new THREE.Box3Helper(box.expandByScalar(0.5), 0x374151);
+    helper.material.transparent = true;
+    helper.material.opacity = 0.3;
+    scene.add(helper);
+
+    // Resize
+    window.addEventListener('resize', () => {
+      renderer.setSize(window.innerWidth, window.innerHeight - 48);
+      camera.aspect = window.innerWidth / (window.innerHeight - 48);
+      camera.updateProjectionMatrix();
+    });
+
+    // Animate
+    renderer.setAnimationLoop(() => {
+      controls.update();
+      renderer.render(scene, camera);
+    });
+  </script>
+</body>
+</html>
