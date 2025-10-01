@@ -262,6 +262,8 @@ function saveFile() {
   a.download = (modelData.meta?.title || "3dsd_model") + ".json";
   a.click();
   URL.revokeObjectURL(a.href);
+
+  saveAndValidate();   // バリデーションとプレビュー更新も走らせる
 }
 
   // ============================================================
@@ -354,10 +356,16 @@ if (valid) {
   // ============================================
 // 起動処理
 window.addEventListener("DOMContentLoaded", async () => {
-  document.getElementById("btnPreview").addEventListener("click", openPreview);
-  document.getElementById("btnSave").addEventListener("click", saveAndValidate);
-  document.getElementById("btnNew").addEventListener("click", newModel);
-  document.getElementById("fileOpen").addEventListener("change", openFile);
+  await loadSchema();
+  initHistory();
+  const saved = localStorage.getItem(localStorageKey);
+  if (saved) {
+    try { setModel(JSON.parse(saved)); }
+    catch { newModel(); }
+  } else {
+    newModel();
+  }
+});
 
 // DOMContentLoaded 内の既存バインドに合わせて、btnPreview を使用
 // 既にバインドがある場合はこの形に揃えて重複を避けること
