@@ -42,7 +42,7 @@ function init(){
   if(saved){
     try {
       const json = JSON.parse(saved);
-      console.log("Restored from localStorage:", json); // ←デバッグログは残す
+      console.log("Restored from localStorage:", json); // デバッグログ
       updateFromModel(json);
     } catch(e){
       console.warn("Failed to restore model from localStorage:", e);
@@ -52,7 +52,7 @@ function init(){
   }
 }
 
-
+// ← ここにもう1つあった localStorage 復元処理は削除する
 
 
 
