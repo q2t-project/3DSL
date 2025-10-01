@@ -227,7 +227,6 @@ function updateSelectionUI() {
 function newModel() {
   const json = {
     meta: {
-      version: "v2",
       title: "untitled",
       date: new Date().toISOString().split("T")[0]
     },
@@ -300,34 +299,33 @@ function setModel(json) {
 }
 
 function saveAndValidate(){
-  if (!modelData) return;
+      if (!modelData) return;
 
-  localStorage.setItem(localStorageKey, JSON.stringify(modelData));
+      localStorage.setItem(localStorageKey, JSON.stringify(modelData));
 
-  let errors = [];
-  let valid = true;
+      let errors = [];
+      let valid = true;
 
-  if(schema){
-    valid = ajv.validate(schema, modelData);
-    if(!valid){
-      errors.push(...ajv.errors.map(e => `${e.instancePath} ${e.message}`));
+      if(schema){
+        valid = ajv.validate(schema, modelData);
+        if(!valid){
+          errors.push(...ajv.errors.map(e => `${e.instancePath} ${e.message}`));
+        }
+      }
+
+      // TODO: uniqueness checksなど
+
+      showValidation(errors);
+
+      if(valid){
+        postToPreview(modelData);
+      }
+
+      document.getElementById("btnUndo").disabled = !canUndo();
+      document.getElementById("btnRedo").disabled = !canRedo();
+
+      return errors.length===0;
     }
-  }
-
-  // TODO: uniqueness checksなど
-
-  showValidation(errors);
-
-  // プレビュー送信
-  if(valid){
-    postToPreview(modelData);
-  }
-
-  document.getElementById("btnUndo").disabled = !canUndo();
-  document.getElementById("btnRedo").disabled = !canRedo();
-
-  return errors.length===0;
-}
 
   // UI更新
   setModel(modelData);
@@ -356,6 +354,7 @@ function saveAndValidate(){
   // TODO: ステータスバー更新
 
   return errors.length === 0;
+  
 
   // ============================================
   // エラーハンドリング
@@ -786,6 +785,13 @@ function onRedo(){
 
   // 起動
   // window.addEventListener("DOMContentLoaded", initApp);
+    window.addEventListener("DOMContentLoaded",()=>{
+      document.getElementById("btnPreview").addEventListener("click", openPreview);
+      document.getElementById("btnSave").addEventListener("click", saveAndValidate);
+      document.getElementById("btnNew").addEventListener("click", newModel);
+      loadSchema();
+    });
+
 </script>
 </body>
 </html>
