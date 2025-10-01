@@ -4,7 +4,6 @@
   <meta charset="utf-8" />
   <title>3DSD Preview</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-
   <script type="importmap">
   {
     "imports": {
@@ -13,16 +12,23 @@
     }
   }
   </script>
-
   <style>
-    html,body{margin:0;height:100%;overflow:hidden}
-    canvas{display:block}
+    html,body { margin:0; height:100%; overflow:hidden; }
+    canvas { display:block; }
   </style>
 </head>
 <body>
 <script type="module">
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+// === blueprint: 全体構造 ===
+//  - scene/camera/renderer/controls の初期化
+//  - groups: nodes, edges, labels, aux
+//  - updateFromModel(): JSONデータを受け取って再描画
+//  - localStorage fallback: 起動時に最新モデルを復元
+//  - postMessage 受信: modeler からの更新を反映
+//  - fitToScene(): 全体が収まるようにカメラ調整
 
 let scene, camera, renderer, controls;
 const groups = {
@@ -33,22 +39,32 @@ const groups = {
 };
 
 function init(){
-  // Scene, Camera, Renderer の初期化
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+  scene.background = new THREE.Color(0x111111);
+
+  camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 5000);
+  camera.position.set(8,8,12);
+
   renderer = new THREE.WebGLRenderer({antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
 
-  // Controls 初期化
   controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
 
-  // groups をシーンに追加
   scene.add(groups.nodes, groups.edges, groups.labels, groups.aux);
 
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+  dirLight.position.set(10,10,10);
+  scene.add(dirLight);
+  scene.add(new THREE.AmbientLight(0xffffff,0.6));
+
+  window.addEventListener("resize", onResize);
+  onResize();
   animate();
 
-  // localStorage 復元
+  // === localStorage fallback ===
   const saved = localStorage.getItem("3dss-model");
   if(saved){
     try {
@@ -63,7 +79,6 @@ function init(){
   }
 }
 
-
 function onResize(){
   camera.aspect = window.innerWidth/window.innerHeight;
   camera.updateProjectionMatrix();
@@ -72,8 +87,7 @@ function onResize(){
 
 function animate(){
   requestAnimationFrame(animate);
-  controls.update();
-   if(controls) controls.update(); 
+  if(controls) controls.update(); // nullチェック付き
   renderer.render(scene,camera);
 }
 
@@ -83,7 +97,7 @@ function clearGroups(){
   }
 }
 
-// ===== ラベル描画 (Sprite) =====
+// === blueprint: ラベル生成（将来フォント拡張ポイント） ===
 function makeLabelSprite(text,opt){
   const font = `${opt.fontStyle||"normal"} ${opt.fontWeight||"normal"} ${opt.fontSize||14}px ${opt.fontFamily||"sans-serif"}`;
   const canvas = document.createElement("canvas");
@@ -96,13 +110,13 @@ function makeLabelSprite(text,opt){
   ctx.font = font;
   ctx.textBaseline="middle";
   ctx.textAlign="center";
-  // background
+
   if(opt.background && opt.background!=="#00000000"){
     ctx.fillStyle = opt.background;
     ctx.globalAlpha = opt.opacity ?? 1;
     ctx.fillRect(0,0,w,h);
   }
-  // text
+
   ctx.globalAlpha = opt.opacity ?? 1;
   ctx.fillStyle = opt.color||"#ffffff";
   ctx.fillText(text,w/2,h/2);
@@ -118,23 +132,19 @@ function makeLabelSprite(text,opt){
   }
 
   const tex = new THREE.CanvasTexture(canvas);
-  tex.needsUpdate=true;
   const mat = new THREE.SpriteMaterial({map:tex,transparent:true});
   const sp = new THREE.Sprite(mat);
   const scale = 0.01*(opt.fontSize||14);
   sp.scale.set(w*scale,h*scale,1);
 
-  // plane orientation
   if(opt.plane==="yz"){ sp.rotation.y=Math.PI/2; }
   else if(opt.plane==="zx"){ sp.rotation.x=-Math.PI/2; }
 
-  // rotation in-plane
   if(opt.rotation){ sp.material.rotation = THREE.MathUtils.degToRad(opt.rotation); }
 
   return sp;
 }
 
-// ===== updateFromModel =====
 function updateFromModel(model){
   clearGroups();
 
@@ -217,16 +227,13 @@ function fitToScene(){
   }
 }
 
-  // ===== Message受信 =====
-  window.addEventListener("message", e=>{
-    console.log("preview.html received message:", e.data);
-    if(e.data?.type==="updateModel"){ 
-      updateFromModel(e.data.data); 
-    }
-  });
+// === Message受信 ===
+window.addEventListener("message",e=>{
+  console.log("preview.html received message:", e.data);
+  if(e.data?.type==="updateModel"){ updateFromModel(e.data.data); }
+});
 
 init();
-
 </script>
 </body>
 </html>
