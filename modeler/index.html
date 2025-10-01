@@ -354,45 +354,30 @@ if (valid) {
   // ============================================
   // 起動時処理
   // ============================================
-// 起動処理
+
 window.addEventListener("DOMContentLoaded", async () => {
   await loadSchema();
   initHistory();
+
   const saved = localStorage.getItem(localStorageKey);
   if (saved) {
     try { setModel(JSON.parse(saved)); }
-    catch { newModel(); }
+    catch(e){ console.warn("failed to restore:", e); newModel(); }
   } else {
     newModel();
   }
+
+  // ボタンイベント
+  document.getElementById("btnPreview").addEventListener("click", openPreview);
+  document.getElementById("btnSave").addEventListener("click", saveFile);
+  document.getElementById("btnNew").addEventListener("click", newModel);
+  document.getElementById("btnNodeAdd").addEventListener("click", addNode);
+  document.getElementById("btnEdgeAdd").addEventListener("click", addEdge);
+  document.getElementById("btnUndo").addEventListener("click", onUndo);
+  document.getElementById("btnRedo").addEventListener("click", onRedo);
 });
 
-// DOMContentLoaded 内の既存バインドに合わせて、btnPreview を使用
-// 既にバインドがある場合はこの形に揃えて重複を避けること
-const _btnPreview = document.getElementById("btnPreview");
-if (_btnPreview) {
-  _btnPreview.addEventListener("click", () => {
-    // ★ユーザー操作内で openPreview を呼ぶ（ブロック回避）
-    openPreview();
-  });
-}
 
-  await loadSchema();
-  initHistory();
-
-  // localStorage復元
-  const saved = localStorage.getItem(localStorageKey);
-  if (saved) {
-    try {
-      setModel(JSON.parse(saved));
-    } catch(e){
-      console.warn("failed to restore:", e);
-      newModel();
-    }
-  } else {
-    newModel();
-  }
-});
 
     document.getElementById("btnNodeAdd").addEventListener("click", addNode);
     document.getElementById("btnEdgeAdd").addEventListener("click", addEdge);
@@ -828,7 +813,6 @@ function afterValidateAndMaybePost(valid) {
   // ============================================================
 
   // 起動
-  // window.addEventListener("DOMContentLoaded", initApp);
   window.addEventListener("DOMContentLoaded",()=>{
       document.getElementById("btnPreview").addEventListener("click", openPreview);
       document.getElementById("btnSave").addEventListener("click", saveFile); // ←ファイル保存専用に戻す
