@@ -33,16 +33,27 @@ const groups = {
 };
 
 function init(){
-  // … Three.js scene, camera, renderer の初期化 …
+  // Scene, Camera, Renderer の初期化
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+  renderer = new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  // Controls 初期化
+  controls = new OrbitControls(camera, renderer.domElement);
+
+  // groups をシーンに追加
+  scene.add(groups.nodes, groups.edges, groups.labels, groups.aux);
 
   animate();
 
-  // === localStorageから最新モデルを復元 ===
+  // localStorage 復元
   const saved = localStorage.getItem("3dss-model");
   if(saved){
     try {
       const json = JSON.parse(saved);
-      console.log("Restored from localStorage:", json); // デバッグログ
+      console.log("Restored from localStorage:", json);
       updateFromModel(json);
     } catch(e){
       console.warn("Failed to restore model from localStorage:", e);
@@ -51,6 +62,7 @@ function init(){
     console.log("No saved model found in localStorage");
   }
 }
+
 
 function onResize(){
   camera.aspect = window.innerWidth/window.innerHeight;
