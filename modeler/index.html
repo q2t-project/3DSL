@@ -319,12 +319,9 @@ function saveAndValidate(){
 
   showValidation(errors);
 
-  if(valid){
-    if(!previewWindow || previewWindow.closed){
-      openPreview(); // ←保存時にまだ開いてなければ開く
-    }
-    postToPreview(modelData);
-  }
+if (valid) {
+  afterValidateAndMaybePost(true);
+}
 
   document.getElementById("btnUndo").disabled = !canUndo();
   document.getElementById("btnRedo").disabled = !canRedo();
