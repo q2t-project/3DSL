@@ -104,12 +104,6 @@ const modelData = {
 };
 
 
-// 親指(+X, 赤) / 人差し指(+Y, 緑) / 中指(+Z, 青)
-makeFinger(new THREE.Vector3(0,0,0), new THREE.Vector3(3,0,0), 0xff4444);
-makeFinger(new THREE.Vector3(0,0,0), new THREE.Vector3(0,3,0), 0x44ff44);
-makeFinger(new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,3), 0x4444ff);
-
-
     // Resize
     window.addEventListener('resize', () => {
       renderer.setSize(window.innerWidth, window.innerHeight - 48);
