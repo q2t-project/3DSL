@@ -49,26 +49,26 @@ function init(){
 
   scene.add(groups.nodes, groups.edges, groups.labels, groups.aux);
 
-  const light = new THREE.DirectionalLight(0xffffff, 0.6);
-  light.position.set(10,10,10);
-  scene.add(light);
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+  dirLight.position.set(10,10,10);
+  scene.add(dirLight);
   scene.add(new THREE.AmbientLight(0xffffff,0.6));
 
   window.addEventListener("resize", onResize);
   onResize();
-
   animate();
 
-      const saved = localStorage.getItem("3dss-model");
-    if(saved){
-      try {
-        const json = JSON.parse(saved);
-        updateFromModel(json);
-        console.log("Restored from localStorage");
-      } catch(e){
-        console.warn("Failed to restore model from localStorage:", e);
-      }
+// === localStorageから最新モデルを復元 ===
+  const saved = localStorage.getItem("3dss-model");
+  if(saved){
+    try {
+      const json = JSON.parse(saved);
+      updateFromModel(json);
+      console.log("Restored from localStorage");
+    } catch(e){
+      console.warn("Failed to restore model from localStorage:", e);
     }
+  }
 }
 
 function onResize(){
