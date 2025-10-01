@@ -751,11 +751,15 @@ function openPreview(){
   }
 }
 
-  function postToPreview(data){
+function postToPreview(data){
   if(previewWindow && !previewWindow.closed){
+    console.log("posting to preview:", data);  // ★デバッグログ
     previewWindow.postMessage({ type:"updateModel", data:data }, "*");
+  } else {
+    console.warn("previewWindow is not open"); // ★ウィンドウが開かれていない
   }
 }
+
   // ============================================================
   // Three.js レンダリング [§1, §5, §8]
   // - シーン/カメラ/レンダラ/Controls 準備
