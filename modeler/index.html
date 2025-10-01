@@ -362,6 +362,16 @@ window.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("btnNew").addEventListener("click", newModel);
   document.getElementById("fileOpen").addEventListener("change", openFile);
 
+// DOMContentLoaded 内の既存バインドに合わせて、btnPreview を使用
+// 既にバインドがある場合はこの形に揃えて重複を避けること
+const _btnPreview = document.getElementById("btnPreview");
+if (_btnPreview) {
+  _btnPreview.addEventListener("click", () => {
+    // ★ユーザー操作内で openPreview を呼ぶ（ブロック回避）
+    openPreview();
+  });
+}
+
   await loadSchema();
   initHistory();
 
@@ -740,8 +750,11 @@ function onRedo(){
   // - saveAndValidate() から postMessage({type:"updateModel",data})
   // - preview が閉じられた場合のハンドリング
   // ============================================================
-function openPreview(){
-  if(!previewWindow || previewWindow.closed){
+function openPreview() {
+  const needOpen = !previewWindow || previewWindow.closed;
+
+  if (needOpen) {
+    // ★ユーザー操作（btnPreview）内でのみ呼ばれる想定：ポップアップブロック回避
     previewWindow = window.open(
       "preview.html",
       "previewWindow",
@@ -750,16 +763,46 @@ function openPreview(){
   } else {
     previewWindow.focus();
   }
-}
 
-function postToPreview(data){
-  if(previewWindow && !previewWindow.closed){
-    console.log("posting to preview:", data);  // ★デバッグログ
-    previewWindow.postMessage({ type:"updateModel", data:data }, "*");
-  } else {
-    console.warn("previewWindow is not open"); // ★ウィンドウが開かれていない
+  // ★開いた直後に現在の modelData を送る（保存しなくても即反映）
+  if (modelData) {
+    const send = () => postToPreview(modelData);
+    needOpen ? setTimeout(send, 300) : send();   // 初期化待ちに少し遅延
   }
 }
+
+function postToPreview(data) {
+  try {
+    if (previewWindow && !previewWindow.closed) {
+      console.log("posting to preview:", data); // デバッグログ残す
+      // ※オリジンは同一のため "*" のまま運用（必要なら window.location.origin に変更可）
+      previewWindow.postMessage({ type: "updateModel", data: data }, "*");
+    } else {
+      console.warn("previewWindow is not open");
+    }
+  } catch (e) {
+    console.error("postToPreview failed:", e);
+  }
+}
+
+// ★saveAndValidate 末尾の「valid 時の処理」だけ差し替え
+//   （既存のバリデーションや表示更新ロジックは触らない）
+function afterValidateAndMaybePost(valid) {
+  if (!valid) return;
+
+  if (!previewWindow || previewWindow.closed) {
+    openPreview();
+    // openPreview 内でpostToPreviewが走るが、保険で少し遅延してもう一度送る
+    setTimeout(() => { if (modelData) postToPreview(modelData); }, 400);
+  } else {
+    if (modelData) postToPreview(modelData);
+  }
+}
+
+// 既存 saveAndValidate の最後で呼ぶだけにする：
+//   return errors.length===0; の直前 or 直後あたりで：
+//   afterValidateAndMaybePost(valid);
+
 
   // ============================================================
   // Three.js レンダリング [§1, §5, §8]
