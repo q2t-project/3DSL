@@ -58,6 +58,16 @@ function init(){
   onResize();
 
   animate();
+
+      const saved = localStorage.getItem("3dss-model");
+    if(saved){
+      try {
+        const json = JSON.parse(saved);
+        updateFromModel(json);
+        console.log("Restored from localStorage");
+      } catch(e){
+        console.warn("Failed to restore model from localStorage:", e);
+      }
 }
 
 function onResize(){
@@ -212,12 +222,49 @@ function fitToScene(){
   }
 }
 
-// ===== Message受信 =====
-window.addEventListener("message",e=>{
-  if(e.data?.type==="updateModel"){ updateFromModel(e.data.data); }
-});
+  // ===== Message受信 =====
+  window.addEventListener("message", e=>{
+    console.log("preview.html received message:", e.data);
+    if(e.data?.type==="updateModel"){ 
+      updateFromModel(e.data.data); 
+    }
+  });
+
+
+
+
+// Three.jsの基本セットアップ
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x111111);
+
+    camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 5000);
+    camera.position.set(8,8,12);
+
+    renderer = new THREE.WebGLRenderer({antialias:true});
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+
+    scene.add(groups.nodes, groups.edges, groups.labels, groups.aux);
+
+    const light = new THREE.DirectionalLight(0xffffff, 0.6);
+    light.position.set(10,10,10);
+    scene.add(light);
+    scene.add(new THREE.AmbientLight(0xffffff,0.6));
+
+    window.addEventListener("resize", onResize);
+    onResize();
+    animate();
+  }
+
 
 init();
+
+
+
 </script>
 </body>
 </html>
