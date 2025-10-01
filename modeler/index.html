@@ -212,7 +212,7 @@ function updateSelectionUI() {
   async function loadSchema() {
   try {
     // 3DSS用スキーマを読み込む（draft-2020-12はAjvに既に内蔵されている）
-    const res = await fetch("../schemas/3DSS.schema.json");
+    const res = await fetch("/3DSL/schemas/3DSS.schema.json");
     schema = await res.json();
 
     // Ajv初期化（strict:false で未知format警告を抑制）
