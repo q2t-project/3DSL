@@ -75,6 +75,33 @@
       scene.add(dir);
     }
 
+const modelData = {
+  "nodes": [
+    {
+      "id": "hand",
+      "label": "左手の法則 線画",
+      "geometry": {
+        "primitives": [
+          { "type": "line3", "a": [ -0.65, 0, -0.6 ], "b": [ 0.65, 0, -0.6 ], "color": 0x888888 },
+          { "type": "arc3",
+            "center": [ 0.65, 0, -0.45 ],
+            "normal": [ 0, 1, 0 ],
+            "radius": 0.15,
+            "start": -1.5708,
+            "end": 0.0,
+            "color": 0x888888
+          },
+          { "type": "line3", "a": [ 0.8, 0, -0.45 ], "b": [ 0.8, 0, 0.45 ], "color": 0x888888 },
+
+          { "type": "line3", "a": [ 0.5, 0, 0.6 ], "b": [ 0.5, 3.2, 0.6 ], "color": 0x22c55e },
+          { "type": "line3", "a": [ 0.0, 0, 0.2 ], "b": [ 3.2, 0.0, 0.2 ], "color": 0xef4444 },
+          { "type": "line3", "a": [ -0.1, 0, 0.1 ], "b": [ -0.1, 0, 3.2 ], "color": 0x3b82f6 }
+        ]
+      }
+    }
+  ]
+};
+
 // JSONデータを変数として保持する
 function addLine3(a, b, color) {
   const geom = new THREE.BufferGeometry().setFromPoints([
