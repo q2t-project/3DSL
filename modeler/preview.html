@@ -73,6 +73,7 @@ function onResize(){
 function animate(){
   requestAnimationFrame(animate);
   controls.update();
+   if(controls) controls.update(); 
   renderer.render(scene,camera);
 }
 
