@@ -52,23 +52,6 @@ function init(){
   }
 }
 
-// ← ここにもう1つあった localStorage 復元処理は削除する
-
-
-
-// === localStorageから最新モデルを復元 ===
-  const saved = localStorage.getItem("3dss-model");
-  if(saved){
-    try {
-      const json = JSON.parse(saved);
-      updateFromModel(json);
-      console.log("Restored from localStorage");
-    } catch(e){
-      console.warn("Failed to restore model from localStorage:", e);
-    }
-  }
-}
-
 function onResize(){
   camera.aspect = window.innerWidth/window.innerHeight;
   camera.updateProjectionMatrix();
