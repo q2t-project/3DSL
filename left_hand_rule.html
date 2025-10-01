@@ -104,13 +104,6 @@ makeFinger(new THREE.Vector3(0,0,0), new THREE.Vector3(3,0,0), 0xff4444);
 makeFinger(new THREE.Vector3(0,0,0), new THREE.Vector3(0,3,0), 0x44ff44);
 makeFinger(new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,3), 0x4444ff);
 
-    // Bounding frame (transparent cube) for context
-    const box = new THREE.Box3().setFromObject(hand);
-    const size = new THREE.Vector3(); box.getSize(size);
-    const helper = new THREE.Box3Helper(box.expandByScalar(0.5), 0x374151);
-    helper.material.transparent = true;
-    helper.material.opacity = 0.3;
-    scene.add(helper);
 
     // Resize
     window.addEventListener('resize', () => {
