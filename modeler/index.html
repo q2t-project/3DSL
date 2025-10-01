@@ -739,9 +739,13 @@ function onRedo(){
   // - saveAndValidate() から postMessage({type:"updateModel",data})
   // - preview が閉じられた場合のハンドリング
   // ============================================================
-  function openPreview(){
+function openPreview(){
   if(!previewWindow || previewWindow.closed){
-    previewWindow = window.open("preview.html","previewWindow");
+    previewWindow = window.open(
+      "preview.html",
+      "previewWindow",
+      "width=800,height=600,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes"
+    );
   } else {
     previewWindow.focus();
   }
