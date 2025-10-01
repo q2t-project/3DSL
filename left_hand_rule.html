@@ -76,32 +76,41 @@
     }
 
 // JSONデータを変数として保持する
-const modelData = {
-  "nodes": [
-    {
-      "id": "hand",
-      "label": "左手の法則 線画",
-      "geometry": {
-        "primitives": [
-          { "type": "line3", "a": [ -0.65, 0, -0.6 ], "b": [ 0.65, 0, -0.6 ], "color": "#888" },
-          { "type": "arc3",
-            "center": [ 65, 0, -45 ],
-            "normal": [ 0, 1, 0 ],
-            "radius": 0.15,
-            "start": -1.5708,
-            "end": 0.0,
-            "color": "#888"
-          },
-          { "type": "line3", "a": [ 0.8, 0, -0.45 ], "b": [ 0.8, 0, 0.45 ], "color": "#888" },
+function addLine3(a, b, color) {
+  const geom = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(...a),
+    new THREE.Vector3(...b)
+  ]);
+  const mat = new THREE.LineBasicMaterial({ color });
+  scene.add(new THREE.Line(geom, mat));
+}
 
-          { "type": "line3", "a": [ 50, 0, 6 ], "b": [ 0, 3.2, 60 ], "color": "#22c55e" },
-          { "type": "line3", "a": [ 0.0, 0, 0.2 ], "b": [ 3.2, 0.0, 0.2 ], "color": "#ef4444" },
-          { "type": "line3", "a": [ -0.1, 0, 0.1 ], "b": [ -0.1, 0, 3.2 ], "color": "#3b82f6" }
-        ]
-      }
-    }
-  ]
-};
+function addArc3(center, normal, radius, start, end, color, segments=32) {
+  const n = new THREE.Vector3(...normal).normalize();
+  const tmp = Math.abs(n.x) < 0.9 ? new THREE.Vector3(1,0,0) : new THREE.Vector3(0,1,0);
+  const u = tmp.clone().cross(n).normalize();
+  const v = n.clone().cross(u).normalize();
+
+  const pts = [];
+  for (let i=0;i<=segments;i++){
+    const t = THREE.MathUtils.lerp(start, end, i/segments);
+    const p = new THREE.Vector3(...center)
+                .addScaledVector(u, radius*Math.cos(t))
+                .addScaledVector(v, radius*Math.sin(t));
+    pts.push(p);
+  }
+  const geom = new THREE.BufferGeometry().setFromPoints(pts);
+  const mat = new THREE.LineBasicMaterial({ color });
+  scene.add(new THREE.Line(geom, mat));
+}
+
+// modelData の描画
+for (const node of modelData.nodes) {
+  for (const prim of node.geometry.primitives) {
+    if (prim.type === "line3") addLine3(prim.a, prim.b, prim.color);
+    if (prim.type === "arc3") addArc3(prim.center, prim.normal, prim.radius, prim.start, prim.end, prim.color);
+  }
+}
 
 
     // Resize
