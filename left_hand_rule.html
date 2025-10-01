@@ -83,22 +83,17 @@ const modelData = {
       "geometry": {
         "primitives": [
           { "type": "line3", "a": [ -0.65, 0, -0.6 ], "b": [ 0.65, 0, -0.6 ], "color": 0x888888 },
-          { "type": "arc3",
-            "center": [ 0.65, 0, -0.45 ],
-            "normal": [ 0, 1, 0 ],
-            "radius": 8,
-            "start": -1.5708,
-            "end": 0.0,
-            "color": 0x888888
-          },
+          { "type": "arc3", "center": [ 0.65, 0, -0.45 ], "normal": [ 0, 1, 0 ], "radius": 8, "start": -1.5708, "end": 0.0, "color": 0x888888 },
+          { "type": "arc3", "center": [ 0.65, 0, -0.45 ], "normal": [ 1, 0, 0 ], "radius": 8, "start": -1.5708, "end": 0.0, "color": 0x888888 },
+          { "type": "arc3", "center": [ 0.65, 0, -0.45 ], "normal": [ 0, 0, 1 ], "radius": 8, "start": -3.1416, "end": 0.0, "color": 0x008888 },
           { "type": "line3", "a": [ 0.8, 0, -0.45 ], "b": [ 0.8, 0, 0.45 ], "color": 0x888888 },
 
           { "type": "line3", "a": [ 0, 32, 0 ], "b": [ 64, 32, 0 ], "color": 0x22c55e },
           { "type": "line3", "a": [ 0, 32, -16 ], "b": [ 64, 32, -16 ], "color": 0x22c55e },
-          { "type": "line3", "a": [ 0.0, 0, 16 ], "b": [ 0, 96, 16 ], "color": 0xef4444 },
-          { "type": "line3", "a": [ 0.0, 0, 0 ], "b": [ 0, 96, 0 ], "color": 0xef4444 },
-          { "type": "line3", "a": [ -8, 0, 0 ], "b": [ -8, 0, 64 ], "color": 0x3b82f6 },
-          { "type": "line3", "a": [ 8, 0, 0 ], "b": [ 8, 0, 64 ], "color": 0x3b82f6 }
+          { "type": "line3", "a": [ 0, 0, 16 ], "b": [ 0, 96, 16 ], "color": 0xef4444 },
+          { "type": "line3", "a": [ 32, 0, 0 ], "b": [ 0, 96, 0 ], "color": 0xef4444 },
+          { "type": "line3", "a": [ 0, 0, 16 ], "b": [ 0, 0, 64 ], "color": 0x3b82f6 },
+          { "type": "line3", "a": [ 0, 16, 16 ], "b": [ 0, 16, 64 ], "color": 0x3b82f6 }
         ]
       }
     }
