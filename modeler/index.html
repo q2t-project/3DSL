@@ -276,18 +276,23 @@ function saveFile() {
   //   ※ 二重定義禁止／ここに集約（運用ルール）
   // ============================================================
 function setModel(json) {
-  // auxが無ければ空配列を補う
-  if (!Array.isArray(json.aux)) json.aux = [];
+  // aux/nodes/edgesが無ければ空配列を補う
+  if (!Array.isArray(json.aux))   json.aux   = [];
   if (!Array.isArray(json.nodes)) json.nodes = [];
   if (!Array.isArray(json.edges)) json.edges = [];
-  if (!json.meta) json.meta = { version:"v2", title:"untitled", date:new Date().toISOString() };
+  if (!json.meta) {
+    json.meta = {
+      title: "untitled",
+      date: new Date().toISOString().split("T")[0]
+    };
+  }
 
-    modelData = json;
+  modelData = json;
 
   // ノード一覧を再描画
   renderNodes();
 
-  // エッジ一覧を再描画（次ステップで実装する予定）
+  // エッジ一覧を再描画
   if (typeof renderEdges === "function") {
     renderEdges();
     updateCounts();
@@ -295,7 +300,6 @@ function setModel(json) {
 
   // TODO: Aux 表の再描画
   // TODO: 3Dビューの再描画
-  // TODO: counts/stats更新
 }
 
 function saveAndValidate(){
