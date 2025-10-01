@@ -333,6 +333,10 @@ for (const e of modelData.edges || []) {
   showValidation(errors);
 
   // TODO: プレビュー送信 (postMessage)
+  if(valid){
+    localStorage.setItem("modelData", JSON.stringify(modelData,null,2));
+    postToPreview(modelData);
+  }
 
   // Undo/Redo ステータス更新
     document.getElementById("btnUndo").disabled = !canUndo();
@@ -738,9 +742,19 @@ function onRedo(){
   // - saveAndValidate() から postMessage({type:"updateModel",data})
   // - preview が閉じられた場合のハンドリング
   // ============================================================
-  function openPreview(){ /* TODO */ }
-  function postToPreview(){ /* TODO: previewWindow && postMessage */ }
+  function openPreview(){
+  if(!previewWindow || previewWindow.closed){
+    previewWindow = window.open("preview.html","previewWindow");
+  } else {
+    previewWindow.focus();
+  }
+}
 
+  function postToPreview(data){
+  if(previewWindow && !previewWindow.closed){
+    previewWindow.postMessage({ type:"updateModel", data:data }, "*");
+  }
+}
   // ============================================================
   // Three.js レンダリング [§1, §5, §8]
   // - シーン/カメラ/レンダラ/Controls 準備
