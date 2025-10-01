@@ -299,39 +299,51 @@ function setModel(json) {
   // TODO: counts/stats更新
 }
 
-function saveAndValidate() {
-  if (!modelData) return;
+function saveAndValidate(){
+      if (!modelData) return;
 
-  // localStorage保存
-  localStorage.setItem(localStorageKey, JSON.stringify(modelData));
+      localStorage.setItem(localStorageKey, JSON.stringify(modelData));
 
-  const errors = [];
-  if (schema) {
-    const valid = ajv.validate(schema, modelData);
-    if (!valid) {
-      errors.push(...ajv.errors.map(e => `${e.instancePath} ${e.message}`));
+      let errors = [];
+      let valid = true;
+
+      if(schema){
+        valid = ajv.validate(schema, modelData);
+        if(!valid){
+          errors.push(...ajv.errors.map(e => `${e.instancePath} ${e.message}`));
+        }
+      }
+
+      // TODO: uniqueness checksなど
+
+      showValidation(errors);
+
+      // プレビュー送信
+      if(valid){
+        postToPreview(modelData);
+      }
+
+      document.getElementById("btnUndo").disabled = !canUndo();
+      document.getElementById("btnRedo").disabled = !canRedo();
+
+      return errors.length===0;
     }
-  }
 
-  // uniqueness check
-  const nodeIds = new Set();
-  for (const n of modelData.nodes || []) {
-    if (nodeIds.has(n.id)) errors.push(`duplicate node id: ${n.id}`);
-    nodeIds.add(n.id);
-  }
-for (const e of modelData.edges || []) {
-  if (!e.source) errors.push("edge missing source");
-  if (!e.target) errors.push("edge missing target");
-  if (!nodeIds.has(e.source)) errors.push(`edge source not found: ${e.source}`);
-  if (!nodeIds.has(e.target)) errors.push(`edge target not found: ${e.target}`);
-}
 
   // UI更新
   setModel(modelData);
 
   // エラー表示
-  showValidation(errors);
-
+    function showValidation(errors){
+      const st=document.getElementById("status");
+      if(errors.length){
+        st.textContent="Errors: "+errors.join("; ");
+        st.style.color="red";
+      }else{
+        st.textContent=`OK nodes:${(modelData.nodes||[]).length} edges:${(modelData.edges||[]).length} aux:${(modelData.aux||[]).length}`;
+        st.style.color="#0f0";
+      }
+    }
   // TODO: プレビュー送信 (postMessage)
   if(valid){
     localStorage.setItem("modelData", JSON.stringify(modelData,null,2));
@@ -371,6 +383,7 @@ for (const e of modelData.edges || []) {
   // 起動時処理
   // ============================================
   window.addEventListener("DOMContentLoaded", async () => {
+    document.getElementById("btnPreview").addEventListener("click", openPreview);
     await loadSchema();
     initHistory();
 
