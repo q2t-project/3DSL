@@ -10,7 +10,6 @@
         "title": { "type": "string" },
         "date": { "type": "string", "format": "date" }
       },
-      "required": ["title", "date"]
     },
     "nodes": {
       "type": "array",
