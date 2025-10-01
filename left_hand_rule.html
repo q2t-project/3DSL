@@ -98,7 +98,9 @@ const modelData = {
           { "type": "line3", "a": [ 0, 32, -32 ], "b": [ 32, 32, -32 ], "color": 0x444444 },
           { "type": "line3", "a": [ 32, 32, -32 ], "b": [ 32, 0, -32 ], "color": 0x444444 },
           { "type": "line3", "a": [ 0, 32, -48 ], "b": [ 32, 32, -48 ], "color": 0x444444 },
-          { "type": "line3", "a": [ 32, 32, -48 ], "b": [ 32, 8, -48 ], "color": 0x444444 }
+          { "type": "line3", "a": [ 32, 32, -48 ], "b": [ 32, 8, -48 ], "color": 0x444444 },
+
+          { "type": "ellipseArc3", "center": [0, -32, 0], "normal": [0, 1, 0], "rx": 32, "ry": 64, "start": 0, "end": 3.1416, "color": 0x444444}
         ]
       }
     }
@@ -127,6 +129,25 @@ function addArc3(center, normal, radius, start, end, color, segments=32) {
     const p = new THREE.Vector3(...center)
                 .addScaledVector(u, radius*Math.cos(t))
                 .addScaledVector(v, radius*Math.sin(t));
+    pts.push(p);
+  }
+  const geom = new THREE.BufferGeometry().setFromPoints(pts);
+  const mat = new THREE.LineBasicMaterial({ color });
+  scene.add(new THREE.Line(geom, mat));
+}
+
+function addEllipseArc3(center, normal, rx, ry, start, end, color, segments=64) {
+  const n = new THREE.Vector3(...normal).normalize();
+  const tmp = Math.abs(n.x) < 0.9 ? new THREE.Vector3(1,0,0) : new THREE.Vector3(0,1,0);
+  const u = tmp.clone().cross(n).normalize();  // x方向基底
+  const v = n.clone().cross(u).normalize();    // y方向基底
+
+  const pts = [];
+  for (let i=0; i<=segments; i++) {
+    const t = THREE.MathUtils.lerp(start, end, i/segments);
+    const p = new THREE.Vector3(...center)
+      .addScaledVector(u, rx * Math.cos(t))
+      .addScaledVector(v, ry * Math.sin(t));
     pts.push(p);
   }
   const geom = new THREE.BufferGeometry().setFromPoints(pts);
