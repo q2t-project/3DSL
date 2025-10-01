@@ -330,31 +330,7 @@ function saveAndValidate(){
   // UI更新
   setModel(modelData);
 
-  // エラー表示
-    function showValidation(errors){
-      const st=document.getElementById("status");
-      if(errors.length){
-        st.textContent="Errors: "+errors.join("; ");
-        st.style.color="red";
-      }else{
-        st.textContent=`OK nodes:${(modelData.nodes||[]).length} edges:${(modelData.edges||[]).length} aux:${(modelData.aux||[]).length}`;
-        st.style.color="#0f0";
-      }
-    }
-  // TODO: プレビュー送信 (postMessage)
-  if(valid){
-    localStorage.setItem("modelData", JSON.stringify(modelData,null,2));
-    postToPreview(modelData);
-  }
-
-  // Undo/Redo ステータス更新
-    document.getElementById("btnUndo").disabled = !canUndo();
-    document.getElementById("btnRedo").disabled = !canRedo();
-
-  // TODO: ステータスバー更新
-
-  return errors.length === 0;
-  
+ 
 
   // ============================================
   // エラーハンドリング
