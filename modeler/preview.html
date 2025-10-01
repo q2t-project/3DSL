@@ -33,45 +33,23 @@ const groups = {
 };
 
 function init(){
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x111111);
+  // … Three.js scene, camera, renderer の初期化 …
 
-  camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 5000);
-  camera.position.set(8,8,12);
-
-  renderer = new THREE.WebGLRenderer({antialias:true});
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  document.body.appendChild(renderer.domElement);
-
-  controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-
-  scene.add(groups.nodes, groups.edges, groups.labels, groups.aux);
-
-  const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
-  dirLight.position.set(10,10,10);
-  scene.add(dirLight);
-  scene.add(new THREE.AmbientLight(0xffffff,0.6));
-
-  window.addEventListener("resize", onResize);
-  onResize();
   animate();
 
-
-
-
-const saved = localStorage.getItem("3dss-model");
-if(saved){
-  try {
-    const json = JSON.parse(saved);
-    console.log("Restored from localStorage:", json);
-    updateFromModel(json);
-  } catch(e){
-    console.warn("Failed to restore model from localStorage:", e);
+  // === localStorageから最新モデルを復元 ===
+  const saved = localStorage.getItem("3dss-model");
+  if(saved){
+    try {
+      const json = JSON.parse(saved);
+      console.log("Restored from localStorage:", json); // ←デバッグログは残す
+      updateFromModel(json);
+    } catch(e){
+      console.warn("Failed to restore model from localStorage:", e);
+    }
+  } else {
+    console.log("No saved model found in localStorage");
   }
-} else {
-  console.log("No saved model found in localStorage");
 }
 
 
