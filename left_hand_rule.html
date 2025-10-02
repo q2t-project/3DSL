@@ -174,15 +174,15 @@ function loadFontOnce(url = FONT_URL) {
   return __fontPromise;
 }
 
-async function addText3D(text, position, opt = {}) {
+async function addText(text, position, opt = {}) {
   const {
     color = 0xffffff,
     size = 1,
-    height = 0.12,
+    height = 0,
     curveSegments = 12,
     bevel = false,
-    normal = [0, 0, 1],   // ★ 新規
-    up = [0, 1, 0]        // ★ 新規
+    normal = [0, 0, 1],
+    up = [0, 1, 0]
   } = opt;
 
   const font = await loadFontOnce();
@@ -195,7 +195,6 @@ async function addText3D(text, position, opt = {}) {
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.copy(position);
 
-  // ★ 方向指定（文字の面を normal に向ける）
   const target = new THREE.Vector3().addVectors(mesh.position, new THREE.Vector3(...normal));
   mesh.up.copy(new THREE.Vector3(...up));
   mesh.lookAt(target);
@@ -233,9 +232,9 @@ const modelData = {
           { "type": "ellipseArc3", "center": [0, 0, -8], "normal": [1, 0, 0], "rx": 40, "ry": 64, "start": 0, "end": -0.7854, "color": 0x333333},
           { "type": "ellipseArc3", "center": [0, 0, -8], "normal": [1, 0, 0], "rx": 40, "ry": 64, "start": -2.3562, "end": -3.1416, "color": 0x333333},
 
-          { "type": "text3D", "text": "φ", "position": [70, 32, 0], "normal": [0, 1, 0], "up": [0, 1, 0], "color": 0xef4444, "size": 8, "height": 0 },
-          { "type": "text3D", "text": "ψ", "position": [0, 104, 0], "normal": [0, 0, 1], "up": [0, 1, 0], "color": 0x22c55e, "size": 8, "height": 0 },
-          { "type": "text3D", "text": "μ", "position": [0, 32, 72], "normal": [1, 0, 0], "up": [0, 1, 0], "color": 0x3b82f6, "size": 8, "height": 0 }
+          { "type": "text3D", "text": "φ", "position": [70, 32, 0], "normal": [0, 1, 0], "up": [0, 1, 0], "color": 0xef4444, "size": 8 },
+          { "type": "text3D", "text": "ψ", "position": [0, 104, 0], "normal": [0, 0, 1], "up": [0, 1, 0], "color": 0x22c55e, "size": 8 },
+          { "type": "text3D", "text": "μ", "position": [0, 32, 72], "normal": [1, 0, 0], "up": [0, 1, 0], "color": 0x3b82f6, "size": 8 }
         ]
       }
     }
@@ -246,8 +245,8 @@ for (const node of modelData.nodes) {
     if (prim.type === "line3") { addLine3(prim.a, prim.b, prim.color); }
     if (prim.type === "arc3")  { addArc3(prim.center, prim.normal, prim.radius, prim.start, prim.end, prim.color); }
     if (prim.type === "ellipseArc3") { addEllipseArc3(prim.center, prim.normal, prim.rx, prim.ry, prim.start, prim.end, prim.color); }
-    if (prim.type === "text3D") {
-      addText3D(prim.text, new THREE.Vector3(...prim.position), {
+    if (prim.type === "text") {
+      addText(prim.text, new THREE.Vector3(...prim.position), {
         color: prim.color,
         size: prim.size,
         height: prim.height,
