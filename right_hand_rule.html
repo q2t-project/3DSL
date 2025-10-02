@@ -62,6 +62,10 @@ header button:hover {
 <!-- Three.js & Controls -->
 <script type="module">
 
+  import * as THREE from "three";
+  import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+  import { FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
+  import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
   import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 
   document.getElementById("export").addEventListener("click", () => {
@@ -78,11 +82,6 @@ header button:hover {
       { binary: false }
     );
   });
-
-  import * as THREE from "three";
-  import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-
-
 
     const root = document.getElementById('scene-root');
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
@@ -212,9 +211,6 @@ for (const node of modelData.nodes) {
   }
 }
 
-import { FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
-import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
-import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 
 // シーンとレンダラを準備
 const scene = new THREE.Scene();
