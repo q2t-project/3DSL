@@ -14,6 +14,19 @@
     .legend { position: absolute; right: 12px; top: 60px; background: rgba(15, 23, 42, .85); border: 1px solid #1f2937; border-radius: 10px; padding: 10px 12px; font-size: 12px; line-height: 1.5; backdrop-filter: blur(8px); }
     .legend b { font-weight: 700; }
     .legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+    header button {
+  margin-left: auto;
+  padding: 4px 10px;
+  background: #1d4ed8;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+header button:hover {
+  background: #2563eb;
+}
+
   </style>
 </head>
 <body>
@@ -21,6 +34,7 @@
     <header>
       <h1>左手の法則（親指=力F / 人差し指=磁界B / 中指=電流I）</h1>
       <div class="hint">ドラッグで回転、ホイールで拡大縮小、右ドラッグで平行移動</div>
+      <button id="export">Export glTF</button>
     </header>
     <div id="scene-root"></div>
     <div class="legend">
@@ -30,7 +44,7 @@
       <div style="margin-top:6px; opacity:.75;">※ 左手を模した簡易モデル（球と円柱の組み合わせ）</div>
     </div>
   </div>
-<button id="export">Export glTF</button>
+
 
   <!-- Three.js & Controls -->
 <script type="importmap">
