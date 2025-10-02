@@ -182,7 +182,9 @@ async function addText(text, position, opt = {}) {
     curveSegments = 12,
     bevel = false,
     normal = [0, 0, 1],
-    up = [0, 1, 0]
+    up = [0, 1, 0],
+    anchorX = "center",  // left / center / right
+    anchorY = "center"   // top / center / bottom
   } = opt;
 
   const font = await loadFontOnce();
@@ -190,6 +192,23 @@ async function addText(text, position, opt = {}) {
     font, size, height, curveSegments,
     bevelEnabled: bevel
   });
+
+  geo.computeBoundingBox();
+  const box = geo.boundingBox;
+  const offset = new THREE.Vector3();
+  if (box) {
+    switch (anchorX) {
+      case "left":   offset.x = -box.min.x; break;
+      case "right":  offset.x = -box.max.x; break;
+      default:       offset.x = -(box.min.x + box.max.x) / 2;
+    }
+    switch (anchorY) {
+      case "top":    offset.y = -box.max.y; break;
+      case "bottom": offset.y = -box.min.y; break;
+      default:       offset.y = -(box.min.y + box.max.y) / 2;
+    }
+    geo.translate(offset.x, offset.y, 0);
+  }
 
   const mat = new THREE.MeshStandardMaterial({ color });
   const mesh = new THREE.Mesh(geo, mat);
@@ -232,9 +251,9 @@ const modelData = {
           { "type": "ellipseArc3", "center": [0, 0, -8], "normal": [1, 0, 0], "rx": 40, "ry": 64, "start": 0, "end": -0.7854, "color": 0x333333},
           { "type": "ellipseArc3", "center": [0, 0, -8], "normal": [1, 0, 0], "rx": 40, "ry": 64, "start": -2.3562, "end": -3.1416, "color": 0x333333},
 
-          { "type": "text", "text": "φ", "position": [64, 40, 0], "normal": [0, 1, 0], "up": [0, 1, 0], "color": 0x3b82f6, "size": 8 },
-          { "type": "text", "text": "ψ", "position": [0, 96, 8], "normal": [1, 0, 0], "up": [0, 1, 0], "color": 0x22c55e, "size": 8 },
-          { "type": "text", "text": "μ", "position": [0, 0, 64], "normal": [1, 0, 0], "up": [0, 1, 0], "color": 0xef4444, "size": 8 }
+          { "type": "text", "text": "φ", "position": [64, 40, 0], "normal": [0, 1, 0], "up": [0, 1, 0], "color": 0x3b82f6, "size": 16, height: 0.1, "anchorX": "center", "anchorY": "center" },
+          { "type": "text", "text": "ψ", "position": [0, 96, 8], "normal": [1, 0, 0], "up": [0, 1, 0], "color": 0x22c55e, "size": 16, height: 0.1, "anchorX": "center", "anchorY": "center" },
+          { "type": "text", "text": "μ", "position": [0, 0, 64], "normal": [1, 0, 0], "up": [0, 1, 0], "color": 0xef4444, "size": 16, height: 0.1, "anchorX": "center", "anchorY": "center" }
         ]
       }
     }
@@ -251,7 +270,9 @@ for (const node of modelData.nodes) {
         size: prim.size,
         height: prim.height,
         normal: prim.normal || [0,0,1],   // JSONで指定できる
-        up: prim.up || [0,1,0]
+        up: prim.up || [0,1,0],
+        anchorX: prim.anchorX || "center",
+        anchorY: prim.anchorY || "center"
       });
     }
   }
