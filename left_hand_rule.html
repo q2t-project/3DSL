@@ -199,27 +199,7 @@ function addEllipseArc3(center, normal, rx, ry, start, end, color, segments=64) 
   scene.add(new THREE.Line(geom, mat));
 }
 
-// modelData の描画
-for (const node of modelData.nodes) {
-  for (const prim of node.geometry.primitives) {
-    if (prim.type === "line3") {
-      addLine3(prim.a, prim.b, prim.color);
-    }
-    if (prim.type === "arc3") {
-      addArc3(prim.center, prim.normal, prim.radius, prim.start, prim.end, prim.color);
-    }
-    if (prim.type === "ellipseArc3") {
-      addEllipseArc3(prim.center, prim.normal, prim.rx, prim.ry, prim.start, prim.end, prim.color);
-    }
-    if (prim.type === "text3D") {
-      addText3D(prim.text, new THREE.Vector3(...prim.position),
-    { color: prim.color, size: prim.size, height: prim.height }
-  );
-}
-  }
-}
-
-// ---- add: TextGeometry helper (non-breaking) ----
+// ---- add: TextGeometry helper ----
 const FONT_URL = "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json";
 let __fontPromise = null;
 function loadFontOnce(url = FONT_URL) {
@@ -232,21 +212,8 @@ function loadFontOnce(url = FONT_URL) {
   return __fontPromise;
 }
 
-/**
- * 立体文字をシーンに追加（位置はワールド座標）
- * @param {string} text
- * @param {THREE.Vector3} position
- * @param {object} opt { color=0xffffff, size=1, height=0.1, bevel=false }
- * @returns {Promise<THREE.Mesh>}
- */
 async function addText3D(text, position, opt = {}) {
-  const {
-    color = 0xffffff,
-    size = 1,
-    height = 0.12,
-    curveSegments = 12,
-    bevel = false
-  } = opt;
+  const { color = 0xffffff, size = 1, height = 0.12, curveSegments = 12, bevel = false } = opt;
 
   const font = await loadFontOnce();
   const geo = new TextGeometry(text, {
@@ -254,8 +221,6 @@ async function addText3D(text, position, opt = {}) {
     bevelEnabled: bevel, bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 2
   });
   geo.computeBoundingBox();
-  // 左寄せ→見やすく中央寄せしたい場合は以下2行を有効化
-  // const bb = geo.boundingBox; const shiftX = (bb.max.x - bb.min.x) / 2; geo.translate(-shiftX, 0, 0);
 
   const mat = new THREE.MeshStandardMaterial({ color });
   const mesh = new THREE.Mesh(geo, mat);
@@ -263,6 +228,23 @@ async function addText3D(text, position, opt = {}) {
   scene.add(mesh);
   return mesh;
 }
+
+// ---- modelData定義＆描画ループ ----
+const modelData = { ... }
+
+for (const node of modelData.nodes) {
+  for (const prim of node.geometry.primitives) {
+    if (prim.type === "line3") { addLine3(prim.a, prim.b, prim.color); }
+    if (prim.type === "arc3")  { addArc3(prim.center, prim.normal, prim.radius, prim.start, prim.end, prim.color); }
+    if (prim.type === "ellipseArc3") { addEllipseArc3(prim.center, prim.normal, prim.rx, prim.ry, prim.start, prim.end, prim.color); }
+    if (prim.type === "text3D") {
+      addText3D(prim.text, new THREE.Vector3(...prim.position), {
+        color: prim.color, size: prim.size, height: prim.height
+      });
+    }
+  }
+}
+
 
   // GLTFLoader は不要なので削除
   // モデル構築後に直接テキストを追加
