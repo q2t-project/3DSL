@@ -211,6 +211,11 @@ for (const node of modelData.nodes) {
     if (prim.type === "ellipseArc3") {
       addEllipseArc3(prim.center, prim.normal, prim.rx, prim.ry, prim.start, prim.end, prim.color);
     }
+    if (prim.type === "text3D") {
+      addText3D(prim.text, new THREE.Vector3(...prim.position),
+    { color: prim.color, size: prim.size, height: prim.height }
+  );
+}
   }
 }
 
@@ -261,9 +266,9 @@ async function addText3D(text, position, opt = {}) {
 
   // GLTFLoader は不要なので削除
   // モデル構築後に直接テキストを追加
-  addText3D("親指 = 力 F (+X)", new THREE.Vector3(70, 32, 0), { color: 0xef4444, size: 8, height: 2 });
-  addText3D("人差し指 = 磁界 B (+Y)", new THREE.Vector3(0, 104, 0), { color: 0x22c55e, size: 8, height: 2 });
-  addText3D("中指 = 電流 I (+Z)", new THREE.Vector3(0, 32, 72), { color: 0x3b82f6, size: 8, height: 2 });
+  //  addText3D("親指 = 力 F (+X)", new THREE.Vector3(70, 32, 0), { color: 0xef4444, size: 8, height: 2 });
+  //  addText3D("人差し指 = 磁界 B (+Y)", new THREE.Vector3(0, 104, 0), { color: 0x22c55e, size: 8, height: 2 });
+  //  addText3D("中指 = 電流 I (+Z)", new THREE.Vector3(0, 32, 72), { color: 0x3b82f6, size: 8, height: 2 });
 
 
     // Resize
