@@ -38,31 +38,33 @@
   "imports": {
     "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
     "three/examples/jsm/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-    
+
   }
 }
 
-import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
-
-document.getElementById("export").addEventListener("click", () => {
-  const exporter = new GLTFExporter();
-  exporter.parse(
-    scene,
-    gltf => {
-      const blob = new Blob([JSON.stringify(gltf)], { type: "application/json" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "line_model.gltf";
-      link.click();
-    },
-    { binary: false }
-  );
-});
 
 </script>
 
 <!-- Three.js & Controls -->
 <script type="module">
+
+  import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
+
+  document.getElementById("export").addEventListener("click", () => {
+    const exporter = new GLTFExporter();
+    exporter.parse(
+      scene,
+      gltf => {
+        const blob = new Blob([JSON.stringify(gltf)], { type: "application/json" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "line_model.gltf";
+        link.click();
+      },
+      { binary: false }
+    );
+  });
+
   import * as THREE from "three";
   import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
