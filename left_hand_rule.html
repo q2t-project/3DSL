@@ -150,6 +150,20 @@ const modelData = {
     }
   ]
 };
+for (const node of modelData.nodes) {
+  for (const prim of node.geometry.primitives) {
+    if (prim.type === "line3") { addLine3(prim.a, prim.b, prim.color); }
+    if (prim.type === "arc3")  { addArc3(prim.center, prim.normal, prim.radius, prim.start, prim.end, prim.color); }
+    if (prim.type === "ellipseArc3") { addEllipseArc3(prim.center, prim.normal, prim.rx, prim.ry, prim.start, prim.end, prim.color); }
+    if (prim.type === "text3D") {
+      addText3D(prim.text, new THREE.Vector3(...prim.position), {
+        color: prim.color, size: prim.size, height: prim.height
+      });
+    }
+  }
+}
+
+
 
 // JSONデータを変数として保持する
 function addLine3(a, b, color) {
@@ -230,21 +244,6 @@ async function addText3D(text, position, opt = {}) {
 }
 
 // ---- modelData定義＆描画ループ ----
-const modelData = { ... }
-
-for (const node of modelData.nodes) {
-  for (const prim of node.geometry.primitives) {
-    if (prim.type === "line3") { addLine3(prim.a, prim.b, prim.color); }
-    if (prim.type === "arc3")  { addArc3(prim.center, prim.normal, prim.radius, prim.start, prim.end, prim.color); }
-    if (prim.type === "ellipseArc3") { addEllipseArc3(prim.center, prim.normal, prim.rx, prim.ry, prim.start, prim.end, prim.color); }
-    if (prim.type === "text3D") {
-      addText3D(prim.text, new THREE.Vector3(...prim.position), {
-        color: prim.color, size: prim.size, height: prim.height
-      });
-    }
-  }
-}
-
 
   // GLTFLoader は不要なので削除
   // モデル構築後に直接テキストを追加
