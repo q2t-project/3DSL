@@ -83,7 +83,6 @@ header button:hover {
 
   import * as THREE from "three";
   import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-  import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js"; 
 
     const root = document.getElementById('scene-root');
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
@@ -256,27 +255,12 @@ async function addText3D(text, position, opt = {}) {
   return mesh;
 }
 
-const loader = new GLTFLoader(); 
+  // GLTFLoader は不要なので削除
+  // モデル構築後に直接テキストを追加
+  addText3D("親指 = 力 F (+X)", new THREE.Vector3(70, 32, 0), { color: 0xef4444, size: 8, height: 2 });
+  addText3D("人差し指 = 磁界 B (+Y)", new THREE.Vector3(0, 104, 0), { color: 0x22c55e, size: 8, height: 2 });
+  addText3D("中指 = 電流 I (+Z)", new THREE.Vector3(0, 32, 72), { color: 0x3b82f6, size: 8, height: 2 });
 
-loader.load("./lefthand_model.gltf", async (gltf) => {
-  const model = gltf.scene;
-  scene.add(model);
-
-  // ←既存の配置やライト、コントロール等はそのまま
-
-  // ---- add: モデルのサイズに合わせて文字サイズ・配置を自動決定 ----
-  const box   = new THREE.Box3().setFromObject(model);
-  const size  = box.getSize(new THREE.Vector3());        // モデルの外接サイズ
-  const center= box.getCenter(new THREE.Vector3());
-
-  const baseSize = Math.max(size.x, size.y, size.z) * 0.10;   // 文字の大きさ
-  const gap      = Math.max(size.x, size.y, size.z) * 0.06;   // オフセット
-
-  // 例）3本の指方向にラベルを配置（色はお好みで）
-  await addText3D("親指 = 力 F (+X)", new THREE.Vector3(box.max.x + gap, center.y, center.z), { color: 0xef4444, size: baseSize, height: baseSize * 0.25 });
-  await addText3D("人差し指 = 磁界 B (+Y)", new THREE.Vector3(center.x, box.max.y + gap, center.z), { color: 0x22c55e, size: baseSize, height: baseSize * 0.25 });
-  await addText3D("中指 = 電流 I (+Z)", new THREE.Vector3(center.x, center.y, box.max.z + gap), { color: 0x3b82f6, size: baseSize, height: baseSize * 0.25 });
-}, console.error);
 
     // Resize
     window.addEventListener('resize', () => {
