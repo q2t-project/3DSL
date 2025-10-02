@@ -82,6 +82,8 @@ header button:hover {
   import * as THREE from "three";
   import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
+
+
     const root = document.getElementById('scene-root');
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -138,7 +140,9 @@ const modelData = {
           { "type": "line3", "a": [ 0, 16, -48 ], "b": [ 0, 0, -48 ], "color": 0x444444 },
 
           { "type": "ellipseArc3", "center": [0, 0, -8], "normal": [1, 0, 0], "rx": 40, "ry": 64, "start": 0, "end": -0.7854, "color": 0x333333},
-          { "type": "ellipseArc3", "center": [0, 0, -8], "normal": [1, 0, 0], "rx": 40, "ry": 64, "start": -2.3562, "end": -3.1416, "color": 0x333333}
+          { "type": "ellipseArc3", "center": [0, 0, -8], "normal": [1, 0, 0], "rx": 40, "ry": 64, "start": -2.3562, "end": -3.1416, "color": 0x333333},
+
+          { "type": "text3d", "text": "quantity", "font": "helvetiker_regular", "size": 1, "height": 0.2, "color": 65280}
         ]
       }
     }
@@ -207,6 +211,57 @@ for (const node of modelData.nodes) {
     }
   }
 }
+
+import * as THREE from "three";
+import { FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
+import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
+import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
+
+// シーンとレンダラを準備
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.set(3,3,3);
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// 光源
+const light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(5,5,5);
+scene.add(light);
+
+// フォントをロードしてTextGeometryを生成
+const loader = new FontLoader();
+loader.load("fonts/helvetiker_regular.typeface.json", (font) => {
+  const geo = new TextGeometry("Hello 3DSS", {
+    font: font,
+    size: 1,
+    height: 0.2,
+    curveSegments: 12,
+    bevelEnabled: false
+  });
+
+  const mat = new THREE.MeshStandardMaterial({ color: 0x00ff88 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(0,0,0);
+  scene.add(mesh);
+
+  // その場でGLTFにエクスポート
+  const exporter = new GLTFExporter();
+  exporter.parse(
+    scene,
+    (gltf) => {
+      const blob = new Blob([JSON.stringify(gltf)], { type: "application/json" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "text_model.gltf";
+      link.click();
+    },
+    { binary: false }  // trueにすると.glb形式
+  );
+});
+
+
 
 
     // Resize
