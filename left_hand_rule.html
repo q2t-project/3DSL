@@ -83,6 +83,7 @@ header button:hover {
 
   import * as THREE from "three";
   import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+  import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js"; 
 
     const root = document.getElementById('scene-root');
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
@@ -254,6 +255,8 @@ async function addText3D(text, position, opt = {}) {
   scene.add(mesh);
   return mesh;
 }
+
+const loader = new GLTFLoader(); 
 
 loader.load("./lefthand_model.gltf", async (gltf) => {
   const model = gltf.scene;
