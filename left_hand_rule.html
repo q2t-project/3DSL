@@ -162,16 +162,28 @@ function addEllipseArc3(center, normal, rx, ry, start, end, color, segments=64) 
 }
 
 // ---- add: TextGeometry helper ----
-const FONT_URL = "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json";
-let __fontPromise = null;
-function loadFontOnce(url = FONT_URL) {
-  if (!__fontPromise) {
+const FONT_MAP = {
+  "helvetiker_regular": "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json",
+  "helvetiker_bold":    "https://threejs.org/examples/fonts/helvetiker_bold.typeface.json",
+  "optimer_regular":    "https://threejs.org/examples/fonts/optimer_regular.typeface.json",
+  "optimer_bold":       "https://threejs.org/examples/fonts/optimer_bold.typeface.json",
+  "gentilis_regular":   "https://threejs.org/examples/fonts/gentilis_regular.typeface.json",
+  "gentilis_bold":      "https://threejs.org/examples/fonts/gentilis_bold.typeface.json",
+  "droid_sans_regular": "https://threejs.org/examples/fonts/droid/droid_sans_regular.typeface.json",
+  "droid_sans_bold":    "https://threejs.org/examples/fonts/droid/droid_sans_bold.typeface.json",
+  "droid_serif_regular":"https://threejs.org/examples/fonts/droid/droid_serif_regular.typeface.json",
+  "droid_serif_bold":   "https://threejs.org/examples/fonts/droid/droid_serif_bold.typeface.json"
+};
+const __fontCache = {};
+function loadFont(fontKey = "helvetiker_regular") {
+  const url = FONT_MAP[fontKey] || FONT_MAP["helvetiker_regular"];
+  if (!__fontCache[url]) {
     const loader = new FontLoader();
-    __fontPromise = new Promise((resolve, reject) => {
+    __fontCache[url] = new Promise((resolve, reject) => {
       loader.load(url, resolve, undefined, reject);
     });
   }
-  return __fontPromise;
+  return __fontCache[url];
 }
 
 async function addText(text, position, opt = {}) {
@@ -183,13 +195,14 @@ async function addText(text, position, opt = {}) {
     bevel = false,
     normal = [0, 0, 1],
     up = [0, 1, 0],
-    anchorX = "center",  // left / center / right
-    anchorY = "center"   // top / center / bottom
+    anchorX = "center",
+    anchorY = "center",
+    font = "helvetiker_regular"   // ★デフォルトフォント
   } = opt;
 
-  const font = await loadFontOnce();
+  const fontObj = await loadFont(font);
   const geo = new TextGeometry(text, {
-    font, size, height, curveSegments,
+    font: fontObj, size, height, curveSegments,
     bevelEnabled: bevel
   });
 
@@ -251,9 +264,9 @@ const modelData = {
           { "type": "ellipseArc3", "center": [0, 0, -8], "normal": [1, 0, 0], "rx": 40, "ry": 64, "start": 0, "end": -0.7854, "color": 0x333333},
           { "type": "ellipseArc3", "center": [0, 0, -8], "normal": [1, 0, 0], "rx": 40, "ry": 64, "start": -2.3562, "end": -3.1416, "color": 0x333333},
 
-          { "type": "text", "text": "φ", "position": [56, 32, -8], "normal": [0, 1, 0], "up": [0, 0, 1], "color": 0x3b82f6, "size": 16, height: 0.1, "anchorX": "center", "anchorY": "center" },
-          { "type": "text", "text": "ψ", "position": [0, 96, 8], "normal": [1, 0, 0], "up": [0, 0, 1], "color": 0x22c55e, "size": 16, height: 0.1, "anchorX": "center", "anchorY": "center" },
-          { "type": "text", "text": "μ", "position": [0, 0, 64], "normal": [1, 0, 0], "up": [0, 0, 1], "color": 0xef4444, "size": 16, height: 0.1, "anchorX": "center", "anchorY": "center" }
+          { "type": "text", "text": "φ", "position": [56, 32, -8], "normal": [0, 1, 0], "up": [0, 0, 1], "color": 0x3b82f6, "size": 16, height: 0.1, "anchorX": "center", "anchorY": "center", "font": "optimer_regular" },
+          { "type": "text", "text": "ψ", "position": [0, 96, 8], "normal": [1, 0, 0], "up": [0, 0, 1], "color": 0x22c55e, "size": 16, height: 0.1, "anchorX": "center", "anchorY": "center", "font": "gentilis_bold"  },
+          { "type": "text", "text": "μ", "position": [0, 0, 64], "normal": [1, 0, 0], "up": [0, 0, 1], "color": 0xef4444, "size": 16, height: 0.1, "anchorX": "center", "anchorY": "center", "font": "gentilis_bold"  }
         ]
       }
     }
@@ -273,6 +286,7 @@ for (const node of modelData.nodes) {
         up: prim.up || [0,1,0],
         anchorX: prim.anchorX || "center",
         anchorY: prim.anchorY || "center"
+        font: prim.font || "helvetiker_regular"
       });
     }
   }
