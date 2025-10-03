@@ -82,3 +82,37 @@ UI裏構造:
 - 堅牢性: 常にスキーマ検証を通す
 - 効率性: 数千ノード規模でも快適
 - 拡張性: UIをモジュール化し、新要素を追加しやすい
+
+## 10. UIフロー図（PUML）
+
+```puml
+@startuml
+actor User
+
+User -> (New Project)
+(New Project) --> (Generate Empty JSON)
+
+User -> (Add Node)
+(Add Node) --> (Update JSON)
+(Update JSON) --> (Preview Refresh)
+
+User -> (Add Edge)
+(Add Edge) --> (Update JSON)
+(Update JSON) --> (Preview Refresh)
+
+User -> (Edit Label/Text)
+(Edit Label/Text) --> (Update JSON)
+(Update JSON) --> (Preview Refresh)
+
+User -> (Add Aux/Grid)
+(Add Aux/Grid) --> (Update JSON)
+(Update JSON) --> (Preview Refresh)
+
+User -> (Import glTF)
+(Import glTF) --> (Place + Scale)
+(Place + Scale) --> (Update JSON)
+(Update JSON) --> (Preview Refresh)
+
+User -> (Save JSON)
+User -> (Export glTF)
+@enduml

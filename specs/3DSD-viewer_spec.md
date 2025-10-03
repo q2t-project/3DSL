@@ -42,3 +42,21 @@ Viewer は万人向けの表示ツール。
 - 軽量動作: 数千ノード規模でも数秒で描画開始できること
 - 直感操作: 学習コストゼロで利用できること
 - 外部依存: three.js と ajv のみに限定
+
+## 7. UIフロー図（PUML）
+
+```puml
+@startuml
+actor User
+
+User -> (Open Link)
+(Open Link) --> (Load JSON)
+(Load JSON) --> (Validate Schema)
+(Validate Schema) --> (Render Scene)
+
+User -> (Orbit Control)
+User -> (Select Node/Edge)
+(Select Node/Edge) --> (Highlight + Info Popup)
+
+User -> (Toggle Aux/Background)
+@enduml
