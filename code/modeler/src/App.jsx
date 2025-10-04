@@ -260,6 +260,7 @@ function App() {
                   limitedControls
                   className="h-full"
                   enableFullPreview
+                  enableFloatingPreview
                   onBackgroundChange={(nextColor) =>
                     setModel((prev) => ({ ...prev, background: nextColor }))
                   }
