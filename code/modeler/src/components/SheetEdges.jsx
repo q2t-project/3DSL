@@ -1,13 +1,24 @@
 import { createSheetComponent } from './SheetNodes.jsx';
 import { createEdge } from '../lib/defaults.js';
 
+function buildNodeOptions(context) {
+  const meta = context?.nodeMeta ?? [];
+  return meta.map((entry) => {
+    const shortId = entry.shortId ?? entry.id;
+    const labelText = entry.label?.trim?.();
+    const displayLabel = labelText ? `${shortId} · ${labelText}` : shortId;
+    const tooltip = `Full ID: ${entry.id}${labelText ? `\nLabel: ${labelText}` : ''}`;
+    return { value: entry.id, label: displayLabel, tooltip };
+  });
+}
+
 const edgeColumns = [
   {
     key: 'source',
     label: 'Source',
     required: true,
     type: 'select',
-    options: (context) => context?.nodes?.map((node) => node.id) ?? [],
+    options: (context) => buildNodeOptions(context),
     errorKey: 'source',
     schemaType: 'string',
     description: 'ID of the edge origin node',
@@ -18,7 +29,7 @@ const edgeColumns = [
     label: 'Target',
     required: true,
     type: 'select',
-    options: (context) => context?.nodes?.map((node) => node.id) ?? [],
+    options: (context) => buildNodeOptions(context),
     errorKey: 'target',
     schemaType: 'string',
     description: 'ID of the edge destination node',

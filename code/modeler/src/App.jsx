@@ -138,18 +138,27 @@ function App() {
     }
   };
 
+  const nodeMeta = useMemo(
+    () =>
+      model.nodes.map((node, index) => ({
+        id: node.id,
+        label: (node.label?.text ?? '').trim(),
+        shortId: `n${index + 1}`
+      })),
+    [model.nodes]
+  );
+
   const tabContext = useMemo(
     () => ({
       nodes: model.nodes,
+      nodeMeta,
       edges: model.edges,
       texts: model.texts,
       gltf: model.gltf,
       aux: model.aux
     }),
-    [model]
+    [model.aux, model.edges, model.gltf, model.nodes, model.texts, nodeMeta]
   );
-
-  const backgroundColor = model.background ?? sceneDefaults.background;
 
   return (
     <div className="flex h-screen flex-col bg-gray-950 text-gray-100">
@@ -185,7 +194,7 @@ function App() {
                   setSelection((prev) => ({ ...prev, edges: indexes }))
                 }
                 errors={errorMap.edges}
-                context={{ nodes: tabContext.nodes }}
+                context={tabContext}
               />
             )}
             {activeTab === 'texts' && (
@@ -238,30 +247,10 @@ function App() {
         <div className="border-t border-gray-800 bg-gray-950/80 px-4 py-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
             <div className="flex min-h-[240px] flex-1 flex-col gap-3 rounded-lg border border-gray-800 bg-gray-900/80 p-3 lg:flex-[1.2]">
-              <div className="flex items-center justify-between text-xs uppercase tracking-wide text-gray-400">
+              <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-gray-400">
                 <span>Spatial Preview</span>
-                <div className="flex items-center gap-2">
-                  <label className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-gray-500">
-                    <span>Background</span>
-                    <input
-                      type="color"
-                      value={backgroundColor}
-                      onChange={(event) =>
-                        setModel((prev) => ({ ...prev, background: event.target.value }))
-                      }
-                      className="h-6 w-12 cursor-pointer rounded border border-gray-700 bg-gray-900"
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => previewRef.current?.openPopup()}
-                    className="rounded-md bg-gray-800/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-200 transition hover:bg-gray-700"
-                  >
-                    🔍 Full Preview
-                  </button>
-                </div>
               </div>
-              <div className="h-[200px] overflow-hidden rounded-md border border-gray-800 bg-black">
+              <div className="relative h-[200px] overflow-hidden rounded-md border border-gray-800 bg-black">
                 <Preview3D
                   ref={previewRef}
                   data={model}
@@ -271,6 +260,9 @@ function App() {
                   limitedControls
                   className="h-full"
                   enableFullPreview
+                  onBackgroundChange={(nextColor) =>
+                    setModel((prev) => ({ ...prev, background: nextColor }))
+                  }
                 />
               </div>
             </div>

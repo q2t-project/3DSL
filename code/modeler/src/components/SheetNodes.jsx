@@ -131,7 +131,9 @@ function EditableCell({
   onWheel,
   onNavigate,
   required,
-  hasError
+  hasError,
+  displayValue,
+  extraTooltip
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useEditableState(
@@ -142,7 +144,12 @@ function EditableCell({
   const empty = value === undefined || value === null || value === '';
   const isDefaultValue = !empty && column.defaultValue !== undefined && value === column.defaultValue;
   const showGhost = empty && column.defaultValue !== undefined;
-  const tooltip = useMemo(() => buildTooltip(column, required), [column, required]);
+  const optionMeta = column.optionLookup?.get?.(value);
+  const resolvedExtraTooltip = extraTooltip ?? optionMeta?.tooltip;
+  const tooltip = useMemo(() => {
+    const parts = [buildTooltip(column, required), resolvedExtraTooltip];
+    return parts.filter(Boolean).join('\n');
+  }, [column, required, resolvedExtraTooltip]);
 
   useEffect(() => {
     if (!editing) return;
@@ -194,12 +201,11 @@ function EditableCell({
   );
 
   const baseTextClass = clsx(
-    'flex h-full w-full items-center gap-2 overflow-hidden truncate px-2 py-1 text-left transition-colors whitespace-nowrap',
-    required ? 'font-semibold text-emerald-200' : 'text-gray-300',
-    showGhost && 'italic text-gray-500',
-    !showGhost && !isDefaultValue && !hasError && 'text-white',
-    isDefaultValue && 'text-sky-300/90',
-    hasError && 'text-red-200 font-semibold'
+    'flex h-full w-full items-center gap-1 overflow-hidden truncate px-1 py-1 text-left text-xs transition-colors whitespace-nowrap',
+    required ? 'text-gray-100' : 'text-gray-200',
+    showGhost && 'font-medium italic text-slate-500',
+    isDefaultValue && !showGhost && 'text-sky-300',
+    hasError && 'text-rose-200 font-semibold'
   );
 
   const displayContent = () => {
@@ -211,7 +217,7 @@ function EditableCell({
             className="h-3 w-3 rounded border border-white/40"
             style={{ backgroundColor: colorValue || 'transparent' }}
           />
-          <span className={clsx('truncate', showGhost && 'text-gray-500')}>
+          <span className={clsx('truncate', showGhost && 'text-slate-500')}>
             {showGhost ? column.defaultValue : asDisplayString(colorValue)}
           </span>
         </div>
@@ -235,8 +241,8 @@ function EditableCell({
     if (showGhost) {
       return <span className="truncate">{column.defaultValue ?? '—'}</span>;
     }
-    const text = asDisplayString(value) || '—';
-    return <span className="truncate">{text}</span>;
+    const text = displayValue ?? optionMeta?.label ?? asDisplayString(value);
+    return <span className="truncate">{text || '—'}</span>;
   };
 
   const sharedInteraction = {
@@ -246,12 +252,12 @@ function EditableCell({
   };
 
   return (
-    <div className="relative h-full min-h-[32px]">
+    <div className="relative h-full min-h-[28px]">
       {editing ? (
         column.type === 'select' ? (
           <select
             ref={inputRef}
-            className="h-full w-full bg-transparent px-2 py-1 text-xs text-white focus:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400/70"
+            className="h-full w-full bg-transparent px-1 py-1 text-xs text-white focus:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400/70"
             value={draft ?? ''}
             onBlur={(event) => {
               commitValue(event.target.value || undefined);
@@ -265,11 +271,20 @@ function EditableCell({
             {...sharedInteraction}
           >
             <option value="">—</option>
-            {column.options?.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
+            {column.options?.map((option) => {
+              if (option && typeof option === 'object') {
+                return (
+                  <option key={option.value ?? option.label} value={option.value ?? ''}>
+                    {option.label ?? option.value}
+                  </option>
+                );
+              }
+              return (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              );
+            })}
           </select>
         ) : column.type === 'checkbox' ? (
           <div className="flex h-full w-full items-center justify-center">
@@ -309,7 +324,7 @@ function EditableCell({
             ref={inputRef}
             type={column.type === 'number' ? 'number' : 'text'}
             step={column.type === 'number' ? column.step ?? 'any' : undefined}
-            className="h-full w-full bg-transparent px-2 py-1 text-xs text-white focus:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400/70"
+            className="h-full w-full bg-transparent px-1 py-1 text-xs text-white focus:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400/70"
             value={draft ?? ''}
             placeholder={column.placeholder}
             onBlur={(event) => {
@@ -340,6 +355,12 @@ function EditableCell({
   );
 }
 
+// [UX Principle]
+// Reduce vertical clutter, expand horizontal clarity.
+// Present structure, not decoration.
+// Show the “logic” of data in color, alignment, and density.
+// Let spatial cognition assist data cognition.
+
 export function createSheetComponent(config) {
   const { columns, createRow } = config;
 
@@ -353,14 +374,29 @@ export function createSheetComponent(config) {
   }) {
     context = context ?? {};
     const clipboardRef = useRef(null);
-    const resolvedColumns = useMemo(
-      () =>
-        columns.map((column) => ({
+    const resolvedColumns = useMemo(() => {
+      return columns.map((column) => {
+        const rawOptions =
+          typeof column.options === 'function' ? column.options(context) : column.options;
+        const options = Array.isArray(rawOptions) ? rawOptions : rawOptions ? [rawOptions] : [];
+        const optionLookup = new Map();
+        options.forEach((option) => {
+          if (option && typeof option === 'object') {
+            const value = option.value;
+            if (value !== undefined) {
+              optionLookup.set(value, option);
+            }
+          } else if (option !== undefined && option !== null) {
+            optionLookup.set(option, { value: option, label: option });
+          }
+        });
+        return {
           ...column,
-          options: typeof column.options === 'function' ? column.options(context) : column.options
-        })),
-      [columns, context]
-    );
+          options,
+          optionLookup
+        };
+      });
+    }, [columns, context]);
 
     const updateRows = (updater) => {
       const next = typeof updater === 'function' ? updater(rows) : updater;
@@ -510,14 +546,14 @@ export function createSheetComponent(config) {
 
     return (
       <div
-        className="sheet-table-wrapper" 
+        className="sheet-table-wrapper"
         tabIndex={0}
         onKeyDown={handleTableKeyDown}
       >
         <div className="sheet-table-container">
-          <table className="sheet-table text-[11px] text-gray-200">
+          <table className="sheet-table text-xs text-gray-200">
             <colgroup>
-              <col style={{ width: '56px' }} />
+              <col style={{ width: '48px' }} />
               {resolvedColumns.map((column) => (
                 <col
                   key={column.key}
@@ -527,24 +563,31 @@ export function createSheetComponent(config) {
                   }}
                 />
               ))}
-              <col style={{ width: '64px' }} />
+              <col style={{ width: '60px' }} />
             </colgroup>
             <thead className="bg-gray-950/95 text-[10px] uppercase tracking-wide text-gray-400">
               <tr className="divide-x divide-gray-800/70">
-                <th className="px-3 py-2 text-left font-semibold">#</th>
-                {resolvedColumns.map((column) => (
-                  <th
-                    key={column.key}
-                    className={clsx(
-                      'px-3 py-2 text-left font-semibold',
-                      column.required ? 'text-emerald-200' : 'text-gray-400'
-                    )}
-                    title={buildTooltip(column, column.required)}
-                  >
-                    {column.label}
-                  </th>
-                ))}
-                <th className="px-2 py-2 text-right font-semibold text-gray-400">Actions</th>
+                <th scope="col" className="px-2 py-2 text-left font-semibold text-gray-500">#</th>
+                {resolvedColumns.map((column) => {
+                  const headerTooltip = buildTooltip(column, column.required);
+                  return (
+                    <th
+                      key={column.key}
+                      scope="col"
+                      className={clsx(
+                        'px-2 py-2 text-left font-semibold uppercase tracking-wide',
+                        column.required ? 'text-rose-300' : 'text-gray-400',
+                        column.headerClassName
+                      )}
+                      title={headerTooltip}
+                      aria-label={headerTooltip}
+                      data-tooltip={headerTooltip}
+                    >
+                      {column.label}
+                    </th>
+                  );
+                })}
+                <th scope="col" className="px-2 py-2 text-right font-semibold text-gray-400">Actions</th>
               </tr>
             </thead>
             <tbody className="text-xs">
@@ -555,23 +598,27 @@ export function createSheetComponent(config) {
                   <tr
                     key={rowIndex}
                     className={clsx(
-                      'group divide-x divide-gray-900/60 even:bg-gray-900/50',
-                      'hover:bg-gray-900/80 transition-colors',
-                      selected && 'bg-emerald-500/10 ring-1 ring-emerald-400/40'
+                      'group divide-x divide-gray-900/60 odd:bg-gray-950/40 even:bg-gray-900/40',
+                      'hover:bg-gray-800/70 transition-colors',
+                      selected && 'bg-rose-500/10 ring-1 ring-rose-400/40'
                     )}
                     onClick={(event) => handleRowClick(event, rowIndex)}
                   >
-                    <td className="px-3 py-1 align-middle text-right text-[10px] text-gray-500">{rowIndex + 1}</td>
+                    <td className="px-2 py-1 align-middle text-right text-[10px] text-gray-500">{rowIndex + 1}</td>
                     {resolvedColumns.map((column) => {
                       const value = getValue(row, column);
                       const hasError = Boolean(rowError[column.errorKey ?? column.key]);
                       const required = column.required;
+                      const displayProps =
+                        column.getDisplayProps?.({ value, row, rowIndex, context }) ?? {};
                       return (
                         <td
                           key={column.key}
                           className={clsx(
-                            'px-0 align-middle',
-                            hasError && 'bg-red-950/40'
+                            'px-1 align-middle',
+                            hasError && 'bg-rose-950/50',
+                            column.cellClassName,
+                            displayProps.cellClassName
                           )}
                         >
                           <EditableCell
@@ -582,6 +629,8 @@ export function createSheetComponent(config) {
                             onCommit={(nextValue) => handleCellChange(rowIndex, column, nextValue)}
                             onWheel={(event) => handleWheel(event, rowIndex, column)}
                             onNavigate={(event) => handleKeyDown(event, rowIndex, column)}
+                            displayValue={displayProps.displayValue}
+                            extraTooltip={displayProps.extraTooltip}
                           />
                         </td>
                       );
@@ -592,7 +641,7 @@ export function createSheetComponent(config) {
                           event.stopPropagation();
                           handleRemoveRow(rowIndex);
                         }}
-                        className="rounded px-2 py-1 text-[10px] font-semibold text-red-400 transition hover:bg-red-500/20 hover:text-red-200"
+                        className="rounded border border-rose-500/40 px-2 py-1 text-[10px] font-semibold text-rose-300 transition hover:border-rose-400/60 hover:bg-rose-500/10 hover:text-rose-200"
                         title="Remove row"
                       >
                         Remove
@@ -607,7 +656,7 @@ export function createSheetComponent(config) {
         <div className="flex justify-end border-t border-gray-900/70 bg-gray-950/60 p-2">
           <button
             onClick={handleAddRow}
-            className="rounded bg-emerald-500 px-3 py-1 text-[11px] font-semibold text-black shadow-sm transition hover:bg-emerald-400"
+            className="rounded border border-emerald-400/40 bg-emerald-500/90 px-3 py-1 text-[11px] font-semibold text-black shadow-sm transition hover:bg-emerald-400"
           >
             Add row
           </button>
@@ -625,7 +674,11 @@ const nodeColumns = [
     type: 'text',
     schemaType: 'string',
     description: 'Unique identifier for the node',
-    width: 160
+    width: 160,
+    getDisplayProps: ({ value, rowIndex }) => ({
+      displayValue: `n${rowIndex + 1}`,
+      extraTooltip: value ? `Full ID: ${value}` : undefined
+    })
   },
   {
     key: 'positionX',

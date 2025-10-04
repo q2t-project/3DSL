@@ -1,9 +1,11 @@
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useId, useImperativeHandle, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { createRoot } from 'react-dom/client';
 import PreviewPopup from './PreviewPopup.jsx';
+
+THREE.Object3D.DEFAULT_UP.set(0, 0, 1);
 
 function createNodeMesh(node) {
   const color = new THREE.Color(node.color ?? '#808080');
@@ -70,7 +72,7 @@ function createArrow(direction, position, color) {
   const coneGeometry = new THREE.ConeGeometry(0.1, 0.3, 8);
   const material = new THREE.MeshStandardMaterial({ color });
   const cone = new THREE.Mesh(coneGeometry, material);
-  const axis = new THREE.Vector3(0, 1, 0);
+  const axis = new THREE.Vector3(0, 0, 1);
   const quaternion = new THREE.Quaternion().setFromUnitVectors(axis, direction.clone().normalize());
   cone.quaternion.copy(quaternion);
   cone.position.copy(position);
@@ -128,7 +130,10 @@ function createAuxObject(aux) {
     case 'grid': {
       const size = aux.grid?.size ?? 10;
       const divisions = aux.grid?.divisions ?? 10;
-      return new THREE.GridHelper(size, divisions, '#444444', '#222222');
+      const grid = new THREE.GridHelper(size, divisions, '#444444', '#222222');
+      grid.rotation.x = Math.PI / 2;
+      grid.position.z = 0;
+      return grid;
     }
     case 'arc': {
       const group = new THREE.Group();
@@ -170,7 +175,8 @@ function Preview3DComponent(
     onSceneReady,
     limitedControls = false,
     className,
-    enableFullPreview = false
+    enableFullPreview = false,
+    onBackgroundChange
   },
   ref
 ) {
@@ -187,6 +193,7 @@ function Preview3DComponent(
   const popupWindowRef = useRef(null);
   const popupRootRef = useRef(null);
   const [popupWindow, setPopupWindow] = useState(null);
+  const colorInputId = useId();
 
   const closePopup = useCallback(() => {
     const win = popupWindowRef.current;
@@ -306,10 +313,11 @@ function Preview3DComponent(
           limitedControls={false}
           className="h-full"
           enableFullPreview={false}
+          onBackgroundChange={onBackgroundChange}
         />
       </PreviewPopup>
     );
-  }, [data, selection, onSelect, closePopup, popupWindow]);
+  }, [data, selection, onSelect, closePopup, popupWindow, onBackgroundChange]);
 
   // --------------------------------------------------
   // [Stage 1] Initialization — one-time setup of scene
@@ -333,19 +341,34 @@ function Preview3DComponent(
     mount.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
+    scene.up.set(0, 0, 1);
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 2000);
+    camera.up.set(0, 0, 1);
     camera.position.set(8, 8, 8);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.target.set(0, 0, 0);
+    controls.object.up.set(0, 0, 1);
     controls.update();
     controls.enableZoom = !limitedControls;
+    controls.screenSpacePanning = true;
 
     const hemiLight = new THREE.HemisphereLight('#ffffff', '#111122', 1.2);
     scene.add(hemiLight);
     const dirLight = new THREE.DirectionalLight('#ffffff', 0.8);
     dirLight.position.set(5, 10, 7.5);
     scene.add(dirLight);
+
+    const axesHelper = new THREE.AxesHelper(2.5);
+    axesHelper.renderOrder = 2;
+    if (Array.isArray(axesHelper.material)) {
+      axesHelper.material.forEach((mat) => {
+        if (mat) mat.depthTest = false;
+      });
+    } else if (axesHelper.material) {
+      axesHelper.material.depthTest = false;
+    }
+    scene.add(axesHelper);
 
     const groups = {
       nodes: new THREE.Group(),
@@ -589,30 +612,54 @@ function Preview3DComponent(
     .filter(Boolean)
     .join(' ');
 
+  const backgroundColor = data?.background ?? '#000000';
+
   return (
     <div className={containerClassName}>
-      <div className="absolute right-3 top-3 z-10 flex gap-2 text-xs">
-        {enableFullPreview && (
-          <button
-            type="button"
-            onClick={handleFullPreview}
-            className="rounded bg-gray-800/80 px-3 py-1 text-white hover:bg-gray-700"
-          >
-            Full Preview
-          </button>
-        )}
+      <div className="pointer-events-none absolute left-3 top-3 z-10 flex flex-wrap gap-2 text-[10px] font-medium uppercase tracking-wide">
+        <label
+          htmlFor={colorInputId}
+          className="pointer-events-auto inline-flex items-center gap-2 rounded border border-white/10 bg-gray-900/80 px-2 py-1 text-gray-200 shadow-sm transition hover:border-white/20 hover:bg-gray-800/80"
+        >
+          <span
+            className="h-3 w-3 rounded border border-white/30"
+            style={{ backgroundColor }}
+          />
+          Background
+          <input
+            id={colorInputId}
+            type="color"
+            className="sr-only"
+            value={backgroundColor}
+            onChange={(event) => {
+              const next = event.target.value;
+              onBackgroundChange?.(next);
+            }}
+          />
+        </label>
         <button
+          type="button"
           onClick={handleFit}
-          className="rounded bg-gray-800/80 px-3 py-1 text-white hover:bg-gray-700"
+          className="pointer-events-auto inline-flex items-center rounded border border-white/10 bg-gray-900/80 px-2 py-1 text-gray-100 shadow-sm transition hover:border-white/20 hover:bg-gray-800/80"
         >
           Fit
         </button>
         <button
+          type="button"
           onClick={handleReset}
-          className="rounded bg-gray-800/80 px-3 py-1 text-white hover:bg-gray-700"
+          className="pointer-events-auto inline-flex items-center rounded border border-white/10 bg-gray-900/80 px-2 py-1 text-gray-100 shadow-sm transition hover:border-white/20 hover:bg-gray-800/80"
         >
           Reset
         </button>
+        {enableFullPreview && (
+          <button
+            type="button"
+            onClick={handleFullPreview}
+            className="pointer-events-auto inline-flex items-center rounded border border-white/10 bg-gray-900/80 px-2 py-1 text-gray-100 shadow-sm transition hover:border-white/20 hover:bg-gray-800/80"
+          >
+            Full Preview
+          </button>
+        )}
       </div>
       <div ref={mountRef} className="h-full w-full" />
     </div>
