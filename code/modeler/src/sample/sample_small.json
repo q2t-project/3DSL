@@ -1,0 +1,56 @@
+{
+  "meta": {
+    "title": "Sample Scene",
+    "schema": "https://3dsl.dev/schema/threeDSS.schema.json"
+  },
+  "background": "#000000",
+  "nodes": [
+    {
+      "id": "node-1",
+      "position": [0, 0, 0],
+      "color": "#808080",
+      "size": 1,
+      "shape": "sphere"
+    },
+    {
+      "id": "node-2",
+      "position": [2, 0, 0],
+      "color": "#808080",
+      "size": 1,
+      "shape": "sphere"
+    }
+  ],
+  "edges": [
+    {
+      "source": "node-1",
+      "target": "node-2",
+      "directed": "false",
+      "arrow": "none",
+      "style": {
+        "color": "#ffffff",
+        "width": 1,
+        "dash": "solid"
+      }
+    }
+  ],
+  "texts": [
+    {
+      "content": "Sample",
+      "position": [0, 2, 0],
+      "size": 16,
+      "color": "#ffffff",
+      "orientation": "XY"
+    }
+  ],
+  "gltf": [],
+  "aux": [
+    {
+      "type": "grid",
+      "visible": true,
+      "grid": {
+        "size": 10,
+        "divisions": 10
+      }
+    }
+  ]
+}
