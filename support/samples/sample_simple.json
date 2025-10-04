@@ -1,0 +1,11 @@
+{
+  "meta": { "title":"test", "date":"2025-10-01" },
+  "nodes":[
+    {"id":"n1","pos":[0,0,0],"label":{"text":"Hello","plane":"xy","rotation":0}},
+    {"id":"n2","pos":[2,0,0],"label":{"text":"縦書き","plane":"yz","rotation":90,"writingMode":"vertical-rl"}}
+  ],
+  "edges":[
+    {"source":"n1","target":"n2","label":{"text":"edge1","plane":"xy"}}
+  ],
+  "aux":[{"type":"axis"},{"type":"grid","shape":"rect","sizeU":5,"divisionsU":5,"plane":"xy"}]
+}

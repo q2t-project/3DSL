@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="ja">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js",
+    "three/examples/": "https://cdn.jsdelivr.net/npm/three@0.161.0/examples/",
+    "ajv": "https://esm.sh/ajv@8/dist/2020?bundle"
+  }
+}
+</script>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3DSD Viewer</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: "Segoe UI", "Hiragino Sans", sans-serif;
+    }
+    body {
+      margin: 0;
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      grid-template-rows: auto 1fr;
+      grid-template-areas: "toolbar toolbar" "viewport info";
+      height: 100vh;
+      background: #000;
+      color: #f0f0f0;
+    }
+    #toolbar {
+      grid-area: toolbar;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: rgba(20, 20, 20, 0.9);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    button, label {
+      background: #333;
+      color: inherit;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.2s, border 0.2s;
+    }
+    button:hover, label:hover {
+      background: #444;
+    }
+    #viewport {
+      grid-area: viewport;
+      position: relative;
+      overflow: hidden;
+    }
+    #infoPanel {
+      grid-area: info;
+      padding: 12px;
+      background: rgba(15, 15, 15, 0.95);
+      border-left: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      gap: 12px;
+    }
+    #infoPanel h2 {
+      margin: 0;
+      font-size: 16px;
+    }
+    #infoContent {
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 6px;
+      padding: 8px;
+      min-height: 120px;
+    }
+    #metaInfo {
+      font-size: 12px;
+      line-height: 1.4;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 6px;
+      padding: 8px;
+    }
+    #messages {
+      position: absolute;
+      left: 12px;
+      bottom: 12px;
+      background: rgba(0, 0, 0, 0.6);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      pointer-events: none;
+      max-width: 320px;
+    }
+    #hiddenInputs {
+      display: none;
+    }
+    form#urlLoader {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: auto;
+    }
+    form#urlLoader input[type="url"] {
+      background: #111;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: inherit;
+      padding: 6px 8px;
+      border-radius: 4px;
+      width: 240px;
+      font-size: 13px;
+    }
+    details {
+      margin-left: 16px;
+      color: #ccc;
+    }
+    details summary {
+      cursor: pointer;
+      user-select: none;
+    }
+    #rendererContainer {
+      position: absolute;
+      inset: 0;
+    }
+    canvas {
+      display: block;
+    }
+    @media (max-width: 960px) {
+      body {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr auto;
+        grid-template-areas: "toolbar" "viewport" "info";
+      }
+      #infoPanel {
+        border-left: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        flex-direction: column;
+        max-height: 240px;
+      }
+      form#urlLoader {
+        width: 100%;
+        margin-left: 0;
+      }
+      form#urlLoader input[type="url"] {
+        width: 100%;
+        flex: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="toolbar">
+    <button id="btnLoad">Load JSON</button>
+    <button id="btnReset">Reset</button>
+    <button id="btnFit">Fit</button>
+    <button id="btnBackground">Background</button>
+    <details>
+      <summary>裏メニュー</summary>
+      <label><input type="checkbox" id="toggleGrid" checked /> グリッド</label>
+      <label><input type="checkbox" id="toggleAxes" checked /> 座標軸</label>
+    </details>
+    <form id="urlLoader">
+      <input type="url" placeholder="Load URL..." id="urlInput" />
+      <button type="submit">Fetch</button>
+    </form>
+    <div id="hiddenInputs">
+      <input type="file" id="fileInput" accept="application/json" />
+    </div>
+  </div>
+  <div id="viewport">
+    <div id="rendererContainer"></div>
+    <div id="messages" hidden></div>
+  </div>
+  <aside id="infoPanel">
+    <h2>Information</h2>
+    <div id="metaInfo">meta: -</div>
+    <div>
+      <strong>Selection</strong>
+      <div id="infoContent">クリックで要素情報を表示</div>
+    </div>
+  </aside>
+  <script type="module">
+    import * as THREE from "three";
+    import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+    import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+    import Ajv from "ajv";
+
+    const container = document.getElementById("rendererContainer");
+    const messageEl = document.getElementById("messages");
+    const infoContent = document.getElementById("infoContent");
+    const metaInfo = document.getElementById("metaInfo");
+    const btnLoad = document.getElementById("btnLoad");
+    const btnReset = document.getElementById("btnReset");
+    const btnFit = document.getElementById("btnFit");
+    const btnBackground = document.getElementById("btnBackground");
+    const fileInput = document.getElementById("fileInput");
+    const urlLoader = document.getElementById("urlLoader");
+    const urlInput = document.getElementById("urlInput");
+    const toggleGrid = document.getElementById("toggleGrid");
+    const toggleAxes = document.getElementById("toggleAxes");
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000000);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    container.appendChild(renderer.domElement);
+
+    const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 5000);
+    camera.position.set(8, 8, 8);
+    camera.up.set(0, 0, 1);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.screenSpacePanning = true;
+    controls.target.set(0, 0, 0);
+    controls.update();
+
+    const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    dirLight.position.set(5, -4, 6);
+    scene.add(ambient, dirLight);
+
+    const groups = {
+      nodes: new THREE.Group(),
+      edges: new THREE.Group(),
+      text: new THREE.Group(),
+      gltf: new THREE.Group(),
+      aux: new THREE.Group(),
+    };
+    groups.nodes.renderOrder = 1;
+    groups.edges.renderOrder = 2;
+    groups.text.renderOrder = 3;
+    groups.gltf.renderOrder = 4;
+    groups.aux.renderOrder = 5;
+    scene.add(groups.nodes, groups.edges, groups.text, groups.gltf, groups.aux);
+
+    let gridHelper = null;
+    let axesHelper = null;
+
+    const gltfLoader = new GLTFLoader();
+
+    const ajv = new Ajv({ allErrors: true, strict: false });
+    const schema = {
+      type: "object",
+      required: ["meta"],
+      properties: {
+        meta: {
+          type: "object",
+          required: ["title", "schema"],
+          properties: {
+            title: { type: "string" },
+            schema: { type: "string" }
+          },
+          additionalProperties: true
+        },
+        nodes: {
+          type: "array",
+          items: {
+            type: "object",
+            required: ["id", "position", "label"],
+            properties: {
+              id: { type: "string" },
+              position: {
+                type: "object",
+                required: ["x", "y", "z"],
+                properties: {
+                  x: { type: "number" },
+                  y: { type: "number" },
+                  z: { type: "number" }
+                },
+                additionalProperties: false
+              },
+              label: {
+                type: "object",
+                required: ["text"],
+                properties: {
+                  text: { type: "string" },
+                  fontSize: { type: "number" }
+                },
+                additionalProperties: true
+              },
+              color: { type: "string" },
+              size: { type: "number" }
+            },
+            additionalProperties: true
+          }
+        },
+        edges: {
+          type: "array",
+          items: {
+            type: "object",
+            required: ["id", "source", "target"],
+            properties: {
+              id: { type: "string" },
+              source: { type: "string" },
+              target: { type: "string" },
+              arrow: { type: "string", enum: ["none", "forward", "backward", "both"] },
+              color: { type: "string" },
+              label: {
+                type: "object",
+                required: ["text"],
+                properties: {
+                  text: { type: "string" },
+                  fontSize: { type: "number" }
+                },
+                additionalProperties: true
+              }
+            },
+            additionalProperties: true
+          }
+        },
+        text: {
+          type: "array",
+          items: {
+            type: "object",
+            required: ["id", "position", "label"],
+            properties: {
+              id: { type: "string" },
+              position: {
+                type: "object",
+                required: ["x", "y", "z"],
+                properties: {
+                  x: { type: "number" },
+                  y: { type: "number" },
+                  z: { type: "number" }
+                },
+                additionalProperties: false
+              },
+              label: {
+                type: "object",
+                required: ["text"],
+                properties: {
+                  text: { type: "string" },
+                  fontSize: { type: "number" }
+                },
+                additionalProperties: true
+              },
+              color: { type: "string" }
+            },
+            additionalProperties: true
+          }
+        },
+        gltf: {
+          type: "array",
+          items: {
+            type: "object",
+            required: ["id", "url"],
+            properties: {
+              id: { type: "string" },
+              url: { type: "string" },
+              position: {
+                type: "object",
+                properties: {
+                  x: { type: "number" },
+                  y: { type: "number" },
+                  z: { type: "number" }
+                },
+                additionalProperties: false
+              },
+              rotation: {
+                type: "object",
+                properties: {
+                  x: { type: "number" },
+                  y: { type: "number" },
+                  z: { type: "number" }
+                },
+                additionalProperties: false
+              },
+              scale: {
+                type: "object",
+                properties: {
+                  x: { type: "number" },
+                  y: { type: "number" },
+                  z: { type: "number" }
+                },
+                additionalProperties: false
+              }
+            },
+            additionalProperties: true
+          }
+        },
+        aux: {
+          type: "object",
+          properties: {
+            grid: {
+              type: "object",
+              properties: {
+                enabled: { type: "boolean" },
+                size: { type: "number" },
+                divisions: { type: "number" }
+              },
+              additionalProperties: true
+            },
+            axes: {
+              type: "object",
+              properties: {
+                enabled: { type: "boolean" },
+                size: { type: "number" }
+              },
+              additionalProperties: true
+            }
+          },
+          additionalProperties: true
+        }
+      },
+      additionalProperties: true
+    };
+    const validate = ajv.compile(schema);
+
+    const nodeMap = new Map();
+    let selection = null;
+    let currentData = null;
+    let currentBackground = "dark";
+    const basePixelRatio = window.devicePixelRatio || 1;
+
+    function showMessage(text, timeout = 2000) {
+      messageEl.textContent = text;
+      messageEl.hidden = false;
+      clearTimeout(showMessage.timer);
+      showMessage.timer = setTimeout(() => (messageEl.hidden = true), timeout);
+    }
+
+    function disposeObject(obj) {
+      obj.traverse?.((child) => {
+        if (child.geometry) child.geometry.dispose?.();
+        if (child.material) {
+          const disposeMaterial = (mat) => {
+            [
+              "map",
+              "normalMap",
+              "roughnessMap",
+              "metalnessMap",
+              "emissiveMap",
+              "aoMap",
+              "alphaMap"
+            ].forEach((key) => mat[key]?.dispose?.());
+            mat.dispose?.();
+          };
+          if (Array.isArray(child.material)) {
+            child.material.forEach(disposeMaterial);
+          } else {
+            disposeMaterial(child.material);
+          }
+        }
+      });
+    }
+
+    function clearGroups() {
+      restoreSelectionHighlight(selection);
+      [groups.nodes, groups.edges, groups.text, groups.gltf].forEach((group) => {
+        group.children.slice().forEach((child) => {
+          group.remove(child);
+          disposeObject(child);
+        });
+      });
+      nodeMap.clear();
+      selection = null;
+      infoContent.textContent = "クリックで要素情報を表示";
+    }
+
+    function setupAux(auxConfig = {}) {
+      groups.aux.clear();
+      const gridConfig = auxConfig.grid ?? { enabled: false };
+      const axesConfig = auxConfig.axes ?? { enabled: false };
+      if (gridConfig.enabled) {
+        const size = gridConfig.size ?? 20;
+        const divisions = gridConfig.divisions ?? size;
+        gridHelper = new THREE.GridHelper(size, divisions, 0x555555, 0x333333);
+        gridHelper.rotation.x = Math.PI / 2;
+        groups.aux.add(gridHelper);
+      } else {
+        gridHelper = null;
+      }
+      if (axesConfig.enabled) {
+        const size = axesConfig.size ?? 5;
+        axesHelper = new THREE.AxesHelper(size);
+        axesHelper.rotation.x = Math.PI / 2;
+        groups.aux.add(axesHelper);
+      } else {
+        axesHelper = null;
+      }
+      toggleGrid.checked = !!gridConfig.enabled;
+      toggleAxes.checked = !!axesConfig.enabled;
+    }
+
+    function applyAuxToggles() {
+      if (gridHelper) gridHelper.visible = toggleGrid.checked;
+      if (axesHelper) axesHelper.visible = toggleAxes.checked;
+    }
+
+    function colorFrom(dataColor, fallback = 0xffffff) {
+      try {
+        return new THREE.Color(dataColor ?? fallback);
+      } catch (e) {
+        return new THREE.Color(fallback);
+      }
+    }
+
+    function createNodeMesh(node) {
+      const radius = Math.max(0.05, node.size ?? 0.5);
+      const geometry = new THREE.SphereGeometry(radius, 24, 16);
+      const material = new THREE.MeshPhongMaterial({ color: colorFrom(node.color, 0x66ccff) });
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.position.set(node.position.x, node.position.y, node.position.z);
+      mesh.userData = { type: "node", data: node };
+      mesh.name = node.id;
+      return mesh;
+    }
+
+    function createArrowhead(anchor, direction, size, color, edge) {
+      if (direction.lengthSq() === 0) return null;
+      const coneGeom = new THREE.ConeGeometry(size * 0.5, size, 12);
+      const material = new THREE.MeshBasicMaterial({ color });
+      const cone = new THREE.Mesh(coneGeom, material);
+      const axis = new THREE.Vector3(0, 1, 0);
+      const dirNorm = direction.clone().normalize();
+      const quaternion = new THREE.Quaternion().setFromUnitVectors(axis, dirNorm);
+      cone.quaternion.copy(quaternion);
+      cone.position.copy(anchor.clone().sub(dirNorm.clone().multiplyScalar(size * 0.5)));
+      cone.userData = { type: "edge", data: edge };
+      return cone;
+    }
+
+    function createEdge(edge) {
+      const sourceNode = nodeMap.get(edge.source);
+      const targetNode = nodeMap.get(edge.target);
+      if (!sourceNode || !targetNode) return null;
+      const points = [sourceNode.position.clone(), targetNode.position.clone()];
+      const geometry = new THREE.BufferGeometry().setFromPoints(points);
+      const material = new THREE.LineBasicMaterial({ color: colorFrom(edge.color, 0xffffff) });
+      const line = new THREE.Line(geometry, material);
+      line.userData = { type: "edge", data: edge };
+
+      const edgeGroup = new THREE.Group();
+      edgeGroup.add(line);
+      edgeGroup.userData = { type: "edge", data: edge };
+
+      const length = points[1].distanceTo(points[0]);
+      const arrowSize = Math.min(0.4, Math.max(0.1, length * 0.08));
+      const arrowType = edge.arrow ?? "none";
+      const arrowColor = material.color.getHex();
+      if (arrowType === "forward" || arrowType === "both") {
+        const forwardCone = createArrowhead(points[1], points[1].clone().sub(points[0]), arrowSize, arrowColor, edge);
+        if (forwardCone) edgeGroup.add(forwardCone);
+      }
+      if (arrowType === "backward" || arrowType === "both") {
+        const backwardCone = createArrowhead(points[0], points[0].clone().sub(points[1]), arrowSize, arrowColor, edge);
+        if (backwardCone) edgeGroup.add(backwardCone);
+      }
+      return edgeGroup;
+    }
+
+    function createLabelSprite(labelData, color) {
+      const fontSize = labelData.fontSize ?? 16;
+      if (fontSize < 6) return null;
+      const padding = 8;
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      const font = `${fontSize}px 'Segoe UI', sans-serif`;
+      ctx.font = font;
+      const metrics = ctx.measureText(labelData.text);
+      const width = Math.ceil(metrics.width + padding * 2);
+      const height = Math.ceil(fontSize + padding * 2);
+      canvas.width = width;
+      canvas.height = height;
+      ctx.font = font;
+      ctx.fillStyle = "rgba(0,0,0,0.6)";
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = color;
+      ctx.textBaseline = "middle";
+      ctx.fillText(labelData.text, padding, height / 2);
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+      const sprite = new THREE.Sprite(material);
+      const scaleFactor = 0.01;
+      sprite.scale.set(width * scaleFactor, height * scaleFactor, 1);
+      return sprite;
+    }
+
+    function createTextLabel(entry) {
+      const sprite = createLabelSprite(entry.label, entry.color ?? "#ffffff");
+      if (!sprite) return null;
+      sprite.position.set(entry.position.x, entry.position.y, entry.position.z);
+      sprite.userData = { type: "text", data: entry };
+      sprite.center.set(0.5, 0);
+      return sprite;
+    }
+
+    function createNodeLabel(node) {
+      const sprite = createLabelSprite(node.label, node.label?.color ?? "#ffffff");
+      if (!sprite) return null;
+      sprite.position.set(node.position.x, node.position.y, node.position.z + (node.size ?? 0.5) * 1.4);
+      sprite.userData = { type: "nodeLabel", data: node };
+      sprite.center.set(0.5, 0);
+      return sprite;
+    }
+
+    function applyBackground() {
+      const isDark = currentBackground === "dark";
+      scene.background = new THREE.Color(isDark ? 0x000000 : 0xffffff);
+      document.body.style.background = isDark ? "#000" : "#fff";
+      document.body.style.color = isDark ? "#f0f0f0" : "#202020";
+      messageEl.style.background = isDark ? "rgba(0,0,0,0.6)" : "rgba(255,255,255,0.7)";
+      messageEl.style.color = isDark ? "#fff" : "#000";
+    }
+
+    function restoreSelectionHighlight(obj) {
+      const target = obj?.userData?.highlightTarget || obj;
+      if (!target) return;
+      if (target.material?.emissive && target.userData?.originalEmissive !== undefined) {
+        target.material.emissive.setHex(target.userData.originalEmissive);
+      }
+      if (target.material?.color && target.userData?.originalColor !== undefined) {
+        target.material.color.setHex(target.userData.originalColor);
+      }
+      if (obj?.userData) delete obj.userData.highlightTarget;
+    }
+
+    function setSelection(object) {
+      restoreSelectionHighlight(selection);
+      selection = object;
+      if (!object) {
+        infoContent.textContent = "クリックで要素情報を表示";
+        return;
+      }
+      const data = object.userData?.data ?? object.userData;
+      infoContent.textContent = JSON.stringify(data, null, 2);
+      const materialTarget = object.isGroup
+        ? object.children.find((child) => child.material)
+        : object;
+      if (!materialTarget || !materialTarget.material) return;
+      object.userData = object.userData || {};
+      object.userData.highlightTarget = materialTarget;
+      if (materialTarget.material.emissive) {
+        materialTarget.userData = materialTarget.userData || {};
+        materialTarget.userData.originalEmissive = materialTarget.material.emissive.getHex();
+        materialTarget.material.emissive.setHex(0x333333);
+      } else if (materialTarget.material.color) {
+        materialTarget.userData = materialTarget.userData || {};
+        materialTarget.userData.originalColor = materialTarget.material.color.getHex();
+        materialTarget.material.color.setHex(0xffff66);
+      }
+    }
+
+    function fitCamera() {
+      const box = new THREE.Box3();
+      const objects = [];
+      groups.nodes.traverse((obj) => {
+        if (obj.isMesh) objects.push(obj);
+      });
+      groups.gltf.traverse((obj) => {
+        if (obj.isMesh) objects.push(obj);
+      });
+      groups.edges.traverse((obj) => {
+        if (obj.isLine) objects.push(obj);
+      });
+      if (!objects.length) return;
+      objects.forEach((obj) => {
+        obj.geometry?.computeBoundingBox?.();
+        const objBox = obj.geometry?.boundingBox;
+        if (objBox) {
+          const transformed = objBox.clone().applyMatrix4(obj.matrixWorld);
+          box.union(transformed);
+        }
+      });
+      const size = new THREE.Vector3();
+      const center = new THREE.Vector3();
+      box.getSize(size);
+      box.getCenter(center);
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const distance = maxDim * 1.8 / Math.tan((camera.fov * Math.PI) / 360);
+      const direction = new THREE.Vector3(1, 1, 1).normalize();
+      camera.position.copy(center.clone().add(direction.multiplyScalar(distance)));
+      controls.target.copy(center);
+      controls.update();
+    }
+
+    function populateMeta(meta) {
+      metaInfo.textContent = meta ? `${meta.title}\n${meta.schema}` : "meta: -";
+    }
+
+    function loadNodes(nodes = []) {
+      nodes.forEach((node) => {
+        const mesh = createNodeMesh(node);
+        groups.nodes.add(mesh);
+        nodeMap.set(node.id, mesh);
+        const labelSprite = createNodeLabel(node);
+        if (labelSprite) groups.text.add(labelSprite);
+      });
+    }
+
+    function loadEdges(edges = []) {
+      edges.forEach((edge) => {
+        const edgeObject = createEdge(edge);
+        if (edgeObject) groups.edges.add(edgeObject);
+      });
+    }
+
+    function loadTexts(textEntries = []) {
+      textEntries.forEach((entry) => {
+        const sprite = createTextLabel(entry);
+        if (sprite) groups.text.add(sprite);
+      });
+    }
+
+    function loadGltf(entries = []) {
+      entries.forEach((entry) => {
+        gltfLoader.load(entry.url, (gltf) => {
+          const root = gltf.scene || gltf.scenes[0];
+          root.traverse((obj) => {
+            obj.userData = Object.assign({}, obj.userData, { type: "gltf", data: entry });
+          });
+          root.userData = Object.assign({}, root.userData, { type: "gltf", data: entry });
+          if (entry.position) {
+            root.position.set(entry.position.x || 0, entry.position.y || 0, entry.position.z || 0);
+          }
+          if (entry.rotation) {
+            root.rotation.set(entry.rotation.x || 0, entry.rotation.y || 0, entry.rotation.z || 0);
+          }
+          if (entry.scale) {
+            root.scale.set(entry.scale.x || 1, entry.scale.y || 1, entry.scale.z || 1);
+          }
+          groups.gltf.add(root);
+          fitCamera();
+        }, undefined, (error) => {
+          console.error("GLTF load error", error);
+          showMessage(`Failed to load glTF: ${entry.url}`);
+        });
+      });
+    }
+
+    function loadData(data) {
+      if (!validate(data)) {
+        console.error(validate.errors);
+        showMessage("Schema validation failed");
+        return;
+      }
+      currentData = data;
+      clearGroups();
+      populateMeta(data.meta);
+      loadNodes(data.nodes || []);
+      loadEdges(data.edges || []);
+      loadTexts(data.text || []);
+      loadGltf(data.gltf || []);
+      setupAux(data.aux || {});
+      applyAuxToggles();
+      fitCamera();
+      showMessage("Scene updated");
+    }
+
+    function resetView() {
+      if (!currentData) return;
+      controls.reset();
+      camera.up.set(0, 0, 1);
+      fitCamera();
+    }
+
+    async function fetchJSON(url) {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(response.statusText);
+      return response.json();
+    }
+
+    btnLoad.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", async (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const json = JSON.parse(text);
+        loadData(json);
+        showMessage(`Loaded ${file.name}`);
+      } catch (e) {
+        console.error(e);
+        showMessage("Failed to read file");
+      }
+      fileInput.value = "";
+    });
+
+    urlLoader.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const url = urlInput.value.trim();
+      if (!url) return;
+      try {
+        showMessage("Fetching...");
+        const json = await fetchJSON(url);
+        loadData(json);
+        showMessage(`Loaded from URL`);
+      } catch (e) {
+        console.error(e);
+        showMessage(`Failed to fetch: ${e.message}`);
+      }
+    });
+
+    btnReset.addEventListener("click", async () => {
+      if (currentData) {
+        loadData(currentData);
+        resetView();
+      } else {
+        initialize();
+      }
+    });
+
+    btnFit.addEventListener("click", fitCamera);
+
+    btnBackground.addEventListener("click", () => {
+      currentBackground = currentBackground === "dark" ? "light" : "dark";
+      applyBackground();
+    });
+
+    toggleGrid.addEventListener("change", applyAuxToggles);
+    toggleAxes.addEventListener("change", applyAuxToggles);
+
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+
+    function onPointerDown(event) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+      const objects = [];
+      groups.nodes.traverse((obj) => {
+        if (obj.isMesh) objects.push(obj);
+      });
+      groups.edges.traverse((obj) => {
+        if (obj.isLine) objects.push(obj);
+      });
+      groups.text.traverse((obj) => {
+        if (obj.isSprite) objects.push(obj);
+      });
+      groups.gltf.traverse((obj) => {
+        if (obj.isMesh) objects.push(obj);
+      });
+      const intersects = raycaster.intersectObjects(objects, true);
+      if (intersects.length) {
+        const picked = intersects[0].object;
+        const target = picked.userData?.type === "edge" && picked.parent?.userData?.type === "edge"
+          ? picked.parent
+          : picked;
+        setSelection(target);
+      } else {
+        setSelection(null);
+      }
+    }
+    renderer.domElement.addEventListener("pointerdown", onPointerDown);
+
+    function onResize() {
+      const { clientWidth, clientHeight } = container;
+      renderer.setSize(clientWidth, clientHeight);
+      camera.aspect = clientWidth / clientHeight;
+      camera.updateProjectionMatrix();
+    }
+    window.addEventListener("resize", onResize);
+
+    controls.addEventListener("start", () => {
+      renderer.setPixelRatio(Math.max(0.5, basePixelRatio * 0.6));
+      renderer.setSize(container.clientWidth, container.clientHeight, false);
+    });
+    controls.addEventListener("end", () => {
+      renderer.setPixelRatio(basePixelRatio);
+      renderer.setSize(container.clientWidth, container.clientHeight, false);
+    });
+
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    async function initialize() {
+      try {
+        const data = await fetchJSON("../../support/samples/sample_simple.json");
+        loadData(data);
+        currentData = data;
+        applyBackground();
+      } catch (e) {
+        console.error(e);
+        showMessage("Failed to load initial sample");
+      }
+    }
+
+
+    applyBackground();
+    initialize();
+  </script>
+</body>
+</html>

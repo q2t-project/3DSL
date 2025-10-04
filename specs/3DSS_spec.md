@@ -1,314 +1,265 @@
 # 3DSS Specification
 
 本仕様は 3D Structural Schema (3DSS) の構造規範を定義する。  
-必須属性と型に徹し、デフォルト値やツール実装依存の処理は規定しない。
+必須属性と型・制約に徹し、デフォルト値や実装ごとの推奨値は規定しない。  
+相互運用性を担保するため、列挙可能な属性は許される値を**列挙（enum）**として明記する。
 
 ---
 
 ## 3.0 共通規範
 
-本仕様全体に適用される共通ルールを以下に定める。
-
 ### ID
-- すべての要素は一意な id を持つ。
-- id は UUID 形式を推奨する。
+- すべての要素は一意な `id` を持つ（UUID 形式を推奨）。
 
 ### 色指定
-- color 属性は hex (#RRGGBB) または CSS color keyword を許容する。
+- `color` は `#RRGGBB`（hex）または CSS color keyword を許容。
+
+### 座標表現
+- 位置・回転・スケール等は **配列形式**で表現する。  
+  - 位置 `position` : `[x, y, z]`（number×3）  
+  - 回転 `rotation` : `[x, y, z]`（オイラー角, number×3）  
+  - スケール `scale` : `[x, y, z]`（number×3）
+- オブジェクト形式 `{x,y,z}` は**許容しない**。
 
 ### plane と rotation
-- plane はユーザが指定する簡潔な記法であり、内部的には rotation に変換して扱う。
-- plane 指定がある場合は rotation 指定より優先される。
+- `plane` は簡潔指定であり、内部実装では `rotation` に変換して扱ってよい。
+- `plane` がある場合は `rotation` より優先される。
 
-### デフォルト値と未定義属性
-- デフォルト値は規定しない。必要なら明示的に記述する。
+### 未定義属性と拡張
 - 未定義属性は無視される。
-
-### 仕様外拡張
-- `x-` プレフィックスを付けた属性は仕様外拡張とみなす。
-- Viewer/Modeler は解釈せず無視するが、保持して再出力することは許容される。
+- 仕様外拡張は `ext` フィールド、または `x-` プレフィックス属性で表す（保持再出力は可）。
 
 ---
 
 ## Label 共通仕様
 
-nodes, edges, text で利用されるラベルオブジェクトの共通仕様を以下に定める。
+`nodes`・`edges`・`texts` が参照するラベルオブジェクトの共通仕様。
 
-### 必須属性
-- text : 表示文字列 (string)
+### 必須
+- `text` : string（表示文字列）
 
-### 任意属性
-- fontSize : 文字サイズ (number)
-- plane : 配置平面 (XY, YZ, ZX, camera)
-- color : テキスト色
-- background : 背景色または none
-- direction : 配置方向 (left, right, top, bottom)
-- align : 配置基準 (left, right, center, top, bottom, middle)
-- rotation : 回転指定（plane があれば内部で変換）
-- style : スタイルオブジェクト（拡張用）
-- link : ハイパーリンクや参照先
+### 任意（列挙を含む）
+- `fontSize` : number  
+- `plane` : enum { `XY`, `YZ`, `ZX`, `camera` }  
+- `color` : string  
+- `background` : string | `"none"`  
+- `direction` : enum { `left`, `right`, `top`, `bottom` }  
+- `align` : enum { `left`, `right`, `center`, `top`, `bottom`, `middle` }  
+- `rotation` : number  
+- `style` : object  
+- `link` : string
 
 ---
 
 ## 3.1 meta
 
-3DSS ファイル全体の識別情報を格納するトップレベル要素。  
-この要素は JSON の先頭に必ず置かれる。  
-Viewer/Modeler は meta の情報を参照して、スキーマの識別や情報パネル表示に利用する。  
+3DSS 全体の識別情報。
 
-### 必須属性
-- title : モデルの名称 (string)  
-- schema : このファイルが準拠するスキーマの識別子（URI 形式の文字列）  
+### 必須
+- `title` : string  
+- `schema` : string（準拠スキーマURI）
 
-### 任意属性（列挙形式）
-- author : 作成者名や組織名 (string)  
-- created : 作成日時 (string, ISO8601 形式推奨)  
-- modified : 最終更新日時 (string, ISO8601 形式)  
-- description : モデルの説明テキスト (string)  
-- license : 利用条件やライセンス情報 (string)  
-- project : 関連するプロジェクト名 (string)  
-- tags : タグの配列 (array[string])  
+### 任意
+- `author` : string  
+- `created` : string（ISO8601）  
+- `modified` : string（ISO8601）  
+- `description` : string  
+- `license` : string  
+- `project` : string  
+- `tags` : array[string]
 
-### 廃止属性
-- version : スキーマ URI 管理に移行したため不要  
-- date : created/modified に置き換え  
-- counts : ノード数やエッジ数は Viewer 側で計算するため不要  
-
-### 拡張性
-- meta は標準属性に加えて、任意の key/value を含めることができる。  
-- `x-` プレフィックス付きの属性は仕様外拡張とみなし、Viewer/Modeler は解釈せず無視する。ただし保持して再出力することは許容される。  
+### 拡張
+- `ext` または `x-` 属性を許容。
 
 ---
 
 ## 3.2 environment
 
-本仕様を解釈する際に共通となる空間規範を定義する。  
-すべての node / edge / text / gltf / aux はこの規範に基づいて解釈される。
+空間規範（構造のみ規定）。
 
-### 座標系
-- 基底ベクトルは (X, Y, Z) とし、X×Y = Z が成り立つ直交座標系とする。  
-- 原点 (0,0,0) はローカルシーンの中心を表す。  
-- 単位系は無次元とする。  
-
-### 軸の定義
-- X軸 : 赤方向  
-- Y軸 : 緑方向  
-- Z軸 : 青方向  
-
-### 平面の定義
-- XY : 水平方向の基準平面  
-- YZ : 縦方向（奥行きを含む）の基準平面  
-- ZX : 縦横回転の基準平面  
-- camera : ビューアのカメラ平面に追従する特殊指定（主にテキスト/ラベル用）  
-
-### 回転規範
-- 平面における rotation の指定は、各平面の法線軸まわりに CW（時計回り）を正とする。  
-
-### 書字方向
-- writingMode : デフォルトは horizontal。  
-- vertical を明示することで縦書き表示を指定可能。  
-
-### 単位系とスケーリング
-- 本仕様では単位系は無次元とするが、1単位=1m 等の解釈は実装に委ねられる。  
-- スケーリングはノードや gltf の属性で明示的に指定可能。  
-
-### 原点の意味
-- 原点はローカルシーンの中心を表す。  
-- グローバルな原点と区別する場合は、シーン間の相対配置を別途定義する。  
-
-### レイヤー・階層
-- 補助要素(aux)や背景などは階層的に区分可能。  
-- 代表的なレイヤー: background, main, auxiliary。  
-
-### カラースキーム
-- 軸の色は固定: X=赤, Y=緑, Z=青。  
-- 補助線やグリッドはグレー系を推奨。  
-
-### フォント環境
-- 特定フォントが指定されない場合は実装依存。  
-- UTF-8 を標準エンコードとする。  
-
-### 数値精度と範囲
-- 座標値は float/double を許容。  
-- 推奨範囲は -1024 ～ +1024。これを超える場合は実装側でクリッピングやスケーリングを行う。  
-
-### 表示座標系とデータ座標系
-- データ保存座標系は本仕様の直交座標系に準拠する。  
-- Viewer 内部で異なる座標系を用いる場合は、この直交座標系に変換して表示する。  
+- 座標系 : 直交座標（X×Y=Z）  
+- 原点 : `[0,0,0]` はローカルシーン中心  
+- 軸色 : X=赤, Y=緑, Z=青  
+- 平面（参照名）: `XY`, `YZ`, `ZX`, `camera`  
+- 書字方向 : `horizontal` / `vertical`（実装依存、ここでは列挙の参照名のみ）
 
 ---
 
 ## 3.3 nodes
 
-ノードはモデルの基本単位であり、概念や対象を表す。  
-各ノードは一意な id を持ち、座標とラベルを付与できる。  
+### 必須
+- `id` : string  
+- `position` : array[3] number
 
-### 必須属性
-- id : ノードを一意に識別する UUID  
-- position : ノードの位置 {x,y,z}  
-- label : Label 共通仕様  
-
-### 任意属性
-- code / alias : 人間可読な識別子  
-- order : 並び順  
-- color : 基本色  
-- size : 表示サイズ  
-- shape : 形状 (sphere, cube など)  
-- style : スタイル拡張用  
-- geometry / attachment : 内部ジオメトリや外部 glTF 参照  
+### 任意（列挙を含む）
+- `label` : Label  
+- `code` / `alias` : string  
+- `order` : number  
+- `color` : string  
+- `size` : number  
+- `shape` : enum { `sphere`, `cube`, `cylinder`, `cone`, `plane` }  
+- `style` : object  
+- `geometry` : object  
+- `attachment` : string  
+- `ext` : object
 
 ---
 
 ## 3.4 edges
 
-エッジはノード同士を結ぶ関係性を表現する。  
+### 必須
+- `source` : string（始点 node.id）  
+- `target` : string（終点 node.id）
 
-### 必須属性
-- id : エッジを一意に識別する UUID  
-- source : 始点ノード id  
-- target : 終点ノード id  
-
-### 任意属性
-- directed : true, false, both  
-- arrow : none, normal, double, diamond, cone  
-- label : Label 共通仕様  
-- weight : 数値  
-- style : color, width, dash  
-- curve : none, bezier, arc  
-- geometry : tube, cylinder, custom  
-- animation : pulse, glow, flow  
+### 任意（**列挙を復元**）
+- `directed` : enum { `true`, `false`, `both` }  
+- `arrow` : enum { `none`, `normal`, `double`, `diamond`, `cone` }  
+- `label` : Label  
+- `weight` : number  
+- `style` : object（例: `color`, `width`, `dash`）  
+- `curve` : enum { `none`, `bezier`, `arc` }  
+- `geometry` : enum { `tube`, `cylinder`, `custom` }  
+- `animation` : enum { `pulse`, `glow`, `flow` }  
+- `ext` : object
 
 ---
 
-## 3.5 text
+## 3.5 texts
 
-ノードやエッジに属さない独立したテキスト要素。  
+ノード/エッジに属さない独立テキスト。
 
-### 必須属性
-- id : UUID  
-- text : 文字列  
-- position : {x,y,z}  
+### 必須
+- `content` : string  
+- `position` : array[3] number
 
-### 任意属性
-- plane, fontSize, fontFamily, color, background, align, rotation, style, link  
+### 任意（列挙を含む）
+- `size` : number  
+- `color` : string  
+- `orientation` : enum { `XY`, `YZ`, `ZX`, `camera` }  
+- `plane` : string（参照名）  
+- `style` : object  
+- `link` : string  
+- `ext` : object
 
 ---
 
 ## 3.6 gltf
 
-外部 glTF モデルを添付する要素。  
+外部 glTF アセット。
 
-### 必須属性
-- id : UUID  
-- uri : モデルファイル参照  
+### 必須
+- `src` : string（ファイルパス/URL）
 
-### 任意属性
-- position : {x,y,z}  
-- rotation : {type: euler|quaternion, value: {...}} または簡易3/4変数  
-- scale : {x,y,z} または数値  
-- attachTo : node.id  
-- materialOverride  
-- animation  
+### 任意（列挙を含む）
+- `position` : array[3] number  
+- `rotation` : array[3] number（オイラー角）  
+- `scale` : array[3] number  
+- `attachTo` : string（node.id）  
+- `materialOverride` : object  
+- `animation` : object  
+- `ext` : object
+
+> （補足）旧記法の `rotation: { type: euler|quaternion, value: … }` はここでは**構造統一のため列挙せず**、配列ベースのオイラー角に一本化。
 
 ---
 
 ## 3.7 aux
 
-補助的な可視化要素。  
+補助可視化要素。
 
-### 必須属性
-- id : UUID  
-- type : axis, grid, arc, hud  
+### 必須
+- なし
 
-### 任意属性
-- axis: length, thickness, color  
-- grid: shape=rect|polar(full/half/quarter), sizeU, sizeV, divisionsU, divisionsV, color, opacity  
-- arc: radius, angleStart, angleEnd, color, thickness  
-- hud: position, content, style  
+### 任意（**列挙を復元**）
+- `type` : enum { `axis`, `grid`, `arc`, `hud` }  
+- `visible` : boolean  
+- `axis` : object（例: `length`, `thickness`, `color`）  
+- `grid` : object（例: `shape=rect | polar(full/half/quarter)`, `sizeU`, `sizeV`, `divisionsU`, `divisionsV`, `color`, `opacity`）  
+- `arc` : object（例: `radius`, `angleStart`, `angleEnd`, `color`, `thickness`）  
+- `hud` : object（例: `position`, `content`, `style`）  
+- `ext` : object
 
 ---
 
-## 付録: クラス図（PUML）
-
-以下は Node, Edge, Text, Gltf, Aux, Label の相互関係を示したクラス図である。  
-実装やcodexによるコード生成の支援用であり、スキーマ規定の補助的表現と位置付ける。
+## 付録: クラス図 (PlantUML)
 
 ```puml
 @startuml
 class Node {
-  id : UUID
-  position : Vector3
-  label : Label
-  radius : number
-  color : string
-  shape : string
-  style : object
-  geometry : object
-  attachment : string
+  id : string
+  position : [number,number,number]
+  label : Label?
+  code : string?
+  alias : string?
+  order : number?
+  color : string?
+  size : number?
+  shape : enum {sphere,cube,cylinder,cone,plane}?
+  style : object?
+  geometry : object?
+  attachment : string?
+  ext : object?
 }
 
 class Edge {
-  id : UUID
-  source : Node
-  target : Node
-  label : Label
-  arrow : string
-  weight : number
-  style : object
-  curve : string
-  geometry : object
-  animation : string
+  source : string
+  target : string
+  directed : enum {true,false,both}?
+  arrow : enum {none,normal,double,diamond,cone}?
+  label : Label?
+  weight : number?
+  style : object?
+  curve : enum {none,bezier,arc}?
+  geometry : enum {tube,cylinder,custom}?
+  animation : enum {pulse,glow,flow}?
+  ext : object?
 }
 
 class Text {
-  id : UUID
-  text : string
-  position : Vector3
-  plane : string
-  fontSize : number
-  color : string
-  background : string
-  align : string
-  rotation : number
-  style : object
-  link : string
+  content : string
+  position : [number,number,number]
+  size : number?
+  color : string?
+  orientation : enum {XY,YZ,ZX,camera}?
+  plane : string?
+  style : object?
+  link : string?
+  ext : object?
 }
 
 class Gltf {
-  id : UUID
-  uri : string
-  position : Vector3
-  rotation : object
-  scale : object
-  attachTo : Node
-  materialOverride : object
-  animation : object
+  src : string
+  position : [number,number,number]?
+  rotation : [number,number,number]?
+  scale : [number,number,number]?
+  attachTo : string?
+  materialOverride : object?
+  animation : object?
+  ext : object?
 }
 
 class Aux {
-  id : UUID
-  type : string
-  axis : object
-  grid : object
-  arc : object
-  hud : object
+  type : enum {axis,grid,arc,hud}?
+  visible : boolean?
+  axis : object?
+  grid : object?
+  arc : object?
+  hud : object?
+  ext : object?
 }
 
 class Label {
   text : string
-  fontSize : number
-  plane : string
-  color : string
-  background : string
-  direction : string
-  align : string
-  rotation : number
-  style : object
-  link : string
+  fontSize : number?
+  plane : enum {XY,YZ,ZX,camera}?
+  color : string?
+  background : string?  // or "none"
+  direction : enum {left,right,top,bottom}?
+  align : enum {left,right,center,top,bottom,middle}?
+  rotation : number?
+  style : object?
+  link : string?
 }
 
-Node "1" o-- "1" Label
-Edge "1" o-- "1" Label
-Text "1" o-- "1" Label
-Gltf "0..1" --> Node
+Node "1..*" -- "0..*" Edge
 @enduml
