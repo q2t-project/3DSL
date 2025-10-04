@@ -56,7 +56,7 @@ function App() {
   const [validation, setValidation] = useState({ valid: true, errors: [] });
   const validatorRef = useRef(debounce((data) => setValidation(validateModel(data)), 300));
   const sceneHandleRef = useRef(null);
-  const [isPreviewModalOpen, setPreviewModalOpen] = useState(false);
+  const previewRef = useRef(null);
 
   useEffect(() => {
     validatorRef.current(model);
@@ -254,7 +254,7 @@ function App() {
                   </label>
                   <button
                     type="button"
-                    onClick={() => setPreviewModalOpen(true)}
+                    onClick={() => previewRef.current?.openPopup()}
                     className="rounded-md bg-gray-800/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-200 transition hover:bg-gray-700"
                   >
                     🔍 Full Preview
@@ -263,12 +263,14 @@ function App() {
               </div>
               <div className="h-[200px] overflow-hidden rounded-md border border-gray-800 bg-black">
                 <Preview3D
+                  ref={previewRef}
                   data={model}
                   selection={selection}
                   onSelect={handlePreviewSelect}
                   onSceneReady={handleSceneReady}
                   limitedControls
                   className="h-full"
+                  enableFullPreview
                 />
               </div>
             </div>
@@ -279,30 +281,6 @@ function App() {
         </div>
       </div>
 
-      {isPreviewModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6">
-          <div className="relative flex h-full w-full max-h-[90vh] max-w-6xl flex-col overflow-hidden rounded-2xl border border-gray-800 bg-gray-950 shadow-2xl">
-            <div className="flex items-start justify-between border-b border-gray-800 px-5 py-4 text-sm text-gray-300">
-              <div>
-                <div className="font-semibold uppercase tracking-wide text-gray-100">Immersive 3D Preview</div>
-                <p className="mt-1 text-xs text-gray-500">
-                  Expand to explore geometry without sacrificing sheet focus.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setPreviewModalOpen(false)}
-                className="rounded-md bg-gray-800/80 px-3 py-1 text-sm text-gray-200 transition hover:bg-gray-700"
-              >
-                ✕ Close
-              </button>
-            </div>
-            <div className="flex-1 bg-black">
-              <Preview3D data={model} selection={selection} onSelect={handlePreviewSelect} />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
