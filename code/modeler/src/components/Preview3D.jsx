@@ -160,7 +160,14 @@ function createAuxObject(aux) {
   }
 }
 
-function Preview3D({ data, selection, onSelect, onSceneReady }) {
+function Preview3D({
+  data,
+  selection,
+  onSelect,
+  onSceneReady,
+  limitedControls = false,
+  className
+}) {
   const mountRef = useRef(null);
   const rendererRef = useRef(null);
   const sceneRef = useRef(null);
@@ -214,6 +221,7 @@ function Preview3D({ data, selection, onSelect, onSceneReady }) {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.target.set(0, 0, 0);
     controls.update();
+    controls.enableZoom = !limitedControls;
 
     const hemiLight = new THREE.HemisphereLight('#ffffff', '#111122', 1.2);
     scene.add(hemiLight);
@@ -287,6 +295,12 @@ function Preview3D({ data, selection, onSelect, onSceneReady }) {
       onSceneReadyRef.current?.(null);
     };
   }, []);
+
+  useEffect(() => {
+    const controls = controlsRef.current;
+    if (!controls) return;
+    controls.enableZoom = !limitedControls;
+  }, [limitedControls]);
 
   // --------------------------------------------------
   // [Stage 2] Update — rebuild scene content reactively
@@ -453,8 +467,12 @@ function Preview3D({ data, selection, onSelect, onSceneReady }) {
     controls.update();
   };
 
+  const containerClassName = ['relative h-full w-full', className]
+    .filter(Boolean)
+    .join(' ');
+
   return (
-    <div className="relative h-full w-full">
+    <div className={containerClassName}>
       <div className="absolute right-3 top-3 z-10 flex gap-2 text-xs">
         <button
           onClick={handleFit}
