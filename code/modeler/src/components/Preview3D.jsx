@@ -361,12 +361,20 @@ function Preview3D({ data, selection, onSelect, onSceneReady }) {
   useEffect(() => {
     const renderer = rendererRef.current;
     const scene = sceneRef.current;
-    if (!renderer || !scene) return;
+    if (!renderer || !scene || data == null) return;
 
-    const color = data?.background ?? '#000000';
-    renderer.setClearColor(color);
-    scene.background = new THREE.Color(color);
-  }, [data]);
+    const colorValue = data.background ?? '#000000';
+    const desiredColor = new THREE.Color(colorValue);
+    const currentClear = renderer.getClearColor(new THREE.Color());
+    if (!currentClear.equals(desiredColor)) {
+      renderer.setClearColor(desiredColor);
+    }
+
+    const sceneBackground = scene.background;
+    if (!(sceneBackground instanceof THREE.Color) || !sceneBackground.equals(desiredColor)) {
+      scene.background = desiredColor.clone();
+    }
+  }, [data?.background]);
 
   useEffect(() => {
     const groups = groupsRef.current;
