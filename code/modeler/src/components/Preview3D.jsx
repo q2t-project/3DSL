@@ -525,10 +525,18 @@ function Preview3DComponent(
       camera.updateProjectionMatrix();
     };
 
+    const resizeFromElement = (element) => {
+      if (!element) return;
+      const rect = element.getBoundingClientRect();
+      resizeToDimensions(rect.width, rect.height);
+    };
+
     const resizeFromMount = () => {
-      const w = mount.clientWidth;
-      const h = mount.clientHeight;
-      resizeToDimensions(w, h);
+      resizeFromElement(mount);
+    };
+
+    const resizeFromCanvas = () => {
+      resizeFromElement(renderer.domElement);
     };
 
     resizeFromMount();
@@ -537,23 +545,36 @@ function Preview3DComponent(
     const detachListeners = [];
 
     if (typeof ResizeObserver !== 'undefined') {
-      const mountObserver = new ResizeObserver(() => {
-        resizeFromMount();
-      });
-      mountObserver.observe(mount);
-      resizeObservers.push(mountObserver);
+      const observeTarget = (target, fallback) => {
+        if (!target) return;
+        const observer = new ResizeObserver((entries) => {
+          let resized = false;
+          for (const entry of entries) {
+            const { width, height } = entry.contentRect;
+            if (width > 0 && height > 0) {
+              resizeToDimensions(width, height);
+              resized = true;
+            }
+          }
+          if (!resized) {
+            fallback?.();
+          }
+        });
+        observer.observe(target);
+        resizeObservers.push(observer);
+      };
+
+      observeTarget(mount, resizeFromMount);
 
       if (floatingContainer && floatingContainer !== mount) {
-        const floatingObserver = new ResizeObserver(() => {
-          resizeFromMount();
-        });
-        floatingObserver.observe(floatingContainer);
-        resizeObservers.push(floatingObserver);
+        observeTarget(floatingContainer, resizeFromMount);
       }
+
+      observeTarget(renderer.domElement, resizeFromCanvas);
     } else {
       const resizeTarget = externalWindow ?? window;
       const handleWindowResize = () => {
-        resizeFromMount();
+        resizeFromCanvas();
       };
       resizeTarget.addEventListener('resize', handleWindowResize);
       detachListeners.push(() => {
@@ -563,7 +584,7 @@ function Preview3DComponent(
 
     if (externalWindow) {
       const handleExternalResize = () => {
-        resizeFromMount();
+        resizeFromCanvas();
       };
       externalWindow.addEventListener('resize', handleExternalResize);
       detachListeners.push(() => {
