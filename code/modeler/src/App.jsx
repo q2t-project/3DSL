@@ -56,6 +56,7 @@ function App() {
   const [validation, setValidation] = useState({ valid: true, errors: [] });
   const validatorRef = useRef(debounce((data) => setValidation(validateModel(data)), 300));
   const sceneHandleRef = useRef(null);
+  const [isPreviewModalOpen, setPreviewModalOpen] = useState(false);
 
   useEffect(() => {
     validatorRef.current(model);
@@ -148,6 +149,8 @@ function App() {
     [model]
   );
 
+  const backgroundColor = model.background ?? sceneDefaults.background;
+
   return (
     <div className="flex h-screen flex-col bg-gray-950 text-gray-100">
       <TopBar
@@ -159,96 +162,147 @@ function App() {
         validation={validation}
       />
       <Tabs active={activeTab} onChange={setActiveTab} />
-      <div className="flex flex-1 overflow-hidden">
-        <div className="flex min-w-[420px] flex-[0_0_45%] flex-col border-r border-gray-800 bg-gray-900">
-          {activeTab === 'nodes' && (
-            <SheetNodes
-              rows={model.nodes}
-              onChange={(rows) => updateCollection('nodes', rows)}
-              selection={selection.nodes}
-              onSelectionChange={(indexes) =>
-                setSelection((prev) => ({ ...prev, nodes: indexes }))
-              }
-              errors={errorMap.nodes}
-            />
-          )}
-          {activeTab === 'edges' && (
-            <SheetEdges
-              rows={model.edges}
-              onChange={(rows) => updateCollection('edges', rows)}
-              selection={selection.edges}
-              onSelectionChange={(indexes) =>
-                setSelection((prev) => ({ ...prev, edges: indexes }))
-              }
-              errors={errorMap.edges}
-              context={{ nodes: tabContext.nodes }}
-            />
-          )}
-          {activeTab === 'texts' && (
-            <SheetTexts
-              rows={model.texts}
-              onChange={(rows) => updateCollection('texts', rows)}
-              selection={selection.texts}
-              onSelectionChange={(indexes) =>
-                setSelection((prev) => ({ ...prev, texts: indexes }))
-              }
-              errors={errorMap.texts}
-            />
-          )}
-          {activeTab === 'gltf' && (
-            <SheetGltf
-              rows={model.gltf}
-              onChange={(rows) => updateCollection('gltf', rows)}
-              selection={selection.gltf}
-              onSelectionChange={(indexes) =>
-                setSelection((prev) => ({ ...prev, gltf: indexes }))
-              }
-              errors={errorMap.gltf}
-              context={{ nodes: tabContext.nodes }}
-            />
-          )}
-          {activeTab === 'aux' && (
-            <SheetAux
-              rows={model.aux}
-              onChange={(rows) => updateCollection('aux', rows)}
-              selection={selection.aux}
-              onSelectionChange={(indexes) =>
-                setSelection((prev) => ({ ...prev, aux: indexes }))
-              }
-              errors={errorMap.aux}
-            />
-          )}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="flex flex-1 overflow-hidden bg-gray-900">
+          <div className="flex min-h-0 w-full flex-col overflow-hidden">
+            {activeTab === 'nodes' && (
+              <SheetNodes
+                rows={model.nodes}
+                onChange={(rows) => updateCollection('nodes', rows)}
+                selection={selection.nodes}
+                onSelectionChange={(indexes) =>
+                  setSelection((prev) => ({ ...prev, nodes: indexes }))
+                }
+                errors={errorMap.nodes}
+              />
+            )}
+            {activeTab === 'edges' && (
+              <SheetEdges
+                rows={model.edges}
+                onChange={(rows) => updateCollection('edges', rows)}
+                selection={selection.edges}
+                onSelectionChange={(indexes) =>
+                  setSelection((prev) => ({ ...prev, edges: indexes }))
+                }
+                errors={errorMap.edges}
+                context={{ nodes: tabContext.nodes }}
+              />
+            )}
+            {activeTab === 'texts' && (
+              <SheetTexts
+                rows={model.texts}
+                onChange={(rows) => updateCollection('texts', rows)}
+                selection={selection.texts}
+                onSelectionChange={(indexes) =>
+                  setSelection((prev) => ({ ...prev, texts: indexes }))
+                }
+                errors={errorMap.texts}
+              />
+            )}
+            {activeTab === 'gltf' && (
+              <SheetGltf
+                rows={model.gltf}
+                onChange={(rows) => updateCollection('gltf', rows)}
+                selection={selection.gltf}
+                onSelectionChange={(indexes) =>
+                  setSelection((prev) => ({ ...prev, gltf: indexes }))
+                }
+                errors={errorMap.gltf}
+                context={{ nodes: tabContext.nodes }}
+              />
+            )}
+            {activeTab === 'aux' && (
+              <SheetAux
+                rows={model.aux}
+                onChange={(rows) => updateCollection('aux', rows)}
+                selection={selection.aux}
+                onSelectionChange={(indexes) =>
+                  setSelection((prev) => ({ ...prev, aux: indexes }))
+                }
+                errors={errorMap.aux}
+              />
+            )}
+          </div>
         </div>
-        <div className="flex flex-1 flex-col bg-black">
-          <div className="flex items-center justify-between border-b border-gray-800 px-4 py-2 text-xs text-gray-400">
-            <div>Preview</div>
-            <div className="flex items-center gap-2">
-              <label className="flex items-center gap-1">
-                <span>Background</span>
-                <input
-                  type="color"
-                  value={model.background ?? sceneDefaults.background}
-                  onChange={(event) =>
-                    setModel((prev) => ({ ...prev, background: event.target.value }))
-                  }
-                  className="h-6 w-12 cursor-pointer"
+
+        {/**
+         * ─────────────────────────────────────────────────────────────
+         * Layout Layering Rationale
+         * ─────────────────────────────────────────────────────────────
+         * Edit tables dominate the canvas; the compact preview keeps
+         * spatial awareness (“observe while editing”); validation sits
+         * alongside as the correctness sentinel. A modal expansion lets
+         * makers dive deeper (“expand when exploring”) without leaving
+         * the editing posture — structure follows cognition.
+         */}
+        <div className="border-t border-gray-800 bg-gray-950/80 px-4 py-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
+            <div className="flex min-h-[240px] flex-1 flex-col gap-3 rounded-lg border border-gray-800 bg-gray-900/80 p-3 lg:flex-[1.2]">
+              <div className="flex items-center justify-between text-xs uppercase tracking-wide text-gray-400">
+                <span>Spatial Preview</span>
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                    <span>Background</span>
+                    <input
+                      type="color"
+                      value={backgroundColor}
+                      onChange={(event) =>
+                        setModel((prev) => ({ ...prev, background: event.target.value }))
+                      }
+                      className="h-6 w-12 cursor-pointer rounded border border-gray-700 bg-gray-900"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewModalOpen(true)}
+                    className="rounded-md bg-gray-800/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-200 transition hover:bg-gray-700"
+                  >
+                    🔍 Full Preview
+                  </button>
+                </div>
+              </div>
+              <div className="h-[200px] overflow-hidden rounded-md border border-gray-800 bg-black">
+                <Preview3D
+                  data={model}
+                  selection={selection}
+                  onSelect={handlePreviewSelect}
+                  onSceneReady={handleSceneReady}
+                  limitedControls
+                  className="h-full"
                 />
-              </label>
+              </div>
+            </div>
+            <div className="flex min-h-[240px] flex-1 overflow-hidden rounded-lg border border-gray-800 lg:flex-[1]">
+              <ValidationPanel validation={validation} onFocusPath={handleFocusPath} />
             </div>
           </div>
-          <div className="flex-1">
-            <Preview3D
-              data={model}
-              selection={selection}
-              onSelect={handlePreviewSelect}
-              onSceneReady={handleSceneReady}
-            />
-          </div>
-        </div>
-        <div className="flex w-72 flex-col">
-          <ValidationPanel validation={validation} onFocusPath={handleFocusPath} />
         </div>
       </div>
+
+      {isPreviewModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6">
+          <div className="relative flex h-full w-full max-h-[90vh] max-w-6xl flex-col overflow-hidden rounded-2xl border border-gray-800 bg-gray-950 shadow-2xl">
+            <div className="flex items-start justify-between border-b border-gray-800 px-5 py-4 text-sm text-gray-300">
+              <div>
+                <div className="font-semibold uppercase tracking-wide text-gray-100">Immersive 3D Preview</div>
+                <p className="mt-1 text-xs text-gray-500">
+                  Expand to explore geometry without sacrificing sheet focus.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewModalOpen(false)}
+                className="rounded-md bg-gray-800/80 px-3 py-1 text-sm text-gray-200 transition hover:bg-gray-700"
+              >
+                ✕ Close
+              </button>
+            </div>
+            <div className="flex-1 bg-black">
+              <Preview3D data={model} selection={selection} onSelect={handlePreviewSelect} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
