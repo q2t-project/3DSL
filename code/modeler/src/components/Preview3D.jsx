@@ -178,7 +178,6 @@ function Preview3D({ data, selection, onSelect, onSceneReady }) {
     renderer.setSize(width, height);
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.autoClear = true;
-    renderer.setClearColor(data?.background ?? '#000000');
     mount.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
@@ -359,21 +358,11 @@ function Preview3D({ data, selection, onSelect, onSceneReady }) {
   }, [data, selection]);
 
   useEffect(() => {
-    const renderer = rendererRef.current;
     const scene = sceneRef.current;
-    if (!renderer || !scene || data == null) return;
+    if (!scene) return;
 
-    const colorValue = data.background ?? '#000000';
-    const desiredColor = new THREE.Color(colorValue);
-    const currentClear = renderer.getClearColor(new THREE.Color());
-    if (!currentClear.equals(desiredColor)) {
-      renderer.setClearColor(desiredColor);
-    }
-
-    const sceneBackground = scene.background;
-    if (!(sceneBackground instanceof THREE.Color) || !sceneBackground.equals(desiredColor)) {
-      scene.background = desiredColor.clone();
-    }
+    const colorValue = data?.background ?? '#000000';
+    scene.background = new THREE.Color(colorValue);
   }, [data?.background]);
 
   useEffect(() => {
