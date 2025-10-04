@@ -3,26 +3,24 @@ import { formatAjvError } from '../lib/utils.js';
 function ValidationPanel({ validation, onFocusPath }) {
   const errors = validation?.errors ?? [];
   return (
-    <aside className="flex h-full w-[280px] shrink-0 flex-col border-l border-[#444] bg-[#222] text-xs text-gray-200">
-      <div className="border-b border-[#444] px-4 py-3 text-[11px] uppercase tracking-wide text-gray-300">
+    <div className="h-full bg-gray-900 border-l border-gray-800 flex flex-col">
+      <div className="px-3 py-2 border-b border-gray-800 text-xs uppercase tracking-wide text-gray-400">
         Validation
       </div>
-      <div className="flex-1 overflow-auto px-3 py-3 text-[11px]">
+      <div className="flex-1 overflow-auto text-xs">
         {validation?.valid && (
-          <div className="rounded border border-emerald-600/40 bg-emerald-500/10 px-3 py-2 text-emerald-300">
-            Schema valid
-          </div>
+          <div className="p-3 text-emerald-400">Schema valid</div>
         )}
         {!validation?.valid && errors.length === 0 && (
-          <div className="rounded border border-[#444] bg-[#2b2b2b] px-3 py-2 text-gray-300">Validating…</div>
+          <div className="p-3 text-gray-400">Validating…</div>
         )}
         {!validation?.valid && errors.length > 0 && (
-          <ul className="divide-y divide-[#333]">
+          <ul className="divide-y divide-gray-800">
             {errors.map((error, index) => (
-              <li key={`${error.instancePath}-${index}`} className="py-2">
+              <li key={`${error.instancePath}-${index}`} className="p-2">
                 <button
                   type="button"
-                  className="text-left text-red-300 transition hover:text-red-200"
+                  className="text-left text-red-300 hover:text-red-200"
                   onClick={() => onFocusPath?.(error.instancePath)}
                 >
                   {formatAjvError(error)}
@@ -32,7 +30,7 @@ function ValidationPanel({ validation, onFocusPath }) {
           </ul>
         )}
       </div>
-    </aside>
+    </div>
   );
 }
 
