@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://3dsl.dev/schema/threeDSS.schema.json",
+  "title": "3D Structural Schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["title", "schema"],
+      "additionalProperties": true,
+      "properties": {
+        "title": { "type": "string" },
+        "schema": { "type": "string" },
+        "author": { "type": "string" },
+        "created": { "type": "string" },
+        "modified": { "type": "string" },
+        "description": { "type": "string" },
+        "license": { "type": "string" },
+        "project": { "type": "string" },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "ext": { "type": "object" }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "nodes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/node" }
+    },
+    "edges": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/edge" }
+    },
+    "texts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/text" }
+    },
+    "gltf": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/gltf" }
+    },
+    "aux": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/aux" }
+    }
+  },
+  "required": ["nodes", "edges", "texts", "gltf", "aux"],
+  "$defs": {
+    "vec3": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "label": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text"],
+      "properties": {
+        "text": { "type": "string" },
+        "fontSize": { "type": "number" },
+        "plane": {
+          "type": "string",
+          "enum": ["XY", "YZ", "ZX", "camera"]
+        },
+        "color": { "type": "string" },
+        "background": { "type": "string" },
+        "direction": {
+          "type": "string",
+          "enum": ["left", "right", "top", "bottom"]
+        },
+        "align": {
+          "type": "string",
+          "enum": ["left", "right", "center", "top", "bottom", "middle"]
+        },
+        "rotation": { "type": "number" },
+        "style": { "type": "object" },
+        "link": { "type": "string" }
+      }
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "position"],
+      "properties": {
+        "id": { "type": "string" },
+        "position": { "$ref": "#/$defs/vec3" },
+        "label": { "$ref": "#/$defs/label" },
+        "code": { "type": "string" },
+        "alias": { "type": "string" },
+        "order": { "type": "number" },
+        "color": { "type": "string" },
+        "size": { "type": "number" },
+        "shape": {
+          "type": "string",
+          "enum": ["sphere", "cube", "cylinder", "cone", "plane"]
+        },
+        "style": { "type": "object" },
+        "geometry": { "type": "object" },
+        "attachment": { "type": "string" },
+        "ext": { "type": "object" }
+      }
+    },
+    "edgeStyle": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "color": { "type": "string" },
+        "width": { "type": "number" },
+        "dash": { "type": "string" }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "target"],
+      "properties": {
+        "source": { "type": "string" },
+        "target": { "type": "string" },
+        "directed": {
+          "type": "string",
+          "enum": ["true", "false", "both"]
+        },
+        "arrow": {
+          "type": "string",
+          "enum": ["none", "normal", "double", "diamond", "cone"]
+        },
+        "label": { "$ref": "#/$defs/label" },
+        "weight": { "type": "number" },
+        "style": { "$ref": "#/$defs/edgeStyle" },
+        "curve": {
+          "type": "string",
+          "enum": ["none", "bezier", "arc"]
+        },
+        "geometry": {
+          "type": "string",
+          "enum": ["tube", "cylinder", "custom"]
+        },
+        "animation": {
+          "type": "string",
+          "enum": ["pulse", "glow", "flow"]
+        },
+        "ext": { "type": "object" }
+      }
+    },
+    "text": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["content", "position"],
+      "properties": {
+        "content": { "type": "string" },
+        "position": { "$ref": "#/$defs/vec3" },
+        "size": { "type": "number" },
+        "color": { "type": "string" },
+        "orientation": {
+          "type": "string",
+          "enum": ["XY", "YZ", "ZX", "camera"]
+        },
+        "plane": { "type": "string" },
+        "style": { "type": "object" },
+        "link": { "type": "string" },
+        "ext": { "type": "object" }
+      }
+    },
+    "gltf": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["src"],
+      "properties": {
+        "src": { "type": "string" },
+        "position": { "$ref": "#/$defs/vec3" },
+        "rotation": { "$ref": "#/$defs/vec3" },
+        "scale": { "$ref": "#/$defs/vec3" },
+        "attachTo": { "type": "string" },
+        "materialOverride": { "type": "object" },
+        "animation": { "type": "object" },
+        "ext": { "type": "object" }
+      }
+    },
+    "aux": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["axis", "grid", "arc", "hud"]
+        },
+        "visible": { "type": "boolean" },
+        "axis": { "type": "object" },
+        "grid": { "type": "object" },
+        "arc": { "type": "object" },
+        "hud": { "type": "object" },
+        "ext": { "type": "object" }
+      }
+    }
+  }
+}
