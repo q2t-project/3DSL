@@ -4,6 +4,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { createRoot } from 'react-dom/client';
 import PreviewPopup from './PreviewPopup.jsx';
+import FloatingPreviewFrame from './FloatingPreviewFrame.jsx';
 
 THREE.Object3D.DEFAULT_UP.set(0, 0, 1);
 
@@ -176,6 +177,7 @@ function Preview3DComponent(
     limitedControls = false,
     className,
     enableFullPreview = false,
+    enableFloatingPreview = false,
     onBackgroundChange
   },
   ref
@@ -193,7 +195,69 @@ function Preview3DComponent(
   const popupWindowRef = useRef(null);
   const popupRootRef = useRef(null);
   const [popupWindow, setPopupWindow] = useState(null);
+  const floatingSessionRef = useRef(null);
+  const [floatingOpen, setFloatingOpen] = useState(false);
   const colorInputId = useId();
+
+  const destroyFloatingSession = useCallback(() => {
+    const session = floatingSessionRef.current;
+    if (!session) return;
+    try {
+      session.root?.unmount?.();
+    } catch (error) {
+      console.error(error);
+    }
+    if (session.container?.parentNode) {
+      session.container.parentNode.removeChild(session.container);
+    }
+    floatingSessionRef.current = null;
+  }, []);
+
+  const ensureFloatingSession = useCallback(() => {
+    if (typeof document === 'undefined') return null;
+    if (floatingSessionRef.current) {
+      return floatingSessionRef.current;
+    }
+
+    const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1280;
+    const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 720;
+    const defaultWidth = 360;
+    const defaultHeight = 260;
+    const left = Math.max(viewportWidth - defaultWidth - 48, 24);
+    const top = Math.max(Math.min(96, viewportHeight - defaultHeight - 24), 48);
+
+    const container = document.createElement('div');
+    container.dataset.floatingPreview = 'true';
+    container.tabIndex = -1;
+    container.style.position = 'fixed';
+    container.style.zIndex = '9999';
+    container.style.width = `${defaultWidth}px`;
+    container.style.height = `${defaultHeight}px`;
+    container.style.minWidth = '240px';
+    container.style.minHeight = '200px';
+    container.style.left = `${left}px`;
+    container.style.top = `${top}px`;
+    container.style.resize = 'both';
+    container.style.overflow = 'hidden';
+    container.style.borderRadius = '8px';
+    container.style.border = '1px solid #555555';
+    container.style.background = '#111111';
+    container.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.45)';
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.pointerEvents = 'auto';
+    container.style.userSelect = 'none';
+
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    floatingSessionRef.current = { container, root };
+    container.focus({ preventScroll: true });
+    return floatingSessionRef.current;
+  }, []);
+
+  const closeFloatingPreview = useCallback(() => {
+    setFloatingOpen(false);
+  }, []);
 
   const closePopup = useCallback(() => {
     const win = popupWindowRef.current;
@@ -208,6 +272,18 @@ function Preview3DComponent(
     popupWindowRef.current = null;
     setPopupWindow(null);
   }, []);
+
+  const handleFloatingPreview = useCallback(() => {
+    if (!enableFloatingPreview) return;
+    const session = ensureFloatingSession();
+    if (!session) return;
+    const { container } = session;
+    if (container?.parentNode) {
+      container.parentNode.appendChild(container);
+    }
+    container?.focus?.({ preventScroll: true });
+    setFloatingOpen(true);
+  }, [enableFloatingPreview, ensureFloatingSession]);
 
   const handleFullPreview = useCallback(() => {
     if (!enableFullPreview) return;
@@ -319,6 +395,56 @@ function Preview3DComponent(
     );
   }, [data, selection, onSelect, closePopup, popupWindow, onBackgroundChange]);
 
+  useEffect(() => {
+    if (!enableFloatingPreview && floatingOpen) {
+      setFloatingOpen(false);
+    }
+  }, [enableFloatingPreview, floatingOpen]);
+
+  useEffect(() => {
+    if (floatingOpen) {
+      ensureFloatingSession();
+      return undefined;
+    }
+    destroyFloatingSession();
+    return undefined;
+  }, [floatingOpen, ensureFloatingSession, destroyFloatingSession]);
+
+  useEffect(() => {
+    if (!floatingOpen) return undefined;
+    const session = ensureFloatingSession();
+    if (!session?.root || !session.container) return undefined;
+
+    session.root.render(
+      <FloatingPreviewFrame container={session.container} onClose={closeFloatingPreview} title="Floating Preview">
+        <Preview3DForwardRef
+          data={data}
+          selection={selection}
+          onSelect={onSelect}
+          limitedControls={false}
+          className="h-full"
+          enableFullPreview={false}
+          enableFloatingPreview={false}
+          onBackgroundChange={onBackgroundChange}
+        />
+      </FloatingPreviewFrame>
+    );
+
+    return undefined;
+  }, [
+    floatingOpen,
+    ensureFloatingSession,
+    closeFloatingPreview,
+    data,
+    selection,
+    onSelect,
+    onBackgroundChange
+  ]);
+
+  useEffect(() => () => {
+    destroyFloatingSession();
+  }, [destroyFloatingSession]);
+
   // --------------------------------------------------
   // [Stage 1] Initialization — one-time setup of scene
   // --------------------------------------------------
@@ -391,11 +517,30 @@ function Preview3DComponent(
     const handleResize = () => {
       const w = mount.clientWidth;
       const h = mount.clientHeight;
-      renderer.setSize(w, h);
+      if (w <= 0 || h <= 0) return;
+      renderer.setSize(w, h, false);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
     };
-    window.addEventListener('resize', handleResize);
+
+    let resizeObserver;
+    let listeningForWindowResize = false;
+
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver((entries) => {
+        entries.forEach((entry) => {
+          const { width: observedWidth, height: observedHeight } = entry.contentRect;
+          if (observedWidth <= 0 || observedHeight <= 0) return;
+          renderer.setSize(observedWidth, observedHeight, false);
+          camera.aspect = observedWidth / observedHeight;
+          camera.updateProjectionMatrix();
+        });
+      });
+      resizeObserver.observe(mount);
+    } else {
+      listeningForWindowResize = true;
+      window.addEventListener('resize', handleResize);
+    }
 
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
@@ -426,7 +571,12 @@ function Preview3DComponent(
     animate();
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+      if (listeningForWindowResize) {
+        window.removeEventListener('resize', handleResize);
+      }
       renderer.domElement.removeEventListener('pointerdown', handleClick);
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -651,6 +801,15 @@ function Preview3DComponent(
         >
           Reset
         </button>
+        {enableFloatingPreview && (
+          <button
+            type="button"
+            onClick={handleFloatingPreview}
+            className="pointer-events-auto inline-flex items-center rounded border border-white/10 bg-gray-900/80 px-2 py-1 text-gray-100 shadow-sm transition hover:border-white/20 hover:bg-gray-800/80"
+          >
+            Floating Preview
+          </button>
+        )}
         {enableFullPreview && (
           <button
             type="button"
