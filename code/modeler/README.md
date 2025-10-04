@@ -1,5 +1,6 @@
 # 3DSD Modeler
-
+ 
+-このフォルダは 3DSL リポジトリ初期化用の雛形です。
 React + Vite + Tailwind ベースの 3DSD Modeler 実装です。3DSS 準拠 JSON をスプレッドシート風 UI と three.js プレビューで編集できます。
 
 ## セットアップ
