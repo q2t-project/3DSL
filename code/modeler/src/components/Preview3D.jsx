@@ -178,7 +178,9 @@ function Preview3DComponent(
     className,
     enableFullPreview = false,
     enableFloatingPreview = false,
-    onBackgroundChange
+    onBackgroundChange,
+    floatingContainer = null,
+    externalWindow = null
   },
   ref
 ) {
@@ -389,6 +391,7 @@ function Preview3DComponent(
           limitedControls={false}
           className="h-full"
           enableFullPreview={false}
+          externalWindow={popupWindow}
           onBackgroundChange={onBackgroundChange}
         />
       </PreviewPopup>
@@ -425,6 +428,7 @@ function Preview3DComponent(
           className="h-full"
           enableFullPreview={false}
           enableFloatingPreview={false}
+          floatingContainer={session.container}
           onBackgroundChange={onBackgroundChange}
         />
       </FloatingPreviewFrame>
@@ -514,32 +518,57 @@ function Preview3DComponent(
 
     onSceneReadyRef.current?.({ scene, renderer, camera });
 
-    const handleResize = () => {
-      const w = mount.clientWidth;
-      const h = mount.clientHeight;
-      if (w <= 0 || h <= 0) return;
-      renderer.setSize(w, h, false);
-      camera.aspect = w / h;
+    const resizeToDimensions = (width, height) => {
+      if (width <= 0 || height <= 0) return;
+      renderer.setSize(width, height, false);
+      camera.aspect = width / height;
       camera.updateProjectionMatrix();
     };
 
-    let resizeObserver;
-    let listeningForWindowResize = false;
+    const resizeFromMount = () => {
+      const w = mount.clientWidth;
+      const h = mount.clientHeight;
+      resizeToDimensions(w, h);
+    };
+
+    resizeFromMount();
+
+    const resizeObservers = [];
+    const detachListeners = [];
 
     if (typeof ResizeObserver !== 'undefined') {
-      resizeObserver = new ResizeObserver((entries) => {
-        entries.forEach((entry) => {
-          const { width: observedWidth, height: observedHeight } = entry.contentRect;
-          if (observedWidth <= 0 || observedHeight <= 0) return;
-          renderer.setSize(observedWidth, observedHeight, false);
-          camera.aspect = observedWidth / observedHeight;
-          camera.updateProjectionMatrix();
-        });
+      const mountObserver = new ResizeObserver(() => {
+        resizeFromMount();
       });
-      resizeObserver.observe(mount);
+      mountObserver.observe(mount);
+      resizeObservers.push(mountObserver);
+
+      if (floatingContainer && floatingContainer !== mount) {
+        const floatingObserver = new ResizeObserver(() => {
+          resizeFromMount();
+        });
+        floatingObserver.observe(floatingContainer);
+        resizeObservers.push(floatingObserver);
+      }
     } else {
-      listeningForWindowResize = true;
-      window.addEventListener('resize', handleResize);
+      const resizeTarget = externalWindow ?? window;
+      const handleWindowResize = () => {
+        resizeFromMount();
+      };
+      resizeTarget.addEventListener('resize', handleWindowResize);
+      detachListeners.push(() => {
+        resizeTarget.removeEventListener('resize', handleWindowResize);
+      });
+    }
+
+    if (externalWindow) {
+      const handleExternalResize = () => {
+        resizeFromMount();
+      };
+      externalWindow.addEventListener('resize', handleExternalResize);
+      detachListeners.push(() => {
+        externalWindow.removeEventListener('resize', handleExternalResize);
+      });
     }
 
     const raycaster = new THREE.Raycaster();
@@ -571,12 +600,8 @@ function Preview3DComponent(
     animate();
 
     return () => {
-      if (resizeObserver) {
-        resizeObserver.disconnect();
-      }
-      if (listeningForWindowResize) {
-        window.removeEventListener('resize', handleResize);
-      }
+      resizeObservers.forEach((observer) => observer.disconnect());
+      detachListeners.forEach((detach) => detach());
       renderer.domElement.removeEventListener('pointerdown', handleClick);
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
