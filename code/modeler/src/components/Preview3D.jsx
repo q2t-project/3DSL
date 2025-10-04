@@ -1,3 +1,4 @@
+// [3DSD Preview System] Dual Preview + Unified Panel implemented
 import { forwardRef, useCallback, useEffect, useId, useImperativeHandle, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -176,7 +177,12 @@ function Preview3DComponent(
     limitedControls = false,
     className,
     enableFullPreview = false,
-    onBackgroundChange
+    onBackgroundChange,
+    showOverlayControls = true,
+    backgroundEnabled = true,
+    showAxes = true,
+    showGrid = false,
+    onPopupStateChange
   },
   ref
 ) {
@@ -193,6 +199,9 @@ function Preview3DComponent(
   const popupWindowRef = useRef(null);
   const popupRootRef = useRef(null);
   const [popupWindow, setPopupWindow] = useState(null);
+  const axesHelperRef = useRef(null);
+  const gridHelperRef = useRef(null);
+  const resizeObserverRef = useRef(null);
   const colorInputId = useId();
 
   const closePopup = useCallback(() => {
@@ -207,7 +216,8 @@ function Preview3DComponent(
     }
     popupWindowRef.current = null;
     setPopupWindow(null);
-  }, []);
+    onPopupStateChange?.(false);
+  }, [onPopupStateChange]);
 
   const handleFullPreview = useCallback(() => {
     if (!enableFullPreview) return;
@@ -258,15 +268,52 @@ function Preview3DComponent(
     popupWindowRef.current = newWindow;
     popupRootRef.current = root;
     setPopupWindow(newWindow);
-  }, [enableFullPreview]);
+    onPopupStateChange?.(true);
+  }, [enableFullPreview, onPopupStateChange]);
+
+  const handleFit = useCallback(() => {
+    const groups = groupsRef.current;
+    const camera = cameraRef.current;
+    const controls = controlsRef.current;
+    if (!groups || !camera || !controls) return;
+    const box = new THREE.Box3();
+    Object.values(groups).forEach((group) => {
+      if (group.children.length) {
+        box.expandByObject(group);
+      }
+    });
+    if (!box.isEmpty()) {
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      const center = new THREE.Vector3();
+      box.getCenter(center);
+      const maxSize = Math.max(size.x, size.y, size.z);
+      const distance = maxSize / (2 * Math.tan((camera.fov * Math.PI) / 360));
+      const direction = controls.target.clone().sub(camera.position).normalize();
+      camera.position.copy(center.clone().add(direction.multiplyScalar(-distance)));
+      controls.target.copy(center);
+      controls.update();
+    }
+  }, []);
+
+  const handleReset = useCallback(() => {
+    const camera = cameraRef.current;
+    const controls = controlsRef.current;
+    if (!camera || !controls) return;
+    camera.position.set(8, 8, 8);
+    controls.target.set(0, 0, 0);
+    controls.update();
+  }, []);
 
   useImperativeHandle(
     ref,
     () => ({
       openPopup: handleFullPreview,
-      closePopup
+      closePopup,
+      fitView: () => handleFit(),
+      resetView: () => handleReset()
     }),
-    [handleFullPreview, closePopup]
+    [handleFullPreview, closePopup, handleFit, handleReset]
   );
 
   useEffect(() => () => closePopup(), [closePopup]);
@@ -368,7 +415,26 @@ function Preview3DComponent(
     } else if (axesHelper.material) {
       axesHelper.material.depthTest = false;
     }
+    axesHelper.visible = showAxes;
     scene.add(axesHelper);
+    axesHelperRef.current = axesHelper;
+
+    const gridHelper = new THREE.GridHelper(10, 10, '#555555', '#333333');
+    gridHelper.rotation.x = Math.PI / 2;
+    gridHelper.position.z = 0;
+    gridHelper.renderOrder = 1;
+    const materials = Array.isArray(gridHelper.material)
+      ? gridHelper.material
+      : [gridHelper.material];
+    materials.forEach((mat) => {
+      if (!mat) return;
+      mat.depthWrite = false;
+      mat.opacity = 0.6;
+      mat.transparent = true;
+    });
+    gridHelper.visible = showGrid;
+    scene.add(gridHelper);
+    gridHelperRef.current = gridHelper;
 
     const groups = {
       nodes: new THREE.Group(),
@@ -388,14 +454,23 @@ function Preview3DComponent(
 
     onSceneReadyRef.current?.({ scene, renderer, camera });
 
-    const handleResize = () => {
+    const updateSize = () => {
       const w = mount.clientWidth;
       const h = mount.clientHeight;
+      if (w === 0 || h === 0) return;
       renderer.setSize(w, h);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
     };
-    window.addEventListener('resize', handleResize);
+    updateSize();
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const resizeObserver = new ResizeObserver(updateSize);
+      resizeObserver.observe(mount);
+      resizeObserverRef.current = resizeObserver;
+    } else {
+      window.addEventListener('resize', updateSize);
+    }
 
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
@@ -426,7 +501,12 @@ function Preview3DComponent(
     animate();
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect();
+        resizeObserverRef.current = null;
+      } else {
+        window.removeEventListener('resize', updateSize);
+      }
       renderer.domElement.removeEventListener('pointerdown', handleClick);
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -568,45 +648,30 @@ function Preview3DComponent(
     const renderer = rendererRef.current;
     if (!scene || !renderer) return;
 
+    if (!backgroundEnabled) {
+      scene.background = null;
+      renderer.autoClear = true;
+      renderer.clearDepth();
+      return;
+    }
+
     const colorValue = data?.background ?? '#000000';
     scene.background = new THREE.Color(colorValue);
     renderer.autoClear = true;
     renderer.clearDepth();
-  }, [data?.background]);
+  }, [data?.background, backgroundEnabled]);
 
-  const handleFit = () => {
-    const groups = groupsRef.current;
-    const camera = cameraRef.current;
-    const controls = controlsRef.current;
-    if (!groups || !camera || !controls) return;
-    const box = new THREE.Box3();
-    Object.values(groups).forEach((group) => {
-      if (group.children.length) {
-        box.expandByObject(group);
-      }
-    });
-    if (!box.isEmpty()) {
-      const size = new THREE.Vector3();
-      box.getSize(size);
-      const center = new THREE.Vector3();
-      box.getCenter(center);
-      const maxSize = Math.max(size.x, size.y, size.z);
-      const distance = maxSize / (2 * Math.tan((camera.fov * Math.PI) / 360));
-      const direction = controls.target.clone().sub(camera.position).normalize();
-      camera.position.copy(center.clone().add(direction.multiplyScalar(-distance)));
-      controls.target.copy(center);
-      controls.update();
+  useEffect(() => {
+    if (axesHelperRef.current) {
+      axesHelperRef.current.visible = showAxes;
     }
-  };
+  }, [showAxes]);
 
-  const handleReset = () => {
-    const camera = cameraRef.current;
-    const controls = controlsRef.current;
-    if (!camera || !controls) return;
-    camera.position.set(8, 8, 8);
-    controls.target.set(0, 0, 0);
-    controls.update();
-  };
+  useEffect(() => {
+    if (gridHelperRef.current) {
+      gridHelperRef.current.visible = showGrid;
+    }
+  }, [showGrid]);
 
   const containerClassName = ['relative h-full w-full', className]
     .filter(Boolean)
@@ -616,51 +681,53 @@ function Preview3DComponent(
 
   return (
     <div className={containerClassName}>
-      <div className="pointer-events-none absolute left-3 top-3 z-10 flex flex-wrap gap-2 text-[10px] font-medium uppercase tracking-wide">
-        <label
-          htmlFor={colorInputId}
-          className="pointer-events-auto inline-flex items-center gap-2 rounded border border-white/10 bg-gray-900/80 px-2 py-1 text-gray-200 shadow-sm transition hover:border-white/20 hover:bg-gray-800/80"
-        >
-          <span
-            className="h-3 w-3 rounded border border-white/30"
-            style={{ backgroundColor }}
-          />
-          Background
-          <input
-            id={colorInputId}
-            type="color"
-            className="sr-only"
-            value={backgroundColor}
-            onChange={(event) => {
-              const next = event.target.value;
-              onBackgroundChange?.(next);
-            }}
-          />
-        </label>
-        <button
-          type="button"
-          onClick={handleFit}
-          className="pointer-events-auto inline-flex items-center rounded border border-white/10 bg-gray-900/80 px-2 py-1 text-gray-100 shadow-sm transition hover:border-white/20 hover:bg-gray-800/80"
-        >
-          Fit
-        </button>
-        <button
-          type="button"
-          onClick={handleReset}
-          className="pointer-events-auto inline-flex items-center rounded border border-white/10 bg-gray-900/80 px-2 py-1 text-gray-100 shadow-sm transition hover:border-white/20 hover:bg-gray-800/80"
-        >
-          Reset
-        </button>
-        {enableFullPreview && (
+      {showOverlayControls && (
+        <div className="pointer-events-none absolute left-3 top-3 z-10 flex flex-wrap gap-2 text-[10px] font-medium uppercase tracking-wide">
+          <label
+            htmlFor={colorInputId}
+            className="pointer-events-auto inline-flex items-center gap-2 rounded border border-white/10 bg-gray-900/80 px-2 py-1 text-gray-200 shadow-sm transition hover:border-white/20 hover:bg-gray-800/80"
+          >
+            <span
+              className="h-3 w-3 rounded border border-white/30"
+              style={{ backgroundColor }}
+            />
+            Background
+            <input
+              id={colorInputId}
+              type="color"
+              className="sr-only"
+              value={backgroundColor}
+              onChange={(event) => {
+                const next = event.target.value;
+                onBackgroundChange?.(next);
+              }}
+            />
+          </label>
           <button
             type="button"
-            onClick={handleFullPreview}
+            onClick={handleFit}
             className="pointer-events-auto inline-flex items-center rounded border border-white/10 bg-gray-900/80 px-2 py-1 text-gray-100 shadow-sm transition hover:border-white/20 hover:bg-gray-800/80"
           >
-            Full Preview
+            Fit
           </button>
-        )}
-      </div>
+          <button
+            type="button"
+            onClick={handleReset}
+            className="pointer-events-auto inline-flex items-center rounded border border-white/10 bg-gray-900/80 px-2 py-1 text-gray-100 shadow-sm transition hover:border-white/20 hover:bg-gray-800/80"
+          >
+            Reset
+          </button>
+          {enableFullPreview && (
+            <button
+              type="button"
+              onClick={handleFullPreview}
+              className="pointer-events-auto inline-flex items-center rounded border border-white/10 bg-gray-900/80 px-2 py-1 text-gray-100 shadow-sm transition hover:border-white/20 hover:bg-gray-800/80"
+            >
+              Full Preview
+            </button>
+          )}
+        </div>
+      )}
       <div ref={mountRef} className="h-full w-full" />
     </div>
   );
