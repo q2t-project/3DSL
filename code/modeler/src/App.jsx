@@ -7,7 +7,7 @@ import SheetTexts from './components/SheetTexts.jsx';
 import SheetGltf from './components/SheetGltf.jsx';
 import SheetAux from './components/SheetAux.jsx';
 import ValidationPanel from './components/ValidationPanel.jsx';
-import Preview3D from './components/Preview3D.jsx';
+import SpatialPreviewPanel from './components/SpatialPreviewPanel.jsx';
 import { applyDefaults, createEmptyModel, sceneDefaults } from './lib/defaults.js';
 import { validateModel } from './lib/validator.js';
 import { debounce, downloadBlob, readFileAsText } from './lib/utils.js';
@@ -56,7 +56,6 @@ function App() {
   const [validation, setValidation] = useState({ valid: true, errors: [] });
   const validatorRef = useRef(debounce((data) => setValidation(validateModel(data)), 300));
   const sceneHandleRef = useRef(null);
-  const previewRef = useRef(null);
 
   useEffect(() => {
     validatorRef.current(model);
@@ -171,106 +170,74 @@ function App() {
         validation={validation}
       />
       <Tabs active={activeTab} onChange={setActiveTab} />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <div className="flex flex-1 overflow-hidden bg-gray-900">
-          <div className="flex min-h-0 w-full flex-col overflow-hidden">
-            {activeTab === 'nodes' && (
-              <SheetNodes
-                rows={model.nodes}
-                onChange={(rows) => updateCollection('nodes', rows)}
-                selection={selection.nodes}
-                onSelectionChange={(indexes) =>
-                  setSelection((prev) => ({ ...prev, nodes: indexes }))
-                }
-                errors={errorMap.nodes}
-              />
-            )}
-            {activeTab === 'edges' && (
-              <SheetEdges
-                rows={model.edges}
-                onChange={(rows) => updateCollection('edges', rows)}
-                selection={selection.edges}
-                onSelectionChange={(indexes) =>
-                  setSelection((prev) => ({ ...prev, edges: indexes }))
-                }
-                errors={errorMap.edges}
-                context={tabContext}
-              />
-            )}
-            {activeTab === 'texts' && (
-              <SheetTexts
-                rows={model.texts}
-                onChange={(rows) => updateCollection('texts', rows)}
-                selection={selection.texts}
-                onSelectionChange={(indexes) =>
-                  setSelection((prev) => ({ ...prev, texts: indexes }))
-                }
-                errors={errorMap.texts}
-              />
-            )}
-            {activeTab === 'gltf' && (
-              <SheetGltf
-                rows={model.gltf}
-                onChange={(rows) => updateCollection('gltf', rows)}
-                selection={selection.gltf}
-                onSelectionChange={(indexes) =>
-                  setSelection((prev) => ({ ...prev, gltf: indexes }))
-                }
-                errors={errorMap.gltf}
-                context={{ nodes: tabContext.nodes }}
-              />
-            )}
-            {activeTab === 'aux' && (
-              <SheetAux
-                rows={model.aux}
-                onChange={(rows) => updateCollection('aux', rows)}
-                selection={selection.aux}
-                onSelectionChange={(indexes) =>
-                  setSelection((prev) => ({ ...prev, aux: indexes }))
-                }
-                errors={errorMap.aux}
-              />
-            )}
-          </div>
+      <div className="flex flex-1 overflow-hidden bg-gray-900">
+        <SpatialPreviewPanel
+          data={model}
+          selection={selection}
+          onSelect={handlePreviewSelect}
+          onInlineSceneReady={handleSceneReady}
+          onBackgroundChange={(nextColor) => setModel((prev) => ({ ...prev, background: nextColor }))}
+        />
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          {activeTab === 'nodes' && (
+            <SheetNodes
+              rows={model.nodes}
+              onChange={(rows) => updateCollection('nodes', rows)}
+              selection={selection.nodes}
+              onSelectionChange={(indexes) =>
+                setSelection((prev) => ({ ...prev, nodes: indexes }))
+              }
+              errors={errorMap.nodes}
+            />
+          )}
+          {activeTab === 'edges' && (
+            <SheetEdges
+              rows={model.edges}
+              onChange={(rows) => updateCollection('edges', rows)}
+              selection={selection.edges}
+              onSelectionChange={(indexes) =>
+                setSelection((prev) => ({ ...prev, edges: indexes }))
+              }
+              errors={errorMap.edges}
+              context={tabContext}
+            />
+          )}
+          {activeTab === 'texts' && (
+            <SheetTexts
+              rows={model.texts}
+              onChange={(rows) => updateCollection('texts', rows)}
+              selection={selection.texts}
+              onSelectionChange={(indexes) =>
+                setSelection((prev) => ({ ...prev, texts: indexes }))
+              }
+              errors={errorMap.texts}
+            />
+          )}
+          {activeTab === 'gltf' && (
+            <SheetGltf
+              rows={model.gltf}
+              onChange={(rows) => updateCollection('gltf', rows)}
+              selection={selection.gltf}
+              onSelectionChange={(indexes) =>
+                setSelection((prev) => ({ ...prev, gltf: indexes }))
+              }
+              errors={errorMap.gltf}
+              context={{ nodes: tabContext.nodes }}
+            />
+          )}
+          {activeTab === 'aux' && (
+            <SheetAux
+              rows={model.aux}
+              onChange={(rows) => updateCollection('aux', rows)}
+              selection={selection.aux}
+              onSelectionChange={(indexes) =>
+                setSelection((prev) => ({ ...prev, aux: indexes }))
+              }
+              errors={errorMap.aux}
+            />
+          )}
         </div>
-
-        {/**
-         * ─────────────────────────────────────────────────────────────
-         * Layout Layering Rationale
-         * ─────────────────────────────────────────────────────────────
-         * Edit tables dominate the canvas; the compact preview keeps
-         * spatial awareness (“observe while editing”); validation sits
-         * alongside as the correctness sentinel. A modal expansion lets
-         * makers dive deeper (“expand when exploring”) without leaving
-         * the editing posture — structure follows cognition.
-         */}
-        <div className="border-t border-gray-800 bg-gray-950/80 px-4 py-4">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
-            <div className="flex min-h-[240px] flex-1 flex-col gap-3 rounded-lg border border-gray-800 bg-gray-900/80 p-3 lg:flex-[1.2]">
-              <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-                <span>Spatial Preview</span>
-              </div>
-              <div className="relative h-[200px] overflow-hidden rounded-md border border-gray-800 bg-black">
-                <Preview3D
-                  ref={previewRef}
-                  data={model}
-                  selection={selection}
-                  onSelect={handlePreviewSelect}
-                  onSceneReady={handleSceneReady}
-                  limitedControls
-                  className="h-full"
-                  enableFullPreview
-                  onBackgroundChange={(nextColor) =>
-                    setModel((prev) => ({ ...prev, background: nextColor }))
-                  }
-                />
-              </div>
-            </div>
-            <div className="flex min-h-[240px] flex-1 overflow-hidden rounded-lg border border-gray-800 lg:flex-[1]">
-              <ValidationPanel validation={validation} onFocusPath={handleFocusPath} />
-            </div>
-          </div>
-        </div>
+        <ValidationPanel validation={validation} onFocusPath={handleFocusPath} />
       </div>
 
     </div>
