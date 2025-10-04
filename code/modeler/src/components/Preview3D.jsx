@@ -168,9 +168,36 @@ function Preview3D({ data, selection, onSelect, onSceneReady }) {
   const controlsRef = useRef(null);
   const groupsRef = useRef({});
   const loaderRef = useRef(null);
+  const animationFrameRef = useRef(null);
+  const onSelectRef = useRef(onSelect);
+  const onSceneReadyRef = useRef(onSceneReady);
 
   useEffect(() => {
+    onSelectRef.current = onSelect;
+  }, [onSelect]);
+
+  useEffect(() => {
+    onSceneReadyRef.current = onSceneReady;
+    const scene = sceneRef.current;
+    const renderer = rendererRef.current;
+    const camera = cameraRef.current;
+    if (scene && renderer && camera && onSceneReady) {
+      onSceneReady({ scene, renderer, camera });
+    }
+  }, [onSceneReady]);
+
+  // --------------------------------------------------
+  // [Stage 1] Initialization — one-time setup of scene
+  // --------------------------------------------------
+  // React seeks to recreate; three.js seeks to persist.
+  // This code draws a line between being and becoming.
+  // React imagines the world as flux—everything re-rendered by cause.
+  // Three.js believes in duration—a continuous world that evolves.
+  // To bridge them, we separate creation from change, and change from appearance.
+  useEffect(() => {
     const mount = mountRef.current;
+    if (!mount) return () => {};
+
     const width = mount.clientWidth;
     const height = mount.clientHeight;
 
@@ -183,6 +210,7 @@ function Preview3D({ data, selection, onSelect, onSceneReady }) {
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 2000);
     camera.position.set(8, 8, 8);
+
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.target.set(0, 0, 0);
     controls.update();
@@ -208,7 +236,8 @@ function Preview3D({ data, selection, onSelect, onSceneReady }) {
     controlsRef.current = controls;
     groupsRef.current = groups;
     loaderRef.current = new GLTFLoader();
-    onSceneReady?.({ scene, renderer, camera });
+
+    onSceneReadyRef.current?.({ scene, renderer, camera });
 
     const handleResize = () => {
       const w = mount.clientWidth;
@@ -219,20 +248,13 @@ function Preview3D({ data, selection, onSelect, onSceneReady }) {
     };
     window.addEventListener('resize', handleResize);
 
-    let frameId;
-    const animate = () => {
-      controls.update();
-      renderer.render(scene, camera);
-      frameId = requestAnimationFrame(animate);
-    };
-    animate();
-
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
     const handleClick = (event) => {
       const rect = renderer.domElement.getBoundingClientRect();
-      const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-      const raycaster = new THREE.Raycaster();
-      raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
+      pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
       const intersects = raycaster.intersectObjects(
         [groups.nodes, groups.edges, groups.texts, groups.gltf, groups.aux],
         true
@@ -241,26 +263,41 @@ function Preview3D({ data, selection, onSelect, onSceneReady }) {
         const hit = intersects[0].object;
         const userData = hit.userData;
         if (userData?.type && userData?.index != null) {
-          onSelect?.(userData.type, userData.index);
+          onSelectRef.current?.(userData.type, userData.index);
         }
       }
     };
     renderer.domElement.addEventListener('pointerdown', handleClick);
 
+    const animate = () => {
+      controls.update();
+      renderer.render(scene, camera);
+      animationFrameRef.current = requestAnimationFrame(animate);
+    };
+    animate();
+
     return () => {
       window.removeEventListener('resize', handleResize);
-      cancelAnimationFrame(frameId);
       renderer.domElement.removeEventListener('pointerdown', handleClick);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
       mount.removeChild(renderer.domElement);
       renderer.dispose();
-      onSceneReady?.(null);
+      onSceneReadyRef.current?.(null);
     };
-  }, [onSelect, onSceneReady]);
+  }, []);
 
+  // --------------------------------------------------
+  // [Stage 2] Update — rebuild scene content reactively
+  // --------------------------------------------------
   useEffect(() => {
     const groups = groupsRef.current;
     const scene = sceneRef.current;
-    if (!groups || !scene || !data) return;
+    const loader = loaderRef.current;
+    if (!groups || !scene || !data || !loader) return undefined;
+
+    let cancelled = false;
 
     Object.values(groups).forEach((group) => {
       while (group.children.length) {
@@ -315,7 +352,6 @@ function Preview3D({ data, selection, onSelect, onSceneReady }) {
       groups.texts.add(sprite);
     });
 
-    const loader = loaderRef.current;
     const gltfGroup = groups.gltf;
     const promises = (data.gltf ?? []).map((entry, index) => {
       if (!entry.src) return Promise.resolve(null);
@@ -323,6 +359,10 @@ function Preview3D({ data, selection, onSelect, onSceneReady }) {
         loader.load(
           entry.src,
           (gltf) => {
+            if (cancelled) {
+              resolve(null);
+              return;
+            }
             const model = gltf.scene || gltf.scenes[0];
             model.traverse((child) => {
               child.userData = { type: 'gltf', index };
@@ -340,7 +380,9 @@ function Preview3D({ data, selection, onSelect, onSceneReady }) {
     });
 
     Promise.all(promises).then(() => {
-      updateSelectionHighlight(groups, selection);
+      if (!cancelled) {
+        updateSelectionHighlight(groups, selection);
+      }
     });
 
     data.aux?.forEach((aux, index) => {
@@ -354,22 +396,28 @@ function Preview3D({ data, selection, onSelect, onSceneReady }) {
       });
     });
 
-    updateSelectionHighlight(groups, selection);
+    if (!cancelled) {
+      updateSelectionHighlight(groups, selection);
+    }
+
+    return () => {
+      cancelled = true;
+    };
   }, [data, selection]);
 
+  // --------------------------------------------------
+  // [Stage 3] Lightweight updates — non-destructive sync
+  // --------------------------------------------------
   useEffect(() => {
     const scene = sceneRef.current;
-    if (!scene) return;
+    const renderer = rendererRef.current;
+    if (!scene || !renderer) return;
 
     const colorValue = data?.background ?? '#000000';
     scene.background = new THREE.Color(colorValue);
+    renderer.autoClear = true;
+    renderer.clearDepth();
   }, [data?.background]);
-
-  useEffect(() => {
-    const groups = groupsRef.current;
-    if (!groups) return;
-    updateSelectionHighlight(groups, selection);
-  }, [selection]);
 
   const handleFit = () => {
     const groups = groupsRef.current;
