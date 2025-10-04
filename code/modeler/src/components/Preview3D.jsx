@@ -177,7 +177,8 @@ function Preview3D({ data, selection, onSelect, onSceneReady }) {
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(width, height);
     renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setClearColor('#000000');
+    renderer.autoClear = true;
+    renderer.setClearColor(data?.background ?? '#000000');
     mount.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
@@ -354,9 +355,18 @@ function Preview3D({ data, selection, onSelect, onSceneReady }) {
       });
     });
 
-    scene.background = new THREE.Color(data.background ?? '#000000');
     updateSelectionHighlight(groups, selection);
   }, [data, selection]);
+
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    const scene = sceneRef.current;
+    if (!renderer || !scene) return;
+
+    const color = data?.background ?? '#000000';
+    renderer.setClearColor(color);
+    scene.background = new THREE.Color(color);
+  }, [data]);
 
   useEffect(() => {
     const groups = groupsRef.current;
