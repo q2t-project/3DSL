@@ -1,7 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { createRoot } from 'react-dom/client';
+import PreviewPopup from './PreviewPopup.jsx';
 
 function createNodeMesh(node) {
   const color = new THREE.Color(node.color ?? '#808080');
@@ -160,14 +162,18 @@ function createAuxObject(aux) {
   }
 }
 
-function Preview3D({
-  data,
-  selection,
-  onSelect,
-  onSceneReady,
-  limitedControls = false,
-  className
-}) {
+function Preview3DComponent(
+  {
+    data,
+    selection,
+    onSelect,
+    onSceneReady,
+    limitedControls = false,
+    className,
+    enableFullPreview = false
+  },
+  ref
+) {
   const mountRef = useRef(null);
   const rendererRef = useRef(null);
   const sceneRef = useRef(null);
@@ -178,6 +184,85 @@ function Preview3D({
   const animationFrameRef = useRef(null);
   const onSelectRef = useRef(onSelect);
   const onSceneReadyRef = useRef(onSceneReady);
+  const popupWindowRef = useRef(null);
+  const popupRootRef = useRef(null);
+  const [popupWindow, setPopupWindow] = useState(null);
+
+  const closePopup = useCallback(() => {
+    const win = popupWindowRef.current;
+    const root = popupRootRef.current;
+    if (root) {
+      root.unmount();
+      popupRootRef.current = null;
+    }
+    if (win && !win.closed) {
+      win.close();
+    }
+    popupWindowRef.current = null;
+    setPopupWindow(null);
+  }, []);
+
+  const handleFullPreview = useCallback(() => {
+    if (!enableFullPreview) return;
+    if (typeof window === 'undefined') return;
+
+    const existing = popupWindowRef.current;
+    if (existing && !existing.closed) {
+      existing.focus();
+      return;
+    }
+
+    const newWindow = window.open('', 'FullPreview', 'width=1200,height=800');
+    if (!newWindow) return;
+
+    const { document: doc } = newWindow;
+    doc.title = '3DSD Full Preview';
+    doc.body.innerHTML = '';
+    doc.body.style.margin = '0';
+    doc.body.style.backgroundColor = '#090b10';
+    doc.body.style.color = '#e5e7eb';
+
+    const head = doc.head;
+    const parentHead = window.document.head;
+    parentHead
+      .querySelectorAll('style, link[rel="stylesheet"]')
+      .forEach((node) => {
+        if (node.tagName === 'STYLE') {
+          const style = doc.createElement('style');
+          style.textContent = node.textContent;
+          head.appendChild(style);
+        } else if (node.tagName === 'LINK') {
+          const link = doc.createElement('link');
+          Array.from(node.attributes).forEach((attr) => {
+            link.setAttribute(attr.name, attr.value);
+          });
+          head.appendChild(link);
+        }
+      });
+
+    const container = doc.createElement('div');
+    container.id = 'preview-popup-root';
+    container.style.height = '100vh';
+    container.style.width = '100vw';
+    doc.body.appendChild(container);
+
+    const root = createRoot(container);
+
+    popupWindowRef.current = newWindow;
+    popupRootRef.current = root;
+    setPopupWindow(newWindow);
+  }, [enableFullPreview]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      openPopup: handleFullPreview,
+      closePopup
+    }),
+    [handleFullPreview, closePopup]
+  );
+
+  useEffect(() => () => closePopup(), [closePopup]);
 
   useEffect(() => {
     onSelectRef.current = onSelect;
@@ -192,6 +277,39 @@ function Preview3D({
       onSceneReady({ scene, renderer, camera });
     }
   }, [onSceneReady]);
+
+  useEffect(() => {
+    const win = popupWindow;
+    if (!win) return undefined;
+
+    const handleBeforeUnload = () => {
+      closePopup();
+    };
+
+    win.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      win.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [popupWindow, closePopup]);
+
+  useEffect(() => {
+    const win = popupWindowRef.current;
+    const root = popupRootRef.current;
+    if (!win || win.closed || !root) return;
+
+    root.render(
+      <PreviewPopup onClose={closePopup}>
+        <Preview3DForwardRef
+          data={data}
+          selection={selection}
+          onSelect={onSelect}
+          limitedControls={false}
+          className="h-full"
+          enableFullPreview={false}
+        />
+      </PreviewPopup>
+    );
+  }, [data, selection, onSelect, closePopup, popupWindow]);
 
   // --------------------------------------------------
   // [Stage 1] Initialization — one-time setup of scene
@@ -474,6 +592,15 @@ function Preview3D({
   return (
     <div className={containerClassName}>
       <div className="absolute right-3 top-3 z-10 flex gap-2 text-xs">
+        {enableFullPreview && (
+          <button
+            type="button"
+            onClick={handleFullPreview}
+            className="rounded bg-gray-800/80 px-3 py-1 text-white hover:bg-gray-700"
+          >
+            Full Preview
+          </button>
+        )}
         <button
           onClick={handleFit}
           className="rounded bg-gray-800/80 px-3 py-1 text-white hover:bg-gray-700"
@@ -491,6 +618,8 @@ function Preview3D({
     </div>
   );
 }
+
+const Preview3DForwardRef = forwardRef(Preview3DComponent);
 
 function updateSelectionHighlight(groups, selection) {
   const selectionMap = new Map();
@@ -515,4 +644,4 @@ function updateSelectionHighlight(groups, selection) {
   });
 }
 
-export default Preview3D;
+export default Preview3DForwardRef;
