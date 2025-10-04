@@ -1,0 +1,29 @@
+.sheet-table-wrapper {
+  @apply flex h-full flex-col overflow-hidden rounded-md border border-white/5 bg-black/60 backdrop-blur;
+}
+
+.sheet-table-container {
+  @apply relative flex-1 overflow-auto;
+}
+
+.sheet-table {
+  @apply min-w-full table-fixed border-collapse;
+}
+
+.sheet-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.sheet-table tbody tr {
+  @apply transition-colors;
+}
+
+.sheet-table tbody td {
+  @apply border-b border-white/5;
+}
+
+.sheet-table tbody tr:last-child td {
+  @apply border-b-0;
+}

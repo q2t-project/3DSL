@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import clsx from 'clsx';
 import { deepClone, parseNumber } from '../lib/utils.js';
 import { createNode } from '../lib/defaults.js';
@@ -98,6 +98,246 @@ function applyClipboard(rows, selection, clipboard) {
     }
   });
   return result;
+}
+
+function asDisplayString(value) {
+  if (value === undefined || value === null || value === '') return '';
+  if (Array.isArray(value)) return value.join(', ');
+  if (typeof value === 'boolean') return value ? 'true' : 'false';
+  return String(value);
+}
+
+function buildTooltip(column, required) {
+  const parts = [column.label];
+  if (column.description) parts.push(column.description);
+  if (column.schemaType) parts.push(`Type: ${column.schemaType}`);
+  if (column.defaultValue !== undefined) parts.push(`Default: ${column.defaultValue}`);
+  parts.push(required ? 'Required' : 'Optional');
+  return parts.join('\n');
+}
+
+function useEditableState(value) {
+  const [draft, setDraft] = useState(value ?? '');
+  useEffect(() => {
+    setDraft(value ?? '');
+  }, [value]);
+  return [draft, setDraft];
+}
+
+function EditableCell({
+  column,
+  value,
+  onCommit,
+  onWheel,
+  onNavigate,
+  required,
+  hasError
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useEditableState(
+    column.type === 'number' && value != null ? value : value ?? ''
+  );
+  const inputRef = useRef(null);
+
+  const empty = value === undefined || value === null || value === '';
+  const isDefaultValue = !empty && column.defaultValue !== undefined && value === column.defaultValue;
+  const showGhost = empty && column.defaultValue !== undefined;
+  const tooltip = useMemo(() => buildTooltip(column, required), [column, required]);
+
+  useEffect(() => {
+    if (!editing) return;
+    const handle = requestAnimationFrame(() => {
+      const element = inputRef.current;
+      if (!element) return;
+      element.focus({ preventScroll: true });
+      if (element.select && column.type !== 'color' && column.type !== 'checkbox') {
+        element.select();
+      }
+    });
+    return () => cancelAnimationFrame(handle);
+  }, [editing, column.type]);
+
+  const closeEditor = useCallback(() => {
+    setEditing(false);
+  }, []);
+
+  const commitValue = useCallback(
+    (nextValue) => {
+      onCommit(nextValue);
+    },
+    [onCommit]
+  );
+
+  const handleKeyDown = useCallback(
+    (event) => {
+      if (onNavigate) onNavigate(event);
+      if (event.defaultPrevented) return;
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        if (column.type === 'checkbox') {
+          commitValue(!(value ?? false));
+        } else if (column.type === 'select') {
+          commitValue(event.target.value ?? '');
+        } else {
+          commitValue(event.target.value);
+        }
+        closeEditor();
+        return;
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setDraft(value ?? '');
+        closeEditor();
+      }
+    },
+    [closeEditor, column.type, commitValue, onNavigate, setDraft, value]
+  );
+
+  const baseTextClass = clsx(
+    'flex h-full w-full items-center gap-2 overflow-hidden truncate px-2 py-1 text-left transition-colors whitespace-nowrap',
+    required ? 'font-semibold text-emerald-200' : 'text-gray-300',
+    showGhost && 'italic text-gray-500',
+    !showGhost && !isDefaultValue && !hasError && 'text-white',
+    isDefaultValue && 'text-sky-300/90',
+    hasError && 'text-red-200 font-semibold'
+  );
+
+  const displayContent = () => {
+    if (column.type === 'color') {
+      const colorValue = value ?? column.defaultValue ?? '#000000';
+      return (
+        <div className="flex w-full items-center gap-2">
+          <span
+            className="h-3 w-3 rounded border border-white/40"
+            style={{ backgroundColor: colorValue || 'transparent' }}
+          />
+          <span className={clsx('truncate', showGhost && 'text-gray-500')}>
+            {showGhost ? column.defaultValue : asDisplayString(colorValue)}
+          </span>
+        </div>
+      );
+    }
+    if (column.type === 'checkbox') {
+      return (
+        <span className="flex items-center gap-2">
+          <span
+            className={clsx(
+              'inline-flex h-3 w-3 items-center justify-center rounded border text-[9px]',
+              value ? 'border-emerald-400 text-emerald-300' : 'border-gray-600 text-gray-600'
+            )}
+          >
+            {value ? '✓' : ''}
+          </span>
+          <span className="truncate">{value ? 'Enabled' : 'Disabled'}</span>
+        </span>
+      );
+    }
+    if (showGhost) {
+      return <span className="truncate">{column.defaultValue ?? '—'}</span>;
+    }
+    const text = asDisplayString(value) || '—';
+    return <span className="truncate">{text}</span>;
+  };
+
+  const sharedInteraction = {
+    onWheel: (event) => onWheel?.(event),
+    onKeyDown: handleKeyDown,
+    title: tooltip
+  };
+
+  return (
+    <div className="relative h-full min-h-[32px]">
+      {editing ? (
+        column.type === 'select' ? (
+          <select
+            ref={inputRef}
+            className="h-full w-full bg-transparent px-2 py-1 text-xs text-white focus:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400/70"
+            value={draft ?? ''}
+            onBlur={(event) => {
+              commitValue(event.target.value || undefined);
+              closeEditor();
+            }}
+            onChange={(event) => {
+              setDraft(event.target.value);
+              commitValue(event.target.value || undefined);
+              closeEditor();
+            }}
+            {...sharedInteraction}
+          >
+            <option value="">—</option>
+            {column.options?.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        ) : column.type === 'checkbox' ? (
+          <div className="flex h-full w-full items-center justify-center">
+            <input
+              ref={inputRef}
+              type="checkbox"
+              className="h-4 w-4 cursor-pointer"
+              checked={Boolean(value)}
+              onChange={(event) => {
+                commitValue(event.target.checked);
+                closeEditor();
+              }}
+              onBlur={() => {
+                closeEditor();
+              }}
+              {...sharedInteraction}
+            />
+          </div>
+        ) : column.type === 'color' ? (
+          <input
+            ref={inputRef}
+            type="color"
+            className="h-full w-full cursor-pointer rounded border border-white/20 bg-transparent"
+            value={value ?? column.defaultValue ?? '#000000'}
+            onBlur={(event) => {
+              commitValue(event.target.value || undefined);
+              closeEditor();
+            }}
+            onChange={(event) => {
+              setDraft(event.target.value);
+              commitValue(event.target.value || undefined);
+            }}
+            {...sharedInteraction}
+          />
+        ) : (
+          <input
+            ref={inputRef}
+            type={column.type === 'number' ? 'number' : 'text'}
+            step={column.type === 'number' ? column.step ?? 'any' : undefined}
+            className="h-full w-full bg-transparent px-2 py-1 text-xs text-white focus:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400/70"
+            value={draft ?? ''}
+            placeholder={column.placeholder}
+            onBlur={(event) => {
+              commitValue(event.target.value);
+              closeEditor();
+            }}
+            onChange={(event) => {
+              setDraft(event.target.value);
+            }}
+            {...sharedInteraction}
+          />
+        )
+      ) : (
+        <button
+          type="button"
+          className={clsx(
+            baseTextClass,
+            'w-full rounded-sm focus:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400/70'
+          )}
+          onFocus={() => setEditing(true)}
+          onClick={() => setEditing(true)}
+          title={tooltip}
+        >
+          {displayContent()}
+        </button>
+      )}
+    </div>
+  );
 }
 
 export function createSheetComponent(config) {
@@ -270,24 +510,44 @@ export function createSheetComponent(config) {
 
     return (
       <div
-        className="flex flex-col h-full overflow-hidden"
+        className="sheet-table-wrapper" 
         tabIndex={0}
         onKeyDown={handleTableKeyDown}
       >
-        <div className="flex-1 overflow-auto">
-          <table className="min-w-full text-xs">
-            <thead className="sticky top-0 z-10 bg-gray-900">
-              <tr>
-                <th className="px-2 py-2 text-left text-gray-400">#</th>
+        <div className="sheet-table-container">
+          <table className="sheet-table text-[11px] text-gray-200">
+            <colgroup>
+              <col style={{ width: '56px' }} />
+              {resolvedColumns.map((column) => (
+                <col
+                  key={column.key}
+                  style={{
+                    width: column.width ? `${column.width}px` : undefined,
+                    minWidth: column.minWidth ? `${column.minWidth}px` : column.width ? `${column.width}px` : '120px'
+                  }}
+                />
+              ))}
+              <col style={{ width: '64px' }} />
+            </colgroup>
+            <thead className="bg-gray-950/95 text-[10px] uppercase tracking-wide text-gray-400">
+              <tr className="divide-x divide-gray-800/70">
+                <th className="px-3 py-2 text-left font-semibold">#</th>
                 {resolvedColumns.map((column) => (
-                  <th key={column.key} className="px-2 py-2 text-left text-gray-400">
+                  <th
+                    key={column.key}
+                    className={clsx(
+                      'px-3 py-2 text-left font-semibold',
+                      column.required ? 'text-emerald-200' : 'text-gray-400'
+                    )}
+                    title={buildTooltip(column, column.required)}
+                  >
                     {column.label}
                   </th>
                 ))}
-                <th className="w-10" />
+                <th className="px-2 py-2 text-right font-semibold text-gray-400">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="text-xs">
               {rows.map((row, rowIndex) => {
                 const rowError = rowErrors[rowIndex] ?? {};
                 const selected = isRowSelected(rowIndex);
@@ -295,92 +555,47 @@ export function createSheetComponent(config) {
                   <tr
                     key={rowIndex}
                     className={clsx(
-                      'border-b border-gray-800',
-                      selected ? 'bg-gray-800/60' : 'hover:bg-gray-800/40'
+                      'group divide-x divide-gray-900/60 even:bg-gray-900/50',
+                      'hover:bg-gray-900/80 transition-colors',
+                      selected && 'bg-emerald-500/10 ring-1 ring-emerald-400/40'
                     )}
                     onClick={(event) => handleRowClick(event, rowIndex)}
                   >
-                    <td className="px-2 py-1 text-gray-500">{rowIndex + 1}</td>
+                    <td className="px-3 py-1 align-middle text-right text-[10px] text-gray-500">{rowIndex + 1}</td>
                     {resolvedColumns.map((column) => {
                       const value = getValue(row, column);
-                      const hasError = rowError[column.errorKey ?? column.key];
+                      const hasError = Boolean(rowError[column.errorKey ?? column.key]);
                       const required = column.required;
-                      const empty = value === undefined || value === null || value === '';
-                      const baseClass = clsx(
-                        'px-2 py-1 align-middle',
-                        required ? 'bg-white text-black' : 'bg-gray-900/60 text-gray-200',
-                        empty && required ? 'ring-1 ring-red-500' : 'ring-0'
-                      );
-                      const commonProps = {
-                        className: clsx(
-                          'w-full rounded border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-400',
-                          hasError && 'border-red-500 ring-1 ring-red-500'
-                        ),
-                        onWheel: (event) => handleWheel(event, rowIndex, column),
-                        onKeyDown: (event) => handleKeyDown(event, rowIndex, column)
-                      };
-                      let cellContent;
-                      if (column.type === 'select') {
-                        cellContent = (
-                          <select
-                            value={value ?? ''}
-                            onChange={(event) => handleCellChange(rowIndex, column, event.target.value || undefined)}
-                            {...commonProps}
-                          >
-                            <option value="">-</option>
-                            {column.options?.map((option) => (
-                              <option key={option} value={option}>
-                                {option}
-                              </option>
-                            ))}
-                          </select>
-                        );
-                      } else if (column.type === 'checkbox') {
-                        cellContent = (
-                          <input
-                            type="checkbox"
-                            checked={Boolean(value)}
-                            onChange={(event) => handleCellChange(rowIndex, column, event.target.checked)}
-                          />
-                        );
-                      } else if (column.type === 'number') {
-                        cellContent = (
-                          <input
-                            type="number"
-                            value={value ?? ''}
-                            placeholder={column.placeholder}
-                            step="any"
-                            {...commonProps}
-                            onChange={(event) => handleCellChange(rowIndex, column, event.target.value)}
-                          />
-                        );
-                      } else {
-                        cellContent = (
-                          <input
-                            type="text"
-                            value={value ?? ''}
-                            placeholder={column.placeholder}
-                            {...commonProps}
-                            onChange={(event) => handleCellChange(rowIndex, column, event.target.value)}
-                          />
-                        );
-                      }
                       return (
-                        <td key={column.key} className={baseClass}>
-                          {cellContent}
+                        <td
+                          key={column.key}
+                          className={clsx(
+                            'px-0 align-middle',
+                            hasError && 'bg-red-950/40'
+                          )}
+                        >
+                          <EditableCell
+                            column={column}
+                            value={value}
+                            required={required}
+                            hasError={hasError}
+                            onCommit={(nextValue) => handleCellChange(rowIndex, column, nextValue)}
+                            onWheel={(event) => handleWheel(event, rowIndex, column)}
+                            onNavigate={(event) => handleKeyDown(event, rowIndex, column)}
+                          />
                         </td>
                       );
                     })}
-                    <td className="px-2 py-1 text-right">
+                    <td className="px-2 py-1 text-right align-middle">
                       <button
                         onClick={(event) => {
                           event.stopPropagation();
                           handleRemoveRow(rowIndex);
                         }}
-                        className="text-red-400 hover:text-red-300"
+                        className="rounded px-2 py-1 text-[10px] font-semibold text-red-400 transition hover:bg-red-500/20 hover:text-red-200"
                         title="Remove row"
                       >
-                        ×
+                        Remove
                       </button>
                     </td>
                   </tr>
@@ -389,10 +604,10 @@ export function createSheetComponent(config) {
             </tbody>
           </table>
         </div>
-        <div className="border-t border-gray-800 p-2 text-right">
+        <div className="flex justify-end border-t border-gray-900/70 bg-gray-950/60 p-2">
           <button
             onClick={handleAddRow}
-            className="rounded bg-emerald-500 px-3 py-1 text-xs font-semibold text-black hover:bg-emerald-400"
+            className="rounded bg-emerald-500 px-3 py-1 text-[11px] font-semibold text-black shadow-sm transition hover:bg-emerald-400"
           >
             Add row
           </button>
@@ -403,7 +618,15 @@ export function createSheetComponent(config) {
 }
 
 const nodeColumns = [
-  { key: 'id', label: 'ID', required: true, type: 'text' },
+  {
+    key: 'id',
+    label: 'ID',
+    required: true,
+    type: 'text',
+    schemaType: 'string',
+    description: 'Unique identifier for the node',
+    width: 160
+  },
   {
     key: 'positionX',
     label: 'Pos X',
@@ -411,7 +634,11 @@ const nodeColumns = [
     required: true,
     vector: { key: 'position', index: 0 },
     errorKey: 'position/0',
-    precision: 3
+    precision: 3,
+    schemaType: 'number',
+    description: 'World position on the X axis',
+    width: 96,
+    step: 0.1
   },
   {
     key: 'positionY',
@@ -420,7 +647,11 @@ const nodeColumns = [
     required: true,
     vector: { key: 'position', index: 1 },
     errorKey: 'position/1',
-    precision: 3
+    precision: 3,
+    schemaType: 'number',
+    description: 'World position on the Y axis',
+    width: 96,
+    step: 0.1
   },
   {
     key: 'positionZ',
@@ -429,22 +660,52 @@ const nodeColumns = [
     required: true,
     vector: { key: 'position', index: 2 },
     errorKey: 'position/2',
-    precision: 3
+    precision: 3,
+    schemaType: 'number',
+    description: 'World position on the Z axis',
+    width: 96,
+    step: 0.1
   },
-  { key: 'color', label: 'Color', type: 'text' },
-  { key: 'size', label: 'Size', type: 'number', placeholder: '1.0', precision: 3 },
+  {
+    key: 'color',
+    label: 'Color',
+    type: 'color',
+    schemaType: 'string',
+    description: 'Primary node color',
+    defaultValue: '#808080',
+    width: 120
+  },
+  {
+    key: 'size',
+    label: 'Size',
+    type: 'number',
+    placeholder: '1.0',
+    precision: 3,
+    schemaType: 'number',
+    description: 'Node size multiplier',
+    defaultValue: 1,
+    width: 88,
+    step: 0.1
+  },
   {
     key: 'shape',
     label: 'Shape',
     type: 'select',
-    options: ['sphere', 'cube', 'cylinder', 'cone', 'plane']
+    options: ['sphere', 'cube', 'cylinder', 'cone', 'plane'],
+    schemaType: 'string',
+    description: 'Geometry profile',
+    defaultValue: 'sphere',
+    width: 128
   },
   {
     key: 'labelText',
     label: 'Label text',
     type: 'text',
     path: ['label', 'text'],
-    errorKey: 'label/text'
+    errorKey: 'label/text',
+    schemaType: 'string',
+    description: 'Optional label displayed near the node',
+    width: 200
   }
 ];
 

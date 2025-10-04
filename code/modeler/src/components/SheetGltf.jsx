@@ -7,7 +7,10 @@ const gltfColumns = [
     label: 'Source',
     required: true,
     type: 'text',
-    errorKey: 'src'
+    errorKey: 'src',
+    schemaType: 'uri',
+    description: 'Relative or absolute path to the glTF asset',
+    width: 220
   },
   {
     key: 'positionX',
@@ -15,7 +18,12 @@ const gltfColumns = [
     type: 'number',
     vector: { key: 'position', index: 0 },
     errorKey: 'position/0',
-    precision: 3
+    precision: 3,
+    schemaType: 'number',
+    description: 'Translation on X axis',
+    defaultValue: 0,
+    width: 96,
+    step: 0.1
   },
   {
     key: 'positionY',
@@ -23,7 +31,12 @@ const gltfColumns = [
     type: 'number',
     vector: { key: 'position', index: 1 },
     errorKey: 'position/1',
-    precision: 3
+    precision: 3,
+    schemaType: 'number',
+    description: 'Translation on Y axis',
+    defaultValue: 0,
+    width: 96,
+    step: 0.1
   },
   {
     key: 'positionZ',
@@ -31,7 +44,12 @@ const gltfColumns = [
     type: 'number',
     vector: { key: 'position', index: 2 },
     errorKey: 'position/2',
-    precision: 3
+    precision: 3,
+    schemaType: 'number',
+    description: 'Translation on Z axis',
+    defaultValue: 0,
+    width: 96,
+    step: 0.1
   },
   {
     key: 'rotationX',
@@ -39,7 +57,12 @@ const gltfColumns = [
     type: 'number',
     vector: { key: 'rotation', index: 0 },
     errorKey: 'rotation/0',
-    precision: 3
+    precision: 3,
+    schemaType: 'number',
+    description: 'Rotation around X axis (radians)',
+    defaultValue: 0,
+    width: 96,
+    step: 0.1
   },
   {
     key: 'rotationY',
@@ -47,7 +70,12 @@ const gltfColumns = [
     type: 'number',
     vector: { key: 'rotation', index: 1 },
     errorKey: 'rotation/1',
-    precision: 3
+    precision: 3,
+    schemaType: 'number',
+    description: 'Rotation around Y axis (radians)',
+    defaultValue: 0,
+    width: 96,
+    step: 0.1
   },
   {
     key: 'rotationZ',
@@ -55,7 +83,12 @@ const gltfColumns = [
     type: 'number',
     vector: { key: 'rotation', index: 2 },
     errorKey: 'rotation/2',
-    precision: 3
+    precision: 3,
+    schemaType: 'number',
+    description: 'Rotation around Z axis (radians)',
+    defaultValue: 0,
+    width: 96,
+    step: 0.1
   },
   {
     key: 'scaleX',
@@ -63,7 +96,12 @@ const gltfColumns = [
     type: 'number',
     vector: { key: 'scale', index: 0 },
     errorKey: 'scale/0',
-    precision: 3
+    precision: 3,
+    schemaType: 'number',
+    description: 'Scale along X axis',
+    defaultValue: 1,
+    width: 96,
+    step: 0.1
   },
   {
     key: 'scaleY',
@@ -71,7 +109,12 @@ const gltfColumns = [
     type: 'number',
     vector: { key: 'scale', index: 1 },
     errorKey: 'scale/1',
-    precision: 3
+    precision: 3,
+    schemaType: 'number',
+    description: 'Scale along Y axis',
+    defaultValue: 1,
+    width: 96,
+    step: 0.1
   },
   {
     key: 'scaleZ',
@@ -79,13 +122,21 @@ const gltfColumns = [
     type: 'number',
     vector: { key: 'scale', index: 2 },
     errorKey: 'scale/2',
-    precision: 3
+    precision: 3,
+    schemaType: 'number',
+    description: 'Scale along Z axis',
+    defaultValue: 1,
+    width: 96,
+    step: 0.1
   },
   {
     key: 'attachTo',
     label: 'Attach node',
     type: 'select',
-    options: (context) => context?.nodes?.map((node) => node.id) ?? []
+    options: (context) => context?.nodes?.map((node) => node.id) ?? [],
+    schemaType: 'string',
+    description: 'Optional node that anchors the asset',
+    width: 152
   }
 ];
 
