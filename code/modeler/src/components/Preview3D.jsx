@@ -75,23 +75,47 @@ function createArrow(direction, position, color) {
   return cone;
 }
 
-function createTextLabel(text) {
+function createLabelSprite(label, fallback = {}) {
+  const text = label?.text ?? fallback.text ?? '';
+  if (!text) return null;
+
+  const fontSize = label?.fontSize ?? fallback.fontSize ?? 16;
+  if (!fontSize || fontSize < 6) return null;
+
+  const color = label?.color ?? fallback.color ?? '#ffffff';
+  const background = label?.background ?? fallback.background ?? 'rgba(0,0,0,0.4)';
+  const padding = Math.max(4, Math.floor(fontSize * 0.25));
+
   const canvas = document.createElement('canvas');
-  const size = 256;
-  canvas.width = size;
-  canvas.height = size;
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = 'rgba(0,0,0,0.4)';
-  ctx.fillRect(0, 0, size, size);
-  ctx.fillStyle = '#ffffff';
-  ctx.font = '48px sans-serif';
-  ctx.textAlign = 'center';
+  const font = `${fontSize}px 'Segoe UI', sans-serif`;
+  ctx.font = font;
+  const metrics = ctx.measureText(text);
+  const width = Math.ceil(metrics.width + padding * 2);
+  const height = Math.ceil(fontSize + padding * 2);
+
+  canvas.width = width;
+  canvas.height = height;
+
+  ctx.font = font;
+  if (background && background !== 'none') {
+    ctx.fillStyle = background;
+    ctx.fillRect(0, 0, width, height);
+  } else {
+    ctx.clearRect(0, 0, width, height);
+  }
+  ctx.fillStyle = color;
   ctx.textBaseline = 'middle';
-  ctx.fillText(text, size / 2, size / 2);
+  ctx.textAlign = 'left';
+  ctx.fillText(text, padding, height / 2);
+
   const texture = new THREE.CanvasTexture(canvas);
-  const material = new THREE.SpriteMaterial({ map: texture });
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
   const sprite = new THREE.Sprite(material);
-  sprite.scale.set(2, 1, 1);
+  const scaleFactor = 0.01;
+  sprite.scale.set(width * scaleFactor, height * scaleFactor, 1);
+  sprite.center.set(0.5, 0.5);
   return sprite;
 }
 
@@ -121,7 +145,13 @@ function createAuxObject(aux) {
       return group;
     }
     case 'hud': {
-      const sprite = createTextLabel(aux.hud?.content ?? 'HUD');
+      const sprite = createLabelSprite(aux.hud?.label, {
+        text: aux.hud?.content ?? 'HUD',
+        fontSize: aux.hud?.size,
+        color: aux.hud?.color,
+        background: aux.hud?.background
+      });
+      if (!sprite) return null;
       sprite.position.fromArray(aux.hud?.position ?? [0, 2, 0]);
       return sprite;
     }
@@ -270,7 +300,13 @@ function Preview3D({ data, selection, onSelect, onSceneReady }) {
     });
 
     data.texts?.forEach((text, index) => {
-      const sprite = createTextLabel(text.content ?? 'Text');
+      const sprite = createLabelSprite(text.label, {
+        text: text.content ?? 'Text',
+        fontSize: text.size,
+        color: text.color,
+        background: text.background
+      });
+      if (!sprite) return;
       sprite.position.fromArray(text.position ?? [0, 0, 0]);
       sprite.userData = { type: 'texts', index };
       sprite.traverse?.((child) => {
