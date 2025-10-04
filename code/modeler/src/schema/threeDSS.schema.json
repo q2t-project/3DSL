@@ -37,6 +37,10 @@
       "type": "array",
       "items": { "$ref": "#/$defs/edge" }
     },
+    "background": {
+      "type": "string",
+      "pattern": "^#(?:[0-9a-fA-F]{3}){1,2}$"
+    },
     "texts": {
       "type": "array",
       "items": { "$ref": "#/$defs/text" }
@@ -141,6 +145,10 @@
         "geometry": {
           "type": "string",
           "enum": ["tube", "cylinder", "custom"]
+        },
+        "color": {
+          "type": "string",
+          "pattern": "^#(?:[0-9a-fA-F]{3}){1,2}$"
         },
         "animation": {
           "type": "string",
