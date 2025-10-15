@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -e
+bad=$(git diff --cached --name-only | xargs -r grep -nH "../node_modules/" || true)
+if [ -n "$bad" ]; then
+  echo "❌ 禁止: ../node_modules/ を import しています"; echo "$bad"; exit 1
+fi
