@@ -18,22 +18,7 @@ viewer / modeler から呼び出される前提の「共通検証モジュール
 ## validation-bridge.js の役割：
 「AJVインスタンス生成」＋「スキーマ読み込み」＋「検証結果の共通インターフェース化」。
 
-## 擬似コード構造：
-
-// validation-bridge.js
-import Ajv from "../vendor/ajv/ajv2020.mjs";
-import addFormats from "../vendor/ajv/formats.mjs";
-import schema from "../../schemas/3DSS.schema.json" assert { type: "json" };
-
-export function validate3DSS(data) {
-  const ajv = new Ajv({ allErrors: true, strict: false });
-  addFormats(ajv);
-  const validate = ajv.compile(schema);
-  const valid = validate(data);
-  return { valid, errors: validate.errors || [] };
-}
-
-
+## 呼び出し方法
 → viewer/modeler 双方から
 import { validate3DSS } from "../validator/validation-bridge.js";
 で呼び出し、UI層は結果を整形して表示する。
