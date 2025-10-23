@@ -1,0 +1,826 @@
+フォルダー パスの一覧:  ボリューム Windows
+ボリューム シリアル番号は AEE7-E75C です
+C:.
+│  .gitignore
+│  package-lock.json
+│  package.json
+│  repo_structure.txt
+│  test.txt
+│  
+├─code
+│  │  strip_comments.js
+│  │  test_validate.js
+│  │  
+│  ├─modeler
+│  │  │  config.json
+│  │  │  
+│  │  ├─components
+│  │  │      point-editor.js
+│  │  │      
+│  │  ├─i18n
+│  │  │      schema-ja.json
+│  │  │      
+│  │  ├─ui
+│  │  │  │  column-structure.js
+│  │  │  │  dynamic-editor.js
+│  │  │  │  export-button.js
+│  │  │  │  export-glb.js
+│  │  │  │  export-json.js
+│  │  │  │  lang.js
+│  │  │  │  layout.html
+│  │  │  │  preview-pane.js
+│  │  │  │  spreadsheet.js
+│  │  │  │  style-dark.css
+│  │  │  │  style.css
+│  │  │  │  three.module.js
+│  │  │  │  
+│  │  │  ├─i18n
+│  │  │  │      en.json
+│  │  │  │      ja.json
+│  │  │  │      
+│  │  │  └─vendor
+│  │  │          file-saver.js
+│  │  │          GLTFExporter.js
+│  │  │          
+│  │  ├─utils
+│  │  │      gltfBuilder.js
+│  │  │      
+│  │  └─validator
+│  │          index.js
+│  │          
+│  ├─validator
+│  │  │  interface.js
+│  │  │  validate.js
+│  │  │  
+│  │  └─core
+│  │          validator-core.js
+│  │          
+│  └─viewer
+│      │  index.html
+│      │  
+│      ├─components
+│      │      appearance.js
+│      │      camera-control.js
+│      │      render.js
+│      │      
+│      ├─ui
+│      │      overlay.js
+│      │      viewer.css
+│      │      
+│      └─validator
+│              validation-bridge.js
+│              
+├─docs
+│  ├─architecture
+│  │      3dss-validator-architecture.md
+│  │      
+│  └─code
+│      └─modeler
+│          └─ui
+│                  layout.html
+│                  preview-pane.js
+│                  spreadsheet.js
+│                  style.css
+│                  
+├─meta
+│      CodexAutoRunningSetting.md
+│      CodexSpecSheet_forJavaScript.md
+│      
+├─node_modules
+│  │  .package-lock.json
+│  │  
+│  ├─ajv
+│  │  │  .runkit_example.js
+│  │  │  LICENSE
+│  │  │  package.json
+│  │  │  README.md
+│  │  │  
+│  │  ├─dist
+│  │  │  │  2019.d.ts
+│  │  │  │  2019.js
+│  │  │  │  2019.js.map
+│  │  │  │  2020.d.ts
+│  │  │  │  2020.js
+│  │  │  │  2020.js.map
+│  │  │  │  ajv.d.ts
+│  │  │  │  ajv.js
+│  │  │  │  ajv.js.map
+│  │  │  │  core.d.ts
+│  │  │  │  core.js
+│  │  │  │  core.js.map
+│  │  │  │  jtd.d.ts
+│  │  │  │  jtd.js
+│  │  │  │  jtd.js.map
+│  │  │  │  
+│  │  │  ├─compile
+│  │  │  │  │  errors.d.ts
+│  │  │  │  │  errors.js
+│  │  │  │  │  errors.js.map
+│  │  │  │  │  index.d.ts
+│  │  │  │  │  index.js
+│  │  │  │  │  index.js.map
+│  │  │  │  │  names.d.ts
+│  │  │  │  │  names.js
+│  │  │  │  │  names.js.map
+│  │  │  │  │  ref_error.d.ts
+│  │  │  │  │  ref_error.js
+│  │  │  │  │  ref_error.js.map
+│  │  │  │  │  resolve.d.ts
+│  │  │  │  │  resolve.js
+│  │  │  │  │  resolve.js.map
+│  │  │  │  │  rules.d.ts
+│  │  │  │  │  rules.js
+│  │  │  │  │  rules.js.map
+│  │  │  │  │  util.d.ts
+│  │  │  │  │  util.js
+│  │  │  │  │  util.js.map
+│  │  │  │  │  
+│  │  │  │  ├─codegen
+│  │  │  │  │      code.d.ts
+│  │  │  │  │      code.js
+│  │  │  │  │      code.js.map
+│  │  │  │  │      index.d.ts
+│  │  │  │  │      index.js
+│  │  │  │  │      index.js.map
+│  │  │  │  │      scope.d.ts
+│  │  │  │  │      scope.js
+│  │  │  │  │      scope.js.map
+│  │  │  │  │      
+│  │  │  │  ├─jtd
+│  │  │  │  │      parse.d.ts
+│  │  │  │  │      parse.js
+│  │  │  │  │      parse.js.map
+│  │  │  │  │      serialize.d.ts
+│  │  │  │  │      serialize.js
+│  │  │  │  │      serialize.js.map
+│  │  │  │  │      types.d.ts
+│  │  │  │  │      types.js
+│  │  │  │  │      types.js.map
+│  │  │  │  │      
+│  │  │  │  └─validate
+│  │  │  │          applicability.d.ts
+│  │  │  │          applicability.js
+│  │  │  │          applicability.js.map
+│  │  │  │          boolSchema.d.ts
+│  │  │  │          boolSchema.js
+│  │  │  │          boolSchema.js.map
+│  │  │  │          dataType.d.ts
+│  │  │  │          dataType.js
+│  │  │  │          dataType.js.map
+│  │  │  │          defaults.d.ts
+│  │  │  │          defaults.js
+│  │  │  │          defaults.js.map
+│  │  │  │          index.d.ts
+│  │  │  │          index.js
+│  │  │  │          index.js.map
+│  │  │  │          keyword.d.ts
+│  │  │  │          keyword.js
+│  │  │  │          keyword.js.map
+│  │  │  │          subschema.d.ts
+│  │  │  │          subschema.js
+│  │  │  │          subschema.js.map
+│  │  │  │          
+│  │  │  ├─refs
+│  │  │  │  │  data.json
+│  │  │  │  │  json-schema-draft-06.json
+│  │  │  │  │  json-schema-draft-07.json
+│  │  │  │  │  json-schema-secure.json
+│  │  │  │  │  jtd-schema.d.ts
+│  │  │  │  │  jtd-schema.js
+│  │  │  │  │  jtd-schema.js.map
+│  │  │  │  │  
+│  │  │  │  ├─json-schema-2019-09
+│  │  │  │  │  │  index.d.ts
+│  │  │  │  │  │  index.js
+│  │  │  │  │  │  index.js.map
+│  │  │  │  │  │  schema.json
+│  │  │  │  │  │  
+│  │  │  │  │  └─meta
+│  │  │  │  │          applicator.json
+│  │  │  │  │          content.json
+│  │  │  │  │          core.json
+│  │  │  │  │          format.json
+│  │  │  │  │          meta-data.json
+│  │  │  │  │          validation.json
+│  │  │  │  │          
+│  │  │  │  └─json-schema-2020-12
+│  │  │  │      │  index.d.ts
+│  │  │  │      │  index.js
+│  │  │  │      │  index.js.map
+│  │  │  │      │  schema.json
+│  │  │  │      │  
+│  │  │  │      └─meta
+│  │  │  │              applicator.json
+│  │  │  │              content.json
+│  │  │  │              core.json
+│  │  │  │              format-annotation.json
+│  │  │  │              meta-data.json
+│  │  │  │              unevaluated.json
+│  │  │  │              validation.json
+│  │  │  │              
+│  │  │  ├─runtime
+│  │  │  │      equal.d.ts
+│  │  │  │      equal.js
+│  │  │  │      equal.js.map
+│  │  │  │      parseJson.d.ts
+│  │  │  │      parseJson.js
+│  │  │  │      parseJson.js.map
+│  │  │  │      quote.d.ts
+│  │  │  │      quote.js
+│  │  │  │      quote.js.map
+│  │  │  │      re2.d.ts
+│  │  │  │      re2.js
+│  │  │  │      re2.js.map
+│  │  │  │      timestamp.d.ts
+│  │  │  │      timestamp.js
+│  │  │  │      timestamp.js.map
+│  │  │  │      ucs2length.d.ts
+│  │  │  │      ucs2length.js
+│  │  │  │      ucs2length.js.map
+│  │  │  │      uri.d.ts
+│  │  │  │      uri.js
+│  │  │  │      uri.js.map
+│  │  │  │      validation_error.d.ts
+│  │  │  │      validation_error.js
+│  │  │  │      validation_error.js.map
+│  │  │  │      
+│  │  │  ├─standalone
+│  │  │  │      index.d.ts
+│  │  │  │      index.js
+│  │  │  │      index.js.map
+│  │  │  │      instance.d.ts
+│  │  │  │      instance.js
+│  │  │  │      instance.js.map
+│  │  │  │      
+│  │  │  ├─types
+│  │  │  │      index.d.ts
+│  │  │  │      index.js
+│  │  │  │      index.js.map
+│  │  │  │      json-schema.d.ts
+│  │  │  │      json-schema.js
+│  │  │  │      json-schema.js.map
+│  │  │  │      jtd-schema.d.ts
+│  │  │  │      jtd-schema.js
+│  │  │  │      jtd-schema.js.map
+│  │  │  │      
+│  │  │  └─vocabularies
+│  │  │      │  code.d.ts
+│  │  │      │  code.js
+│  │  │      │  code.js.map
+│  │  │      │  draft2020.d.ts
+│  │  │      │  draft2020.js
+│  │  │      │  draft2020.js.map
+│  │  │      │  draft7.d.ts
+│  │  │      │  draft7.js
+│  │  │      │  draft7.js.map
+│  │  │      │  errors.d.ts
+│  │  │      │  errors.js
+│  │  │      │  errors.js.map
+│  │  │      │  metadata.d.ts
+│  │  │      │  metadata.js
+│  │  │      │  metadata.js.map
+│  │  │      │  next.d.ts
+│  │  │      │  next.js
+│  │  │      │  next.js.map
+│  │  │      │  
+│  │  │      ├─applicator
+│  │  │      │      additionalItems.d.ts
+│  │  │      │      additionalItems.js
+│  │  │      │      additionalItems.js.map
+│  │  │      │      additionalProperties.d.ts
+│  │  │      │      additionalProperties.js
+│  │  │      │      additionalProperties.js.map
+│  │  │      │      allOf.d.ts
+│  │  │      │      allOf.js
+│  │  │      │      allOf.js.map
+│  │  │      │      anyOf.d.ts
+│  │  │      │      anyOf.js
+│  │  │      │      anyOf.js.map
+│  │  │      │      contains.d.ts
+│  │  │      │      contains.js
+│  │  │      │      contains.js.map
+│  │  │      │      dependencies.d.ts
+│  │  │      │      dependencies.js
+│  │  │      │      dependencies.js.map
+│  │  │      │      dependentSchemas.d.ts
+│  │  │      │      dependentSchemas.js
+│  │  │      │      dependentSchemas.js.map
+│  │  │      │      if.d.ts
+│  │  │      │      if.js
+│  │  │      │      if.js.map
+│  │  │      │      index.d.ts
+│  │  │      │      index.js
+│  │  │      │      index.js.map
+│  │  │      │      items.d.ts
+│  │  │      │      items.js
+│  │  │      │      items.js.map
+│  │  │      │      items2020.d.ts
+│  │  │      │      items2020.js
+│  │  │      │      items2020.js.map
+│  │  │      │      not.d.ts
+│  │  │      │      not.js
+│  │  │      │      not.js.map
+│  │  │      │      oneOf.d.ts
+│  │  │      │      oneOf.js
+│  │  │      │      oneOf.js.map
+│  │  │      │      patternProperties.d.ts
+│  │  │      │      patternProperties.js
+│  │  │      │      patternProperties.js.map
+│  │  │      │      prefixItems.d.ts
+│  │  │      │      prefixItems.js
+│  │  │      │      prefixItems.js.map
+│  │  │      │      properties.d.ts
+│  │  │      │      properties.js
+│  │  │      │      properties.js.map
+│  │  │      │      propertyNames.d.ts
+│  │  │      │      propertyNames.js
+│  │  │      │      propertyNames.js.map
+│  │  │      │      thenElse.d.ts
+│  │  │      │      thenElse.js
+│  │  │      │      thenElse.js.map
+│  │  │      │      
+│  │  │      ├─core
+│  │  │      │      id.d.ts
+│  │  │      │      id.js
+│  │  │      │      id.js.map
+│  │  │      │      index.d.ts
+│  │  │      │      index.js
+│  │  │      │      index.js.map
+│  │  │      │      ref.d.ts
+│  │  │      │      ref.js
+│  │  │      │      ref.js.map
+│  │  │      │      
+│  │  │      ├─discriminator
+│  │  │      │      index.d.ts
+│  │  │      │      index.js
+│  │  │      │      index.js.map
+│  │  │      │      types.d.ts
+│  │  │      │      types.js
+│  │  │      │      types.js.map
+│  │  │      │      
+│  │  │      ├─dynamic
+│  │  │      │      dynamicAnchor.d.ts
+│  │  │      │      dynamicAnchor.js
+│  │  │      │      dynamicAnchor.js.map
+│  │  │      │      dynamicRef.d.ts
+│  │  │      │      dynamicRef.js
+│  │  │      │      dynamicRef.js.map
+│  │  │      │      index.d.ts
+│  │  │      │      index.js
+│  │  │      │      index.js.map
+│  │  │      │      recursiveAnchor.d.ts
+│  │  │      │      recursiveAnchor.js
+│  │  │      │      recursiveAnchor.js.map
+│  │  │      │      recursiveRef.d.ts
+│  │  │      │      recursiveRef.js
+│  │  │      │      recursiveRef.js.map
+│  │  │      │      
+│  │  │      ├─format
+│  │  │      │      format.d.ts
+│  │  │      │      format.js
+│  │  │      │      format.js.map
+│  │  │      │      index.d.ts
+│  │  │      │      index.js
+│  │  │      │      index.js.map
+│  │  │      │      
+│  │  │      ├─jtd
+│  │  │      │      discriminator.d.ts
+│  │  │      │      discriminator.js
+│  │  │      │      discriminator.js.map
+│  │  │      │      elements.d.ts
+│  │  │      │      elements.js
+│  │  │      │      elements.js.map
+│  │  │      │      enum.d.ts
+│  │  │      │      enum.js
+│  │  │      │      enum.js.map
+│  │  │      │      error.d.ts
+│  │  │      │      error.js
+│  │  │      │      error.js.map
+│  │  │      │      index.d.ts
+│  │  │      │      index.js
+│  │  │      │      index.js.map
+│  │  │      │      metadata.d.ts
+│  │  │      │      metadata.js
+│  │  │      │      metadata.js.map
+│  │  │      │      nullable.d.ts
+│  │  │      │      nullable.js
+│  │  │      │      nullable.js.map
+│  │  │      │      optionalProperties.d.ts
+│  │  │      │      optionalProperties.js
+│  │  │      │      optionalProperties.js.map
+│  │  │      │      properties.d.ts
+│  │  │      │      properties.js
+│  │  │      │      properties.js.map
+│  │  │      │      ref.d.ts
+│  │  │      │      ref.js
+│  │  │      │      ref.js.map
+│  │  │      │      type.d.ts
+│  │  │      │      type.js
+│  │  │      │      type.js.map
+│  │  │      │      union.d.ts
+│  │  │      │      union.js
+│  │  │      │      union.js.map
+│  │  │      │      values.d.ts
+│  │  │      │      values.js
+│  │  │      │      values.js.map
+│  │  │      │      
+│  │  │      ├─unevaluated
+│  │  │      │      index.d.ts
+│  │  │      │      index.js
+│  │  │      │      index.js.map
+│  │  │      │      unevaluatedItems.d.ts
+│  │  │      │      unevaluatedItems.js
+│  │  │      │      unevaluatedItems.js.map
+│  │  │      │      unevaluatedProperties.d.ts
+│  │  │      │      unevaluatedProperties.js
+│  │  │      │      unevaluatedProperties.js.map
+│  │  │      │      
+│  │  │      └─validation
+│  │  │              const.d.ts
+│  │  │              const.js
+│  │  │              const.js.map
+│  │  │              dependentRequired.d.ts
+│  │  │              dependentRequired.js
+│  │  │              dependentRequired.js.map
+│  │  │              enum.d.ts
+│  │  │              enum.js
+│  │  │              enum.js.map
+│  │  │              index.d.ts
+│  │  │              index.js
+│  │  │              index.js.map
+│  │  │              limitContains.d.ts
+│  │  │              limitContains.js
+│  │  │              limitContains.js.map
+│  │  │              limitItems.d.ts
+│  │  │              limitItems.js
+│  │  │              limitItems.js.map
+│  │  │              limitLength.d.ts
+│  │  │              limitLength.js
+│  │  │              limitLength.js.map
+│  │  │              limitNumber.d.ts
+│  │  │              limitNumber.js
+│  │  │              limitNumber.js.map
+│  │  │              limitProperties.d.ts
+│  │  │              limitProperties.js
+│  │  │              limitProperties.js.map
+│  │  │              multipleOf.d.ts
+│  │  │              multipleOf.js
+│  │  │              multipleOf.js.map
+│  │  │              pattern.d.ts
+│  │  │              pattern.js
+│  │  │              pattern.js.map
+│  │  │              required.d.ts
+│  │  │              required.js
+│  │  │              required.js.map
+│  │  │              uniqueItems.d.ts
+│  │  │              uniqueItems.js
+│  │  │              uniqueItems.js.map
+│  │  │              
+│  │  └─lib
+│  │      │  2019.ts
+│  │      │  2020.ts
+│  │      │  ajv.ts
+│  │      │  core.ts
+│  │      │  jtd.ts
+│  │      │  
+│  │      ├─compile
+│  │      │  │  errors.ts
+│  │      │  │  index.ts
+│  │      │  │  names.ts
+│  │      │  │  ref_error.ts
+│  │      │  │  resolve.ts
+│  │      │  │  rules.ts
+│  │      │  │  util.ts
+│  │      │  │  
+│  │      │  ├─codegen
+│  │      │  │      code.ts
+│  │      │  │      index.ts
+│  │      │  │      scope.ts
+│  │      │  │      
+│  │      │  ├─jtd
+│  │      │  │      parse.ts
+│  │      │  │      serialize.ts
+│  │      │  │      types.ts
+│  │      │  │      
+│  │      │  └─validate
+│  │      │          applicability.ts
+│  │      │          boolSchema.ts
+│  │      │          dataType.ts
+│  │      │          defaults.ts
+│  │      │          index.ts
+│  │      │          keyword.ts
+│  │      │          subschema.ts
+│  │      │          
+│  │      ├─refs
+│  │      │  │  data.json
+│  │      │  │  json-schema-draft-06.json
+│  │      │  │  json-schema-draft-07.json
+│  │      │  │  json-schema-secure.json
+│  │      │  │  jtd-schema.ts
+│  │      │  │  
+│  │      │  ├─json-schema-2019-09
+│  │      │  │  │  index.ts
+│  │      │  │  │  schema.json
+│  │      │  │  │  
+│  │      │  │  └─meta
+│  │      │  │          applicator.json
+│  │      │  │          content.json
+│  │      │  │          core.json
+│  │      │  │          format.json
+│  │      │  │          meta-data.json
+│  │      │  │          validation.json
+│  │      │  │          
+│  │      │  └─json-schema-2020-12
+│  │      │      │  index.ts
+│  │      │      │  schema.json
+│  │      │      │  
+│  │      │      └─meta
+│  │      │              applicator.json
+│  │      │              content.json
+│  │      │              core.json
+│  │      │              format-annotation.json
+│  │      │              meta-data.json
+│  │      │              unevaluated.json
+│  │      │              validation.json
+│  │      │              
+│  │      ├─runtime
+│  │      │      equal.ts
+│  │      │      parseJson.ts
+│  │      │      quote.ts
+│  │      │      re2.ts
+│  │      │      timestamp.ts
+│  │      │      ucs2length.ts
+│  │      │      uri.ts
+│  │      │      validation_error.ts
+│  │      │      
+│  │      ├─standalone
+│  │      │      index.ts
+│  │      │      instance.ts
+│  │      │      
+│  │      ├─types
+│  │      │      index.ts
+│  │      │      json-schema.ts
+│  │      │      jtd-schema.ts
+│  │      │      
+│  │      └─vocabularies
+│  │          │  code.ts
+│  │          │  draft2020.ts
+│  │          │  draft7.ts
+│  │          │  errors.ts
+│  │          │  metadata.ts
+│  │          │  next.ts
+│  │          │  
+│  │          ├─applicator
+│  │          │      additionalItems.ts
+│  │          │      additionalProperties.ts
+│  │          │      allOf.ts
+│  │          │      anyOf.ts
+│  │          │      contains.ts
+│  │          │      dependencies.ts
+│  │          │      dependentSchemas.ts
+│  │          │      if.ts
+│  │          │      index.ts
+│  │          │      items.ts
+│  │          │      items2020.ts
+│  │          │      not.ts
+│  │          │      oneOf.ts
+│  │          │      patternProperties.ts
+│  │          │      prefixItems.ts
+│  │          │      properties.ts
+│  │          │      propertyNames.ts
+│  │          │      thenElse.ts
+│  │          │      
+│  │          ├─core
+│  │          │      id.ts
+│  │          │      index.ts
+│  │          │      ref.ts
+│  │          │      
+│  │          ├─discriminator
+│  │          │      index.ts
+│  │          │      types.ts
+│  │          │      
+│  │          ├─dynamic
+│  │          │      dynamicAnchor.ts
+│  │          │      dynamicRef.ts
+│  │          │      index.ts
+│  │          │      recursiveAnchor.ts
+│  │          │      recursiveRef.ts
+│  │          │      
+│  │          ├─format
+│  │          │      format.ts
+│  │          │      index.ts
+│  │          │      
+│  │          ├─jtd
+│  │          │      discriminator.ts
+│  │          │      elements.ts
+│  │          │      enum.ts
+│  │          │      error.ts
+│  │          │      index.ts
+│  │          │      metadata.ts
+│  │          │      nullable.ts
+│  │          │      optionalProperties.ts
+│  │          │      properties.ts
+│  │          │      ref.ts
+│  │          │      type.ts
+│  │          │      union.ts
+│  │          │      values.ts
+│  │          │      
+│  │          ├─unevaluated
+│  │          │      index.ts
+│  │          │      unevaluatedItems.ts
+│  │          │      unevaluatedProperties.ts
+│  │          │      
+│  │          └─validation
+│  │                  const.ts
+│  │                  dependentRequired.ts
+│  │                  enum.ts
+│  │                  index.ts
+│  │                  limitContains.ts
+│  │                  limitItems.ts
+│  │                  limitLength.ts
+│  │                  limitNumber.ts
+│  │                  limitProperties.ts
+│  │                  multipleOf.ts
+│  │                  pattern.ts
+│  │                  required.ts
+│  │                  uniqueItems.ts
+│  │                  
+│  ├─ajv-formats
+│  │  │  LICENSE
+│  │  │  package.json
+│  │  │  README.md
+│  │  │  
+│  │  ├─dist
+│  │  │      formats.d.ts
+│  │  │      formats.js
+│  │  │      formats.js.map
+│  │  │      index.d.ts
+│  │  │      index.js
+│  │  │      index.js.map
+│  │  │      limit.d.ts
+│  │  │      limit.js
+│  │  │      limit.js.map
+│  │  │      
+│  │  └─src
+│  │          formats.ts
+│  │          index.ts
+│  │          limit.ts
+│  │          
+│  ├─fast-deep-equal
+│  │  │  index.d.ts
+│  │  │  index.js
+│  │  │  LICENSE
+│  │  │  package.json
+│  │  │  react.d.ts
+│  │  │  react.js
+│  │  │  README.md
+│  │  │  
+│  │  └─es6
+│  │          index.d.ts
+│  │          index.js
+│  │          react.d.ts
+│  │          react.js
+│  │          
+│  ├─json-schema-traverse
+│  │  │  .eslintrc.yml
+│  │  │  index.d.ts
+│  │  │  index.js
+│  │  │  LICENSE
+│  │  │  package.json
+│  │  │  README.md
+│  │  │  
+│  │  ├─.github
+│  │  │  │  FUNDING.yml
+│  │  │  │  
+│  │  │  └─workflows
+│  │  │          build.yml
+│  │  │          publish.yml
+│  │  │          
+│  │  └─spec
+│  │      │  .eslintrc.yml
+│  │      │  index.spec.js
+│  │      │  
+│  │      └─fixtures
+│  │              schema.js
+│  │              
+│  ├─punycode
+│  │      LICENSE-MIT.txt
+│  │      package.json
+│  │      punycode.es6.js
+│  │      punycode.js
+│  │      README.md
+│  │      
+│  ├─require-from-string
+│  │      index.js
+│  │      license
+│  │      package.json
+│  │      readme.md
+│  │      
+│  └─uri-js
+│      │  LICENSE
+│      │  package.json
+│      │  README.md
+│      │  yarn.lock
+│      │  
+│      └─dist
+│          ├─es5
+│          │      uri.all.d.ts
+│          │      uri.all.js
+│          │      uri.all.js.map
+│          │      uri.all.min.d.ts
+│          │      uri.all.min.js
+│          │      uri.all.min.js.map
+│          │      
+│          └─esnext
+│              │  index.d.ts
+│              │  index.js
+│              │  index.js.map
+│              │  regexps-iri.d.ts
+│              │  regexps-iri.js
+│              │  regexps-iri.js.map
+│              │  regexps-uri.d.ts
+│              │  regexps-uri.js
+│              │  regexps-uri.js.map
+│              │  uri.d.ts
+│              │  uri.js
+│              │  uri.js.map
+│              │  util.d.ts
+│              │  util.js
+│              │  util.js.map
+│              │  
+│              └─schemes
+│                      http.d.ts
+│                      http.js
+│                      http.js.map
+│                      https.d.ts
+│                      https.js
+│                      https.js.map
+│                      mailto.d.ts
+│                      mailto.js
+│                      mailto.js.map
+│                      urn-uuid.d.ts
+│                      urn-uuid.js
+│                      urn-uuid.js.map
+│                      urn.d.ts
+│                      urn.js
+│                      urn.js.map
+│                      ws.d.ts
+│                      ws.js
+│                      ws.js.map
+│                      wss.d.ts
+│                      wss.js
+│                      wss.js.map
+│                      
+├─plans
+│  │  codex_architecture_map.plan.md
+│  │  codex_data_interface.plan.md
+│  │  codex_handshake_test.plan.md
+│  │  codex_integration_master.plan.md
+│  │  codex_modeler_implementation.plan.md
+│  │  codex_modeler_spreadsheet_ui.plan.md
+│  │  codex_output_pipeline.plan.md
+│  │  codex_task_spec.plan.md
+│  │  
+│  └─tasks
+│          p10-modeler-validation-export.plan.md
+│          p11-schema-alignment-meta.plan.md
+│          p12-export-i18n.plan.md
+│          p13-validation-export-final.plan.md
+│          p13a-importmap-ajv-fix.plan.md
+│          p14-validator-architecture.plan.md
+│          p15-validator-ui-sync.plan.md
+│          p16-viewer-core.plan.md
+│          p17-viewer-camera-control.plan.md
+│          p18-viewer-appearance.plan.md
+│          p19-viewer-ui-overlay.plan.md
+│          p22-viewer-folder-normalization.plan.md
+│          p23-viewer-core-cleanup.plan.md
+│          p24-viewer-validation-bridge.plan.md
+│          p25-fix-camera-controls.plan.md
+│          p25-viewer-validator-bridge.plan.md
+│          p26-fix-validator-ajv-import.plan.md
+│          p27_viewer_use_modeler_validator.plan.md
+│          p29_fix_viewer_validator_path.plan.md
+│          p30_viewer_importmap_from_modeler.plan.md
+│          p32_unify_validator_core.plan.md
+│          p33_local_ajv_integration.plan.md
+│          p4-modeler-component-point-editor.plan.md
+│          p7-modeler-export-and-i18n.plan.md
+│          p7-modeler-hotfix-assert-fetch.plan.md
+│          p7-modeler-i18n-fetch-fix.plan.md
+│          p7-modeler-ui-layout.plan.md
+│          p7-modeler-ui-refinement.plan.md
+│          p8-modeler-ui-structure.plan.md
+│          p9-modeler-preview-integration.plan.md
+│          
+├─schemas
+│      2025-10-10 14-7-25-3DSL_____抽出された設計判断（統合リスト）.md
+│      3DSS.schema.json
+│      3DSS.schema.jsonc.txt
+│      3DSS.schema.stripped.json
+│      3DSS.schema.stripped.txt
+│      3DSS_spec.md
+│      
+└─specs
+        ui_tone_matrix.md
+        
