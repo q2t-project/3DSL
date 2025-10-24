@@ -1,8 +1,8 @@
 import * as THREE from "../../vendor/three/build/three.module.js";
 import { OrbitControls } from "../../vendor/three/examples/jsm/controls/OrbitControls.js";
 import GUI from "../../vendor/libs/dat.gui.module.js";
-import Ajv from "https://cdn.jsdelivr.net/npm/ajv@8.12.0/dist/ajv2020.mjs";
-import addFormats from "https://cdn.jsdelivr.net/npm/ajv-formats@2.1.1/dist/ajv-formats.mjs";
+import Ajv from "../../vendor/ajv/dist/ajv.bundle.js";
+import addFormats from "../../vendor/ajv-formats/dist/ajv-formats.bundle.js";
 import {
   PATHS,
   bindJSONFileInput,
