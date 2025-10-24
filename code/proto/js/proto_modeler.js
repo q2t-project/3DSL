@@ -1,5 +1,5 @@
-import Ajv from "https://cdn.jsdelivr.net/npm/ajv@8.12.0/dist/ajv2020.mjs";
-import addFormats from "https://cdn.jsdelivr.net/npm/ajv-formats@2.1.1/dist/ajv-formats.mjs";
+import Ajv from "../../vendor/ajv/dist/ajv.bundle.js";
+import addFormats from "../../vendor/ajv-formats/dist/ajv-formats.bundle.js";
 import {
   PATHS,
   bindJSONFileInput,
@@ -12,13 +12,28 @@ import {
 let validator;
 let schemaCache;
 
+async function registerDraft2020Schemas(ajv) {
+  const [draft, core, meta] = await Promise.all([
+    loadJSON("../schemas/draft2020-12_schema.json"),
+    loadJSON("../schemas/meta_core.json"),
+    loadJSON("../schemas/meta_meta.json"),
+  ]);
+  ajv.addMetaSchema(draft);
+  ajv.addMetaSchema(core);
+  ajv.addMetaSchema(meta);
+  logEvent("modeler", "Registered Draft2020-12 metas", {
+    ids: [draft.$id, core.$id, meta.$id],
+  });
+}
+
 async function ensureValidator() {
   if (validator) {
     return validator;
   }
   if (!schemaCache) {
-    logEvent("modeler", "Loading schema", { path: PATHS.schema });
-    schemaCache = await loadJSON(PATHS.schema);
+    const schemaPath = "/schemas/3DSS.schema.json";
+    logEvent("modeler", "Loading schema", { path: schemaPath });
+    schemaCache = await loadJSON(schemaPath);
   }
 
   const ajv = new Ajv({
@@ -28,6 +43,7 @@ async function ensureValidator() {
     allowUnionTypes: true
   });
   addFormats(ajv, { mode: "fast" });
+  await registerDraft2020Schemas(ajv);
   validator = ajv.compile(schemaCache);
   logEvent("modeler", "Schema compiled");
   return validator;
@@ -135,6 +151,24 @@ function debounce(fn, delay = 400) {
   };
 }
 
+async function loadInitialSample(textarea, performValidation, sampleSelector) {
+  const samplePath = `${PATHS.dataRoot}/sample_valid.3dss.json`;
+  try {
+    const data = await loadJSON(samplePath);
+    textarea.value = JSON.stringify(data, null, 2);
+    if (sampleSelector) {
+      sampleSelector.value = "sample_valid.3dss.json";
+    }
+    logEvent("modeler", "Loaded initial sample", { path: samplePath });
+    await performValidation();
+  } catch (err) {
+    logEvent("modeler", "Failed to load initial sample", {
+      path: samplePath,
+      error: err.message
+    });
+  }
+}
+
 function setupModelerUI() {
   const textarea = document.querySelector("#modeler-json");
   const validationPanel = document.querySelector("#modeler-validation");
@@ -145,10 +179,12 @@ function setupModelerUI() {
   const lineButton = document.querySelector("#add-line");
   const fileInput = document.querySelector("#modeler-file");
 
-  const runValidation = debounce(async () => {
+  const performValidation = async () => {
     const result = await validateDocument(textarea.value || "{}");
     renderValidationSummary(validationPanel, result);
-  });
+  };
+
+  const runValidation = debounce(performValidation);
 
   textarea.addEventListener("input", runValidation);
 
@@ -182,7 +218,7 @@ function setupModelerUI() {
   pointButton.addEventListener("click", () => applyTemplate(textarea, buildPointTemplate));
   lineButton.addEventListener("click", () => applyTemplate(textarea, buildLineTemplate));
 
-  runValidation();
+  loadInitialSample(textarea, performValidation, sampleSelector);
 }
 
 window.addEventListener("DOMContentLoaded", () => {
