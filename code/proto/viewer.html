@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3DSS Prototype — Viewer</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: radial-gradient(circle at top, rgba(236, 72, 153, 0.24), #020617);
+        color: #fdf2f8;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      main {
+        flex: 1;
+        display: grid;
+        grid-template-columns: minmax(0, 3fr) minmax(240px, 1.1fr);
+        gap: 1.5rem;
+        padding: 2rem;
+        box-sizing: border-box;
+      }
+
+      header {
+        grid-column: 1 / -1;
+      }
+
+      .panel {
+        background: rgba(15, 23, 42, 0.86);
+        border: 1px solid rgba(244, 114, 182, 0.3);
+        border-radius: 16px;
+        padding: 1.25rem;
+        box-shadow: 0 24px 60px rgba(190, 24, 93, 0.35);
+      }
+
+      #viewer-canvas {
+        min-height: 520px;
+        height: 65vh;
+        border-radius: 16px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
+
+      button,
+      select,
+      input[type="file"] {
+        background: rgba(236, 72, 153, 0.16);
+        border: 1px solid rgba(244, 114, 182, 0.45);
+        color: inherit;
+        padding: 0.55rem 1rem;
+        border-radius: 999px;
+        cursor: pointer;
+      }
+
+      button:hover,
+      select:hover {
+        background: rgba(236, 72, 153, 0.26);
+      }
+
+      #viewer-validation {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      [data-runtime-log] {
+        margin-top: 1rem;
+        max-height: 240px;
+        overflow-y: auto;
+        font-size: 0.8rem;
+        font-family: "JetBrains Mono", "Fira Code", monospace;
+        opacity: 0.85;
+      }
+
+      footer {
+        padding: 1rem 2rem;
+        text-align: center;
+        border-top: 1px solid rgba(244, 114, 182, 0.25);
+        font-size: 0.85rem;
+        color: rgba(255, 228, 230, 0.85);
+      }
+
+      @media (max-width: 1080px) {
+        main {
+          grid-template-columns: 1fr;
+        }
+        #viewer-canvas {
+          height: 420px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>3DSS Viewer</h1>
+        <p>
+          Client-side renderer powered by three.js r160 with OrbitControls. Load a
+          3DSS document, validate it, and visualize points and lines.
+        </p>
+      </header>
+
+      <section class="panel">
+        <div class="toolbar">
+          <label>
+            <span>Samples</span>
+            <select id="viewer-sample">
+              <option value="sample_valid.3dss.json" selected>sample_valid.3dss.json</option>
+              <option value="sample_invalid.3dss.json">sample_invalid.3dss.json</option>
+            </select>
+          </label>
+          <button id="viewer-load" type="button">Load sample</button>
+          <label>
+            <span>Import</span>
+            <input id="viewer-file" type="file" accept="application/json,.json,.3dss.json" />
+          </label>
+        </div>
+        <div id="viewer-canvas"></div>
+      </section>
+
+      <aside class="panel">
+        <h2>Validation</h2>
+        <div id="viewer-validation">Awaiting data…</div>
+        <h3 style="margin-top: 1.5rem;">Runtime log</h3>
+        <div data-runtime-log></div>
+      </aside>
+    </main>
+
+    <footer>Prototype build P1.9 · three.js r160 + OrbitControls via CDN · No bundler.</footer>
+
+    <script type="module" src="./js/proto_viewer.js"></script>
+  </body>
+</html>
