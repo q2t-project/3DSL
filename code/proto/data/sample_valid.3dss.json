@@ -1,13 +1,87 @@
 {
   "points": [
-    { "appearance": { "position": [0, 0, 0] }, "meta": { "uuid": "p-001" } }
+    {
+      "appearance": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "marker": {
+          "common": {
+            "visible": true
+          },
+          "shape": "sphere"
+        }
+      },
+      "meta": {
+        "uuid": "00000000-0000-4000-8000-000000000001"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          1.5,
+          0,
+          0
+        ],
+        "marker": {
+          "common": {
+            "visible": true
+          },
+          "shape": "sphere"
+        }
+      },
+      "meta": {
+        "uuid": "00000000-0000-4000-8000-000000000002"
+      }
+    }
   ],
   "lines": [
-    { "appearance": { "end_a": { "ref": "p-001" }, "end_b": { "coord": [1, 0, 0] } }, "meta": { "uuid": "l-001" } }
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "00000000-0000-4000-8000-000000000001"
+        },
+        "end_b": {
+          "ref": "00000000-0000-4000-8000-000000000002"
+        },
+        "line_type": "straight",
+        "visible": true,
+        "color": "#38bdf8"
+      },
+      "meta": {
+        "uuid": "00000000-0000-4000-8000-0000000000A1"
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "coord": [
+            0,
+            0,
+            0
+          ]
+        },
+        "end_b": {
+          "coord": [
+            0,
+            1.5,
+            0
+          ]
+        },
+        "line_type": "straight",
+        "visible": true,
+        "color": "#f97316"
+      },
+      "meta": {
+        "uuid": "00000000-0000-4000-8000-0000000000B2"
+      }
+    }
   ],
   "aux": [],
   "document_meta": {
-    "document_uuid": "doc-001",
+    "document_uuid": "00000000-0000-4000-8000-0000000000d1",
     "schema_uri": "https://3dsl.io/schema/3DSS.schema.json",
     "version": "1.0.0",
     "author": "proto"

@@ -1,42 +1,38 @@
-# 3DSL P1.9 Codex Trial Prototype
+# P1.9 Codex Trial — 3DSS Prototype Suite
 
-**目的**  
-Codexを本番導入する前に、Validator／Modeler／Viewer の最小構成を通しで生成・実行し、  
-構造・依存・入出力の正確性とプロセスを検証する。
+This folder hosts a minimal Validator / Modeler / Viewer toolchain for the
+3DSS JSON schema. Everything runs straight in the browser using ESM modules and
+CDN dependencies (Ajv + ajv-formats, three.js r160 with OrbitControls).
 
----
+## Quick start
 
-## 実行手順
+1. From the repository root launch a simple static server (the browser blocks
+   `fetch()` for local files). For example:
+   ```bash
+   cd /workspace/3DSL
+   python -m http.server 8000
+   ```
+2. Open the prototypes:
+   - Validator: <http://localhost:8000/code/proto/validator.html>
+   - Modeler: <http://localhost:8000/code/proto/modeler.html>
+   - Viewer: <http://localhost:8000/code/proto/viewer.html>
+3. Use the bundled samples in `code/proto/data/`:
+   - `sample_valid.3dss.json` must validate successfully.
+   - `sample_invalid.3dss.json` intentionally fails schema checks.
 
-1. Codex に `/meta/p_1_9_proto_plan.md` を添付。  
-2. 同ファイル内「Codex試走ディレクティブ」節をそのまま実行。  
-3. 出力は `/code/proto/` に上書きされる。
-4. 結果は `/logs/runtime/proto_eval.log` に記録。  
-5. `sample_valid.3dss.json`（OK）と `sample_invalid.3dss.json`（NG）をテスト入力とする。
+All tools compile the shared schema from `schemas/3DSS.schema.json` via Ajv 8
+with ajv-formats enabled.
 
----
+## Runtime logging
 
-## 構造
+Each page surfaces a small runtime log console and attempts to persist entries
+under `/logs/runtime/runtime-log.jsonl` using `navigator.sendBeacon`/`fetch`.
+When served with a writable endpoint the log file captures each validation or
+rendering event as JSON lines. Without a backend the logs stay in local storage
+and the inline console.
 
-/code/proto/
-validator.html
-modeler.html
-viewer.html
-js/
-proto_validator.js
-proto_modeler.js
-proto_viewer.js
-utils.js
-data/
-sample_valid.3dss.json
-sample_invalid.3dss.json
-logs/
-runtime/
+## Viewer notes
 
-
----
-
-## ブランチ情報
-- Branch: `main`
-- Phase: **P1.9 (Codex Trial Run)**
-- Next: `P2 (正式Codex実装)`
+The viewer renders point markers as spheres and lines as simple segments. Orbit
+controls are enabled by default. Loading an invalid document shows validation
+errors and clears the scene.
