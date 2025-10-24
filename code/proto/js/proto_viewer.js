@@ -1,5 +1,6 @@
-import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js";
+import * as THREE from "../../vendor/three/build/three.module.js";
+import { OrbitControls } from "../../vendor/three/examples/jsm/controls/OrbitControls.js";
+import GUI from "../../vendor/libs/dat.gui.module.js";
 import Ajv from "https://cdn.jsdelivr.net/npm/ajv@8.12.0/dist/ajv2020.mjs";
 import addFormats from "https://cdn.jsdelivr.net/npm/ajv-formats@2.1.1/dist/ajv-formats.mjs";
 import {
@@ -41,11 +42,16 @@ function initThree() {
   const width = canvasContainer.clientWidth;
   const height = canvasContainer.clientHeight;
 
+  if (typeof window !== "undefined") {
+    window.DatGUI = GUI;
+  }
+
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0f172a);
 
   camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
   camera.position.set(6, 6, 6);
+  camera.lookAt(new THREE.Vector3(0, 0, 0));
 
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(window.devicePixelRatio);
@@ -55,6 +61,8 @@ function initThree() {
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
+  controls.target.set(0, 0, 0);
+  controls.update();
 
   const ambient = new THREE.AmbientLight(0xffffff, 0.75);
   scene.add(ambient);
