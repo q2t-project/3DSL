@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://json-schema.org/draft/2020-12/meta/core",
+  "title": "Core vocabulary meta-schema",
+  "type": ["object", "boolean"]
+}

@@ -1,5 +1,5 @@
-import Ajv from "https://cdn.jsdelivr.net/npm/ajv@8.12.0/dist/ajv2020.mjs";
-import addFormats from "https://cdn.jsdelivr.net/npm/ajv-formats@2.1.1/dist/ajv-formats.mjs";
+import Ajv from "../../vendor/ajv/dist/ajv.bundle.js";
+import addFormats from "../../vendor/ajv-formats/dist/ajv-formats.bundle.js";
 import {
   PATHS,
   bindJSONFileInput,
@@ -10,6 +10,20 @@ import {
 
 let validator;
 let schemaCache;
+
+async function registerDraft2020Schemas(ajv) {
+  const [draft, core, meta] = await Promise.all([
+    loadJSON("../schemas/draft2020-12_schema.json"),
+    loadJSON("../schemas/meta_core.json"),
+    loadJSON("../schemas/meta_meta.json"),
+  ]);
+  ajv.addMetaSchema(draft);
+  ajv.addMetaSchema(core);
+  ajv.addMetaSchema(meta);
+  logEvent("validator", "Registered Draft2020-12 metas", {
+    ids: [draft.$id, core.$id, meta.$id],
+  });
+}
 
 async function ensureValidator() {
   if (validator) {
@@ -28,6 +42,7 @@ async function ensureValidator() {
     allowUnionTypes: true
   });
   addFormats(ajv, { mode: "fast" });
+  await registerDraft2020Schemas(ajv);
   validator = ajv.compile(schemaCache);
   logEvent("validator", "Schema compiled");
   return validator;
