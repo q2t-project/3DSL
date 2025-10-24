@@ -1,0 +1,15 @@
+{
+  "points": [
+    { "appearance": { "position": [0, 0, 0] }, "meta": { "uuid": "p-001" } }
+  ],
+  "lines": [
+    { "appearance": { "end_a": { "ref": "p-001" }, "end_b": { "coord": [1, 0, 0] } }, "meta": { "uuid": "l-001" } }
+  ],
+  "aux": [],
+  "document_meta": {
+    "document_uuid": "doc-001",
+    "schema_uri": "https://3dsl.io/schema/3DSS.schema.json",
+    "version": "1.0.0",
+    "author": "proto"
+  }
+}
