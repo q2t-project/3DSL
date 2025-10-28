@@ -1,0 +1,70 @@
+@startuml
+title 3DSL Unified Specification Architecture (Qx Parallel Sharedspec Model)
+
+package "specs" {
+  [3DSD_sharedspec.md] <<sharedspec>>
+  [3DSD_modeler.md] <<app_spec>>
+  [3DSD_viewer.md] <<app_spec>>
+  [3DSS_spec.md] <<schema_spec>>
+}
+
+package "schemas" {
+  [3DSS.schema.json] <<schema>>
+}
+
+package "code (Codex Output)" {
+  [Modeler] <<app>>
+  [Viewer] <<app>>
+}
+
+package "runtime (User Environments)" {
+  [Creator (Modeler User)]
+  [Reader (Viewer User)]
+}
+
+'=====================================
+' 依存・生成関係
+'=====================================
+[3DSS.schema.json] --> [3DSS_spec.md] : defines schema structure
+[3DSS_spec.md] --> [3DSD_sharedspec.md] : provides structural semantics
+[3DSD_sharedspec.md] --> [3DSD_modeler.md] : imports validator/common rules
+[3DSD_sharedspec.md] --> [3DSD_viewer.md] : imports validator/common rules
+
+[3DSD_modeler.md] --> [Modeler] : Codex generates
+[3DSD_viewer.md] --> [Viewer] : Codex generates
+
+[Creator (Modeler User)] --> [Modeler]
+[Viewer] --> [Reader (Viewer User)]
+
+'=====================================
+' 補足ノート群
+'=====================================
+note right of [3DSD_sharedspec.md]
+  【構成節】
+  §1 概要・依存関係  
+  §2 Validator Specification（旧validator統合）  
+  §3 命名規約・Directive構文  
+  §4 共通Constraints  
+  §5 Codex展開規約・バージョン連鎖  
+  ※ modeler・viewer と同階層。上位階層ではない。
+end note
+
+note top of [Modeler]
+  Modeler は構造生成・編集・Export・検証を担う。
+  ValidatorCore_M は sharedspec §2 に基づく自動生成モジュール。
+  出力形式：schema-valid 3DSS JSON。
+end note
+
+note top of [Viewer]
+  Viewer は 3D可視化・整合検証を担当。
+  ValidatorCore_V は sharedspec §2 に基づき共通ロジックを実装。
+  3DSSファイル読込時に再検証を実行。
+end note
+
+note left of [3DSS.schema.json]
+  3DSL全体の絶対基底。
+  スキーマ構造の唯一の真実。
+  sharedspec, modeler, viewer の全仕様はこれを参照。
+end note
+
+@enduml

@@ -1,0 +1,85 @@
+/3dsl/
+│  AGENTS.md
+│  .gitignore
+│  repo_structure.txt		/* repo構成snapshot(Codex実行毎に最後に出力) */
+│  
+├─code/			/* Codex出力の成果物 及び ベンダ由来コード */
+│  │
+│  ├─vendor/			/* vendorより入手のモジュールを集約管理 */
+│  │  ├─ajv/		# Codex構築
+│  │  ├─ajv-formats/	# Codex構築
+│  │  ├─three/		# Codex構築
+│  │  └─**/			# Codex生成
+│  │
+│  ├─common_components/	/* modelerとviewerの共通モジュールを集約管理 */
+│  │  └─**/			# Codex生成
+│  │    	**.js		# Codex生成
+│  ├─modeler/		/* 本フォルダとvendor/からのインポートで実行プログラムは完結 */
+│  │  │  index.html		/* modelerのindex.html 実働は各モジュールへ分散 */
+│  │  ├─core/		/* coreロジック */
+│  │  │  	**.js		# Codex生成
+│  │  ├─ui/			/* UI全般 */
+│  │  │  	**.js		# Codex生成
+│  │  ├─exporter/		/* 3DSS.jsonから各種ファイルへのエクスポート機能 */
+│  │  │      **.js		/* Codex出力 */
+│  │  ├─**/			# Codex生成
+│  │  │      **.js		# Codex生成
+│  │  ├─validator/		/* バリデータ */
+│  │  │      **.js		# Codex生成
+│  │  └─utils/		/* ユーティリティ 独立のサブフォルダにするまでもないもの*/
+│  │          **.js		# Codex生成
+│  └─viewer/			/* 本フォルダとvendor/からのインポートで実行プログラムは完結 */
+│      │  index.html		/* modelerのindex.html 実働は各モジュールへ分散 */
+│      ├─core/		/* coreロジック */
+│      │  	**.js		# Codex生成
+│      ├─ui/			/* UI全般 */
+│      │  	**.js		# Codex生成
+│      ├─render/		/* 3D描画・カメラ制御 */
+│      │      **.js		# Codex生成
+│      ├─**/			# Codex生成
+│      │      **.js		# Codex生成
+│      ├─validator/  	/* バリデータ */
+│      │      **.js		# Codex生成
+│      └─utils/		/* ユーティリティ 独立のサブフォルダにするまでもないもの*/
+│              **.js		# Codex生成
+│
+├─schemas/
+│      3DSS.schema.json	/* 3DSSスキーマJSON */
+│      3DSS_spec.md		/* 3DSSスキーマJSON仕様書 */
+│      
+├─specs/
+│      3DSD-sharedspec.md	/* 共通仕様 */
+│      3DSD-modeler.md		/* modeler仕様書 */
+│      3DSD-viewer.md		/* viewer仕様書 */
+│
+├─data/
+│  ├─sample/
+│  │      sample_std.3dss.json	/* 標準サンプル */
+│  │      sample_valid.3dss.json	/* valid正常サンプル */
+│  │      sample_invalid.3dss.json	/* valid不正サンプル */
+│  │      sample_**.3dss.json		/* その他サンプル */
+│  │      
+│  └exports/				/* modelerの出力先 */
+│      ├─3dss/			/* modelerの出力先(3dss) */
+│      │  **.3dss.json		/* modelerの出力(3dss) */
+│      ├─glf/			/* modelerの出力先(glf) */
+│      │  **.glf			/* modelerの出力(glf) */
+│      └  **				/* その他出力ファイル種類に応じて */
+│    
+├─docs/
+│  │      **.md			/* 公開対象のドキュメント */
+│  │      **.md			/* その他ドキュメント一般 */
+│  │      
+│  └─uml/				/* UML */
+│          component.puml		/* コンポーネント図 */
+│          packages.puml		/* パッケージ図 */
+│          dataflow.puml		/* データフロー図 */
+│
+├─logs/				/* 各種ログ */
+│      ├─update/			/* 仕様改訂ログ */
+│      ├─codex/			/* Codex生成・失敗 */
+│      └─runtime/			/* 実機ログ */
+│           
+└─meta/				/* Codex指示等に関わる諸事項 */
+        ├─update/			/* Codex指示等に関わる更新履歴 */
+        └─policy/			/* ChatGPT／Codex／Humanの行動規範 */

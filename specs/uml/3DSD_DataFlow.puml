@@ -1,0 +1,59 @@
+@startuml
+title 3DSL – Data Flow Overview (Qx Spec-Aligned, Sharedspec Parallel)
+
+actor "Creator" as C
+actor "Reader" as R
+
+rectangle "Modeler" as M {
+    (Modeler UI)
+    (Modeler Core)
+    (ValidatorCore_M)
+    (Exporter)
+}
+
+rectangle "Viewer" as V {
+    (Viewer UI)
+    (Viewer Core)
+    (ValidatorCore_V)
+    (Render Engine)
+}
+
+rectangle "Sharedspec" as S {
+    (Validation Rules)
+    (Schema Bindings)
+    (Directive Templates)
+}
+
+database "3DSS Data (JSON)" as D
+
+rectangle "Codex Engine" as X {
+    [Spec Interpreter]
+    [Directive Executor]
+}
+
+C --> (Modeler UI) : 3D構造を生成・編集
+(Modeler UI) --> (Modeler Core)
+(Modeler Core) --> (ValidatorCore_M)
+(ValidatorCore_M) --> (Exporter)
+(Exporter) --> D : .3dss.json 出力
+
+R --> (Viewer UI)
+(Viewer UI) --> (Viewer Core)
+(Viewer Core) --> D : JSON入力
+(Viewer Core) --> (ValidatorCore_V)
+(ValidatorCore_V) --> (Render Engine)
+(Render Engine) --> R : 3D表示
+
+S --> (ValidatorCore_M) : 検証ルール提供
+S --> (ValidatorCore_V) : 同一ルール適用
+X --> S : Directive解釈
+X --> M : Modeler生成
+X --> V : Viewer生成
+
+note right of S
+sharedspec は単なる共通仕様の括り出し。  
+他仕様と同階層であり、上位概念ではない。  
+Validator定義を含むが、指揮系統は持たない。
+end note
+
+@enduml

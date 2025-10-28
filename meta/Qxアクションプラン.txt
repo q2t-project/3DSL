@@ -1,0 +1,77 @@
+Qx アクションプラン（Ver.2.0：Shared-Core Codex展開型）
+
+目的：
+3DSL 全体の共通実行基盤（sharedspec）を中心に、Modeler／Viewer の独立責務とCodex展開同期を確立する。
+P1.9で確立した仕様書群を固定資産とし、QxでCodex運用とQAサイクルを完結させる。
+
+Q0：Framework 確定（共通基盤最終整理）
+ID	タスク	成果物
+Q0-01	ディレクトリ・命名規約最終確定（sharedspec §2整合）	/meta/Q0_folder_structure.md
+Q0-02	共通環境変数・パス・構造の再定義	/meta/Q0_common_envmap.md
+Q0-03	Codex指令体系マップ（Dir01–13 / 20–27 / 40–47）作成	/meta/Q0_codex_dir_map.md
+Q0-04	Codex SelfTestテンプレート整備	/meta/Q0_selftest_template.md
+
+Exit: sharedspec / modeler / viewer 全仕様書がディレクトリ階層・命名で完全整合。
+
+Q1：SharedSpec 実行基盤確定
+ID	タスク	成果物	QP適用
+Q1-01	共通実行基盤（sharedspec §2）検証	/proto/common/	✅
+Q1-02	共通Constraints／命名規範整合テスト	/logs/runtime/sharedspec_validation.log	–
+Q1-03	Codex展開ルールの差分検証	/meta/codex_diff_report.md	–
+Q1-04	QP-1：sharedspec から単体Codex展開（common/生成）	/proto/common/	✅
+
+Exit: sharedspec 単独で Codex 展開→SelfTestが成功（E_BUILD_OK）。
+
+Q2：Modeler 構造検証・安定化
+ID	タスク	成果物	QP適用
+Q2-01	Modelerディレクトリ構成・Exporter仕様整合	/specs/3DSD_modeler.md 更新	–
+Q2-02	Codex展開・I/O整合（Dir20–27）	/proto/modeler/	✅
+Q2-03	UI/UX操作試験（高解像度・マウス中心）	/logs/runtime/modeler_ui_test.log	✅
+Q2-04	ExceptionHandler／Loggerの統合テスト	/logs/runtime/modeler_error.log	–
+
+Exit: ModelerのExport/Validate/Undo/Redo が Codex出力で安定稼働。
+
+Q3：Viewer 構造検証・安定化
+ID	タスク	成果物	QP適用
+Q3-01	Viewerディレクトリ構成・UI整合（Dir40–47）	/specs/3DSD_viewer.md 更新	–
+Q3-02	モバイル／カラーモード対応の挙動検証	/logs/runtime/viewer_mobiletest.log	✅
+Q3-03	SnapshotExporter・TouchAdapterテスト	/proto/viewer/	✅
+Q3-04	QP-3：スマホ・PC両モードでSelfTest_V実施	/logs/runtime/selftest_viewer.log	✅
+
+Exit: Viewer が PC・Mobile 双環境で30fps以上を維持し SelfTest_V が成功。
+
+Q4：Codex Integration（展開・同期自動化）
+ID	タスク	成果物	QP適用
+Q4-01	Codex出力統合Map（spec→code）生成	/plans/Q4_codex_map.yaml	–
+Q4-02	Codex Directiveテンプレート最適化	/meta/Q4_directive_templates.md	–
+Q4-03	QP-4：Pull一発再生成＋HTTP起動＋ログ自動収集	/proto/*, /logs/codex/build.log	✅
+Q4-04	UpdateLog自動反映＋SelfTest集約	/meta/update_log.md	–
+
+Exit: 「仕様更新→Codex再生成→Proto実行→SelfTest→差分反映」の一巡を自動化。
+
+Q5：Validation & QA
+ID	タスク	成果物	QP適用
+Q5-01	全アプリ共通 ValidationResult形式固定	sharedspec §4 更新	–
+Q5-02	UI/UX試験（デバイス別：PC／Mobile）	/plans/Q5_scenario_test.md	✅
+Q5-03	Codex SelfTest群の自動スイープ（30サンプル）	/logs/codex/selftest.log	✅
+Q5-04	多言語／メッセージ統一指針整備	/meta/terminology_style.md	–
+
+Exit: 主要ユーザフローが端末差異を超えて安定。エラー表記・翻訳統一。
+
+Q6：Governance（運用・文書体系）
+ID	タスク	成果物
+Q6-01	文書相互参照インデックス生成	/meta/Q6_doc_index.md
+Q6-02	変更管理・バージョンポリシー確立	/meta/Q6_versioning.md
+Q6-03	ログ／エラー／SelfTest統合ポリシー	/meta/Q6_logging_policy.md
+
+Exit: 仕様・生成・実行・記録・反映の循環が全自動／文書連携可能となる。
+
+✅ 最終段階での完了判定（DoD）
+
+Codex 出力成功率 ≥ 95％
+
+Modeler／Viewer の主要操作（Load → Edit → Validate → Export → View）が無停止で 3 回連続成功
+
+SelfTest（V/M）平均FPS ≥ 30（±5％許容）
+
+/meta/update_log.md に差分が自動記録

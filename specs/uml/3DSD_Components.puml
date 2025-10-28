@@ -1,0 +1,91 @@
+@startuml
+title 3DSL – Component Composition (Qx Architecture / Bridge-less, Sharedspec Parallel)
+
+package "Modeler" {
+  [Core Engine]
+  [UI Controller]
+  [Exporter]
+  [Logger]
+  [ValidatorCore_M] <<generated>>
+  [Schema Adapter]
+}
+
+package "Viewer" {
+  [Render Engine]
+  [Scene Controller]
+  [Interaction Handler]
+  [Logger]
+  [ValidatorCore_V] <<generated>>
+  [Schema Adapter]
+}
+
+package "Sharedspec" {
+  [Validation Rules]
+  [Schema Bindings]
+  [Directive Templates]
+}
+
+[3DSS.schema.json] as Schema
+
+' =====================
+' Relations – Modeler
+' =====================
+[UI Controller] --> [ValidatorCore_M] : validate on edit
+[Core Engine] --> [ValidatorCore_M] : structure validation
+[ValidatorCore_M] --> Schema : ajv-based validation
+[Exporter] --> Schema : verify schema_uri
+[Exporter] ..> [ValidatorCore_M] : confirm valid status
+[Schema Adapter] --> Schema : read meta/$defs
+[Logger] ..> [Core Engine] : write logs
+
+' =====================
+' Relations – Viewer
+' =====================
+[Viewer] --> [Render Engine]
+[Render Engine] --> [ValidatorCore_V] : validate on load
+[Scene Controller] --> [Render Engine] : control scene graph
+[Interaction Handler] --> [Scene Controller] : event dispatch
+[ValidatorCore_V] --> Schema : schema verification
+[Logger] ..> [Render Engine] : log rendering events
+[Schema Adapter] --> Schema : resolve references
+
+' =====================
+' Sharedspec integration
+' =====================
+[Validation Rules] --> [ValidatorCore_M]
+[Validation Rules] --> [ValidatorCore_V]
+[Schema Bindings] --> Schema
+[Directive Templates] --> [ValidatorCore_M]
+[Directive Templates] --> [ValidatorCore_V]
+
+' =====================
+' Notes
+' =====================
+note top of [ValidatorCore_M]
+  共通仕様 (sharedspec §2) に基づく自動生成モジュール。
+  - ajv登録順: meta_core → meta_meta → draft2020-12 → 3DSS
+  - ValidationResult 構造統一
+  - Schema依存制約を内部保持
+end note
+
+note top of [ValidatorCore_V]
+  Modeler版と同一仕様に基づく内部モジュール。
+  Viewer内部で独立実装される。
+end note
+
+note right of [Exporter]
+  Modeler専用コンポーネント。
+  ViewerはExportを実装しない。
+end note
+
+note right of [Scene Controller]
+  Viewer独自モジュール。
+  Modelerとは完全非依存。
+end note
+
+note bottom of [Sharedspec]
+  Modeler／Viewer に共通適用される仕様定義群。
+  階層上は平行配置であり、上位ではない。
+end note
+
+@enduml
