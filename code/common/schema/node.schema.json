@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://3dsl.dev/schema/node.json",
+  "title": "Node",
+  "type": "object",
+  "required": ["id", "type"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "type": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "transform": {
+      "$ref": "https://3dsl.dev/schema/transform.json"
+    },
+    "metadata": {
+      "$ref": "https://3dsl.dev/schema/metadata.json"
+    },
+    "children": {
+      "type": "array",
+      "items": {
+        "$ref": "#"
+      }
+    }
+  }
+}
