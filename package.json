@@ -4,16 +4,12 @@
   "type": "module",
 
   "scripts": {
-    // modeler 専用自己診断
     "selftest:modeler": "node code/modeler/selftest/modeler_selftest.js",
 
-    // viewer 用自己診断を将来追加するときのスロット（今はダミーでエラーでもよい）
     "selftest:viewer": "node code/viewer/selftest/viewer_selftest.js",
 
-    // リポジトリ横断チェックを将来まとめるときの入口（今は何もしない or 明示的にエラー）
     "check:repo": "node scripts/check_repo.mjs",
 
-    // 汎用 test スロットは、現時点では「意図的に空席扱い」と宣言しておく
     "test": "echo \"No generic test suite. Use npm run selftest:* or npm run check:repo\" && exit 1"
   },
 
