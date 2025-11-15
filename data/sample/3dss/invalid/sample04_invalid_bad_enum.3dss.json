@@ -1,0 +1,324 @@
+"$schema": "https://json-schema.org/draft/2020-12/schema",
+"$id": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.0",
+"title": "3DSS Schema v1.0.0",
+"type": "object",
+"properties": {
+  "lines": [
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "d5e80910-cdfd-4033-be4a-b1fcd0140181"
+        },
+        "end_b": {
+          "ref": "a311f6f9-dcf0-4cb2-94e9-24079d6ac1f3"
+        },
+        "line_type": "straight",
+        "color": "#b884e1",
+        "opacity": 0.4,
+        "line_style": "invalidstyle"
+      },
+      "meta": {
+        "uuid": "0ad9bc9c-4d72-4e04-a350-cca6e464b5ee"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "d5e80910-cdfd-4033-be4a-b1fcd0140181"
+        },
+        "end_b": {
+          "ref": "b6ee5abb-6c96-4372-95e8-3b26f286ed96"
+        },
+        "line_type": "straight",
+        "color": "#cc89a8",
+        "opacity": 0.4,
+        "line_style": "invalidstyle"
+      },
+      "meta": {
+        "uuid": "d846e0b6-ab87-400d-be6a-19e6445f337f"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "42e499dd-9c73-460f-bdb8-f364dc72a705"
+        },
+        "end_b": {
+          "ref": "d5e80910-cdfd-4033-be4a-b1fcd0140181"
+        },
+        "line_type": "straight",
+        "color": "#6a2afd",
+        "opacity": 0.4,
+        "line_style": "invalidstyle"
+      },
+      "meta": {
+        "uuid": "b2c9f51d-72d6-49dd-9c3f-832e60062511"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "b6ee5abb-6c96-4372-95e8-3b26f286ed96"
+        },
+        "end_b": {
+          "ref": "c29e4531-6b7e-4b23-8f1d-f81b8fc8a496"
+        },
+        "line_type": "straight",
+        "color": "#b4b530",
+        "opacity": 0.4,
+        "line_style": "invalidstyle"
+      },
+      "meta": {
+        "uuid": "c734c21e-fd5a-4ce6-b583-b81161a9f9c0"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "89f93c46-558a-4a1f-8087-339885cf59eb"
+        },
+        "end_b": {
+          "ref": "c29e4531-6b7e-4b23-8f1d-f81b8fc8a496"
+        },
+        "line_type": "straight",
+        "color": "#2a51ca",
+        "opacity": 0.4,
+        "line_style": "invalidstyle"
+      },
+      "meta": {
+        "uuid": "8f439871-0f6b-4270-821a-ce9ecc338edf"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "c29e4531-6b7e-4b23-8f1d-f81b8fc8a496"
+        },
+        "end_b": {
+          "ref": "909ab2d6-3443-4826-9334-6ccf075866ad"
+        },
+        "line_type": "straight",
+        "color": "#968aa1",
+        "opacity": 0.4,
+        "line_style": "invalidstyle"
+      },
+      "meta": {
+        "uuid": "14683362-1b72-42bb-a64a-30d187c91348"
+      }
+    }
+  ],
+  "points": [
+    {
+      "appearance": {
+        "position": [
+          5.93,
+          -8.9,
+          -4.36
+        ]
+      },
+      "meta": {
+        "uuid": "c29e4531-6b7e-4b23-8f1d-f81b8fc8a496"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          1.39,
+          5.27,
+          -9.51
+        ]
+      },
+      "meta": {
+        "uuid": "a311f6f9-dcf0-4cb2-94e9-24079d6ac1f3"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          2.04,
+          -0.74,
+          8.58
+        ]
+      },
+      "meta": {
+        "uuid": "b6ee5abb-6c96-4372-95e8-3b26f286ed96"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          2.26,
+          -7.41,
+          -2.32
+        ]
+      },
+      "meta": {
+        "uuid": "42e499dd-9c73-460f-bdb8-f364dc72a705"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          2.85,
+          2.81,
+          9.61
+        ]
+      },
+      "meta": {
+        "uuid": "909ab2d6-3443-4826-9334-6ccf075866ad"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -3.96,
+          0.79,
+          -7.34
+        ]
+      },
+      "meta": {
+        "uuid": "89f93c46-558a-4a1f-8087-339885cf59eb"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -1.08,
+          -2.91,
+          -8.17
+        ]
+      },
+      "meta": {
+        "uuid": "fdbed166-15ec-4d2d-8353-db2a39b6a76e"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -1.7,
+          -6.72,
+          -4.83
+        ]
+      },
+      "meta": {
+        "uuid": "d5e80910-cdfd-4033-be4a-b1fcd0140181"
+      }
+    }
+  ],
+  "aux": [
+    {
+      "appearance": {
+        "module": {
+          "grid": {
+            "grid_type": "cartesian"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "42997c55-ce6a-47f5-aa82-daa09a3e09cd"
+      }
+    },
+    {
+      "appearance": {
+        "module": {
+          "grid": {
+            "grid_type": "cartesian"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "b181f266-b9db-4265-80c9-97da6a76c9ff"
+      }
+    },
+    {
+      "appearance": {
+        "module": {
+          "grid": {
+            "grid_type": "cartesian"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "f89b91eb-6c11-43f4-a666-0b3d1532cb85"
+      }
+    },
+    {
+      "appearance": {
+        "module": {
+          "grid": {
+            "grid_type": "cartesian"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "ba00a3e6-b7b1-4e39-8522-684bd1dde037"
+      }
+    },
+    {
+      "appearance": {
+        "module": {
+          "grid": {
+            "grid_type": "cartesian"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "00c46df3-21e0-45c3-afe3-934beb8e712b"
+      }
+    },
+    {
+      "appearance": {
+        "module": {
+          "grid": {
+            "grid_type": "cartesian"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "9d1e1650-951f-4d22-b0f4-a8cc3c1440fc"
+      }
+    }
+  ],
+  "document_meta": {
+    "document_uuid": "cb11bc7c-3e4f-431c-9526-9095d054272c",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.0",
+    "author": "creator@example.com",
+    "version": "1.0.0"
+  }
+}

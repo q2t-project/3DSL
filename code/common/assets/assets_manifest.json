@@ -1,0 +1,80 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2025-11-11T00:00:00+09:00",
+  "description": "3DSL asset manifest — maps all static UI/content resources for Codex validation",
+  "fonts": {
+    "ui": [
+      "noto-sans-jp-v55-japanese_latin-300.woff2",
+      "noto-sans-jp-v55-japanese_latin-500.woff2",
+      "noto-sans-jp-v55-japanese_latin-700.woff2",
+      "noto-sans-jp-v55-japanese_latin-regular.woff2",
+      "JetBrainsMono-Regular.woff2"
+    ],
+    "content": [
+      "noto-serif-jp-v32-japanese_latin-200.woff2",
+      "noto-serif-jp-v32-japanese_latin-600.woff2",
+      "noto-serif-jp-v32-japanese_latin-900.woff2",
+      "noto-serif-jp-v32-japanese_latin-regular.woff2",
+      "metal-v32-latin-regular.woff2",
+      "mathjax/MathJax_Main-Regular.woff",
+      "mathjax/MathJax_AMS-Regular.woff",
+      "mathjax/MathJax_Calligraphic-Bold.woff",
+      "mathjax/MathJax_Calligraphic-Regular.woff",
+      "mathjax/MathJax_Fraktur-Bold.woff",
+      "mathjax/MathJax_Fraktur-Regular.woff",
+      "mathjax/MathJax_Main-Bold.woff",
+      "mathjax/MathJax_Main-Italic.woff",
+      "mathjax/MathJax_Math-BoldItalic.woff",
+      "mathjax/MathJax_Math-Italic.woff",
+      "mathjax/MathJax_Math-Regular.woff",
+      "mathjax/MathJax_SansSerif-Bold.woff",
+      "mathjax/MathJax_SansSerif-Italic.woff",
+      "mathjax/MathJax_SansSerif-Regular.woff",
+      "mathjax/MathJax_Script-Regular.woff",
+      "mathjax/MathJax_Size1-Regular.woff",
+      "mathjax/MathJax_Size2-Regular.woff",
+      "mathjax/MathJax_Size3-Regular.woff",
+      "mathjax/MathJax_Size4-Regular.woff",
+      "mathjax/MathJax_Typewriter-Regular.woff",
+      "mathjax/MathJax_Vector-Bold.woff",
+      "mathjax/MathJax_Vector-Regular.woff",
+      "mathjax/MathJax_Zero.woff"
+    ]
+  },
+  "textures": {
+    "ui": [
+      "base_gray.png",
+      "noise_gray.png",
+      "noise_dark.png",
+      "bg_noise_dark.png",
+      "carbon_fiber_tile.png",
+      "glass_panel_blur.png",
+      "grid_overlay.png",
+      "metal_brushed_gray.jpg"
+    ],
+    "content": [
+      "grid_16px_alpha.png",
+      "grid_overlay_alpha.png"
+    ]
+  },
+  "icons": {
+    "source": "Material Symbols (subset)",
+    "format": "SVG"
+  },
+  "logo": {
+    "files": [
+      "3DSD-viewer.svg",
+      "3DSD-modeler.svg"
+    ],
+    "style": "Bebas Neue + Inter Tight"
+  },
+  "images": {
+    "placeholders": [
+      "placeholders/dummy_splash.png"
+    ]
+  },
+  "meta": {
+    "readme": "README.md",
+    "template": "report_template.html"
+  }
+}

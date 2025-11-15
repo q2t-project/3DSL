@@ -1,0 +1,45 @@
+# ===============================================
+# 3DSL Project - Git Attributes
+# ===============================================
+
+# --- Text normalization -------------------------
+
+# 仕様書・設定類は LF / UTF-8 に統一
+*.md    text eol=lf working-tree-encoding=UTF-8
+*.txt   text eol=lf working-tree-encoding=UTF-8
+*.json  text eol=lf working-tree-encoding=UTF-8
+*.yml   text eol=lf working-tree-encoding=UTF-8
+*.yaml  text eol=lf working-tree-encoding=UTF-8
+*.puml  text eol=lf working-tree-encoding=UTF-8
+
+# --- Binary assets ------------------------------
+
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.svg   text
+*.ttf   binary
+*.otf   binary
+*.woff  binary
+*.woff2 binary
+*.zip   binary
+
+# --- Minified / bundled JS (全体) ---------------
+
+*.min.js     -diff
+*.bundle.js  -diff
+*.map        -diff
+
+# --- Vendor ディレクトリ ------------------------
+
+# vendor は基本そのまま管理するが、
+# 大きい生成物だけ diff 抑制
+code/vendor/**/*.min.js     -diff
+code/vendor/**/*.bundle.js  -diff
+code/vendor/**/*.map        -diff
+
+# ライブラリの README / LICENSE はテキストとして普通に diff
+code/vendor/**/README.md  text eol=lf working-tree-encoding=UTF-8
+code/vendor/**/LICENSE    text eol=lf working-tree-encoding=UTF-8

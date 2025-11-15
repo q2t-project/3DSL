@@ -1,0 +1,62 @@
+/* ==========================================================
+   3DSL Font Definitions
+   File: /assets/fonts/fonts.css
+   Purpose:
+     - Viewer / Modeler 共通フォント定義
+     - Noto Sans JP をローカル運用（woff2固定）
+     - JetBrains Mono は数値・コード・表用
+   ========================================================== */
+
+/* Noto Sans JP (Regular 400) */
+@font-face {
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./noto-sans-jp-v55-japanese_latin-regular.woff2') format('woff2');
+}
+
+/* Noto Sans JP (Light 300) */
+@font-face {
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('./noto-sans-jp-v55-japanese_latin-300.woff2') format('woff2');
+}
+
+/* Noto Sans JP (Medium 500) */
+@font-face {
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./noto-sans-jp-v55-japanese_latin-500.woff2') format('woff2');
+}
+
+/* Noto Sans JP (Bold 700) */
+@font-face {
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./noto-sans-jp-v55-japanese_latin-700.woff2') format('woff2');
+}
+
+/* JetBrains Mono (Regular) — code/table用 */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./JetBrainsMono-Regular.woff2') format('woff2');
+}
+
+/* ==========================================================
+   Font-family aliases
+   ========================================================== */
+
+:root {
+  --font-sans: 'Noto Sans JP', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}

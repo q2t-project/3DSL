@@ -1,0 +1,51 @@
+<!--
+3DSL Report Template
+Purpose:
+  - Used by Codex for generating runtime validation and repository status reports.
+  - Referenced by /code/common/report/ modules.
+  - Layout is static; content is dynamically injected.
+-->
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3DSL Report Template</title>
+  <link rel="stylesheet" href="../css/3dsd_theme.css" />
+  <style>
+    body {
+      background-color: #000;
+      color: #ddd;
+      font-family: 'Noto Sans JP', sans-serif;
+      margin: 2rem;
+    }
+    .report-container {
+      max-width: 960px;
+      margin: auto;
+      background-color: #111;
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 0 16px rgba(255,255,255,0.05);
+    }
+    .report-header {
+      font-size: 1.25rem;
+      font-weight: bold;
+      border-bottom: 1px solid #333;
+      margin-bottom: 1rem;
+    }
+    .report-body {
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="report-container">
+    <div class="report-header">3DSL Report</div>
+    <div class="report-body">
+      <p>このテンプレートは Codex により自動的にデータ挿入されます。</p>
+    </div>
+  </div>
+</body>
+</html>

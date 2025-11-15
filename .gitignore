@@ -1,0 +1,23 @@
+# --- .gitignore (safe-min for 3DSL)
+
+# OS / tooling trash
+.DS_Store
+Thumbs.db
+*.tmp
+*.bak
+*.swp
+*.orig
+
+# Generic log files
+*.log
+
+# Local Node dependencies (never commit)
+node_modules/
+
+# Project runtime / test logs (tool output only)
+logs/**
+
+# Auto-test exports under data/exports/*
+# 例: auto_test.3dss.json / auto_test_report.html / auto_test.note.json など
+data/exports/**/auto_test.*
+

@@ -1,0 +1,30 @@
+"$schema": "https://json-schema.org/draft/2020-12/schema",
+"$id": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.0",
+"title": "3DSS Schema v1.0.0",
+"type": "object",
+"properties": {
+  "lines": [],
+  "points": [],
+  "aux": [
+    {
+      "appearance": {
+        "module": {
+          "extension": {
+            "latex": {
+              "content": "E=mc^2"
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "7977b000-cd46-424d-bba8-442f476a0939"
+      }
+    }
+  ],
+  "document_meta": {
+    "document_uuid": "2a370cc8-5daf-480a-b91a-e6cf73a5d815",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.0",
+    "author": "creator@example.com",
+    "version": "1.0.0"
+  }
+}

@@ -1,0 +1,125 @@
+/* ==========================================================
+   3DSL Content Fonts Declaration
+   Target: /assets/fonts/content/
+   Purpose:
+     - 数式, 注釈, 文書テキストなどコンテンツ内部の描画用フォント定義
+     - MathJax, Noto Serif JP, Emoji, Mono 等を統合
+   ========================================================== */
+
+
+/* ==========================================================
+   Noto Serif JP（本文・注釈用）
+   ========================================================== */
+@font-face {
+  font-family: 'Noto Serif JP';
+  src: url('./noto-serif-jp-v32-japanese_latin-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Noto Serif JP';
+  src: url('./noto-serif-jp-v32-japanese_latin-200.woff2') format('woff2');
+  font-weight: 200;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Noto Serif JP';
+  src: url('./noto-serif-jp-v32-japanese_latin-600.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Noto Serif JP';
+  src: url('./noto-serif-jp-v32-japanese_latin-900.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+}
+
+
+/* ==========================================================
+   Noto Emoji（絵文字補助）
+   ========================================================== */
+@font-face {
+  font-family: 'Noto Emoji';
+  src: url('./noto-emoji-v61-emoji-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Noto Color Emoji';
+  src: url('./noto-color-emoji-v36-emoji-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+}
+
+
+/* ==========================================================
+   MathJax Fonts（数式レンダリング用）
+   ========================================================== */
+@font-face {
+  font-family: 'MathJax_Main';
+  src: url('./mathjax/MathJax_Main-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'MathJax_Math';
+  src: url('./mathjax/MathJax_Math-Italic.woff') format('woff');
+  font-weight: 400;
+  font-style: italic;
+}
+@font-face {
+  font-family: 'MathJax_AMS';
+  src: url('./mathjax/MathJax_AMS-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'MathJax_SansSerif';
+  src: url('./mathjax/MathJax_SansSerif-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'MathJax_Script';
+  src: url('./mathjax/MathJax_Script-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'MathJax_Fraktur';
+  src: url('./mathjax/MathJax_Fraktur-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+}
+
+
+/* ==========================================================
+   JetBrains Mono（コード/表構造用）
+   ========================================================== */
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('../ui/JetBrainsMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+}
+
+
+/* ==========================================================
+   Composite Family Presets
+   ========================================================== */
+body {
+  font-family:
+    'Noto Serif JP',
+    'MathJax_Main',
+    'JetBrains Mono',
+    'Noto Emoji',
+    'Segoe UI Symbol',
+    serif;
+}
+.math {
+  font-family: 'MathJax_Math', 'MathJax_Main', serif;
+}
+.code {
+  font-family: 'JetBrains Mono', monospace;
+}

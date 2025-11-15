@@ -1,0 +1,163 @@
+/* ==========================================================
+   3DSL 共通UI補助スタイル
+   File: /assets/css/3dsd_ui.css
+   Purpose:
+     - panel / hud / button / modal の共通UI調整
+     - 3dsd_theme.css の変数を参照して統一
+   ========================================================== */
+
+/* ==========================================================
+   Panel
+   ========================================================== */
+
+.panel {
+  background-color: rgba(17,17,17,var(--opacity-panel));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  box-shadow: var(--shadow-soft);
+  color: var(--color-text);
+}
+
+.panel-header {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-strong);
+  font-size: 0.9rem;
+  background-color: rgba(24,24,24,0.8);
+}
+
+.panel-title {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.panel-body {
+  padding: 8px;
+  color: var(--color-text);
+}
+
+/* ==========================================================
+   HUD
+   ========================================================== */
+
+.hud {
+  position: absolute;
+  right: 24px;
+  top: 24px;
+  z-index: 10;
+  background-color: rgba(15,15,15,0.85);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  color: var(--color-text);
+  font-size: 0.875rem;
+  box-shadow: var(--shadow-soft);
+}
+
+.hud.info {
+  color: var(--color-accent-blue);
+}
+
+.hud.error {
+  color: var(--color-error);
+}
+
+.hud.success {
+  color: var(--color-accent-green);
+}
+
+/* ==========================================================
+   Button
+   ========================================================== */
+
+.btn {
+  background-color: var(--color-bg-panel-alt);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.btn:hover {
+  background-color: var(--color-accent-blue);
+  color: #fff;
+}
+
+.btn:active {
+  background-color: var(--color-accent-green);
+}
+
+.btn.small {
+  padding: 4px 10px;
+  font-size: 0.8rem;
+}
+
+.btn.icon {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn.icon svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+/* ==========================================================
+   Modal
+   ========================================================== */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: none;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal.show {
+  display: flex;
+}
+
+.modal-panel {
+  background-color: var(--color-bg-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  box-shadow: 0 0 16px rgba(0,0,0,0.5);
+  min-width: 280px;
+  padding: 12px;
+}
+
+.modal-header {
+  color: var(--color-text-strong);
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.modal-body {
+  color: var(--color-text);
+  font-size: 0.9rem;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* ==========================================================
+   Common Utility
+   ========================================================== */
+
+.hidden {
+  display: none !important;
+}
+
+.visible {
+  display: block !important;
+}

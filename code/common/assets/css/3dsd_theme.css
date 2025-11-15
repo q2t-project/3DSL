@@ -1,0 +1,161 @@
+/* ==========================================================
+   3DSL 共通テーマ定義
+   File: /assets/css/3dsd_theme.css
+   Purpose:
+     - Viewer / Modeler 共通で使用するUIスタイル
+     - 黒基調 + 最小限アクセント
+     - 背景・フォント・ロゴ色などの基準値を統一
+   ========================================================== */
+
+:root {
+  /* ===== Base tones ===== */
+  --color-bg-main: #000;       /* 3Dビュー背景（完全黒） */
+  --color-bg-panel: #111;      /* UIパネルやHUDの背景 */
+  --color-bg-panel-alt: #181818; /* ホバーや階層差用 */
+  --color-border: #222;        /* 区切り・罫線用 */
+
+  /* ===== Text ===== */
+  --color-text: #ddd;          /* 通常テキスト */
+  --color-text-weak: #aaa;     /* 補助テキスト */
+  --color-text-strong: #fff;   /* ロゴや見出しなど強調 */
+  
+  /* ===== Accent colors ===== */
+  --color-accent-blue: #3b82f6;  /* アクティブ・選択・操作強調 */
+  --color-accent-green: #22c55e; /* 完了・成功系 */
+  --color-error: #ef4444;        /* エラー・例外 */
+  --color-warning: #f59e0b;      /* 警告・注意 */
+
+  /* ===== Effects ===== */
+  --opacity-panel: 0.9;     /* UIパネル透過度 */
+  --shadow-soft: 0 0 8px rgba(255,255,255,0.05);
+  --glow-white: drop-shadow(0 0 6px rgba(255,255,255,0.25));
+  
+  /* ===== Font / Radius ===== */
+  --font-sans: 'Inter Tight', system-ui, sans-serif;
+  --font-display: 'Bebas Neue', var(--font-sans);
+  --radius-base: 8px;
+}
+
+/* ==========================================================
+   Global Layout / Background
+   ========================================================== */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(180deg, #0a0a0a 0%, #000 100%);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+body.viewer, body.modeler {
+  background: linear-gradient(180deg, #0a0a0a 0%, #000 100%);
+  color: var(--color-text);
+}
+
+/* ==========================================================
+   Panels / HUD / Toolbar
+   ========================================================== */
+
+.panel {
+  background-color: rgba(17,17,17,var(--opacity-panel));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  box-shadow: var(--shadow-soft);
+  color: var(--color-text);
+}
+
+.hud {
+  background-color: rgba(15,15,15,0.8);
+  color: var(--color-text);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.875rem;
+  box-shadow: 0 0 12px rgba(0,0,0,0.4);
+}
+
+/* ==========================================================
+   Buttons / Toggles
+   ========================================================== */
+
+.btn {
+  background-color: var(--color-bg-panel-alt);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+.btn:hover {
+  background-color: var(--color-accent-blue);
+  color: #fff;
+}
+.btn:active {
+  background-color: var(--color-accent-green);
+  transform: translateY(1px);
+}
+.btn.icon {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ==========================================================
+   Error / Warning / Info States
+   ========================================================== */
+
+.error {
+  color: var(--color-error);
+}
+.warning {
+  color: var(--color-warning);
+}
+.info {
+  color: var(--color-accent-blue);
+}
+.success {
+  color: var(--color-accent-green);
+}
+.error-bg {
+  background-color: rgba(239,68,68,0.15); 
+}
+.warning-bg {
+  background-color: rgba(245,158,11,0.15); 
+}
+.info-bg {
+  background-color: rgba(59,130,246,0.15); 
+}
+
+/* ==========================================================
+   Logo styling (白ロゴ・軽いグロー)
+   ========================================================== */
+
+.logo {
+  color: var(--color-text-strong);
+  filter: var(--glow-white);
+  font-family: var(--font-display);
+  letter-spacing: 1px;
+  user-select: none;
+}
+
+/* ==========================================================
+   Scrollbar (非主張スタイル)
+   ========================================================== */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #333;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: #555;
+}

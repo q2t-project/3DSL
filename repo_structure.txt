@@ -1,0 +1,84 @@
+Summary:
+File total: 
+Directory total: 
+
+
+
+Structure:
+./
+├── .github/
+│   └── workflows/
+├── code/
+│   ├── common/
+│   │   ├── core/
+│   │   ├── report/
+│   │   │   └── statusReport.js
+│   │   ├── theme/
+│   │   ├── ui/
+│   │   ├── utils/
+│   │   └── validator/
+│   ├── modeler/
+│   │   ├── annotation/
+│   │   ├── assets/
+│   │   │   └── css/
+│   │   ├── core/
+│   │   ├── exporter/
+│   │   ├── extensions/
+│   │   │   ├── latex/
+│   │   │   ├── macro/
+│   │   │   ├── parametric/
+│   │   │   └── semantic_generation/
+│   │   ├── renderer/
+│   │   ├── report/
+│   │   ├── selftest/
+│   │   ├── ui/
+│   │   ├── utils/
+│   │   └── validator/
+│   ├── scripts/
+│   └── viewer/
+│       ├── annotation/
+│       ├── assets/
+│       │   ├── css/
+│       │   └── icons/
+│       ├── core/
+│       ├── exporter/
+│       ├── extensions/
+│       ├── hud/
+│       ├── renderer/
+│       ├── report/
+│       ├── ui/
+│       ├── utils/
+│       └── validator/
+├── data/
+│   ├── imports/
+│   │   ├── glf/
+│   │   └── snapshot/
+│   ├── exports/
+│   │   ├── glf/
+│   │   ├── note/
+│   │   ├── report/
+│   │   └── snapshot/
+│   └── sample/
+├── docs/
+│   └── uml/
+├── logs/
+│   ├── codex/
+│   ├── tests/
+│   └── runtime/
+├── meta/
+│   ├── logs/
+│   │   ├── codex/
+│   │   ├── tests/
+│   │   └── runtime/
+│   ├── policy/
+│   └── tools/
+├── schemas/
+├── scripts/
+├── specs/
+├── .gitattributes
+├── .gitignore
+├── AGENTS.md
+├── LICENSE
+├── package.json
+├── README.md
+└── repo_structure.txt

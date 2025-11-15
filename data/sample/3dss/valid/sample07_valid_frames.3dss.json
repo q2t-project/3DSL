@@ -1,0 +1,68 @@
+"$schema": "https://json-schema.org/draft/2020-12/schema",
+"$id": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.0",
+"title": "3DSS Schema v1.0.0",
+"type": "object",
+"properties": {
+  "lines": [
+    {
+      "signification": {
+        "relation": {
+          "dynamic": "flow"
+        },
+        "sense": "a_to_b"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "d68bfd3b-9cc3-41f9-a71b-bc7c9cc2990a"
+        },
+        "end_b": {
+          "ref": "68a9c5ad-7d41-4852-8ccc-e3904ebd0892"
+        },
+        "line_style": "dashed",
+        "color": "#00ff00",
+        "opacity": 0.4,
+        "frames": [
+          -10,
+          0,
+          10
+        ]
+      },
+      "meta": {
+        "uuid": "d2aa063b-4e5d-4928-86ae-e822862f04e1"
+      }
+    }
+  ],
+  "points": [
+    {
+      "appearance": {
+        "position": [
+          -6.8,
+          -9.47,
+          5.37
+        ]
+      },
+      "meta": {
+        "uuid": "d68bfd3b-9cc3-41f9-a71b-bc7c9cc2990a"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          7.92,
+          -4.4,
+          5.83
+        ]
+      },
+      "meta": {
+        "uuid": "68a9c5ad-7d41-4852-8ccc-e3904ebd0892"
+      }
+    }
+  ],
+  "aux": [],
+  "document_meta": {
+    "document_uuid": "68501fb6-150d-4a22-8ed7-b6741c0ca806",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.0",
+    "author": "creator@example.com",
+    "version": "1.0.0"
+  }
+}
