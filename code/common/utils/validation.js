@@ -1,8 +1,73 @@
 import { ValidationError } from '../errors/index.js';
+import { validateWithSchema } from '../schema/schema_validator.js';
 
 const VECTOR_LENGTH = 3;
 
 const isObjectLike = (value) => typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const INSTANCE_PATH_SEPARATOR = '/';
+
+const isArrayIndexSegment = (segment) => /^\d+$/.test(segment);
+
+const decodeJsonPointer = (segment = '') => segment.replace(/~1/g, '/').replace(/~0/g, '~');
+
+const formatInstancePath = (instancePath = '') => {
+  if (!instancePath) {
+    return '';
+  }
+
+  return instancePath
+    .split(INSTANCE_PATH_SEPARATOR)
+    .filter(Boolean)
+    .map(decodeJsonPointer)
+    .map((segment) => (isArrayIndexSegment(segment) ? `[${segment}]` : `.${segment}`))
+    .join('');
+};
+
+function stripUndefinedDeep(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => stripUndefinedDeep(item));
+  }
+
+  if (isObjectLike(value)) {
+    return Object.entries(value).reduce((acc, [key, entry]) => {
+      if (entry !== undefined) {
+        acc[key] = stripUndefinedDeep(entry);
+      }
+      return acc;
+    }, {});
+  }
+
+  return value;
+}
+
+const formatSchemaErrors = (errors = [], basePath = 'schema') => {
+  if (!errors.length) {
+    return `${basePath} is invalid`;
+  }
+
+  return errors
+    .map((error) => {
+      const pointer = formatInstancePath(error.instancePath);
+      const location = `${basePath}${pointer}`;
+
+      if (error.keyword === 'required' && error.params?.missingProperty) {
+        return `${location}.${error.params.missingProperty} is required`;
+      }
+
+      return `${location} ${error.message ?? 'is invalid'}`.trim();
+    })
+    .join('; ');
+};
+
+function runSchemaValidation(schemaName, target, path = schemaName) {
+  const payload = stripUndefinedDeep(target ?? {});
+  const { valid, errors } = validateWithSchema(schemaName, payload);
+  if (!valid) {
+    throw new ValidationError(formatSchemaErrors(errors, path));
+  }
+  return true;
+}
 
 export function ensureSchemaPresence(schemaName, payload) {
   if (typeof schemaName !== 'string' || !schemaName.trim()) {
@@ -31,94 +96,19 @@ export function validateVector3(axis, path = 'vector') {
 }
 
 export function validateTransformStructure(transform = {}, path = 'transform') {
-  const target = transform ?? {};
-
-  if (!isObjectLike(target)) {
-    throw new ValidationError(`${path} must be an object with position, rotation and scale`);
-  }
-
-  validateVector3(target.position ?? [0, 0, 0], `${path}.position`);
-  validateVector3(target.rotation ?? [0, 0, 0], `${path}.rotation`);
-  validateVector3(target.scale ?? [1, 1, 1], `${path}.scale`);
-
-  return true;
+  return runSchemaValidation('transform', transform ?? {}, path);
 }
 
 export function validateMetadataStructure(metadata = {}, path = 'metadata') {
-  const target = metadata ?? {};
-
-  if (!isObjectLike(target)) {
-    throw new ValidationError(`${path} must be an object`);
-  }
-
-  if ('name' in target && target.name != null && typeof target.name !== 'string') {
-    throw new ValidationError(`${path}.name must be a string when defined`);
-  }
-
-  if ('tags' in target) {
-    if (!Array.isArray(target.tags)) {
-      throw new ValidationError(`${path}.tags must be an array of strings`);
-    }
-
-    target.tags.forEach((tag, index) => {
-      if (typeof tag !== 'string') {
-        throw new ValidationError(`${path}.tags[${index}] must be a string`);
-      }
-    });
-  }
-
-  return true;
+  return runSchemaValidation('metadata', metadata ?? {}, path);
 }
 
 export function validateNodeStructure(node, path = 'node') {
-  if (!isObjectLike(node)) {
-    throw new ValidationError(`${path} must be an object`);
-  }
-
-  if (typeof node.id !== 'string' || !node.id.trim()) {
-    throw new ValidationError(`${path}.id must be a non-empty string`);
-  }
-
-  if (typeof node.type !== 'string' || !node.type.trim()) {
-    throw new ValidationError(`${path}.type must be a non-empty string`);
-  }
-
-  validateTransformStructure(node.transform ?? {}, `${path}.transform`);
-  validateMetadataStructure(node.metadata ?? {}, `${path}.metadata`);
-
-  if (node.children !== undefined) {
-    if (!Array.isArray(node.children)) {
-      throw new ValidationError(`${path}.children must be an array when provided`);
-    }
-
-    node.children.forEach((child, index) => {
-      validateNodeStructure(child, `${path}.children[${index}]`);
-    });
-  }
-
-  return true;
+  return runSchemaValidation('node', node ?? {}, path);
 }
 
 export function validateSceneStructure(scene, path = 'scene') {
-  if (!isObjectLike(scene)) {
-    throw new ValidationError(`${path} must be an object`);
-  }
-
-  if (typeof scene.id !== 'string' || !scene.id.trim()) {
-    throw new ValidationError(`${path}.id must be a non-empty string`);
-  }
-
-  if (!Array.isArray(scene.nodes)) {
-    throw new ValidationError(`${path}.nodes must be an array of nodes`);
-  }
-
-  scene.nodes.forEach((node, index) => {
-    validateNodeStructure(node, `${path}.nodes[${index}]`);
-  });
-
-  validateMetadataStructure(scene.metadata ?? {}, `${path}.metadata`);
-
-  return true;
+  return runSchemaValidation('scene', scene ?? {}, path);
 }
 
 export function validateModelStructure(model, path = 'model') {

@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://3dsl.dev/schema/transform.json",
+  "title": "Transform",
+  "type": ["object", "null"],
+  "properties": {
+    "position": {
+      "anyOf": [
+        { "$ref": "#/$defs/vector3" },
+        { "type": "null" }
+      ]
+    },
+    "rotation": {
+      "anyOf": [
+        { "$ref": "#/$defs/vector3" },
+        { "type": "null" }
+      ]
+    },
+    "scale": {
+      "anyOf": [
+        { "$ref": "#/$defs/vector3" },
+        { "type": "null" }
+      ]
+    }
+  },
+  "$defs": {
+    "vector3": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "number",
+        "format": "finite-number"
+      }
+    }
+  }
+}
