@@ -1,5 +1,6 @@
-import { ensureSchemaPresence } from '../../common/utils/index.js';
+import { ensureSchemaPresence, validateModelStructure } from '../../common/utils/index.js';
 
 export function assertModelSchema(payload, { schemaName = '3dsl-core-model' } = {}) {
-  return ensureSchemaPresence(schemaName, payload);
+  ensureSchemaPresence(schemaName, payload);
+  return validateModelStructure(payload);
 }

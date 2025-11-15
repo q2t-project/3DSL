@@ -1,19 +1,24 @@
-import { CoreNode } from '../../common/types/index.js';
-import { generateId, ensureSchemaPresence } from '../../common/utils/index.js';
+import { Node } from '../../common/types/index.js';
+import { generateId, ensureSchemaPresence, validateNodeStructure } from '../../common/utils/index.js';
 
-const DEFAULT_SCHEMA = '3dsl-core';
+const DEFAULT_SCHEMA = '3dsl-core-node';
 
-export function createNode({ kind, transform, props, id } = {}) {
-  return new CoreNode({
-    id: id ?? generateId('core-node'),
-    kind,
+export function createNode({ type, kind, transform, metadata, children = [], id } = {}) {
+  const node = new Node({
+    id: id ?? generateId('node'),
+    type: type ?? kind,
     transform,
-    props,
+    metadata,
+    children,
   });
+
+  validateNodeStructure(node);
+  return node;
 }
 
 export function validateNode(node, { schemaName = DEFAULT_SCHEMA } = {}) {
   ensureSchemaPresence(schemaName, node);
+  validateNodeStructure(node);
   return node;
 }
 
