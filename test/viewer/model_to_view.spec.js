@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { Metadata, Node, Scene, Transform } from '../../code/common/types/index.js';
-import { convertModelNodeToViewNode, convertModelSceneToViewScene } from '../../code/viewer/utils/model_to_view.js';
+import { convertNode, convertScene } from '../../code/viewer/convert/model_to_view.js';
 
 // These tests can be executed with `node test/viewer/model_to_view.spec.js` once
 // the runtime is wired into the CI runner. npm scripts are unavailable today, so
@@ -11,49 +11,49 @@ function assertViewerDefaults() {
     id: 'node-defaults',
     type: 'mesh',
     transform: new Transform({ position: [1, 2, 3] }),
-    metadata: new Metadata({ name: 'Defaults', tags: ['root'] }),
+    metadata: new Metadata({ name: 'Defaults', tags: ['root'], color: '#ff0000' }),
   });
 
-  const viewNode = convertModelNodeToViewNode(node);
+  const viewNode = convertNode(node);
   assert.equal(viewNode.id, node.id);
   assert.equal(viewNode.visible, true);
-  assert.deepStrictEqual(viewNode.tags, []);
-  assert.deepStrictEqual(viewNode.transform, node.transform.toJSON());
-  assert.deepStrictEqual(viewNode.metadata, node.metadata.toJSON());
+  assert.deepStrictEqual(viewNode.tags, ['root']);
+  assert.deepStrictEqual(viewNode.pos, { x: 1, y: 2, z: 3 });
+  assert.equal(viewNode.extras.name, 'Defaults');
+  assert.equal(viewNode.extras.color, '#ff0000');
+  assert.equal(viewNode.extras.type, 'mesh');
 }
 
-function assertChildConversion() {
-  const child = new Node({ id: 'child-node', type: 'mesh' });
+function assertSceneFlattening() {
+  const child = new Node({ id: 'child-node', type: 'mesh', transform: new Transform({ position: [0, 0, 1] }) });
   const parent = new Node({ id: 'parent-node', type: 'group', children: [child] });
 
-  const viewNode = convertModelNodeToViewNode(parent);
-  assert.equal(viewNode.children.length, 1);
-  assert.equal(viewNode.children[0].id, child.id);
-  assert.equal(viewNode.children[0].visible, true);
-  assert.strictEqual(viewNode.children[0].internalOnly, undefined);
+  const viewScene = convertScene({ id: 'scene', nodes: [parent] });
+  assert.equal(viewScene.nodes.length, 2);
+  const ids = viewScene.nodes.map((node) => node.id);
+  assert(ids.includes('parent-node'));
+  assert(ids.includes('child-node'));
 }
 
-function assertSceneConversion() {
-  const leaf = new Node({ id: 'leaf-node', type: 'mesh' });
-  leaf.internalOnly = true;
-
+function assertSceneEnvironmentDefaults() {
   const scene = new Scene({
     id: 'scene-source',
-    nodes: [leaf],
+    nodes: [new Node({ id: 'leaf-node', type: 'mesh' })],
     metadata: { name: 'Scene Source' },
   });
-  const payload = { ...scene, environment: { sky: 'blue' }, stats: { triangles: 12 } };
+  const payload = { ...scene, environment: { background: '#445566', gridEnabled: false } };
 
-  const viewScene = convertModelSceneToViewScene(payload);
+  const viewScene = convertScene(payload);
   assert.equal(viewScene.id, scene.id);
-  assert.deepStrictEqual(viewScene.environment, { sky: 'blue' });
-  assert.strictEqual(viewScene.stats, undefined);
-  assert.equal(viewScene.nodes[0].id, leaf.id);
-  assert.strictEqual(viewScene.nodes[0].internalOnly, undefined);
+  assert.deepStrictEqual(viewScene.environment, {
+    background: '#445566',
+    gridEnabled: false,
+    axisEnabled: true,
+  });
 }
 
 assertViewerDefaults();
-assertChildConversion();
-assertSceneConversion();
+assertSceneFlattening();
+assertSceneEnvironmentDefaults();
 
 console.log('model_to_view.spec.js completed');
