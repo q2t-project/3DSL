@@ -6,45 +6,56 @@ import assert from 'node:assert/strict';
 
 import { Model } from '../../common/types/index.js';
 import { ValidationError } from '../../common/errors/index.js';
-import { importModelFromJSON } from '../io/importer.js';
+import { importModelFrom3DssSource } from '../io/importer.js';
 
-const { ok, strictEqual, deepStrictEqual, throws } = assert;
+const { ok, strictEqual, deepStrictEqual, rejects } = assert;
 
-const MINIMAL_MODEL = {
-  version: '1.0.0',
-  scene: {
-    id: 'scene-1',
-    nodes: [],
-    metadata: {},
+const MINIMAL_3DSS_DOCUMENT = {
+  document_meta: {
+    document_uuid: 'importer-selftest-doc',
+    schema_uri: 'https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.0',
+    author: 'importer-selftest',
+    version: '1.0.0',
   },
-  metadata: { name: 'selftest' },
+  points: [
+    {
+      id: 'point-root',
+      signification: { name: 'Root point' },
+      appearance: {
+        position: [0, 0, 0],
+        marker: { common: { orientation: [0, 0, 0], scale: [1, 1, 1] } },
+      },
+    },
+  ],
+  lines: [],
+  aux: [],
 };
 
 // ---------------------------------------------------------------------------
 // Normal path: stringified JSON roundtrips into Model instance
 // ---------------------------------------------------------------------------
-test('importModelFromJSON: parses valid JSON and returns a Model', () => {
-  const payload = JSON.stringify(MINIMAL_MODEL);
-  const model = importModelFromJSON(payload);
+test('importModelFrom3DssSource: parses valid JSON and returns a Model', async () => {
+  const payload = JSON.stringify(MINIMAL_3DSS_DOCUMENT);
+  const model = await importModelFrom3DssSource(payload);
 
   ok(model instanceof Model, 'importer should return a Model instance');
-  strictEqual(model.version, MINIMAL_MODEL.version);
-  strictEqual(model.scene.id, MINIMAL_MODEL.scene.id);
-  deepStrictEqual(model.scene.nodes, []);
+  strictEqual(model.version, MINIMAL_3DSS_DOCUMENT.document_meta.version);
+  strictEqual(model.scene.id, 'scene-importer-selftest-doc');
+  deepStrictEqual(model.scene.nodes[0].transform.position, [0, 0, 0]);
 });
 
 // ---------------------------------------------------------------------------
 // Rejection: empty string or undefined payloads
 // ---------------------------------------------------------------------------
-test('importModelFromJSON: rejects empty strings or missing payloads', () => {
-  throws(() => importModelFromJSON('   '), /cannot be empty/i, 'empty string should throw');
-  throws(() => importModelFromJSON(undefined), ValidationError);
+test('importModelFrom3DssSource: rejects empty strings or missing payloads', async () => {
+  await rejects(importModelFrom3DssSource('   '), /cannot be empty/i, 'empty string should throw');
+  await rejects(importModelFrom3DssSource(undefined), ValidationError);
 });
 
 // ---------------------------------------------------------------------------
 // Rejection: schema violations bubble up as ValidationError
 // ---------------------------------------------------------------------------
-test('importModelFromJSON: validates required fields', () => {
-  const missingScene = { version: '1.0.0' };
-  throws(() => importModelFromJSON(missingScene), ValidationError);
+test('importModelFrom3DssSource: validates required fields', async () => {
+  const missingMeta = { points: [] };
+  await rejects(importModelFrom3DssSource(missingMeta), ValidationError);
 });

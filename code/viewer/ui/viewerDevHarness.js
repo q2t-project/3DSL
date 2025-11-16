@@ -1,8 +1,10 @@
 // PR8: viewer 用 dev ハーネス。
 // .3dss.json → （必要なら importer_core）→ scene_builder → viewerRenderer。
 
-import { importModelFromJSON } from "../../modeler/io/importer_core.js"; // もし共通 importer を使うなら
-import { buildSceneFromDocument } from "../scene/scene_builder.js";     // 実際の API 名に合わせて修正
+import { convert3DssToInternalModel } from "../../common/core/importer_core.js";
+import { validate3Dss } from "../../common/validator/threeDssValidator.js";
+import { validateInternalModel } from "../../common/validator/internalModelValidator.js";
+import { createScene } from "../scene/scene_builder.js";
 import { ViewerRenderer } from "../renderer/viewerRenderer.js";
 
 export function bootstrapViewerDev(opts) {
@@ -22,11 +24,20 @@ export function bootstrapViewerDev(opts) {
     const res = await fetch(url);
     const json = await res.json();
 
-    // ThreeDSSDocument に変換（または既に ThreeDSSDocument ならそのまま）
-    const doc = importModelFromJSON(json);
+    const docValidation = validate3Dss(json);
+    if (!docValidation.ok) {
+      log("3DSS validation failed", docValidation.errors);
+      throw new Error(docValidation.errors?.[0]?.message ?? "3DSS validation failed");
+    }
 
-    // viewer 用 Scene 構築
-    const sceneInfo = buildSceneFromDocument(doc);
+    const model = convert3DssToInternalModel(json);
+    const internalValidation = validateInternalModel(model);
+    if (!internalValidation.ok) {
+      log("internal model warnings", internalValidation.errors);
+    }
+
+    const viewScene = createScene(model.scene);
+    const sceneInfo = { viewScene };
     // sceneInfo: { viewScene, threeScene, camera, ... } を想定
 
     renderer.renderScene(sceneInfo);
@@ -35,7 +46,8 @@ export function bootstrapViewerDev(opts) {
       summaryElem.textContent = JSON.stringify(
         {
           nodesInScene: sceneInfo.viewScene?.nodes?.length ?? null,
-          document_uuid: doc.document_meta?.document_uuid ?? null,
+          sceneId: model.scene?.id ?? null,
+          version: model.version ?? null,
         },
         null,
         2,

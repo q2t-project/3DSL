@@ -1,30 +1,28 @@
-// 3DSS スキーマ検証のためのインターフェースだけ定義したスケルトン。
-// AJV 本体やスキーマのロードは、あとで安全に実装する。
+import Ajv from '../../vendor/ajv/dist/ajv.bundle.js';
+import addFormats from '../../vendor/ajv-formats/dist/index.js';
+import threeDssSchema from '../../../schemas/3DSS.schema.json' with { type: 'json' };
 
-/**
- * @typedef {Object} ValidationResult
- * @property {boolean} ok
- * @property {Array<Object>} [errors]
- */
+const ajv = new Ajv({ allErrors: true, strict: false });
+addFormats(ajv);
 
-/**
- * 外部から渡されたバリデータ関数を使って 3DSS ドキュメントを検証する。
- * @param {import("../core/modelTypes.js").ThreeDSSDocument} doc
- * @param {(doc: unknown) => boolean} validateFn  AJV などで事前にコンパイルした関数
- * @returns {ValidationResult}
- */
-export function validate3DSS(doc, validateFn) {
-  if (typeof validateFn !== "function") {
-    return { ok: false, errors: [{ message: "validateFn is not provided" }] };
-  }
+const validate = ajv.compile(threeDssSchema);
 
-  const ok = validateFn(doc);
-  const errors = ok ? undefined : (validateFn.errors || []).map((e) => ({
-    message: e.message,
-    instancePath: e.instancePath,
-    keyword: e.keyword,
-    params: e.params
-  }));
-
-  return { ok, errors };
+function normalizeAjvError(error = {}) {
+  return {
+    message: error.message ?? '3DSS document is invalid',
+    instancePath: error.instancePath ?? '',
+    keyword: error.keyword,
+    params: error.params,
+  };
 }
+
+export function validate3Dss(doc) {
+  const payload = doc ?? {};
+  const ok = validate(payload);
+  return {
+    ok,
+    errors: ok ? null : (validate.errors ?? []).map((error) => normalizeAjvError(error)),
+  };
+}
+
+// TODO(spec): /specs/3DSD-common.md に validator 分離の補足を追加する

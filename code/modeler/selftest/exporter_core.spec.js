@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { ValidationError } from '../../common/errors/index.js';
-import { importModelFromJSON } from '../io/importer.js';
+import { importModelFrom3DssSource } from '../io/importer.js';
 import { exportToThreeDss } from '../exporter/threeDssExporter.js';
 
 const { deepStrictEqual, strictEqual, throws } = assert;
@@ -76,30 +76,38 @@ test('exportToThreeDss: rejects invalid inputs', () => {
   );
 });
 
-test('exportToThreeDss: round-trips importer_core payloads', () => {
+test('exportToThreeDss: round-trips importer_core payloads', async () => {
   const source = {
-    version: '3.1.4',
+    document_meta: {
+      document_uuid: 'roundtrip-doc',
+      schema_uri: 'https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.0',
+      author: 'exporter-selftest',
+      version: '3.1.4',
+    },
     scene: {
       id: 'round-trip',
       nodes: [
         {
           id: 'node-a',
           type: 'mesh',
+          transform: { position: [1, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
           metadata: { name: 'primary' },
         },
       ],
     },
-    metadata: { name: 'rt', tags: ['modeler'] },
+    points: [],
+    lines: [],
+    aux: [],
   };
 
-  const model = importModelFromJSON(JSON.stringify(source));
+  const model = await importModelFrom3DssSource(source);
   const exported = exportToThreeDss(model.toJSON());
 
-  strictEqual(exported.version, source.version);
+  strictEqual(exported.version, source.document_meta.version);
   strictEqual(exported.scene.id, source.scene.id);
   strictEqual(exported.scene.nodes.length, source.scene.nodes.length);
   strictEqual(exported.scene.nodes[0].id, source.scene.nodes[0].id);
   strictEqual(exported.scene.nodes[0].type, source.scene.nodes[0].type);
   strictEqual(exported.scene.nodes[0].metadata.name, source.scene.nodes[0].metadata.name);
-  deepStrictEqual(exported.metadata, source.metadata);
+  strictEqual(exported.metadata.name, model.metadata.name);
 });

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 
 import { ROOT_IDS, HUD_FIELDS } from '../../common/ui/domIds.js';
-import { importFromPrep, importModelFromJSON } from '../io/importer.js';
+import { importFromPrep, importModelFrom3DssSource } from '../io/importer.js';
 import { createModelerContext, openDocument } from '../core/modelerCommands.js';
 import { ModelerRenderer } from '../renderer/modelerRenderer.js';
 import { updateModelerHud } from '../hud/modelerHudController.js';
@@ -19,11 +19,12 @@ const SAMPLE_PREP_PAYLOAD = {
   ],
 };
 
-const SAMPLE_CORE_MODEL = {
-  version: '1.4.2-selftest',
-  metadata: {
-    name: 'Modeler Selftest Core Model',
-    tags: ['modeler', 'selftest'],
+const SAMPLE_CORE_DOCUMENT = {
+  document_meta: {
+    document_uuid: '00000000-0000-4000-8000-000000000001',
+    schema_uri: 'https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.0',
+    author: 'modeler-selftest',
+    version: '1.4.2-selftest',
   },
   scene: {
     id: 'modeler-core-import-scene',
@@ -42,6 +43,9 @@ const SAMPLE_CORE_MODEL = {
       },
     ],
   },
+  points: [],
+  lines: [],
+  aux: [],
 };
 
 function buildSceneFromPoints(points) {
@@ -139,15 +143,19 @@ function createStubThreeDssValidator() {
   return validator;
 }
 
-function runCoreImporterSmokeTest() {
-  const model = importModelFromJSON(SAMPLE_CORE_MODEL);
-  assert.equal(model.version, SAMPLE_CORE_MODEL.version, 'core importer should preserve version');
-  assert.equal(model.scene.id, SAMPLE_CORE_MODEL.scene.id, 'core importer should hydrate scene id');
-  assert.equal(model.scene.nodes.length, SAMPLE_CORE_MODEL.scene.nodes.length, 'core importer should keep nodes');
+async function runCoreImporterSmokeTest() {
+  const model = await importModelFrom3DssSource(SAMPLE_CORE_DOCUMENT);
+  assert.equal(
+    model.version,
+    SAMPLE_CORE_DOCUMENT.document_meta.version,
+    'core importer should preserve version',
+  );
+  assert.equal(model.scene.id, SAMPLE_CORE_DOCUMENT.scene.id, 'core importer should hydrate scene id');
+  assert.equal(model.scene.nodes.length, SAMPLE_CORE_DOCUMENT.scene.nodes.length, 'core importer should keep nodes');
   return model;
 }
 
-function runSelftest() {
+async function runSelftest() {
   const document = createSelftestDocumentFromPrep();
   assert.equal(document.points.length, SAMPLE_PREP_PAYLOAD.points.length, 'all PREP points should be converted');
   assert.equal(document.scene.id, 'modeler-selftest-scene');
@@ -186,7 +194,7 @@ function runSelftest() {
     'HUD should reflect document units',
   );
 
-  const coreModel = runCoreImporterSmokeTest();
+  const coreModel = await runCoreImporterSmokeTest();
 
   console.log(
     'modeler_selftest summary',
@@ -204,4 +212,7 @@ function runSelftest() {
   );
 }
 
-runSelftest();
+runSelftest().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
