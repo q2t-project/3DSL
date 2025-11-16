@@ -10,6 +10,14 @@ const DEFAULT_CAMERA_STATE = Object.freeze({
   fov: 55,
 });
 
+function cloneCameraState(cameraState = DEFAULT_CAMERA_STATE) {
+  return {
+    ...cameraState,
+    position: Array.isArray(cameraState.position) ? [...cameraState.position] : [...DEFAULT_CAMERA_STATE.position],
+    target: Array.isArray(cameraState.target) ? [...cameraState.target] : [...DEFAULT_CAMERA_STATE.target],
+  };
+}
+
 const NOOP = () => {};
 
 function createLayeredSceneGraph() {
@@ -77,7 +85,7 @@ class ViewerCoreRuntime {
     this.modelPath = config.modelPath ?? null;
     this.log = typeof config.log === "function" ? config.log : NOOP;
     this.setSummary = typeof config.setSummary === "function" ? config.setSummary : null;
-    this.cameraState = config.cameraState ?? DEFAULT_CAMERA_STATE;
+    this.cameraState = cloneCameraState(config.cameraState ?? DEFAULT_CAMERA_STATE);
 
     this.sceneGraph = createLayeredSceneGraph();
     this.renderer = new ViewerRenderer(this.containerElement, {
@@ -176,6 +184,26 @@ class ViewerCoreRuntime {
       },
     });
     this.log({ tag: "FRAME", payload: { frame_id: this.currentFrameId ?? "default" } });
+  }
+
+  updateCameraState(delta = {}) {
+    const mergedState = {
+      ...this.cameraState,
+      ...delta,
+    };
+    if (Array.isArray(mergedState.position)) {
+      mergedState.position = [...mergedState.position];
+    }
+    if (Array.isArray(mergedState.target)) {
+      mergedState.target = [...mergedState.target];
+    }
+    this.cameraState = mergedState;
+    this.renderer.renderScene({ cameraState: this.cameraState });
+    this.log({ tag: "CAMERA", payload: this.cameraState });
+  }
+
+  getCameraState() {
+    return cloneCameraState(this.cameraState);
   }
 
   getLastLoadSummary() {
