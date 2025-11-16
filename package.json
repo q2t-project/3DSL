@@ -5,12 +5,9 @@
   "scripts": {
     "selftest:modeler": "node code/modeler/selftest/modeler_selftest.js",
     "selftest:viewer": "node code/viewer/selftest/viewer_selftest.js",
+    "test:common": "node --test code/common/selftest/*.spec.js",
     "test": "echo \"No generic test suite. Use npm run selftest:*\" && exit 1"
   },
-
-"scripts": {
-  "test:common": "node --test code/common/selftest/*.spec.js"
-},
 
   "repository": {
     "type": "git",
