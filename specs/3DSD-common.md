@@ -75,6 +75,108 @@ common は以下の理念にもとづく：
 common は data → app 層を貫く 規範の接続部 として機能し、
 modeler・viewer の仕様統一と Codex 実装の一貫性を保証する。
 
+ 
+## 0.6 現時点の固定点（Phase 0）
+
+Phase 0（Core 実装着手前）の前提として、次を「当面変更しない最小ルール」として固定する。
+
+1. スキーマの固定点
+   - `/schemas/3DSS.schema.json` v1.0.0 を唯一の構造スキーマとする。
+   - Phase 0 期間中は v1.0.0 の構造
+     （properties / type / enum / required / $defs）を変更しない。
+   - 説明やガイドラインの補足は 3DSS_spec.md 側で行い、
+     スキーマ本体（JSON ファイル）は編集しない。
+
+2. アプリ役割と I/O の前提（viewer / modeler 共有の最小ルール）
+   - `.3dss.json` の生成・編集・保存は modeler のみが行う。
+   - viewer は `.3dss.json` を読み取り専用とし、構造を書き戻さない。
+   - 両アプリとも Validator には `/schemas/3DSS.schema.json` v1.0.0 を
+     そのまま渡し、独自スキーマや拡張キーを混入させない。
+
+3. 共通仕様変更の手続き
+   - 3DSS.schema.json / 3DSD-common.md を変更する場合は、
+     必ずチケット／メモ（例：`COMMON-CHG-xxxx`）を起票してから行う。
+   - 起票なしの直接編集を禁止する。
+   - 変更内容は「何を」「なぜ」「どのファイルに」反映するかを
+     チケット／メモ上で明示する。
+
+## 0.7 共通テストデータ（core_viewer_baseline）
+
+Phase 0 の成果物として、viewer / modeler 双方が参照する
+共通テストデータを 1 本だけ定義する。
+
+- ファイルパス（固定）
+  - `/data/sample/core_viewer_baseline.3dss.json`
+  - 拡張子 `.3dss.json` は「3DSL 正規構造データ」であることを示す。
+
+- 目的
+  - viewer コアパイプラインの挙動確認
+  - UI/UX 評価のための「常に同じ絵が出る」基準データ
+  - modeler 側で編集しても、schema v1.0.0 を満たしているかの検証
+
+- 方針
+  - データ量は小さく、structure はできるだけ「典型的」かつ「網羅的」にする。
+  - ドメイン固有の意味（学問トポスなど）は持たせず、
+    抽象的なノード・リンク構造にとどめる。
+  - Z+ 軸を含む 3D 構造・frames・layers(aux) を一通り含める。
+
+### 0.7.1 構成要件
+
+core_viewer_baseline.3dss.json は、少なくとも次の要件を満たすものとする。
+
+1. document_meta
+   - `document_meta.version` = `"1.0.0"`（3DSS スキーマバージョン）
+   - タイトル／説明に「core_viewer_baseline」であることを明記。
+   - frames 情報（使用している frame_id の範囲）を記載。
+
+2. frames（時間層）
+   - 少なくとも 3 つの frame_id を使用する：
+     - `0` : ベース状態（全体俯瞰）
+     - `1` : 動的フロー強調
+     - `2` : 階層構造強調
+   - points / lines / aux は各 frame ごとに on/off を持ち、
+     frame 切替で見え方が変わることが分かる構成にする。
+
+3. points（存在要素）
+   - 5〜7 個程度の point を定義する。
+   - 例：中心ノード + 上下左右 + 上方ノード
+   - 条件：
+     - 全て `position` を持つ（X/Y/Z それぞれ -1.0〜+1.0 程度の範囲）。
+     - 少なくとも 1 点は Z≠0（Z+ 方向に配置）。
+     - `name` に簡潔なラベル（"Center" / "Left" など）を付与。
+     - `appearance.marker` を 2〜3 種類使い分ける。
+
+4. lines（関係要素）
+   - 5〜10 本程度の line を定義する。
+   - 条件：
+     - `from` / `to` は上記 points の id を参照する。
+     - `signification.relation` の各軸から最低 1 種類は使う：
+       - structural（例：`"association"`）
+       - dynamic（例：`"flow"`）
+       - logical（例：`"implication"`）
+       - temporal（例：`"precedence"`）
+       - meta（例：`"annotation"`）
+     - `signification.sense` で `a_to_b` / `bidirectional` などを混在させる。
+     - `appearance.arrow.shape` / `appearance.line_style` を複数種類使う。
+     - frame ごとに表示・非表示を切り替え、強調線が変わるようにする。
+
+5. aux（補助要素）
+   - 少なくとも次を 1 つずつ含める：
+     - XY 平面グリッド（`grid`）
+     - 座標軸表示（`axis`、Z+ が明示されるもの）
+     - 簡単な HUD テキスト（タイトルや frame 名を表示）
+   - `appearance.module`（grid / axis / hud 等）の典型的な組合せを 1 セット用意する。
+
+### 0.7.2 判定基準
+
+core_viewer_baseline.3dss.json は、次の条件を満たした時点で「C-0-2 完了」と見なす。
+
+1. `/schemas/3DSS.schema.json` v1.0.0 に対してバリデーションエラーが 0 である。
+2. viewer のコアパイプライン（Phase 1 で定義）は、
+   本ファイルを入力としたときに、同一環境では常に同じ初期表示（カメラ位置・向き・レイヤ状態）を再現できる。
+3. UI/UX 評価や回帰テストで、本ファイルを「唯一の基準サンプル」として参照する運用が決まっている。
+
+
 ---
 
 # 1 アプリ全体構造と役割分担
@@ -132,7 +234,7 @@ modeler が生成し viewer が閲覧する という非対称関係を持つ。
 2. UI・描画・データ解釈のルールは common に一元化する。
 3. common の変更は modeler / viewer / 3DSS_spec に必ず影響を与える（逆は原則与えない）。
 4. 実装（/code/）の依存関係は common → modeler/viewer の一方向である。
-5. 仕様変更は「3DSS.schema.json → 3DSS_spec.md → common → modeler/viewer → Codex」の順に伝搬させる。
+5. 仕様変更は「3DSS.schema.json → 3DSS_spec.md → common → modeler/viewer → Codex」の順に伝搬させる（実施時は必ずチケット／メモを起票する）。
 
 ---
 
