@@ -10,7 +10,6 @@
 
     "check:repo": "node scripts/check_repo.mjs",
 
-    "test": "echo \"No generic test suite. Use npm run selftest:* or npm run check:repo\" && exit 1"
   },
 
   "repository": {
