@@ -10,9 +10,10 @@ const metadataSchema = require('./metadata.schema.json');
 const nodeSchema = require('./node.schema.json');
 const sceneSchema = require('./scene.schema.json');
 const transformSchema = require('./transform.schema.json');
+const coreModelSchema = require('./model.schema.json');
 
 // 個別エクスポート
-export { metadataSchema, nodeSchema, sceneSchema, transformSchema };
+export { metadataSchema, nodeSchema, sceneSchema, transformSchema, coreModelSchema };
 
 // 名前→スキーマ本体のレジストリ
 export const schemaRegistry = {
@@ -20,4 +21,5 @@ export const schemaRegistry = {
   node: nodeSchema,
   scene: sceneSchema,
   transform: transformSchema,
+  '3dsl-core-model': coreModelSchema,
 };
