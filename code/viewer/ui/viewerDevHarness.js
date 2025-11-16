@@ -1,4 +1,4 @@
-import { bootViewerCore } from "../core/viewerCore.js";
+import { bootViewerCore, updateFrameId, getFrameId } from "../core/viewerCore.js";
 
 const DEFAULT_SAMPLE_PATH = "/data/sample/core_viewer_baseline.3dss.json";
 const ROTATE_SPEED = 0.01;
@@ -46,6 +46,7 @@ function makeSummaryUpdater(summaryEl) {
 async function main() {
   await waitForDomReady();
   const container = getRequiredElement("viewer-root");
+  const controlsEl = getRequiredElement("controls");
   const logEl = getRequiredElement("log");
   const summaryEl = getRequiredElement("summary");
 
@@ -60,6 +61,7 @@ async function main() {
   });
 
   setupCameraProtoControls(container, runtime);
+  setupFrameControls(runtime, controlsEl, log);
 }
 
 main().catch((error) => {
@@ -138,6 +140,46 @@ function setupCameraProtoControls(container, runtime) {
     },
     { passive: false }
   );
+}
+
+function setupFrameControls(runtime, controlsEl, log) {
+  if (!runtime || !controlsEl) {
+    return;
+  }
+  controlsEl.textContent = "";
+  const label = document.createElement("div");
+  label.textContent = "Frame:";
+  label.style.marginBottom = "4px";
+  controlsEl.appendChild(label);
+
+  const frames = [0, 1, 2, 3];
+  frames.forEach((id) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = String(id);
+    btn.style.marginRight = "4px";
+    btn.addEventListener("click", () => {
+      try {
+        updateFrameId(runtime, id);
+        log({ tag: "FRAME_UI", msg: "set frame", payload: { frame_id: id } });
+        updateActiveFrameLabel();
+      } catch (error) {
+        log({ tag: "ERROR", msg: "updateFrameId failed", payload: { message: error?.message } });
+      }
+    });
+    controlsEl.appendChild(btn);
+  });
+
+  const activeLabel = document.createElement("div");
+  activeLabel.style.marginTop = "8px";
+  activeLabel.style.fontSize = "12px";
+  activeLabel.dataset.role = "active-frame-label";
+  const updateActiveFrameLabel = () => {
+    const current = getFrameId(runtime);
+    activeLabel.textContent = `Active frame: ${current ?? "default"}`;
+  };
+  updateActiveFrameLabel();
+  controlsEl.appendChild(activeLabel);
 }
 
 function orbitCamera(runtime, deltaX, deltaY) {

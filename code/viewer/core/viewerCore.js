@@ -37,13 +37,16 @@ function bucketNode(node) {
   return "auxGroup";
 }
 
-function summarizeLoadResult(path, viewScene, model, warnings = [], frameId = null) {
+const formatFrameId = (frameId) => frameId ?? "default";
+
+function summarizeLoadResult(path, viewScene, model, warnings = [], initialFrameId = null, activeFrameId = null) {
   return {
     path,
     nodesInScene: viewScene?.nodes?.length ?? 0,
     sceneId: viewScene?.id ?? null,
     documentVersion: model?.version ?? null,
-    initialFrameId: frameId ?? "default",
+    initialFrameId: initialFrameId ?? "default",
+    activeFrameId: activeFrameId ?? initialFrameId ?? "default",
     warnings: warnings.map((warn) => warn?.message ?? String(warn)),
   };
 }
@@ -141,9 +144,17 @@ class ViewerCoreRuntime {
       pointsGroup: this.sceneGraph.pointsGroup,
       linesGroup: this.sceneGraph.linesGroup,
       auxGroup: this.sceneGraph.auxGroup,
+      frameId: this.currentFrameId,
     });
 
-    this.lastLoadSummary = summarizeLoadResult(targetPath, viewScene, internalModel, warnings, this.currentFrameId);
+    this.lastLoadSummary = summarizeLoadResult(
+      targetPath,
+      viewScene,
+      internalModel,
+      warnings,
+      this.currentFrameId,
+      this.currentFrameId
+    );
     if (this.setSummary) {
       this.setSummary(this.lastLoadSummary);
     }
@@ -183,7 +194,7 @@ class ViewerCoreRuntime {
         aux: this.sceneGraph.auxGroup.visible,
       },
     });
-    this.log({ tag: "FRAME", payload: { frame_id: this.currentFrameId ?? "default" } });
+    this.log({ tag: "FRAME", payload: { frame_id: formatFrameId(this.currentFrameId) } });
   }
 
   updateCameraState(delta = {}) {
@@ -209,12 +220,45 @@ class ViewerCoreRuntime {
   getLastLoadSummary() {
     return this.lastLoadSummary;
   }
+
+  getFrameId() {
+    return this.currentFrameId ?? null;
+  }
+
+  setFrameId(frameId) {
+    this.currentFrameId = frameId ?? null;
+    this.renderer.renderScene({ frameId: this.currentFrameId });
+    this.log({ tag: "FRAME", payload: { frame_id: formatFrameId(this.currentFrameId) } });
+    if (this.lastLoadSummary) {
+      this.lastLoadSummary = {
+        ...this.lastLoadSummary,
+        activeFrameId: formatFrameId(this.currentFrameId),
+      };
+      if (this.setSummary) {
+        this.setSummary(this.lastLoadSummary);
+      }
+    }
+  }
 }
 
 export async function bootViewerCore(containerElement, config = {}) {
   const runtime = new ViewerCoreRuntime(containerElement, config);
   await runtime.init();
   return runtime;
+}
+
+export function updateFrameId(runtime, frameId) {
+  if (!runtime || typeof runtime.setFrameId !== "function") {
+    throw new Error("Invalid viewer runtime: setFrameId missing");
+  }
+  runtime.setFrameId(frameId);
+}
+
+export function getFrameId(runtime) {
+  if (!runtime || typeof runtime.getFrameId !== "function") {
+    throw new Error("Invalid viewer runtime: getFrameId missing");
+  }
+  return runtime.getFrameId();
 }
 
 export { ViewerCoreRuntime };
