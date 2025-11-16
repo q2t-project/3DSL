@@ -5,7 +5,8 @@ import { createScene } from "../scene/scene_builder.js";
 import { ViewerRenderer } from "../renderer/viewerRenderer.js";
 
 const DEFAULT_CAMERA_STATE = Object.freeze({
-  position: [4, 3, 8],
+  up: [0, 0, 1],
+  position: [0, 6, 14],
   target: [0, 0, 0],
   fov: 50,
 });

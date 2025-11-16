@@ -50,6 +50,19 @@ export class ViewerRenderer {
     };
   }
 
+  // legacy API for viewer_selftest 等との互換用
+  // doc.scene または Scene 相当のオブジェクトだけ拾って renderScene に流す
+  render(docOrScene) {
+    if (!this.initialized || !docOrScene) return;
+
+    let scene = docOrScene;
+    if (docOrScene.scene && docOrScene.scene.nodes) {
+      scene = docOrScene.scene;
+    }
+
+    this.renderScene({ viewScene: scene });
+  }
+
   dispose() {
     if (this.animationFrameId == null) {
       return;
