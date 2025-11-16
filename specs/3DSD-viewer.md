@@ -194,6 +194,7 @@ UI → Core → Renderer
 UI 状態・カメラ・visibility の永続化も行わない
 （セッション内のみ）。
 
+
 ## 1.6 禁止事項（viewer 全体）
 viewer は次を行わない：
 1. 構造データの変更（add / update / remove）
@@ -201,12 +202,74 @@ viewer は次を行わない：
 3. 編集イベントの実装
 4. UI 状態の JSON 化
 5. annotation / comment / report 等の生成
-6. 構造データへの viewer 独自プロパティ追加（`_viewer_*` など）
-7. カメラ情報を書き戻す
+6. viewer_settings を JSON 化して保存（永続化）すること
+7. extension の意味解釈・生成・補完（構造変更に相当）
 8. normalize / 推測 / 補完 / prune / reorder などの生成処理
 
 viewer は **完全 read-only の表示装置** である。  
 viewer 独自情報は ui_state 内部にのみ保持してよい（構造データへの混入禁止）。
+
+
+## 1.7 起動フロー（dev harness → Core）
+
+### 1.7.1 エントリ経路の固定
+
+開発用 viewer は、次の 1 本の経路で起動する。
+
+1. `code/viewer/ui/viewer_dev.html`
+2. `code/viewer/ui/viewerDevHarness.js`
+3. `code/viewer/core/viewerCore.js`
+
+この経路以外から Core／Renderer を直接呼び出すことは禁止とする。
+
+### 1.7.2 各レイヤの責務
+
+- **viewer_dev.html（dev HTML）**
+  - 開発用ビューア用の DOM 骨格を定義する
+    - viewer コンテナ要素（3D キャンバスを配置）
+    - 簡易コントロール（サンプルファイル選択、ログ表示など）
+  - `<script type="module">` から `viewerDevHarness` を 1 度だけ起動する
+  - three.js・AJV 等のライブラリを直接読むのは禁止
+
+- **viewerDevHarness.js（dev ハーネス）**
+  - DOMContentLoaded を待ち、dev 用 UI 要素の参照を集める
+  - コマンドライン相当の「ブート設定」を組み立てる
+    - 使用する `.3dss.json` パス（通常は `data/sample/core_viewer_baseline.3dss.json`）
+    - 初期カメラ状態（position / target / fov）
+    - ログ出力先（画面上の `<pre>` など）
+  - `bootViewerCore(containerElement, config)` を 1 回呼び出す
+  - 再読込ボタンなど dev 用 UI からの「リロード要求」は、すべてハーネス内部で受け取り、
+    同じコンテナ・同じ設定で `bootViewerCore` を呼び直す
+
+- **viewerCore.js（Core ランタイム）**
+  - `bootViewerCore(containerElement, config)` を外部公開する唯一のエントリポイントとする
+  - 起動処理の中で次を順に実行する：
+    1. three.js コンテキストの初期化（renderer / scene / camera）
+    2. `config.sample_path` から .3dss.json を fetch
+    3. Validator による strict full validation の実行
+    4. 構造データを points / lines / aux / document_meta にバケット分け（immutable state）
+    5. ViewerRenderer を初期化し、レンダリングループを開始
+    6. 初期フレーム／レイヤ／カメラ状態を ui_state に設定
+  - DOM には直接触れず、描画は `containerElement` 配下の canvas のみを対象とする
+
+### 1.7.3 起動シーケンス（時系列）
+
+1. ブラウザが `viewer_dev.html` を読み込む
+2. DOM 構築完了（`DOMContentLoaded`）  
+   → viewerDevHarness が dev 用要素（コンテナ／ログ領域／ボタン）を取得
+3. ハーネスが `bootViewerCore(containerElement, config)` を呼ぶ
+4. Core が three.js を初期化し、`config.sample_path` の .3dss.json をロード
+5. Validator が strict full validation を行う（NG なら画面上のログに理由を表示し、起動中断）
+6. 正常時は Core が state を構成し、ViewerRenderer が初期フレームを描画
+7. 以後のユーザ操作（Orbit／ズーム／frame 切替／レイヤ ON/OFF）は UI → Core → Renderer の既定経路で処理される
+
+この起動フローにより、
+
+- 「同じ viewer_dev.html ＋ 同じ `.3dss.json` → 同じ初期画面」
+- 起動経路が dev 環境・本番環境とも一貫
+
+であることを保証する。
+
 
 ---
 
