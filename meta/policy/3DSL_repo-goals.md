@@ -184,7 +184,7 @@ Codex からは読み取り専用とする。
 
 ### B-3: modeler exporter（ThreeDSSDocument → 3DSS）
 
-- 状態: ⬜
+- 状態: ✅
 - 内容:
   - ThreeDSSDocument → 3DSS JSON を吐き出す exporter
   - round-trip（import → edit → export）が仕様通りになること
