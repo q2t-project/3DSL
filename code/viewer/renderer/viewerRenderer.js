@@ -130,13 +130,22 @@ export class ViewerRenderer {
 
     this.ctx.fillStyle = "#0f0";
     this.ctx.font = "14px Consolas, ui-monospace";
+    const cameraPosition = Array.isArray(this.cameraState?.position)
+      ? this.cameraState.position
+      : DEFAULT_CAMERA.position;
+    const cameraTarget = Array.isArray(this.cameraState?.target)
+      ? this.cameraState.target
+      : DEFAULT_CAMERA.target;
+    const cameraFov = typeof this.cameraState?.fov === "number" ? this.cameraState.fov : DEFAULT_CAMERA.fov;
     this.ctx.fillText(`Mode: ${this.mode}`, 16, 24);
     this.ctx.fillText(`Nodes: ${this.scene.nodes.length}`, 16, 48);
-    this.ctx.fillText(`Camera: ${this.cameraState.position.join(", ")}`, 16, 72);
+    this.ctx.fillText(`Camera Pos: ${cameraPosition.join(", ")}`, 16, 72);
+    this.ctx.fillText(`Camera Target: ${cameraTarget.join(", ")}`, 16, 96);
+    this.ctx.fillText(`Camera FOV: ${cameraFov.toFixed(2)}`, 16, 120);
     const points = this.pointsGroup?.nodes?.length ?? 0;
     const lines = this.linesGroup?.nodes?.length ?? 0;
     const aux = this.auxGroup?.nodes?.length ?? 0;
-    this.ctx.fillText(`Layers: P${points} L${lines} A${aux}`, 16, 96);
+    this.ctx.fillText(`Layers: P${points} L${lines} A${aux}`, 16, 144);
   }
 
   #drawBootMessage() {
