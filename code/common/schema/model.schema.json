@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://3dsl.dev/schema/core-model.json",
+  "title": "3DSL Core Model",
+  "type": "object",
+  "required": ["version", "scene"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "scene": {
+      "$ref": "#/$defs/scene"
+    },
+    "metadata": {
+      "$ref": "https://3dsl.dev/schema/metadata.json"
+    }
+  },
+  "$defs": {
+    "scene": {
+      "type": "object",
+      "required": ["id", "nodes"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/node"
+          }
+        },
+        "metadata": {
+          "$ref": "https://3dsl.dev/schema/metadata.json"
+        }
+      }
+    },
+    "node": {
+      "type": "object",
+      "required": ["id", "type"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "type": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "transform": {
+          "$ref": "https://3dsl.dev/schema/transform.json"
+        },
+        "metadata": {
+          "$ref": "https://3dsl.dev/schema/metadata.json"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/node"
+          }
+        }
+      }
+    }
+  }
+}
