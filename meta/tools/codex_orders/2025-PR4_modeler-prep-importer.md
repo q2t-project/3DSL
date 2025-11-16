@@ -207,15 +207,3 @@ Codex は最終的に、少なくとも以下を満たすこと：
 - GitHub への直接 commit / push
 
 
-実行手順（Human 用）
-
-1. このファイルを保存する（/meta/tools/codex_orders/2025-PR4_modeler-prep-importer.md）。
-2. Codex を open。
-3. モードは 実装修正 ON（生成モード）。
-4. この指令書を渡して実行。
-5. Codex 出力で：
-   - 追加・修正ファイルの diff
-   - テスト結果
-   - 変換サンプル
-   を確認する。
-6. 問題なければ Human が手動で commit / push する。
