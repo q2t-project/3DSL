@@ -270,6 +270,93 @@ viewer 独自情報は ui_state 内部にのみ保持してよい（構造デー
 
 であることを保証する。
 
+## 1.8 core_viewer_baseline 起動時の固定条件
+
+本節では、dev 用 viewer（viewer_dev.html）において
+`core_viewer_baseline.3dss.json` を読み込んだときに
+「毎回同じ初期画面」が再現されるための固定条件を定義する。
+
+### 対象
+
+- HTML: `code/viewer/ui/viewer_dev.html`
+- ハーネス: `code/viewer/ui/viewerDevHarness.js`
+- コア: `code/viewer/core/viewerCore.js`（ViewerCoreRuntime / ViewerRenderer）
+
+### 入力ファイルの固定
+
+1. dev 起動時のデフォルト入力は、常に  
+   `/data/sample/core_viewer_baseline.3dss.json` とする。
+2. 他のサンプルをロードする UI を持つ場合でも、
+   「起動直後に自動でロードされるファイル」は上記 1 本に限定する。
+3. 入力ファイルパスは、起動ログに必ず 1 行出力する（後述）。
+
+### カメラ初期状態の固定
+
+dev viewer で `core_viewer_baseline.3dss.json` を読み込んだ直後の
+カメラ状態を、次の定数として固定する。
+
+- 投影方式: PerspectiveCamera
+- up ベクトル: (0, 0, 1)  // Z+ 絶対上
+- position: (0, 6, 14)
+- target（注視点）: (0, 0, 0)
+- fov: 50°
+- near: 0.1
+- far: 2000
+
+実装上は、viewerCore 側で `DEFAULT_CAMERA_STATE` などの定数として保持し、
+dev 起動時は必ずこの値で初期化する。  
+ユーザ操作（Orbit 等）で変化したカメラは、リロードすれば必ずこの状態に戻る。
++
+### frame / layer 初期状態の固定
+
+`core_viewer_baseline.3dss.json` 読み込み完了時点での
+frame と layer の初期状態を、次のように固定する。
+
+1. frame
+   - `document_meta.frames` が存在する場合:  
+     - 配列の先頭要素 `frames[0].frame_id` を「初期 frame_id」とする。
+   - frames が存在しない場合:  
+     - viewer 内部の「デフォルト frame（null または 0）」として扱い、
+       画面上の表示も「frame: default」とする（文言は実装任意）。
+
+2. layer
+   - points / lines / aux の 3 レイヤを、それぞれ独立した Group として保持する。
+   - dev 起動時の初期状態は、3 レイヤすべて `visible = true`（ON）とする。
+   - ユーザ操作で ON/OFF を切り替えても、リロードすれば必ず全 ON に戻る。
+
+### 起動ログ出力の最低要件
+
+dev viewer では、起動完了時に少なくとも次の情報をログ出力する。
+（出力形式はテキストでよいが、1 行 1 レコードとする）
+
+1. BOOT
+   - 例: `BOOT  viewer_dev`
+2. MODEL
+   - 読み込んだ .3dss.json のパス
+   - 例: `MODEL /data/sample/core_viewer_baseline.3dss.json`
+3. CAMERA
+   - 初期カメラ state（position / target / fov など）を JSON 形式で 1 行
+   - 例: `CAMERA {"position":[0,6,14],"target":[0,0,0],"fov":50}`
+4. LAYERS
+   - points / lines / aux の ON/OFF 状態
+   - 例: `LAYERS points=on lines=on aux=on`
+5. FRAME
+   - 初期 frame_id
+   - 例: `FRAME  frame_id=0`
+
+これら 5 種のログがすべて揃っていることをもって、
+「同じビルド + 同じ core_viewer_baseline.3dss.json → 同じ初期状態」
+が確認できるものとする。
+
+### 受け入れ条件
+
+- viewer_dev.html をリロードするたびに、
+  - 同じ .3dss.json パス
+  - 同じカメラ初期状態
+  - 同じ frame_id
+  - 同じレイヤ ON/OFF 状態
+ で画面が描画されること。
+- ログ上でも、上記の情報が毎回一致していることを確認できること。
 
 ---
 
