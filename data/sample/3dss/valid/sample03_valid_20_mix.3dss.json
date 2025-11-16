@@ -1,8 +1,14 @@
-"$schema": "https://json-schema.org/draft/2020-12/schema",
-"$id": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.0",
-"title": "3DSS Schema v1.0.0",
-"type": "object",
-"properties": {
+{
+  "document_meta": {
+    "document_uuid": "b9233b0c-8b5a-4ffc-8a86-1d8c1f7bd6df",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.0",
+    "author": "studio@example.com",
+    "version": "1.1.0",
+    "tags": ["m:line-demo"],
+    "coordinate_system": "Z+up/freeXY",
+    "units": "cm"
+  },
+  "points": [],
   "lines": [
     {
       "signification": {
@@ -13,312 +19,61 @@
       },
       "appearance": {
         "end_a": {
-          "ref": "f0c81b03-a085-47d1-adc0-0ddfb2b0772d"
+          "coord": [0, 0, 0]
         },
         "end_b": {
-          "ref": "52c14183-4979-42f8-9e4f-fc838ac10e71"
+          "coord": [12, 6, 4]
         },
         "line_type": "straight",
-        "color": "#1dc6fb",
-        "opacity": 0.4,
-        "line_style": "solid"
+        "line_style": "solid",
+        "color": "#00bcd4",
+        "opacity": 0.6,
+        "arrow": {
+          "shape": "cone",
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "renderOrder": 1
       },
       "meta": {
-        "uuid": "bd784381-f01d-4543-96d9-46edfd17695a"
+        "uuid": "e51dc625-ff96-4200-87dd-59177fb7c8f7"
       }
     },
     {
       "signification": {
         "relation": {
-          "structural": "association"
+          "dynamic": "flow"
         },
-        "sense": "a_to_b"
+        "sense": "bidirectional"
       },
       "appearance": {
         "end_a": {
-          "ref": "4aa1108c-de14-4249-a721-579c93618061"
+          "coord": [12, 6, 4]
         },
         "end_b": {
-          "ref": "d1dca6b8-e1c6-4c41-a737-a769284f5ea2"
+          "coord": [20, 6, 4]
         },
-        "line_type": "straight",
-        "color": "#b77868",
-        "opacity": 0.4,
-        "line_style": "solid"
+        "line_type": "arc",
+        "geometry": {
+          "arc_center": [16, 6, 4],
+          "arc_radius": 4,
+          "arc_angle_start": 0,
+          "arc_angle_end": 3.14,
+          "arc_clockwise": false
+        },
+        "color": "#ff9800",
+        "opacity": 0.7,
+        "effect": {
+          "effect_type": "flow",
+          "speed": 0.8,
+          "amplitude": 0.5,
+          "easing": "ease-in-out"
+        }
       },
       "meta": {
-        "uuid": "24ec3bcf-60f4-4ab6-83ff-7089bf6c2c42"
-      }
-    },
-    {
-      "signification": {
-        "relation": {
-          "structural": "association"
-        },
-        "sense": "a_to_b"
-      },
-      "appearance": {
-        "end_a": {
-          "ref": "4aa1108c-de14-4249-a721-579c93618061"
-        },
-        "end_b": {
-          "ref": "d1dca6b8-e1c6-4c41-a737-a769284f5ea2"
-        },
-        "line_type": "straight",
-        "color": "#668b4e",
-        "opacity": 0.4,
-        "line_style": "solid"
-      },
-      "meta": {
-        "uuid": "262ae1ac-ac9e-4a97-b1aa-3a98869e72bb"
-      }
-    },
-    {
-      "signification": {
-        "relation": {
-          "structural": "association"
-        },
-        "sense": "a_to_b"
-      },
-      "appearance": {
-        "end_a": {
-          "ref": "52c14183-4979-42f8-9e4f-fc838ac10e71"
-        },
-        "end_b": {
-          "ref": "47c4d64e-2478-4d68-9cc2-2925277dbcf0"
-        },
-        "line_type": "straight",
-        "color": "#382a58",
-        "opacity": 0.4,
-        "line_style": "solid"
-      },
-      "meta": {
-        "uuid": "2fb59038-712b-46ee-8db5-28438d049044"
-      }
-    },
-    {
-      "signification": {
-        "relation": {
-          "structural": "association"
-        },
-        "sense": "a_to_b"
-      },
-      "appearance": {
-        "end_a": {
-          "ref": "181a32c5-7208-40d1-98cf-cf312dc38ef5"
-        },
-        "end_b": {
-          "ref": "52c14183-4979-42f8-9e4f-fc838ac10e71"
-        },
-        "line_type": "straight",
-        "color": "#1bae44",
-        "opacity": 0.4,
-        "line_style": "solid"
-      },
-      "meta": {
-        "uuid": "64121c99-b5b1-4bca-b417-77571294c2ae"
-      }
-    },
-    {
-      "signification": {
-        "relation": {
-          "structural": "association"
-        },
-        "sense": "a_to_b"
-      },
-      "appearance": {
-        "end_a": {
-          "ref": "52c14183-4979-42f8-9e4f-fc838ac10e71"
-        },
-        "end_b": {
-          "ref": "4aa1108c-de14-4249-a721-579c93618061"
-        },
-        "line_type": "straight",
-        "color": "#575734",
-        "opacity": 0.4,
-        "line_style": "solid"
-      },
-      "meta": {
-        "uuid": "388d1773-ee55-4d9c-8877-a8e934e506b1"
+        "uuid": "9f655f84-9c8a-4c5e-8a54-f4cf4ce7a2fc"
       }
     }
   ],
-  "points": [
-    {
-      "appearance": {
-        "position": [
-          1.52,
-          -0.73,
-          -0.22
-        ]
-      },
-      "meta": {
-        "uuid": "d1dca6b8-e1c6-4c41-a737-a769284f5ea2"
-      }
-    },
-    {
-      "appearance": {
-        "position": [
-          2.24,
-          -2.3,
-          7.89
-        ]
-      },
-      "meta": {
-        "uuid": "52c14183-4979-42f8-9e4f-fc838ac10e71"
-      }
-    },
-    {
-      "appearance": {
-        "position": [
-          -4.52,
-          -6.39,
-          5.42
-        ]
-      },
-      "meta": {
-        "uuid": "603bb799-07e5-4445-892a-34a9d9879928"
-      }
-    },
-    {
-      "appearance": {
-        "position": [
-          6.79,
-          2.0,
-          7.36
-        ]
-      },
-      "meta": {
-        "uuid": "181a32c5-7208-40d1-98cf-cf312dc38ef5"
-      }
-    },
-    {
-      "appearance": {
-        "position": [
-          7.44,
-          -9.17,
-          5.72
-        ]
-      },
-      "meta": {
-        "uuid": "f0c81b03-a085-47d1-adc0-0ddfb2b0772d"
-      }
-    },
-    {
-      "appearance": {
-        "position": [
-          -5.82,
-          3.79,
-          -7.72
-        ]
-      },
-      "meta": {
-        "uuid": "226a4d22-1dd6-410f-a572-6f417d82aa28"
-      }
-    },
-    {
-      "appearance": {
-        "position": [
-          -6.55,
-          -0.52,
-          -7.59
-        ]
-      },
-      "meta": {
-        "uuid": "47c4d64e-2478-4d68-9cc2-2925277dbcf0"
-      }
-    },
-    {
-      "appearance": {
-        "position": [
-          0.18,
-          4.07,
-          1.06
-        ]
-      },
-      "meta": {
-        "uuid": "4aa1108c-de14-4249-a721-579c93618061"
-      }
-    }
-  ],
-  "aux": [
-    {
-      "appearance": {
-        "module": {
-          "grid": {
-            "grid_type": "cartesian"
-          }
-        }
-      },
-      "meta": {
-        "uuid": "aaaba13b-ebed-4c35-9be1-e687914dc84a"
-      }
-    },
-    {
-      "appearance": {
-        "module": {
-          "grid": {
-            "grid_type": "cartesian"
-          }
-        }
-      },
-      "meta": {
-        "uuid": "38cb907d-54db-4888-b69e-e8622e5a04c8"
-      }
-    },
-    {
-      "appearance": {
-        "module": {
-          "grid": {
-            "grid_type": "cartesian"
-          }
-        }
-      },
-      "meta": {
-        "uuid": "0891ebbc-5fb8-49bb-8c41-f0cb6418fa42"
-      }
-    },
-    {
-      "appearance": {
-        "module": {
-          "grid": {
-            "grid_type": "cartesian"
-          }
-        }
-      },
-      "meta": {
-        "uuid": "bf0372c7-2a28-4252-aa21-7b9c1e8b1665"
-      }
-    },
-    {
-      "appearance": {
-        "module": {
-          "grid": {
-            "grid_type": "cartesian"
-          }
-        }
-      },
-      "meta": {
-        "uuid": "2867dc31-94d2-4650-9446-e5c8a2abc6af"
-      }
-    },
-    {
-      "appearance": {
-        "module": {
-          "grid": {
-            "grid_type": "cartesian"
-          }
-        }
-      },
-      "meta": {
-        "uuid": "32934ad1-211d-4b86-afa6-ccb4e6bab665"
-      }
-    }
-  ],
-  "document_meta": {
-    "document_uuid": "69f1d0f7-c006-473b-b575-5902fe7d508c",
-    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.0",
-    "author": "creator@example.com",
-    "version": "1.0.0"
-  }
+  "aux": []
 }
