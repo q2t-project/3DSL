@@ -15,16 +15,18 @@
       grid-template-columns: 2fr 1fr;
       height: 100vh;
       overflow: hidden;
+      background: #050505;
+      color: #eee;
     }
-    #viewport {
+    #viewer-root {
       background: #000;
+      position: relative;
     }
     #sidebar {
       border-left: 1px solid #444;
       padding: 8px;
       box-sizing: border-box;
       background: #101010;
-      color: #eee;
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -39,49 +41,45 @@
       font-family: "Consolas", ui-monospace, Menlo, Monaco, monospace;
       font-size: 11px;
     }
+    #controls {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    #controls input[type="text"] {
+      flex: 1;
+      min-width: 0;
+      background: #050505;
+      border: 1px solid #333;
+      color: #eee;
+      padding: 4px;
+    }
+    #controls button {
+      background: #1e90ff;
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-  <div id="viewport"></div>
+  <div id="viewer-root"></div>
   <aside id="sidebar">
     <h1 style="margin:0;font-size:14px;">3DSL Viewer (dev)</h1>
     <div>
-      <label for="samplePath">sample03_valid_20_mix.3dss.json</label><br />
-      <input id="samplePath" type="text" size="40"
-             value="/data/sample/3dss/valid/sample03_valid_20_mix.3dss.json" />
-      <button id="reloadBtn">Load</button>
+      <label for="samplePath">core_viewer_baseline.3dss.json</label>
+      <div id="controls">
+        <input id="samplePath" type="text" size="40"
+               value="/data/sample/core_viewer_baseline.3dss.json" />
+        <button id="reloadBtn">Load</button>
+      </div>
     </div>
     <pre id="summary">{}</pre>
     <pre id="log"></pre>
   </aside>
 
-  <script type="module">
-    import { bootstrapViewerDev } from "./viewerDevHarness.js";
-
-    const $viewport = document.getElementById("viewport");
-    const $log = document.getElementById("log");
-    const $summary = document.getElementById("summary");
-    const $path = document.getElementById("samplePath");
-    const $reload = document.getElementById("reloadBtn");
-
-    const dev = bootstrapViewerDev({
-      mountViewport: $viewport,
-      summaryElem: $summary,
-      logElem: $log,
-    });
-
-    async function loadCurrent() {
-      await dev.loadDocument($path.value);
-    }
-
-    $reload.addEventListener("click", () => {
-      loadCurrent().catch(err => {
-        console.error(err);
-        $log.textContent += "\\n[error] " + String(err);
-      });
-    });
-
-    loadCurrent().catch(console.error);
-  </script>
+  <script type="module" src="./viewerDevHarness.js"></script>
 </body>
 </html>
