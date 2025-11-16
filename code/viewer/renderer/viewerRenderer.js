@@ -144,10 +144,19 @@ export class ViewerRenderer {
     this.ctx.fillText(`Camera Pos: ${cameraPosition.join(", ")}`, 16, 72);
     this.ctx.fillText(`Camera Target: ${cameraTarget.join(", ")}`, 16, 96);
     this.ctx.fillText(`Camera FOV: ${cameraFov.toFixed(2)}`, 16, 120);
-    const points = this.pointsGroup?.nodes?.length ?? 0;
-    const lines = this.linesGroup?.nodes?.length ?? 0;
-    const aux = this.auxGroup?.nodes?.length ?? 0;
-    this.ctx.fillText(`Layers: P${points} L${lines} A${aux}`, 16, 144);
+    const pointsVisible = !!this.pointsGroup?.visible;
+    const linesVisible = !!this.linesGroup?.visible;
+    const auxVisible = !!this.auxGroup?.visible;
+    const pointsCount = this.pointsGroup?.nodes?.length ?? 0;
+    const linesCount = this.linesGroup?.nodes?.length ?? 0;
+    const auxCount = this.auxGroup?.nodes?.length ?? 0;
+    this.ctx.fillText(
+      `Layers: P${pointsVisible ? pointsCount : 0} ` +
+        `L${linesVisible ? linesCount : 0} ` +
+        `A${auxVisible ? auxCount : 0}`,
+      16,
+      144
+    );
     this.ctx.fillText(`Frame: ${this.frameId ?? "default"}`, 16, 168);
   }
 

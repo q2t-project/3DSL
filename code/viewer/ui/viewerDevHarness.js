@@ -1,4 +1,10 @@
-import { bootViewerCore, updateFrameId, getFrameId } from "../core/viewerCore.js";
+import {
+  bootViewerCore,
+  updateFrameId,
+  getFrameId,
+  updateLayerVisibility,
+  getLayerVisibility,
+} from "../core/viewerCore.js";
 
 const DEFAULT_SAMPLE_PATH = "/data/sample/core_viewer_baseline.3dss.json";
 const ROTATE_SPEED = 0.01;
@@ -60,8 +66,9 @@ async function main() {
     mode: "viewer_dev",
   });
 
+  setupFrameControls(runtime, controlsEl, log, setSummary);
+  setupLayerControls(runtime, controlsEl, log, setSummary);
   setupCameraProtoControls(container, runtime);
-  setupFrameControls(runtime, controlsEl, log);
 }
 
 main().catch((error) => {
@@ -142,7 +149,7 @@ function setupCameraProtoControls(container, runtime) {
   );
 }
 
-function setupFrameControls(runtime, controlsEl, log) {
+function setupFrameControls(runtime, controlsEl, log, _setSummary) {
   if (!runtime || !controlsEl) {
     return;
   }
@@ -180,6 +187,74 @@ function setupFrameControls(runtime, controlsEl, log) {
   };
   updateActiveFrameLabel();
   controlsEl.appendChild(activeLabel);
+}
+
+function setupLayerControls(runtime, controlsEl, log, _setSummary) {
+  if (!controlsEl || !runtime) return;
+
+  let current = null;
+  try {
+    current = getLayerVisibility(runtime);
+  } catch (error) {
+    log?.({
+      tag: "WARN",
+      msg: "getLayerVisibility failed",
+      payload: { message: error?.message },
+    });
+    current = { points: true, lines: true, aux: true };
+  }
+
+  const container = document.createElement("div");
+  container.style.marginTop = "8px";
+
+  const label = document.createElement("div");
+  label.textContent = "Layers:";
+  label.style.marginBottom = "4px";
+  container.appendChild(label);
+
+  const layers = [
+    { key: "points", label: "Points" },
+    { key: "lines", label: "Lines" },
+    { key: "aux", label: "Aux" },
+  ];
+
+  layers.forEach(({ key, label: text }) => {
+    const wrapper = document.createElement("label");
+    wrapper.style.display = "inline-flex";
+    wrapper.style.alignItems = "center";
+    wrapper.style.marginRight = "8px";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = current?.[key] ?? true;
+
+    const span = document.createElement("span");
+    span.textContent = text;
+    span.style.marginLeft = "4px";
+
+    checkbox.addEventListener("change", () => {
+      try {
+        updateLayerVisibility(runtime, key, checkbox.checked);
+        log({
+          tag: "LAYERS_UI",
+          msg: "toggle layer",
+          payload: { layer: key, visible: checkbox.checked },
+        });
+      } catch (error) {
+        log({
+          tag: "ERROR",
+          msg: "updateLayerVisibility failed",
+          payload: { message: error?.message },
+        });
+      }
+    });
+
+    wrapper.appendChild(checkbox);
+    wrapper.appendChild(span);
+    container.appendChild(wrapper);
+  });
+
+  controlsEl.appendChild(container);
 }
 
 function orbitCamera(runtime, deltaX, deltaY) {
