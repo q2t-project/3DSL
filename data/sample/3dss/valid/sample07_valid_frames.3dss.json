@@ -1,68 +1,55 @@
-"$schema": "https://json-schema.org/draft/2020-12/schema",
-"$id": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.0",
-"title": "3DSS Schema v1.0.0",
-"type": "object",
-"properties": {
+{
+  "document_meta": {
+    "document_uuid": "2fe63ab8-0715-42a0-8ef4-02b998040e80",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.0",
+    "author": "animator@example.com",
+    "version": "1.3.0",
+    "tags": ["x:timelines"],
+    "coordinate_system": "Z+up/freeXY",
+    "units": "cm"
+  },
+  "points": [],
   "lines": [
     {
-      "signification": {
-        "relation": {
-          "dynamic": "flow"
-        },
-        "sense": "a_to_b"
-      },
       "appearance": {
         "end_a": {
-          "ref": "d68bfd3b-9cc3-41f9-a71b-bc7c9cc2990a"
+          "coord": [0, 0, 0]
         },
         "end_b": {
-          "ref": "68a9c5ad-7d41-4852-8ccc-e3904ebd0892"
+          "coord": [6, 0, 2]
         },
-        "line_style": "dashed",
-        "color": "#00ff00",
-        "opacity": 0.4,
-        "frames": [
-          -10,
-          0,
-          10
-        ]
+        "line_type": "straight",
+        "frames": 0,
+        "color": "#ffffff",
+        "opacity": 0.4
       },
       "meta": {
-        "uuid": "d2aa063b-4e5d-4928-86ae-e822862f04e1"
-      }
-    }
-  ],
-  "points": [
-    {
-      "appearance": {
-        "position": [
-          -6.8,
-          -9.47,
-          5.37
-        ]
-      },
-      "meta": {
-        "uuid": "d68bfd3b-9cc3-41f9-a71b-bc7c9cc2990a"
+        "uuid": "9d0fd286-630e-4954-9efe-2c528324c723"
       }
     },
     {
       "appearance": {
-        "position": [
-          7.92,
-          -4.4,
-          5.83
-        ]
+        "end_a": {
+          "coord": [6, 0, 2]
+        },
+        "end_b": {
+          "coord": [10, 4, 5]
+        },
+        "line_type": "straight",
+        "effect": {
+          "effect_type": "pulse",
+          "speed": 1.5,
+          "amplitude": 0.7,
+          "easing": "ease-in-out"
+        },
+        "frames": [10, 20, 30],
+        "color": "#ff8a65",
+        "opacity": 0.75
       },
       "meta": {
-        "uuid": "68a9c5ad-7d41-4852-8ccc-e3904ebd0892"
+        "uuid": "a2432a96-0ca1-426b-9b1f-b3a0dcb0135c"
       }
     }
   ],
-  "aux": [],
-  "document_meta": {
-    "document_uuid": "68501fb6-150d-4a22-8ed7-b6741c0ca806",
-    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.0",
-    "author": "creator@example.com",
-    "version": "1.0.0"
-  }
+  "aux": []
 }
