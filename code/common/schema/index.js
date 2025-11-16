@@ -1,25 +1,26 @@
 // code/common/schema/index.js
-// JSON スキーマ読み出し + レジストリ定義（Node 22 + ESM）
+// Node / browser 共通の JSON スキーマローダ
 
-import { createRequire } from 'node:module';
+import metadataSchema  from "./metadata.schema.json" with { type: "json" };
+import modelSchema     from "./model.schema.json"    with { type: "json" };
+import nodeSchema      from "./node.schema.json"     with { type: "json" };
+import sceneSchema     from "./scene.schema.json"    with { type: "json" };
+import transformSchema from "./transform.schema.json" with { type: "json" };
 
-const require = createRequire(import.meta.url);
-
-// JSON は import assertion を使わず require で読む
-const metadataSchema = require('./metadata.schema.json');
-const nodeSchema = require('./node.schema.json');
-const sceneSchema = require('./scene.schema.json');
-const transformSchema = require('./transform.schema.json');
-const coreModelSchema = require('./model.schema.json');
-
-// 個別エクスポート
-export { metadataSchema, nodeSchema, sceneSchema, transformSchema, coreModelSchema };
-
-// 名前→スキーマ本体のレジストリ
-export const schemaRegistry = {
+export const schemas = {
   metadata: metadataSchema,
+  model: modelSchema,
   node: nodeSchema,
   scene: sceneSchema,
   transform: transformSchema,
-  '3dsl-core-model': coreModelSchema,
 };
+
+// AJV 系ユーティリティからは schemaRegistry 名で参照する
+// （Node / browser 共通の薄い API）
+export const schemaRegistry = schemas;
+
+export function listSchemas() {
+  return Object.keys(schemas);
+}
+
+export default schemas;

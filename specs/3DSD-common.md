@@ -813,6 +813,16 @@ Validator は「構造データの内容」を変化させず、
 エラー内容をもとにどのような UI を提示するか
 （ツールチップ・ダイアログ・インライン表示等）は各アプリ側の責務とする。
 
+### 5.4.3 バリデータ層の分離規範（コンタミ防止）
+- 3DSS-validator（外部構造用）と internal-model-validator（内部構造用）は
+  データ型と責務が異なる別モジュールとする。
+- 3DSS-validator は `/schemas/3DSS.schema.json` を唯一の参照源とし、
+  3DSS に存在しないキー（例: `model.scene`）を要求してはならない。
+- internal-model-validator は `/code/**/validator/` 配下の internal schema のみを参照し、
+  `.3dss.json` ファイルを直接入力に取ってはならない。
+- dev ハーネスを含むいかなるコードも、
+  3DSS データに対して internal-model-validator を適用してはならない。
+
 ## 5.5 参照整合（reference integrity）の共通規範
 3DSS の参照はすべて uuid ベース。
 整合性は validator が保証する。

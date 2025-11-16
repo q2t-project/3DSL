@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>3DSL Modeler (dev harness)</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    body {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      grid-template-rows: 1fr;
+      height: 100vh;
+      overflow: hidden;
+    }
+    #viewport {
+      background: #111;
+    }
+    #sidebar {
+      border-left: 1px solid #444;
+      padding: 8px;
+      box-sizing: border-box;
+      font-size: 12px;
+      background: #181818;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    #log {
+      flex: 1;
+      overflow: auto;
+      background: #000;
+      color: #0f0;
+      padding: 4px;
+      font-family: "Consolas", "SFMono-Regular", ui-monospace, Menlo, Monaco, monospace;
+      font-size: 11px;
+    }
+    button {
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div id="viewport"></div>
+  <aside id="sidebar">
+    <h1 style="margin:0;font-size:14px;">3DSL Modeler (dev)</h1>
+    <div>
+      <label for="samplePath">Sample .3dss.json</label><br />
+      <input id="samplePath" type="text" size="40"
+             value="/data/sample/sample_scene.3dss.json" />
+      <button id="reloadBtn">Load</button>
+    </div>
+    <pre id="summary">{}</pre>
+    <pre id="log"></pre>
+  </aside>
+
+  <script type="module">
+    import { bootstrapModelerDev } from "./modelerDevHarness.js";
+
+    const $viewport = document.getElementById("viewport");
+    const $log = document.getElementById("log");
+    const $summary = document.getElementById("summary");
+    const $path = document.getElementById("samplePath");
+    const $reload = document.getElementById("reloadBtn");
+
+    const dev = bootstrapModelerDev({
+      mountViewport: $viewport,
+      summaryElem: $summary,
+      logElem: $log,
+    });
+
+    async function loadCurrent() {
+      await dev.loadDocument($path.value);
+    }
+
+    $reload.addEventListener("click", () => {
+      loadCurrent().catch(err => {
+        console.error(err);
+        $log.textContent += "\\n[error] " + String(err);
+      });
+    });
+
+    // 初回ロード
+    loadCurrent().catch(console.error);
+  </script>
+</body>
+</html>
