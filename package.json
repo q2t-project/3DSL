@@ -3,7 +3,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-"scripts": {
   "selftest:common": "node --test code/common/selftest/*.spec.js",
   "selftest:modeler": "node code/modeler/selftest/modeler_selftest.js",
   "selftest:viewer": "node code/viewer/selftest/viewer_selftest.js",
@@ -12,8 +11,6 @@
 
   "test:common": "npm run selftest:common",
   "test": "echo \"No generic test; use npm run check:repo or npm run selftest:*\" && exit 1"
-}
-
   },
 
   "repository": {
