@@ -2,49 +2,67 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-// importer の実際のパスに合わせてここだけ調整してな
+
 import { importFromPrep } from '../io/importer.js';
 
-const { strictEqual, ok, match } = assert;
+const { strictEqual, ok, deepStrictEqual, match } = assert;
+
+const SAMPLE_PREP = {
+  document_meta: {
+    schema_uri: 'https://q2t-project.github.io/3dsl/schemas/3DSS-prep.schema.json#v1.0.0',
+    generator: 'selftest',
+    source: 'unit-test-suite',
+  },
+  points: [
+    { name: 'alpha' },
+    { name: 'beta', position: [1, 2, 3] },
+  ],
+};
 
 // ---------------------------------------------------------------------------
-// 1) 現状のスタブ挙動（必ず失敗 + エラーメッセージ）
+// 正常系
 // ---------------------------------------------------------------------------
-test('importFromPrep: currently returns a failure stub', () => {
-  const result = importFromPrep({ some: 'prep-json' });
+test('importFromPrep: parses and converts valid prep JSON payloads', () => {
+  const jsonInput = JSON.stringify(SAMPLE_PREP);
+  const result = importFromPrep(jsonInput);
 
-  strictEqual(typeof result, 'object');
-  strictEqual(result.ok, false);
+  ok(result.ok, 'result should be ok for valid prep input');
+  ok(result.document, 'document should be defined when ok=true');
 
-  ok(Array.isArray(result.errors), 'errors should be an array when ok=false');
-  ok(result.errors.length > 0, 'errors array should not be empty');
+  const document = result.document;
+  strictEqual(document.points.length, SAMPLE_PREP.points.length, 'all points should be converted');
+  strictEqual(document.points[0].label, 'alpha');
+  deepStrictEqual(document.points[0].position, [0, 0, 0], 'points default to origin when no position is provided');
+  strictEqual(document.points[1].label, 'beta');
+  deepStrictEqual(document.points[1].position, [1, 2, 3], 'explicit positions are preserved');
+  ok(document.points.every((point) => typeof point.id === 'string' && point.id.length > 0));
 
-  // 文字列はざっくり「not implemented」を含んでいることだけ見る
-  match(String(result.errors[0]), /not implemented/i);
+  ok(document.document_meta.document_uuid, 'document meta should include a uuid');
+  strictEqual(document.document_meta.schema_uri, SAMPLE_PREP.document_meta.schema_uri);
 });
 
 // ---------------------------------------------------------------------------
-// 2) どんな入力でも例外を投げずに result を返す、という最低限の契約
+// 異常系: 入力文字列
 // ---------------------------------------------------------------------------
-test('importFromPrep: does not throw for arbitrary input', () => {
-  const weirdInputs = [
-    null,
-    123,
-    'plain text',
-    [1, 2, 3],
-    { foo: 'bar' },
-  ];
+test('importFromPrep: rejects empty or malformed JSON strings', () => {
+  const emptyResult = importFromPrep('   ');
+  strictEqual(emptyResult.ok, false);
+  match(emptyResult.errors?.[0] ?? '', /cannot be empty/);
 
-  for (const input of weirdInputs) {
-    let thrown = false;
-    try {
-      const res = importFromPrep(input);
-      // 戻り値の形だけ軽くチェック
-      strictEqual(typeof res, 'object');
-      strictEqual(typeof res.ok, 'boolean');
-    } catch {
-      thrown = true;
-    }
-    strictEqual(thrown, false, 'importFromPrep should not throw');
-  }
+  const malformedResult = importFromPrep('{"points":');
+  strictEqual(malformedResult.ok, false);
+  match(malformedResult.errors?.[0] ?? '', /failed to parse prep JSON/);
+});
+
+// ---------------------------------------------------------------------------
+// 異常系: 型違い / スキーマ違反
+// ---------------------------------------------------------------------------
+test('importFromPrep: validates payload shape against PREP schema', () => {
+  const typeResult = importFromPrep(123);
+  strictEqual(typeResult.ok, false);
+  match(typeResult.errors?.[0] ?? '', /must be an object/i);
+
+  const schemaResult = importFromPrep({ document_meta: SAMPLE_PREP.document_meta });
+  strictEqual(schemaResult.ok, false);
+  ok(schemaResult.errors?.some((message) => /points/i.test(message)), 'error should mention points field');
 });
