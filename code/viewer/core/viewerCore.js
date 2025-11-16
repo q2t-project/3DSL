@@ -39,14 +39,36 @@ function bucketNode(node) {
 
 const formatFrameId = (frameId) => frameId ?? "default";
 
-function summarizeLoadResult(path, viewScene, model, warnings = [], initialFrameId = null, activeFrameId = null) {
+function summarizeLoadResult(
+  path,
+  viewScene,
+  model,
+  warnings = [],
+  initialFrameId = null,
+  activeFrameId = null,
+  visibleLayers = null
+) {
+  const formattedInitial = formatFrameId(initialFrameId);
+  const formattedActive = formatFrameId(activeFrameId ?? initialFrameId);
+  const layers =
+    visibleLayers ??
+    {
+      points: true,
+      lines: true,
+      aux: true,
+    };
   return {
     path,
     nodesInScene: viewScene?.nodes?.length ?? 0,
     sceneId: viewScene?.id ?? null,
     documentVersion: model?.version ?? null,
-    initialFrameId: initialFrameId ?? "default",
-    activeFrameId: activeFrameId ?? initialFrameId ?? "default",
+    initialFrameId: formattedInitial,
+    activeFrameId: formattedActive,
+    visibleLayers: {
+      points: !!layers.points,
+      lines: !!layers.lines,
+      aux: !!layers.aux,
+    },
     warnings: warnings.map((warn) => warn?.message ?? String(warn)),
   };
 }
@@ -147,13 +169,15 @@ class ViewerCoreRuntime {
       frameId: this.currentFrameId,
     });
 
+    const layers = this.getLayerVisibility();
     this.lastLoadSummary = summarizeLoadResult(
       targetPath,
       viewScene,
       internalModel,
       warnings,
       this.currentFrameId,
-      this.currentFrameId
+      this.currentFrameId,
+      layers
     );
     if (this.setSummary) {
       this.setSummary(this.lastLoadSummary);
@@ -186,12 +210,13 @@ class ViewerCoreRuntime {
     this.log({ tag: "BOOT", payload: { mode: this.mode } });
     this.log({ tag: "MODEL", payload: { path: this.modelPath } });
     this.log({ tag: "CAMERA", payload: this.cameraState });
+    const layers = this.getLayerVisibility();
     this.log({
       tag: "LAYERS",
       payload: {
-        points: this.sceneGraph.pointsGroup.visible,
-        lines: this.sceneGraph.linesGroup.visible,
-        aux: this.sceneGraph.auxGroup.visible,
+        points: layers.points,
+        lines: layers.lines,
+        aux: layers.aux,
       },
     });
     this.log({ tag: "FRAME", payload: { frame_id: formatFrameId(this.currentFrameId) } });
@@ -239,6 +264,63 @@ class ViewerCoreRuntime {
       }
     }
   }
+
+  getLayerVisibility() {
+    return {
+      points: !!this.sceneGraph.pointsGroup?.visible,
+      lines: !!this.sceneGraph.linesGroup?.visible,
+      aux: !!this.sceneGraph.auxGroup?.visible,
+    };
+  }
+
+  setLayerVisibility(layerKey, visible) {
+    const key = String(layerKey ?? "").toLowerCase();
+    let groupKey = null;
+    if (key === "points" || key === "point") groupKey = "pointsGroup";
+    else if (key === "lines" || key === "line") groupKey = "linesGroup";
+    else if (key === "aux" || key === "auxiliary") groupKey = "auxGroup";
+    else throw new Error(`Unknown layer: ${layerKey}`);
+
+    const group = this.sceneGraph[groupKey];
+    if (!group) {
+      throw new Error(`Layer group not found: ${groupKey}`);
+    }
+
+    const current = !!group.visible;
+    const next = visible == null ? !current : !!visible;
+    if (next === current) {
+      return;
+    }
+
+    group.visible = next;
+
+    this.renderer.renderScene({
+      viewScene: this.sceneGraph.scene,
+      mode: this.mode,
+      cameraState: this.cameraState,
+      pointsGroup: this.sceneGraph.pointsGroup,
+      linesGroup: this.sceneGraph.linesGroup,
+      auxGroup: this.sceneGraph.auxGroup,
+      frameId: this.currentFrameId,
+    });
+
+    const layers = this.getLayerVisibility();
+    this.log({
+      tag: "LAYERS",
+      payload: {
+        points: layers.points,
+        lines: layers.lines,
+        aux: layers.aux,
+      },
+    });
+
+    if (this.lastLoadSummary) {
+      this.lastLoadSummary.visibleLayers = { ...layers };
+      if (this.setSummary) {
+        this.setSummary(this.lastLoadSummary);
+      }
+    }
+  }
 }
 
 export async function bootViewerCore(containerElement, config = {}) {
@@ -259,6 +341,20 @@ export function getFrameId(runtime) {
     throw new Error("Invalid viewer runtime: getFrameId missing");
   }
   return runtime.getFrameId();
+}
+
+export function updateLayerVisibility(runtime, layerKey, visible) {
+  if (!runtime || typeof runtime.setLayerVisibility !== "function") {
+    throw new Error("Invalid viewer runtime: setLayerVisibility missing");
+  }
+  runtime.setLayerVisibility(layerKey, visible);
+}
+
+export function getLayerVisibility(runtime) {
+  if (!runtime || typeof runtime.getLayerVisibility !== "function") {
+    throw new Error("Invalid viewer runtime: getLayerVisibility missing");
+  }
+  return runtime.getLayerVisibility();
 }
 
 export { ViewerCoreRuntime };
