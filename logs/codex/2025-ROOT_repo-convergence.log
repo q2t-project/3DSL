@@ -1,0 +1,25 @@
+[2025-ROOT_repo-convergence]
+A-section counts => ✅:2 / ⚠️:1 / ⬜:0
+B-section counts => ✅:0 / ⚠️:2 / ⬜:2
+C-section counts => ✅:2 / ⚠️:0 / ⬜:1
+D-section counts => ✅:0 / ⚠️:0 / ⬜:2
+Totals => ✅:4 / ⚠️:3 / ⬜:5
+
+Red items (⚠️/⬜): A-1, B-1, B-2, B-3, B-4, C-3, D-1, D-2.
+Existing PR mapping: PR2→C-1, PR3→A-2/A-3/C-2, PR4→B-2, PR5→B-1/B-3, PR6→B-4/C-3, PR7→D-1, ROOT(H/C)→D-2.
+
+Next PR candidates:
+1) B-2 PREP importer (PR4_modeler-prep-importer)
+   - Target dirs: code/modeler/io/, code/modeler/selftest/, data/sample/prep/
+   - Selftest: code/modeler/selftest/importer_prep.spec.js
+   - Command: node --test code/modeler/selftest/importer_prep.spec.js
+2) B-1 core importer selftest (PR5_modeler-core-importer-selftest)
+   - Target dirs: code/modeler/io/, code/modeler/selftest/, data/sample/core/
+   - Selftest: code/modeler/selftest/importer_core.spec.js
+   - Command: node --test code/modeler/selftest/importer_core.spec.js
+3) D-1 repo check command (PR7_repo-check-command)
+   - Target dirs: package.json(scripts), code/scripts/, code/*/selftest/
+   - Selftest: code/scripts/selftest/check_repo.spec.js
+   - Command: npm run check:repo
+
+Selftest command coverage expectation: node --test code/modeler/selftest/*.spec.js, npm run selftest:modeler, npm run selftest:viewer, npm run check:repo (once implemented).
