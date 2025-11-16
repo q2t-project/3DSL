@@ -6,6 +6,14 @@ Branch: main
 
 Scope: code/viewer/core, code/viewer/renderer, code/viewer/ui
 
+Mode: implementation（write-enabled）
+
+- このオーダーは「レビュー専用」ではなく **実装タスク** として扱うこと。
+- 上記 Scope 配下のファイルを必要な範囲で直接編集してよい。
+- 変更内容は diff の提示だけでなく、ワークスペース上のファイルにも反映すること。
+- 作業完了後は `npm run selftest:viewer` を実行し、その結果を Testing セクションに記録すること。
+- **read-only QA レビューにしないこと。**
+
 Goal: dev ハーネス上で frame 切替の最小プロトタイプ を実装する
 
 描画はまだ Canvas2D の debug overlay のままでよい
