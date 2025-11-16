@@ -1,3 +1,4 @@
+// code/common/schema/schema_validator.js
 import Ajv from '../../vendor/ajv/dist/ajv.bundle.js';
 import addFormats from '../../vendor/ajv-formats/dist/index.js';
 import { schemaRegistry } from './index.js';
@@ -6,7 +7,9 @@ const ajv = new Ajv({
   allErrors: true,
   strict: false,
 });
+
 addFormats(ajv);
+
 ajv.addFormat('finite-number', {
   type: 'number',
   validate: Number.isFinite,
@@ -28,7 +31,8 @@ function getValidator(schemaName) {
 
   if (!validatorCache.has(schemaName)) {
     const key = schemaKeys.get(schemaName);
-    const validateFn = ajv.getSchema(key) ?? ajv.compile(schemaRegistry[schemaName]);
+    const validateFn =
+      ajv.getSchema(key) ?? ajv.compile(schemaRegistry[schemaName]);
     validatorCache.set(schemaName, validateFn);
   }
 

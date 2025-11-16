@@ -2,15 +2,15 @@
   "name": "3dsl",
   "private": true,
   "type": "module",
-
   "scripts": {
     "selftest:modeler": "node code/modeler/selftest/modeler_selftest.js",
-
     "selftest:viewer": "node code/viewer/selftest/viewer_selftest.js",
-
-    "check:repo": "node scripts/check_repo.mjs",
-
+    "test": "echo \"No generic test suite. Use npm run selftest:*\" && exit 1"
   },
+
+"scripts": {
+  "test:common": "node --test code/common/selftest/*.spec.js"
+},
 
   "repository": {
     "type": "git",
