@@ -822,12 +822,14 @@ Validator は「構造データの内容」を変化させず、
   `.3dss.json` ファイルを直接入力に取ってはならない。
 - dev ハーネスを含むいかなるコードも、
   3DSS データに対して internal-model-validator を適用してはならない。
+- selftest 用に、Ajv を使わない軽量 validator を差し込むことは許容するが、プロダクションコードでは使用しない
 
 ## 5.5 参照整合（reference integrity）の共通規範
 3DSS の参照はすべて uuid ベース。
 整合性は validator が保証する。
 ここでの参照整合は、スキーマ定義に加えて
 Validator レイヤで行う追加チェックも含む。
+現時点では参照整合の追加チェックは TODO であり、将来バージョンで validate3Dss の後段処理として実装する
 
 ### 共通ルール
 1. ref → uuid
