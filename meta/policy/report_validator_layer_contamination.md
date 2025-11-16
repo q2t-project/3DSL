@@ -25,3 +25,20 @@
 - 実際に internal-model validator を 3DSS 読み込みに使っているのは `code/modeler/io/importer_core.js`（およびそれを再輸出している呼び出し元）だけでした。
 - `modeler_dev` / `viewer_dev` ハーネスは `.3dss.json` をそのまま importer_core に渡しているため、3DSS → internal model の分離ができていません。
 - vendor/仕様ファイル内のヒットは参照のみであり、今回の修正範囲（internal model validator 分離）の対象外です。
+
++## 対応状況（2025-xx01）
+
+- `code/common/validator/threeDssValidator.js` に 3DSS 用 AJV バリデータを実装し、
+  **3DSS-validator は `/schemas/3DSS.schema.json` のみを参照**する形に統一した。
+- `code/common/validator/internalModelValidator.js` を新設し、
+  **internal-model-validator は `Model` 型だけを受け取り、`.3dss.json` を直接入力に取らない**
+  ことを保証した。
+- `code/common/core/importer_core.js` では、
+  `.3dss.json` → `validate3Dss` → `convert3DssToInternalModel` → `validateInternalModel`
+  という二段パイプラインに変更し、
+  **生 3DSS に対して internal-model-validator を当てない** よう修正した。
+- `code/modeler/ui/modelerDevHarness.js` および `code/viewer/ui/viewerDevHarness.js` は、
+  `.3dss.json` に対して 3DSS-validator のみを適用し、
+  internal model へ変換した後に internal-model-validator を呼ぶ構成に変更した。
+
+詳細なコード差分は `meta/policy/patch_validator_layer_contamination_fix.md` を参照する。
