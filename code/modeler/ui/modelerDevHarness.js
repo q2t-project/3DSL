@@ -1,9 +1,10 @@
 // PR8: dev 用の簡易ハーネス。
 // three.js 初期化 → 3DSS 読み込み → importer_core → modelerRenderer で表示。
 
-import { importModelFromJSON } from "../io/importer_core.js";
+import { convert3DssToInternalModel } from "../../common/core/importer_core.js";
+import { validate3Dss } from "../../common/validator/threeDssValidator.js";
+import { validateInternalModel } from "../../common/validator/internalModelValidator.js";
 import { ModelerRenderer } from "../renderer/modelerRenderer.js";
-// 必要なら validator / paths もここで import する。
 
 export function bootstrapModelerDev(opts) {
   const { mountViewport, summaryElem, logElem } = opts;
@@ -22,20 +23,26 @@ export function bootstrapModelerDev(opts) {
     const res = await fetch(url);
     const json = await res.json();
 
-    // ThreeDSSDocument へ変換
-    const doc = importModelFromJSON(json);
+    const docValidation = validate3Dss(json);
+    if (!docValidation.ok) {
+      log("3DSS validation failed", docValidation.errors);
+      throw new Error(docValidation.errors?.[0]?.message ?? "3DSS validation failed");
+    }
 
-    // renderer へ渡す
-    renderer.renderDocument(doc);
+    const model = convert3DssToInternalModel(json);
+    const internalValidation = validateInternalModel(model);
+    if (!internalValidation.ok) {
+      log("internal model warnings", internalValidation.errors);
+    }
+
+    renderer.render(model);
 
     if (summaryElem) {
       summaryElem.textContent = JSON.stringify(
         {
-          lines: doc.lines?.length ?? 0,
-          points: doc.points?.length ?? 0,
-          aux: doc.aux?.length ?? 0,
-          document_uuid: doc.document_meta?.document_uuid ?? null,
-          version: doc.document_meta?.version ?? null,
+          sceneId: model.scene?.id ?? null,
+          nodes: model.scene?.nodes?.length ?? 0,
+          version: model.version ?? null,
         },
         null,
         2,
@@ -43,9 +50,8 @@ export function bootstrapModelerDev(opts) {
     }
 
     log("rendered", {
-      lines: doc.lines?.length ?? 0,
-      points: doc.points?.length ?? 0,
-      aux: doc.aux?.length ?? 0,
+      sceneId: model.scene?.id ?? null,
+      nodes: model.scene?.nodes?.length ?? 0,
     });
   }
 

@@ -15,9 +15,9 @@ export class ModelerRenderer {
   }
 
   /**
-   * @param {import("../../common/core/modelTypes.js").ThreeDSSDocument} _doc
+   * @param {import("../../common/types/core.js").Model} _model
    */
-  render(_doc) {
+  render(_model) {
     if (!this.initialized) return;
     // レンダリング処理は後で
   }
