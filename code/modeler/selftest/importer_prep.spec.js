@@ -1,5 +1,6 @@
 // code/modeler/selftest/importer_prep.spec.js
 
+import { Buffer } from 'node:buffer';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -65,4 +66,30 @@ test('importFromPrep: validates payload shape against PREP schema', () => {
   const schemaResult = importFromPrep({ document_meta: SAMPLE_PREP.document_meta });
   strictEqual(schemaResult.ok, false);
   ok(schemaResult.errors?.some((message) => /points/i.test(message)), 'error should mention points field');
+});
+
+// ---------------------------------------------------------------------------
+// バイナリ入力と warning 生成
+// ---------------------------------------------------------------------------
+test('importFromPrep: accepts binary inputs and emits warnings for data issues', () => {
+  const duplicateAndInvalidPoints = {
+    document_meta: SAMPLE_PREP.document_meta,
+    points: [
+      { name: 'alpha', position: [0, 'x', 3], style: 'plain-text' },
+      { name: 'alpha', position: [1, 2, 3] },
+      { name: '' },
+    ],
+  };
+
+  const bufferInput = Buffer.from(JSON.stringify(duplicateAndInvalidPoints), 'utf8');
+  const result = importFromPrep(bufferInput);
+
+  ok(result.ok, 'buffer input should be accepted');
+  ok(Array.isArray(result.warnings) && result.warnings.length >= 2, 'warnings should be surfaced');
+  strictEqual(result.document.points[0].label, 'alpha');
+  deepStrictEqual(result.document.points[0].position, [0, 0, 0], 'invalid coordinates fall back to default');
+  strictEqual(result.document.points[1].label, 'alpha-2', 'duplicate labels are uniquified');
+  strictEqual(result.document.points[2].label, 'prep-point-3', 'missing names receive fallback labels');
+  ok(result.warnings.some((warning) => /style/i.test(warning)), 'style warning should be present');
+  ok(result.warnings.some((warning) => /duplicated label/i.test(warning)), 'duplicate label warning should be present');
 });

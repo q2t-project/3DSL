@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer';
 import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 
@@ -23,7 +24,8 @@ const DEFAULT_POINT_POSITION = [0, 0, 0];
  * @returns {{
  *   ok: boolean,
  *   document?: import('../../common/core/modelTypes.js').ThreeDSSDocument,
- *   errors?: string[]
+ *   errors?: string[],
+ *   warnings?: string[]
  * }}
  */
 export function importFromPrep(prepJson) {
@@ -41,8 +43,12 @@ export function importFromPrep(prepJson) {
     return validationResult;
   }
 
-  const document = convertToDocument(validationResult.payload);
-  return { ok: true, document };
+  const { document, warnings } = convertToDocument(validationResult.payload);
+  const result = { ok: true, document };
+  if (warnings.length) {
+    result.warnings = warnings;
+  }
+  return result;
 }
 
 function safeLoadPrepSchema() {
@@ -83,6 +89,23 @@ function resolvePrepSchemaName() {
 }
 
 function normalizePrepInput(prepJson) {
+  if (Buffer.isBuffer(prepJson)) {
+    return normalizePrepInput(prepJson.toString('utf8'));
+  }
+
+  if (prepJson instanceof ArrayBuffer) {
+    return normalizePrepInput(Buffer.from(prepJson).toString('utf8'));
+  }
+
+  if (ArrayBuffer.isView(prepJson)) {
+    const viewBuffer = Buffer.from(
+      prepJson.buffer,
+      prepJson.byteOffset,
+      prepJson.byteLength,
+    );
+    return normalizePrepInput(viewBuffer.toString('utf8'));
+  }
+
   if (typeof prepJson === 'string') {
     const trimmed = prepJson.trim();
     if (!trimmed) {
@@ -133,11 +156,12 @@ function formatAjvErrors(errors = []) {
 }
 
 function convertToDocument(prepPayload) {
+  const warnings = [];
   const document = createEmptyDocument();
   document.document_meta = buildDocumentMeta(document.document_meta, prepPayload.document_meta);
-  document.points = convertPrepPoints(prepPayload.points);
+  document.points = convertPrepPoints(prepPayload.points, warnings);
   // TODO: PREP lines/aux mappings will be implemented once the schema defines them explicitly.
-  return document;
+  return { document, warnings };
 }
 
 function buildDocumentMeta(baseMeta = {}, prepMeta = {}) {
@@ -163,35 +187,52 @@ function buildDocumentMeta(baseMeta = {}, prepMeta = {}) {
   return meta;
 }
 
-function convertPrepPoints(points = []) {
+function convertPrepPoints(points = [], warnings) {
   if (!Array.isArray(points)) {
     return [];
   }
 
+  const labelUsage = new Map();
   return points.map((point, index) => {
-    const label = normalizePointLabel(point?.name, index);
+    const rawLabel = normalizePointLabel(point?.name, index, warnings);
+    const label = ensureUniqueLabel(rawLabel, labelUsage, index, warnings);
     const basePoint = {
       id: generateId('point'),
       label,
-      position: normalizePointPosition(point?.position),
+      position: normalizePointPosition(point?.position, index, warnings),
     };
 
     if (isPlainObject(point?.style)) {
       basePoint.style = point.style;
+    } else if (point?.style !== undefined) {
+      warnings.push(`point[${index}] style was ignored because it is not an object`);
     }
 
     return basePoint;
   });
 }
 
-function normalizePointLabel(name, index) {
+function normalizePointLabel(name, index, warnings) {
   if (typeof name === 'string' && name.trim()) {
     return name.trim();
   }
+  warnings.push(`point[${index}] name is missing; generated fallback label`);
   return `prep-point-${index + 1}`;
 }
 
-function normalizePointPosition(position) {
+function ensureUniqueLabel(label, labelUsage, index, warnings) {
+  const usage = labelUsage.get(label) ?? 0;
+  labelUsage.set(label, usage + 1);
+  if (usage === 0) {
+    return label;
+  }
+
+  const uniqueLabel = `${label}-${usage + 1}`;
+  warnings.push(`point[${index}] duplicated label '${label}' renamed to '${uniqueLabel}'`);
+  return uniqueLabel;
+}
+
+function normalizePointPosition(position, index, warnings) {
   if (
     Array.isArray(position) &&
     position.length === 3 &&
@@ -200,6 +241,9 @@ function normalizePointPosition(position) {
     return [...position];
   }
 
+  if (position !== undefined) {
+    warnings.push(`point[${index}] position is invalid; defaulted to ${DEFAULT_POINT_POSITION.join(',')}`);
+  }
   return [...DEFAULT_POINT_POSITION];
 }
 
