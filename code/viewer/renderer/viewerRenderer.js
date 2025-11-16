@@ -17,6 +17,7 @@ export class ViewerRenderer {
     this.auxGroup = options.auxGroup ?? { nodes: [], visible: true };
     this.mode = options.mode ?? "viewer_dev";
     this.log = typeof options.log === "function" ? options.log : () => {};
+    this.frameId = options.frameId ?? null;
 
     this.initialized = false;
     this.canvas = null;
@@ -41,6 +42,7 @@ export class ViewerRenderer {
     this.pointsGroup = sceneInfo.pointsGroup ?? this.pointsGroup;
     this.linesGroup = sceneInfo.linesGroup ?? this.linesGroup;
     this.auxGroup = sceneInfo.auxGroup ?? this.auxGroup;
+    this.frameId = sceneInfo.frameId ?? this.frameId;
   }
 
   // Compatibility shim for legacy callers used by selftests.
@@ -146,6 +148,7 @@ export class ViewerRenderer {
     const lines = this.linesGroup?.nodes?.length ?? 0;
     const aux = this.auxGroup?.nodes?.length ?? 0;
     this.ctx.fillText(`Layers: P${points} L${lines} A${aux}`, 16, 144);
+    this.ctx.fillText(`Frame: ${this.frameId ?? "default"}`, 16, 168);
   }
 
   #drawBootMessage() {
