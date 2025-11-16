@@ -162,13 +162,29 @@ modeler／viewer が共通して従うべき解釈規範を定める。
 | **aux**           | 補助（空間補助） | グリッド・軸・シェル等の視覚補助         |
 | **document_meta** | 管理情報     | uuid・schema_uri・座標系・単位など |
 
+上記 4 要素をプロパティとして持つオブジェクトを、本仕様および実装コード
+`code/common/core/modelTypes.js` では **ThreeDSSDocument** と呼ぶ。
+
 ### 共通ルール
 - document_meta は必須。
 - lines／points／aux はいずれも任意の配列。
 - スキーマ以外のキーは許可されない（strict モード）。
 
 ## 2.2 document_meta の共通規範（必須）
+
 3DSS の最上位情報であり、modeler と viewer の両者に共通。
+実装上のコア型 `DocumentMeta` は、次のプロパティを持つ：
+
+- `document_uuid`: string  
+- `schema_uri`: string  
+- `author`: string  
+- `version`: string  
+- `coordinate_system`: string  
+- `units`: string  
+- `language`: string  
+
+これに加えて、本書では任意のメタ情報として `tags` などの追加フィールドを
+許容するが、これらは ThreeDSSDocument のコア型には含めない（オプション扱い）。
 
 ### 2.2.1 document_meta の必須項目
 スキーマで定義される required は：
