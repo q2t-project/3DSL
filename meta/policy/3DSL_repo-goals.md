@@ -196,7 +196,7 @@ Codex からは読み取り専用とする。
 
 ### B-4: modeler selftest（パイプライン一周）
 
-- 状態: ⬜
+- 状態: ✅
 - 内容:
   - `npm run selftest:modeler` で
     - 代表的な 3DSS / PREP 入力を読み込み
