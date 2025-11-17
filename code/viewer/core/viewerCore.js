@@ -37,7 +37,103 @@ function bucketNode(node) {
   return "auxGroup";
 }
 
+const GROUP_TO_COLLECTION_KEY = Object.freeze({
+  pointsGroup: "points",
+  linesGroup: "lines",
+  auxGroup: "aux",
+});
+
+const FRAME_SEQUENCE_PROP = Symbol("viewer.frameSequence");
+
 const formatFrameId = (frameId) => frameId ?? "default";
+
+const toFrameNumber = (value) => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.trunc(value);
+  }
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isFinite(parsed)) {
+      return Math.trunc(parsed);
+    }
+  }
+  return null;
+};
+
+const normalizeFrameSequence = (frames) => {
+  if (frames == null) {
+    return null;
+  }
+  if (typeof frames === "number" || typeof frames === "string") {
+    const normalized = toFrameNumber(frames);
+    return normalized == null ? null : normalized;
+  }
+  if (!Array.isArray(frames)) {
+    return null;
+  }
+  const normalized = frames
+    .map((value) => toFrameNumber(value))
+    .filter((value) => value != null);
+  return normalized.length ? normalized : null;
+};
+
+const extractCollectionFrameSequences = (collection = []) => {
+  if (!Array.isArray(collection)) {
+    return [];
+  }
+  return collection.map((entry) => normalizeFrameSequence(entry?.appearance?.frames ?? entry?.frames ?? null));
+};
+
+const extractDocumentFrameCollections = (documentJson) => ({
+  points: extractCollectionFrameSequences(documentJson?.points),
+  lines: extractCollectionFrameSequences(documentJson?.lines),
+  aux: extractCollectionFrameSequences(documentJson?.aux),
+});
+
+const deriveFrameRange = (documentJson, frameCollections) => {
+  const frameIds = new Set();
+  const addFrame = (value) => {
+    const normalized = toFrameNumber(value);
+    if (normalized != null) {
+      frameIds.add(normalized);
+    }
+  };
+
+  const metaFrames = documentJson?.document_meta?.frames;
+  if (Array.isArray(metaFrames)) {
+    for (const entry of metaFrames) {
+      if (typeof entry === "object" && entry !== null) {
+        addFrame(entry.frame_id ?? entry.id);
+        continue;
+      }
+      addFrame(entry);
+    }
+  } else if (metaFrames != null) {
+    addFrame(metaFrames);
+  }
+
+  for (const sequences of Object.values(frameCollections ?? {})) {
+    if (!Array.isArray(sequences)) continue;
+    for (const sequence of sequences) {
+      if (sequence == null) continue;
+      if (Array.isArray(sequence)) {
+        sequence.forEach(addFrame);
+      } else {
+        addFrame(sequence);
+      }
+    }
+  }
+
+  if (!frameIds.size) {
+    frameIds.add(0);
+  }
+
+  const values = [...frameIds];
+  return {
+    minFrameId: Math.min(...values),
+    maxFrameId: Math.max(...values),
+  };
+};
 
 function summarizeLoadResult(
   path,
@@ -90,13 +186,11 @@ function determineInitialFrameId(documentJson) {
   if (Array.isArray(frames) && frames.length > 0) {
     const head = frames[0];
     if (typeof head === "object" && head !== null) {
-      return head.frame_id ?? head.id ?? null;
+      return toFrameNumber(head.frame_id ?? head.id ?? null);
     }
-    if (typeof head === "number" || typeof head === "string") {
-      return head;
-    }
+    return toFrameNumber(head);
   }
-  return null;
+  return toFrameNumber(documentJson?.document_meta?.default_frame ?? null);
 }
 
 class ViewerCoreRuntime {
@@ -122,9 +216,14 @@ class ViewerCoreRuntime {
       log: this.log,
     });
 
+    this.state = {
+      activeFrameId: 0,
+    };
     this.initialized = false;
     this.lastLoadSummary = null;
-    this.currentFrameId = null;
+    this.currentFrameId = 0;
+    this.frameRange = { minFrameId: 0, maxFrameId: 0 };
+    this.hud = config.hud ?? null;
   }
 
   async init() {
@@ -155,10 +254,19 @@ class ViewerCoreRuntime {
     const internalModel = convert3DssToInternalModel(documentJson);
     const internalValidation = validateInternalModel(internalModel);
     const warnings = internalValidation.ok ? [] : internalValidation.errors ?? [];
-    this.currentFrameId = determineInitialFrameId(documentJson);
+
+    const frameCollections = extractDocumentFrameCollections(documentJson);
+    this.frameRange = deriveFrameRange(documentJson, frameCollections);
+    const initialFrameCandidate = determineInitialFrameId(documentJson);
+    const startingFrame = this.#clampFrameId(
+      typeof initialFrameCandidate === "number" ? initialFrameCandidate : this.frameRange.minFrameId,
+    );
+    this.currentFrameId = startingFrame;
+    this.state.activeFrameId = startingFrame;
 
     const viewScene = createScene(internalModel.scene);
-    this.#populateSceneGraph(viewScene);
+    this.#populateSceneGraph(viewScene, frameCollections);
+    this.applyFrameToScene(this.state.activeFrameId);
     this.renderer.renderScene({
       viewScene,
       mode: this.mode,
@@ -166,7 +274,7 @@ class ViewerCoreRuntime {
       pointsGroup: this.sceneGraph.pointsGroup,
       linesGroup: this.sceneGraph.linesGroup,
       auxGroup: this.sceneGraph.auxGroup,
-      frameId: this.currentFrameId,
+      frameId: this.state.activeFrameId,
     });
 
     const layers = this.getLayerVisibility();
@@ -175,17 +283,18 @@ class ViewerCoreRuntime {
       viewScene,
       internalModel,
       warnings,
-      this.currentFrameId,
-      this.currentFrameId,
+      this.state.activeFrameId,
+      this.state.activeFrameId,
       layers
     );
     if (this.setSummary) {
       this.setSummary(this.lastLoadSummary);
     }
+    this.notifyHUD(this.state.activeFrameId);
     return this.lastLoadSummary;
   }
 
-  #populateSceneGraph(viewScene) {
+  #populateSceneGraph(viewScene, frameCollections = null) {
     this.sceneGraph.scene = viewScene ?? { nodes: [] };
     const groups = [this.sceneGraph.pointsGroup, this.sceneGraph.linesGroup, this.sceneGraph.auxGroup];
     for (const group of groups) {
@@ -197,13 +306,74 @@ class ViewerCoreRuntime {
       return;
     }
 
+    const counters = {
+      pointsGroup: 0,
+      linesGroup: 0,
+      auxGroup: 0,
+    };
+
     for (const node of viewScene.nodes) {
       const bucketName = bucketNode(node);
       const group = this.sceneGraph[bucketName];
-      if (group) {
-        group.nodes.push(node);
+      if (!group) {
+        continue;
       }
+      const collectionKey = GROUP_TO_COLLECTION_KEY[bucketName];
+      const index = counters[bucketName];
+      const sequences = frameCollections?.[collectionKey];
+      node[FRAME_SEQUENCE_PROP] = Array.isArray(sequences) ? sequences[index] ?? null : null;
+      group.nodes.push(node);
+      counters[bucketName] += 1;
     }
+
+    this.#appendPlaceholderNodes("pointsGroup", frameCollections?.points, counters.pointsGroup);
+    this.#appendPlaceholderNodes("linesGroup", frameCollections?.lines, counters.linesGroup);
+    this.#appendPlaceholderNodes("auxGroup", frameCollections?.aux, counters.auxGroup);
+  }
+
+  #appendPlaceholderNodes(groupKey, sequences = [], startIndex = 0) {
+    const group = this.sceneGraph[groupKey];
+    if (!group || !Array.isArray(sequences)) {
+      return;
+    }
+    for (let index = startIndex; index < sequences.length; index += 1) {
+      const placeholder = {
+        id: `${group.name}-placeholder-${index}`,
+        visible: true,
+        extras: { placeholder: true },
+      };
+      placeholder[FRAME_SEQUENCE_PROP] = sequences[index] ?? null;
+      group.nodes.push(placeholder);
+    }
+  }
+
+  #clampFrameId(frameId) {
+    const candidate = Number.isFinite(frameId) ? Math.trunc(frameId) : null;
+    const { minFrameId, maxFrameId } = this.frameRange ?? {};
+    if (candidate == null) {
+      return Number.isFinite(minFrameId) ? minFrameId : 0;
+    }
+    let next = candidate;
+    if (Number.isFinite(minFrameId) && next < minFrameId) {
+      next = minFrameId;
+    }
+    if (Number.isFinite(maxFrameId) && next > maxFrameId) {
+      next = maxFrameId;
+    }
+    return next;
+  }
+
+  #isFrameVisible(frames, frameId) {
+    if (frames == null) {
+      return true;
+    }
+    if (Array.isArray(frames)) {
+      return frames.includes(frameId);
+    }
+    if (typeof frames === "number") {
+      return frames === frameId;
+    }
+    return true;
   }
 
   #emitBootLogs() {
@@ -219,7 +389,40 @@ class ViewerCoreRuntime {
         aux: layers.aux,
       },
     });
-    this.log({ tag: "FRAME", payload: { frame_id: formatFrameId(this.currentFrameId) } });
+    this.log({ tag: "FRAME", payload: { frame_id: formatFrameId(this.state.activeFrameId) } });
+  }
+
+  applyFrameToScene(frameId) {
+    if (typeof frameId !== "number" || !Number.isFinite(frameId)) {
+      return;
+    }
+    const normalized = Math.trunc(frameId);
+    const groups = [this.sceneGraph.pointsGroup, this.sceneGraph.linesGroup, this.sceneGraph.auxGroup];
+    for (const group of groups) {
+      if (!group?.nodes) {
+        continue;
+      }
+      for (const node of group.nodes) {
+        if (!node || typeof node !== "object") {
+          continue;
+        }
+        const visible = this.#isFrameVisible(node[FRAME_SEQUENCE_PROP], normalized);
+        node.visible = visible;
+      }
+    }
+  }
+
+  notifyHUD(frameId) {
+    if (this.hud && typeof this.hud.updateFrameIndicator === "function") {
+      this.hud.updateFrameIndicator(frameId);
+    }
+  }
+
+  attachHud(hudInstance) {
+    this.hud = hudInstance ?? null;
+    if (this.hud && typeof this.hud.updateFrameIndicator === "function") {
+      this.hud.updateFrameIndicator(this.state.activeFrameId ?? 0);
+    }
   }
 
   updateCameraState(delta = {}) {
@@ -247,22 +450,41 @@ class ViewerCoreRuntime {
   }
 
   getFrameId() {
-    return this.currentFrameId ?? null;
+    return this.state.activeFrameId ?? null;
+  }
+
+  getFrameRange() {
+    return { ...this.frameRange };
   }
 
   setFrameId(frameId) {
-    this.currentFrameId = frameId ?? null;
-    this.renderer.renderScene({ frameId: this.currentFrameId });
-    this.log({ tag: "FRAME", payload: { frame_id: formatFrameId(this.currentFrameId) } });
+    this.setActiveFrame(frameId);
+  }
+
+  setActiveFrame(frameId) {
+    if (typeof frameId !== "number" || Number.isNaN(frameId)) {
+      return;
+    }
+    const clamped = this.#clampFrameId(frameId);
+    if (clamped === this.state.activeFrameId) {
+      this.notifyHUD(clamped);
+      return;
+    }
+    this.state.activeFrameId = clamped;
+    this.currentFrameId = clamped;
+    this.applyFrameToScene(clamped);
+    this.renderer.renderScene({ frameId: clamped });
+    this.log({ tag: "FRAME", payload: { frame_id: formatFrameId(clamped) } });
     if (this.lastLoadSummary) {
       this.lastLoadSummary = {
         ...this.lastLoadSummary,
-        activeFrameId: formatFrameId(this.currentFrameId),
+        activeFrameId: formatFrameId(clamped),
       };
       if (this.setSummary) {
         this.setSummary(this.lastLoadSummary);
       }
     }
+    this.notifyHUD(clamped);
   }
 
   getLayerVisibility() {
@@ -301,7 +523,7 @@ class ViewerCoreRuntime {
       pointsGroup: this.sceneGraph.pointsGroup,
       linesGroup: this.sceneGraph.linesGroup,
       auxGroup: this.sceneGraph.auxGroup,
-      frameId: this.currentFrameId,
+      frameId: this.state.activeFrameId,
     });
 
     const layers = this.getLayerVisibility();
@@ -341,6 +563,13 @@ export function getFrameId(runtime) {
     throw new Error("Invalid viewer runtime: getFrameId missing");
   }
   return runtime.getFrameId();
+}
+
+export function getFrameRange(runtime) {
+  if (!runtime || typeof runtime.getFrameRange !== "function") {
+    throw new Error("Invalid viewer runtime: getFrameRange missing");
+  }
+  return runtime.getFrameRange();
 }
 
 export function updateLayerVisibility(runtime, layerKey, visible) {

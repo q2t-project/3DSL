@@ -1,10 +1,9 @@
 import {
   bootViewerCore,
-  updateFrameId,
-  getFrameId,
   updateLayerVisibility,
   getLayerVisibility,
 } from "../core/viewerCore.js";
+import { ViewerHUD } from "./viewerHUD.js";
 
 const DEFAULT_SAMPLE_PATH = "/data/sample/core_viewer_baseline.3dss.json";
 const ROTATE_SPEED = 0.01;
@@ -59,14 +58,16 @@ async function main() {
   const log = makeLogFn(logEl);
   const setSummary = makeSummaryUpdater(summaryEl);
 
+  const hud = new ViewerHUD(document);
   const runtime = await bootViewerCore(container, {
     modelPath: DEFAULT_SAMPLE_PATH,
     log,
     setSummary,
     mode: "viewer_dev",
+    hud,
   });
 
-  setupFrameControls(runtime, controlsEl, log, setSummary);
+  setupFrameControls(runtime, controlsEl, log, setSummary, container);
   setupLayerControls(runtime, controlsEl, log, setSummary);
   setupCameraProtoControls(container, runtime);
 }
@@ -142,6 +143,9 @@ function setupCameraProtoControls(container, runtime) {
   container.addEventListener(
     "wheel",
     (event) => {
+      if (event.defaultPrevented) {
+        return;
+      }
       event.preventDefault();
       zoomCamera(runtime, event.deltaY);
     },
@@ -149,8 +153,8 @@ function setupCameraProtoControls(container, runtime) {
   );
 }
 
-function setupFrameControls(runtime, controlsEl, log, _setSummary) {
-  if (!runtime || !controlsEl) {
+function setupFrameControls(runtime, controlsEl, log, _setSummary, container) {
+  if (!runtime || !controlsEl || typeof runtime.setActiveFrame !== "function") {
     return;
   }
   controlsEl.textContent = "";
@@ -159,7 +163,8 @@ function setupFrameControls(runtime, controlsEl, log, _setSummary) {
   label.style.marginBottom = "4px";
   controlsEl.appendChild(label);
 
-  const frames = [0, 1, 2, 3];
+  const frameRange = typeof runtime.getFrameRange === "function" ? runtime.getFrameRange() : { minFrameId: 0, maxFrameId: 0 };
+  const frames = buildFrameList(frameRange);
   frames.forEach((id) => {
     const btn = document.createElement("button");
     btn.type = "button";
@@ -167,11 +172,11 @@ function setupFrameControls(runtime, controlsEl, log, _setSummary) {
     btn.style.marginRight = "4px";
     btn.addEventListener("click", () => {
       try {
-        updateFrameId(runtime, id);
-        log({ tag: "FRAME_UI", msg: "set frame", payload: { frame_id: id } });
+        runtime.setActiveFrame(id);
+        log({ tag: "FRAME_UI", msg: "set frame", payload: { frame_id: id, source: "button" } });
         updateActiveFrameLabel();
       } catch (error) {
-        log({ tag: "ERROR", msg: "updateFrameId failed", payload: { message: error?.message } });
+        log({ tag: "ERROR", msg: "setActiveFrame failed", payload: { message: error?.message } });
       }
     });
     controlsEl.appendChild(btn);
@@ -182,11 +187,73 @@ function setupFrameControls(runtime, controlsEl, log, _setSummary) {
   activeLabel.style.fontSize = "12px";
   activeLabel.dataset.role = "active-frame-label";
   const updateActiveFrameLabel = () => {
-    const current = getFrameId(runtime);
+    const current = typeof runtime.getFrameId === "function" ? runtime.getFrameId() : null;
     activeLabel.textContent = `Active frame: ${current ?? "default"}`;
   };
   updateActiveFrameLabel();
   controlsEl.appendChild(activeLabel);
+
+  installFrameInputHandlers(runtime, container, updateActiveFrameLabel, log);
+}
+
+function installFrameInputHandlers(runtime, container, updateLabel, log) {
+  const doc = container?.ownerDocument ?? document;
+  const win = doc?.defaultView ?? window;
+  if (win && typeof win.addEventListener === "function") {
+    win.addEventListener("keydown", (event) => {
+      if (!["PageUp", "PageDown", "Home"].includes(event.key)) {
+        return;
+      }
+      const range = typeof runtime.getFrameRange === "function" ? runtime.getFrameRange() : { minFrameId: 0, maxFrameId: 0 };
+      const active = typeof runtime.getFrameId === "function" ? runtime.getFrameId() : 0;
+      let next = active ?? 0;
+      if (event.key === "Home") {
+        next = 0;
+      } else if (event.key === "PageUp") {
+        next = event.shiftKey ? range.maxFrameId ?? next : next + 1;
+      } else if (event.key === "PageDown") {
+        next = event.shiftKey ? range.minFrameId ?? next : next - 1;
+      }
+      event.preventDefault();
+      runtime.setActiveFrame(next);
+      log?.({ tag: "FRAME_UI", msg: "set frame", payload: { frame_id: next, source: "keyboard" } });
+      updateLabel();
+    });
+  }
+
+  const canvas = container?.querySelector?.(".viewer-dev-canvas") ?? container;
+  if (canvas && typeof canvas.addEventListener === "function") {
+    canvas.addEventListener(
+      "wheel",
+      (event) => {
+        event.preventDefault();
+        const delta = Math.sign(event.deltaY);
+        if (!delta) {
+          return;
+        }
+        const current = typeof runtime.getFrameId === "function" ? runtime.getFrameId() : 0;
+        const next = (current ?? 0) - delta;
+        runtime.setActiveFrame(next);
+        log?.({ tag: "FRAME_UI", msg: "set frame", payload: { frame_id: next, source: "wheel" } });
+        updateLabel();
+      },
+      { passive: false },
+    );
+  }
+}
+
+function buildFrameList(range = { minFrameId: 0, maxFrameId: 0 }) {
+  const min = Number.isFinite(range.minFrameId) ? range.minFrameId : 0;
+  const max = Number.isFinite(range.maxFrameId) ? range.maxFrameId : min;
+  const result = [];
+  const limit = 8;
+  for (let id = min; id <= max && result.length < limit; id += 1) {
+    result.push(id);
+  }
+  if (!result.length) {
+    result.push(0);
+  }
+  return result;
 }
 
 function setupLayerControls(runtime, controlsEl, log, _setSummary) {
