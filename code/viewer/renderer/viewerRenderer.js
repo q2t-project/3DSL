@@ -34,6 +34,23 @@ export class ViewerRenderer {
     }
   }
 
+  #installResizeObserver() {
+    if (!HAS_DOCUMENT || typeof ResizeObserver !== "function") return;
+
+    this.resizeObserver = new ResizeObserver(() => {
+      const w = this.containerElement.clientWidth;
+      const h = this.containerElement.clientHeight;
+      if (w > 0 && h > 0) {
+        this.canvas.width = w;
+        this.canvas.height = h;
+      }
+    });
+
+    this.resizeObserver.observe(this.containerElement);
+  }
+
+
+
   renderScene(sceneInfo = {}) {
     if (!this.initialized) return;
     this.scene = sceneInfo.viewScene ?? this.scene;
@@ -81,8 +98,6 @@ export class ViewerRenderer {
     if (HAS_DOCUMENT) {
       this.canvas = document.createElement("canvas");
       this.canvas.className = "viewer-dev-canvas";
-      this.canvas.style.width = "100%";
-      this.canvas.style.height = "100%";
       this.canvas.style.display = "block";
       this.canvas.width = this.containerElement.clientWidth || 800;
       this.canvas.height = this.containerElement.clientHeight || 600;
