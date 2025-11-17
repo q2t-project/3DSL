@@ -851,29 +851,36 @@
             }, "additionalProperties": false
         },
         "spatial": {
-            "type": "object",
-            "properties":{
-                "position": {
-                    "type": "array",
-                    "items": { "type": "number" },"minItems":3,"maxItems":3
-                },
-                "orientation": {
-                    "type": "array",
-                    "items": { "type": "number" },"minItems":3,"maxItems":3
-                },
-                "scale": {
-                    "type": "array",
-                    "items": { "type": "number" },"minItems":3,"maxItems":3
-                },
-                "rotation": {
-                    "type": "array",
-                    "items": { "type": "number" },"minItems":3,"maxItems":3
-                },
-                "offset": {
-                    "type": "array",
-                    "items": { "type": "number" },"minItems":3,"maxItems":3
-                }
-            }, "additionalProperties": false
+            "position": {
+                "type": "array",
+                "items": { "type": "number" },
+                "minItems": 3,
+                "maxItems": 3
+            },
+            "orientation": {
+                "type": "array",
+                "items": { "type": "number" },
+                "minItems": 3,
+                "maxItems": 3
+            },
+            "scale": {
+                "type": "array",
+                "items": { "type": "number" },
+                "minItems": 3,
+                "maxItems": 3
+            },
+            "rotation": {
+                "type": "array",
+                "items": { "type": "number" },
+                "minItems": 3,
+                "maxItems": 3
+            },
+            "offset": {
+                "type": "array",
+                "items": { "type": "number" },
+                "minItems": 3,
+                "maxItems": 3
+            }
         },
 
         "extension": {
