@@ -1,0 +1,25 @@
+{
+  "document_meta": {
+    "document_uuid": "eea7b684-3bbf-448d-9f52-d8ef7cc9ca1f",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.0",
+    "author": "geometry@example.com",
+    "version": "1.0.0"
+  },
+  "lines": [
+    {
+      "appearance": {
+        "end_a": {
+          "coord": [0, 0, 0]
+        },
+        "end_b": {
+          "coord": [10, 0, 0]
+        },
+        "line_type": "bezier",
+        "color": "#ff0000"
+      },
+      "meta": {
+        "uuid": "575f5449-7dac-4f82-86fd-bacefb8cfe16"
+      }
+    }
+  ]
+}

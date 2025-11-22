@@ -1,0 +1,53 @@
+{
+  "document_meta": {
+    "document_uuid": "fb4a0dd3-59cb-4dc5-9e2f-4b6044afbc18",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.0",
+    "author": "extensions@example.com",
+    "version": "1.4.0",
+    "reference": "parametric-shell",
+    "tags": ["x:parametric"],
+    "coordinate_system": "Z+up/freeXY",
+    "units": "mm"
+  },
+  "points": [],
+  "lines": [],
+  "aux": [
+    {
+      "appearance": {
+        "module": {
+          "extension": {
+            "type": "surface:parametric",
+            "parametric": {
+              "type": "deformed_torus",
+              "version": "1.0.0",
+              "params": {
+                "radius": 12,
+                "tube": 3,
+                "offset": [0, 0, 6]
+              },
+              "bindings": [
+                {
+                  "target": "lines/0/appearance/opacity",
+                  "expression": "0.3 + 0.05 * sin(frame/10)"
+                }
+              ],
+              "seed": 42
+            },
+            "latex": {
+              "content": "f(u,v) = ((R + r \\cos v) \\cos u, (R + r \\cos v) \\sin u, r \\sin v)",
+              "render_mode": "math",
+              "font_size": 16,
+              "color": "#ffffff",
+              "plane": "xy"
+            }
+          }
+        },
+        "visible": true
+      },
+      "meta": {
+        "uuid": "326bd3e0-5827-48b4-a627-2f51bc2cb5df",
+        "creator_memo": "Parametric torus overlay"
+      }
+    }
+  ]
+}

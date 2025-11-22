@@ -1,0 +1,4557 @@
+{
+"$schema": "https://json-schema.org/draft/2020-12/schema",
+"$id": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.0",
+"title": "3DSS Schema v1.0.0",
+"type": "object",
+"properties": {
+    "lines": [
+        {
+            "signification": {
+                "relation": {
+                "dynamic": "flow"
+                },
+                "sense": "bidirectional"
+            },
+            "appearance": {
+                "end_a": {
+                "ref": "3582920c-6b91-45be-9c15-fdbf0e893f10"
+                },
+                "end_b": {
+                "ref": "ed94d5cf-07a6-4265-b53c-6a0d2adf7f4f"
+                }
+            },
+            "meta": {
+                "uuid": "a0c96bdb-f84f-48a4-afd4-15f6b068d0d8"
+            }
+        },
+        {
+            "signification": {
+                "relation": {
+                "dynamic": "flow"
+                },
+            "sense": "bidirectional"
+            },
+        "appearance": {
+            "end_a": {
+            "ref": "c48ea78e-d270-406e-b867-74646cbe080e"
+            },
+            "end_b": {
+            "ref": "defbc5e8-f73e-4315-b957-8f896c6557aa"
+            }
+        },
+        "meta": {
+            "uuid": "e7fd5131-640c-45fa-9671-1c14e220e132"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "b2a5869a-c89a-436f-a18e-c150b079d10c"
+            },
+            "end_b": {
+            "ref": "92dec559-2493-4ed7-8eaf-ecaa17ccb1fa"
+            }
+        },
+        "meta": {
+            "uuid": "26b0d4a9-143c-4657-b3d0-f09b35b28843"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "63cf57fb-8d31-4853-ad71-fa65dcf411e6"
+            },
+            "end_b": {
+            "ref": "3f0b71d5-8afa-41eb-b45f-579485c46def"
+            }
+        },
+        "meta": {
+            "uuid": "82ddf915-234c-4ded-b39c-eb173d5b60cd"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "12fb36ea-b158-4ecf-bcb0-696c001ff207"
+            },
+            "end_b": {
+            "ref": "ed94d5cf-07a6-4265-b53c-6a0d2adf7f4f"
+            }
+        },
+        "meta": {
+            "uuid": "bd58526e-94cd-4972-8801-ee0fa5783502"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "63cf57fb-8d31-4853-ad71-fa65dcf411e6"
+            },
+            "end_b": {
+            "ref": "7fbf385a-bcd4-4fc4-8d54-748d0aef343d"
+            }
+        },
+        "meta": {
+            "uuid": "0b52e313-e1af-4113-bf49-f54a85d759ac"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "5b2f165c-4449-4cd3-809b-07dcc0377fb4"
+            },
+            "end_b": {
+            "ref": "6cf81903-ba86-443f-9549-97d24cf39cf9"
+            }
+        },
+        "meta": {
+            "uuid": "d5958c18-0335-4dee-a3ab-5c38637c6ac1"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "a2e81008-a08f-49ec-b3b2-ef10e139021a"
+            },
+            "end_b": {
+            "ref": "ed94d5cf-07a6-4265-b53c-6a0d2adf7f4f"
+            }
+        },
+        "meta": {
+            "uuid": "4b1ccecb-b5e0-42ec-868a-f1c1ae2c18ac"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "436f0d82-d935-40fb-8bb9-3687711aac54"
+            },
+            "end_b": {
+            "ref": "e8b4676a-3a4d-4039-b982-83702cdfc45c"
+            }
+        },
+        "meta": {
+            "uuid": "812a7a3a-73b4-4ab4-b02d-bb2e617a75a8"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "3ace3335-3f78-4eb5-ac6a-e7d37e3f1a80"
+            },
+            "end_b": {
+            "ref": "e03a22bb-7913-49e0-af68-974ca33b81e6"
+            }
+        },
+        "meta": {
+            "uuid": "a680d703-5a8a-4606-87d0-41e189d83fcc"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "9becef44-c917-472c-9069-6af183ba18d4"
+            },
+            "end_b": {
+            "ref": "49670d26-f1da-40d3-8fd0-01c5b7c4b06f"
+            }
+        },
+        "meta": {
+            "uuid": "d3318927-6adf-4652-bb2c-34b3d7b1c249"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "c04d1c98-8f89-422f-8785-2fb0c0d3eec4"
+            },
+            "end_b": {
+            "ref": "039d9ffa-bc63-4120-a544-8e8123f973a8"
+            }
+        },
+        "meta": {
+            "uuid": "2fdb60ac-6971-48d9-b176-e40122bcedc3"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "5ea93544-5ebf-4eeb-b9f0-5eede3c2308e"
+            },
+            "end_b": {
+            "ref": "4bc71e3f-a822-497f-956f-201baf93f427"
+            }
+        },
+        "meta": {
+            "uuid": "950a94c3-ec87-462d-a781-94f2f194fc5e"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "0123ff0f-8a31-4f06-8418-0a0a79c4cd9a"
+            },
+            "end_b": {
+            "ref": "c48ea78e-d270-406e-b867-74646cbe080e"
+            }
+        },
+        "meta": {
+            "uuid": "dc5eb64e-d57f-4934-8a7f-19c3ee1fcdf4"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "342cf406-4c34-42b0-842d-3154873a7862"
+            },
+            "end_b": {
+            "ref": "b2a5869a-c89a-436f-a18e-c150b079d10c"
+            }
+        },
+        "meta": {
+            "uuid": "777b93a0-17f2-48f3-aaa0-9cdf3b29c735"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "3f0b71d5-8afa-41eb-b45f-579485c46def"
+            },
+            "end_b": {
+            "ref": "dac5d560-42d6-4405-9027-d3d426e2c566"
+            }
+        },
+        "meta": {
+            "uuid": "0683c622-7225-40a0-a804-6d254b61b24c"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "6cf81903-ba86-443f-9549-97d24cf39cf9"
+            },
+            "end_b": {
+            "ref": "b5e72048-4ea2-4343-adcf-87188326404a"
+            }
+        },
+        "meta": {
+            "uuid": "b70ad506-6fde-42ea-8842-7d14670dc098"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "b8b25656-1097-4246-828b-a63e9bf25ab1"
+            },
+            "end_b": {
+            "ref": "cc7d6a44-3355-46c1-930b-1ee0b8f48b67"
+            }
+        },
+        "meta": {
+            "uuid": "a04e3fc9-9ce7-4b73-80fe-2576efe268cd"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "8c02bb39-fb9e-4cff-ab94-1d6fd502bcf0"
+            },
+            "end_b": {
+            "ref": "cc7d6a44-3355-46c1-930b-1ee0b8f48b67"
+            }
+        },
+        "meta": {
+            "uuid": "73506178-4bf0-4b0a-b39a-7210d66d88bc"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "5b2f165c-4449-4cd3-809b-07dcc0377fb4"
+            },
+            "end_b": {
+            "ref": "f55b8ce4-cade-4f07-9b78-0891a47e2cac"
+            }
+        },
+        "meta": {
+            "uuid": "e837f785-fb2f-473a-8f1f-579d9f9b9f6e"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "5b2f165c-4449-4cd3-809b-07dcc0377fb4"
+            },
+            "end_b": {
+            "ref": "76e89396-63ab-465f-9950-9ee6b29bf91c"
+            }
+        },
+        "meta": {
+            "uuid": "c90cb125-f067-42c0-8ddc-0165866c7b29"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "993c0f98-f365-4b4c-9a86-07505c2a2b53"
+            },
+            "end_b": {
+            "ref": "d16f1d45-a0b8-4058-aadc-87f812dd6c4e"
+            }
+        },
+        "meta": {
+            "uuid": "e332d56d-d4f7-4bdb-be54-b9deef734740"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "32fdd80e-443b-4511-af77-73220c9f25da"
+            },
+            "end_b": {
+            "ref": "5ea93544-5ebf-4eeb-b9f0-5eede3c2308e"
+            }
+        },
+        "meta": {
+            "uuid": "74a35d57-3f8b-46ac-9686-b9dc8d87544a"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "390083fd-d397-4c9e-8b8d-694f54499ce2"
+            },
+            "end_b": {
+            "ref": "6cf81903-ba86-443f-9549-97d24cf39cf9"
+            }
+        },
+        "meta": {
+            "uuid": "e487e85e-8c3c-488c-9706-9a813eb002fc"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "d16f1d45-a0b8-4058-aadc-87f812dd6c4e"
+            },
+            "end_b": {
+            "ref": "c6b4d530-235c-4059-b775-0131eca78207"
+            }
+        },
+        "meta": {
+            "uuid": "92053064-ebd9-488a-8f63-ed76f49ff2fa"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "c2345870-df6b-490f-868c-fdbf600f3dcb"
+            },
+            "end_b": {
+            "ref": "2e89a953-0f54-4fdf-8fed-d356133c5e6b"
+            }
+        },
+        "meta": {
+            "uuid": "6883411a-80f9-4920-8b02-812f4b20a189"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "1bf607f4-f78f-4f52-b45f-470074ebc475"
+            },
+            "end_b": {
+            "ref": "e03a22bb-7913-49e0-af68-974ca33b81e6"
+            }
+        },
+        "meta": {
+            "uuid": "8c153139-82d5-4634-8d1a-bde089319227"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "4c3ee787-d5d6-4e90-83c3-eec933ab75db"
+            },
+            "end_b": {
+            "ref": "4da7a6d6-845f-45ce-9e88-b34bc984a735"
+            }
+        },
+        "meta": {
+            "uuid": "bc5bb0e6-5f2d-49c9-bf7e-ee260f22ebf9"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "436f0d82-d935-40fb-8bb9-3687711aac54"
+            },
+            "end_b": {
+            "ref": "cc7d6a44-3355-46c1-930b-1ee0b8f48b67"
+            }
+        },
+        "meta": {
+            "uuid": "275ee238-29b7-42e3-b3ff-a40750dca28a"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "49670d26-f1da-40d3-8fd0-01c5b7c4b06f"
+            },
+            "end_b": {
+            "ref": "0a17390a-c2b4-42c0-a029-2aeb075a42d7"
+            }
+        },
+        "meta": {
+            "uuid": "c91813a4-b5d2-4af4-9a69-58956b454e19"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "436f0d82-d935-40fb-8bb9-3687711aac54"
+            },
+            "end_b": {
+            "ref": "0123ff0f-8a31-4f06-8418-0a0a79c4cd9a"
+            }
+        },
+        "meta": {
+            "uuid": "33e518ab-a0ae-48ff-be99-40fb832dad07"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "1bf607f4-f78f-4f52-b45f-470074ebc475"
+            },
+            "end_b": {
+            "ref": "c04d1c98-8f89-422f-8785-2fb0c0d3eec4"
+            }
+        },
+        "meta": {
+            "uuid": "ccb0fe11-aae0-484d-abdb-79eee5321fbe"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "eb75df23-90d8-4ad0-b981-d1582fdee8c6"
+            },
+            "end_b": {
+            "ref": "b5e72048-4ea2-4343-adcf-87188326404a"
+            }
+        },
+        "meta": {
+            "uuid": "3f7bd5fa-6fbd-4a8e-aecb-f4e197ae3531"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "0123ff0f-8a31-4f06-8418-0a0a79c4cd9a"
+            },
+            "end_b": {
+            "ref": "3f0b71d5-8afa-41eb-b45f-579485c46def"
+            }
+        },
+        "meta": {
+            "uuid": "70f781a5-2d87-4550-a736-53a1576b8227"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "c8d40636-e001-49ce-b50f-d96295092b61"
+            },
+            "end_b": {
+            "ref": "4ea94296-54b2-43e9-a739-6b3e32a1e35a"
+            }
+        },
+        "meta": {
+            "uuid": "89ec3130-5784-48a5-bb68-2a7f80989b56"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "1bbb8017-6cc0-4807-9987-fd874a6cc6fa"
+            },
+            "end_b": {
+            "ref": "84c1f6ef-dd27-4002-bca4-a9d0c2c9daf6"
+            }
+        },
+        "meta": {
+            "uuid": "f46118a5-317a-4ed8-baaa-d99b9584291a"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "06fc15a1-e9c2-4eac-b3dd-6a009839938c"
+            },
+            "end_b": {
+            "ref": "dfa828ee-381f-4bda-8411-731280a27f05"
+            }
+        },
+        "meta": {
+            "uuid": "594b5396-9d9c-429a-afcb-60506dcec8a3"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "8c34fd1e-3479-4425-9059-b1754ed18a9e"
+            },
+            "end_b": {
+            "ref": "d16f1d45-a0b8-4058-aadc-87f812dd6c4e"
+            }
+        },
+        "meta": {
+            "uuid": "f9c2d5e9-41b2-47de-a3c0-4f06a331a44a"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "06fc15a1-e9c2-4eac-b3dd-6a009839938c"
+            },
+            "end_b": {
+            "ref": "327fdee2-1cf4-4417-9e1c-0207cd9979aa"
+            }
+        },
+        "meta": {
+            "uuid": "d653cdb9-6096-4204-9e8f-878b774cc42a"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "0a17390a-c2b4-42c0-a029-2aeb075a42d7"
+            },
+            "end_b": {
+            "ref": "ce771676-6a61-4be5-afbb-14956cdbe8c4"
+            }
+        },
+        "meta": {
+            "uuid": "1ffbc483-993f-42a5-a861-93917ca380ef"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "5b2f165c-4449-4cd3-809b-07dcc0377fb4"
+            },
+            "end_b": {
+            "ref": "d16f1d45-a0b8-4058-aadc-87f812dd6c4e"
+            }
+        },
+        "meta": {
+            "uuid": "ae29227d-ac3d-495f-abf6-ba17b191b3d7"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "bffd29b7-906b-41e1-8670-75753b71318f"
+            },
+            "end_b": {
+            "ref": "c8d40636-e001-49ce-b50f-d96295092b61"
+            }
+        },
+        "meta": {
+            "uuid": "878d239a-d73c-4db4-bc09-6a751bb8c197"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "390083fd-d397-4c9e-8b8d-694f54499ce2"
+            },
+            "end_b": {
+            "ref": "e03a22bb-7913-49e0-af68-974ca33b81e6"
+            }
+        },
+        "meta": {
+            "uuid": "8a2e431d-7520-428a-8143-357ac327d661"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "06fc15a1-e9c2-4eac-b3dd-6a009839938c"
+            },
+            "end_b": {
+            "ref": "49670d26-f1da-40d3-8fd0-01c5b7c4b06f"
+            }
+        },
+        "meta": {
+            "uuid": "d76ef072-d6eb-4173-b004-281beafff991"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "1bbb8017-6cc0-4807-9987-fd874a6cc6fa"
+            },
+            "end_b": {
+            "ref": "eb75df23-90d8-4ad0-b981-d1582fdee8c6"
+            }
+        },
+        "meta": {
+            "uuid": "80d11b31-6514-4a4d-be2f-450e6d85937a"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "a2e81008-a08f-49ec-b3b2-ef10e139021a"
+            },
+            "end_b": {
+            "ref": "72633bdc-7b76-46b7-9bce-3d9323cb5a20"
+            }
+        },
+        "meta": {
+            "uuid": "618947fd-6d55-4ce2-b62c-4f7f8c06c025"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "5ef7a5b3-1b6f-4748-91b6-4644512f41a2"
+            },
+            "end_b": {
+            "ref": "cad8cb59-58f9-408d-a5fb-de756952361b"
+            }
+        },
+        "meta": {
+            "uuid": "2b0ebdbf-b2d9-4adb-9636-989339514dca"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "105b9e70-59a2-46be-9da3-4e7cfecec8fe"
+            },
+            "end_b": {
+            "ref": "8c02bb39-fb9e-4cff-ab94-1d6fd502bcf0"
+            }
+        },
+        "meta": {
+            "uuid": "0c19fa57-f7b1-463c-b45b-b43d2d68d098"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "105b9e70-59a2-46be-9da3-4e7cfecec8fe"
+            },
+            "end_b": {
+            "ref": "d255f574-b753-4036-8147-50c28f3c910e"
+            }
+        },
+        "meta": {
+            "uuid": "5ab0bc73-1058-4bfb-aa10-64e8c762d46c"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "4314a0ff-f833-421d-afd8-1b0c1eaa06c2"
+            },
+            "end_b": {
+            "ref": "33dd5275-89f8-42a2-bd91-a0b2f143ab54"
+            }
+        },
+        "meta": {
+            "uuid": "13dbd373-cb02-4230-ba48-c0f1a032c517"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "3d537c10-e4dd-4d2c-b9a4-dd9d7e8d832f"
+            },
+            "end_b": {
+            "ref": "92dec559-2493-4ed7-8eaf-ecaa17ccb1fa"
+            }
+        },
+        "meta": {
+            "uuid": "7dc3a3a0-e381-4696-9038-5d65f2c645d3"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "0123ff0f-8a31-4f06-8418-0a0a79c4cd9a"
+            },
+            "end_b": {
+            "ref": "89705ff3-7532-44fa-ba8b-38e41f73e059"
+            }
+        },
+        "meta": {
+            "uuid": "0ec467a1-192b-43d1-8d41-e2d95a7d8632"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "38a50c73-d80c-413d-aada-d29acb26fdfc"
+            },
+            "end_b": {
+            "ref": "c6b4d530-235c-4059-b775-0131eca78207"
+            }
+        },
+        "meta": {
+            "uuid": "3b627692-43f1-44c4-944f-9b29af928e89"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "e01e6338-fbb9-4f1d-b4ea-6bbc743318f0"
+            },
+            "end_b": {
+            "ref": "7fbf385a-bcd4-4fc4-8d54-748d0aef343d"
+            }
+        },
+        "meta": {
+            "uuid": "729a5d92-17cc-4728-a1e5-577a02c6b589"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "bffd29b7-906b-41e1-8670-75753b71318f"
+            },
+            "end_b": {
+            "ref": "60babd09-30c5-4d8a-9ba7-00b42ad4db0b"
+            }
+        },
+        "meta": {
+            "uuid": "9dc4ac73-3ee3-4ada-8747-2ee1299b276b"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "c2345870-df6b-490f-868c-fdbf600f3dcb"
+            },
+            "end_b": {
+            "ref": "72633bdc-7b76-46b7-9bce-3d9323cb5a20"
+            }
+        },
+        "meta": {
+            "uuid": "64517ebd-883e-41c1-b2bb-6ba9c4a4c8c6"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "06fc15a1-e9c2-4eac-b3dd-6a009839938c"
+            },
+            "end_b": {
+            "ref": "4314a0ff-f833-421d-afd8-1b0c1eaa06c2"
+            }
+        },
+        "meta": {
+            "uuid": "aac8b7f9-0b05-483b-b62c-23f547b270a9"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "105b9e70-59a2-46be-9da3-4e7cfecec8fe"
+            },
+            "end_b": {
+            "ref": "4bc71e3f-a822-497f-956f-201baf93f427"
+            }
+        },
+        "meta": {
+            "uuid": "75d51a18-39c3-43cc-88fa-5b8a6661e0e9"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "9becef44-c917-472c-9069-6af183ba18d4"
+            },
+            "end_b": {
+            "ref": "7fbf385a-bcd4-4fc4-8d54-748d0aef343d"
+            }
+        },
+        "meta": {
+            "uuid": "d293ccec-4cc2-4773-bba9-d92d36aaf2ff"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "ce771676-6a61-4be5-afbb-14956cdbe8c4"
+            },
+            "end_b": {
+            "ref": "92dec559-2493-4ed7-8eaf-ecaa17ccb1fa"
+            }
+        },
+        "meta": {
+            "uuid": "f8a7b735-81f0-47e7-90b6-b9fefcfb3990"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "63cf57fb-8d31-4853-ad71-fa65dcf411e6"
+            },
+            "end_b": {
+            "ref": "38a50c73-d80c-413d-aada-d29acb26fdfc"
+            }
+        },
+        "meta": {
+            "uuid": "dcd6eaf1-1a97-4e43-825b-2873ef190477"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "97f282fa-22fc-40af-b884-22041f8b783a"
+            },
+            "end_b": {
+            "ref": "ce771676-6a61-4be5-afbb-14956cdbe8c4"
+            }
+        },
+        "meta": {
+            "uuid": "17d8be79-7099-41d0-aa37-6fa820acda65"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "49670d26-f1da-40d3-8fd0-01c5b7c4b06f"
+            },
+            "end_b": {
+            "ref": "680fa4ef-37da-4632-a2ec-1bd9731be64c"
+            }
+        },
+        "meta": {
+            "uuid": "f73e786d-70fc-4993-bd9a-582b5e9287a1"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "5d8cbbb8-f73f-4802-8233-954c5cfd96a5"
+            },
+            "end_b": {
+            "ref": "c48ea78e-d270-406e-b867-74646cbe080e"
+            }
+        },
+        "meta": {
+            "uuid": "d4a0ba38-7b2b-485f-878d-b9c5c9b4ef90"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "680fa4ef-37da-4632-a2ec-1bd9731be64c"
+            },
+            "end_b": {
+            "ref": "d16f1d45-a0b8-4058-aadc-87f812dd6c4e"
+            }
+        },
+        "meta": {
+            "uuid": "34c01de1-7564-45b9-9e7c-beddd8a7df84"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "4d827eb3-ad38-422a-a5db-d91731ac6069"
+            },
+            "end_b": {
+            "ref": "7e131865-77d6-4c84-b043-78ae77fd0527"
+            }
+        },
+        "meta": {
+            "uuid": "7585c34f-9922-4a25-b851-462c93c3a853"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "2e515bd6-72c9-426d-a0f1-f6012d88bbdd"
+            },
+            "end_b": {
+            "ref": "bb5f3a43-08a8-4429-b721-d8dabedabe21"
+            }
+        },
+        "meta": {
+            "uuid": "4b1be9a4-3b49-4e4c-bf23-461a7350adc7"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "327fdee2-1cf4-4417-9e1c-0207cd9979aa"
+            },
+            "end_b": {
+            "ref": "4da7a6d6-845f-45ce-9e88-b34bc984a735"
+            }
+        },
+        "meta": {
+            "uuid": "ffa8da4f-2015-428a-b730-248b2314786d"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "680fa4ef-37da-4632-a2ec-1bd9731be64c"
+            },
+            "end_b": {
+            "ref": "f55b8ce4-cade-4f07-9b78-0891a47e2cac"
+            }
+        },
+        "meta": {
+            "uuid": "a7475eff-f60b-456d-9f49-83cbc01557cd"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "2e89a953-0f54-4fdf-8fed-d356133c5e6b"
+            },
+            "end_b": {
+            "ref": "b5e72048-4ea2-4343-adcf-87188326404a"
+            }
+        },
+        "meta": {
+            "uuid": "c3d32db2-5d74-4028-9113-f3a0d2cf0c87"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "62eeeb51-fb6e-460f-b86c-01a6197355e1"
+            },
+            "end_b": {
+            "ref": "039d9ffa-bc63-4120-a544-8e8123f973a8"
+            }
+        },
+        "meta": {
+            "uuid": "aad5f32c-8b48-4fae-9ab2-a1c3dc2d65ab"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "d53a77bf-84a6-4d4a-9545-882695430d2d"
+            },
+            "end_b": {
+            "ref": "38a50c73-d80c-413d-aada-d29acb26fdfc"
+            }
+        },
+        "meta": {
+            "uuid": "56ea7b4f-4414-4ddf-86f2-251b0b5c275c"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "bffd29b7-906b-41e1-8670-75753b71318f"
+            },
+            "end_b": {
+            "ref": "4da7a6d6-845f-45ce-9e88-b34bc984a735"
+            }
+        },
+        "meta": {
+            "uuid": "818a816d-a479-4e83-9472-06620f3a06dd"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "4c3ee787-d5d6-4e90-83c3-eec933ab75db"
+            },
+            "end_b": {
+            "ref": "5ea93544-5ebf-4eeb-b9f0-5eede3c2308e"
+            }
+        },
+        "meta": {
+            "uuid": "11147a00-a965-40f0-a8a1-64d045581890"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "4314a0ff-f833-421d-afd8-1b0c1eaa06c2"
+            },
+            "end_b": {
+            "ref": "a2e81008-a08f-49ec-b3b2-ef10e139021a"
+            }
+        },
+        "meta": {
+            "uuid": "7d57e6b9-bff0-47a0-abe5-f80c8b26fa16"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "8a93f588-1faf-47fc-a126-2f800cdc6a07"
+            },
+            "end_b": {
+            "ref": "12fb36ea-b158-4ecf-bcb0-696c001ff207"
+            }
+        },
+        "meta": {
+            "uuid": "d9ae1cb8-3d0e-45dd-aafe-c32a7aa73541"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "993c0f98-f365-4b4c-9a86-07505c2a2b53"
+            },
+            "end_b": {
+            "ref": "72633bdc-7b76-46b7-9bce-3d9323cb5a20"
+            }
+        },
+        "meta": {
+            "uuid": "47717935-320b-4af7-8bc0-11bbfdb78cad"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "e01e6338-fbb9-4f1d-b4ea-6bbc743318f0"
+            },
+            "end_b": {
+            "ref": "5d8cbbb8-f73f-4802-8233-954c5cfd96a5"
+            }
+        },
+        "meta": {
+            "uuid": "4001a2b0-2528-49a2-81f4-3035bb56566d"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "3d537c10-e4dd-4d2c-b9a4-dd9d7e8d832f"
+            },
+            "end_b": {
+            "ref": "4bc71e3f-a822-497f-956f-201baf93f427"
+            }
+        },
+        "meta": {
+            "uuid": "3c562274-9da9-4ef4-b0ce-362291cb4068"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "60babd09-30c5-4d8a-9ba7-00b42ad4db0b"
+            },
+            "end_b": {
+            "ref": "38a50c73-d80c-413d-aada-d29acb26fdfc"
+            }
+        },
+        "meta": {
+            "uuid": "bc70498b-8b6a-4a7f-bb40-edfe0769d2e6"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "12fb36ea-b158-4ecf-bcb0-696c001ff207"
+            },
+            "end_b": {
+            "ref": "644ac0a2-f030-4328-aebb-7c9b9b0ba00a"
+            }
+        },
+        "meta": {
+            "uuid": "14ab225b-44d4-4334-a496-682481d0fc92"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "4c3ee787-d5d6-4e90-83c3-eec933ab75db"
+            },
+            "end_b": {
+            "ref": "76e89396-63ab-465f-9950-9ee6b29bf91c"
+            }
+        },
+        "meta": {
+            "uuid": "6c031329-8063-46f2-b483-ed6e1c4ec1ba"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "62eeeb51-fb6e-460f-b86c-01a6197355e1"
+            },
+            "end_b": {
+            "ref": "5ef7a5b3-1b6f-4748-91b6-4644512f41a2"
+            }
+        },
+        "meta": {
+            "uuid": "0be8e7a4-c621-40f4-a026-df49f2320842"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "06fc15a1-e9c2-4eac-b3dd-6a009839938c"
+            },
+            "end_b": {
+            "ref": "e8b4676a-3a4d-4039-b982-83702cdfc45c"
+            }
+        },
+        "meta": {
+            "uuid": "bf6b3c6e-ef3e-4288-ab13-1e6137452936"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "3ace3335-3f78-4eb5-ac6a-e7d37e3f1a80"
+            },
+            "end_b": {
+            "ref": "76e89396-63ab-465f-9950-9ee6b29bf91c"
+            }
+        },
+        "meta": {
+            "uuid": "8eb0c823-7771-4261-8437-0cede20393fc"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "7cd7c32b-0e46-4926-a424-95c8c15c80af"
+            },
+            "end_b": {
+            "ref": "c48ea78e-d270-406e-b867-74646cbe080e"
+            }
+        },
+        "meta": {
+            "uuid": "f8c370fd-6667-4650-91eb-571d4d659785"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "63cf57fb-8d31-4853-ad71-fa65dcf411e6"
+            },
+            "end_b": {
+            "ref": "1bbb8017-6cc0-4807-9987-fd874a6cc6fa"
+            }
+        },
+        "meta": {
+            "uuid": "88005a5f-1dee-4682-9989-4814e438e1a7"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "1bbb8017-6cc0-4807-9987-fd874a6cc6fa"
+            },
+            "end_b": {
+            "ref": "cad8cb59-58f9-408d-a5fb-de756952361b"
+            }
+        },
+        "meta": {
+            "uuid": "fa385f3e-b1fa-43eb-a7c2-8fbbcf65793c"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "e01e6338-fbb9-4f1d-b4ea-6bbc743318f0"
+            },
+            "end_b": {
+            "ref": "5b2f165c-4449-4cd3-809b-07dcc0377fb4"
+            }
+        },
+        "meta": {
+            "uuid": "07cedcd4-ca1c-4187-add0-908153cc5dcc"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "993c0f98-f365-4b4c-9a86-07505c2a2b53"
+            },
+            "end_b": {
+            "ref": "4bc71e3f-a822-497f-956f-201baf93f427"
+            }
+        },
+        "meta": {
+            "uuid": "df3b7494-a3b1-4361-9c02-1c2a4707dffb"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "3b2d1244-f9c3-4648-99ad-c27bd91f34a0"
+            },
+            "end_b": {
+            "ref": "92dec559-2493-4ed7-8eaf-ecaa17ccb1fa"
+            }
+        },
+        "meta": {
+            "uuid": "648665b7-5857-4182-baae-5ae9e7fb95c4"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "84c1f6ef-dd27-4002-bca4-a9d0c2c9daf6"
+            },
+            "end_b": {
+            "ref": "c04d1c98-8f89-422f-8785-2fb0c0d3eec4"
+            }
+        },
+        "meta": {
+            "uuid": "86b2274a-d95f-4d86-8aca-ab5f445d1892"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "680fa4ef-37da-4632-a2ec-1bd9731be64c"
+            },
+            "end_b": {
+            "ref": "38a50c73-d80c-413d-aada-d29acb26fdfc"
+            }
+        },
+        "meta": {
+            "uuid": "75b4ee49-c6fb-4fd7-bb11-ee2c223ae363"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "a2e81008-a08f-49ec-b3b2-ef10e139021a"
+            },
+            "end_b": {
+            "ref": "c6b4d530-235c-4059-b775-0131eca78207"
+            }
+        },
+        "meta": {
+            "uuid": "fa48979a-2776-45e3-bfb7-4e79521fc8b6"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "a643bacf-4f75-4dbd-be20-9b2b1578385e"
+            },
+            "end_b": {
+            "ref": "c04d1c98-8f89-422f-8785-2fb0c0d3eec4"
+            }
+        },
+        "meta": {
+            "uuid": "130addeb-f8a6-4d40-a678-ccc11ec026b7"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "9bc55518-cdb3-495c-8d20-c9e2eb7136c2"
+            },
+            "end_b": {
+            "ref": "8c02bb39-fb9e-4cff-ab94-1d6fd502bcf0"
+            }
+        },
+        "meta": {
+            "uuid": "ba6a36b8-81a9-4c6d-85c5-6ac911642f49"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "5b2f165c-4449-4cd3-809b-07dcc0377fb4"
+            },
+            "end_b": {
+            "ref": "dac5d560-42d6-4405-9027-d3d426e2c566"
+            }
+        },
+        "meta": {
+            "uuid": "28aa229a-5004-438e-aebf-cf1359d32671"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "033600dd-aa3f-4a09-b84a-5eafe0efd77f"
+            },
+            "end_b": {
+            "ref": "ce771676-6a61-4be5-afbb-14956cdbe8c4"
+            }
+        },
+        "meta": {
+            "uuid": "c95e3f50-c4aa-4dd8-866f-41707a34e524"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "2e89a953-0f54-4fdf-8fed-d356133c5e6b"
+            },
+            "end_b": {
+            "ref": "6cf81903-ba86-443f-9549-97d24cf39cf9"
+            }
+        },
+        "meta": {
+            "uuid": "f1af7d19-8b54-441c-9fb9-9a461ff983ff"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "0123ff0f-8a31-4f06-8418-0a0a79c4cd9a"
+            },
+            "end_b": {
+            "ref": "e03a22bb-7913-49e0-af68-974ca33b81e6"
+            }
+        },
+        "meta": {
+            "uuid": "9890eeac-e7bd-4d68-91fc-e061f255cff4"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "8c34fd1e-3479-4425-9059-b1754ed18a9e"
+            },
+            "end_b": {
+            "ref": "63cf57fb-8d31-4853-ad71-fa65dcf411e6"
+            }
+        },
+        "meta": {
+            "uuid": "59450ac2-3f54-4ced-b52c-6072813fc60e"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "033600dd-aa3f-4a09-b84a-5eafe0efd77f"
+            },
+            "end_b": {
+            "ref": "9bc55518-cdb3-495c-8d20-c9e2eb7136c2"
+            }
+        },
+        "meta": {
+            "uuid": "c48c3cf9-55fb-49b2-9851-6dc67890461e"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "dac5d560-42d6-4405-9027-d3d426e2c566"
+            },
+            "end_b": {
+            "ref": "039d9ffa-bc63-4120-a544-8e8123f973a8"
+            }
+        },
+        "meta": {
+            "uuid": "24cb18cd-5b9e-4e61-be82-0928bd8ea20e"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "033600dd-aa3f-4a09-b84a-5eafe0efd77f"
+            },
+            "end_b": {
+            "ref": "06fc15a1-e9c2-4eac-b3dd-6a009839938c"
+            }
+        },
+        "meta": {
+            "uuid": "5d9524c2-8996-4d8d-a097-63e7f8d8fae1"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "342cf406-4c34-42b0-842d-3154873a7862"
+            },
+            "end_b": {
+            "ref": "2e89a953-0f54-4fdf-8fed-d356133c5e6b"
+            }
+        },
+        "meta": {
+            "uuid": "993a95d7-35ee-4883-aaf5-bcc3362067a4"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "49670d26-f1da-40d3-8fd0-01c5b7c4b06f"
+            },
+            "end_b": {
+            "ref": "1bbb8017-6cc0-4807-9987-fd874a6cc6fa"
+            }
+        },
+        "meta": {
+            "uuid": "4b8bd729-26e4-46ca-b14c-a651ef4db7f4"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "993c0f98-f365-4b4c-9a86-07505c2a2b53"
+            },
+            "end_b": {
+            "ref": "327fdee2-1cf4-4417-9e1c-0207cd9979aa"
+            }
+        },
+        "meta": {
+            "uuid": "6fcea1d3-88c5-42f4-a37b-ba3059f59c8d"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "b8b25656-1097-4246-828b-a63e9bf25ab1"
+            },
+            "end_b": {
+            "ref": "3f0b71d5-8afa-41eb-b45f-579485c46def"
+            }
+        },
+        "meta": {
+            "uuid": "e1b06480-4108-4dcb-99cf-4861fd72be98"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "0a17390a-c2b4-42c0-a029-2aeb075a42d7"
+            },
+            "end_b": {
+            "ref": "89705ff3-7532-44fa-ba8b-38e41f73e059"
+            }
+        },
+        "meta": {
+            "uuid": "47ac3937-40d1-44d7-8e6b-ac6bc3e1647d"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "993c0f98-f365-4b4c-9a86-07505c2a2b53"
+            },
+            "end_b": {
+            "ref": "97260a04-c6ef-4f63-8419-9b67f1a60001"
+            }
+        },
+        "meta": {
+            "uuid": "542ae3af-b290-46c0-a8b3-41e0d677ad84"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "3f0b71d5-8afa-41eb-b45f-579485c46def"
+            },
+            "end_b": {
+            "ref": "9bc55518-cdb3-495c-8d20-c9e2eb7136c2"
+            }
+        },
+        "meta": {
+            "uuid": "bea799b3-7b51-4aa9-aa03-088b33d86741"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "d255f574-b753-4036-8147-50c28f3c910e"
+            },
+            "end_b": {
+            "ref": "034aa38b-bb19-4b34-bfbf-009adda4dd35"
+            }
+        },
+        "meta": {
+            "uuid": "becea2e1-03e6-47aa-b3d3-f78ac5e70c96"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "4c3ee787-d5d6-4e90-83c3-eec933ab75db"
+            },
+            "end_b": {
+            "ref": "c04d1c98-8f89-422f-8785-2fb0c0d3eec4"
+            }
+        },
+        "meta": {
+            "uuid": "32e249b5-0620-45d0-8a27-5265b84cdfb6"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "d255f574-b753-4036-8147-50c28f3c910e"
+            },
+            "end_b": {
+            "ref": "5ea93544-5ebf-4eeb-b9f0-5eede3c2308e"
+            }
+        },
+        "meta": {
+            "uuid": "0ba9ea2b-63ac-415c-9b48-cbeb838dd8bb"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "e4d7dc45-6eaf-4931-926a-ac02f09ee12e"
+            },
+            "end_b": {
+            "ref": "034aa38b-bb19-4b34-bfbf-009adda4dd35"
+            }
+        },
+        "meta": {
+            "uuid": "fa19a480-19ac-4351-87ac-069e4b34a0b2"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "ea446544-d8d5-48d5-b77c-15a796b1b173"
+            },
+            "end_b": {
+            "ref": "89705ff3-7532-44fa-ba8b-38e41f73e059"
+            }
+        },
+        "meta": {
+            "uuid": "d9807a93-c2f7-4b18-b303-ad4f03503859"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "1ad6bcce-68c7-40ea-ba19-06dd7c5c7891"
+            },
+            "end_b": {
+            "ref": "228ccb47-1e39-486e-914a-4cc4d6887614"
+            }
+        },
+        "meta": {
+            "uuid": "0f6c7c35-7b73-4efa-a601-633349cf9e4d"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "bffd29b7-906b-41e1-8670-75753b71318f"
+            },
+            "end_b": {
+            "ref": "8bf3a4c2-c4a3-4d73-a5b3-5480894852c2"
+            }
+        },
+        "meta": {
+            "uuid": "a495fd48-1301-4eb9-9ffc-ab656c9aedb3"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "22618279-0feb-44ac-973f-5176d98d0498"
+            },
+            "end_b": {
+            "ref": "3b2d1244-f9c3-4648-99ad-c27bd91f34a0"
+            }
+        },
+        "meta": {
+            "uuid": "72c93e12-40fc-4af2-85a6-54b3811c4564"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "60babd09-30c5-4d8a-9ba7-00b42ad4db0b"
+            },
+            "end_b": {
+            "ref": "3d537c10-e4dd-4d2c-b9a4-dd9d7e8d832f"
+            }
+        },
+        "meta": {
+            "uuid": "57af63b5-71d8-4c8d-8e32-d5c3b1d2bdfa"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "4c3ee787-d5d6-4e90-83c3-eec933ab75db"
+            },
+            "end_b": {
+            "ref": "2e515bd6-72c9-426d-a0f1-f6012d88bbdd"
+            }
+        },
+        "meta": {
+            "uuid": "f9151ae0-152d-4323-a851-2429c94c77de"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "60babd09-30c5-4d8a-9ba7-00b42ad4db0b"
+            },
+            "end_b": {
+            "ref": "3582920c-6b91-45be-9c15-fdbf0e893f10"
+            }
+        },
+        "meta": {
+            "uuid": "403e5111-9def-4cbe-83fc-cfe14bfcf06e"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "7cd7c32b-0e46-4926-a424-95c8c15c80af"
+            },
+            "end_b": {
+            "ref": "c04d1c98-8f89-422f-8785-2fb0c0d3eec4"
+            }
+        },
+        "meta": {
+            "uuid": "9e543640-32d3-40de-aa6c-c29d94d5b141"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "84c1f6ef-dd27-4002-bca4-a9d0c2c9daf6"
+            },
+            "end_b": {
+            "ref": "e7c024a2-77c7-440f-91c3-9bd661ca016a"
+            }
+        },
+        "meta": {
+            "uuid": "85e5e4cf-5523-499b-bca3-2127fff218f3"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "22618279-0feb-44ac-973f-5176d98d0498"
+            },
+            "end_b": {
+            "ref": "7e131865-77d6-4c84-b043-78ae77fd0527"
+            }
+        },
+        "meta": {
+            "uuid": "36c3f79f-fdab-4a1d-930e-15f31ebe169e"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "4314a0ff-f833-421d-afd8-1b0c1eaa06c2"
+            },
+            "end_b": {
+            "ref": "8c34fd1e-3479-4425-9059-b1754ed18a9e"
+            }
+        },
+        "meta": {
+            "uuid": "b8ff6b9d-9099-4a65-81cd-666b8a555419"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "993c0f98-f365-4b4c-9a86-07505c2a2b53"
+            },
+            "end_b": {
+            "ref": "5b2f165c-4449-4cd3-809b-07dcc0377fb4"
+            }
+        },
+        "meta": {
+            "uuid": "dba9da52-5d68-4228-94af-404212d3db33"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "32fdd80e-443b-4511-af77-73220c9f25da"
+            },
+            "end_b": {
+            "ref": "38a50c73-d80c-413d-aada-d29acb26fdfc"
+            }
+        },
+        "meta": {
+            "uuid": "64e8807f-9f2b-425f-9198-97e34e5f088e"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "0123ff0f-8a31-4f06-8418-0a0a79c4cd9a"
+            },
+            "end_b": {
+            "ref": "327fdee2-1cf4-4417-9e1c-0207cd9979aa"
+            }
+        },
+        "meta": {
+            "uuid": "f11f3151-fcbf-4227-ac9d-88b26db0346f"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "d255f574-b753-4036-8147-50c28f3c910e"
+            },
+            "end_b": {
+            "ref": "97f282fa-22fc-40af-b884-22041f8b783a"
+            }
+        },
+        "meta": {
+            "uuid": "14b18da6-90a3-4af2-9cc1-fec8db2138de"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "49670d26-f1da-40d3-8fd0-01c5b7c4b06f"
+            },
+            "end_b": {
+            "ref": "3ace3335-3f78-4eb5-ac6a-e7d37e3f1a80"
+            }
+        },
+        "meta": {
+            "uuid": "3853eb44-5746-48a5-91f5-f3ef69ee547c"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "4d827eb3-ad38-422a-a5db-d91731ac6069"
+            },
+            "end_b": {
+            "ref": "d87363a6-3747-4687-a610-5224d6a560f0"
+            }
+        },
+        "meta": {
+            "uuid": "93fe45a5-78ac-481d-b957-820f4a304ee4"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "d255f574-b753-4036-8147-50c28f3c910e"
+            },
+            "end_b": {
+            "ref": "8c02bb39-fb9e-4cff-ab94-1d6fd502bcf0"
+            }
+        },
+        "meta": {
+            "uuid": "902a7af3-0bf4-4161-9eeb-05a5e2ba6b4b"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "bb5f3a43-08a8-4429-b721-d8dabedabe21"
+            },
+            "end_b": {
+            "ref": "4da7a6d6-845f-45ce-9e88-b34bc984a735"
+            }
+        },
+        "meta": {
+            "uuid": "49a8979a-9971-4c8a-b15c-23347b5d1a42"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "9becef44-c917-472c-9069-6af183ba18d4"
+            },
+            "end_b": {
+            "ref": "b2a5869a-c89a-436f-a18e-c150b079d10c"
+            }
+        },
+        "meta": {
+            "uuid": "b67b7783-0fe9-4681-bf60-f901ddee8b1f"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "afd26ad3-aa6b-4aac-a165-c129d818216d"
+            },
+            "end_b": {
+            "ref": "32fdd80e-443b-4511-af77-73220c9f25da"
+            }
+        },
+        "meta": {
+            "uuid": "ddd3c88b-99c9-4071-b35d-47be96bd97e1"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "c2345870-df6b-490f-868c-fdbf600f3dcb"
+            },
+            "end_b": {
+            "ref": "1bf607f4-f78f-4f52-b45f-470074ebc475"
+            }
+        },
+        "meta": {
+            "uuid": "9aff5ee9-a818-46fe-a0d1-ddf14ba27bd1"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "ea446544-d8d5-48d5-b77c-15a796b1b173"
+            },
+            "end_b": {
+            "ref": "c48ea78e-d270-406e-b867-74646cbe080e"
+            }
+        },
+        "meta": {
+            "uuid": "5931a635-25d2-479c-a26a-9334829c8ef5"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "bffd29b7-906b-41e1-8670-75753b71318f"
+            },
+            "end_b": {
+            "ref": "e3235939-62da-4ebf-9f0b-866ac553235a"
+            }
+        },
+        "meta": {
+            "uuid": "1c6531ac-42c7-4e17-95ca-b55d8047970d"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "62eeeb51-fb6e-460f-b86c-01a6197355e1"
+            },
+            "end_b": {
+            "ref": "644ac0a2-f030-4328-aebb-7c9b9b0ba00a"
+            }
+        },
+        "meta": {
+            "uuid": "c04dc0fd-2cb9-4a1e-82c4-24c42e6c7eee"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "49670d26-f1da-40d3-8fd0-01c5b7c4b06f"
+            },
+            "end_b": {
+            "ref": "797b47c9-a6e4-4000-bf84-390ec97bbb80"
+            }
+        },
+        "meta": {
+            "uuid": "2da4331f-efa4-4137-a252-c4eafbada390"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "e01e6338-fbb9-4f1d-b4ea-6bbc743318f0"
+            },
+            "end_b": {
+            "ref": "c6b4d530-235c-4059-b775-0131eca78207"
+            }
+        },
+        "meta": {
+            "uuid": "56a119b4-1745-4dfa-90bc-a14dde1a6587"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "105b9e70-59a2-46be-9da3-4e7cfecec8fe"
+            },
+            "end_b": {
+            "ref": "b8b25656-1097-4246-828b-a63e9bf25ab1"
+            }
+        },
+        "meta": {
+            "uuid": "207edab6-d0f7-4d03-a084-813d6b759c7a"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "7e131865-77d6-4c84-b043-78ae77fd0527"
+            },
+            "end_b": {
+            "ref": "f55b8ce4-cade-4f07-9b78-0891a47e2cac"
+            }
+        },
+        "meta": {
+            "uuid": "ca459ef0-5713-4acc-86a5-bf5acfc0879c"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "9bc55518-cdb3-495c-8d20-c9e2eb7136c2"
+            },
+            "end_b": {
+            "ref": "e3235939-62da-4ebf-9f0b-866ac553235a"
+            }
+        },
+        "meta": {
+            "uuid": "52cbf97f-31c6-45a5-83ec-1254ced58c18"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "0ffe2b04-f18f-4957-9a12-b0f5a9bacb71"
+            },
+            "end_b": {
+            "ref": "38a50c73-d80c-413d-aada-d29acb26fdfc"
+            }
+        },
+        "meta": {
+            "uuid": "f23a7730-df4d-463e-bc7c-4037222a3e78"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "bidirectional"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "8a93f588-1faf-47fc-a126-2f800cdc6a07"
+            },
+            "end_b": {
+            "ref": "d255f574-b753-4036-8147-50c28f3c910e"
+            }
+        },
+        "meta": {
+            "uuid": "1ecafde1-0e9d-4207-b883-70c2e80f44b6"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "644ac0a2-f030-4328-aebb-7c9b9b0ba00a"
+            },
+            "end_b": {
+            "ref": "4da7a6d6-845f-45ce-9e88-b34bc984a735"
+            }
+        },
+        "meta": {
+            "uuid": "0f6e20d5-5ba3-4115-9a71-7810c0cc4542"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "e01e6338-fbb9-4f1d-b4ea-6bbc743318f0"
+            },
+            "end_b": {
+            "ref": "797b47c9-a6e4-4000-bf84-390ec97bbb80"
+            }
+        },
+        "meta": {
+            "uuid": "d4cabda2-5d50-4a96-85fd-ff18150fa3fe"
+        }
+        },
+        {
+        "signification": {
+            "relation": {
+            "dynamic": "flow"
+            },
+            "sense": "a_to_b"
+        },
+        "appearance": {
+            "end_a": {
+            "ref": "d53a77bf-84a6-4d4a-9545-882695430d2d"
+            },
+            "end_b": {
+            "ref": "9bc55518-cdb3-495c-8d20-c9e2eb7136c2"
+            }
+        },
+        "meta": {
+            "uuid": "00455a97-6645-4c53-a051-27ba3ab7de41"
+        }
+        }
+    ],
+    "points": [
+        {
+        "signification": {
+            "name": {
+            "en": "Left Prefrontal Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            -26.57,
+            27.87,
+            -41.86
+            ]
+        },
+        "meta": {
+            "uuid": "1ad6bcce-68c7-40ea-ba19-06dd7c5c7891"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Motor Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            24.25,
+            -49.47,
+            -16.47
+            ]
+        },
+        "meta": {
+            "uuid": "436f0d82-d935-40fb-8bb9-3687711aac54"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Somatosensory Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            4.74,
+            -25.37,
+            -27.01
+            ]
+        },
+        "meta": {
+            "uuid": "bffd29b7-906b-41e1-8670-75753b71318f"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Occipital Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            25.43,
+            -24.1,
+            -21.07
+            ]
+        },
+        "meta": {
+            "uuid": "22618279-0feb-44ac-973f-5176d98d0498"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Temporal Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            -15.71,
+            27.21,
+            49.03
+            ]
+        },
+        "meta": {
+            "uuid": "8a93f588-1faf-47fc-a126-2f800cdc6a07"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Parietal Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            -3.0,
+            -30.38,
+            10.7
+            ]
+        },
+        "meta": {
+            "uuid": "c2345870-df6b-490f-868c-fdbf600f3dcb"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Hippocampus"
+            }
+        },
+        "appearance": {
+            "position": [
+            -41.04,
+            33.75,
+            18.28
+            ]
+        },
+        "meta": {
+            "uuid": "105b9e70-59a2-46be-9da3-4e7cfecec8fe"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Amygdala"
+            }
+        },
+        "appearance": {
+            "position": [
+            0.1,
+            2.33,
+            -38.34
+            ]
+        },
+        "meta": {
+            "uuid": "e4d7dc45-6eaf-4931-926a-ac02f09ee12e"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Thalamus"
+            }
+        },
+        "appearance": {
+            "position": [
+            -17.64,
+            -44.13,
+            32.98
+            ]
+        },
+        "meta": {
+            "uuid": "0123ff0f-8a31-4f06-8418-0a0a79c4cd9a"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Hypothalamus"
+            }
+        },
+        "appearance": {
+            "position": [
+            15.33,
+            -12.88,
+            40.51
+            ]
+        },
+        "meta": {
+            "uuid": "60babd09-30c5-4d8a-9ba7-00b42ad4db0b"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Cerebellum"
+            }
+        },
+        "appearance": {
+            "position": [
+            40.33,
+            42.48,
+            -18.25
+            ]
+        },
+        "meta": {
+            "uuid": "e01e6338-fbb9-4f1d-b4ea-6bbc743318f0"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Basal Ganglia"
+            }
+        },
+        "appearance": {
+            "position": [
+            1.41,
+            -38.78,
+            -37.26
+            ]
+        },
+        "meta": {
+            "uuid": "342cf406-4c34-42b0-842d-3154873a7862"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Broca Area"
+            }
+        },
+        "appearance": {
+            "position": [
+            -38.26,
+            -29.22,
+            25.75
+            ]
+        },
+        "meta": {
+            "uuid": "033600dd-aa3f-4a09-b84a-5eafe0efd77f"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Wernicke Area"
+            }
+        },
+        "appearance": {
+            "position": [
+            -23.14,
+            -44.29,
+            -19.82
+            ]
+        },
+        "meta": {
+            "uuid": "06fc15a1-e9c2-4eac-b3dd-6a009839938c"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Insula"
+            }
+        },
+        "appearance": {
+            "position": [
+            3.09,
+            6.06,
+            -1.45
+            ]
+        },
+        "meta": {
+            "uuid": "afd26ad3-aa6b-4aac-a165-c129d818216d"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Cingulate Gyrus"
+            }
+        },
+        "appearance": {
+            "position": [
+            -29.45,
+            27.59,
+            -31.95
+            ]
+        },
+        "meta": {
+            "uuid": "4314a0ff-f833-421d-afd8-1b0c1eaa06c2"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Visual Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            6.31,
+            27.25,
+            20.86
+            ]
+        },
+        "meta": {
+            "uuid": "2e89a953-0f54-4fdf-8fed-d356133c5e6b"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Auditory Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            -5.87,
+            2.98,
+            -38.04
+            ]
+        },
+        "meta": {
+            "uuid": "8c34fd1e-3479-4425-9059-b1754ed18a9e"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Nucleus Accumbens"
+            }
+        },
+        "appearance": {
+            "position": [
+            18.17,
+            9.09,
+            8.69
+            ]
+        },
+        "meta": {
+            "uuid": "1bf607f4-f78f-4f52-b45f-470074ebc475"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Substantia Nigra"
+            }
+        },
+        "appearance": {
+            "position": [
+            13.24,
+            -16.74,
+            28.88
+            ]
+        },
+        "meta": {
+            "uuid": "a2e81008-a08f-49ec-b3b2-ef10e139021a"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Red Nucleus"
+            }
+        },
+        "appearance": {
+            "position": [
+            -41.38,
+            -15.5,
+            -17.07
+            ]
+        },
+        "meta": {
+            "uuid": "63cf57fb-8d31-4853-ad71-fa65dcf411e6"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Lateral Geniculate"
+            }
+        },
+        "appearance": {
+            "position": [
+            -43.4,
+            -40.59,
+            34.05
+            ]
+        },
+        "meta": {
+            "uuid": "62eeeb51-fb6e-460f-b86c-01a6197355e1"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Medial Geniculate"
+            }
+        },
+        "appearance": {
+            "position": [
+            15.28,
+            -10.28,
+            -4.15
+            ]
+        },
+        "meta": {
+            "uuid": "d255f574-b753-4036-8147-50c28f3c910e"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Olfactory Bulb"
+            }
+        },
+        "appearance": {
+            "position": [
+            -16.7,
+            -18.71,
+            -32.47
+            ]
+        },
+        "meta": {
+            "uuid": "9becef44-c917-472c-9069-6af183ba18d4"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Superior Colliculus"
+            }
+        },
+        "appearance": {
+            "position": [
+            21.91,
+            -7.01,
+            38.43
+            ]
+        },
+        "meta": {
+            "uuid": "4d827eb3-ad38-422a-a5db-d91731ac6069"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Inferior Colliculus"
+            }
+        },
+        "appearance": {
+            "position": [
+            22.04,
+            35.25,
+            -8.22
+            ]
+        },
+        "meta": {
+            "uuid": "034aa38b-bb19-4b34-bfbf-009adda4dd35"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Ventral Tegmental Area"
+            }
+        },
+        "appearance": {
+            "position": [
+            -42.06,
+            -41.48,
+            -23.67
+            ]
+        },
+        "meta": {
+            "uuid": "4c3ee787-d5d6-4e90-83c3-eec933ab75db"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Caudate Nucleus"
+            }
+        },
+        "appearance": {
+            "position": [
+            -39.7,
+            2.75,
+            49.44
+            ]
+        },
+        "meta": {
+            "uuid": "49670d26-f1da-40d3-8fd0-01c5b7c4b06f"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Putamen"
+            }
+        },
+        "appearance": {
+            "position": [
+            6.17,
+            23.04,
+            -24.02
+            ]
+        },
+        "meta": {
+            "uuid": "d53a77bf-84a6-4d4a-9545-882695430d2d"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Globus Pallidus"
+            }
+        },
+        "appearance": {
+            "position": [
+            -41.2,
+            42.91,
+            35.64
+            ]
+        },
+        "meta": {
+            "uuid": "993c0f98-f365-4b4c-9a86-07505c2a2b53"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Dentate Nucleus"
+            }
+        },
+        "appearance": {
+            "position": [
+            -16.16,
+            -15.21,
+            -22.41
+            ]
+        },
+        "meta": {
+            "uuid": "5b2f165c-4449-4cd3-809b-07dcc0377fb4"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Pons"
+            }
+        },
+        "appearance": {
+            "position": [
+            34.37,
+            -4.94,
+            -26.05
+            ]
+        },
+        "meta": {
+            "uuid": "5ef7a5b3-1b6f-4748-91b6-4644512f41a2"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Medulla Oblongata"
+            }
+        },
+        "appearance": {
+            "position": [
+            -48.3,
+            14.84,
+            36.09
+            ]
+        },
+        "meta": {
+            "uuid": "3582920c-6b91-45be-9c15-fdbf0e893f10"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Midbrain"
+            }
+        },
+        "appearance": {
+            "position": [
+            -23.31,
+            9.19,
+            6.28
+            ]
+        },
+        "meta": {
+            "uuid": "7e131865-77d6-4c84-b043-78ae77fd0527"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Corpus Callosum"
+            }
+        },
+        "appearance": {
+            "position": [
+            22.53,
+            -19.32,
+            16.41
+            ]
+        },
+        "meta": {
+            "uuid": "680fa4ef-37da-4632-a2ec-1bd9731be64c"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Pineal Gland"
+            }
+        },
+        "appearance": {
+            "position": [
+            -19.51,
+            -14.81,
+            34.2
+            ]
+        },
+        "meta": {
+            "uuid": "ea446544-d8d5-48d5-b77c-15a796b1b173"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Locus Coeruleus"
+            }
+        },
+        "appearance": {
+            "position": [
+            -3.32,
+            -46.79,
+            35.94
+            ]
+        },
+        "meta": {
+            "uuid": "97f282fa-22fc-40af-b884-22041f8b783a"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Raphe Nuclei"
+            }
+        },
+        "appearance": {
+            "position": [
+            -15.86,
+            44.39,
+            33.88
+            ]
+        },
+        "meta": {
+            "uuid": "f55b8ce4-cade-4f07-9b78-0891a47e2cac"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Angular Gyrus"
+            }
+        },
+        "appearance": {
+            "position": [
+            1.11,
+            -48.63,
+            -24.03
+            ]
+        },
+        "meta": {
+            "uuid": "b8b25656-1097-4246-828b-a63e9bf25ab1"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Supramarginal Gyrus"
+            }
+        },
+        "appearance": {
+            "position": [
+            -30.17,
+            -7.62,
+            11.39
+            ]
+        },
+        "meta": {
+            "uuid": "2e515bd6-72c9-426d-a0f1-f6012d88bbdd"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Fusiform Gyrus"
+            }
+        },
+        "appearance": {
+            "position": [
+            -15.38,
+            -7.13,
+            -24.57
+            ]
+        },
+        "meta": {
+            "uuid": "6879d566-7b43-4338-beee-31528b906637"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Entorhinal Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            23.49,
+            29.1,
+            -4.28
+            ]
+        },
+        "meta": {
+            "uuid": "3ace3335-3f78-4eb5-ac6a-e7d37e3f1a80"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Parahippocampal Gyrus"
+            }
+        },
+        "appearance": {
+            "position": [
+            14.85,
+            45.26,
+            9.33
+            ]
+        },
+        "meta": {
+            "uuid": "390083fd-d397-4c9e-8b8d-694f54499ce2"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Orbitofrontal Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            42.38,
+            -23.34,
+            44.48
+            ]
+        },
+        "meta": {
+            "uuid": "bb5f3a43-08a8-4429-b721-d8dabedabe21"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Ventromedial Prefrontal Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            -41.27,
+            7.87,
+            -37.69
+            ]
+        },
+        "meta": {
+            "uuid": "c8d40636-e001-49ce-b50f-d96295092b61"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Dorsolateral Prefrontal Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            21.15,
+            15.95,
+            4.06
+            ]
+        },
+        "meta": {
+            "uuid": "d87363a6-3747-4687-a610-5224d6a560f0"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Supplementary Motor Area"
+            }
+        },
+        "appearance": {
+            "position": [
+            -10.43,
+            -36.45,
+            20.83
+            ]
+        },
+        "meta": {
+            "uuid": "3f0b71d5-8afa-41eb-b45f-579485c46def"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Primary Motor Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            -36.26,
+            35.32,
+            -23.48
+            ]
+        },
+        "meta": {
+            "uuid": "72633bdc-7b76-46b7-9bce-3d9323cb5a20"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Left Primary Somatosensory Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            42.16,
+            25.06,
+            36.76
+            ]
+        },
+        "meta": {
+            "uuid": "5d8cbbb8-f73f-4802-8233-954c5cfd96a5"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Prefrontal Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            27.15,
+            22.1,
+            -41.72
+            ]
+        },
+        "meta": {
+            "uuid": "7cd7c32b-0e46-4926-a424-95c8c15c80af"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Motor Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            -16.64,
+            46.35,
+            -25.21
+            ]
+        },
+        "meta": {
+            "uuid": "0a17390a-c2b4-42c0-a029-2aeb075a42d7"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Somatosensory Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            47.04,
+            -25.24,
+            -4.1
+            ]
+        },
+        "meta": {
+            "uuid": "9bc55518-cdb3-495c-8d20-c9e2eb7136c2"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Occipital Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            15.62,
+            -21.39,
+            8.64
+            ]
+        },
+        "meta": {
+            "uuid": "4ea94296-54b2-43e9-a739-6b3e32a1e35a"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Temporal Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            5.89,
+            -20.24,
+            49.37
+            ]
+        },
+        "meta": {
+            "uuid": "6cf81903-ba86-443f-9549-97d24cf39cf9"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Parietal Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            -9.71,
+            44.63,
+            -48.22
+            ]
+        },
+        "meta": {
+            "uuid": "8c02bb39-fb9e-4cff-ab94-1d6fd502bcf0"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Hippocampus"
+            }
+        },
+        "appearance": {
+            "position": [
+            -49.99,
+            40.24,
+            10.75
+            ]
+        },
+        "meta": {
+            "uuid": "12fb36ea-b158-4ecf-bcb0-696c001ff207"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Amygdala"
+            }
+        },
+        "appearance": {
+            "position": [
+            36.04,
+            -18.89,
+            26.8
+            ]
+        },
+        "meta": {
+            "uuid": "ce771676-6a61-4be5-afbb-14956cdbe8c4"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Thalamus"
+            }
+        },
+        "appearance": {
+            "position": [
+            -21.21,
+            -15.62,
+            -8.86
+            ]
+        },
+        "meta": {
+            "uuid": "dfa828ee-381f-4bda-8411-731280a27f05"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Hypothalamus"
+            }
+        },
+        "appearance": {
+            "position": [
+            -20.52,
+            18.2,
+            -1.89
+            ]
+        },
+        "meta": {
+            "uuid": "32fdd80e-443b-4511-af77-73220c9f25da"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Cerebellum"
+            }
+        },
+        "appearance": {
+            "position": [
+            21.74,
+            6.17,
+            39.9
+            ]
+        },
+        "meta": {
+            "uuid": "1bbb8017-6cc0-4807-9987-fd874a6cc6fa"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Basal Ganglia"
+            }
+        },
+        "appearance": {
+            "position": [
+            -18.86,
+            -42.28,
+            33.35
+            ]
+        },
+        "meta": {
+            "uuid": "5ea93544-5ebf-4eeb-b9f0-5eede3c2308e"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Broca Area"
+            }
+        },
+        "appearance": {
+            "position": [
+            -0.92,
+            8.01,
+            -7.89
+            ]
+        },
+        "meta": {
+            "uuid": "84c1f6ef-dd27-4002-bca4-a9d0c2c9daf6"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Wernicke Area"
+            }
+        },
+        "appearance": {
+            "position": [
+            -24.82,
+            -9.62,
+            24.74
+            ]
+        },
+        "meta": {
+            "uuid": "cc7d6a44-3355-46c1-930b-1ee0b8f48b67"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Insula"
+            }
+        },
+        "appearance": {
+            "position": [
+            -37.47,
+            4.64,
+            46.2
+            ]
+        },
+        "meta": {
+            "uuid": "2b27fa8c-579d-49fd-b145-f70588db9a84"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Cingulate Gyrus"
+            }
+        },
+        "appearance": {
+            "position": [
+            -39.99,
+            48.38,
+            28.57
+            ]
+        },
+        "meta": {
+            "uuid": "eb75df23-90d8-4ad0-b981-d1582fdee8c6"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Visual Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            -0.19,
+            -39.96,
+            37.19
+            ]
+        },
+        "meta": {
+            "uuid": "327fdee2-1cf4-4417-9e1c-0207cd9979aa"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Auditory Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            -0.9,
+            -7.15,
+            29.84
+            ]
+        },
+        "meta": {
+            "uuid": "0ffe2b04-f18f-4957-9a12-b0f5a9bacb71"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Nucleus Accumbens"
+            }
+        },
+        "appearance": {
+            "position": [
+            -35.96,
+            14.62,
+            17.95
+            ]
+        },
+        "meta": {
+            "uuid": "ed94d5cf-07a6-4265-b53c-6a0d2adf7f4f"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Substantia Nigra"
+            }
+        },
+        "appearance": {
+            "position": [
+            -7.32,
+            22.51,
+            49.27
+            ]
+        },
+        "meta": {
+            "uuid": "a643bacf-4f75-4dbd-be20-9b2b1578385e"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Red Nucleus"
+            }
+        },
+        "appearance": {
+            "position": [
+            -41.88,
+            14.97,
+            -21.88
+            ]
+        },
+        "meta": {
+            "uuid": "b2a5869a-c89a-436f-a18e-c150b079d10c"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Lateral Geniculate"
+            }
+        },
+        "appearance": {
+            "position": [
+            43.33,
+            35.03,
+            41.47
+            ]
+        },
+        "meta": {
+            "uuid": "dac5d560-42d6-4405-9027-d3d426e2c566"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Medial Geniculate"
+            }
+        },
+        "appearance": {
+            "position": [
+            -9.91,
+            46.14,
+            19.92
+            ]
+        },
+        "meta": {
+            "uuid": "644ac0a2-f030-4328-aebb-7c9b9b0ba00a"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Olfactory Bulb"
+            }
+        },
+        "appearance": {
+            "position": [
+            39.35,
+            -17.46,
+            -3.68
+            ]
+        },
+        "meta": {
+            "uuid": "e7c024a2-77c7-440f-91c3-9bd661ca016a"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Superior Colliculus"
+            }
+        },
+        "appearance": {
+            "position": [
+            -10.89,
+            -26.97,
+            17.5
+            ]
+        },
+        "meta": {
+            "uuid": "c48ea78e-d270-406e-b867-74646cbe080e"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Inferior Colliculus"
+            }
+        },
+        "appearance": {
+            "position": [
+            -31.37,
+            -27.89,
+            -49.12
+            ]
+        },
+        "meta": {
+            "uuid": "cad8cb59-58f9-408d-a5fb-de756952361b"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Ventral Tegmental Area"
+            }
+        },
+        "appearance": {
+            "position": [
+            -38.79,
+            -8.9,
+            23.05
+            ]
+        },
+        "meta": {
+            "uuid": "4da7a6d6-845f-45ce-9e88-b34bc984a735"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Caudate Nucleus"
+            }
+        },
+        "appearance": {
+            "position": [
+            -29.08,
+            -21.55,
+            -11.88
+            ]
+        },
+        "meta": {
+            "uuid": "38a50c73-d80c-413d-aada-d29acb26fdfc"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Putamen"
+            }
+        },
+        "appearance": {
+            "position": [
+            -35.82,
+            -39.54,
+            45.63
+            ]
+        },
+        "meta": {
+            "uuid": "defbc5e8-f73e-4315-b957-8f896c6557aa"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Globus Pallidus"
+            }
+        },
+        "appearance": {
+            "position": [
+            49.52,
+            30.82,
+            10.73
+            ]
+        },
+        "meta": {
+            "uuid": "76e89396-63ab-465f-9950-9ee6b29bf91c"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Dentate Nucleus"
+            }
+        },
+        "appearance": {
+            "position": [
+            -20.08,
+            -23.16,
+            49.27
+            ]
+        },
+        "meta": {
+            "uuid": "d16f1d45-a0b8-4058-aadc-87f812dd6c4e"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Pons"
+            }
+        },
+        "appearance": {
+            "position": [
+            0.92,
+            40.74,
+            7.82
+            ]
+        },
+        "meta": {
+            "uuid": "97260a04-c6ef-4f63-8419-9b67f1a60001"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Medulla Oblongata"
+            }
+        },
+        "appearance": {
+            "position": [
+            -0.73,
+            -1.77,
+            19.52
+            ]
+        },
+        "meta": {
+            "uuid": "33dd5275-89f8-42a2-bd91-a0b2f143ab54"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Midbrain"
+            }
+        },
+        "appearance": {
+            "position": [
+            41.3,
+            -2.02,
+            13.05
+            ]
+        },
+        "meta": {
+            "uuid": "e03a22bb-7913-49e0-af68-974ca33b81e6"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Corpus Callosum"
+            }
+        },
+        "appearance": {
+            "position": [
+            16.36,
+            42.8,
+            44.9
+            ]
+        },
+        "meta": {
+            "uuid": "89705ff3-7532-44fa-ba8b-38e41f73e059"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Pineal Gland"
+            }
+        },
+        "appearance": {
+            "position": [
+            42.26,
+            24.27,
+            11.69
+            ]
+        },
+        "meta": {
+            "uuid": "3d537c10-e4dd-4d2c-b9a4-dd9d7e8d832f"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Locus Coeruleus"
+            }
+        },
+        "appearance": {
+            "position": [
+            -34.82,
+            1.58,
+            15.61
+            ]
+        },
+        "meta": {
+            "uuid": "c04d1c98-8f89-422f-8785-2fb0c0d3eec4"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Raphe Nuclei"
+            }
+        },
+        "appearance": {
+            "position": [
+            32.94,
+            29.91,
+            -42.9
+            ]
+        },
+        "meta": {
+            "uuid": "8bf3a4c2-c4a3-4d73-a5b3-5480894852c2"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Angular Gyrus"
+            }
+        },
+        "appearance": {
+            "position": [
+            -23.29,
+            -47.55,
+            9.78
+            ]
+        },
+        "meta": {
+            "uuid": "4bc71e3f-a822-497f-956f-201baf93f427"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Supramarginal Gyrus"
+            }
+        },
+        "appearance": {
+            "position": [
+            43.48,
+            -31.86,
+            -34.27
+            ]
+        },
+        "meta": {
+            "uuid": "e3235939-62da-4ebf-9f0b-866ac553235a"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Fusiform Gyrus"
+            }
+        },
+        "appearance": {
+            "position": [
+            9.22,
+            31.67,
+            -13.3
+            ]
+        },
+        "meta": {
+            "uuid": "039d9ffa-bc63-4120-a544-8e8123f973a8"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Entorhinal Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            27.34,
+            -36.23,
+            35.35
+            ]
+        },
+        "meta": {
+            "uuid": "b5e72048-4ea2-4343-adcf-87188326404a"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Parahippocampal Gyrus"
+            }
+        },
+        "appearance": {
+            "position": [
+            -42.24,
+            -41.06,
+            -39.95
+            ]
+        },
+        "meta": {
+            "uuid": "c6b4d530-235c-4059-b775-0131eca78207"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Orbitofrontal Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            -12.32,
+            -28.74,
+            13.96
+            ]
+        },
+        "meta": {
+            "uuid": "797b47c9-a6e4-4000-bf84-390ec97bbb80"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Ventromedial Prefrontal Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            49.78,
+            -39.67,
+            28.43
+            ]
+        },
+        "meta": {
+            "uuid": "7fbf385a-bcd4-4fc4-8d54-748d0aef343d"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Dorsolateral Prefrontal Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            14.4,
+            -42.07,
+            0.86
+            ]
+        },
+        "meta": {
+            "uuid": "228ccb47-1e39-486e-914a-4cc4d6887614"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Supplementary Motor Area"
+            }
+        },
+        "appearance": {
+            "position": [
+            -32.75,
+            49.69,
+            -19.91
+            ]
+        },
+        "meta": {
+            "uuid": "3b2d1244-f9c3-4648-99ad-c27bd91f34a0"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Primary Motor Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            42.8,
+            -39.95,
+            -42.28
+            ]
+        },
+        "meta": {
+            "uuid": "e8b4676a-3a4d-4039-b982-83702cdfc45c"
+        }
+        },
+        {
+        "signification": {
+            "name": {
+            "en": "Right Primary Somatosensory Cortex"
+            }
+        },
+        "appearance": {
+            "position": [
+            9.15,
+            24.37,
+            -33.93
+            ]
+        },
+        "meta": {
+            "uuid": "92dec559-2493-4ed7-8eaf-ecaa17ccb1fa"
+        }
+        }
+    ],
+    "aux": [
+        {
+        "appearance": {
+            "module": {
+            "grid": {
+                "major_step": 10,
+                "minor_step": 2
+            },
+            "axis": {
+                "length": 120
+            }
+            },
+            "opacity": 0.4
+        },
+        "meta": {
+            "uuid": "f1e9e951-a6cb-44b8-bca3-8354a87c6e81"
+        }
+        }
+    ],
+    "document_meta": {
+        "document_uuid": "65b52f15-e11b-4cf7-be8d-2c4182732920",
+        "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.0",
+        "author": "generator@example.com",
+        "version": "1.0.0",
+        "updated_at": "2025-11-12T09:52:41Z",
+        "coordinate_system": "Z+up/freeXY",
+        "units": "mm",
+        "i18n": "en"
+    }
+    }
+}

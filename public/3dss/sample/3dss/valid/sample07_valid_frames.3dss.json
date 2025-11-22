@@ -1,0 +1,55 @@
+{
+  "document_meta": {
+    "document_uuid": "2fe63ab8-0715-42a0-8ef4-02b998040e80",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.0",
+    "author": "animator@example.com",
+    "version": "1.3.0",
+    "tags": ["x:timelines"],
+    "coordinate_system": "Z+up/freeXY",
+    "units": "cm"
+  },
+  "points": [],
+  "lines": [
+    {
+      "appearance": {
+        "end_a": {
+          "coord": [0, 0, 0]
+        },
+        "end_b": {
+          "coord": [6, 0, 2]
+        },
+        "line_type": "straight",
+        "frames": 0,
+        "color": "#ffffff",
+        "opacity": 0.4
+      },
+      "meta": {
+        "uuid": "9d0fd286-630e-4954-9efe-2c528324c723"
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "coord": [6, 0, 2]
+        },
+        "end_b": {
+          "coord": [10, 4, 5]
+        },
+        "line_type": "straight",
+        "effect": {
+          "effect_type": "pulse",
+          "speed": 1.5,
+          "amplitude": 0.7,
+          "easing": "ease-in-out"
+        },
+        "frames": [10, 20, 30],
+        "color": "#ff8a65",
+        "opacity": 0.75
+      },
+      "meta": {
+        "uuid": "a2432a96-0ca1-426b-9b1f-b3a0dcb0135c"
+      }
+    }
+  ],
+  "aux": []
+}

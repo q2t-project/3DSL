@@ -1,0 +1,28 @@
+{
+  "points": [
+    {
+      "meta": { "uuid": "p-0001" },
+      "appearance": {
+        "position": [0, 0, 0],
+        "color": "#ff5555",
+        "opacity": 1.0,
+        "renderOrder": 0
+      }
+    },
+    {
+      "meta": { "uuid": "p-0002" },
+      "appearance": {
+        "position": [1, 0, 0],
+        "color": "#55ff55",
+        "opacity": 1.0,
+        "renderOrder": 0
+      }
+    }
+  ],
+  "lines": [],
+  "aux": [],
+  "document_meta": {
+    "title": "demo",
+    "version": "1.0.0"
+  }
+}

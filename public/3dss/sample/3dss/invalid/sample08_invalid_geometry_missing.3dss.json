@@ -1,0 +1,20 @@
+{
+  "document_meta": {
+    "document_uuid": "efbc9326-b76a-4059-862c-bf7455bdfda9",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.0",
+    "author": "points@example.com",
+    "version": "1.0.0"
+  },
+  "points": [
+    {
+      "appearance": {
+        "marker": {
+          "shape": "sphere"
+        }
+      },
+      "meta": {
+        "uuid": "a7cd9d7a-48ef-46d2-b9bf-ec4f7bb0eb18"
+      }
+    }
+  ]
+}

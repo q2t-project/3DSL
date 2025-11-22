@@ -1,0 +1,79 @@
+{
+  "document_meta": {
+    "document_uuid": "b9233b0c-8b5a-4ffc-8a86-1d8c1f7bd6df",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.0",
+    "author": "studio@example.com",
+    "version": "1.1.0",
+    "tags": ["m:line-demo"],
+    "coordinate_system": "Z+up/freeXY",
+    "units": "cm"
+  },
+  "points": [],
+  "lines": [
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b"
+      },
+      "appearance": {
+        "end_a": {
+          "coord": [0, 0, 0]
+        },
+        "end_b": {
+          "coord": [12, 6, 4]
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#00bcd4",
+        "opacity": 0.6,
+        "arrow": {
+          "shape": "cone",
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "renderOrder": 1
+      },
+      "meta": {
+        "uuid": "e51dc625-ff96-4200-87dd-59177fb7c8f7"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "dynamic": "flow"
+        },
+        "sense": "bidirectional"
+      },
+      "appearance": {
+        "end_a": {
+          "coord": [12, 6, 4]
+        },
+        "end_b": {
+          "coord": [20, 6, 4]
+        },
+        "line_type": "arc",
+        "geometry": {
+          "arc_center": [16, 6, 4],
+          "arc_radius": 4,
+          "arc_angle_start": 0,
+          "arc_angle_end": 3.14,
+          "arc_clockwise": false
+        },
+        "color": "#ff9800",
+        "opacity": 0.7,
+        "effect": {
+          "effect_type": "flow",
+          "speed": 0.8,
+          "amplitude": 0.5,
+          "easing": "ease-in-out"
+        }
+      },
+      "meta": {
+        "uuid": "9f655f84-9c8a-4c5e-8a54-f4cf4ce7a2fc"
+      }
+    }
+  ],
+  "aux": []
+}

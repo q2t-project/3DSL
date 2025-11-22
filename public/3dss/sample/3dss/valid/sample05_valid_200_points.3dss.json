@@ -1,0 +1,73 @@
+{
+  "document_meta": {
+    "document_uuid": "f7bb9f30-e8c3-4c31-8355-52d1e27b4ee8",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.0",
+    "author": "gridlab@example.com",
+    "version": "1.2.0",
+    "generator": "https://gridlab.example.com/tools/sample-maker",
+    "tags": ["m:aux-grid"],
+    "coordinate_system": "Z+up/freeXY",
+    "units": "cm"
+  },
+  "points": [],
+  "lines": [
+    {
+      "appearance": {
+        "end_a": {
+          "coord": [0, 0, 10]
+        },
+        "end_b": {
+          "coord": [20, 5, 10]
+        },
+        "line_type": "polyline",
+        "line_style": "dashed",
+        "geometry": {
+          "dimension": 3,
+          "polyline_points": [
+            [0, 0, 10],
+            [10, 5, 10],
+            [20, 5, 10]
+          ]
+        },
+        "color": "#ffaa00",
+        "opacity": 0.5
+      },
+      "meta": {
+        "uuid": "a047b630-e98c-4aa8-8b07-8a7a7a5dc20f"
+      }
+    }
+  ],
+  "aux": [
+    {
+      "appearance": {
+        "module": {
+          "grid": {
+            "grid_type": "cartesian",
+            "subdivisions": 8,
+            "major_step": 10,
+            "minor_step": 2,
+            "color_major": "#888888",
+            "color_minor": "#444444"
+          },
+          "axis": {
+            "length": 64,
+            "labels": true,
+            "arrow": {
+              "enabled": true,
+              "size": 4,
+              "aspect": 2
+            }
+          },
+          "hud": {
+            "follow_camera": true,
+            "scale_with_distance": true
+          }
+        }
+      },
+      "meta": {
+        "uuid": "54081b61-283c-4866-896c-3a862800f735",
+        "creator_memo": "Reference grid for proportion checking"
+      }
+    }
+  ]
+}
