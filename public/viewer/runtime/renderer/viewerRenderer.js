@@ -25,6 +25,10 @@ export const objectByUUID = new Map();
 // シーン全体の境界（必要に応じてキャッシュ）
 let sceneBounds = null;
 
+// viewerRenderer 全体の core（canvas / renderer / scene / camera / objectByUUID）
+// init() 完了時にセットされる
+let _core = null;
+
 // -------------------------------------------------------------
 // Focus FX 用内部状態
 // -------------------------------------------------------------
@@ -145,16 +149,17 @@ let startTime = 0;
 // init: canvas を受け取って three.js 初期化
 // -------------------------------------------------------------
 export function init(canvas, options = {}) {
-    console.log("[viewerRenderer] init 入ったで"); 
+  console.log("[viewerRenderer] init 入ったで");
 
-    if (!canvas) {
+  if (!canvas) {
     console.error("[viewerRenderer] canvas が null や");
-    return false;
+    return null;
   }
 
-  if (renderer) {
-    console.warn("[viewerRenderer] 二重 init は無視するで");
-    return true;
+  // すでに初期化済みなら既存 core を返す
+  if (_core && renderer && scene && camera) {
+    console.warn("[viewerRenderer] 二重 init は既存 core を返すで");
+    return _core;
   }
 
   const width = canvas.clientWidth || window.innerWidth;
@@ -191,8 +196,17 @@ export function init(canvas, options = {}) {
   lastTime = performance.now();
   startTime = lastTime;
 
+  // viewerRenderer 全体の core を構成して保持
+  _core = {
+    canvas,
+    renderer,
+    scene,
+    camera,
+    objectByUUID,
+  };
+
   console.log("[viewerRenderer] init 完了");
-  return true;
+  return _core;
 }
 
 // -------------------------------------------------------------
@@ -259,8 +273,7 @@ export function start() {
   startTime = lastTime;
   loop();
 
-  console.log("[viewerRenderer] loop start");
-}
+  console.log("[viewerRenderer] loop start");}
 
 export function stop() {
   if (animationId != null) {
@@ -474,21 +487,48 @@ function pickObjectAt(ndcX, ndcY) {
   return null;
 }
 
-// viewerHub.createViewerHub(...) に渡すための rendererContext
+// 
 export function createRendererContext() {
-  if (!renderer || !scene || !camera) {
-    console.error("[viewerRenderer] createRendererContext: init まだやで");
+  if (!_core) {
+    console.error("[viewerRenderer] createRendererContext: _core 未初期化や");
     return null;
   }
 
+  // ★ ここで別名を付けて TDZ 衝突を避ける
+  const {
+    canvas,
+    renderer: r,
+    scene: s,
+    camera: c,
+    objectByUUID: map,
+  } = _core;
+
+  if (!r || !s || !c) {
+    console.error("[viewerRenderer] createRendererContext: renderer / scene / camera 不正や");
+    return null;
+  }
+
+  // viewerHub / CameraEngine / CameraInput から見えるインターフェース
   return {
-    camera,
-    domElement: renderer.domElement,
-    getBoundingBox,
-    getElementBounds,
-    setElementVisibility,
-    setHighlight,
-    clearAllHighlights,
-    applyFocusFX,
-    pickObjectAt, // ← selection 用：NDC(-1〜+1) → {uuid, distance, point} | null
-   };}
+    // three.js 周り
+    domElement: canvas,   // ★ CameraInput 用
+    canvas,
+    renderer: r,
+    scene: s,
+    camera: c,
+    objectByUUID: map,
+
+    // bounds 系
+    getBoundingBox: () => getBoundingBox(),
+    getElementBounds: (uuid) => getElementBounds(uuid),
+
+    // 可視状態・ハイライト（viewerHub → CameraEngine → ここ）
+    setElementVisibility: (payload) => setElementVisibility(payload),
+    setHighlight: (payload) => setHighlight(payload),
+    clearAllHighlights: () => clearAllHighlights(),
+
+    // Focus / pick
+    applyFocusFX: (payload) => applyFocusFX(payload),
+    pickObjectAt: (ndcX, ndcY) => pickObjectAt(ndcX, ndcY),
+  };
+}

@@ -1,134 +1,145 @@
 // ============================================================
-// state.js
-// 3DSS JSON → viewer 用 State（純粋データ）へ変換
-// three.js 非依存・immutable・軽結合
+// runtime/core/state.js
+// 3DSS JSON → Core state（構造データは read-only, ui_state は viewer 専用）
+// three.js 非依存・proxy / 正規化 / 再構築は一切しない
 // ============================================================
 
-// ------------------------------------------------------------
-// エントリポイント
-// ------------------------------------------------------------
+/**
+ * 3DSS JSON から Core state を構築する
+ *
+ * 戻り値の形:
+ * {
+ *   document_meta,  // read-only
+ *   points,         // read-only
+ *   lines,          // read-only
+ *   aux,            // read-only
+ *
+ *   ui_state: {     // viewer 専用（構造と完全分離）
+ *     selected_uuid,
+ *     hovered_uuid,
+ *     active_frame,
+ *     visibility_state,
+ *     panel_state,
+ *     camera_state,
+ *     viewer_settings,
+ *   }
+ * }
+ *
+ * @param {object} json - strict validation 済みの 3DSS
+ * @returns {object} state
+ */
 export function buildState(json) {
-    return {
-        points: buildPoints(json),
-        lines: buildLines(json),
-        aux: buildAux(json),
-        meta: buildMeta(json)
-    };
+  if (!json || typeof json !== "object") {
+    throw new Error("[state] invalid 3DSS json");
+  }
+
+  // 構造データ部分：JSON そのまま（なければ空配列）を束ねるだけ
+  const document_meta = json.document_meta ?? {};
+  const points = Array.isArray(json.points) ? json.points : [];
+  const lines = Array.isArray(json.lines) ? json.lines : [];
+  const aux = Array.isArray(json.aux) ? json.aux : [];
+
+  const struct = {
+    document_meta,
+    points,
+    lines,
+    aux,
+  };
+
+  // 構造データは deep-freeze（ui_state は後で別に作る）
+  deepFreeze(struct);
+
+  // viewer 専用の ui_state 初期値
+  const ui_state = createInitialUIState();
+
+  // state 本体：構造データ＋ ui_state
+  return {
+    ...struct,
+    ui_state,
+  };
 }
 
 // ============================================================
-// points : {id, x, y, z, color, opacity, renderOrder}
+// ui_state 初期化
 // ============================================================
 
-function buildPoints(json) {
-    if (!json.points || !Array.isArray(json.points)) return [];
+function createInitialUIState() {
+  const viewer_settings = createDefaultViewerSettings();
 
-    return json.points.map(p => {
-        const app = p.appearance ?? {};
+  return {
+    // Select / Hover / Frame
+    selected_uuid: null,
+    hovered_uuid: null,
+    active_frame: null, // null = frame フィルタ OFF
 
-        return {
-            id: p.id,
-            x: app.position?.x ?? 0,
-            y: app.position?.y ?? 0,
-            z: app.position?.z ?? 0,
-            color: app.color ?? "#ffffff",
-            opacity: app.opacity ?? 1.0,
-            renderOrder: app.renderOrder ?? 0
-        };
-    });
+    // レイヤ表示状態（全部 ON からスタート）
+    visibility_state: {
+      points: true,
+      lines: true,
+      aux: true,
+      aux_module: {
+        grid: true,
+        axis: true,
+        plate: true,
+        shell: true,
+        hud: true,
+        extension: true,
+      },
+    },
+
+    // パネル開閉状態（暫定値。必要に応じて UI 側で上書き）
+    panel_state: {
+      info_panel_open: true,
+      control_panel_open: false,
+    },
+
+    // カメラ状態（実際の値は CameraEngine が bounding box から再セット）
+    camera_state: {
+      position: [0, 0, 0],
+      target: [0, 0, 0],
+      zoom: 1,
+      spherical: null, // { theta, phi, radius } などを後でセット
+      fov: viewer_settings.camera.fov,
+    },
+
+    // 表示オプション（構造データとは独立）
+    viewer_settings,
+  };
+}
+
+function createDefaultViewerSettings() {
+  return {
+    info_display: "hover",
+    render: {
+      line_width_mode: "auto",
+      min_line_width: 1.0,
+      fixed_line_width: 2.0,
+    },
+    camera: {
+      fov: 45,
+      near: 0.1,
+      far: 50000,
+    },
+  };
 }
 
 // ============================================================
-// lines : end_a / end_b を座標に展開
+// deep-freeze ユーティリティ（構造データ専用）
 // ============================================================
 
-function buildLines(json) {
-    if (!json.lines || !Array.isArray(json.lines)) return [];
-    if (!json.points) return [];
+function deepFreeze(obj) {
+  if (!obj || typeof obj !== "object") return obj;
 
-    // point ID → coords の辞書
-    const pointDict = {};
-    json.points.forEach(p => {
-        const app = p.appearance ?? {};
-        pointDict[p.id] = {
-            x: app.position?.x ?? 0,
-            y: app.position?.y ?? 0,
-            z: app.position?.z ?? 0,
-        };
-    });
+  // まず自分自身
+  Object.freeze(obj);
 
-    return json.lines.map(l => {
-        const app = l.appearance ?? {};
-        const endA = pointDict[app.end_a?.ref] ?? { x: 0, y: 0, z: 0 };
-        const endB = pointDict[app.end_b?.ref] ?? { x: 0, y: 0, z: 0 };
+  // 配下を再帰的に freeze
+  for (const key of Object.keys(obj)) {
+    const value = obj[key];
+    if (value && typeof value === "object" && !Object.isFrozen(value)) {
+      deepFreeze(value);
+    }
+  }
 
-        return {
-            id: l.id,
-            a: endA,
-            b: endB,
-            color: app.color ?? "#ffffff",
-            opacity: app.opacity ?? 1.0,
-            lineType: app.line_type ?? "straight",
-            renderOrder: app.renderOrder ?? 0,
-            arrow: {
-                a: app.arrow?.a ?? false,
-                b: app.arrow?.b ?? false
-            }
-        };
-    });
-}
-
-// ============================================================
-// aux : 補助モジュール（外観層のみ）
-// ============================================================
-
-function buildAux(json) {
-    if (!json.aux || !Array.isArray(json.aux)) return [];
-
-    return json.aux.map(a => {
-        const app = a.appearance ?? {};
-
-        return {
-            id: a.id,
-            type: app.module ?? "unknown",
-            position: {
-                x: app.position?.x ?? 0,
-                y: app.position?.y ?? 0,
-                z: app.position?.z ?? 0
-            },
-            orientation: {
-                x: app.orientation?.x ?? 0,
-                y: app.orientation?.y ?? 0,
-                z: app.orientation?.z ?? 0
-            },
-            opacity: app.opacity ?? 1.0,
-            color: app.color ?? "#ffffff",
-            params: app.params ?? {}
-        };
-    });
-}
-
-// ============================================================
-// meta : viewer が必要とする最小セット
-// ============================================================
-
-function buildMeta(json) {
-    const m = json.document_meta ?? {};
-
-    // frame 情報の抽出（なければ 0–0）
-    const f = m.frames ?? {};
-    let min = 0, max = 0;
-
-    if (typeof f.min === "number") min = f.min;
-    if (typeof f.max === "number") max = f.max;
-
-    return {
-        name: m.name ?? "",
-        version: m.version ?? "",
-        frame: {
-            min,
-            max,
-            current: min
-        }
-    };
+  return obj;
 }

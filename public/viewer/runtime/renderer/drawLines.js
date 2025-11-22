@@ -1,58 +1,74 @@
+// /viewer/runtime/renderer/drawLines.js
 // ============================================================
 // drawLines.js
 // 3DSS.lines を three.js Line として描画
 //
 // - viewerRenderer.registerLayer(drawLines) から呼ばれる
 // - three.js 依存部分をこのファイル内に隔離
-// - 旧版の a/b, color, opacity, renderOrder も 3DSS.appearance に対応済み
 //
-// 3DSS appearance 対応:
+// 3DSS appearance 対応（現時点の範囲）:
 //   end_a / end_b : { ref: uuid } or { coord:[x,y,z] }
-//   line_type     : 'straight' 他（いまは 'straight' だけ実装、それ以外は暫定で直線）
-//   line_style    : 'solid' / 'dashed' / 'dotted' / 'double' / 'none'
+//   line_type     : 'straight' 他（いまは 'straight' だけ実装、それ以外も暫定で直線）
 //   color         : "#rrggbb" or number
 //   opacity       : 0..1
 //   renderOrder   : number
 //   visible       : boolean (false のときだけスキップ)
-//   frames        : 可視制御は frameController 側で uuid → Object3D.visible を操作
-//   arrow/effect  : 入口だけ確保（現時点では視覚効果なし）
 // ============================================================
 
 import * as THREE from "../../../vendor/three/build/three.module.js";
 import { registerLayer, objectByUUID } from "./viewerRenderer.js";
 
-// キャッシュ：lines の Object3D
-let linesGroup = null;
+// 一度だけ構築して、その後は何もしない（viewer_min_scene と同じ思想）
 let linesBuilt = false;
+
+// ------------------------------------------------------------
+// 共通ヘルパ：position / coord を {x,y,z} に正規化
+//   - [x,y,z] 形式でも {x,y,z} 形式でも対応
+// ------------------------------------------------------------
+function normalizePos(pos) {
+  if (!pos) return { x: 0, y: 0, z: 0 };
+
+  if (Array.isArray(pos)) {
+    const [x = 0, y = 0, z = 0] = pos;
+    return { x, y, z };
+  }
+
+  return {
+    x: pos.x ?? 0,
+    y: pos.y ?? 0,
+    z: pos.z ?? 0,
+  };
+}
 
 // ------------------------------------------------------------
 // points から uuid → position の index を作る
 // ------------------------------------------------------------
-function buildPointIndex(state) {
-  /** @type {Map<string, [number, number, number]>} */
+function buildPointIndex(points) {
+  /** @type {Map<string, {x:number,y:number,z:number}>} */
   const map = new Map();
 
-  if (!state || !Array.isArray(state.points)) return map;
+  if (!Array.isArray(points)) return map;
 
-  for (const p of state.points) {
-    const uuid = p?.meta?.uuid;
-    const pos = p?.appearance?.position;
+  for (const p of points) {
+    if (!p) continue;
+    const app = p.appearance || {};
+    const pos = normalizePos(app.position);
+    const uuid = p.meta?.uuid ?? p.uuid;
     if (!uuid) continue;
-    if (!Array.isArray(pos) || pos.length < 3) continue;
-    map.set(uuid, [pos[0], pos[1], pos[2]]);
+    map.set(uuid, pos);
   }
 
   return map;
 }
 
 // ------------------------------------------------------------
-// end_a / end_b を実座標 [x,y,z] に解決
+// end_a / end_b を実座標 {x,y,z} に解決
 //   - { ref: uuid } → pointIndex から座標取得
-//   - { coord:[x,y,z] } → そのまま採用
-//   - それ以外 / 解決失敗 → [0,0,0]
+//   - { coord:[x,y,z] } / { coord:{x,y,z} } → そのまま採用
+//   - それ以外 / 解決失敗 → {0,0,0}
 // ------------------------------------------------------------
-function resolveEnd(end, pointIndex) {
-  if (!end) return [0, 0, 0];
+function resolveEndPos(end, pointIndex) {
+  if (!end) return { x: 0, y: 0, z: 0 };
 
   // point 参照
   if (end.ref) {
@@ -60,159 +76,96 @@ function resolveEnd(end, pointIndex) {
     if (pos) return pos;
   }
 
-  // 直指定 coord
-  if (Array.isArray(end.coord) && end.coord.length >= 3) {
-    return [
-      end.coord[0] ?? 0,
-      end.coord[1] ?? 0,
-      end.coord[2] ?? 0,
-    ];
-  }
-
-  return [0, 0, 0];
+  // 直指定 coord or position
+  const coord = end.coord ?? end.position ?? [0, 0, 0];
+  return normalizePos(coord);
 }
 
 // ------------------------------------------------------------
-// material を line_style に応じて作る
-//   - solid     → LineBasicMaterial
-//   - dashed    → LineDashedMaterial（単純な破線）
-//   - dotted    → LineDashedMaterial（破線間隔を短く）
-//   - double    → ひとまず LineBasicMaterial 1 本（将来拡張）
-//   - none      → null（そのラインは描画しない）
+// lines を一度だけ組み立てて scene に追加
 // ------------------------------------------------------------
-function createLineMaterial(app) {
-  const colorRaw = app.color ?? 0xff5555;
-  const color =
-    typeof colorRaw === "string" ? new THREE.Color(colorRaw) : colorRaw;
+function buildLinesOnce(state, scene) {
+  const lines = Array.isArray(state.lines) ? state.lines : [];
+  const points = Array.isArray(state.points) ? state.points : [];
 
-  const opacity = app.opacity ?? 1.0;
-  const transparent = opacity < 1.0;
+  console.log("[drawLines] lines length =", lines.length);
 
-  const style = app.line_style ?? "solid";
+  if (!lines.length) return;
 
-  if (style === "none") return null;
-
-  if (style === "dashed" || style === "dotted") {
-    const dashSize = style === "dotted" ? 0.1 : 0.4;
-    const gapSize = style === "dotted" ? 0.2 : 0.2;
-
-    return new THREE.LineDashedMaterial({
-      color,
-      opacity,
-      transparent,
-      dashSize,
-      gapSize,
-    });
+  // 既存 line オブジェクトを掃除（points/aux には触らない）
+  for (const [uuid, obj] of objectByUUID.entries()) {
+    if (obj?.userData?.kind === "line") {
+      scene.remove(obj);
+      objectByUUID.delete(uuid);
+    }
   }
 
-  // solid / double / その他 → 基本線
-  return new THREE.LineBasicMaterial({
-    color,
-    opacity,
-    transparent,
-  });
-}
+  const pointIndex = buildPointIndex(points);
 
-// ------------------------------------------------------------
-// linesGroup の構築（state.lines から一回だけ Mesh/Line を生成）
-// ------------------------------------------------------------
-function buildLines(state, scene) {
-  if (!state || !Array.isArray(state.lines) || state.lines.length === 0) {
-    return;
-  }
+  for (const ln of lines) {
+    if (!ln) continue;
 
-  if (!linesGroup) {
-    linesGroup = new THREE.Group();
-    linesGroup.name = "linesGroup";
-    scene.add(linesGroup);
-  }
-
-  linesGroup.clear();
-
-  const pointIndex = buildPointIndex(state);
-
-  for (const l of state.lines) {
-    const app = l?.appearance || {};
+    const app = ln.appearance || {};
 
     // visible === false のときだけスキップ（undefined → 表示）
     if (app.visible === false) continue;
 
-    const lineType = app.line_type || "straight";
+    // 端点座標
+    const a = resolveEndPos(app.end_a, pointIndex);
+    const b = resolveEndPos(app.end_b, pointIndex);
 
-    // 端点座標を resolve
-    const aPos = resolveEnd(app.end_a, pointIndex);
-    const bPos = resolveEnd(app.end_b, pointIndex);
+    const colorRaw = app.color ?? "#ffff55";
+    const color =
+      typeof colorRaw === "string" ? new THREE.Color(colorRaw) : colorRaw;
+    const opacity =
+      typeof app.opacity === "number" ? app.opacity : 1.0;
 
-    // geometry 準備
-    const geometry = new THREE.BufferGeometry();
-
-    // line_type による分岐（今は straight 以外も単純な2点線で暫定表示）
-    // 将来 polyline / bezier / arc などに拡張可能。
-    const positions = new Float32Array([
-      aPos[0], aPos[1], aPos[2],
-      bPos[0], bPos[1], bPos[2],
+    const geometry = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(a.x, a.y, a.z),
+      new THREE.Vector3(b.x, b.y, b.z),
     ]);
-    geometry.setAttribute(
-      "position",
-      new THREE.BufferAttribute(positions, 3)
-    );
 
-    const material = createLineMaterial(app);
-    if (!material) {
-      // line_style: "none" など
-      continue;
-    }
+    const material = new THREE.LineBasicMaterial({
+      color,
+      opacity,
+      transparent: opacity < 1,
+    });
 
     const line = new THREE.Line(geometry, material);
 
-    // dashed の場合は距離計算が必要
-    if (material instanceof THREE.LineDashedMaterial) {
-      line.computeLineDistances();
-    }
-
+    line.visible = true;
     line.renderOrder = app.renderOrder ?? 0;
 
-    // 旧版: l.color / l.opacity / l.renderOrder
-    // → すべて app.color / app.opacity / app.renderOrder に移行済み
-
-    // uuid → Object3D の登録（frame / selection / highlight 用）
-    const uuid = l?.meta?.uuid;
+    const uuid = ln.meta?.uuid ?? ln.uuid;
     if (uuid) {
       objectByUUID.set(uuid, line);
+      line.userData.uuid = uuid;
+      line.userData.kind = "line";
     }
 
-    // arrow / effect は現状未実装だが入口だけ確保
-    // const arrow = app.arrow;
-    // const effect = app.effect;
-
-    linesGroup.add(line);
+    scene.add(line);
   }
 
-  console.log(
-    "[drawLines] buildLines finished, children =",
-    linesGroup.children.length
-  );
+  console.log("[drawLines] lines built from state =", lines.length);
 }
 
 // ------------------------------------------------------------
-// レイヤ本体
+// drawPoints と同じく、drawLines は renderLoop から毎フレーム呼ばれるが
+// 現状の 3DSS は静的なので、一度だけ build して以降は何もしない。
+// （将来 frame 依存の変形をやるなら、この中を拡張する）
 // ------------------------------------------------------------
 export function drawLines(ctx, state) {
-  if (!state || !Array.isArray(state.lines) || state.lines.length === 0) {
-    return;
-  }
-
   const { scene } = ctx;
+  if (!state || !scene) return;
 
-  if (!linesGroup || !linesBuilt) {
-    buildLines(state, scene);
+  if (!linesBuilt) {
+    buildLinesOnce(state, scene);
     linesBuilt = true;
   }
 }
 
 // ------------------------------------------------------------
-// viewerRenderer へのレイヤ登録用エントリ
-//   （bootstrapViewer などから initLinesLayer() を呼ぶ前提）
+// viewerRenderer へのレイヤ登録
 // ------------------------------------------------------------
 export function initLinesLayer() {
   registerLayer(drawLines);

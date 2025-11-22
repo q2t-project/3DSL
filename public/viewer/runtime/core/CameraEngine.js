@@ -184,25 +184,24 @@ export class CameraEngine {
    * ギズモの軸スナップ
    * axis: "x" | "y" | "z"
    */
-  snapToAxis(axis) {
-    const r = this.state.radius;
-
-    if (axis === "x") {
-      // +X 方向から
-      this.state.theta = 0;
-      this.state.phi = Math.PI / 2;
-    } else if (axis === "y") {
-      // +Y 方向から
-      this.state.theta = Math.PI / 2;
-      this.state.phi = Math.PI / 2;
-    } else if (axis === "z") {
-      // 上から
-      this.state.theta = 0;
-      this.state.phi = this._phiEpsilon; // 真上近辺
-    }
-
-    this.apply(true);
+snapToAxis(axis) {
+  if (axis === "x") {
+    // +X 方向から（横から見る）
+    this.state.theta = 0;
+    this.state.phi = 0; // XY平面上
+  } else if (axis === "y") {
+    // +Y 方向から
+    this.state.theta = Math.PI / 2;
+    this.state.phi = 0;
+  } else if (axis === "z") {
+    // 上から（トップビュー）
+    this.state.theta = 0;
+    this.state.phi = Math.PI / 2 - this._phiEpsilon;
   }
+
+  this._clampPhi();
+  this.apply(true);
+}
 
   /**
    * フレーム切替時の通知（必要なら bbox 再フィットなどに使う）

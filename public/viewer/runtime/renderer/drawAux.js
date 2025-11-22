@@ -1,3 +1,4 @@
+// /viewer/runtime/renderer/drawAux.js
 // ============================================================
 // drawAux.js
 // state.aux をまとめて描画する「ハブ」
@@ -9,11 +10,6 @@
 //   - aux.type               : 旧版の type。なければ module.kind などから推定
 //   - aux.appearance.visible : false のものは描画スキップ（未指定は表示）
 //   - aux.meta.uuid          : あれば objectByUUID に登録（frame/selection 用）
-//
-// モジュール側の推奨シグネチャ：
-//   drawGrid(ctx, aux)
-//   ctx.scene     : THREE.Scene
-//   ctx.auxGroup  : その aux 専用の Group（ここに add するのが推奨）
 // ============================================================
 
 import * as THREE from "../../../vendor/three/build/three.module.js";
@@ -24,8 +20,6 @@ import { drawGrid } from "./drawAux_modules/grid.js";
 import { drawPaxis } from "./drawAux_modules/paxis.js";
 import { drawMarker } from "./drawAux_modules/marker.js";
 import { drawImage } from "./drawAux_modules/image.js";
-// gizmo（scene 内補助）を追加する場合ここで import
-// import { drawGizmo } from "./drawAux_modules/gizmo.js";
 
 // aux 全体をまとめる Group
 let auxRootGroup = null;
@@ -66,9 +60,6 @@ function pickHandler(type) {
     case "image":
       return drawImage;
 
-    // case "gizmo":
-    //   return drawGizmo;
-
     default:
       return null;
   }
@@ -99,6 +90,8 @@ function buildAux(ctx, state) {
   auxRootGroup.clear();
 
   for (const aux of state.aux) {
+    if (!aux) continue;
+
     const app = aux.appearance || {};
 
     // visible === false のものだけスキップ（undefined → 表示）
@@ -116,6 +109,8 @@ function buildAux(ctx, state) {
     const uuid = aux.meta?.uuid;
     if (uuid) {
       objectByUUID.set(uuid, auxGroup);
+      auxGroup.userData.uuid = uuid;
+      auxGroup.userData.kind = "aux";
     }
 
     // モジュール側に渡す ctx を拡張
@@ -139,13 +134,13 @@ function buildAux(ctx, state) {
 
 // ============================================================
 // メイン関数（レイヤ本体）
+//   - renderLoop から毎フレーム呼ばれるが、現在の aux は静的なので
+//     1 回だけ build して以降は何もしない。
 // ============================================================
 export function drawAux(ctx, state) {
-  if (!state || !Array.isArray(state.aux) || state.aux.length === 0) {
-    return;
-  }
+  if (!ctx || !state) return;
 
-  if (!auxRootGroup || !auxBuilt) {
+  if (!auxBuilt) {
     buildAux(ctx, state);
     auxBuilt = true;
   }

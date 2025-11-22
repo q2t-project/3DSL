@@ -1,48 +1,41 @@
+// /viewer/runtime/viewerHub.js
 // ============================================================
 // viewerHub.js  （3DSL Viewer HUB / UI → Core 集線）
+// ============================================================
 //
 // 役割：
 // - UI から見える API を core.* に一本化する
 // - 3DSS 構造データ（読み取り専用）＋ ui_state を管理する
-// - CameraEngine / frame / selection / mode / micro / gizmo など
-//   内部モジュールの仲介だけを行う（コンタミ防止）
+// - CameraEngine / CameraInput / EventPicker と rendererContext の仲介
 //
-// 前提：
-// - runtime/core/CameraEngine.js を使う（相対パス ./core/CameraEngine.js）
-// - three.js / Renderer には直接触らず、rendererContext 経由でだけ触る
-//
-// 使い方（viewer_dev.html 側の想定）:
-//
-//   import { createViewerHub } from './viewerHub.js';
-//
-//   const rendererContext = {
-//     camera,                 // THREE.PerspectiveCamera
-//     domElement,             // canvas or container
-//     getBoundingBox,         // () => { center:[x,y,z], radius:number } | null
-//     setElementVisibility,   // ({ uuid, visible }) => void
-//     setHighlight,           // ({ uuid, level }) => void   // 0:none,1:hover,2:selected
-//     clearAllHighlights,     // () => void
-//     applyFocusFX,           // (state) => void  // micro/meso補助の視覚適用
-//   };
-//
-//   const core = createViewerHub({ data: threeDSS, rendererContext });
-//
-//   // UI からは：
-//   // core.camera.rotate(...)
-//   // core.frame.setActive(...)
-//   // core.selection.select(uuid)
-//   // core.mode.setMode('macro'|'meso'|'micro', uuid)
-//   // だけを叩く。
-// ====+// CameraEngine は runtime/core 配下
+// ロジック本体は /runtime/core/* に逃がして、ここは
+// 「組み立て」と「外向き API 定義」だけ担当する。
+// ============================================================
 
-// viewerHub.js からは ./core/CameraEngine.js で解決する
 import { CameraEngine } from "./core/CameraEngine.js";
 import { CameraInput } from "./core/CameraInput.js";
 import { EventPicker } from "./core/EventPicker.js";
 
-// ------------------------------------------------------------
-// 型メモ（参考）
-// ------------------------------------------------------------
+import { buildUUIDIndex, detectFrameRange } from "./core/structIndex.js";
+import { createUiState } from "./core/uiState.js";
+import { createFrameController } from "./core/frameController.js";
+import { createSelectionController } from "./core/selectionController.js";
+import { createMicroVisualController } from "./core/microVisualController.js";
+import { createModeController } from "./core/modeController.js";
+import { createGizmoController } from "./core/gizmoController.js";
+
+import { loadJSON } from "./core/loader.js";
+import { buildState } from "./core/state.js";
+import {
+  init as initValidator,
+  validate3DSS,
+  getErrors,
+} from "./core/validator.js";
+
+// ============================================================
+// createViewerHub 本体
+// ============================================================
+
 /**
  * @typedef {Object} ViewerHubOptions
  * @property {Object} data           // 3DSS 構造データ（immutable 想定）
@@ -65,57 +58,32 @@ export function createViewerHub(options) {
   } = options || {};
 
   if (!data) {
-    throw new Error('viewerHub: options.data (3DSS) が必須やで');
+    throw new Error("viewerHub: options.data (3DSS) が必須やで");
   }
-  if (!rendererContext || !rendererContext.camera || !rendererContext.getBoundingBox) {
-    throw new Error('viewerHub: rendererContext の camera / getBoundingBox は必須やで');
+  if (
+    !rendererContext ||
+    !rendererContext.camera ||
+    !rendererContext.getBoundingBox
+  ) {
+    throw new Error(
+      "viewerHub: rendererContext の camera / getBoundingBox は必須やで",
+    );
   }
 
   // ----------------------------------------------------------
-  // 1. 構造データ index 化（uuid → {kind, index, ref}）
+  // 1. 構造 index ＋ frame range
   // ----------------------------------------------------------
-  const struct = Object.freeze(data); // 3DSS は読み取り専用
+  const struct = Object.freeze(data);
   const indexByUUID = buildUUIDIndex(struct);
-
-  // frame range 検出（frames プロパティから自動）
   const frameRange = detectFrameRange(struct);
 
   // ----------------------------------------------------------
-  // 2. ui_state（唯一の UI 状態）※外部からは直接触らせへん
+  // 2. ui_state
   // ----------------------------------------------------------
-  const ui_state = {
-    camera_state: null, // CameraEngine.state を参照で持つ
-    activeFrame: frameRange.min ?? 0,
-    frameRange,
-    selection: {
-      uuid: null,
-      kind: null, // 'point' | 'line' | 'aux' | null
-    },
-    mode: 'macro', // 'macro' | 'meso' | 'micro'
-    viewerSettings: {
-      fx: {
-        micro: true,
-        meso: true,
-        modeTransitions: true,
-        ...viewerSettings.fx,
-      },
-      camera: {
-        rotateSpeed: 1.0,
-        panSpeed: 1.0,
-        zoomSpeed: 1.0,
-        invertOrbitY: false,
-        ...(viewerSettings.camera || {}),
-      },
-      ...viewerSettings,
-    },
-    focus: {
-      active: false,
-      uuid: null,
-    },
-  };
+  const ui_state = createUiState({ frameRange, viewerSettings });
 
   // ----------------------------------------------------------
-  // 3. 中核モジュール：CameraEngine
+  // 3. CameraEngine / CameraInput
   // ----------------------------------------------------------
   const cameraEngine = new CameraEngine({
     camera: rendererContext.camera,
@@ -124,34 +92,16 @@ export function createViewerHub(options) {
     getElementBounds: rendererContext.getElementBounds,
   });
 
-  // CameraEngine の state を ui_state にぶら下げる（参照共有）
   ui_state.camera_state = cameraEngine.state;
 
-  // 入力層（操作感は viewerSettings.camera から上書き可能）
   const cameraInput = new CameraInput({
     domElement: rendererContext.domElement,
     engine: cameraEngine,
-    ...(viewerSettings.camera || {}),
+    ...(ui_state.viewerSettings.camera || {}),
   });
-
-  // selection 用のクリックピッカー
-  const eventPicker = new EventPicker({
-    domElement: rendererContext.domElement,
-    rendererContext,
-    onPick: (uuid) => {
-      selectionController.select(uuid);
-      modeController.onSelectionChanged(uuid);
-    },
-  });
-
-  // 必要ならデバッグ用に保持しとく
-  ui_state._cameraInput = cameraInput;
-  ui_state._eventPicker = eventPicker;
 
   // ----------------------------------------------------------
-  // 4. Frame Controller
-  //    - activeFrame の管理
-  //    - frames プロパティに基づく可視制御（rendererContext に委譲）
+  // 4. Controllers
   // ----------------------------------------------------------
   const frameController = createFrameController({
     struct,
@@ -161,22 +111,12 @@ export function createViewerHub(options) {
     cameraEngine,
   });
 
-  // 初期 frame 適用
-  frameController.applyFrame(ui_state.activeFrame);
-
-  // ----------------------------------------------------------
-  // 5. Selection Controller
-  // ----------------------------------------------------------
   const selectionController = createSelectionController({
     ui_state,
     indexByUUID,
     rendererContext,
   });
 
-  // ----------------------------------------------------------
-  // 6. Micro / Meso Visual Controller（視覚補助アルゴの殻）
-//      - 本体ロジックは rendererContext.applyFocusFX に委譲
-  // ----------------------------------------------------------
   const microVisualController = createMicroVisualController({
     struct,
     ui_state,
@@ -184,11 +124,6 @@ export function createViewerHub(options) {
     rendererContext,
   });
 
-  // ----------------------------------------------------------
-  // 7. Mode Controller
-  //    - macro / meso / micro の切替
-  //    - cameraEngine.setMode と microVisualController を仲介
-  // ----------------------------------------------------------
   const modeController = createModeController({
     ui_state,
     cameraEngine,
@@ -196,23 +131,34 @@ export function createViewerHub(options) {
     selectionController,
   });
 
-  // ----------------------------------------------------------
-  // 8. Gizmo Controller（軸スナップ・HomeView）
-  //      - UI 側のギズモイベント → camera API へ
-  // ----------------------------------------------------------
   const gizmoController = createGizmoController({
     cameraEngine,
   });
 
+  // selectionController / modeController を使うクリックピッカー
+  const eventPicker = new EventPicker({
+    domElement: rendererContext.domElement,
+    rendererContext,
+    onPick: (uuid) => {
+      selectionController.select(uuid);
+      modeController.onSelectionChanged(uuid);
+    },
+  });
+
+  ui_state._cameraInput = cameraInput;
+  ui_state._eventPicker = eventPicker;
+
+  // 初期 frame 適用
+  frameController.applyFrame(ui_state.activeFrame);
+
   // ----------------------------------------------------------
-  // 9. core.* API の定義（UI から見える唯一の窓口）
-  //      camera API は仕様書のシグネチャに一致させる。 
+  // 5. core.* API（UI から見える唯一の窓口）
   // ----------------------------------------------------------
   const core = {
     // 構造データ（read-only）
     data: struct,
 
-    // 内部 state（読み取り専用用途だけ）
+    // 内部 state（読み取り専用用途）
     get ui_state() {
       return ui_state;
     },
@@ -252,8 +198,7 @@ export function createViewerHub(options) {
         cameraEngine.setFOV(value);
       },
       getState() {
-        // コピーを返す（外から直接いじらせない）
-        return { ...cameraEngine.state };
+        return cameraEngine.getState();
       },
     },
 
@@ -306,17 +251,17 @@ export function createViewerHub(options) {
     },
 
     // ------------------------
-    // core.micro.* （micro 視覚補助に直接触りたい場合用）
+    // core.micro.*
     // ------------------------
     micro: {
       enter(uuid) {
-        modeController.setMode('micro', uuid);
+        modeController.setMode("micro", uuid);
       },
       exit() {
-        modeController.setMode('macro');
+        modeController.setMode("macro");
       },
       isActive() {
-        return ui_state.mode === 'micro';
+        return ui_state.mode === "micro";
       },
     },
 
@@ -333,12 +278,8 @@ export function createViewerHub(options) {
     },
   };
 
-  // ----------------------------------------------------------
-  // 10. グローバル expose（既存 UI 互換用）
-  // ----------------------------------------------------------
-  if (exposeGlobal && typeof window !== 'undefined') {
-    // 既存の window.core があった場合は上書き注意やけど、
-    // viewerHub 前提ならここを正とする。
+  // 既存 UI 互換用にグローバル expose
+  if (exposeGlobal && typeof window !== "undefined") {
     window.core = core;
   }
 
@@ -346,353 +287,99 @@ export function createViewerHub(options) {
 }
 
 // ============================================================
-// 内部ユーティリティ群
+// 以降：loader / validator / state ラッパ（STEP2 部分）
 // ============================================================
 
-function buildUUIDIndex(struct) {
-  /** @type {Map<string,{kind:'point'|'line'|'aux', index:number, ref:Object}>} */
-  const map = new Map();
+// AJV validator の初期化状態
+let validatorReady = false;
+let validatorSchemaURL = null;
+/** @type {Promise<boolean>|null} */
+let validatorInitPromise = null;
 
-  if (Array.isArray(struct.points)) {
-    struct.points.forEach((p, i) => {
-    const uuid = p?.meta?.uuid ?? p?.meta?.uuid_v4;
-            if (uuid) {
-        map.set(uuid, { kind: 'point', index: i, ref: p });
-      }
-    });
+/**
+ * 指定スキーマ URL の validator を一度だけ初期化する
+ * @param {string} schemaURL
+ * @returns {Promise<boolean>} true: 利用可能 / false: 使えない（スキップ）
+ */
+async function ensureValidator(schemaURL) {
+  if (!schemaURL) {
+    console.warn("[viewerHub] schemaURL が指定されてへんので、バリデーションはスキップするで");
+    return false;
   }
 
-  if (Array.isArray(struct.lines)) {
-    struct.lines.forEach((l, i) => {
-      const uuid = l?.meta?.uuid;
-      if (uuid) {
-        map.set(uuid, { kind: 'line', index: i, ref: l });
-      }
-    });
-  }
-
-  if (Array.isArray(struct.aux)) {
-    struct.aux.forEach((a, i) => {
-      const uuid = a?.meta?.uuid;
-      if (uuid) {
-        map.set(uuid, { kind: 'aux', index: i, ref: a });
-      }
-    });
-  }
-
-  return map;
-}
-
-// frames プロパティから min/max をざっくり検出する。
-
-function detectFrameRange(struct) {
-  let min = Number.POSITIVE_INFINITY;
-  let max = Number.NEGATIVE_INFINITY;
-
-  const scanFrames = (frames) => {
-    if (frames == null) return;
-    if (typeof frames === 'number' && Number.isInteger(frames)) {
-      min = Math.min(min, frames);
-      max = Math.max(max, frames);
-      return;
-    }
-    if (Array.isArray(frames)) {
-      frames.forEach((f) => {
-        if (typeof f === 'number' && Number.isInteger(f)) {
-          min = Math.min(min, f);
-          max = Math.max(max, f);
-        }
-      });
-    }
-  };
-
-  (struct.points || []).forEach((p) => scanFrames(p?.appearance?.frames));
-  (struct.lines || []).forEach((l) => scanFrames(l?.appearance?.frames));
-  (struct.aux || []).forEach((a) => scanFrames(a?.appearance?.frames));
-
-  if (!Number.isFinite(min) || !Number.isFinite(max)) {
-    return { min: 0, max: 0 };
-  }
-  return { min, max };
-}
-
-// ============================================================
-// Frame Controller
-// ============================================================
-function createFrameController({ struct, indexByUUID, ui_state, rendererContext, cameraEngine }) {
-  const { setElementVisibility } = rendererContext;
-
-  const appliesFrame = typeof setElementVisibility === 'function';
-
-  function elementVisibleInFrame(frames, active) {
-    if (frames == null) return true;
-    if (typeof frames === 'number') return frames === active;
-    if (Array.isArray(frames)) return frames.includes(active);
+  if (validatorReady && validatorSchemaURL === schemaURL) {
     return true;
   }
 
-  function applyFrame(frame) {
-    ui_state.activeFrame = frame;
-
-    if (appliesFrame) {
-      (struct.points || []).forEach((p) => {
-        const uuid = p?.meta?.uuid;
-        if (!uuid) return;
-        const visible = elementVisibleInFrame(p?.appearance?.frames, frame);
-        setElementVisibility({ uuid, visible });
-      });
-
-      (struct.lines || []).forEach((l) => {
-        const uuid = l?.meta?.uuid;
-        if (!uuid) return;
-        const visible = elementVisibleInFrame(l?.appearance?.frames, frame);
-        setElementVisibility({ uuid, visible });
-      });
-
-      (struct.aux || []).forEach((a) => {
-        const uuid = a?.meta?.uuid;
-        if (!uuid) return;
-        const visible = elementVisibleInFrame(a?.appearance?.frames, frame);
-        setElementVisibility({ uuid, visible });
-      });
-    }
-
-    // camera 側への通知（仕様どおり）
-    cameraEngine.onFrameChange(frame);
+  if (validatorInitPromise) {
+    return validatorInitPromise;
   }
 
-  function setActiveFrame(frame) {
-    const { min, max } = ui_state.frameRange;
-    let clamped = frame;
-    if (min != null && max != null) {
-      clamped = Math.max(min, Math.min(max, frame));
+  validatorInitPromise = (async () => {
+    const ok = await initValidator(schemaURL);
+    if (ok) {
+      validatorReady = true;
+      validatorSchemaURL = schemaURL;
+    } else {
+      validatorReady = false;
+      validatorSchemaURL = null;
     }
-    applyFrame(clamped);
-  }
+    validatorInitPromise = null;
+    return ok;
+  })();
 
-  return {
-    setActiveFrame,
-    applyFrame,
-  };
+  return validatorInitPromise;
 }
 
-// ============================================================
-// Selection Controller
-// ============================================================
-function createSelectionController({ ui_state, indexByUUID, rendererContext }) {
+/**
+ * 3DSS を URL からロードし、必要ならスキーマバリデーションと state 構築まで行う。
+ *
+ * @param {string} url
+ * @param {Object} [options]
+ * @param {string} [options.schemaURL]  AJV 用 3DSS.schema.json の URL
+ * @param {boolean} [options.validate] true なら schema チェック（デフォルト: schemaURL 有りなら true）
+ * @param {boolean} [options.buildState] true なら state も構築して返す
+ * @returns {Promise<Object>} json または { threeDSS, state }
+ */
+export async function load3DSS(url, options = {}) {
   const {
-    setHighlight = null,
-    clearAllHighlights = null,
-  } = rendererContext;
+    schemaURL,
+    validate = !!schemaURL,
+    buildState: wantState = false,
+  } = options;
 
-  function select(uuid) {
-    const info = indexByUUID.get(uuid);
-    if (!info) {
-      // 不明な uuid → 選択解除扱い
-      clear();
-      return;
-    }
+  const json = await loadJSON(url);
+  if (!json) {
+    throw new Error(`[viewerHub] 3DSS load 失敗: ${url}`);
+  }
 
-    ui_state.selection.uuid = uuid;
-    ui_state.selection.kind = info.kind;
-
-    if (typeof clearAllHighlights === 'function') {
-      clearAllHighlights();
-    }
-    if (typeof setHighlight === 'function') {
-      setHighlight({ uuid, level: 2 }); // 2 = selected
+  if (validate && schemaURL) {
+    const okInit = await ensureValidator(schemaURL);
+    if (okInit) {
+      const ok = validate3DSS(json);
+      if (!ok) {
+        const errors = getErrors();
+        console.warn("[viewerHub] 3DSS schema validation NG:", errors);
+        throw new Error("[viewerHub] 3DSS schema validation に失敗したで");
+      }
+    } else {
+      console.warn("[viewerHub] validator を初期化できへんかったので、バリデーションはスキップするで");
     }
   }
 
-  function clear() {
-    ui_state.selection.uuid = null;
-    ui_state.selection.kind = null;
-
-    if (typeof clearAllHighlights === 'function') {
-      clearAllHighlights();
-    }
+  if (wantState) {
+    const state = buildState(json);
+    return { threeDSS: json, state };
   }
 
-  return { select, clear };
+  return json;
 }
 
-// ============================================================
-// Micro / Meso Visual Controller
-//   - micro/meso 視覚補助は「構造不変・描画のみ変更」。
-//   - 具体処理は rendererContext.applyFocusFX(state) に委譲。
-// ============================================================
-// 参照仕様：ミクロ視覚補助アルゴ／micro/meso assistance など。
-function createMicroVisualController({ struct, ui_state, indexByUUID, rendererContext }) {
-  const { applyFocusFX } = rendererContext;
-
-  function computeFocusOrigin(uuid) {
-    const info = indexByUUID.get(uuid);
-    if (!info) return null;
-
-    if (info.kind === 'point') {
-      const p = info.ref;
-      const pos = p?.appearance?.position;
-      if (Array.isArray(pos) && pos.length >= 3) return [...pos];
-      return [0, 0, 0];
-    }
-
-    if (info.kind === 'line') {
-      const l = info.ref;
-      const a = l?.appearance?.end_a;
-      const b = l?.appearance?.end_b;
-
-      const getCoord = (end) => {
-        if (!end) return null;
-        if (end.ref) {
-          // point参照の場合：pointの position を参照
-          const pInfo = indexByUUID.get(end.ref);
-          if (pInfo && pInfo.kind === 'point') {
-            const pos = pInfo.ref?.appearance?.position;
-            if (Array.isArray(pos) && pos.length >= 3) return pos;
-          }
-          return null;
-        }
-        if (Array.isArray(end.coord) && end.coord.length >= 3) {
-          return end.coord;
-        }
-        return null;
-      };
-
-      const ca = getCoord(a) || [0, 0, 0];
-      const cb = getCoord(b) || [0, 0, 0];
-      return [
-        (ca[0] + cb[0]) / 2,
-        (ca[1] + cb[1]) / 2,
-        (ca[2] + cb[2]) / 2,
-      ];
-    }
-
-    if (info.kind === 'aux') {
-      const a = info.ref;
-      const pos = a?.appearance?.position;
-      if (Array.isArray(pos) && pos.length >= 3) return [...pos];
-      return [0, 0, 0];
-    }
-
-    return null;
-  }
-
-  function applyFocusState() {
-    if (typeof applyFocusFX !== 'function') return;
-
-    if (!ui_state.focus.active || !ui_state.focus.uuid) {
-      applyFocusFX(null); // 全解除
-      return;
-    }
-
-    const origin = computeFocusOrigin(ui_state.focus.uuid);
-    if (!origin) {
-      applyFocusFX(null);
-      return;
-    }
-
-    const payload = {
-      mode: ui_state.mode,        // 'macro' | 'meso' | 'micro'
-      uuid: ui_state.focus.uuid,  // 選択要素
-      origin,                     // フォーカス原点
-      activeFrame: ui_state.activeFrame,
-      settings: ui_state.viewerSettings,
-    };
-
-    applyFocusFX(payload);
-  }
-
-  function enter(uuid) {
-    ui_state.focus.active = true;
-    ui_state.focus.uuid = uuid;
-    applyFocusState();
-  }
-
-  function exit() {
-    ui_state.focus.active = false;
-    ui_state.focus.uuid = null;
-    applyFocusState();
-  }
-
-  function update() {
-    applyFocusState();
-  }
-
-  return { enter, exit, update };
-}
-
-// ============================================================
-// Mode Controller
-// ============================================================
-// 参照仕様：camera.setMode / フォーカス ON/OFF 視覚遷移 / モード切替演出。
-function createModeController({ ui_state, cameraEngine, microVisualController, selectionController }) {
-  function setMode(mode, uuid) {
-    // mode 正規化
-    if (!['macro', 'meso', 'micro'].includes(mode)) {
-      mode = 'macro';
-    }
-
-    ui_state.mode = mode;
-
-    // micro/meso 補助のフォーカス対象
-    if (mode === 'macro') {
-      microVisualController.exit();
-      cameraEngine.setMode('macro');
-      return;
-    }
-
-    // uuid 明示指定優先、なければ現 selection
-    const focusUUID = uuid || ui_state.selection.uuid;
-    if (!focusUUID) {
-      // フォーカス対象なければ macro に戻す
-      ui_state.mode = 'macro';
-      microVisualController.exit();
-      cameraEngine.setMode('macro');
-      return;
-    }
-
-    microVisualController.enter(focusUUID);
-    cameraEngine.setMode(mode, focusUUID);
-  }
-
-  function focusOn(uuid) {
-    if (!uuid) {
-      selectionController.clear();
-      microVisualController.exit();
-      ui_state.mode = 'macro';
-      cameraEngine.reset();
-      return;
-    }
-
-    selectionController.select(uuid);
-    ui_state.mode = 'micro';
-    microVisualController.enter(uuid);
-    cameraEngine.focusOn(uuid);
-  }
-  // selection が変わったときの通知
-  function onSelectionChanged(uuid) {
-    if (!uuid) return;
-    if (ui_state.mode === 'micro' || ui_state.mode === 'meso') {
-      // 今のモードを維持したまま、対象だけ差し替え
-      setMode(ui_state.mode, uuid);
-    }
-  }
-
-  return { setMode, focusOn, onSelectionChanged };
-}
-
-// ============================================================
-// Gizmo Controller
-// ============================================================
-// 参照仕様：snapToAxis, HomeView（macro）など。
-function createGizmoController({ cameraEngine }) {
-  function onAxisClick(axis) {
-    cameraEngine.snapToAxis(axis);
-  }
-
-  function onHomeClick() {
-    cameraEngine.reset();
-  }
-
-  return { onAxisClick, onHomeClick };
+/**
+ * すでにロード済みの 3DSS から state だけ構築したいとき用のヘルパ
+ * @param {object} json
+ * @returns {object} state
+ */
+export function prepareState(json) {
+  return buildState(json);
 }
