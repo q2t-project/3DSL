@@ -5,8 +5,15 @@ import * as THREE from "../../../../vendor/three/build/three.module.js";
 let highlightGroup = null;
 
 function ensureGroup(scene) {
+  // 他 scene の残骸があれば破棄
+  if (highlightGroup && highlightGroup.parent !== scene) {
+    highlightGroup.parent.remove(highlightGroup);
+    highlightGroup = null;
+  }
+
   if (!highlightGroup) {
     highlightGroup = new THREE.Group();
+    highlightGroup.name = "micro-highlight";
     highlightGroup.renderOrder = 998;
     scene.add(highlightGroup);
   }
@@ -32,6 +39,7 @@ export function applyHighlight(scene, relatedUuids, getObjectByUuid) {
         opacity: 0.5,
         transparent: true,
         depthTest: false,
+        depthWrite: false,
       }));
     } else if (src.isLine) {
       clone = new THREE.Line(src.geometry, new THREE.LineBasicMaterial({
@@ -39,6 +47,7 @@ export function applyHighlight(scene, relatedUuids, getObjectByUuid) {
         opacity: 0.9,
         transparent: true,
         depthTest: false,
+        depthWrite: false,
       }));
     } else {
       continue;

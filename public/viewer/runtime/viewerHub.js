@@ -1,5 +1,14 @@
 // runtime/viewerHub.js
 
+// ------------------------------------------------------------
+// logging
+// ------------------------------------------------------------
+const DEBUG_HUB = true; // 本番で静かにしたければ false
+function debugHub(...args) {
+  if (!DEBUG_HUB) return;
+  console.log(...args);
+}
+
 export function createViewerHub({ core, renderer }) {
   let animationId = null;
   const modeController = core.modeController || core.mode;
@@ -170,7 +179,7 @@ export function createViewerHub({ core, renderer }) {
 
       mode: {
         set: (mode, uuid) => {
-          console.log("[hub.mode] set", mode, uuid);
+          debugHub("[hub.mode] set", mode, uuid);
           const nextMode = modeController.set(mode, uuid);
 
           if (nextMode === "micro" && core.uiState?.microState?.focusPosition) {
@@ -182,27 +191,27 @@ export function createViewerHub({ core, renderer }) {
         },
 
         get: () => {
-          console.log("[hub.mode] get");
+          debugHub("[hub.mode] get");
           return modeController.get();
         },
 
         canEnter: (uuid) => {
-          console.log("[hub.mode] canEnter", uuid);
+          debugHub("[hub.mode] canEnter", uuid);
           return modeController.canEnter(uuid);
         },
 
         exit: () => {
-          console.log("[hub.mode] exit");
+          debugHub("[hub.mode] exit");
           return modeController.exit();
         },
 
         focus: (uuid) => {
-          console.log("[hub.mode] focus", uuid);
+          debugHub("[hub.mode] focus", uuid);
           const nextMode = modeController.focus(uuid);
 
           if (nextMode === "micro" && core.uiState?.microState?.focusPosition) {
             // ここも uuid じゃなく「計算済みの focusPosition」をそのまま使う
-            hub.core.camera.focusOn(core.uiState.microState.focusPosition, {});
+            hub.core.cdebugHub("[hub.mode] focus", uuid);amera.focusOn(core.uiState.microState.focusPosition, {});
           }
 
           return nextMode;

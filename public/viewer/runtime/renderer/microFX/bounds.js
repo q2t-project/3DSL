@@ -70,7 +70,10 @@ export function ensureBounds(scene) {
     const wireMat = new THREE.LineBasicMaterial({
       color: baseWireColor.clone(),
       transparent: true,
-      opacity: 0.9
+      opacity: 0.9,
+      // 半透明ボックスと同じく、深度バッファは汚さない
+      depthWrite: false,
+      // depthTest はそのまま true（デフォルト）で OK
     });
     const wire = new THREE.LineSegments(
       new THREE.WireframeGeometry(wireGeom),
@@ -135,12 +138,25 @@ export function updateBounds(group, localBounds) {
   const center = sanitizeVector3(localBounds.center);
   const rawSize = sanitizeVector3(localBounds.size);
 
-  const size = rawSize.map(v => Math.abs(Number(v)));
+  // 元の AABB サイズ
+  const baseSize = rawSize.map((v) => Math.abs(Number(v)) || 0);
+
+  // かなり大きなラインでも画面を支配しすぎないように、
+  // ・全体を少し縮小（shrinkFactor）
+  // ・極端な最小/最大をクランプ
+  const shrinkFactor = 0.7;   // AABB の 70% 程度に
+  const minEdge      = 0.4;   // これより小さくはしない
+  const maxEdge      = 3.0;   // これより大きくはしない
+
+  const size = baseSize.map((v) => {
+    const scaled = v * shrinkFactor;
+    return clamp(scaled, minEdge, maxEdge);
+  });
 
   group.position.set(center[0], center[1], center[2]);
   group.scale.set(size[0], size[1], size[2]);
 
-  // handles のスケールは “箱の最小寸法に比例”
+  // handles のスケールは “実際に描く箱の最小寸法に比例”
   updateHandles(group, size);
 }
 

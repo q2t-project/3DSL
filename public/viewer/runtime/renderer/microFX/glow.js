@@ -3,7 +3,7 @@
 import * as THREE from "../../../../vendor/three/build/three.module.js";
 
 let glow = null;
-const OFFSET = 0.015; // 統一：微調整して overshoot 抑制
+const OFFSET = 0.01; // 位置オフセットはやや控えめに
 
 export function ensureGlow(scene) {
   if (glow && glow.parent !== scene) {
@@ -15,7 +15,7 @@ export function ensureGlow(scene) {
     const material = new THREE.SpriteMaterial({
       color: "#ffffaa",
       transparent: true,
-      opacity: 0.35,
+      opacity: 0.25,             // ちょっと弱め
       blending: THREE.AdditiveBlending,
       sizeAttenuation: true,
       depthWrite: false,
@@ -58,9 +58,13 @@ export function updateGlow(target, position, camera) {
 
   target.position.add(cameraToPoint);
   
-  // glow サイズも距離依存で拡縮
+  // glow サイズも距離依存で拡縮（最小/最大をクランプ）
   const dist = camera.position.distanceTo(target.position);
-  target.scale.setScalar(Math.min(dist * 0.05, 2.0));
+  const rawScale   = dist * 0.035;
+  const clampedMin = 0.18;
+  const clampedMax = 1.5;
+  const scale      = Math.min(Math.max(rawScale, clampedMin), clampedMax);
+  target.scale.setScalar(scale);
 }
 
 export function removeGlow(scene) {

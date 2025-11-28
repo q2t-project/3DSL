@@ -82,7 +82,12 @@ export function ensureAxes(scene) {
     geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
     geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
 
-    const material = new THREE.LineBasicMaterial({ vertexColors: true });
+    const material = new THREE.LineBasicMaterial({
+      vertexColors: true,
+      // 他の microFX（bounds/glow/highlight）と同様、
+      // 深度バッファは汚さないオーバーレイ寄りにしておく
+      depthWrite: false,
+    });
     axesGroup = new THREE.LineSegments(geometry, material);
     axesGroup.name = "micro-axes";
     axesGroup.renderOrder = 996;
@@ -122,7 +127,9 @@ export function updateAxes(target, localAxes, camera) {
   }
 
   const distance = camera.position.distanceTo(target.position);
-  const scaled = THREE.MathUtils.clamp(baseScale * distance * 0.06, 0.06, 4.0);
+  // 少し控えめなスケール係数にして、近距離では小さく・遠距離でも伸びすぎないようにする
+  const rawScale = baseScale * distance * 0.045;
+  const scaled   = THREE.MathUtils.clamp(rawScale, 0.08, 1.8);
   target.scale.setScalar(scaled);
 
   target.visible = true;

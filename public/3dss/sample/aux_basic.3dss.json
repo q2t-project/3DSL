@@ -1,0 +1,45 @@
+{
+  "lines": [],
+  "points": [],
+  "aux": [
+    {
+      "appearance": {
+        "position": [0.0, 0.0, 0.0],
+        "orientation": [0.0, 0.0, 0.0],
+        "opacity": 0.4,
+        "module": {
+          "grid": {
+            "grid_type": "cartesian",
+            "subdivisions": 8,
+            "major_step": 4,
+            "minor_step": 1,
+            "color_major": "#666666",
+            "color_minor": "#333333"
+          },
+          "axis": {
+            "length": 64,
+            "labels": true,
+            "arrow": {
+              "enabled": true,
+              "size": 8,
+              "aspect": 2
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa"
+      }
+    }
+  ],
+  "document_meta": {
+    "document_uuid": "11111111-2222-4222-8222-111111111111",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.1",
+    "author": "aux-basic",
+    "version": "1.0.0",
+    "coordinate_system": "Z+up/freeXY",
+    "units": "mm",
+    "i18n": "ja",
+    "creator_memo": "aux_basic: grid(cartesian) + axis のみを 1 つ配置した基本 AUX テスト用 3DSS。schema v1.0.1 の aux.module.grid/axis と viewer の drawAux 実装確認に使用。"
+  }
+}

@@ -1,0 +1,26 @@
+---
+const jsonUrl = "/3dss/sample/frame_filter_test.3dss.json";
+const schemaURL = "/3dss/3dss/release/3DSS.schema.json";
+---
+
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>3DSL Viewer (Astro harness)</title>
+  </head>
+  <body style="margin:0; background:#000;">
+    <canvas id="viewer-canvas"
+      style="width:100vw; height:100vh; display:block; background:#111;"></canvas>
+
+    <script type="module">
+      import { bootstrapViewerFromUrl } from "/viewer/runtime/bootstrapViewer.js";
+
+      window.addEventListener("load", () => {
+        bootstrapViewerFromUrl("viewer-canvas", "{{jsonUrl}}", {
+          schemaURL: "{{schemaURL}}",
+          validate: true,
+        });
+      });
+    </script>
+  </body>
+</html>

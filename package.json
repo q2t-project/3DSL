@@ -6,11 +6,17 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
+    "check": "astro check",
+    "validate:3dss": "ajv validate -c ajv-formats -s ../schemas/3DSS.schema.json -d \"public/3dss/sample/**/*.3dss.json\" --spec=draft2020",
     "astro": "astro"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.17",
     "astro": "^5.16.0",
     "tailwindcss": "^4.1.17"
+  },
+  "devDependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
   }
 }

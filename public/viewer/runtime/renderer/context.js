@@ -2,6 +2,15 @@
 import * as THREE from "../../../vendor/three/build/three.module.js";
 import { applyMicroFX } from "./microFX/index.js";
 
+// ------------------------------------------------------------
+// logging
+// ------------------------------------------------------------
+const DEBUG_RENDERER = true; // 本番で静かにしたければ false
+function debugRenderer(...args) {
+  if (!DEBUG_RENDERER) return;
+  console.log(...args);
+}
+
 // 3DSS / プロト両対応のユーティリティ
 function getUuid(node) {
   return node?.meta?.uuid ?? node?.uuid ?? null;
@@ -266,10 +275,12 @@ export function createRendererContext(canvasOrOptions) {
           }
         }
       }
-    console.log("[renderer] syncDocument: added",
-    pointObjects.size, "points,",
-    lineObjects.size, "lines,",
-    auxObjects.size, "aux");
+      debugRenderer(
+        "[renderer] syncDocument: added",
+        pointObjects.size, "points,",
+        lineObjects.size, "lines,",
+        auxObjects.size, "aux"
+      );
     },
 
     /**

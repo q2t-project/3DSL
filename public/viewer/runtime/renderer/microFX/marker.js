@@ -11,23 +11,22 @@ export function ensureMarker(scene) {
   }
 
   if (!marker) {
-  // ---- Plane marker に差し替え（球の上にうっすら重なる板） ----
-  const geometry = new THREE.PlaneGeometry(0.16, 0.16); // 球(0.06*2)よりちょい大きめ
-  const material = new THREE.MeshBasicMaterial({
-    color: "#ffffaa",
-    transparent: true,
-    opacity: 0.08,          // 邪魔にならないくらい薄く
-    depthTest: false,       // 奥行きを無視してもらう
-  });
-  marker = new THREE.Mesh(geometry, material);
-  marker.rotation.x = -Math.PI / 2; // カメラと平行に見せたい場合は調整
-  marker.renderOrder = 20;          // 球(renderOrder=10前後)より少し前
-    }
-
+    // ---- Plane marker（球の上にうっすら重なる板） ----
+    const geometry = new THREE.PlaneGeometry(0.14, 0.14); // 少しだけ小さめに
+    const material = new THREE.MeshBasicMaterial({
+      color: "#ffffaa",
+      transparent: true,
+      opacity: 0.06,         // さらに控えめ
+      depthTest: false,      // 奥行き判定しない
+      depthWrite: false,     // 深度バッファにも書き込まない
+    });
+    marker = new THREE.Mesh(geometry, material);
+    marker.rotation.x = -Math.PI / 2;
+    marker.renderOrder = 20;        // 球(renderOrder=10前後)より少し前
+     }
     if (marker.parent !== scene) {
       scene.add(marker);
   }
-
   return marker;
 }
 

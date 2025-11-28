@@ -1,6 +1,5 @@
 // viewer/runtime/bootstrapViewer.js
 
-// ★ いま使うのはこの 2 つだけ
 import { createRendererContext } from "./renderer/context.js";
 import { createViewerHub } from "./viewerHub.js";
 import { createModeController } from "./core/modeController.js";
@@ -8,18 +7,29 @@ import { createCameraEngine } from "./core/CameraEngine.js";
 import { CameraInput } from "./core/CameraInput.js";
 import { createMicroController } from "./core/microController.js";
 
+// ------------------------------------------------------------
+// logging
+// ------------------------------------------------------------
+const DEBUG_BOOTSTRAP = true; // ★ 本番で消したければ false にする
+
+function debugBoot(...args) {
+  if (!DEBUG_BOOTSTRAP) return;
+  console.log(...args);
+}
+
+
 // canvas id / 要素を正規化
 function resolveCanvas(canvasOrId) {
-  console.log("[bootstrap] resolveCanvas: input =", canvasOrId);
+  debugBoot("[bootstrap] resolveCanvas: input =", canvasOrId);
 
   if (canvasOrId instanceof HTMLCanvasElement) {
-    console.log("[bootstrap] resolved: HTMLCanvasElement");
+    debugBoot("[bootstrap] resolved: HTMLCanvasElement");
     return canvasOrId;
   }
 
   if (typeof canvasOrId === "string") {
     const el = document.getElementById(canvasOrId);
-    console.log("[bootstrap] querySelector result =", el);
+    debugBoot("[bootstrap] querySelector result =", el);
 
     if (!el) throw new Error(`canvas element not found: #${canvasOrId}`);
     if (!(el instanceof HTMLCanvasElement)) {
@@ -31,32 +41,31 @@ function resolveCanvas(canvasOrId) {
   throw new Error("canvas must be <canvas> element or element id string");
 }
 
-
 // シンプル JSON ローダ
 async function loadJSON(url) {
-  console.log("[bootstrap] loadJSON:", url);
+  debugBoot("[bootstrap] loadJSON:", url);
 
   const res = await fetch(url);
-  console.log("[bootstrap] fetch status =", res.status);
+  debugBoot("[bootstrap] fetch status =", res.status);
 
   if (!res.ok) {
     throw new Error(`failed to load JSON: ${url} (${res.status})`);
   }
 
   const json = await res.json();
-  console.log("[bootstrap] loaded JSON keys =", Object.keys(json));
+  debugBoot("[bootstrap] loaded JSON keys =", Object.keys(json));
   return json;
 }
 
 
 // 3DSS から最低限の index（uuid → kind）だけ作る
 function buildSimpleIndices(document3dss) {
-  console.log("[bootstrap] buildSimpleIndices: start");
+  debugBoot("[bootstrap] buildSimpleIndices: start");
 
   const uuidToKind = new Map();
 
   if (Array.isArray(document3dss.points)) {
-    console.log("[bootstrap] indexing points:", document3dss.points.length);
+    debugBoot("[bootstrap] indexing points:", document3dss.points.length);
     for (const p of document3dss.points) {
       const uuid = p?.meta?.uuid;
       if (uuid) uuidToKind.set(uuid, "points");
@@ -64,7 +73,7 @@ function buildSimpleIndices(document3dss) {
   }
 
   if (Array.isArray(document3dss.lines)) {
-    console.log("[bootstrap] indexing lines:", document3dss.lines.length);
+    debugBoot("[bootstrap] indexing lines:", document3dss.lines.length);
     for (const l of document3dss.lines) {
       const uuid = l?.meta?.uuid;
       if (uuid) uuidToKind.set(uuid, "lines");
@@ -72,14 +81,14 @@ function buildSimpleIndices(document3dss) {
   }
 
   if (Array.isArray(document3dss.aux)) {
-    console.log("[bootstrap] indexing aux:", document3dss.aux.length);
+    debugBoot("[bootstrap] indexing aux:", document3dss.aux.length);
     for (const a of document3dss.aux) {
       const uuid = a?.meta?.uuid;
       if (uuid) uuidToKind.set(uuid, "aux");
     }
   }
 
-  console.log("[bootstrap] index size =", uuidToKind.size);
+  debugBoot("[bootstrap] index size =", uuidToKind.size);
   return { uuidToKind };
 }
 
@@ -89,21 +98,20 @@ function buildSimpleIndices(document3dss) {
 // すでに 3DSS オブジェクトを持っている場合
 // ------------------------------------------------------------
 export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
-  console.log("[bootstrap] bootstrapViewer: start");
-  console.log("[bootstrap] received 3DSS keys =", Object.keys(document3dss));
+  debugBoot("[bootstrap] bootstrapViewer: start");
+  debugBoot("[bootstrap] received 3DSS keys =", Object.keys(document3dss));
 
   const canvasEl = resolveCanvas(canvasOrId);
-  console.log("[bootstrap] canvas resolved =", canvasEl);
+  debugBoot("[bootstrap] canvas resolved =", canvasEl);
 
   const indices = buildSimpleIndices(document3dss);
 
-  // three.js 周りの初期化
-  console.log("[bootstrap] createRendererContext");
+  debugBoot("[bootstrap] createRendererContext");
   const renderer = createRendererContext(canvasEl);
 
   // 明示同期
   if (typeof renderer.syncDocument === "function") {
-    console.log("[bootstrap] syncDocument()");
+    debugBoot("[bootstrap] syncDocument()");
     renderer.syncDocument(document3dss, indices);
   } else {
     console.warn("[bootstrap] renderer.syncDocument missing");
@@ -177,20 +185,23 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     document3dss,
     indices
   };
-  console.log("[bootstrap] creating viewerHub");
+  debugBoot("[bootstrap] creating viewerHub");
 
   const hub = createViewerHub({ core, renderer });
 
   const cameraInput = new CameraInput(canvasEl, cameraEngine, hub);
 
+  // クリック → pick → selection → mode.focus → microFX は
+  // CameraInput.onPointerUp 内のロジックに一本化済み
+
   if (typeof hub.start === "function") {
-    console.log("[bootstrap] hub.start()");
+    debugBoot("[bootstrap] hub.start()");
     hub.start();
   } else {
     console.warn("[bootstrap] hub.start missing");
   }
 
-  console.log("[bootstrap] bootstrapViewer COMPLETE");
+  debugBoot("[bootstrap] bootstrapViewer COMPLETE");
   return hub;
 }
 
@@ -200,13 +211,13 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
 // URL から読む標準ルート
 // ------------------------------------------------------------
 export async function bootstrapViewerFromUrl(canvasOrId, url, options = {}) {
-  console.log("[bootstrap] bootstrapViewerFromUrl:", url);
+  debugBoot("[bootstrap] bootstrapViewerFromUrl:", url);
 
   const doc = await loadJSON(url);
   if (!doc?.document_meta) {
     console.warn("[bootstrap] WARNING: document_meta missing (3DSS invalid)");
   } else {
-    console.log("[bootstrap] document_meta OK:", doc.document_meta);
+     debugBoot("[bootstrap] document_meta OK:", doc.document_meta);
   }
 
   return bootstrapViewer(canvasOrId, doc, options);

@@ -97,6 +97,10 @@ export class CameraInput {
 
         this.hub.core.selection.select(hit.uuid);
         this.hub.core.mode.focus(hit.uuid);
+      } else {
+        // 何も当たらへんかったら selection / micro をクリアして macro に戻す
+        this.hub?.core?.selection?.clear?.();
+        this.hub?.core?.mode?.set?.("macro");
       }
     }
 

@@ -29,7 +29,9 @@ export function createModeController(
 
   function set(mode, uuid) {
     if (mode === "macro") {
+      // フェーズ5: macro へ遷移するときは必ず microState をクリア
       uiState.mode = "macro";
+      uiState.microState = null;
       return uiState.mode;
     }
 
