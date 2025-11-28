@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>3DSL Viewer Test</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+    }
+    #view {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+  </style>
+</head>
+
+<body>
+<canvas id="view"></canvas>
+
+<script type="module">
+  import { bootstrapViewerFromUrl } from "./runtime/bootstrapViewer.js";
+
+  const canvas = document.getElementById("view");
+  const url = "./sample_3dss_01.json";
+
+  bootstrapViewerFromUrl(canvas, url)
+    .then(hub => {
+      window.hub = hub;
+      window.uiState = hub.core.uiState;
+      console.log("[viewer] hub ready", hub);
+    })
+    .catch(err => console.error("bootstrap error:", err));
+</script>
+
+</body>
+</html>

@@ -1,68 +1,100 @@
-// ============================================================
-// modeController.js
-//  - macro / meso / micro モード遷移
-//  - CameraEngine / MicroVisualController / SelectionController を協調
-// ============================================================
+// runtime/core/modeController.js
+// mode（macro/meso/micro）と micro 侵入条件の優先ルールを管理する
 
-/**
- * @param {Object} params
- * @param {Object} params.ui_state
- * @param {import("./CameraEngine.js").CameraEngine} params.cameraEngine
- * @param {Object} params.microVisualController
- * @param {Object} params.selectionController
- */
-export function createModeController({
-  ui_state,
-  cameraEngine,
-  microVisualController,
+export function createModeController(
+  uiState,
   selectionController,
-}) {
-  function setMode(mode, uuid) {
-    if (!["macro", "meso", "micro"].includes(mode)) {
-      mode = "macro";
+  microController,
+  frameController,
+  visibilityController,
+  document3dss,
+  indices
+) {
+  function isVisible(uuid) {
+    if (visibilityController && typeof visibilityController.isVisible === 'function') {
+      return visibilityController.isVisible(uuid);
     }
+    if (uiState && uiState.visibleSet instanceof Set) {
+      return uiState.visibleSet.has(uuid);
+    }
+    return true;
+  }
 
-    ui_state.mode = mode;
+  function canEnter(uuid) {
+    if (!uuid) return false;
+    if (uiState?.runtime?.isFramePlaying) return false;
+    if (uiState?.runtime?.isCameraAuto) return false;
+    return isVisible(uuid);
+  }
 
+  function set(mode, uuid) {
     if (mode === "macro") {
-      microVisualController.exit();
-      cameraEngine.setMode("macro");
-      return;
+      uiState.mode = "macro";
+      return uiState.mode;
     }
 
-    const focusUUID = uuid || ui_state.selection.uuid;
-    if (!focusUUID) {
-      ui_state.mode = "macro";
-      microVisualController.exit();
-      cameraEngine.setMode("macro");
-      return;
+    const currentSelection = selectionController?.get?.();
+    const targetUuid = uuid ?? currentSelection?.uuid ?? null;
+    if (!targetUuid || !canEnter(targetUuid)) {
+      uiState.mode = "macro";
+      uiState.microState = null;
+      return uiState.mode;
     }
 
-    microVisualController.enter(focusUUID);
-    cameraEngine.setMode(mode, focusUUID);
+    if (mode === "meso" || mode === "micro") {
+      selectionController?.select?.(targetUuid);
+
+      if (mode === "micro") {
+        const selection = selectionController?.get?.();
+        const microState = microController?.compute?.(
+          selection,
+          uiState.cameraState,
+          document3dss,
+          indices
+        );
+        // micro カメラ移動の核心
+        if (!microState || !Array.isArray(microState.focusPosition)) {
+          console.warn("[mode] micro compute failed, stay macro", { targetUuid });
+          uiState.mode = "macro";
+          uiState.microState = null;
+          return uiState.mode;
+        }
+
+        uiState.microState = microState;
+
+        console.log("[mode] enter micro", {
+          focusUuid: microState.focusUuid,
+          kind: microState.kind,
+          focusPosition: microState.focusPosition,
+        });
+
+      } else {
+        uiState.microState = null;
+      }
+
+      uiState.mode = mode;
+    }
+
+    return uiState.mode;
   }
 
-  function focusOn(uuid) {
-    if (!uuid) {
-      selectionController.clear();
-      microVisualController.exit();
-      ui_state.mode = "macro";
-      cameraEngine.reset();
-      return;
-    }
-
-    selectionController.select(uuid);
-    ui_state.mode = "micro";
-    microVisualController.enter(uuid);
-    cameraEngine.focusOn(uuid);
+  function get() {
+    return uiState.mode;
   }
 
-  function onSelectionChanged(uuid) {
-    if (!uuid) return;
-    if (ui_state.mode === "micro" || ui_state.mode === "meso") {
-      setMode(ui_state.mode, uuid);
-    }
+  function exit() {
+    return set('macro');
   }
 
-  return { setMode, focusOn, onSelectionChanged };
+  function focus(uuid) {
+    return set('micro', uuid);
+  }
+
+  return {
+    set,
+    get,
+    canEnter,
+    exit,
+    focus
+  };
 }

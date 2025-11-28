@@ -1,173 +1,213 @@
-// /viewer/runtime/bootstrapViewer.js
-// =============================================================
-// 3DSL Viewer 起動コード（エントリポイント：renderer プロトコル版）
-////
-//
-// 役割：
-//   - canvas と 3DSS を受け取って runtime/renderer パイプラインで起動
-//   - viewerRenderer.init → 各レイヤ登録 → updateState → start
-//   - rendererContext を viewerHub.createViewerHub に渡して core を作る
-//   - 3DSS ロードは viewerHub.load3DSS（loader / validator）経由
-// =============================================================
+// viewer/runtime/bootstrapViewer.js
 
-import { createViewerHub, load3DSS } from "./viewerHub.js";
+// ★ いま使うのはこの 2 つだけ
+import { createRendererContext } from "./renderer/context.js";
+import { createViewerHub } from "./viewerHub.js";
+import { createModeController } from "./core/modeController.js";
+import { createCameraEngine } from "./core/CameraEngine.js";
+import { CameraInput } from "./core/CameraInput.js";
+import { createMicroController } from "./core/microController.js";
 
-import {
-  init as initRenderer,
-  start as startRenderer,
-  updateState as updateRendererState,
-  createRendererContext,
-} from "./renderer/viewerRenderer.js";
-
-import { initPointsLayer } from "./renderer/drawPoints.js";
-import { initLinesLayer } from "./renderer/drawLines.js";
-import { initAuxLayer } from "./renderer/drawAux.js";
-
-/**
- * canvas と 3DSS を渡して viewer を立ち上げるメイン関数
- *
- * @param {HTMLCanvasElement|string} canvasOrId  キャンバス要素 or その id
- * @param {Object} threeDSS                      3DSS JSON（検証済み前提 or 信頼入力）
- * @param {Object} [options]
- * @param {Object} [options.renderer]            viewerRenderer.init に渡すオプション
- * @param {Object} [options.viewerSettings]      createViewerHub に渡す viewerSettings
- * @param {boolean} [options.exposeGlobal=true]  window.core へ expose するか
- * @returns {Object} core  viewerHub が返す core
- */
-export function bootstrapViewer(canvasOrId, threeDSS, options = {}) {
-  if (!threeDSS || typeof threeDSS !== "object") {
-    throw new Error("[bootstrapViewer] threeDSS が不正や");
-  }
-
-  const canvas = resolveCanvas(canvasOrId);
-  if (!canvas) {
-    throw new Error("[bootstrapViewer] canvas 見つからんかったで");
-  }
-
-  const {
-    renderer: rendererOptions = {},
-    viewerSettings = {},
-    exposeGlobal = true,
-  } = options;
-
-  console.log("[runtime] start (renderer-protocol)");
-
-  // --- three.js / scene / camera / renderer 初期化 ---
-  const rendererCore = initRenderer(canvas, rendererOptions);
-  if (!rendererCore) {
-    throw new Error("[bootstrapViewer] viewerRenderer.init 失敗しとるで");
-  }
-  console.log("[runtime] rendererCore =", rendererCore);
-
-  // --- 描画レイヤ登録（points / lines / aux）---
-  initPointsLayer();
-  initLinesLayer();
-  initAuxLayer();
-
-  // --- 3DSS を renderer の state として渡す ---
-  updateRendererState(threeDSS);
-
-  // --- 描画ループ開始 ---
-  startRenderer();
-
-  // --- rendererContext を取得して viewerHub に渡す ---
-  const rendererContext = createRendererContext();
-  if (!rendererContext) {
-    throw new Error("[bootstrapViewer] rendererContext 取れへんかったで");
-  }
-
-  const viewerCore = createViewerHub({
-    data: threeDSS,
-    rendererContext,
-    viewerSettings,
-    exposeGlobal,
-  });
-
-  // デバッグ用に rendererCore もぶら下げておく
-  viewerCore._rendererCore = rendererCore;
-
-  console.log("[runtime] viewerCore =", viewerCore);
-
-  return viewerCore;
-}
-
-/**
- * 3DSS を URL からロードして起動するショートカット
- *
- * @param {HTMLCanvasElement|string} canvasOrId
- * @param {string} url
- * @param {Object} [options]
- * @param {string} [options.schemaURL]   3DSS.schema.json の URL（あれば AJV 検証）
- * @param {boolean} [options.validate]   true なら schema 検証（デフォルト: schemaURL 有りなら true）
- * @param {boolean} [options.buildState] true なら state も構築して core にぶら下げる（renderer には未使用）
- * @param {Object}  [options.renderer]   viewerRenderer.init に渡すオプション
- * @param {Object}  [options.viewerSettings] createViewerHub に渡す viewerSettings
- * @returns {Promise<Object>} core
- */
-export async function bootstrapViewerFromUrl(canvasOrId, url, options = {}) {
-  const {
-    schemaURL,
-    validate,
-    buildState = false,
-    renderer: rendererOptions = {},
-    viewerSettings = {},
-    exposeGlobal = true,
-  } = options;
-
-  console.log("[runtime] load3DSS via viewerHub.load3DSS", {
-    url,
-    schemaURL,
-    validate,
-    buildState,
-  });
-
-  const result = await load3DSS(url, {
-    schemaURL,
-    validate,
-    buildState,
-  });
-
-  let threeDSS;
-  let state = null;
-
-  if (buildState && result && result.threeDSS) {
-    threeDSS = result.threeDSS;
-    state = result.state;
-    console.log("[runtime] state built", state);
-  } else {
-    threeDSS = result;
-  }
-
-  const core = bootstrapViewer(canvasOrId, threeDSS, {
-    renderer: rendererOptions,
-    viewerSettings,
-    exposeGlobal,
-  });
-
-  if (buildState && core) {
-    core._3dss_state = state;
-  }
-
-  return core;
-}
-
-// -------------------------------------------------------------
-// 内部ユーティリティ
-// -------------------------------------------------------------
-
-/**
- * canvasOrId が要素 or id どちらでも取れるように解決する
- * @param {HTMLCanvasElement|string} canvasOrId
- * @returns {HTMLCanvasElement|null}
- */
+// canvas id / 要素を正規化
 function resolveCanvas(canvasOrId) {
+  console.log("[bootstrap] resolveCanvas: input =", canvasOrId);
+
   if (canvasOrId instanceof HTMLCanvasElement) {
+    console.log("[bootstrap] resolved: HTMLCanvasElement");
     return canvasOrId;
   }
+
   if (typeof canvasOrId === "string") {
     const el = document.getElementById(canvasOrId);
-    if (el instanceof HTMLCanvasElement) return el;
-    return null;
+    console.log("[bootstrap] querySelector result =", el);
+
+    if (!el) throw new Error(`canvas element not found: #${canvasOrId}`);
+    if (!(el instanceof HTMLCanvasElement)) {
+      throw new Error(`element #${canvasOrId} is not <canvas>`);
+    }
+    return el;
   }
-  return null;
+
+  throw new Error("canvas must be <canvas> element or element id string");
+}
+
+
+// シンプル JSON ローダ
+async function loadJSON(url) {
+  console.log("[bootstrap] loadJSON:", url);
+
+  const res = await fetch(url);
+  console.log("[bootstrap] fetch status =", res.status);
+
+  if (!res.ok) {
+    throw new Error(`failed to load JSON: ${url} (${res.status})`);
+  }
+
+  const json = await res.json();
+  console.log("[bootstrap] loaded JSON keys =", Object.keys(json));
+  return json;
+}
+
+
+// 3DSS から最低限の index（uuid → kind）だけ作る
+function buildSimpleIndices(document3dss) {
+  console.log("[bootstrap] buildSimpleIndices: start");
+
+  const uuidToKind = new Map();
+
+  if (Array.isArray(document3dss.points)) {
+    console.log("[bootstrap] indexing points:", document3dss.points.length);
+    for (const p of document3dss.points) {
+      const uuid = p?.meta?.uuid;
+      if (uuid) uuidToKind.set(uuid, "points");
+    }
+  }
+
+  if (Array.isArray(document3dss.lines)) {
+    console.log("[bootstrap] indexing lines:", document3dss.lines.length);
+    for (const l of document3dss.lines) {
+      const uuid = l?.meta?.uuid;
+      if (uuid) uuidToKind.set(uuid, "lines");
+    }
+  }
+
+  if (Array.isArray(document3dss.aux)) {
+    console.log("[bootstrap] indexing aux:", document3dss.aux.length);
+    for (const a of document3dss.aux) {
+      const uuid = a?.meta?.uuid;
+      if (uuid) uuidToKind.set(uuid, "aux");
+    }
+  }
+
+  console.log("[bootstrap] index size =", uuidToKind.size);
+  return { uuidToKind };
+}
+
+
+
+// ------------------------------------------------------------
+// すでに 3DSS オブジェクトを持っている場合
+// ------------------------------------------------------------
+export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
+  console.log("[bootstrap] bootstrapViewer: start");
+  console.log("[bootstrap] received 3DSS keys =", Object.keys(document3dss));
+
+  const canvasEl = resolveCanvas(canvasOrId);
+  console.log("[bootstrap] canvas resolved =", canvasEl);
+
+  const indices = buildSimpleIndices(document3dss);
+
+  // three.js 周りの初期化
+  console.log("[bootstrap] createRendererContext");
+  const renderer = createRendererContext(canvasEl);
+
+  // 明示同期
+  if (typeof renderer.syncDocument === "function") {
+    console.log("[bootstrap] syncDocument()");
+    renderer.syncDocument(document3dss, indices);
+  } else {
+    console.warn("[bootstrap] renderer.syncDocument missing");
+  }
+
+
+  const uiState = {
+    cameraState: {
+      theta: 0,
+      phi: 1,
+      distance: 4,
+      target: { x: 0, y: 0, z: 0 },
+      fov: 50,
+    },
+    visibleSet: null,
+    selection: null,
+    microState: null,
+    runtime: {
+      isFramePlaying: false,
+      isCameraAuto: false,
+    },
+  };
+
+  const cameraEngine = createCameraEngine(uiState.cameraState);
+
+  const selectionController = {
+    select: (uuid) => {
+      uiState.selection = { uuid };
+      return uiState.selection;
+    },
+    clear: () => {
+      uiState.selection = null;
+      return null;
+    },
+    get: () => uiState.selection,
+  };
+
+  const frameController = {
+    set: () => {},
+    get: () => {},
+    step: () => {},    range: () => {},
+    startPlayback: () => {},
+    stopPlayback: () => {},
+  };
+
+  const visibilityController = {
+    isVisible: () => true,
+  };
+
+  // microState 計算は専用モジュールへ委譲
+  const microController = createMicroController(indices);
+
+  const modeController = createModeController(
+    uiState,
+    selectionController,
+    microController,
+    frameController,
+    visibilityController,
+    document3dss,
+    indices
+  );
+
+  const core = {
+    uiState,
+    cameraEngine,
+    selectionController,
+    modeController,
+    frameController,
+    visibilityController,
+    microController,
+    document3dss,
+    indices
+  };
+  console.log("[bootstrap] creating viewerHub");
+
+  const hub = createViewerHub({ core, renderer });
+
+  const cameraInput = new CameraInput(canvasEl, cameraEngine, hub);
+
+  if (typeof hub.start === "function") {
+    console.log("[bootstrap] hub.start()");
+    hub.start();
+  } else {
+    console.warn("[bootstrap] hub.start missing");
+  }
+
+  console.log("[bootstrap] bootstrapViewer COMPLETE");
+  return hub;
+}
+
+
+
+// ------------------------------------------------------------
+// URL から読む標準ルート
+// ------------------------------------------------------------
+export async function bootstrapViewerFromUrl(canvasOrId, url, options = {}) {
+  console.log("[bootstrap] bootstrapViewerFromUrl:", url);
+
+  const doc = await loadJSON(url);
+  if (!doc?.document_meta) {
+    console.warn("[bootstrap] WARNING: document_meta missing (3DSS invalid)");
+  } else {
+    console.log("[bootstrap] document_meta OK:", doc.document_meta);
+  }
+
+  return bootstrapViewer(canvasOrId, doc, options);
 }
