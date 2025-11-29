@@ -6,11 +6,14 @@ import { createModeController } from "./core/modeController.js";
 import { createCameraEngine } from "./core/CameraEngine.js";
 import { CameraInput } from "./core/CameraInput.js";
 import { createMicroController } from "./core/microController.js";
+import { createSelectionController } from "./core/selectionController.js";
+import { createUiState } from "./core/uiState.js";
+import { buildUUIDIndex } from "./core/structIndex.js";
 
 // ------------------------------------------------------------
 // logging
 // ------------------------------------------------------------
-const DEBUG_BOOTSTRAP = true; // ★ 本番で消したければ false にする
+const DEBUG_BOOTSTRAP = false; // 開発中だけ true にして詳細ログを見る
 
 function debugBoot(...args) {
   if (!DEBUG_BOOTSTRAP) return;
@@ -58,38 +61,11 @@ async function loadJSON(url) {
 }
 
 
-// 3DSS から最低限の index（uuid → kind）だけ作る
+// 3DSS から uuid index を構築（互換ラッパ）
 function buildSimpleIndices(document3dss) {
-  debugBoot("[bootstrap] buildSimpleIndices: start");
-
-  const uuidToKind = new Map();
-
-  if (Array.isArray(document3dss.points)) {
-    debugBoot("[bootstrap] indexing points:", document3dss.points.length);
-    for (const p of document3dss.points) {
-      const uuid = p?.meta?.uuid;
-      if (uuid) uuidToKind.set(uuid, "points");
-    }
-  }
-
-  if (Array.isArray(document3dss.lines)) {
-    debugBoot("[bootstrap] indexing lines:", document3dss.lines.length);
-    for (const l of document3dss.lines) {
-      const uuid = l?.meta?.uuid;
-      if (uuid) uuidToKind.set(uuid, "lines");
-    }
-  }
-
-  if (Array.isArray(document3dss.aux)) {
-    debugBoot("[bootstrap] indexing aux:", document3dss.aux.length);
-    for (const a of document3dss.aux) {
-      const uuid = a?.meta?.uuid;
-      if (uuid) uuidToKind.set(uuid, "aux");
-    }
-  }
-
-  debugBoot("[bootstrap] index size =", uuidToKind.size);
-  return { uuidToKind };
+  // 既存コードは indices.uuidToKind だけを使っているので、
+  // structIndex の戻り値をそのまま渡して問題ない。
+  return buildUUIDIndex(document3dss);
 }
 
 
@@ -117,37 +93,43 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     console.warn("[bootstrap] renderer.syncDocument missing");
   }
 
+  // シーンメトリクスから初期カメラ状態を決める
+  const metrics =
+    typeof renderer.getSceneMetrics === "function"
+      ? renderer.getSceneMetrics()
+      : null;
 
-  const uiState = {
-    cameraState: {
-      theta: 0,
-      phi: 1,
-      distance: 4,
-      target: { x: 0, y: 0, z: 0 },
-      fov: 50,
-    },
-    visibleSet: null,
-    selection: null,
-    microState: null,
+  const initialCameraState = {
+    theta: 0,
+    phi: 1,
+    distance: 4,
+    target: { x: 0, y: 0, z: 0 },
+    fov: 50,
+  };
+
+  if (metrics && metrics.radius > 0 && metrics.center) {
+    initialCameraState.target = {
+      x: metrics.center.x,
+      y: metrics.center.y,
+      z: metrics.center.z,
+    };
+    // シーン半径のだいたい 2.4 倍くらい離せば「全体が入る」目安
+    initialCameraState.distance = metrics.radius * 2.4;
+  }
+
+  const uiState = createUiState({
+    cameraState: initialCameraState,
+    // visibleSet / selection / microState はデフォルトに任せる
     runtime: {
       isFramePlaying: false,
       isCameraAuto: false,
     },
-  };
+  });
 
   const cameraEngine = createCameraEngine(uiState.cameraState);
 
-  const selectionController = {
-    select: (uuid) => {
-      uiState.selection = { uuid };
-      return uiState.selection;
-    },
-    clear: () => {
-      uiState.selection = null;
-      return null;
-    },
-    get: () => uiState.selection,
-  };
+  // selection の唯一の正規ルート（uiState.selection は selectionController 経由でのみ更新）
+  const selectionController = createSelectionController(uiState, indices);
 
   const frameController = {
     set: () => {},
@@ -162,7 +144,7 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   };
 
   // microState 計算は専用モジュールへ委譲
-  const microController = createMicroController(indices);
+  const microController = createMicroController(uiState, indices);
 
   const modeController = createModeController(
     uiState,

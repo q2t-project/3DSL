@@ -12,7 +12,8 @@ export function ensureMarker(scene) {
 
   if (!marker) {
     // ---- Plane marker（球の上にうっすら重なる板） ----
-    const geometry = new THREE.PlaneGeometry(0.14, 0.14); // 少しだけ小さめに
+    // 0.14 は「unitless な world 長さ」で、シーンのスケールとは独立した基準サイズ。
+    const geometry = new THREE.PlaneGeometry(0.14, 0.14);
     const material = new THREE.MeshBasicMaterial({
       color: "#ffffaa",
       transparent: true,
@@ -21,11 +22,11 @@ export function ensureMarker(scene) {
       depthWrite: false,     // 深度バッファにも書き込まない
     });
     marker = new THREE.Mesh(geometry, material);
-    marker.rotation.x = -Math.PI / 2;
     marker.renderOrder = 20;        // 球(renderOrder=10前後)より少し前
-     }
-    if (marker.parent !== scene) {
-      scene.add(marker);
+  }
+
+  if (marker.parent !== scene) {
+    scene.add(marker);
   }
   return marker;
 }
@@ -37,7 +38,8 @@ function sanitizePosition(position) {
 
   if (![x, y, z].every((v) => Number.isFinite(v))) return null;
 
-  return [x, y, z];
+  const MAX = 1e4;
+  return [x, y, z].map(v => THREE.MathUtils.clamp(v, -MAX, MAX));
 }
 
 export function updateMarker(target, position) {

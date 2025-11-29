@@ -1,5 +1,9 @@
 // viewer/runtime/renderer/microFX/highlight.js
 
+// micro-highlight:
+// 選択対象や relatedUuids を「オーバーレイ用の複製ジオメトリ」でなぞるだけ。
+// 長さ単位には一切踏み込まず、元オブジェクトの position/rotation/scale をそのままコピーする。
+
 import * as THREE from "../../../../vendor/three/build/three.module.js";
 
 let highlightGroup = null;
@@ -28,6 +32,7 @@ export function applyHighlight(scene, relatedUuids, getObjectByUuid) {
   const group = ensureGroup(scene);
 
   for (const uuid of relatedUuids) {
+    // getObjectByUuid は indexMaps を閉じ込めた関数を期待している
     const src = getObjectByUuid(uuid);
     if (!src) continue;
 

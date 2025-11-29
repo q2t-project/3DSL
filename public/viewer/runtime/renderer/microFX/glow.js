@@ -1,9 +1,18 @@
 // viewer/runtime/renderer/microFX/glow.js
 
 import * as THREE from "../../../../vendor/three/build/three.module.js";
+import { microFXConfig } from "./config.js";
+
+// unitless な world 座標系上での「輝き」オーバーレイ。
+// position, offsetFactor, scalePerDistance などはすべて無次元スカラーとして扱う。
 
 let glow = null;
-const OFFSET = 0.01; // 位置オフセットはやや控えめに
+
+const MAX_COORD = 1e4; // 数値暴走だけ抑える。単位はここでは規定しない。
+
+function clamp(v, min, max) {
+  return Math.min(Math.max(v, min), max);
+}
 
 export function ensureGlow(scene) {
   if (glow && glow.parent !== scene) {
@@ -35,11 +44,11 @@ export function ensureGlow(scene) {
 function sanitizePosition(position) {
   if (!Array.isArray(position) || position.length < 3) return null;
 
-  const [x, y, z] = position.map((v) => Number(v));
+  const raw = position.map((v) => Number(v));
+  if (!raw.every((v) => Number.isFinite(v))) return null;
 
-  if (![x, y, z].every((v) => Number.isFinite(v))) return null;
-
-  return [x, y, z];
+  // unitless な world 座標として ±MAX_COORD にだけクランプ
+  return raw.map((v) => clamp(v, -MAX_COORD, MAX_COORD))
 }
 
 export function updateGlow(target, position, camera) {
@@ -54,16 +63,24 @@ export function updateGlow(target, position, camera) {
   const cameraToPoint = new THREE.Vector3()
     .subVectors(target.position, camera.position)
     .normalize()
-    .multiplyScalar(OFFSET * camera.position.distanceTo(target.position));
+    .multiplyScalar(
+      // offsetFactor も unitless。距離 dist と掛け合わせて「後退量」を決める。
+      microFXConfig.glow.offsetFactor *
+        camera.position.distanceTo(target.position)
+    );
 
   target.position.add(cameraToPoint);
   
-  // glow サイズも距離依存で拡縮（最小/最大をクランプ）
+  // glow サイズも距離依存で拡縮（minScale/maxScale は unitless world 長さ）
   const dist = camera.position.distanceTo(target.position);
-  const rawScale   = dist * 0.035;
-  const clampedMin = 0.18;
-  const clampedMax = 1.5;
-  const scale      = Math.min(Math.max(rawScale, clampedMin), clampedMax);
+  const cfg = microFXConfig.glow;
+
+  const rawScale = dist * cfg.scalePerDistance;
+  const scale = Math.min(
+    Math.max(rawScale, cfg.minScale),
+    cfg.maxScale
+  );
+
   target.scale.setScalar(scale);
 }
 

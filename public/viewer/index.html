@@ -27,7 +27,13 @@
   import { bootstrapViewerFromUrl } from "./runtime/bootstrapViewer.js";
 
   const canvas = document.getElementById("view");
-  const url = "./sample_3dss_01.json";
+//  const url = "./microfx_min.3dss.json";
+//  const url = "./microfx_long_span.3dss.json";
+//  const url = "./microfx_cluster_medium.3dss.json";
+//  const url = "./microfx_depth_layers.3dss.json";
+//  const url = "./microfx_label.3dss.json";
+//  const url = "./xyz_basis.3dss.json";
+const url = "./microfx_mixed.3dss.json";
 
   bootstrapViewerFromUrl(canvas, url)
     .then(hub => {

@@ -1,7 +1,10 @@
 // viewer/runtime/renderer/microFX/bounds.js
 
 import * as THREE from "../../../../vendor/three/build/three.module.js";
+import { microFXConfig } from "./config.js";
 
+// このモジュールは「unitless な world 座標系」での局所 AABB 可視化専用。
+// center / size / shrinkFactor / minEdge / maxEdge はすべて無次元スカラーとして扱う。
 let boundsGroup = null;
 
 const baseWireColor = new THREE.Color("#66ccff");
@@ -96,15 +99,16 @@ export function ensureBounds(scene) {
 }
 
 /* -------------------------------------------------------
- *  Utility
+ *  Utility（unitless ベクトルの軽いサニタイズ）
  * ----------------------------------------------------- */
 function sanitizeVector3(arr) {
   if (!Array.isArray(arr)) return [0, 0, 0];
-  return [
-    Number(arr[0]) || 0,
-    Number(arr[1]) || 0,
-    Number(arr[2]) || 0
-  ];
+  const MAX = 1e4; // 数値暴走だけ抑える。単位や意味はここではいじらない。
+  return [0, 1, 2].map((i) => {
+    const n = Number(arr[i]);
+    if (!Number.isFinite(n)) return 0;
+    return clamp(n, -MAX, MAX);
+  });
 }
 
 function clamp(value, min, max) {
@@ -118,9 +122,11 @@ function updateHandles(group, size) {
   const handlesGroup = group.userData?.handlesGroup;
   if (!handlesGroup) return;
 
+  // size は unitless world 空間での辺の長さ。
   const magnitudes = size.map(v => Math.abs(v));
   const minSize = Math.max(Math.min(...magnitudes), 0.0);
 
+  // 「最小辺長に比例した取っ手の大きさ」を unitless のまま決める。
   const baseScale = clamp(minSize, 0.2, 1.0);
   const handleScale = 0.05 * baseScale;
 
@@ -135,28 +141,27 @@ function updateHandles(group, size) {
 export function updateBounds(group, localBounds) {
   if (!group || !localBounds) return;
 
+  // center / size は 3DSS 側から渡される unitless world 座標／edge 長
   const center = sanitizeVector3(localBounds.center);
   const rawSize = sanitizeVector3(localBounds.size);
 
-  // 元の AABB サイズ
+  // 元の AABB edge サイズ（unitless）
   const baseSize = rawSize.map((v) => Math.abs(Number(v)) || 0);
 
   // かなり大きなラインでも画面を支配しすぎないように、
-  // ・全体を少し縮小（shrinkFactor）
-  // ・極端な最小/最大をクランプ
-  const shrinkFactor = 0.7;   // AABB の 70% 程度に
-  const minEdge      = 0.4;   // これより小さくはしない
-  const maxEdge      = 3.0;   // これより大きくはしない
+  // ・全体を少し縮小（shrinkFactor: 無次元スカラー）
+  // ・極端な最小/最大をクランプ（minEdge/maxEdge: unitless edge 長）
+  const cfg = microFXConfig.bounds;
 
   const size = baseSize.map((v) => {
-    const scaled = v * shrinkFactor;
-    return clamp(scaled, minEdge, maxEdge);
+    const scaled = v * cfg.shrinkFactor;
+    return clamp(scaled, cfg.minEdge, cfg.maxEdge);
   });
 
   group.position.set(center[0], center[1], center[2]);
   group.scale.set(size[0], size[1], size[2]);
 
-  // handles のスケールは “実際に描く箱の最小寸法に比例”
+  // handles のスケールは “描画中の box の最小寸法（unitless）に比例”
   updateHandles(group, size);
 }
 

@@ -60,14 +60,23 @@ export function createCameraEngine(initialState = {}) {
       return state;
     },
 
+    // Z-up 版パン処理
+    // - 水平方向（dx）は「画面右方向」に相当するベクトル R（Z 軸回りの右）に沿って移動
+    //   R = (-sinθ, cosθ, 0)
+    //   ターゲットを -dx * R だけ動かすことで「カメラが右へ動いた」ように見せる
+    // - 垂直方向（dy）はワールド Z 方向にそのまま乗せる
     pan(dx, dy) {
       const cosTheta = Math.cos(state.theta);
       const sinTheta = Math.sin(state.theta);
 
-      state.target.x += -dx * cosTheta;
-      state.target.z += dx * sinTheta;
-      state.target.y += dy;
+      // カメラから見た「右」ベクトル（Z-up）
+      const rightX = -sinTheta;
+      const rightY =  cosTheta;
 
+      // カメラ移動と逆向きにターゲットを動かす
+      state.target.x += -dx * rightX;
+      state.target.y += -dx * rightY;
+      state.target.z += dy;
       return state;
     },
 
@@ -118,13 +127,9 @@ export function createCameraEngine(initialState = {}) {
       };
     },
 
-    // lerp は今は殺す（後で復活させる）
-    beginLerp() {
-      return state;
-    },
-    stepLerp() {
-      return state;
-    },
+    // TODO: camera lerp（スムーズ遷移）を再導入する場合は、
+    // ここに beginLerp / stepLerp を追加して制御する。
+    // 現状は「即時反映のみ」で運用しているため未実装。
 
     setState(partial) {
       if (!partial || typeof partial !== "object") return state;

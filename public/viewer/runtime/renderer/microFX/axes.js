@@ -1,9 +1,15 @@
 // viewer/runtime/renderer/microFX/axes.js
 
 import * as THREE from "../../../../vendor/three/build/three.module.js";
+import { microFXConfig } from "./config.js";
 
+// このモジュールは「unitless な world 座標系」でのローカル座標軸可視化だけを担当する。
+// px や画面解像度は一切参照せず、すべてのスカラーは「長さ係数」として解釈する。
 let axesGroup = null; // singleton
 
+// 3DSS / microState 由来の unitless ベクトルを、
+// 数値として安全な範囲（±1e4）に丸めるだけの正規化。
+// 単位や意味付けはここでは一切いじらない。
 function sanitizeVector3(arr) {
   if (!Array.isArray(arr) || arr.length < 3) return null;
 
@@ -17,6 +23,11 @@ function sanitizeVector3(arr) {
   return [x, y, z];
 }
 
+// microState.localAxes:
+//   - origin : world 座標（unitless）
+//   - xDir/yDir/zDir : unitless な方向ベクトル（省略可）
+//   - scale : 軸長さに掛ける無次元スカラー
+// ここでは数値の範囲だけ整え、幾何学的な単位は決めない。
 function sanitizeLocalAxes(localAxes) {
   if (!localAxes) return null;
 
@@ -111,10 +122,10 @@ export function updateAxes(target, localAxes, camera) {
 
   const { origin, xDir, yDir, zDir, baseScale } = sanitized;
 
+  // origin は unitless world 空間上の位置ベクトル
   target.position.fromArray(origin);
 
-    if (xDir && yDir && zDir) {
-    const matrix = new THREE.Matrix4();
+  if (xDir && yDir && zDir) {    const matrix = new THREE.Matrix4();
     matrix.makeBasis(
       new THREE.Vector3(...xDir),
       new THREE.Vector3(...yDir),
@@ -126,10 +137,17 @@ export function updateAxes(target, localAxes, camera) {
     target.quaternion.copy(camera.quaternion);
   }
 
+  // カメラとの距離も unitless。「遠いほど大きく見せる」ための係数にだけ利用
   const distance = camera.position.distanceTo(target.position);
-  // 少し控えめなスケール係数にして、近距離では小さく・遠距離でも伸びすぎないようにする
-  const rawScale = baseScale * distance * 0.045;
-  const scaled   = THREE.MathUtils.clamp(rawScale, 0.08, 1.8);
+
+  const cfg = microFXConfig.axes;
+  const rawScale = baseScale * distance * cfg.scalePerDistance;
+  const scaled = THREE.MathUtils.clamp(
+    rawScale,
+    cfg.minScale,
+    cfg.maxScale
+  );
+
   target.scale.setScalar(scaled);
 
   target.visible = true;

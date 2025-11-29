@@ -31,6 +31,13 @@ export class CameraInput {
     canvas.addEventListener("contextmenu", (e) => e.preventDefault());
   }
 
+  stopAutoCamera() {
+    const runtime = this.hub?.core?.uiState?.runtime;
+    if (runtime) {
+      runtime.isCameraAuto = false;
+    }
+  }
+
   dispatch(method, ...args) {
     if (this.hub?.core?.camera?.[method]) {
       this.hub.core.camera[method](...args);
@@ -68,6 +75,9 @@ export class CameraInput {
 
     if (Math.hypot(dx, dy) > 2) {
       this.clickPending = false;
+
+      // 手動ドラッグが始まったら自動カメラを停止
+      this.stopAutoCamera();
     }
 
     if (this.activeMode === "pan") {
@@ -112,6 +122,10 @@ export class CameraInput {
   onWheel(event) {
     event.preventDefault();
     const delta = event.deltaY * ZOOM_SPEED;
+
+    // ホイール操作が入った時点で自動カメラを停止
+    this.stopAutoCamera();
+
     this.dispatch("zoom", delta);
   }
 }

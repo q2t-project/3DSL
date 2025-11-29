@@ -1,6 +1,12 @@
 // runtime/core/modeController.js
 // mode（macro/meso/micro）と micro 侵入条件の優先ルールを管理する
 
+const DEBUG_MODE = false;
+function debugMode(...args) {
+  if (!DEBUG_MODE) return;
+  console.log(...args);
+}
+
 export function createModeController(
   uiState,
   selectionController,
@@ -64,7 +70,7 @@ export function createModeController(
 
         uiState.microState = microState;
 
-        console.log("[mode] enter micro", {
+        debugMode("[mode] enter micro", {
           focusUuid: microState.focusUuid,
           kind: microState.kind,
           focusPosition: microState.focusPosition,

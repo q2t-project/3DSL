@@ -3,10 +3,12 @@
 // ------------------------------------------------------------
 // logging
 // ------------------------------------------------------------
-const DEBUG_HUB = true; // 本番で静かにしたければ false
+const DEBUG_HUB = false;
+let debugFrameCount = 0;
 function debugHub(...args) {
   if (!DEBUG_HUB) return;
-  console.log(...args);
+  // warning にしておけばレベル設定に関係なくまず見える
+  console.warn(...args);
 }
 
 export function createViewerHub({ core, renderer }) {
@@ -20,13 +22,23 @@ export function createViewerHub({ core, renderer }) {
   const renderFrame = () => {
     const camState = cameraEngine.getState();
 
+    debugHub("[hub] frame", debugFrameCount++, {
+      cam: camState,
+      visibleSet: core.uiState && core.uiState.visibleSet,
+      selection: core.uiState && core.uiState.selection,
+    });
+
     renderer.updateCamera(camState);
     renderer.applyFrame(core.uiState.visibleSet);
     renderer.applySelection(core.uiState.selection);
 
-    // ★ microState + cameraState を渡す
-    renderer.applyMicroFX(core.uiState.microState, camState);
+    // ★ mode === "micro" のときだけ microFX を有効化（それ以外は強制 null）
+    const microState =
+      core.uiState && core.uiState.mode === "micro"
+        ? core.uiState.microState
+        : null;
 
+    renderer.applyMicroFX(microState, camState);
     renderer.render();
 
     animationId = requestAnimationFrame(renderFrame);
@@ -72,37 +84,36 @@ export function createViewerHub({ core, renderer }) {
       },
 
       selection: {
-        // uuid 指定で selection を更新
-        select: (uuid) => {
-          // 将来 selectionController を導入した場合
-          if (core.selectionController?.select) {
-            core.selectionController.select(uuid);
-            const sel =
-              core.selectionController.get?.() ?? core.uiState.selection;
-            if (!sel || !sel.uuid) return null;
-            return { uuid: sel.uuid };
+
+        // uuid（と任意の kind）指定で selection を更新
+        select: (uuid, kind) => {
+          if (!core.selectionController) {
+            console.warn("[hub.selection] selectionController not available");
+            return null;
           }
 
-          // いまは uiState.selection を真実とする
-          core.uiState.selection = uuid ? { uuid } : null;
-          return core.uiState.selection;
+          const sel = core.selectionController.select(uuid, kind);
+          if (!sel || !sel.uuid) return null;
+          // 外向き API は { uuid } | null に固定
+          return { uuid: sel.uuid };
         },
 
         clear: () => {
-          if (core.selectionController?.clear) {
-            core.selectionController.clear();
+          if (!core.selectionController) {
+            console.warn("[hub.selection] selectionController not available");
             return null;
           }
-          core.uiState.selection = null;
+          core.selectionController.clear();
           return null;
         },
-
         // 外向き API は { uuid } | null に固定
         get: () => {
-          const sel = core.selectionController?.get
-            ? core.selectionController.get()
-            : core.uiState.selection;
+          if (!core.selectionController) {
+            console.warn("[hub.selection] selectionController not available");
+            return null;
+          }
 
+          const sel = core.selectionController.get();
           if (!sel || !sel.uuid) return null;
           return { uuid: sel.uuid };
         },
@@ -141,29 +152,16 @@ export function createViewerHub({ core, renderer }) {
           if (typeof target === "string") {
             const focusUuid = target;
 
-            let microState = core.uiState?.microState;
-            if (!microState || microState.focusUuid !== focusUuid) {
-              const selection = { uuid: focusUuid };
-              microState = core.microController?.compute?.(
-                selection,
-                cameraEngine.getState(),
-                core.document3dss,
-                core.indices
-              );
+            // modeController 経由で micro へ入りつつ microState を計算
+            const nextMode = modeController.set("micro", focusUuid);
+
+            if (nextMode !== "micro" || !core.uiState?.microState?.focusPosition) {
+              debugHub("[hub.camera.focusOn] failed to enter micro for uuid:", focusUuid);
+              return cameraEngine.getState();
             }
 
-            if (!microState || !Array.isArray(microState.focusPosition)) {
-              return;
-            }
-
-            // micro 状態は uiState にも反映
-            core.uiState.microState = microState;
-            core.uiState.mode = "micro";
-
-            const next = cameraEngine.computeFocusState(
-              microState.focusPosition,
-              mergedOpts
-            );
+            const focusPos = core.uiState.microState.focusPosition;
+            const next = cameraEngine.computeFocusState(focusPos, mergedOpts);
             cameraEngine.setState(next);
             return cameraEngine.getState();
           }
@@ -211,7 +209,10 @@ export function createViewerHub({ core, renderer }) {
 
           if (nextMode === "micro" && core.uiState?.microState?.focusPosition) {
             // ここも uuid じゃなく「計算済みの focusPosition」をそのまま使う
-            hub.core.cdebugHub("[hub.mode] focus", uuid);amera.focusOn(core.uiState.microState.focusPosition, {});
+            hub.core.camera.focusOn(
+              core.uiState.microState.focusPosition,
+              {}
+            );
           }
 
           return nextMode;
@@ -230,7 +231,8 @@ export function createViewerHub({ core, renderer }) {
         },
         isActive: () => {
           return core.uiState.mode === "micro";
-        },      },
+        },
+      },
 
       filters: {
         // kind = "points"|"lines"|"aux"
