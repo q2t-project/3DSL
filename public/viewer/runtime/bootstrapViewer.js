@@ -8,7 +8,9 @@ import { CameraInput } from "./core/CameraInput.js";
 import { createMicroController } from "./core/microController.js";
 import { createSelectionController } from "./core/selectionController.js";
 import { createUiState } from "./core/uiState.js";
-import { buildUUIDIndex } from "./core/structIndex.js";
+import { buildUUIDIndex, detectFrameRange } from "./core/structIndex.js";
+import { createVisibilityController } from "./core/visibilityController.js";
+import { createFrameController } from "./core/frameController.js"; 
 
 // ------------------------------------------------------------
 // logging
@@ -117,9 +119,15 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     initialCameraState.distance = metrics.radius * 2.4;
   }
 
-  const uiState = createUiState({
+const frameRange = detectFrameRange(document3dss);
+
+const uiState = createUiState({
+  cameraState: initialCameraState,
+  frame: {
+    current: frameRange.min,
+    range: frameRange,
+  },
     cameraState: initialCameraState,
-    // visibleSet / selection / microState はデフォルトに任せる
     runtime: {
       isFramePlaying: false,
       isCameraAuto: false,
@@ -131,17 +139,13 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   // selection の唯一の正規ルート（uiState.selection は selectionController 経由でのみ更新）
   const selectionController = createSelectionController(uiState, indices);
 
-  const frameController = {
-    set: () => {},
-    get: () => {},
-    step: () => {},    range: () => {},
-    startPlayback: () => {},
-    stopPlayback: () => {},
-  };
+const visibilityController = createVisibilityController(
+  uiState,
+  document3dss,
+  indices
+);
 
-  const visibilityController = {
-    isVisible: () => true,
-  };
+const frameController = createFrameController(uiState, visibilityController);
 
   // microState 計算は専用モジュールへ委譲
   const microController = createMicroController(uiState, indices);
@@ -167,6 +171,11 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     document3dss,
     indices
   };
+
+  if (typeof visibilityController.recompute === "function") {
+    visibilityController.recompute();
+  }
+
   debugBoot("[bootstrap] creating viewerHub");
 
   const hub = createViewerHub({ core, renderer });

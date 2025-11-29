@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>3DSL Viewer – Dev Harness</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+      }
+
+      body {
+        background: #000;
+        color: #ddd;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        overflow: hidden; /* ページ全体のスクロールを封じる */
+      }
+
+      /* 全体レイアウト：
+         左 = 3D ビュー
+         中 = 300×600 広告ストリップ
+         右 = メタ情報エリア（やや細め） */
+
+      /* 左側：3D ビューポート＋HUD＋ツールバー＋ギズモ＋300×250 AD */
+      #viewer-main {
+        position: relative;
+        background: #111;
+        overflow: hidden;
+        touch-action: none; /* タッチ／トラックパッドでのスクロールを抑止 */
+      }
+
+      #viewer-canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+        background: #111;
+        touch-action: none;
+      }
+
+      /* ビューポート右上の 300×250 AD（プレースホルダ） */
+      #ad-slot-300x250 {
+        position: absolute;
+        right: 12px;
+        top: 40px;
+        width: 300px;
+        height: 250px;
+        border-radius: 4px;
+        border: 1px dashed rgba(255, 255, 255, 0.4);
+        background: rgba(0, 0, 0, 0.5);
+        box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.7);
+        pointer-events: auto; /* 将来の広告クリック用 */
+      }
+
+      /* 中央ストリップ：300×600 AD 用カラム */
+      #viewer-ad-strip {
+        background: #050505;
+        border-left: 1px solid rgba(255, 255, 255, 0.12);
+        border-right: 1px solid rgba(255, 255, 255, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #ad-slot-300x600 {
+        width: 300px;
+        height: 600px;
+        border-radius: 4px;
+        border: 1px dashed rgba(255, 255, 255, 0.4);
+        background: rgba(0, 0, 0, 0.5);
+        box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      /* 右側：メタ情報エリア（細め） */
+      #viewer-meta {
+        background: #050505;
+        border-left: 1px solid rgba(255, 255, 255, 0.12);
+        display: flex;
+        flex-direction: column;
+        font-size: 11px;
+        min-width: 220px;
+        max-width: 260px;
+      }
+
+      /* 右パネル最上部：ロゴヘッダ */
+      #meta-header {
+        flex: 0 0 auto;
+        padding: 1px 10px 2px; /* ロゴ直下まで詰める */
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      #meta-logo-link {
+        display: inline-block;
+      }
+
+      #meta-logo {
+        display: block;
+        height: 112px;
+        width: auto;
+        filter: invert(1); /* 黒ロゴを白基調に反転 */
+      }
+
+      /* メタ情報エリア（上下分割） */
+      #meta-file,
+      #meta-model {
+        padding: 4px 2px 8px;
+        overflow-y: auto;
+      }
+
+      /* 上：ファイルメタ（固定高さ 40%） */
+      #meta-file {
+        flex: 0 0 40%;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      /* 下：モデルメタ＋ログ（残り全部） */
+      #meta-model {
+        flex: 1 1 auto;
+      }
+
+      #viewer-meta h3 {
+        margin: 0 0 4px 0;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        opacity: 0.9;
+      }
+
+      #viewer-meta pre {
+        margin: 4px 0 0 0;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        font-size: 10px;
+      }
+
+      /* 上部 HUD（トースト用） */
+      #viewer-hud {
+        position: absolute;
+        top: 16px;
+        left: 50%;
+        transform: translateX(-50%) translateY(-8px);
+        max-width: 60%;
+        padding: 8px 14px;
+        background: rgba(0, 0, 0, 0.85);
+        color: #eee;
+        font-size: 12px;
+        line-height: 1.4;
+        border-radius: 999px;
+        pointer-events: none;
+        opacity: 0;
+        transform-origin: top center;
+        transition:
+          opacity 0.25s ease-out,
+          transform 0.25s ease-out;
+      }
+
+      #viewer-hud.hud-visible {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      #viewer-hud.hud-hidden {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-8px);
+      }
+
+      /* レベル別色 */
+      #viewer-hud.hud-info {
+        background: rgba(0, 0, 0, 0.85);
+      }
+
+      #viewer-hud.hud-warn {
+        background: rgba(190, 140, 32, 0.9);
+      }
+
+      #viewer-hud.hud-error {
+        background: rgba(180, 32, 32, 0.9);
+      }
+
+      /* 下部ツールバー（frame / 再生 / filter） */
+      #viewer-toolbar {
+        position: absolute;
+        left: 12px;
+        bottom: 12px;
+        padding: 8px 12px;
+        background: rgba(0, 0, 0, 0.7);
+        color: #eee;
+        font-size: 11px;
+        border-radius: 4px;
+        pointer-events: auto;
+        display: inline-flex;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .toolbar-main {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .frame-block {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      /* スライダはやや短め */
+      #frame-slider {
+        width: 8vw;
+        min-width: 160px;
+        max-width: 260px;
+      }
+
+      #viewer-toolbar button {
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 3px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(255, 255, 255, 0.04);
+        color: #eee;
+        cursor: pointer;
+      }
+
+      #viewer-toolbar button:hover {
+        background: rgba(255, 255, 255, 0.12);
+      }
+
+      /* frame controls（連続 / パラパラ 2 段） */
+      #frame-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        margin-top: 4px;
+      }
+
+      #frame-controls .row {
+        display: flex;
+        gap: 4px;
+      }
+
+      #frame-controls .row-continuous,
+      #frame-controls .row-flip {
+        opacity: 0.4;
+        transition: opacity 0.15s ease-out;
+      }
+
+      #frame-controls.mode-continuous .row-continuous,
+      #frame-controls.mode-flip .row-flip {
+        opacity: 1;
+      }
+
+      /* filter：frame の右に縦並びで 3 つ */
+      .filter-column {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-top: 18px;
+      }
+
+      .filter-toggle {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 6px;
+        border-radius: 3px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      .filter-toggle .icon {
+        font-size: 13px;
+      }
+
+      .filter-toggle.filter-off {
+        opacity: 0.3;
+      }
+
+      /* キー操作系の統一スタイル（keycap 風） */
+      .keycap {
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        background: rgba(0, 0, 0, 0.8);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+      }
+
+      .keycap:hover {
+        background: rgba(255, 255, 255, 0.18);
+      }
+
+      /* カメラパネル（mode スタック＋ギズモ＋矢印ナビ） */
+      #camera-panel {
+        position: absolute;
+        right: 12px;
+        bottom: 12px; /* ビューポートの最下部まで下げる */
+        display: flex;
+        align-items: flex-end;
+        gap: 12px;
+        pointer-events: none; /* 子要素側で必要なところだけ auto にする */
+      }
+
+      #mode-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 11px;
+        pointer-events: auto;
+      }
+
+      .mode-pill {
+        min-width: 72px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        background: rgba(0, 0, 0, 0.7);
+        text-align: center;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        opacity: 0.5;
+        filter: blur(1px); /* 非アクティブは軽くぼかす */
+        transition: all 0.15s ease-out;
+      }
+
+      .mode-pill-active {
+        background: #ffffff;
+        color: #000000;
+        opacity: 1;
+        filter: none; /* アクティブはくっきり */
+      }
+
+      .mode-micro-block {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .mode-focus-label {
+        font-size: 11px;
+        max-width: 140px;
+        padding-left: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        opacity: 0.85;
+      }
+
+      .mode-focus-toggle {
+        align-self: flex-start;
+        margin-top: 2px;
+        padding: 1px 8px;
+        font-size: 10px;
+        color: #eee;
+        cursor: pointer;
+      }
+
+      /* ギズモ＋矢印ナビ */
+      #gizmo-wrapper {
+        position: relative;
+        width: 120px;
+        height: 120px;
+        pointer-events: auto;
+      }
+
+      #gizmo-slot {
+        width: 100%;
+        height: 100%;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        background: rgba(0, 0, 0, 0.5);
+        box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+      }
+
+      #gizmo-slot::before {
+        content: "GIZMO";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 10px;
+        opacity: 0.6;
+      }
+
+      .gizmo-arrow {
+        position: absolute;
+        width: 22px;
+        height: 22px;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+
+      .gizmo-arrow-up {
+        top: -14px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+      .gizmo-arrow-down {
+        bottom: -14px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+      .gizmo-arrow-left {
+        left: -14px;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+      .gizmo-arrow-right {
+        right: -14px;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="viewer-layout">
+      <!-- 左：3D ビュー＋HUD＋ツールバー＋ギズモ＋300×250 AD -->
+      <div id="viewer-main">
+        <canvas id="viewer-canvas"></canvas>
+
+        <!-- HUD: 一時メッセージ用トースト -->
+        <div id="viewer-hud" class="hud-hidden"></div>
+
+        <!-- 下部ツールバー -->
+        <div id="viewer-toolbar">
+          <div class="toolbar-main">
+            <!-- frame / 再生 -->
+            <div class="frame-block">
+              <div style="opacity: 0.8">
+                Frame: <span id="frame-slider-label">0</span>
+              </div>
+              <input
+                id="frame-slider"
+                type="range"
+                min="0"
+                max="0"
+                value="0"
+                step="1"
+              />
+
+              <!-- 2 段構成：上段＝連続再生モード / 下段＝パラパラめくり -->
+              <div id="frame-controls" class="mode-flip">
+                <!-- 1 行目：連続再生モード -->
+                <div class="row row-continuous">
+                  <button id="btn-rew" title="逆送り（最小までジャンプ）">
+                    ⏮
+                  </button>
+                  <button id="btn-play" title="再生 / 一時停止 (Space)">
+                    Play
+                  </button>
+                  <button id="btn-ff" title="先送り（最大までジャンプ）">
+                    ⏭
+                  </button>
+                </div>
+                <!-- 2 行目：パラパラめくりモード -->
+                <div class="row row-flip">
+                  <button id="btn-step-back" title="1 フレーム戻る (PgDn)">
+                    ◀
+                  </button>
+                  <button id="btn-home" title="ホームフレーム (0)">●</button>
+                  <button
+                    id="btn-step-forward"
+                    title="1 フレーム進む (PgUp)"
+                  >
+                    ▶
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- filter -->
+            <div class="filter-column">
+              <button
+                id="filter-lines"
+                class="filter-toggle filter-on"
+                type="button"
+                title="toggle lines"
+              >
+                <span class="icon">👁</span><span class="label">lines</span>
+              </button>
+              <button
+                id="filter-points"
+                class="filter-toggle filter-on"
+                type="button"
+                title="toggle points"
+              >
+                <span class="icon">👁</span><span class="label">points</span>
+              </button>
+              <button
+                id="filter-aux"
+                class="filter-toggle filter-on"
+                type="button"
+                title="toggle aux"
+              >
+                <span class="icon">👁</span><span class="label">aux</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- カメラモード表示＋ギズモ -->
+        <div id="camera-panel">
+          <div id="viewer-gizmo-root" class="viewer-gizmo"></div>
+          <div id="mode-stack">
+            <div id="mode-label-macro" class="mode-pill mode-pill-active">
+              MACRO
+            </div>
+
+            <!-- MESO モード pill -->
+            <div id="mode-label-meso" class="mode-pill">
+              MESO
+            </div>
+
+            <div class="mode-micro-block">
+              <div id="mode-label-micro" class="mode-pill">micro</div>
+              <button
+                id="mode-focus-toggle"
+                class="mode-focus-toggle keycap"
+                type="button"
+                title="Toggle micro focus (Q)"
+              >
+                FOCUS&nbsp;[Q]
+              </button>
+              <div id="mode-focus-label" class="mode-focus-label">-</div>
+            </div>
+          </div>
+
+          <div id="gizmo-wrapper">
+            <!-- 矢印キー ナビ＋ボタン -->
+            <button
+              class="gizmo-arrow gizmo-arrow-up keycap"
+              type="button"
+              data-key="ArrowUp"
+              title="Camera up (↑)"
+            >
+              ↑
+            </button>
+            <button
+              class="gizmo-arrow gizmo-arrow-right keycap"
+              type="button"
+              data-key="ArrowRight"
+              title="Camera right (→)"
+            >
+              →
+            </button>
+            <button
+              class="gizmo-arrow gizmo-arrow-down keycap"
+              type="button"
+              data-key="ArrowDown"
+              title="Camera down (↓)"
+            >
+              ↓
+            </button>
+            <button
+              class="gizmo-arrow gizmo-arrow-left keycap"
+              type="button"
+              data-key="ArrowLeft"
+              title="Camera left (←)"
+            >
+              ←
+            </button>
+
+            <div id="gizmo-slot"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右：メタ情報エリア -->
+      <aside id="viewer-meta">
+        <div id="meta-header">
+          <a id="meta-logo-link" href="/viewer/">
+            <img
+              id="meta-logo"
+              src="../assets/logo/3DSD-viewer.svg"
+              alt="3DSD-viewer"
+            />
+          </a>
+        </div>
+
+        <div id="meta-file">
+          <h3>File</h3>
+          <div>(no file yet)</div>
+        </div>
+        <div id="meta-model">
+          <h3>Model</h3>
+          <div>(logs will appear here)</div>
+        </div>
+      </aside>
+    </div>
+
+    <script type="module">
+      import { bootstrapViewerFromUrl } from "./runtime/bootstrapViewer.js";
+
+      let viewerHub = null;
+      let playTimer = null;
+
+      const elMetaFile = document.getElementById("meta-file");
+      const elMetaModel = document.getElementById("meta-model");
+      const elHud = document.getElementById("viewer-hud");
+
+      function clearMetaPanels() {
+        if (elMetaFile) {
+          elMetaFile.innerHTML = "<h3>File</h3><div>(loading...)</div>";
+        }
+        if (elMetaModel) {
+          elMetaModel.innerHTML =
+            "<h3>Model</h3><div>(logs will appear here)</div>";
+        }
+      }
+
+      function appendModelLog(line) {
+        if (!elMetaModel) return;
+        if (!elMetaModel.dataset.initialized) {
+          elMetaModel.innerHTML =
+            "<h3>Model</h3><div class='meta-log'></div>";
+          elMetaModel.dataset.initialized = "1";
+        }
+        const logArea =
+          elMetaModel.querySelector(".meta-log") || elMetaModel;
+        const div = document.createElement("div");
+        div.textContent = line;
+        logArea.appendChild(div);
+        elMetaModel.scrollTop = elMetaModel.scrollHeight;
+      }
+
+      window.viewerLog = appendModelLog;
+
+      function showHudMessage(text, { duration = 1600, level = "info" } = {}) {
+        if (!elHud) return;
+
+        if (showHudMessage._timer) {
+          clearTimeout(showHudMessage._timer);
+          showHudMessage._timer = null;
+        }
+
+        elHud.textContent = text;
+
+        elHud.classList.remove(
+          "hud-hidden",
+          "hud-visible",
+          "hud-info",
+          "hud-warn",
+          "hud-error"
+        );
+        elHud.classList.add("hud-visible", `hud-${level}`);
+
+        showHudMessage._timer = setTimeout(() => {
+          elHud.classList.remove("hud-visible", `hud-${level}`);
+          elHud.classList.add("hud-hidden");
+        }, duration);
+      }
+
+      window.viewerToast = showHudMessage;
+
+      function initFilterControls() {
+        if (!viewerHub || !viewerHub.core || !viewerHub.core.filters) return;
+
+        const filtersAPI = viewerHub.core.filters;
+
+        const btnLines = document.getElementById("filter-lines");
+        const btnPoints = document.getElementById("filter-points");
+        const btnAux = document.getElementById("filter-aux");
+
+        function setFilterButtonState(btn, enabled) {
+          if (!btn) return;
+          const icon = btn.querySelector(".icon");
+          if (enabled) {
+            btn.classList.remove("filter-off");
+            btn.classList.add("filter-on");
+            if (icon) icon.textContent = "👁";
+          } else {
+            btn.classList.remove("filter-on");
+            btn.classList.add("filter-off");
+            if (icon) icon.textContent = "🙈";
+          }
+        }
+
+        function syncFilterUI() {
+          const f = filtersAPI.get();
+          setFilterButtonState(btnLines, !!f.lines);
+          setFilterButtonState(btnPoints, !!f.points);
+          setFilterButtonState(btnAux, !!f.aux);
+        }
+
+        if (btnLines) {
+          btnLines.addEventListener("click", () => {
+            const next = btnLines.classList.contains("filter-off");
+            filtersAPI.setTypeEnabled("lines", next);
+            syncFilterUI();
+          });
+        }
+
+        if (btnPoints) {
+          btnPoints.addEventListener("click", () => {
+            const next = btnPoints.classList.contains("filter-off");
+            filtersAPI.setTypeEnabled("points", next);
+            syncFilterUI();
+          });
+        }
+
+        if (btnAux) {
+          btnAux.addEventListener("click", () => {
+            const next = btnAux.classList.contains("filter-off");
+            filtersAPI.setTypeEnabled("aux", next);
+            syncFilterUI();
+          });
+        }
+
+        syncFilterUI();
+      }
+
+      function initFrameControls() {
+        if (!viewerHub || !viewerHub.core || !viewerHub.core.frame) return;
+
+        const frameAPI = viewerHub.core.frame;
+
+        const slider = document.getElementById("frame-slider");
+        const label = document.getElementById("frame-slider-label");
+
+        const btnRew = document.getElementById("btn-rew");
+        const btnPlay = document.getElementById("btn-play");
+        const btnFF = document.getElementById("btn-ff");
+        const btnStepBack = document.getElementById("btn-step-back");
+        const btnHome = document.getElementById("btn-home");
+        const btnStepForward =
+          document.getElementById("btn-step-forward");
+
+        const range = frameAPI.range();
+        const current = frameAPI.get();
+
+        function updateLabelFromState() {
+          const f = frameAPI.get();
+          if (slider) slider.value = f;
+          if (label) label.textContent = String(f);
+        }
+
+        if (slider) {
+          slider.min = range.min;
+          slider.max = range.max;
+          slider.step = 1;
+          slider.value = current;
+        }
+        if (label) {
+          label.textContent = String(current);
+        }
+
+        if (slider) {
+          slider.addEventListener("input", (ev) => {
+            const v = Number(ev.target.value);
+            if (!Number.isFinite(v)) return;
+            frameAPI.set(v);
+            updateLabelFromState();
+          });
+        }
+
+        if (btnStepBack) {
+          btnStepBack.addEventListener("click", () => {
+            frameAPI.step(-1);
+            updateLabelFromState();
+          });
+        }
+
+        if (btnStepForward) {
+          btnStepForward.addEventListener("click", () => {
+            frameAPI.step(1);
+            updateLabelFromState();
+          });
+        }
+
+        if (btnHome) {
+          btnHome.addEventListener("click", () => {
+            frameAPI.set(range.min);
+            updateLabelFromState();
+          });
+        }
+
+        if (btnRew) {
+          btnRew.addEventListener("click", () => {
+            frameAPI.set(range.min);
+            updateLabelFromState();
+          });
+        }
+
+        if (btnFF) {
+          btnFF.addEventListener("click", () => {
+            frameAPI.set(range.max);
+            updateLabelFromState();
+          });
+        }
+
+        if (btnPlay) {
+          btnPlay.addEventListener("click", () => {
+            if (playTimer) {
+              clearInterval(playTimer);
+              playTimer = null;
+              btnPlay.textContent = "Play";
+              return;
+            }
+            btnPlay.textContent = "Stop";
+
+            playTimer = setInterval(() => {
+              const r = frameAPI.range();
+              const cur = frameAPI.get();
+              if (cur >= r.max) {
+                frameAPI.set(r.min);
+              } else {
+                frameAPI.step(1);
+              }
+              updateLabelFromState();
+            }, 600);
+          });
+        }
+
+        // 他経路（キーボード等）からの変更を拾って UI を同期
+        let lastFrame = frameAPI.get();
+        function frameUiLoop() {
+          const f = frameAPI.get();
+          if (f !== lastFrame) {
+            lastFrame = f;
+            if (slider) slider.value = f;
+            if (label) label.textContent = String(f);
+          }
+          requestAnimationFrame(frameUiLoop);
+        }
+        requestAnimationFrame(frameUiLoop);
+      }
+
+      function initModeHudLoop() {
+        if (!viewerHub || !viewerHub.core) return;
+
+        const elModeMacro = document.getElementById("mode-label-macro");
+        const elModeMeso = document.getElementById("mode-label-meso");
+        const elModeMicro = document.getElementById("mode-label-micro");
+        const elFocusLabel = document.getElementById("mode-focus-label");
+        const btnFocusToggle = document.getElementById("mode-focus-toggle");
+
+        if (btnFocusToggle) {
+          btnFocusToggle.addEventListener("click", () => {
+            const sel = viewerHub.core.selection.get();
+            if (!sel || !sel.uuid) return;
+            viewerHub.core.mode.set("micro", sel.uuid);
+          });
+        }
+
+        if (elModeMeso) {
+          elModeMeso.style.cursor = "pointer";
+          elModeMeso.addEventListener("click", () => {
+            const sel = viewerHub.core.selection.get();
+            if (!sel || !sel.uuid) return;
+            viewerHub.core.mode.set("meso", sel.uuid);
+          });
+        }
+
+        let lastMode = null;
+
+        function loop() {
+          if (!viewerHub || !viewerHub.core) {
+            requestAnimationFrame(loop);
+            return;
+          }
+
+          const modeAPI = viewerHub.core.mode;
+          const uiState = viewerHub.core.uiState;
+
+          const mode = modeAPI.get();
+          if (mode !== lastMode) {
+            lastMode = mode;
+            let msg = "";
+            if (mode === "macro") msg = "MACRO MODE";
+            else if (mode === "meso") msg = "MESO MODE";
+            else if (mode === "micro") msg = "MICRO MODE";
+            if (msg) showHudMessage(msg, { duration: 800, level: "info" });
+          }
+
+          if (elModeMacro) {
+            elModeMacro.classList.toggle(
+              "mode-pill-active",
+              mode === "macro"
+            );
+          }
+          if (elModeMeso) {
+            elModeMeso.classList.toggle(
+              "mode-pill-active",
+              mode === "meso"
+            );
+          }
+          if (elModeMicro) {
+            elModeMicro.classList.toggle(
+              "mode-pill-active",
+              mode === "micro"
+            );
+          }
+
+          if (elFocusLabel && uiState) {
+            const sel = uiState.selection || null;
+            const txt = sel && sel.uuid ? sel.uuid : "-";
+            elFocusLabel.textContent = txt;
+          }
+
+          requestAnimationFrame(loop);
+        }
+
+        requestAnimationFrame(loop);
+      }
+
+      function initGizmoButtons() {
+        const gizmoArrows =
+          document.querySelectorAll(".gizmo-arrow");
+        gizmoArrows.forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const key = btn.dataset.key;
+            if (!key) return;
+            const ev = new KeyboardEvent("keydown", {
+              key,
+              code: key,
+              bubbles: true,
+            });
+            window.dispatchEvent(ev);
+          });
+        });
+      }
+
+      function initKeyboardShortcuts() {
+        window.addEventListener("keydown", (ev) => {
+          if (!viewerHub || !viewerHub.core) return;
+          const tag = (ev.target && ev.target.tagName) || "";
+          if (tag === "INPUT" || tag === "TEXTAREA") return;
+
+          const frame = viewerHub.core.frame;
+          const mode = viewerHub.core.mode;
+
+          // Space: 再生 / 停止
+          if (ev.code === "Space") {
+            ev.preventDefault();
+            const btnPlay = document.getElementById("btn-play");
+            if (btnPlay) btnPlay.click();
+            return;
+          }
+
+          // PgUp / PgDn / Home
+          if (ev.code === "PageUp") {
+            ev.preventDefault();
+            frame.step(1);
+            return;
+          }
+          if (ev.code === "PageDown") {
+            ev.preventDefault();
+            frame.step(-1);
+            return;
+          }
+          if (ev.code === "Home") {
+            ev.preventDefault();
+            const range = frame.range();
+            frame.set(range.min);
+            return;
+          }
+
+          // Q: micro
+          if (ev.key === "q" || ev.key === "Q") {
+            ev.preventDefault();
+            const sel = viewerHub.core.selection.get();
+            if (sel && sel.uuid) mode.set("micro", sel.uuid);
+            return;
+          }
+
+          // W: meso
+          if (ev.key === "w" || ev.key === "W") {
+            ev.preventDefault();
+            const sel = viewerHub.core.selection.get();
+            if (sel && sel.uuid) mode.set("meso", sel.uuid);
+            return;
+          }
+
+          // Esc: macro
+          if (ev.key === "Escape") {
+            ev.preventDefault();
+            mode.set("macro");
+            return;
+          }
+        });
+      }
+
+      async function boot() {
+        console.log("[viewer-dev] boot start");
+
+        clearMetaPanels();
+
+        const canvasId = "viewer-canvas";
+        // ★ここは自分の 3DSS サンプルのパスに合わせて変える
+//        const jsonUrl = "../3dss/sample/frame_test.3dss.json";
+        const jsonUrl = "../3dss/sample/frame_filter_test.3dss.json";
+//        const jsonUrl = "../3dss/sample/microfx_cluster_medium.3dss.json";
+//        const jsonUrl = "../3dss/sample/microfx_depth_layers.3dss.json";
+//        const jsonUrl = "../3dss/sample/microfx_label.3dss.json";
+//        const jsonUrl = "../3dss/sample/microfx_long_span.3dss.json";
+//        const jsonUrl = "../3dss/sample/microfx_min.3dss.json";
+//        const jsonUrl = "../3dss/sample/microfx_mixed.3dss.json";
+//        const jsonUrl = "../3dss/sample/xyz_basis.3dss.json";
+
+        try {
+          viewerHub = await bootstrapViewerFromUrl(canvasId, jsonUrl);
+          window.hub = viewerHub; // デバッグ用
+
+          appendModelLog("Viewer boot OK.");
+
+          if (elMetaFile && viewerHub.core && viewerHub.core.frame) {
+            const range = viewerHub.core.frame.range();
+            const current = viewerHub.core.frame.get();
+            elMetaFile.innerHTML =
+              "<h3>File</h3>" +
+              `<div>Source: ${jsonUrl}</div>` +
+              `<div>Frame range: [${range.min}, ${range.max}]</div>` +
+              `<div>Current frame: ${current}</div>`;
+          }
+
+          showHudMessage("Viewer loaded", {
+            duration: 1200,
+            level: "info",
+          });
+        } catch (err) {
+          console.error("[viewer-dev] boot failed:", err);
+
+          if (elMetaFile) {
+            elMetaFile.innerHTML =
+              "<h3>File</h3>" + `<div>Source: ${jsonUrl}</div>`;
+          }
+          if (elMetaModel) {
+            elMetaModel.innerHTML =
+              "<h3>Model</h3>" +
+              "<div style='color:#ff8888;'>Load error.</div>" +
+              `<pre style="white-space:pre-wrap;font-size:10px;">${String(
+                err
+              )}</pre>`;
+          }
+
+          showHudMessage("Viewer load error", {
+            duration: 3000,
+            level: "error",
+          });
+
+          return;
+        }
+
+        initFrameControls();
+        initFilterControls();
+        initModeHudLoop();
+        initGizmoButtons();
+        initKeyboardShortcuts();
+      }
+
+      window.addEventListener("load", boot);
+    </script>
+  </body>
+</html>

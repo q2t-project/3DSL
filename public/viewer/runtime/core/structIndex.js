@@ -1,145 +1,95 @@
 // runtime/core/structIndex.js
 
-// 3DSS ノード共通ヘルパ ------------------------------
+// 3DSS から UUID ベースの index を構築する。
+// - uuidToKind: uuid -> "points" | "lines" | "aux"
+// - uuidToFrames: uuid -> Set<frameNumber>
 
-function getUuid(node) {
-  if (!node || typeof node !== "object") return null;
-  if (typeof node.meta?.uuid === "string" && node.meta.uuid) return node.meta.uuid;
-  if (typeof node.uuid === "string" && node.uuid) return node.uuid;
-  return null;
-}
+function normalizeFrames(raw) {
+  if (raw === undefined || raw === null) return null;
 
-// frames は number か number[] を想定
-function normalizeFrames(frames) {
-  if (typeof frames === "number" && Number.isFinite(frames)) {
-    return [Math.trunc(frames)];
-  }
-  if (Array.isArray(frames)) {
-    const out = [];
-    for (const v of frames) {
-      if (typeof v === "number" && Number.isFinite(v)) {
-        out.push(Math.trunc(v));
-      }
+  // 単一整数 or 配列 の両方を許容
+  const values = Array.isArray(raw) ? raw : [raw];
+
+  const set = new Set();
+  for (const v of values) {
+    const n = Number(v);
+    if (Number.isInteger(n) && n >= -9999 && n <= 9999) {
+      set.add(n);
     }
-    return out;
   }
-  return [];
+  return set.size > 0 ? set : null;
 }
 
-function scanFramesFromNode(node, update) {
-  if (!node || typeof node !== "object") return;
-
-  if ("frames" in node) {
-    update(normalizeFrames(node.frames));
-  }
-  if (node.appearance && "frames" in node.appearance) {
-    update(normalizeFrames(node.appearance.frames));
-  }
-}
-
-// ----------------------------------------------------
-// uuid index 構築
-// ----------------------------------------------------
-
-/**
- * 3DSS ドキュメントから uuid index を構築する。
- *
- * 戻り値の shape（現時点の仕様）:
- *
- * {
- *   uuidToKind:   Map<string, "points"|"lines"|"aux">,
- *   pointsByUuid: Map<string, PointNode>,
- *   linesByUuid:  Map<string, LineNode>,
- *   auxByUuid:    Map<string, AuxNode>,
- * }
- *
- * 既存コードは uuidToKind だけ使っているので、
- * 他フィールドは将来用の拡張。
- */
 export function buildUUIDIndex(document) {
-  const uuidToKind   = new Map();
-  const pointsByUuid = new Map();
-  const linesByUuid  = new Map();
-  const auxByUuid    = new Map();
+  const uuidToKind = new Map();
+  const uuidToFrames = new Map();
 
-  function addAll(array, kind, byUuid) {
-    if (!Array.isArray(array)) return;
+  if (!document || typeof document !== "object") {
+    return { uuidToKind, uuidToFrames };
+  }
 
-    for (const node of array) {
-      const uuid = getUuid(node);
-      if (typeof uuid !== "string" || !uuid) continue;
+  function scanArray(arr, kind) {
+    if (!Array.isArray(arr)) return;
 
-      // 同一 uuid が複数あった場合は最初のものを優先
-      if (!uuidToKind.has(uuid)) {
-        uuidToKind.set(uuid, kind);
-        byUuid.set(uuid, node);
+    for (const node of arr) {
+      const uuid = node?.meta?.uuid;
+      if (!uuid) continue;
+
+      uuidToKind.set(uuid, kind);
+
+      const framesSet = normalizeFrames(node?.appearance?.frames);
+      if (framesSet) {
+        uuidToFrames.set(uuid, framesSet);
       }
     }
   }
 
-  addAll(document?.points, "points", pointsByUuid);
-  addAll(document?.lines,  "lines",  linesByUuid);
-  addAll(document?.aux,    "aux",    auxByUuid);
+  scanArray(document.points, "points");
+  scanArray(document.lines, "lines");
+  scanArray(document.aux, "aux");
 
   return {
     uuidToKind,
-    pointsByUuid,
-    linesByUuid,
-    auxByUuid,
+    uuidToFrames,
   };
 }
 
-// ----------------------------------------------------
-// frame range 検出
-// ----------------------------------------------------
-
-/**
- * ドキュメント全体の frames の最小値・最大値を検出する。
- * frames が一つも無い場合は {min:0, max:0} を返す。
- */
+// appearance.frames を全部スキャンして [min,max] を返す。
+// 何も無ければ {0,0}。
 export function detectFrameRange(document) {
-  let hasAny = false;
-  let min = 0;
-  let max = 0;
+  if (!document || typeof document !== "object") {
+    return { min: 0, max: 0 };
+  }
 
-  function updateFrom(framesArr) {
-    for (const v of framesArr) {
-      if (!Number.isFinite(v)) continue;
-      if (!hasAny) {
-        min = max = v;
-        hasAny = true;
-      } else {
-        if (v < min) min = v;
-        if (v > max) max = v;
+  let min = Infinity;
+  let max = -Infinity;
+
+  function scanArray(arr) {
+    if (!Array.isArray(arr)) return;
+
+    for (const node of arr) {
+      const frames = node?.appearance?.frames;
+      if (frames === undefined || frames === null) continue;
+
+      const values = Array.isArray(frames) ? frames : [frames];
+      for (const v of values) {
+        const n = Number(v);
+        if (!Number.isInteger(n)) continue;
+        if (n < -9999 || n > 9999) continue;
+
+        if (n < min) min = n;
+        if (n > max) max = n;
       }
     }
   }
 
-  const visitArray = (arr) => {
-    if (!Array.isArray(arr)) return;
-    for (const node of arr) {
-      scanFramesFromNode(node, updateFrom);
-    }
-  };
+  scanArray(document.points);
+  scanArray(document.lines);
+  scanArray(document.aux);
 
-  visitArray(document?.points);
-  visitArray(document?.lines);
-  visitArray(document?.aux);
-
-  if (!hasAny) {
+  if (!Number.isFinite(min) || !Number.isFinite(max)) {
     return { min: 0, max: 0 };
   }
 
-  // 仕様上の推奨範囲に軽くクランプ（-9999〜9999）
-  const clamp = (v) => {
-    if (!Number.isFinite(v)) return 0;
-    if (v < -9999) return -9999;
-    if (v >  9999) return  9999;
-    return v;
-  };
-
-  return {
-    min: clamp(min),
-    max: clamp(max),
-  };
+  return { min, max };
 }

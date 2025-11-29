@@ -17,7 +17,7 @@ export function createViewerHub({ core, renderer }) {
   const cameraEngine = core.cameraEngine;
 
   const frameController = core.frameController;
-  const visibilityCtrl  = core.visibilityController;
+  const visibilityController  = core.visibilityController;
 
   const renderFrame = () => {
     const camState = cameraEngine.getState();
@@ -235,16 +235,25 @@ export function createViewerHub({ core, renderer }) {
       },
 
       filters: {
-        // kind = "points"|"lines"|"aux"
-        setTypeEnabled: (kind, enabled) => {
-          if (visibilityCtrl?.setTypeEnabled) {
-            visibilityCtrl.setTypeEnabled(kind, enabled);          }
-        },
-        get: () => {
-          if (visibilityCtrl?.getState) {
-            return visibilityCtrl.getState();
+        setTypeEnabled(kind, enabled) {
+          if (
+            visibilityController &&
+            typeof visibilityController.setTypeFilter === "function"
+          ) {
+            visibilityController.setTypeFilter(kind, enabled);
+          } else if (core.uiState && core.uiState.filters) {
+            // 最悪のフォールバック
+            core.uiState.filters[kind] = !!enabled;
           }
-          return {};
+        },
+        get() {
+          if (
+            visibilityController &&
+            typeof visibilityController.getFilters === "function"
+          ) {
+            return visibilityController.getFilters();
+          }
+          return { ...(core.uiState?.filters || {}) };
         },
       },
 
