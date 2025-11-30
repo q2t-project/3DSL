@@ -28,7 +28,22 @@ export class CameraInput {
     canvas.addEventListener("pointercancel", this.onPointerUp);
     canvas.addEventListener("wheel", this.onWheel, { passive: false });
 
-    canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+    this.onContextMenu = (e) => e.preventDefault();
+    canvas.addEventListener("contextmenu", this.onContextMenu);
+  }
+
+  // 後始末用。viewer を破棄するときに呼んでもらう想定。
+  dispose() {
+    const canvas = this.canvas;
+    if (!canvas) return;
+
+    canvas.removeEventListener("pointerdown", this.onPointerDown);
+    canvas.removeEventListener("pointermove", this.onPointerMove);
+    canvas.removeEventListener("pointerup", this.onPointerUp);
+    canvas.removeEventListener("pointerleave", this.onPointerUp);
+    canvas.removeEventListener("pointercancel", this.onPointerUp);
+    canvas.removeEventListener("wheel", this.onWheel);
+    canvas.removeEventListener("contextmenu", this.onContextMenu);
   }
 
   stopAutoCamera() {
@@ -91,7 +106,11 @@ export class CameraInput {
 
   onPointerUp(event) {
     if (this.isPointerDown) {
-      this.canvas.releasePointerCapture(event.pointerId);
+      try {
+        this.canvas.releasePointerCapture(event.pointerId);
+      } catch (_e) {
+        // 既に release 済み・未 capture 等は無視
+      }
     }
 
     if (this.clickPending) {
@@ -105,8 +124,8 @@ export class CameraInput {
           this.hub.core.uiState.runtime.isCameraAuto = false;
         }
 
-        this.hub.core.selection.select(hit.uuid);
-        this.hub.core.mode.focus(hit.uuid);
+        this.hub?.core?.selection?.select?.(hit.uuid);
+        this.hub?.core?.mode?.focus?.(hit.uuid);
       } else {
         // 何も当たらへんかったら selection / micro をクリアして macro に戻す
         this.hub?.core?.selection?.clear?.();

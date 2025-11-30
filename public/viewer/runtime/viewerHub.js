@@ -20,6 +20,12 @@ export function createViewerHub({ core, renderer }) {
   const visibilityController  = core.visibilityController;
 
   const renderFrame = () => {
+    if (!cameraEngine || typeof cameraEngine.getState !== "function") {
+      // cameraEngine 未初期化ならレンダーループだけ止める
+      animationId = null;
+      return;
+    }
+
     const camState = cameraEngine.getState();
 
     debugHub("[hub] frame", debugFrameCount++, {
@@ -38,7 +44,9 @@ export function createViewerHub({ core, renderer }) {
         ? core.uiState.microState
         : null;
 
-    renderer.applyMicroFX(microState, camState);
+    if (typeof renderer.applyMicroFX === "function") {
+      renderer.applyMicroFX(microState, camState);
+    }
     renderer.render();
 
     animationId = requestAnimationFrame(renderFrame);

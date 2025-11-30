@@ -82,7 +82,7 @@ export function createUiState(initial = {}) {
   // 旧: uiState.currentFrame -> 新: uiState.frame.current
   Object.defineProperty(state, "currentFrame", {
     get() {
-      return state.selection?.uuid ?? null;
+      return state.frame.current;
     },
     set(v) {
       if (typeof v === "number") state.frame.current = v;
@@ -94,7 +94,7 @@ export function createUiState(initial = {}) {
   // 旧: uiState.selectedUuid -> 新: uiState.selection.uuid
   Object.defineProperty(state, "selectedUuid", {
     get() {
-      return state.selection.uuid;
+      return state.selection?.uuid ?? null;
     },
     set(v) {
       if (!v) {

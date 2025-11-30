@@ -69,7 +69,8 @@ export function ensureBounds(scene) {
     boundsGroup.add(mesh);
 
     // 外枠 Wireframe
-    const wireGeom = new THREE.BoxGeometry(1, 1, 1);
+    // Box の「外枠 12 本」だけを取り出す（面の対角線は含めない）
+    const wireGeom = new THREE.EdgesGeometry(boxGeom);
     const wireMat = new THREE.LineBasicMaterial({
       color: baseWireColor.clone(),
       transparent: true,
@@ -78,10 +79,7 @@ export function ensureBounds(scene) {
       depthWrite: false,
       // depthTest はそのまま true（デフォルト）で OK
     });
-    const wire = new THREE.LineSegments(
-      new THREE.WireframeGeometry(wireGeom),
-      wireMat
-    );
+    const wire = new THREE.LineSegments(wireGeom, wireMat);
     wire.renderOrder = 11;
     boundsGroup.add(wire);
 

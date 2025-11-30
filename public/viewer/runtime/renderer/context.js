@@ -1,6 +1,7 @@
 // viewer/runtime/renderer/context.js
 import * as THREE from "../../../vendor/three/build/three.module.js";
 import { applyMicroFX as applyMicroFXImpl } from "./microFX/index.js";
+import { labelConfig } from "./labels/labelConfig.js";
 import { buildPointLabelIndex } from "../core/labelModel.js";
 
 // ------------------------------------------------------------
@@ -13,19 +14,40 @@ function debugRenderer(...args) {
 }
 
 // 3DSS / プロト両対応のユーティリティ
+// （createPoint / createLine / createAux / getPointPosition から参照）
 function getUuid(node) {
+  if (!node) return null;
   return node?.meta?.uuid ?? node?.uuid ?? null;
 }
 
-function getPointPosition(node) {
-  // 3DSS 正式: appearance.position: [x,y,z]
-  if (Array.isArray(node?.appearance?.position) && node.appearance.position.length === 3) {
+// 3DSS / プロト両対応のユーティリティ
+// structIndex があれば indices.pointPosition を優先して座標を返す
+function getPointPosition(node, indices) {
+  const uuid = getUuid(node);
+
+  // 1) structIndex 優先（正規化済みの座標）
+  if (
+    uuid &&
+    indices &&
+    indices.pointPosition instanceof Map &&
+    indices.pointPosition.has(uuid)
+  ) {
+    return indices.pointPosition.get(uuid);
+  }
+
+  // 2) 3DSS 正式: appearance.position: [x,y,z]
+  if (
+    Array.isArray(node?.appearance?.position) &&
+    node.appearance.position.length === 3
+  ) {
     return node.appearance.position;
   }
-  // プロト互換: position: [x,y,z]
+
+  // 3) プロト互換: position: [x,y,z]
   if (Array.isArray(node?.position) && node.position.length === 3) {
     return node.position;
   }
+
   return [0, 0, 0];
 }
 
@@ -93,8 +115,14 @@ export function createRendererContext(canvasOrOptions) {
 
   const raycaster = new THREE.Raycaster();
 
+  // この renderer インスタンスに紐づく structIndex（あれば）
+  let currentIndices = null;
+
   // 3DSS points の位置キャッシュ（line の end_a/end_b 参照用）
+  //   - position: [x,y,z]
+  //   - radius:   SphereGeometry の半径（代表半径）
   let pointPositionByUuid = new Map();
+  let pointRadiusByUuid   = new Map();
 
   const clearMaps = () => {
     for (const obj of [
@@ -109,6 +137,8 @@ export function createRendererContext(canvasOrOptions) {
     auxObjects.clear();
     baseStyle.clear();
     pointPositionByUuid = new Map();
+    pointRadiusByUuid   = new Map();
+    currentIndices = null;
 
     // ラベル Sprite も掃除
     for (const sprite of labelSprites.values()) {
@@ -120,21 +150,8 @@ export function createRendererContext(canvasOrOptions) {
 
   // ------------------------------------------------------------
   // ラベル描画: CanvasTexture + Sprite / Plane
+  // （実際のスカラー値は labelConfig に退避）
   // ------------------------------------------------------------
-
-  // unitless な「論理ラベルサイズ」基準値
-  // 3DSS の label.size=8 を「標準サイズ=1.0」とみなす
-  const LABEL_BASE_LABEL_SIZE   = 8;
-
-  // Canvas2D にラスタライズするときの実ピクセル数の制約
-  const LABEL_MIN_FONT_PX       = 0.125; // 画面上のフォント px 下限
-  const LABEL_MAX_FONT_PX       = 256;   // 画面上のフォント px 上限
-
-  // 「1 論理サイズあたり何 px で描くか」という supersample 係数
-  const LABEL_SUPERSAMPLE_PX    = 3;
-  
-  const LABEL_BASE_WORLD_HEIGHT = 0.25; // 8px のときのワールド高さ
-  const LABEL_OFFSET_Y_FACTOR   = 0.0;  // その高さに対するオフセット
 
   function createLabelSprite(label, basePosition) {
     if (!label || !label.text) return null;
@@ -146,18 +163,25 @@ export function createRendererContext(canvasOrOptions) {
     // 「論理フォントサイズ」（world 上の高さに対応）
     // 3DSS 上では unitless な「論理ラベルサイズ」
     const logicalSize =
-      typeof label.size === "number" ? label.size : LABEL_BASE_LABEL_SIZE;
+      typeof label.size === "number" ? label.size : labelConfig.baseLabelSize;
 
     // 実際にラスタライズするフォント px は supersample 倍
     // Canvas2D に描くときだけ px に落とし込む
-    const fontPx = Math.max(
-      LABEL_MIN_FONT_PX,
-      Math.min(logicalSize * LABEL_SUPERSAMPLE_PX, LABEL_MAX_FONT_PX)
-    );
-    const padding = 4;
 
-    const fontFamily =
-      'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    const fontPx = Math.max(
+      labelConfig.raster.minFontPx,
+      Math.min(
+        logicalSize * labelConfig.raster.supersamplePx,
+        labelConfig.raster.maxFontPx
+      )
+    );
+
+    const basePadding = labelConfig.raster.padding ?? 0;
+    const outlinePadding =
+      (labelConfig.outline && labelConfig.outline.extraPaddingPx) || 0;
+    const padding = basePadding + outlinePadding;
+
+    const fontFamily = labelConfig.raster.fontFamily;
     ctx.font = `${fontPx}px ${fontFamily}`;
 
     const metrics    = ctx.measureText(label.text);
@@ -171,12 +195,28 @@ export function createRendererContext(canvasOrOptions) {
     ctx.font = `${fontPx}px ${fontFamily}`;
     ctx.textBaseline = "top";
 
-    // 背景（半透明の黒）
-    ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // 背景
+    if (labelConfig.background.enabled) {
+      ctx.fillStyle = labelConfig.background.fillStyle;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else {
+      // 背景プレートを使わない場合は一旦クリア
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
 
-    // 文字色（とりあえず白固定）
-    ctx.fillStyle = "#ffffff";
+    // アウトライン（縁取り）
+    if (labelConfig.outline && labelConfig.outline.enabled) {
+      ctx.lineWidth = labelConfig.outline.widthPx ?? 4;
+      ctx.strokeStyle =
+        labelConfig.outline.color || "rgba(0, 0, 0, 0.95)";
+      ctx.lineJoin = labelConfig.outline.lineJoin || "round";
+
+      // 先に縁取りを描く
+      ctx.strokeText(label.text, padding, padding);
+    }
+
+    // 本体の文字
+    ctx.fillStyle = labelConfig.text.fillStyle;
     ctx.fillText(label.text, padding, padding);
 
     const texture = new THREE.CanvasTexture(canvas);
@@ -186,8 +226,8 @@ export function createRendererContext(canvasOrOptions) {
     texture.wrapT = THREE.ClampToEdgeWrapping;
 
     // ★ world 上の高さは「unitless な論理サイズ」から計算する
-    const worldScale = logicalSize / LABEL_BASE_LABEL_SIZE;
-    const worldHeight = LABEL_BASE_WORLD_HEIGHT * worldScale;
+    const worldScale = logicalSize / labelConfig.baseLabelSize;
+    const worldHeight = labelConfig.world.baseHeight * worldScale;
     const aspect = canvas.width / canvas.height;
 
     // plane モードを解釈
@@ -239,7 +279,7 @@ export function createRendererContext(canvasOrOptions) {
     const pos = Array.isArray(basePosition) ? basePosition : [0, 0, 0];
     obj.position.set(
       pos[0],
-      pos[1] + worldHeight * LABEL_OFFSET_Y_FACTOR,
+      pos[1] + worldHeight * (labelConfig.world.offsetYFactor ?? 0),
       pos[2]
     );
 
@@ -392,13 +432,15 @@ export function createRendererContext(canvasOrOptions) {
 
   // ---------- 3DSS: points ----------
   const createPoint = (pointNode) => {
-    const uuid = getUuid(pointNode);
-    if (!uuid) return null;
+    const uuid =
+      pointNode?.meta?.uuid ??
+      pointNode?.uuid ??
+      null;
 
-    const pos = getPointPosition(pointNode);
+    // structIndex（currentIndices）を優先して position を取得
+    const pos = getPointPosition(pointNode, currentIndices);
     const size = getPointSize(pointNode, 0.06);
     const geometry = new THREE.SphereGeometry(size, 16, 16);
-
     const color = getColor(pointNode, "#ffffff");
     const opacity = getOpacity(pointNode, 1.0);
 
@@ -417,31 +459,197 @@ export function createRendererContext(canvasOrOptions) {
       opacity: material.opacity,
     });
 
-    // line 用に position をキャッシュ
+    // line 用に position / radius をキャッシュ
     pointPositionByUuid.set(uuid, pos);
+    if (uuid) {
+      pointRadiusByUuid.set(uuid, size);
+    }
 
     return obj;
   };
 
-  // ---------- 3DSS: lines ----------
-  const createLine = (lineNode) => {
-    const uuid = getUuid(lineNode);
-    if (!uuid) return null;
+  // line 端点の補正と arrow 用ヘルパ
 
-    let positions = null;
+  function resolveLineEndpoint(endNode) {
+    const position = new THREE.Vector3();
+    let radius = 0;
+    let refUuid = null;
 
-    // 3DSS 正式: appearance.end_a.ref / end_b.ref → points の座標を参照
-    const refA = lineNode?.appearance?.end_a?.ref;
-    const refB = lineNode?.appearance?.end_b?.ref;
-
-    if (typeof refA === "string" && typeof refB === "string") {
-      const posA = pointPositionByUuid.get(refA);
-      const posB = pointPositionByUuid.get(refB);
-      if (posA && posB) {
-        positions = [...posA, ...posB];
-      }
+    if (!endNode) {
+      return { position, radius, refUuid };
     }
 
+    // ref(uuid) → point の中心＋代表半径
+    if (typeof endNode.ref === "string") {
+      refUuid = endNode.ref;
+      const p = pointPositionByUuid.get(refUuid);
+      if (Array.isArray(p) && p.length >= 3) {
+        position.set(p[0], p[1], p[2]);
+      } else if (p && typeof p.x === "number" && typeof p.y === "number" && typeof p.z === "number") {
+        position.set(p.x, p.y, p.z);
+      }
+      const r = pointRadiusByUuid.get(refUuid);
+      if (typeof r === "number" && Number.isFinite(r) && r > 0) {
+        radius = r;
+      }
+      return { position, radius, refUuid };
+    }
+
+    // coord([x,y,z]) → 直接座標（代表半径 0）
+    if (Array.isArray(endNode.coord) && endNode.coord.length >= 3) {
+      position.set(endNode.coord[0], endNode.coord[1], endNode.coord[2]);
+    }
+
+    return { position, radius, refUuid };
+  }
+
+  function computeTrimmedSegment(posA, posB, radiusA, radiusB) {
+    const start = posA.clone();
+    const end = posB.clone();
+
+    const dir = new THREE.Vector3().subVectors(end, start);
+    const length = dir.length();
+
+    if (!Number.isFinite(length) || length === 0) {
+      return {
+        start,
+        end,
+        dir: new THREE.Vector3(1, 0, 0),
+        length: 0,
+      };
+    }
+
+    dir.divideScalar(length);
+
+    if (radiusA > 0 || radiusB > 0) {
+      // 「球の中に潜り込まない」範囲に clamp
+      const maxCut = length * 0.49;
+      const cutA = Math.min(radiusA, maxCut);
+      const cutB = Math.min(radiusB, maxCut);
+
+      start.addScaledVector(dir, cutA);
+      end.addScaledVector(dir, -cutB);
+    }
+
+    return {
+      start,
+      end,
+      dir,
+      length: start.distanceTo(end),
+    };
+  }
+
+  const ARROW_BASE_AXIS = new THREE.Vector3(0, 1, 0);
+
+  function createArrowMesh(arrowCfg, color, segmentLength) {
+    if (!arrowCfg) return null;
+    // shape === "none" なら表示しない
+    if (arrowCfg.shape === "none") return null;
+
+    const sizeRaw =
+      typeof arrowCfg.size === "number" && arrowCfg.size > 0
+        ? arrowCfg.size
+        : null;
+
+    // size 未指定時は線分長の 20% を基準（0.03〜0.5 に clamp）
+    const length =
+      sizeRaw ??
+      Math.max(0.03, Math.min(segmentLength * 0.2, 0.5));
+
+    const aspect =
+      typeof arrowCfg.aspect === "number" && arrowCfg.aspect > 0
+        ? arrowCfg.aspect
+        : 2.0;
+
+    const radius = length / aspect;
+    const height = length;
+
+    const geometry = new THREE.ConeGeometry(radius, height, 16);
+    // 先端（apex）がローカル原点に来るようにシフト
+    geometry.translate(0, -height / 2, 0);
+
+    const material = new THREE.MeshBasicMaterial({
+      color: color.clone ? color.clone() : new THREE.Color(color),
+      transparent: true,
+      depthWrite: false,
+    });
+
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.renderOrder = 5;
+
+    return mesh;
+  }
+
+  function positionArrowMesh(mesh, tipPosition, dir) {
+    if (!mesh) return;
+
+    const normDir = dir.clone().normalize();
+    if (!Number.isFinite(normDir.lengthSq()) || normDir.lengthSq() === 0) {
+      return;
+    }
+
+    mesh.position.copy(tipPosition);
+
+    const q = new THREE.Quaternion();
+    q.setFromUnitVectors(ARROW_BASE_AXIS, normDir);
+    mesh.quaternion.copy(q);
+  }
+
+  function resolveArrowPlacement(lineNode, arrowCfg) {
+    if (!arrowCfg) return "none";
+
+    if (arrowCfg.placement) {
+      return arrowCfg.placement;
+    }
+
+    const sense = lineNode?.signification?.sense;
+    switch (sense) {
+      case "a_to_b":
+        return "end_b";
+      case "b_to_a":
+        return "end_a";
+      case "bidirectional":
+        return "both";
+      default:
+        return "none";
+    }
+  }
+
+  // ---------- 3DSS: lines ----------
+  const createLine = (lineNode) => {
+    const uuid =
+      lineNode?.meta?.uuid ??
+      lineNode?.uuid ??
+      null;
+
+    let positions = null;
+    let segmentInfo = null;
+
+    // 3DSS 正式: appearance.end_a / end_b → point の中心＋代表半径から
+    // 「球の表面で止まる」線分を算出
+    const endA = lineNode?.appearance?.end_a;
+    const endB = lineNode?.appearance?.end_b;
+
+    if (endA || endB) {
+      const a = resolveLineEndpoint(endA);
+      const b = resolveLineEndpoint(endB);
+      segmentInfo = computeTrimmedSegment(
+        a.position,
+        b.position,
+        a.radius,
+        b.radius
+      );
+
+      positions = [
+        segmentInfo.start.x,
+        segmentInfo.start.y,
+        segmentInfo.start.z,
+        segmentInfo.end.x,
+        segmentInfo.end.y,
+        segmentInfo.end.z,
+      ];
+    }
+    
     // プロト互換: vertices: [[x,y,z],[x,y,z],...]
     if (!positions && Array.isArray(lineNode?.vertices)) {
       const flat = [];
@@ -453,6 +661,26 @@ export function createRendererContext(canvasOrOptions) {
       if (flat.length >= 6) {
         positions = flat;
       }
+    }
+
+    // vertices 経由で作ったときも arrow で使えるように一応 dir を拾っておく
+    if (!segmentInfo && positions && positions.length >= 6) {
+      const start = new THREE.Vector3(
+        positions[0],
+        positions[1],
+        positions[2]
+      );
+      const end = new THREE.Vector3(
+        positions[3],
+        positions[4],
+        positions[5]
+      );
+      const dir = new THREE.Vector3().subVectors(end, start);
+      const len = dir.length();
+      if (len > 0) {
+        dir.divideScalar(len);
+      }
+      segmentInfo = { start, end, dir, length: len };
     }
 
     // データが足りなければ描かない
@@ -481,13 +709,57 @@ export function createRendererContext(canvasOrOptions) {
       opacity: material.opacity,
     });
 
+    // トリミング済み線分情報を userData に保存（microFX や他の演出用）
+    if (segmentInfo) {
+      obj.userData.segment = {
+        start: segmentInfo.start.clone(),
+        end: segmentInfo.end.clone(),
+        dir: segmentInfo.dir.clone(),
+        length: segmentInfo.length,
+      };
+    }
+
+    // 3DSS: lines.appearance.arrow に基づき矢印を生やす
+    if (segmentInfo && segmentInfo.length > 0) {
+      const arrowCfg = lineNode?.appearance?.arrow;
+      const placement = resolveArrowPlacement(lineNode, arrowCfg);
+
+      if (arrowCfg && placement !== "none") {
+        const arrowA =
+          placement === "end_a" || placement === "both"
+            ? createArrowMesh(arrowCfg, color, segmentInfo.length)
+            : null;
+        const arrowB =
+          placement === "end_b" || placement === "both"
+            ? createArrowMesh(arrowCfg, color, segmentInfo.length)
+            : null;
+
+        if (arrowA) {
+          positionArrowMesh(
+            arrowA,
+            segmentInfo.start,
+            segmentInfo.dir.clone().multiplyScalar(-1)
+          );
+          arrowA.userData.uuid = uuid;
+          obj.add(arrowA);
+        }
+        if (arrowB) {
+          positionArrowMesh(arrowB, segmentInfo.end, segmentInfo.dir);
+          arrowB.userData.uuid = uuid;
+          obj.add(arrowB);
+        }
+      }
+    }
+
     return obj;
   };
 
   // ---------- 3DSS: aux ----------
   const createAux = (auxNode) => {
-    const uuid = getUuid(auxNode);
-    if (!uuid) return null;
+    const uuid =
+      auxNode?.meta?.uuid ??
+      auxNode?.uuid ??
+      null;
 
     // とりあえず汎用的な小さな Box として可視化
     // （将来的に appearance.module / type に応じて切り替え可）
@@ -524,6 +796,18 @@ export function createRendererContext(canvasOrOptions) {
      */
     syncDocument: (doc, indices) => {
       clearMaps();
+
+      // structIndex が渡されていれば保持し、points の座標キャッシュもそこから初期化
+      currentIndices =
+        indices && indices.pointPosition instanceof Map ? indices : null;
+
+      pointPositionByUuid =
+        currentIndices && currentIndices.pointPosition instanceof Map
+          ? new Map(currentIndices.pointPosition)
+          : new Map();
+
+      // 半径は structIndex では持っていないので毎回作り直す
+      pointRadiusByUuid = new Map();
 
       // points
       if (Array.isArray(doc?.points)) {

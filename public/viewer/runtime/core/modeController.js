@@ -13,7 +13,6 @@ export function createModeController(
   microController,
   frameController,
   visibilityController,
-  document3dss,
   indices
 ) {
   function isVisible(uuid) {
@@ -35,9 +34,13 @@ export function createModeController(
 
   function set(mode, uuid) {
     if (mode === "macro") {
-      // フェーズ5: macro へ遷移するときは必ず microState をクリア
+      // macro へ遷移するときは必ず microController 経由でクリア
       uiState.mode = "macro";
-      uiState.microState = null;
+      if (microController && typeof microController.clear === "function") {
+        microController.clear();
+      } else {
+        uiState.microState = null;
+      }
       return uiState.mode;
     }
 
@@ -45,7 +48,11 @@ export function createModeController(
     const targetUuid = uuid ?? currentSelection?.uuid ?? null;
     if (!targetUuid || !canEnter(targetUuid)) {
       uiState.mode = "macro";
-      uiState.microState = null;
+      if (microController && typeof microController.clear === "function") {
+        microController.clear();
+      } else {
+        uiState.microState = null;
+      }
       return uiState.mode;
     }
 
@@ -57,18 +64,19 @@ export function createModeController(
         const microState = microController?.compute?.(
           selection,
           uiState.cameraState,
-          document3dss,
           indices
         );
         // micro カメラ移動の核心
         if (!microState || !Array.isArray(microState.focusPosition)) {
           console.warn("[mode] micro compute failed, stay macro", { targetUuid });
           uiState.mode = "macro";
-          uiState.microState = null;
+          if (microController && typeof microController.clear === "function") {
+            microController.clear();
+          } else {
+            uiState.microState = null;
+          }
           return uiState.mode;
         }
-
-        uiState.microState = microState;
 
         debugMode("[mode] enter micro", {
           focusUuid: microState.focusUuid,
@@ -77,7 +85,12 @@ export function createModeController(
         });
 
       } else {
-        uiState.microState = null;
+        // meso では microState は常にクリア
+        if (microController && typeof microController.clear === "function") {
+          microController.clear();
+        } else {
+          uiState.microState = null;
+        }
       }
 
       uiState.mode = mode;

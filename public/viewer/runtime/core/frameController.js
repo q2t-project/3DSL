@@ -11,10 +11,19 @@ export function createFrameController(uiState, visibilityController) {
   }
 
   const range = uiState.frame.range || { min: 0, max: 0 };
+  // fallback オブジェクトを使った場合は、ちゃんと uiState 側にも反映しておく
+  if (!uiState.frame.range) {
+    uiState.frame.range = range;
+  }
 
   // range の妥当化
   if (typeof range.min !== "number") range.min = 0;
   if (typeof range.max !== "number") range.max = range.min;
+
+  // min > max になっていた場合は揃えておく
+  if (range.max < range.min) {
+    range.max = range.min;
+  }
 
   if (typeof uiState.frame.current !== "number") {
     uiState.frame.current = range.min;
@@ -35,6 +44,8 @@ export function createFrameController(uiState, visibilityController) {
       visibilityController &&
       typeof visibilityController.recompute === "function"
     ) {
+      // visibilityController 側で uiState.visibleSet を更新してくれる想定だが、
+      // 戻り値もそのまま同期しておく（冗長やけど安全側）。
       uiState.visibleSet = visibilityController.recompute();
     }
     return uiState.visibleSet;

@@ -35,11 +35,60 @@ export const microFXConfig = {
 
   glow: {
     // カメラ→点 方向へのオフセット係数（距離に対する比率）
-    offsetFactor: 0.01,
-    // 距離 1.0（unitless）あたりの glow スケール
-    scalePerDistance: 0.035,
-    // clamp
-    minScale: 0.18,
-    maxScale: 1.5
+    // 距離 dist に対して dist * offsetFactor だけカメラ側へ寄せる
+    offsetFactor: 0.04,
+
+    // world 座標系での「グロー半径」の基準値（unitless）
+    // ここを変えると、ズームしたときの見かけの大きさも一緒に変わる。
+    baseScale: 0.4,
+
+    // 安全のためのクランプ（unitless）
+    minScale: 0.1,
+    maxScale: 3.0,
+  },
+
+  // micro モード時の「親等別」強調ポリシー
+  // idx = degree（0 親等 = focus, 1 親等, 2 親等, 3 親等以上）
+  degree: {
+    alpha: [1.0, 0.7, 0.4, 0.15],
+    scale: [1.2, 1.0, 0.95, 0.9],
+
+    // これより大きい degree は描画自体を抑制してもよい
+    // （axes/bounds/glow を出さない等）
+    maxVisibleDegree: 3
+  },
+
+  // focus / related 用のハイライト係数
+  highlight: {
+    focus: {
+      // baseStyle.opacity に対する加算ブースト（0.0〜）
+      opacityBoost: 0.25,
+      // 線オーバーレイの色
+      color: "#00ffff",
+      // 線の見た目を最低どれくらい明るくするか
+      minLineOpacity: 0.95
+    },
+    related: {
+      opacityBoost: 0.1,
+      color: "#00bfff",
+      minLineOpacity: 0.85
+    },
+    others: {
+      // focus/related 以外をどれくらい暗くするか（1.0 で変化なし）
+      opacityMultiplier: 0.4
+    },
+
+    // 線フォーカス時の「線そのものが光って見える」用グロー
+    lineGlow: {
+      enabled: true,
+      // チューブ半径（unitless）。太さの基準
+      radius: 0.005,
+      // 発光の濃さ
+      opacity: 0.7,
+      // 1 セグメントあたりの細分数（増やすと滑らか・重くなる）
+      tubularSegmentsPerSegment: 32,
+      radialSegments: 32,
+      color: "#00ffff"
+    }
   }
 };

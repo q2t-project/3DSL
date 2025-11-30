@@ -11,6 +11,7 @@ import { createUiState } from "./core/uiState.js";
 import { buildUUIDIndex, detectFrameRange } from "./core/structIndex.js";
 import { createVisibilityController } from "./core/visibilityController.js";
 import { createFrameController } from "./core/frameController.js"; 
+import { buildLabelIndex } from "./core/labelModel.js";
 
 // ------------------------------------------------------------
 // logging
@@ -119,7 +120,7 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     initialCameraState.distance = metrics.radius * 2.4;
   }
 
-const frameRange = detectFrameRange(document3dss);
+  const frameRange = detectFrameRange(document3dss);
 
 const uiState = createUiState({
   cameraState: initialCameraState,

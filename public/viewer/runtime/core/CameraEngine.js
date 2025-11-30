@@ -1,12 +1,18 @@
 // runtime/core/CameraEngine.js
 
 const EPSILON = 1e-4;
-const MIN_DISTANCE = 0.1;
+const MIN_DISTANCE = 0.01;
 const MAX_DISTANCE = 1000;
 const MAX_COORD = 1e4;
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
+}
+
+function sanitizeScalarCoord(v) {
+  let n = Number(v);
+  if (!Number.isFinite(n)) n = 0;
+  return clamp(n, -MAX_COORD, MAX_COORD);
 }
 
 function sanitizePosition(positionVec3) {
@@ -39,9 +45,9 @@ export function createCameraEngine(initialState = {}) {
       MAX_DISTANCE
     ),
     target: {
-      x: initialState.target?.x ?? 0,
-      y: initialState.target?.y ?? 0,
-      z: initialState.target?.z ?? 0,
+      x: sanitizeScalarCoord(initialState.target?.x ?? 0),
+      y: sanitizeScalarCoord(initialState.target?.y ?? 0),
+      z: sanitizeScalarCoord(initialState.target?.z ?? 0),
     },
     fov:
       typeof initialState.fov === "number"
@@ -74,9 +80,15 @@ export function createCameraEngine(initialState = {}) {
       const rightY =  cosTheta;
 
       // カメラ移動と逆向きにターゲットを動かす
-      state.target.x += -dx * rightX;
-      state.target.y += -dx * rightY;
-      state.target.z += dy;
+      state.target.x = sanitizeScalarCoord(
+        state.target.x + -dx * rightX
+      );
+      state.target.y = sanitizeScalarCoord(
+        state.target.y + -dx * rightY
+      );
+      state.target.z = sanitizeScalarCoord(
+        state.target.z + dy
+      );
       return state;
     },
 
@@ -150,14 +162,14 @@ export function createCameraEngine(initialState = {}) {
         );
       }
       if (partial.target && typeof partial.target === "object") {
-        if (typeof partial.target.x === "number") {
-          state.target.x = partial.target.x;
+        if ("x" in partial.target) {
+          state.target.x = sanitizeScalarCoord(partial.target.x);
         }
-        if (typeof partial.target.y === "number") {
-          state.target.y = partial.target.y;
+        if ("y" in partial.target) {
+          state.target.y = sanitizeScalarCoord(partial.target.y);
         }
-        if (typeof partial.target.z === "number") {
-          state.target.z = partial.target.z;
+        if ("z" in partial.target) {
+          state.target.z = sanitizeScalarCoord(partial.target.z);
         }
       }
       if ("fov" in partial) state.fov = partial.fov;

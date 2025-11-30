@@ -114,7 +114,20 @@ export function ensureAxes(scene) {
 export function updateAxes(target, localAxes, camera) {
   if (!target) return;
 
-  const sanitized = sanitizeLocalAxes(localAxes);
+  // localAxes が既に sanitize 済み（origin: Vec3, baseScale: number）ならそのまま使用。
+  // そうでなければここで sanitize する。
+  let sanitized = null;
+
+  if (
+    localAxes &&
+    Array.isArray(localAxes.origin) &&
+    typeof localAxes.baseScale === "number"
+  ) {
+    sanitized = localAxes;
+  } else {
+    sanitized = sanitizeLocalAxes(localAxes);
+  }
+
   if (!sanitized || !camera) {
     target.visible = false;
     return;

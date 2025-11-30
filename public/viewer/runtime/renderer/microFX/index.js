@@ -139,10 +139,24 @@ export function applyMicroFX(scene, microState, cameraState, indexMaps) {
     localBounds,
     isHover,
     editing,
+    kind,
   } = microState;
 
+  // localAxes が未指定でも、focusPosition があれば
+  // そこを原点とする標準 XYZ 軸を自動で生やす。
+  let effectiveLocalAxes = localAxes;
+  if (!effectiveLocalAxes && Array.isArray(focusPosition)) {
+    effectiveLocalAxes = {
+      origin: focusPosition,
+      xDir: [1, 0, 0],
+      yDir: [0, 1, 0],
+      zDir: [0, 0, 1],
+      scale: 1,
+    };
+  }
+
   // --- Axes ---
-  const sanitizedAxes = sanitizeLocalAxes(localAxes);
+  const sanitizedAxes = sanitizeLocalAxes(effectiveLocalAxes);
   if (sanitizedAxes && camera) {
     const axes = ensureAxes(scene);
     updateAxes(axes, sanitizedAxes, camera);
@@ -152,11 +166,15 @@ export function applyMicroFX(scene, microState, cameraState, indexMaps) {
 
   // --- Bounds ---
   const sanitizedBounds = sanitizeLocalBounds(localBounds);
-  if (sanitizedBounds) {
+  // 単なる micro フォーカスでは出さず、
+  // 「編集中」のときだけ AABB とハンドルを表示する。
+  const wantBounds = !!(sanitizedBounds && editing === true);
+
+  if (wantBounds) {
     const bounds = ensureBounds(scene);
     updateBounds(bounds, sanitizedBounds);
     setOutlineMode(!!isHover);
-    setHandlesVisible(editing === true);
+    setHandlesVisible(true);
   } else {
     removeBounds(scene);
   }
@@ -171,7 +189,8 @@ export function applyMicroFX(scene, microState, cameraState, indexMaps) {
   }
 
   // --- Glow ---
-  if (sanitizedFocus && camera) {
+  // 線選択時（kind === "lines"）は中点からの玉グローは出さない
+  if (sanitizedFocus && camera && kind !== "lines") {
     const glow = ensureGlow(scene);
     updateGlow(glow, sanitizedFocus, camera);
   } else {
@@ -179,16 +198,6 @@ export function applyMicroFX(scene, microState, cameraState, indexMaps) {
   }
 
   // --- Highlight ---
-  clearHighlight(scene);
-
-  const highlightIds = [];
-  if (focusUuid) highlightIds.push(focusUuid);
-  if (Array.isArray(relatedUuids)) highlightIds.push(...relatedUuids);
-
-  const uniqIds = [...new Set(highlightIds)].filter(Boolean);
-
-  if (uniqIds.length > 0) {
-    const getFromMaps = (uuid) => getObjectByUuid(uuid, indexMaps);
-    applyHighlight(scene, uniqIds, getFromMaps);
-  }
+  const getFromMaps = (uuid) => getObjectByUuid(uuid, indexMaps);
+  applyHighlight(scene, microState, getFromMaps);
 }
