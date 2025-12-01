@@ -16,7 +16,10 @@ export function createModeController(
   indices
 ) {
   function isVisible(uuid) {
-    if (visibilityController && typeof visibilityController.isVisible === 'function') {
+    if (
+      visibilityController &&
+      typeof visibilityController.isVisible === "function"
+    ) {
       return visibilityController.isVisible(uuid);
     }
     if (uiState && uiState.visibleSet instanceof Set) {
@@ -32,32 +35,63 @@ export function createModeController(
     return isVisible(uuid);
   }
 
-  function set(mode, uuid) {
-    if (mode === "macro") {
-      // macro へ遷移するときは必ず microController 経由でクリア
-      uiState.mode = "macro";
-      if (microController && typeof microController.clear === "function") {
-        microController.clear();
-      } else {
-        uiState.microState = null;
-      }
-      return uiState.mode;
+  // --- macro への共通遷移処理（A-7: selection ハイライト復元もここ） ---
+  function enterMacro() {
+    debugMode("[mode] enter macro");
+
+    uiState.mode = "macro";
+
+    // microState は必ずクリア
+    if (microController && typeof microController.clear === "function") {
+      microController.clear();
+    } else {
+      uiState.microState = null;
     }
 
+    // いまの selection を使って macro 用ハイライトを再適用
+    if (
+      selectionController &&
+      typeof selectionController.get === "function" &&
+      typeof selectionController.select === "function"
+    ) {
+      const current = selectionController.get();
+      if (current && current.uuid) {
+        selectionController.select(current.uuid, current.kind);
+      } else if (typeof selectionController.clear === "function") {
+        selectionController.clear();
+      }
+    }
+
+    return uiState.mode;
+  }
+
+  function set(mode, uuid) {
+    // --- 明示的に macro を指定された場合 ---
+    if (mode === "macro") {
+      return enterMacro();
+    }
+
+    // micro / meso への遷移
     const currentSelection = selectionController?.get?.();
     const targetUuid = uuid ?? currentSelection?.uuid ?? null;
+
     if (!targetUuid || !canEnter(targetUuid)) {
-      uiState.mode = "macro";
-      if (microController && typeof microController.clear === "function") {
-        microController.clear();
-      } else {
-        uiState.microState = null;
-      }
-      return uiState.mode;
+      // 侵入条件満たせない → 強制 macro
+      debugMode("[mode] cannot enter, fallback macro", {
+        requested: mode,
+        targetUuid,
+      });
+      return enterMacro();
     }
 
     if (mode === "meso" || mode === "micro") {
-      selectionController?.select?.(targetUuid);
+      // 先に mode を切り替えてから select することで、
+      // selectionController 側の「macro 以外なら clearAllHighlights()」を効かせる（A-7）
+      uiState.mode = mode;
+
+      if (selectionController && typeof selectionController.select === "function") {
+        selectionController.select(targetUuid);
+      }
 
       if (mode === "micro") {
         const selection = selectionController?.get?.();
@@ -66,16 +100,13 @@ export function createModeController(
           uiState.cameraState,
           indices
         );
-        // micro カメラ移動の核心
+
+        // micro カメラ移動の核心：focusPosition が取れなければ macro に戻す
         if (!microState || !Array.isArray(microState.focusPosition)) {
-          console.warn("[mode] micro compute failed, stay macro", { targetUuid });
-          uiState.mode = "macro";
-          if (microController && typeof microController.clear === "function") {
-            microController.clear();
-          } else {
-            uiState.microState = null;
-          }
-          return uiState.mode;
+          console.warn("[mode] micro compute failed, stay macro", {
+            targetUuid,
+          });
+          return enterMacro();
         }
 
         debugMode("[mode] enter micro", {
@@ -83,7 +114,6 @@ export function createModeController(
           kind: microState.kind,
           focusPosition: microState.focusPosition,
         });
-
       } else {
         // meso では microState は常にクリア
         if (microController && typeof microController.clear === "function") {
@@ -91,9 +121,8 @@ export function createModeController(
         } else {
           uiState.microState = null;
         }
+        debugMode("[mode] enter meso", { targetUuid });
       }
-
-      uiState.mode = mode;
     }
 
     return uiState.mode;
@@ -104,11 +133,13 @@ export function createModeController(
   }
 
   function exit() {
-    return set('macro');
+    // どこからでも macro に戻る
+    return enterMacro();
   }
 
   function focus(uuid) {
-    return set('micro', uuid);
+    // micro フォーカスショートカット
+    return set("micro", uuid);
   }
 
   return {
@@ -116,6 +147,6 @@ export function createModeController(
     get,
     canEnter,
     exit,
-    focus
+    focus,
   };
 }

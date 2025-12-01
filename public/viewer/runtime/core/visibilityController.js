@@ -1,6 +1,9 @@
 // runtime/core/visibilityController.js
 
 // uiState + structIndex から「今この瞬間に見せる UUID の集合」を計算する。
+// A-5 対応ポイント：
+//   - フィルタ変更時に、外から差し込まれた再計算ルート（core.recomputeVisibleSet）を
+//     優先して呼び出せるよう、フックを用意する。
 // - frame.current
 // - filters.{points,lines,aux}
 // - indices.uuidToKind / uuidToFrames / frameIndex
@@ -23,6 +26,10 @@ export function createVisibilityController(uiState, document, indices) {
       : null;
 
   const allUuids = Array.from(uuidToKind.keys());
+
+  // A-5: frame/filter 変更トリガから「正規の再計算ルート」
+  // （core.recomputeVisibleSet 想定）を呼べるようにするためのフック。
+  let recomputeHandler = null;
 
   // frames 未指定（= 全フレーム共通）の要素
   const uuidsWithoutFrames = allUuids.filter((uuid) => !uuidToFrames.has(uuid));
@@ -97,6 +104,7 @@ export function createVisibilityController(uiState, document, indices) {
   }
 
   function recompute() {
+    // ここは「純粋に visibleSet を作り直す」ベースロジックとして残す。
     const frame = getCurrentFrame();
     const filters = uiState.filters || {};
 
@@ -134,7 +142,23 @@ export function createVisibilityController(uiState, document, indices) {
     if (kind !== "points" && kind !== "lines" && kind !== "aux") return;
     if (!uiState.filters) uiState.filters = {};
     uiState.filters[kind] = !!enabled;
-    recompute();
+
+    // A-5:
+    //  フィルタ変更 → まず「正規ルート」があればそちらを呼ぶ。
+    //  （core.recomputeVisibleSet が差し込まれている前提）
+    if (typeof recomputeHandler === "function") {
+      const next = recomputeHandler();
+      if (next) {
+        uiState.visibleSet = next;
+      }
+    } else {
+      // まだフック未設定の場合は従来どおりローカル再計算。
+      recompute();
+    }
+  }
+
+  function setRecomputeHandler(fn) {
+    recomputeHandler = typeof fn === "function" ? fn : null;
   }
 
   return {
@@ -142,5 +166,6 @@ export function createVisibilityController(uiState, document, indices) {
     isVisible,
     getFilters,
     setTypeFilter,
+    setRecomputeHandler,
   };
 }

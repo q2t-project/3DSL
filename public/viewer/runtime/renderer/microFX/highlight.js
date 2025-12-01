@@ -15,8 +15,12 @@ function clamp01(v) {
 }
 
 function ensureGroup(scene) {
-  // 他 scene の残骸があれば破棄
-  if (highlightGroup && highlightGroup.parent !== scene) {
+  // 他 scene の残骸があれば破棄（parent が null の場合もケア）
+  if (
+    highlightGroup &&
+    highlightGroup.parent &&
+    highlightGroup.parent !== scene
+  ) {
     highlightGroup.parent.remove(highlightGroup);
     highlightGroup = null;
   }
@@ -117,8 +121,13 @@ function createLineGlowMeshes(src, lineGlowCfg) {
   return meshes;
 }
 
-export function applyHighlight(scene, microState, getObjectByUuid) {  clearHighlight(scene);
-
+export function applyHighlight(
+  scene,
+  microState,
+  getObjectByUuid,
+  visibleSet
+) {
+  clearHighlight(scene);
   if (!microState) return;
 
   const { focusUuid, relatedUuids } = microState;
@@ -142,6 +151,9 @@ export function applyHighlight(scene, microState, getObjectByUuid) {  clearHighl
   const lineGlowEnabled = lineGlowCfg.enabled !== false;
 
   for (const uuid of uniqIds) {
+    // 7.11.5: visibleSet に含まれない要素は処理しない
+    if (visibleSet && !visibleSet.has(uuid)) continue;
+
     // getObjectByUuid は indexMaps を閉じ込めた関数を期待している
     const src = getObjectByUuid(uuid);
     if (!src) continue;
@@ -229,7 +241,8 @@ export function applyHighlight(scene, microState, getObjectByUuid) {  clearHighl
     clone.scale.copy(src.scale);
 
     group.add(clone);
-    //  線がフォーカス対象なら、線全体に沿った多層チューブグローを追加
+
+    // 線がフォーカス対象なら、線全体に沿った多層チューブグローを追加
     if (src.isLine && isFocus && lineGlowEnabled) {
       const glowMeshes = createLineGlowMeshes(src, lineGlowCfg);
       if (Array.isArray(glowMeshes)) {

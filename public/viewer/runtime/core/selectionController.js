@@ -6,9 +6,12 @@ function debugSel(...args) {
   console.warn(...args);
 }
 
-export function createSelectionController(uiState, indices) {
+export function createSelectionController(uiState, indices, highlightApi = {}) {
   const uuidToKind =
     indices && indices.uuidToKind instanceof Map ? indices.uuidToKind : null;
+
+  // rendererContext から渡してもらう想定
+  const { setHighlight, clearAllHighlights } = highlightApi || {};
 
   function resolveKind(uuid, explicitKind) {
     if (
@@ -27,12 +30,23 @@ export function createSelectionController(uiState, indices) {
     return null;
   }
 
+  function clear() {
+    debugSel("[selection] clear()");
+    uiState.selection = null;
+
+    // モード関係なく「とりあえず全部元に戻す」だけは OK
+    if (typeof clearAllHighlights === "function") {
+      clearAllHighlights();
+    }
+
+    return null;
+  }
+
   function select(uuid, kind) {
     // uuid が falsy → クリア扱い
     if (!uuid) {
       debugSel("[selection] clear via select(null)");
-      uiState.selection = null;
-      return null;
+      return clear();
     }
 
     const finalKind = resolveKind(uuid, kind);
@@ -40,18 +54,27 @@ export function createSelectionController(uiState, indices) {
     if (finalKind) {
       uiState.selection = { uuid, kind: finalKind };
       debugSel("[selection] select", uiState.selection);
-      return uiState.selection;
+    } else {
+      uiState.selection = { uuid };
+      debugSel("[selection] select (kind unresolved)", uiState.selection);
     }
 
-    uiState.selection = { uuid };
-    debugSel("[selection] select (kind unresolved)", uiState.selection);
-    return uiState.selection;
-  }
+    // --- ハイライト反映（A-7：macro 限定） ---
+    if (
+      typeof setHighlight === "function" ||
+      typeof clearAllHighlights === "function"
+    ) {
+      if (uiState.mode === "macro") {
+        if (typeof setHighlight === "function") {
+          setHighlight({ uuid, level: 1 });
+        }
+      } else if (typeof clearAllHighlights === "function") {
+        // micro / meso では selection ハイライトを出さない
+        clearAllHighlights();
+      }
+    }
 
-  function clear() {
-    debugSel("[selection] clear()");
-    uiState.selection = null;
-    return null;
+    return uiState.selection;
   }
 
   function get() {
@@ -70,16 +93,17 @@ export function createSelectionController(uiState, indices) {
       return uiState.selection || null;
     },
     set(v) {
-      if (!v) {
-        uiState.selection = null;
-      } else if (v.uuid) {
-        uiState.selection = {
-          uuid: v.uuid,
-          kind:
-            v.kind === "points" || v.kind === "lines" || v.kind === "aux"
-              ? v.kind
-              : null,
-        };
+      // 旧コードから直接 .selection = {uuid,kind} が来た場合でも
+      // select/clear を経由させてハイライトも同期させる
+      if (!v || !v.uuid) {
+        clear();
+      } else {
+        select(
+          v.uuid,
+          v.kind === "points" || v.kind === "lines" || v.kind === "aux"
+            ? v.kind
+            : undefined
+        );
       }
     },
     enumerable: false,

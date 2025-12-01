@@ -2,6 +2,59 @@
 // UI 全体の状態コンテナ（唯一のソース・オブ・トゥルース）
 
 export function createUiState(initial = {}) {
+  // --- viewerSettings 初期化（microFX まわりのデフォルト込み） ---
+  const initialViewerSettings = initial.viewerSettings ?? {};
+  const initialFx = initialViewerSettings.fx ?? {};
+  const initialMicro = initialFx.micro ?? {};
+
+  const viewerSettings = {
+    ...initialViewerSettings,
+    fx: {
+      ...initialFx,
+      micro: {
+        ...initialMicro,
+        // microFX 全体の ON/OFF フラグ（デフォルト true）
+        enabled:
+          initialMicro.enabled !== undefined
+            ? !!initialMicro.enabled
+            : true,
+        profile: initialMicro.profile ?? "normal",
+        radius: {
+          ...(initialMicro.radius || {}),
+          inner_ratio:
+            initialMicro.radius?.inner_ratio ?? 0.10,
+          outer_ratio:
+            initialMicro.radius?.outer_ratio ?? 0.40,
+        },
+        fade: {
+          ...(initialMicro.fade || {}),
+          min_opacity:
+            initialMicro.fade?.min_opacity ?? 0.05,
+          hop_boost:
+            initialMicro.fade?.hop_boost ?? 0.6,
+          far_factor:
+            initialMicro.fade?.far_factor ?? 0.2,
+        },
+      },
+
+      // 将来用フラグ（v1 では基本 false スタート）
+      meso:
+        initialFx.meso !== undefined ? !!initialFx.meso : false,
+      modeTransitions:
+        initialFx.modeTransitions !== undefined
+          ? !!initialFx.modeTransitions
+          : false,
+      depthOfField:
+        initialFx.depthOfField !== undefined
+          ? !!initialFx.depthOfField
+          : false,
+      glow:
+        initialFx.glow !== undefined ? !!initialFx.glow : false,
+      flow:
+        initialFx.flow !== undefined ? !!initialFx.flow : false,
+    },
+  };
+
   // --- スケルトン準拠の正規フィールド ----------------------
   const state = {
     // 再生フレーム情報
@@ -61,7 +114,7 @@ export function createUiState(initial = {}) {
     microState: initial.microState ?? null,
 
     // ユーザ設定（未定義項目はどんどんここにぶら下げる）
-    viewerSettings: initial.viewerSettings ?? {},
+    viewerSettings,
 
     // 現在可視な要素 UUID の集合（visibilityController が管理）
     // まだ「null = 全部表示」に依存してるので、ここでは null を維持

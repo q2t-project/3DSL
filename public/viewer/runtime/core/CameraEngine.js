@@ -56,6 +56,69 @@ export function createCameraEngine(initialState = {}) {
   };
 
   const api = {
+    /**
+     * 軸スナップ:
+     *  - "x" / "+x"  : +X 方向から原点を見る
+     *  - "-x"        : -X 方向
+     *  - "y" / "+y"  : +Y 方向
+     *  - "-y"        : -Y 方向
+     *  - "z" / "+z"  : 真上（+Z）
+     *  - "-z"        : 真下（-Z）
+     *
+     * 距離 / ターゲット / FOV はそのまま、theta/phi だけ切り替える。
+     */
+    snapToAxis(axis) {
+     const a = String(axis || "").toLowerCase();
+
+      switch (a) {
+        case "x":
+        case "+x":
+          // +X から見る（水平ビュー）
+          state.theta = 0;
+          state.phi = clamp(Math.PI / 2, EPSILON, Math.PI - EPSILON);
+          break;
+
+        case "-x":
+          state.theta = Math.PI;
+          state.phi = clamp(Math.PI / 2, EPSILON, Math.PI - EPSILON);
+          break;
+
+        case "y":
+        case "+y":
+          state.theta = Math.PI / 2;
+          state.phi = clamp(Math.PI / 2, EPSILON, Math.PI - EPSILON);
+          break;
+
+        case "-y":
+          state.theta = -Math.PI / 2;
+          state.phi = clamp(Math.PI / 2, EPSILON, Math.PI - EPSILON);
+          break;
+
+        case "z":
+        case "+z":
+          // 真上から（ほぼ俯瞰）
+          state.theta = 0;
+          state.phi = clamp(EPSILON * 4, EPSILON, Math.PI - EPSILON);
+          break;
+
+        case "-z":
+          // 真下から
+          state.theta = 0;
+          state.phi = clamp(
+            Math.PI - EPSILON * 4,
+            EPSILON,
+            Math.PI - EPSILON
+          );
+          break;
+
+        default:
+          // よくわからん指定は無視
+          return state;
+      }
+
+      return state;
+    },
+
     rotate(dTheta, dPhi) {
       state.theta += dTheta;
       state.phi = clamp(

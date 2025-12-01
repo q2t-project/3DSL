@@ -4,11 +4,16 @@
 // - 現在フレームの保持
 // - フレーム移動時に visibleSet を再計算
 // をやる役。
+// A-5 対応：後から core.recomputeVisibleSet を差し込めるフックを用意する。
 
 export function createFrameController(uiState, visibilityController) {
   if (!uiState.frame) {
     uiState.frame = { current: 0, range: { min: 0, max: 0 } };
   }
+
+  // A-5: visibleSet 再計算の正規ルート（後から差し替え可能なハンドラ）
+  // ここに core.recomputeVisibleSet を注入できるようにしておく。
+  let recomputeHandler = null;
 
   const range = uiState.frame.range || { min: 0, max: 0 };
   // fallback オブジェクトを使った場合は、ちゃんと uiState 側にも反映しておく
@@ -40,11 +45,21 @@ export function createFrameController(uiState, visibilityController) {
   }
 
   function recomputeVisible() {
+    // まず、外部から差し込まれた正規ルートがあればそちらを優先
+    if (typeof recomputeHandler === "function") {
+      const next = recomputeHandler();
+      if (next) {
+        uiState.visibleSet = next;
+      }
+      return uiState.visibleSet;
+    }
+
+    // フォールバック：従来どおり visibilityController に直接委譲
     if (
       visibilityController &&
       typeof visibilityController.recompute === "function"
     ) {
-      // visibilityController 側で uiState.visibleSet を更新してくれる想定だが、
+      // visibilityController 側で uiState.visibleSet を更新してくれる想定やけど、
       // 戻り値もそのまま同期しておく（冗長やけど安全側）。
       uiState.visibleSet = visibilityController.recompute();
     }
@@ -86,6 +101,17 @@ export function createFrameController(uiState, visibilityController) {
     uiState.runtime.isFramePlaying = false;
   }
 
+  // A-5: core 側から「正規の再計算ルート」を注入するためのフック。
+  // 例: frameController.setRecomputeHandler(() => core.recomputeVisibleSet());
+  function setRecomputeHandler(fn) {
+    if (typeof fn === "function") {
+      recomputeHandler = fn;
+    } else {
+      // 無効な値が来たら外しておく（安全側）
+      recomputeHandler = null;
+    }
+  }
+
   return {
     set,
     get,
@@ -93,5 +119,6 @@ export function createFrameController(uiState, visibilityController) {
     range: getRange,
     startPlayback,
     stopPlayback,
+    setRecomputeHandler,
   };
 }

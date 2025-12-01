@@ -107,9 +107,16 @@ function sanitizeLocalBounds(localBounds) {
  * @param {object|null} microState   // MicroState | null
  * @param {object}      cameraState  // unitless な CameraEngine state（今はほぼ未使用）
  * @param {object}      indexMaps    // { points, lines, aux, baseStyle?, camera, labels? }
- */
-export function applyMicroFX(scene, microState, cameraState, indexMaps) {
-  const camera = indexMaps?.camera || null;
+ * @param {Set?}        visibleSet   // 現在の frame/filter 後の visibleSet（任意）
+  */
+export function applyMicroFX(
+  scene,
+  microState,
+  cameraState,
+  indexMaps,
+  visibleSet
+) {
+    const camera = indexMaps?.camera || null;
 
   // ★ まとめて OFF モード：
   //   - microFX 関連オブジェクトは毎フレーム掃除
@@ -199,5 +206,5 @@ export function applyMicroFX(scene, microState, cameraState, indexMaps) {
 
   // --- Highlight ---
   const getFromMaps = (uuid) => getObjectByUuid(uuid, indexMaps);
-  applyHighlight(scene, microState, getFromMaps);
+  applyHighlight(scene, microState, getFromMaps, visibleSet);
 }

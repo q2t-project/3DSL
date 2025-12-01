@@ -1,10 +1,12 @@
-// runtime/core/CameraInput.js
+// runtime/core/pointerInput.js
+// canvas 上の pointer / wheel イベントを受けて
+// CameraEngine / selectionController を操作する入力アダプタ。
 
 const ROTATE_SPEED = 0.005;
 const PAN_SPEED = 0.002;
 const ZOOM_SPEED = 0.001;
 
-export class CameraInput {
+export class PointerInput {
   constructor(canvas, cameraEngine, hub) {
     this.canvas = canvas;
     this.cameraEngine = cameraEngine;

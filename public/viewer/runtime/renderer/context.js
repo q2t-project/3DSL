@@ -788,6 +788,69 @@ export function createRendererContext(canvasOrOptions) {
     return obj;
   };
 
+  // ------------------------------------------------------------
+  // selection ハイライト用ヘルパ
+  //  - restoreBaseStyle(): baseStyle から全オブジェクトを元の色・opacity に戻す
+  //  - highlightUuid(uuid, level): 対象 1 要素だけを少しだけ持ち上げる
+  // ------------------------------------------------------------
+  function restoreBaseStyle() {
+    baseStyle.forEach((style, uuid) => {
+      const obj = lookupByUuid(uuid);
+      if (!obj) return;
+
+      const mat = obj.material;
+      if (!mat) return;
+
+      // color
+      if (style.color && mat.color) {
+        mat.color.copy(style.color);
+      }
+
+      // opacity
+      if (typeof style.opacity === "number") {
+        mat.opacity = style.opacity;
+        if ("transparent" in mat) {
+          mat.transparent = mat.opacity < 1.0;
+        }
+      }
+
+      mat.needsUpdate = true;
+    });
+  }
+
+  function highlightUuid(uuid, level = 1) {
+    if (!uuid) return;
+
+    const obj = lookupByUuid(uuid);
+    const base = baseStyle.get(uuid);
+    if (!obj || !obj.material || !base) return;
+
+    const mat = obj.material;
+    const baseOpacity =
+      typeof base.opacity === "number" ? base.opacity : mat.opacity;
+
+    // level に応じた持ち上げ量（あんまり派手にしない）
+    const opacityBoost = level === 2 ? 0.35 : 0.2;
+    mat.opacity = Math.min(1.0, baseOpacity + opacityBoost);
+    if ("transparent" in mat) {
+      mat.transparent = mat.opacity < 1.0;
+    }
+
+    if (base.color && mat.color) {
+      // 明度だけちょっと上げる
+      const hsl = { h: 0, s: 0, l: 0 };
+      base.color.getHSL(hsl);
+      const lightBoost = level === 2 ? 0.25 : 0.18;
+      hsl.l = Math.min(1.0, hsl.l + lightBoost);
+
+      const tmp = base.color.clone();
+      tmp.setHSL(hsl.h, hsl.s, hsl.l);
+      mat.color.copy(tmp);
+    }
+
+    mat.needsUpdate = true;
+  }
+
   return {
     /**
      * 3DSS document を three.js Scene に同期
@@ -947,62 +1010,64 @@ updateCamera: (cameraState) => {
      *
      * microState + cameraState を microFX に渡す
      */
-    applyMicroFX: (microState, cameraState) => {
+    applyMicroFX: (microState, cameraState, visibleSet) => {
       // まずラベル側のマイクロ演出
       applyLabelMicroFX(microState);
-
-      applyMicroFXImpl(scene, microState, cameraState, {
-        points: pointObjects,
-        lines:  lineObjects,
-        aux:    auxObjects,
-        baseStyle,
-        camera,
-        // （必要なら microFX 側でも参照できるように渡しておく）
-        labels: labelSprites,
-      });
+      applyMicroFXImpl(
+        scene,
+        microState,
+        cameraState,
+        {
+          points: pointObjects,
+          lines:  lineObjects,
+          aux:    auxObjects,
+          baseStyle,
+         camera,
+          // （必要なら microFX 側でも参照できるように渡しておく）
+          labels: labelSprites,
+        },
+        visibleSet
+      );
     },
     
     /**
-     * selectionState: {kind?, uuid} | null
+     * selection ハイライト（macro 専用想定）のための API 群
      *
-     * - まず全オブジェクトの color/opacity を baseStyle にリセット
-     * - 選択中オブジェクトだけ opacity を少しだけ持ち上げる
+     * - clearAllHighlights():
+     *     baseStyle に全オブジェクトを戻す。
+     * - setHighlight({ uuid, level }):
+     *     いったん clear した上で、その uuid だけ少しだけ強調。
      *
-     * mode（macro/meso/micro）には依存せず、常に
-     * 「選択されているものがほんの少し目立つ」ようにしておく。
+     * これらは「モードを知らない」素の描画 API。
+     * macro / micro の切り替えは selectionController / modeController から制御する。
      */
-    applySelection: (selectionState) => {
-      // 1) 全オブジェクトを baseStyle に戻す
-      baseStyle.forEach((style, uuid) => {
-        const obj = lookupByUuid(uuid);
-        if (!obj || !obj.material || !("opacity" in obj.material)) return;
-
-        // opacity
-        if (typeof style.opacity === "number") {
-          obj.material.opacity = style.opacity;
-        }
-
-        // color
-        if (style.color && obj.material.color) {
-          obj.material.color.copy(style.color);
-        }
-      });
-
-      // selection が無ければここで終わり
-      if (!selectionState || !selectionState.uuid) return;
-
-      const selUuid = selectionState.uuid;
-      const obj = lookupByUuid(selUuid);
-      const base = baseStyle.get(selUuid);
-
-      if (!obj || !obj.material || !base) return;
-
-      // 選択中だけ少しだけ持ち上げる
-      const baseOpacity =
-        typeof base.opacity === "number" ? base.opacity : obj.material.opacity;
-
-      obj.material.opacity = Math.min(1, baseOpacity + 0.2);
+    clearAllHighlights: () => {
+      restoreBaseStyle();
     },
+
+    setHighlight: ({ uuid, level = 1 } = {}) => {
+      restoreBaseStyle();
+      if (uuid) {
+        highlightUuid(uuid, level);
+      }
+    },
+
+    /**
+     * 互換用の簡易 API。
+     *
+     * 互換用 – 新ルートは selectionController + setHighlight/clearAllHighlights
+    */
+    applySelection: (selectionState) => {
+      if (!selectionState || !selectionState.uuid) {
+        restoreBaseStyle();
+        return;
+      }
+      restoreBaseStyle();
+      highlightUuid(selectionState.uuid, 1);
+    },
+
+
+
 
     /**
      * NDC 座標（-1〜+1）から Raycast して uuid を返す
@@ -1069,4 +1134,3 @@ updateCamera: (cameraState) => {
     sceneRadius = maxEdge > 0 ? maxEdge * 0.5 : 1;
   }
 }
-
