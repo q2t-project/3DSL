@@ -196,9 +196,9 @@ export function attachGizmo(wrapper, hub) {
     32
   );
   const rodMat = new THREE.MeshStandardMaterial({
-    color: 0x777777,
-    metalness: 0.95,
-    roughness: 0.35,
+    color: 0xb8c8ff,   // うっすら青いアルミっぽい色
+    metalness: 0.9,
+    roughness: 0.35,   // 磨き鉄よりはザラザラ
   });
   const zRod = new THREE.Mesh(rodGeom, rodMat);
   zRod.rotation.x = Math.PI / 2;

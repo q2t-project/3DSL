@@ -126,17 +126,21 @@ viewer 実装はおおよそ次のモジュール群に分かれる。
 
 | レイヤ / モジュール | 代表ファイル例 | 役割 |
 |--------------------|----------------|------|
-| Boot               | `runtime/bootstrapViewer.js` | canvas と 3DSS を受け取り runtime を起動し、viewerHub を返す |
-| Hub                | `runtime/viewerHub.js` | Core / Renderer をまとめて外部に公開するファサード。`core.*` API を束ねる |
-| Core               | `runtime/core/*.js` | 3DSS 構造 state（immutable）と ui_state（viewer 専用 state）の管理 |
+| Boot               | `runtime/bootstrapViewer.js` | canvas と 3DSS を受け取り runtime を起動し、viewerHub を返す（PointerInput / KeyboardInput の接続もここで行う） |
+| Hub                | `runtime/viewerHub.js` | Core / Renderer をまとめて外部に公開するファサード。`hub.core.*` API と `hub.start/stop` を束ねる |
+| Core               | `runtime/core/*.js` | 3DSS 構造 state（immutable）と ui_state（viewer 専用 state）の管理。各種 Controller / CameraEngine / PointerInput / KeyboardInput を含む |
 | Renderer           | `runtime/renderer/context.js` + `renderer/microFX/*` | three.js による描画、microFX、selection ハイライト |
-| UI（dev 用）       | `ui/pointerInput.js` `ui/keyboardInput.js` など | マウス / キー / ギズモ / タイムライン入力を hub.core.* にマッピング |
+| UI（dev harness）  | `viewerDevHarness.js` `ui/gizmo.js` など | dev 用 HTML / HUD / ボタン類。マウス / キー / ギズモ / タイムライン入力を **hub.core.* / hub.pickObjectAt 経由で** runtime に橋渡しする |
 | Validator          | `runtime/core/validator.js` | `/schemas/3DSS.schema.json` に対する strict full validation |
 | Utils / Index      | `runtime/core/structIndex.js` など | uuid インデックス構築、frame 範囲検出などの補助機能 |
 | HUD / 視覚補助     | `renderer/microFX/*` | axis / marker / bounds / glow / highlight 等、構造とは無関係な viewer 専用描画 |
 
+※ PointerInput / KeyboardInput はファイル配置としては Core 配下（`runtime/core/*`）に置くが、  
+　責務としては「入力レイヤ」の一部であり、UI からは直接 import せず Boot からだけ生成・接続する。
+
 ※ 実ファイル構成は `viewer/runtime/*`・`viewer/ui/*` のスケルトンに準拠する。  
 ※ three.js / AJV といった外部ライブラリは runtime からのみ利用し、UI から直接触らない。
+
 
 
 ### 1.1.1 存在しないモジュール（明確に禁止）
@@ -186,12 +190,16 @@ Core は「構造 state」と「UI state (ui_state)」の 2 系列だけを扱�
 
 依存方向は常に「上位レイヤ → 下位レイヤ」の一方向とする。
 
-- UI / dev harness / 入力レイヤ（HTML / pointerInput / keyboardInput / gizmo / timeline）
-  - ↓ `viewerHub`（hub.core.*）
-- runtime Core（ui_state / 各種 Controller / CameraEngine / Visibility / Selection / Mode / Micro）
+- UI / dev harness レイヤ（`viewer_dev.html` / `viewerDevHarness.js` / gizmo / timeline / HUD DOM）
+  - ↓ `viewerHub`（`hub.core.*` / `hub.pickObjectAt`）
+- runtime Boot / Core（ui_state / 各種 Controller / CameraEngine / Visibility / Selection / Mode / Micro / PointerInput / KeyboardInput）
   - ↓ struct（immutable 3DSS）
   - ↓ Renderer（rendererContext + microFX）
 - three.js / WebGL
+
+PointerInput / KeyboardInput は「入力イベント集約レイヤ」として、  
+window / canvas の DOM イベントを 1 箇所で受け取り、  
+必ず `hub.core.*` だけを叩く（CameraEngine や three.js を直接触らない）。
 
 Validator は「runtime 起動前の読み込みフェーズ」にだけ挿入される：
 
@@ -208,20 +216,36 @@ HUD / microFX は Renderer の一部として扱い、
 - `bootstrapViewer(canvasOrId, document3dss, options?)`
   - 役割：
     - canvas 解決（DOM 要素 or id 文字列）
-    - CameraEngine / ui_state / structIndex / VisibilityController / SelectionController 等の初期化
-    - rendererContext の初期化（三次元シーン構築）
-    - `createViewerHub({ core, renderer })` を呼び出し、hub を返す
+    - 3DSS 構造の deep-freeze（以後 immutable として扱う）
+    - structIndex（uuid インデックス / frame 範囲）の構築
+    - rendererContext の初期化（三次元シーン構築・シーンメトリクス算出）
+    - 初期カメラ状態の決定（シーンメトリクスから決定的に算出）
+    - ui_state の初期化（frame / filters / runtime フラグなど）
+    - CameraEngine / FrameController / VisibilityController / SelectionController / MicroController / ModeController の初期化
+    - `createViewerHub({ core, renderer })` を呼び出し、hub を生成
+    - PointerInput / KeyboardInput を生成し、canvas / window に key / pointer イベントを接続
+    - `options.devBootLog` が true のとき、起動ログ（BOOT / MODEL / CAMERA / LAYERS / FRAME）を 1 回だけ出力
   - 前提：
     - `document3dss` は既に strict validation 済み
+  - options（dev 用拡張）：
+    - `devBootLog?: boolean`  
+      true のとき、起動完了時に dev 起動ログを 5 レコード出力する。
+    - `devLabel?: string`  
+      `BOOT <label>` のラベルとして使う（省略時 `"viewer_dev"` 相当）。
+    - `modelUrl?: string`  
+      `MODEL <modelUrl>` の表示と、host 側メタパネル表示用の情報源。
+    - `logger?: (line: string) => void`  
+      起動ログの出力先。省略時は `console.log` を用いる。
 
 - `bootstrapViewerFromUrl(canvasOrId, url, options?)`
   - 役割：
     - `url` から JSON を fetch
-    - Validator による strict full validation 実行
-    - OK の場合のみ `bootstrapViewer` を内部で呼び出す
-    - 結果として同じく `viewerHub` を返す
-  - NG の場合：
-    - エラー内容を dev UI に通知し、runtime は起動しない
+    - `/schemas/3DSS.schema.json` を `validator.js` でロード・初期化（初回のみ）
+    - strict full validation（3DSS v1.0.x）を実行
+    - OK のときのみ `bootstrapViewer(canvasOrId, document3dss, mergedOptions)` を呼び出す
+      - `mergedOptions.modelUrl = options.modelUrl ?? url`
+  - エラー時：
+    - validation エラー内容（`instancePath` / `message`）を整形した Error を throw し、hub は生成しない。
 
 
 ### 1.4.2 viewerHub（runtime/viewerHub.js）
@@ -341,99 +365,213 @@ viewer は **完全 read-only の表示装置** であり、
 viewer 独自情報は ui_state 内部にのみ保持してよい（構造データへの混入禁止）。
 
 
-## 1.7 起動フロー（dev harness → bootstrapViewer → viewerHub）
+## 1.7 起動フロー（viewer_dev.html → viewerDevHarness.js → bootstrapViewer → viewerHub）
 
 ### 1.7.1 エントリ経路の固定
 
-開発用 viewer（viewer_dev）は、次の 1 本の経路で起動する。
+開発用 viewer（viewer_dev）は、次の 1 本の経路で起動する（本番組み込み viewer も同じ runtime を共有する）。
 
 1. `viewer_dev.html`  
    - dev 用 DOM 骨格（3D canvas・ログ領域・ボタン等）を定義する。
+
 2. `viewerDevHarness.js`  
-   - DOMContentLoaded 後に UI 要素をひととおり取得し、  
+   - window.load（または DOMContentLoaded）後に UI 要素をひととおり取得し、  
      `bootstrapViewerFromUrl` を 1 度だけ呼び出す。
+   - 得られた `viewerHub` をグローバル（`window.hub` 等）に expose して、  
+     dev 用 UI / コンソールから診断できるようにする。
+
 3. `runtime/bootstrapViewer.js`  
-   - JSON ロード + strict validation + runtime 初期化を行い、  
-     `viewerHub` を返す。
+   - 3DSS の strict validation（FromUrl 経由の場合）
+   - struct の deep-freeze / structIndex 構築
+   - rendererContext / uiState / CameraEngine / 各種 Controller の初期化
+   - PointerInput / KeyboardInput の接続
+   - `createViewerHub({ core, renderer })` を呼び出し、`hub` を返す。
 
-この経路以外から Core / Renderer / CameraEngine を直接 new / 呼び出しすることは禁止とする。  
-host アプリ（Astro ページ等）も同様に、`bootstrapViewer` / `bootstrapViewerFromUrl` を唯一の入口とする。
+4. `viewerHub`  
+   - `hub.core.*` と `hub.pickObjectAt` を通じて、  
+     frame / camera / selection / mode / micro / filters / runtime API を公開する。
+   - `hub.start()` / `hub.stop()` で render loop（requestAnimationFrame）を開始・停止する。
+
+この経路以外から Core / Renderer / CameraEngine / PointerInput / KeyboardInput を new / 呼び出しすることは禁止とする。  
+必ず `bootstrapViewer` / `bootstrapViewerFromUrl` を唯一の入口とし、  
+返ってきた `hub` に対して `hub.start()` を呼び出すことでレンダーループを開始する。
+
+### 1.7.2 viewerDevHarness.js の責務
+
+`viewerDevHarness.js` は「dev 用ホスト」であり、runtime とは明確に分離する。
+
+- 役割：
+  - dev 用 HTML（`viewer_dev.html`）に配置された各種 DOM（frame スライダ・filter ボタン・HUD・gizmo 等）を取得する。
+  - `bootstrapViewerFromUrl(canvasId, jsonUrl, options)` を 1 回だけ呼び出し、  
+    得られた `viewerHub` を `viewerHub` / `window.hub` に保持する。
+  - `hub.core.frame.*` / `hub.core.filters.*` / `hub.core.mode.*` / `hub.core.selection.*` / `hub.core.camera.*` などを UI イベントに接続する。
+  - dev 用 HUD / メタパネル / ログ表示（BOOT / MODEL / CAMERA / LAYERS / FRAME）を実装する。
+- 制約：
+  - `runtime/core/*` / `runtime/renderer/*` を直接 import しない（唯一の入口は `bootstrapViewer*`）。
+  - three.js / AJV / CameraEngine を直接触らない。
+  - 3DSS 構造を変更しない（ui_state の表示だけ行う）。
+
+概略フローは次の通り：
+
+```text
+viewer_dev.html      （開発用 DOM 骨格）
+  ↓
+viewerDevHarness.js  （dev 用ハーネス）
+  ↓
+bootstrapViewerFromUrl(canvas, modelPath, options)
+  ↓
+viewerHub（hub）
+  ↓
+hub.start()          （レンダーループ開始）
+```
+
+## 1.8 dev viewer と本番 viewer の関係
+
+viewer runtime 自体はホスト非依存の共通コンポーネントであり、
+dev viewer はその一実装例に過ぎないことを仕様として明示する。
+
+- 共有するもの：
+ - runtime/bootstrapViewer.js
+ - runtime/viewerHub.js
+ - runtime/core/*
+ - runtime/renderer/*
+- dev viewer 固有のもの：
+ - viewer_dev.html（3 カラムレイアウト、メタパネル、HUD 等）
+ - viewerDevHarness.js
+ - dev 用 HUD / gizmo / 各種ボタン類（ui/gizmo.js など）
+
+### 1.8.1 共通エントリポイント
+すべてのホストは、次の 共通エントリ API から viewer runtime を起動する。
+- bootstrapViewer(canvasOrId, threeDSS, options?) → hub
+ - strict validation 済みの 3DSS オブジェクトを受け取り、viewerHub を構築して返す。
+- bootstrapViewerFromUrl(canvasOrId, url, options?) → Promise<hub>
+ - url から .3dss.json を fetch し、strict validation を実行したうえで
+bootstrapViewer を呼び出すラッパー。
+
+dev viewer も本番 viewer も、これ以外の経路で runtime を起動してはならない。
+
+### 1.8.2 dev viewer（開発用ハーネス）の起動フロー
+dev viewer の起動時、viewerDevHarness.js は概ね次のように動く：
+1. window.addEventListener('load', boot) で 1 回だけ boot() を起動する。
+2. boot() 内で
+ - メタパネル / HUD / frame スライダ / filter ボタン等の DOM を取得する。
+ - const canvasId = "viewer-canvas";
+ - const jsonUrl = "../3dss/sample/core_viewer_baseline.3dss.json";（baseline 確認時）
+ - bootstrapViewerFromUrl(canvasId, jsonUrl, { devBootLog:true, devLabel:"viewer_dev", modelUrl:jsonUrl, logger:devLogger }) を呼ぶ。
+3. devLogger(line) は
+ - console.log(line) + メタパネルへの追記（appendModelLog(line)）を行う。
+
+このように、dev viewer は「ログ・HUD・コントロール類が追加されたホスト」であり、
+runtime 自体には一切手を入れない。
+
+### 1.8.3 本番 viewer（Astro / 埋め込み）の起動フロー
+
+本番 viewer（Astro サイトや他ホストアプリ）も、
+基本的には dev viewer と同じエントリ API を用いる。
+
+Host（Astro / React / plain HTML 等）
+  ↓
+bootstrapViewerFromUrl(canvasRef, modelUrl, options)
+  ↓
+viewerHub（hub）
+  ↓
+host 側から hub.core.* を利用して UI と連携
+  ↓
+hub.start()          （レンダーループ開始）
 
 
-### 1.7.2 dev harness の役割
+- Host（Astro / React / plain HTML 等）
+ - 自身のレイアウトの中に <canvas> もしくは canvas を含むコンテナを配置する。
+ - マウント完了後に bootstrapViewerFromUrl または
+事前に fetch + validation 済みの 3DSS を用いた bootstrapViewer を呼ぶ。
+ - 得られた hub の core.* API を、自前の UI コンポーネント（タイムライン・レイヤトグルなど）に接続する。
 
-`viewerDevHarness.js` の責務：
+- 制約：
+ - dev harness と同様、runtime には bootstrapViewer* / hub.core.* でのみアクセスする。
+ - 構造データ（3DSS）は strict read-only とし、viewer から書き換えない。
 
-- dev 用 UI 要素の参照を集める（canvas / ログ / ボタン等）
-- 起動設定（config）を組み立てる：
-  - 読み込む `.3dss.json` パス（デフォルトは baseline サンプル）
-  - 初期オプション（例：ログ出力先、microFX ON/OFF など）
-- `bootstrapViewerFromUrl(canvasElement, config.modelPath, config.options)` を呼び出し、`hub` を受け取る
-- `pointerInput(hub)` / `keyboardInput(hub)` / `gizmo(hub)` / `timeline(hub)` など  
-  各 UI モジュールを初期化して canvas / DOM に attach する
-- 再読込ボタンなど dev 専用 UI のイベントから、必要に応じて
-  - hub.stop() → canvas 内容クリア → 再度 `bootstrapViewerFromUrl` を呼び直す
+## 1.9 baseline 起動時の固定条件
 
-dev harness は three.js や struct を直接扱わず、常に hub.core.* を経由して runtime を操作する。
-
-
-## 1.8 baseline 起動時の固定条件
-
-本節では、dev viewer（viewer_dev.html）において  
-`core_viewer_baseline.3dss.json` を読み込んだときに  
+本節では、dev viewer（viewer_dev.html）において
+core_viewer_baseline.3dss.json を読み込んだときに
 「毎回同じ初期画面」が再現されるようにするための条件を定義する。
 
-### 1.8.1 入力ファイルの固定
+### 1.9.1 入力ファイルの固定
 
-1. dev 起動時のデフォルト入力は、常に  
-   `/data/sample/core_viewer_baseline.3dss.json` とする。
-2. 他のサンプルをロードする UI があっても、  
-   「起動直後に自動でロードされるファイル」は上記 1 本に限定する。
+1. dev 起動時の baseline 入力は、常に
+../3dss/sample/core_viewer_baseline.3dss.json とする（実パスはリポジトリ構成に追従）。
+
+2. 他のサンプルをロードする UI があっても、
+「起動直後に自動でロードされるファイル」は上記 1 本に限定する。
+
 3. 読み込んだファイルパスは起動ログに必ず 1 行出力する。
 
-### 1.8.2 カメラ初期状態の固定
+### 1.9.2 カメラ初期状態の固定
 
-`core_viewer_baseline.3dss.json` 読み込み直後のカメラ状態は、  
-次の定数として固定する。
+core_viewer_baseline.3dss.json 読み込み直後のカメラ状態は、
+シーン境界（bounding sphere）から算出される 決定的な初期値 として固定する。
 
 - 投影方式: PerspectiveCamera
-- up ベクトル: (0, 0, 1)  // Z+ 絶対上
-- position: (0, 6, 14)
-- target: (0, 0, 0)
-- fov: 50°
-- near: 0.1
-- far: 2000
+- up ベクトル: (0, 0, 1) // Z+ を絶対上とみなす
+- target: シーン中心 metrics.center（取得できない場合は (0, 0, 0)）
+- 距離: シーン半径 metrics.radius の約 2.4 倍（distance = radius * 2.4。radius 不明時は 4）
+- 視野角: fov = 50（deg）
 
-実装上は `DEFAULT_CAMERA_STATE` として保持し、  
-dev 起動時・リロード時は必ずこの値で初期化する。
+初期カメラ state は createUiState の引数 cameraState としてセットされ、
+起動直後の CameraEngine.getState() が常に同じ値になることを保証する。
 
+この初期値は 3DSS 構造へ書き戻さず、
+あくまで「viewer runtime 内の ui_state」としてのみ保持される。
 
-### 1.8.3 frame / layer 初期状態
-
+#### 1.9.3 frame / layer 初期状態
+baseline 起動直後の frame / layer 状態は次のとおり固定する。
 - frame
-  - `document_meta.frames` が存在する場合：
-    - 配列先頭 `frames[0].frame_id` を初期 frame_id とする。
-  - frames 無しの場合：
-    - 内部的には「frame フィルタ OFF」（`active_frame = null`）として扱い、
-      画面表示は「frame: ALL」などの文言で表現してよい。
+ - detectFrameRange(struct) により {min,max} を求める。
+ - uiState.frame.current = frameRange.min（最小フレームから開始）。
+ - uiState.runtime.isFramePlaying = false（再生 OFF）。
+- layer / filters
+ - filters.types.points = true
+ - filters.types.lines = true
+ - filters.types.aux = true
+ - つまり、再生やフィルタ操作を行う前は「全レイヤ ON」の状態から始まる。
 
-- layer
-  - points / lines / aux をそれぞれ独立した Group として保持する。
-  - dev 起動時の初期状態は、3 レイヤすべて `visible = true` とする。
-  - ユーザが ON/OFF を切り替えても、リロードすれば必ず全 ON に戻る。
+### 1.9.4 起動ログ（BOOT / MODEL / CAMERA / LAYERS / FRAME）
 
+viewer runtime は、初期化完了時に options.devBootLog === true の場合、
+次の 5 レコードを 必ずこの順序で 1 回だけ 出力する。
+1. BOOT <label>
+ - <label> は options.devLabel があればそれを用い、なければ "viewer_dev" 等の既定値。
+2. MODEL <modelUrl>
+ - <modelUrl> は options.modelUrl があればそれを用い、なければ url（FromUrl の引数）。
+3. CAMERA {...}
+ - CameraEngine.getState() 相当の payload を JSON 文字列として出力する。
+  - {"position":[x,y,z],"target":[tx,ty,tz],"fov":50} のような形。
+4. LAYERS points=on/off lines=on/off aux=on/off
+5. FRAME frame_id=<number>
 
-### 1.8.4 起動ログ
+これらは「構造化ログイベント」として runtime 内部から logger に渡される。
+- options.logger が関数の場合
+ → 各行を logger(line) として呼び出す。
 
-dev viewer 起動完了時には、最低限次のログを 1 行 1 レコードで出力する。
+- options.logger が未指定の場合
+ → 既定で console.log(line) を用いる。
+dev viewer（viewer_dev.html）では通常、
 
-- `BOOT  viewer_dev`
-- `MODEL /data/sample/core_viewer_baseline.3dss.json`
-- `CAMERA {...}`  // position / target / fov 等を JSON 1 行で
-- `LAYERS points=on lines=on aux=on`
-- `FRAME frame_id=...`
+- logger = devLogger
+（console.log + メタパネルへの append）
+を指定し、Model パネルに
 
-同じビルド + 同じ baseline ファイルに対して  
+```text
+BOOT  viewer_dev
+MODEL ../3dss/sample/core_viewer_baseline.3dss.json
+CAMERA {...}
+LAYERS points=on lines=on aux=on
+FRAME  frame_id=0
+```
+
+のような行が並ぶことを確認できる。
+
+同じビルド + 同じ baseline ファイルに対して
 これらのログ内容が毎回一致することをもって「起動条件が固定されている」とみなす。
 
 ---
@@ -464,310 +602,333 @@ viewer はこれらを
 - 読み取り（strict validation）
 - 可視化
 
-の 2 段階だけを担当し、  
-編集は行わない。
+の 2 段階だけを担当し、編集は行わない。
+
+3DSS 自体の仕様は別紙「3DSS 仕様書（`3DSS.schema.json`）」に委ね、  
+viewer はその **閲覧専用クライアント** として振る舞う。
 
 
 ## 2.2 データ読込時の処理フロー
 
 viewer は構造データの読込時に次の処理を行う：
-(1) JSON 読込
-↓
-(2) Validator による strict full validation
-↓
-(3) Core へ immutable state としてロード
-↓
-(4) Renderer が描画を開始
-↓
-(5) HUD（axis/origin 等）を初期化
 
-
+1. JSON 読込  
+2. Validator による strict full validation  
+3. Core への immutable state としてのロード（deep-freeze）  
+4. Renderer による三次元シーン構築・描画開始  
+5. HUD（axis / origin 等）の初期化
 
 ### 2.2.1 strict full validation の内容
 
-- 型チェック（type）
-- 必須項目（required）
-- enum 完全一致
-- `additionalProperties:false`
+viewer は `/schemas/3DSS.schema.json` を正とする Validator（AJV）により  
+**strict full validation** を行う。主なチェック項目は次の通り：
+
+- 型チェック（`type`）
+- 必須項目（`required`）
+- `enum` 完全一致
+- `additionalProperties:false`（未知キー禁止）
 - `ref → uuid` の参照整合
-- frames の妥当性
-- document_meta の整合
-- schema_uri の一致（major 違いは NG）
-- uuid の RFC4122 v4 準拠
-- `$defs` の一致（未知キー禁止）
+- `frames` の妥当性
+- `document_meta` の整合
+- `schema_uri` の整合
+- `uuid` の RFC4122 v4 準拠
+- `$defs` の一致（スキーマ定義外の拡張禁止）
+
+Viewer 実装側の Validator は、少なくとも次を満たす：
+
+- `removeAdditional: false`
+- `useDefaults:      false`
+- `coerceTypes:      false`
+
+つまり、**入力 JSON を書き換える方向のオプションは一切使わない**。
 
 viewer は不正データを読み込まない。  
-修復・補完（normalize/resolve）は行わない。
+修復・補完（normalize / resolve）は行わない。
+
+### 2.2.2 バージョンおよび schema_uri の扱い
+
+`document_meta` 内のバージョンおよび `schema_uri` について、  
+viewer は次のポリシーで扱う：
+
+- `document_meta.schema_uri`
+  - 例：`https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.1`
+  - `3DSS.schema.json` であること（ファイル名レベル）を要求する。
+  - `#v<MAJOR>.<MINOR>.<PATCH>` の MAJOR が viewer 対応バージョンと一致しない場合は NG。
+- `document_meta.version`
+  - ドキュメント自身のバージョン（コンテンツ更新用メタ）。
+  - 3DSS スキーマの MAJOR と `document_meta.version` の MAJOR が異なる場合は NG。
+  - MINOR / PATCH の上振れは「将来バージョン」を意味するが、  
+    スキーマに反しない限りは許容する（strict validation が最終判断）。
+
+まとめると：
+
+- `schema_uri` の MAJOR 不一致 → 読込拒否
+- `document_meta.version` の MAJOR 不一致 → 読込拒否
+- 上記が一致し、strict validation が OK の場合のみ次のフェーズへ進む。
 
 
-## 2.3 内部 state の構造（read-only）
+## 2.3 内部 state の構造（構造 vs ui_state）
 
-Core 内部で保持する state は次：
+Core 内部で保持する state は「構造データ」と「UI state」に完全に分離される。
 
 ```js
 {
-  document_meta,   // 読み取り専用
-  points[],        // 読み取り専用
-  lines[],         // 読み取り専用
-  aux[],           // 読み取り専用
+  // 構造データ（3DSS）: deep-freeze 済み、読み取り専用
+  data: {
+    document_meta,
+    points: [],
+    lines: [],
+    aux:   [],
+  },
 
-  ui_state: {      // viewer 専用（構造と完全分離）
-    selected_uuid,
-    hovered_uuid,
-    active_frame,
-    panel_state,
-    visibility_state,
-    camera_state,
-    viewer_settings,
-  }
+  // viewer 専用の UI state: 変更可能、ただし外部には書き戻さない
+  uiState: {
+    frame: {
+      current,          // 現在フレーム ID
+      range: { min, max }
+    },
+
+    selection: {        // 現在選択中の要素
+      kind: "points" | "lines" | "aux" | null,
+      uuid: string | null,
+    },
+
+    cameraState: {      // CameraEngine によって管理されるカメラ状態
+      theta,
+      phi,
+      distance,
+      target: { x, y, z },
+      fov,
+    },
+
+    mode: "macro" | "meso" | "micro",
+
+    filters: {          // レイヤ・フィルタ
+      types: {
+        points: boolean,
+        lines:  boolean,
+        aux:    boolean,
+      },
+    },
+
+    runtime: {          // 再生・自動カメラなどのランタイムフラグ
+      isFramePlaying: boolean,
+      isCameraAuto:   boolean,
+    },
+
+    visibleSet: Set<uuid>,     // 現在可視な uuid 群
+    microState:  MicroFXPayload | null, // microFX 用派生 state
+  },
 }
 ```
 
-### 特徴
-- 構造データは deep-freeze。
-- UI 状態は変更可能だが 保存されない（session 限定）。
-- viewer は構造データを書き戻さない。
+特徴：
+
+- 構造データ（`data`）は deep-freeze されており、  
+  どのレイヤからも **変更禁止**。
+- UI state（`uiState`）は viewer 内で変更可能だが、  
+  `.3dss.json` へは書き戻さない（セッション限定）。
+- `visibleSet` / `microState` は UI state の派生情報として Core が所有し、  
+  Renderer はそれを読み取るだけとする。
+
 
 ## 2.4 viewer における構造データの扱い方
-viewer は構造データに対して：
+
+viewer は構造データに対して次を一切行わない：
+
 - 加筆（add）
 - 変更（update）
 - 補完（auto-fill）
 - 除去（auto-clean）
 - 推測補完（inference）
+- 再構成（restructure）
+- 自動マージ（merge）
 
-など、一切行わない。
+構造データは **「読み取るだけ」** であり、  
+視覚化のための解釈はしても、構造自体は変えない。
 
 ### 2.4.1 不変（immutable）の維持
-- Core にロードした構造データは不変
-- 選択・hover・camera などの状態変化は ui_state のみへ反映
+
+- Core にロードした構造データは、deep-freeze により不変とする。
+- 選択・hover・camera・フィルタ・再生状態などの変化は  
+  すべて `uiState` にのみ反映される。
+- three.js のオブジェクト（`THREE.Object3D`）に元 JSON を直接ぶら下げるなど、  
+  構造データへの書き込み経路が生じる設計は禁止とする。
 
 ### 2.4.2 表示制御のための解釈は許可される
 
-例：
+表示制御のための **「解釈」** は許可される。例：
 
-- active_frame に応じた要素の表示・非表示
-- appearance.* の描画方式反映
-- marker.shape に応じた geometry 生成
-- aux.module に合わせた表示（grid/axis など）
+- `frame.current` に応じた要素の表示・非表示
+- `appearance.*` の描画方式反映（色・太さ・透明度など）
+- `marker.shape` に応じた geometry 生成
+- `aux.module` の種類に応じた表示（grid / axis / label など）
 
-これは 表示ロジック であり、構造データの変更ではない。
-viewer は appearance.visible を参照しても、変更・上書きは行わない。
+これらは **表示ロジック** であり、構造データの変更ではない。  
+viewer は `appearance.visible` などを参照しても、値を書き換えたり上書きしたりしない。
 
-## 2.5 frames（時間層）と読み取り仕様
 
-- active_frame が `null`  
-  → frames を無視して全要素を表示（frame フィルタ OFF）
-- active_frame が数値 `n`  
-  → frames に `n` を含む要素のみ表示
-- frames 未定義 or 空の要素は「常時表示」  
-  （active_frame の値にかかわらず表示対象）
-- viewer は frames を 変更しない・補完しない
-- modeler と viewer の frame 解釈は完全に一致させる。
+## 2.5 frame / frames の扱い
+
+3DSS 側の `frames` と viewer 側の `frame.current` の関係は次の通りとする：
+
+- `uiState.frame.current === null`  
+  → `frames` を無視して全要素を表示（frame フィルタ OFF）。
+- `uiState.frame.current === n`（数値）  
+  → 各要素の `frames` に `n` を含む場合のみ表示対象とする。
+- `frames` 未定義 or 空配列の要素は「常時表示」  
+  → `frame.current` の値にかかわらず表示対象とする。
+
+viewer は `frames` を
+
+- 変更しない
+- 補完しない
+- 推測で増減させない
+
+ものとする。
+
+frame の範囲 `{min, max}` は、  
+構造データから `detectFrameRange(document)` によって決定され、  
+`uiState.frame.range` に格納される。  
+
+`frame.current` の初期値は常に `frame.range.min` とし、  
+baseline 起動条件（1.9 節）と整合させる。
+
 
 ## 2.6 参照整合（ref → uuid）
-- ref → uuid の整合は 読込時の Validator が保証 する。
-- line.end_a.ref → point.uuid
-- line.end_b.ref → point.uuid
 
-不整合なら 読込不可。
-viewer 内での再チェックは不要（パフォーマンス確保）。
+`ref → uuid` の整合は **読込時の Validator が保証** する。
+
+代表例：
+
+- `line.end_a.ref` → `points[*].uuid`
+- `line.end_b.ref` → `points[*].uuid`
+- その他、3DSS 仕様書で定義されている全ての参照
+
+不整合がある場合：
+
+- viewer は読込自体を失敗させる（例外発生・エラーメッセージ表示）。
+- 内部で「できる範囲だけ描画する」といった挙動は行わない  
+  （partial rendering / best-effort 描画はしない）。
+
+runtime 内での再チェックは不要であり、  
+性能面を優先して **validation に一任** する。
+
 
 ## 2.7 読込禁止・非対象データ
-viewer は以下を構造データとして扱わない：
-- UI 状態（カメラ・選択状態など）
-- コメントフィールド
-- 注釈・メモ・レポート
-- modeler の内部情報（undo stack など）
-- 外部埋め込み glTF（構造層には無関係）
-- viewer 独自形式の JSON（出力・読込ともに禁止）
 
-構造データは `/schemas/3DSS.schema.json` に対する strict full validation を通過した場合にのみ扱う。
+viewer は以下を構造データとして扱わない：
+
+- UI 状態（カメラ・選択状態など）
+- コメントフィールド（authoring 用の free text）
+- 注釈・メモ・レポート（構造外の narrative）
+- modeler の内部情報（undo stack など）
+- 外部埋め込み glTF / 3D モデル（構造層とは別レイヤ）
+- viewer 独自形式の JSON（出力・読込ともに禁止）
+- 3DSS-prep（authoring 用ミニマルスキーマ）
+
+構造データとして扱うのは、  
+`/schemas/3DSS.schema.json` に準拠した 3DSS のみとする。
+
 
 ## 2.8 データ構造に関する禁止事項（viewer）
 
-viewer は次を一切行わない：
-1. 構造データの変更（add/update/remove）
-2. 値の補正（丸め・推測・埋め草）
-3. uuid の書き換え
-4. frames の付け替え・自動補完
-5. 参照整合の修正
+viewer は構造データに対して、次を行わない：
+
+1. 構造の自動修復
+   - 欠損エッジを自動補完する
+   - 参照切れを自動で削除する
+2. 暗黙の default 付与
+   - スキーマに `default` があっても、  
+     runtime 側でそれを勝手に適用して JSON を書き換えない。
+3. キー名の書き換え
+   - `name_ja` / `name_en` などを自動 merge / rename しない。
+4. 座標の丸め・正規化
+   - 小数点桁数の丸め
+   - 特定軸への投影
+5. frame 情報の自動生成
+   - `frames` 未定義要素への自動付与
+   - time-series の補間
 6. スキーマ外項目の保持
+   - `additionalProperties:false` に反する追加キーを  
+     「一旦読んでから捨てる」ことも行わない（validation で reject）。
 7. UI 状態の JSON 保存
+   - camera / selection / filters / runtime フラグなどを  
+     `.3dss.json` へ書き戻さない。
 8. normalize / resolve / prune / reorder の実行
+   - JSON の key 順序変更
+   - 冗長情報の削除
+   - 別フォーマットへの変換
 
-viewer は構造データを
-“手つかずのまま扱うこと” が厳密に仕様として義務づけられる。
+viewer は構造データを  
+**“手つかずのまま扱うこと”** が厳密に仕様として義務づけられる。
 
-## 2.9 Runtime API 最小セット（MVP）
 
-viewer は modeler から完全に独立した read-only アプリであるが、
-UI ハーネス・dev 用ツール・将来の modeler からの再利用を想定し、
-外部向けに安定して提供する runtime API を最小セットとして定義する。
+## 2.9 Runtime API 概要（最小セット）
 
-本 API は viewer 内部の内部実装（sceneGraph / renderer / viewerRuntime）とは分離され、
-/viewer/runtime/bootstrapViewer.js が返す hub オブジェクトの .core を唯一の公開インターフェースとする。
+viewer は modeler から完全に独立した read-only アプリであるが、  
+UI ハーネス・dev 用ツール・将来の modeler からの再利用を想定し、  
+外部向けに安定して提供する **runtime API の最小セット** を定義する。
 
-- bootstrapViewer(canvasOrId, threeDSS, options?) → hub
-- bootstrapViewerFromUrl(canvasOrId, url, options?) → Promise<hub>
+詳細な API 仕様は別紙 `runtime_spec` に委ね、  
+本節では「エントリポイント」と「外部から見える hub の骨格」だけを示す。
 
-hub の構造（概要）は次のとおりとする。
-- hub.core … runtime API 名前空間（本節および 6.8 で定義）
-- hub.start() … requestAnimationFrame ループ開始
-- hub.stop() … ループ停止
-- hub.pickObjectAt(ndcX, ndcY) … ピッキング（UI から selectionController への橋渡し）
+### 2.9.1 エントリ API
 
-以降の仕様では簡略のため、
-- core = hub.core
-として記述する。
+- `bootstrapViewer(canvasOrId, threeDSS, options?) → hub`
+  - strict validation 済みの 3DSS オブジェクトを受け取り、  
+    runtime 一式を初期化して `hub` を返す。
+- `bootstrapViewerFromUrl(canvasOrId, url, options?) → Promise<hub>`
+  - `url` から JSON を読み込み、スキーマ `/schemas/3DSS.schema.json` に対する  
+    strict full validation を実行した上で `bootstrapViewer` を呼ぶ。
 
-### 公開 runtime API の構造
+`options` には dev 用の拡張を含める：
 
-外部から利用できる runtime API は、次の名前空間にまとめられる（詳細なメソッド一覧は 6.8.2 を正とする）。
-- core.frame.*
- active frame の取得・設定・範囲・前後移動に関する操作。
-- core.camera.*
- orbit / pan / zoom / FOV / 状態取得・設定に関する操作。
-- core.selection.*
- uuid ベースの選択状態管理。
-- core.mode.* / core.micro.*
-macro / meso / micro モード管理と、micro 侵入可否チェック・enter/exit。
-- core.filters.*
-points / lines / aux の可視タイプフィルタ。
-- core.runtime.*
-frame 再生の開始/停止、および runtime 状態の参照。
+- `devBootLog?: boolean`  
+  - true のとき、起動時に `BOOT / MODEL / CAMERA / LAYERS / FRAME` ログを 1 回ずつ出力。
+- `devLabel?: string`  
+  - `BOOT <label>` に用いるラベル。省略時は `"viewer_dev"` 等の既定値。
+- `modelUrl?: string`  
+  - `MODEL <modelUrl>` に用いるパス、およびホスト側メタ表示用の情報。
+- `logger?: (line: string) => void`  
+  - dev 起動ログの出力先。省略時は `console.log`。
 
-いずれのメソッドも 構造 state（struct = core.data）を変更せず、
-変更されるのは ui_state と three.js 側の描画状態だけである。
+### 2.9.2 hub の外形
 
-### 代表的メソッド（参照用）
+`bootstrapViewer*` の戻り値 `hub` は、少なくとも次のプロパティを持つ：
 
-以降の仕様本文では、特に利用頻度の高いメソッドとして主に次を用いる。
-- フレーム系
- - core.frame.setActive(frame: number)
- - core.frame.getActive(): number
- - core.frame.getRange(): { min, max }
- - core.frame.next(), core.frame.prev()
-- カメラ系
- - core.camera.getState(): CameraState
- - core.camera.setState(patch: Partial<CameraState>)
- - core.camera.rotate(dTheta, dPhi)
- - core.camera.pan(dx, dy)
- - core.camera.zoom(delta)
- - core.camera.reset()
- - core.camera.snapToAxis(axis)
- - core.camera.setFOV(value)
+- `hub.core` … runtime API 名前空間（frame / camera / selection / mode / micro / filters / runtime / uiState 等）
+- `hub.start()` … requestAnimationFrame ループ開始
+- `hub.stop()` … ループ停止
+- `hub.pickObjectAt(ndcX, ndcY)` … ピッキング（UI から selectionController への橋渡し）
 
-- 選択系
- - core.selection.select(uuid: string)
- - core.selection.clear()
- - core.selection.get(): { uuid: string | null, kind: 'point' | 'line' | 'aux' | null }
+以降の章（6.8 / 7.11 等）および `runtime_spec` において、  
+`hub.core` 以下の各メソッド（`frame.get/set/step` / `camera.rotate/pan/zoom/reset` など）を  
+詳細に定義する。
 
-- モード / micro 系
- - core.mode.setMode(mode: "macro" | "meso" | "micro", uuid?)
- - core.mode.getMode()
- - core.mode.canEnter(uuid: string): boolean
- - core.micro.enter(uuid: string)
- - core.micro.exit()
- - core.micro.isActive(): boolean
+本章の範囲では：
 
-- フィルタ系
- - core.filters.setTypeEnabled(kind: "points" | "lines" | "aux", enabled: boolean)
- - core.filters.get(): { points: boolean, lines: boolean, aux: boolean }
+- 「構造データは 3DSS に完全依存し read-only」  
+- 「UI から構造へは必ず `hub.core.*` 経由でアクセスする」  
 
-- runtime 系
- - core.runtime.startFramePlayback()
- - core.runtime.stopFramePlayback()
- - core.runtime.isFramePlaying(): boolean
- - core.runtime.isCameraAuto(): boolean
-
-完全な定義は 6.8.2 を正とし、本節はその概要を示すものとする。
-
-### 2.x ビュー・プリセット（A / Shift+A）
-
-3DSL Viewer のカメラは、LM/LI/LT 座標系（物理的には x/y/z に対応）に対して、
-あらかじめ 7 個の「視点スロット」を持つ。
-
-- LM: 横方向（Left–Middle）
-- LI: 奥行き方向（Length–Inner）
-- LT: 上下方向（Length–Top）※常に「上」
-
-#### 2.x.1 スロット定義
-
-`view_preset_index ∈ {0,1,2,3,4,5,6}` を次のように解釈する。
-
-| index | ラベル | 可視平面       | 説明                            |
-|-------|--------|----------------|---------------------------------|
-| 0     | 西     | LT–LM（Z–X）   | 西から東を眺める正面図         |
-| 1     | 南     | LT–LI（Z–Y）   | 南から北を眺める側面図         |
-| 2     | 天     | LM–LI（X–Y）   | 上から下を見おろす真俯瞰       |
-| 3     | SW     | 斜視 (iso)     | 南西からの等角ビュー           |
-| 4     | SE     | 斜視 (iso)     | 南東からの等角ビュー           |
-| 5     | NE     | 斜視 (iso)     | 北東からの等角ビュー           |
-| 6     | NW     | 斜視 (iso)     | 北西からの等角ビュー           |
-
-- index 0〜2 は三角法 3 面図（正投影）のセット  
-- index 3〜6 は LT 軸を保ったまま LM/LI 周りを 90°ずつ回した等角ビュー
-
-内部では次のルールで yaw / pitch を決める：
-
-- LT 軸（z）は常に「上方向（画面上）」として保持
-- 正面図・側面図・上面図は yaw / pitch をそれぞれ
-  - 西: yaw = 0, pitch = 0
-  - 南: yaw = π/2, pitch = 0
-  - 天: yaw = 0, pitch = π/2 − ε
-- アイソメ 4 方向は
-  - pitch = ISO_PITCH（約 35°）
-  - yaw = 45° + 90°×k （k=0,1,2,3）
-
-#### 2.x.2 キーボード操作
-
-ビュー・プリセットは A キーで循環選択する。
-
-- `A` キー: `view_preset_index = (index + 1) mod 7`
-- `Shift + A` キー: `view_preset_index = (index + 6) mod 7`（逆回り）
-
-Viewer は現在の index に応じて
-
-```text
-setViewPreset(view_preset_index)
-を呼び出し、カメラの
-
-target（注視点）
-
-distance（注視点からの距離）
-
-yaw / pitch（方位・仰俯角）
-
-をプリセット値にスナップする。
-
-LT 軸（z 軸）が常に画面上方向に一致することにより、
-
-Arrow キー旋回
-
-Shift+Arrow パン
-
-マウス orbit
-
-とビュー・プリセットの感覚的一貫性を保つ。
-
+という 2 点を仕様上の約束事として明示するにとどめる。
 
 # 3 UI構成と操作体系（viewer）
 
 viewer は構造データの編集を一切行わず、  
-閲覧・確認・理解 のための UI 構造のみを備える。
+**閲覧・確認・理解** のための UI 構造だけを備える。
 
-本章では、閲覧専用 UI として必要な機能のみを定義し、  
-編集 UI や保存 UI が存在しないことを明確化する。
+本章では、閲覧専用 UI として必要な機能・レイアウト・操作体系を定義し、  
+編集 UI や保存 UI が存在しないことを明確にする。
 
 viewer UI は modeler UI と別系統であり、編集語彙を含まない。
 
 
 ## 3.1 UI 全体レイアウト
 
-viewer の UI は次の二分割レイアウトを基本とする：
+viewer_dev（開発用 viewer）の標準レイアウトは次の二分割構成とする：
 
-```
+```text
 ┌─────────────────────────────┐
 │       メインビュー（3Dプレビュー）       │
 ├──────────────────┬────────────────┤
@@ -775,2079 +936,1888 @@ viewer の UI は次の二分割レイアウトを基本とする：
 └──────────────────┴──────────────┘
 ```
 
+- 上段：three.js による 3D メインビュー（canvas）
+- 左下：メタ情報・ログを表示する「情報パネル」
+- 右下：frame / filter / mode / gizmo などの「表示コントロールパネル」
 
-### 3.1.1 メインビュー（3Dプレビュー）
+本レイアウトは dev viewer（`viewer_dev.html`）の標準とし、  
+本番埋め込み viewer では、ホスト側 UI 都合に合わせて再構成してよい。
 
-- three.js による 3D 表示
-- 選択／ホバー強調
-- frame フィルタ
-- カメラ操作（orbit / zoom / pan）
-- HUD（axis/origin）の重畳表示（構造層とは独立）
+### 3.1.1 PC 向け dev viewer レイアウト要件
 
-Scene Viewport はダイナミックレイアウト採用
+PC 向けの dev viewer では、少なくとも次を満たす：
 
+- メインビュー
+  - 3D キャンバス（`<canvas id="viewer-canvas">`）を 1 枚持つ。
+  - pointerInput（マウス / タッチ）をキャンバスにだけぶら下げる。
+- 情報パネル（左下）
+  - File 情報（ソースパス / frame range / current frame）
+  - Model ログ（devBootLog を含む）をスクロール領域として表示。
+- 表示コントロールパネル（右下）
+  - frame スライダと再生ボタン群
+  - points / lines / aux の表示フィルタ
+  - mode HUD（macro / meso / micro）と focus 表示
+  - 軸ギズモの DOM ラッパ（左下 canvas 上に重ねてもよい）
 
-### 3.1.2 情報パネル（読み取り専用）
+### 3.1.2 本番 viewer 最小要件
 
-- name / description
-- appearance の内容（色・形状・その他）
-- points の座標、lines の接続点など
-- 編集 UI（フォーム・セレクタ等）は一切含めない
+本番 viewer（Astro 埋め込みなど）では、次だけを最低限とする：
 
-### 3.1.3 表示コントロールパネル
+- メインビュー（3D canvas）
+- frame 切替 UI（スライダ or +/- ボタン or キーボード）
+- layer 切替 UI（points / lines / aux の ON/OFF）
+- 選択中要素の識別ができる表示（例：UUID / name のどちらか）
 
-- frame 切り替え
-- points / lines / aux の ON/OFF
-- 背景色・HUD・補助線など viewer の表示オプション
+dev 用 HUD / ログパネル / 詳細なメタ情報表示は、  
+本番 viewer では任意とする。
 
-構造データを変更せず **UI レイヤ専用** の切替のみを行う。
 
+## 3.2 メインビューと HUD
 
-## 3.2 viewer の操作語彙（非編集の原則）
+### 3.2.1 メインビュー（3D プレビュー）
 
-viewer が採用する操作語彙は 4 種類に限定する：
+メインビューの責務：
 
-- **Select**（選択）
-- **Hover**（ホバー）
-- **View Control**（視点操作）
-- **Frame Switch**（フレーム切替）
+- three.js による 3D 描画（renderer 層の canvas）
+- カメラ操作（orbit / pan / zoom）の視覚的フィードバック
+- 選択要素のハイライト表示（selection + microFX の結果）
+- frame / filters による表示切替の結果を反映
 
-modeler に存在する add/update/remove/duplicate 等は viewer に存在しない。
+制約：
 
-viewer の Select は “編集カーソル” ではなく “閲覧対象の焦点”。
+- メインビューは構造データを編集しない。
+- UI イベント → camera/frame/selection/mode への反映は  
+  **すべて PointerInput / KeyboardInput → hub.core.* 経由** とする。
 
+### 3.2.2 HUD（トースト / mode ピル / focus ラベル）
 
-## 3.3 Select（選択）
+dev viewer では、メインビュー上に次の HUD を重ねる：
 
-### 3.3.1 選択対象
+- トーストメッセージ（`viewerToast`）
+  - `showHudMessage(text, {duration, level})` 由来の簡易通知。
+  - 例：`"Viewer loaded"`, `"Camera: HOME"`, `"MACRO MODE"` など。
+- mode ピル
+  - `MACRO / MESO / MICRO` の 3 つの pill を表示。
+  - 現在 mode に対応する pill だけ `mode-pill-active` を付与。
+- focus ラベル
+  - 現在 selection（`uiState.selection.uuid`）を表示。
+  - selection がない場合は `"-"` を表示。
 
-- point
-- line
-- aux（hud 拡張は対象外）
+HUD は dev viewer 専用の補助 UI とし、  
+本番 viewer では任意機能とする。
 
-### 3.3.2 処理フロー
+### 3.2.3 軸ギズモ（gizmo）
 
-UI.select(uuid)
-→ Core.ui_state.selected_uuid = uuid
-→ Renderer が強調表示
-→ 情報パネルが「構造データそのまま（正規 JSON 内容）」を表示
+- DOM ベースの HUD として画面左下に重ねる。
+- 役割：
+  - 現在カメラの向きを示す簡易 3D axes 表示。
+  - クリックでカメラを主要軸方向（+X / +Y / +Z）へ snap する。
+  - HOME ボタンでカメラ初期状態へ戻す。
+- 実装：
+  - `viewer/ui/gizmo.js`（DOM 操作）とし、three.js の scene には入れない。
+  - カメラ操作は `viewerHub.core.camera.reset` / `.snapToAxis(axis)` 経由で行う。
 
 
-- 構造データは不変のまま
-- highlight は描画層だけの一時状態
+## 3.3 情報パネル（File / Model）
 
+情報パネルは、主に dev viewer で利用する **テキストベースのメタ表示領域** とする。
 
-## 3.4 Hover（ホバー）
+### 3.3.1 File 情報パネル
 
-### 3.4.1 挙動
+- 表示内容（例）：
+  - Source: `../3dss/sample/frame_aux_demo.3dss.json`
+  - Frame range: `[min, max]`
+  - Current frame: `n`
+- 情報源：
+  - `hub.core.frame.range()` / `hub.core.frame.get()`
+  - `bootstrapViewerFromUrl` に渡した `modelUrl`
 
-- 対象を弱く強調
-- 情報パネルは更新しない
-- 構造データの変更は行わない
+### 3.3.2 Model ログパネル
 
+- 初期状態：
+  - `"Model"` 見出しと、`(logs will appear here)` のプレースホルダ。
+- devBootLog を有効にした場合：
+  - 起動時に必ず次の 5 行がこのパネルに並ぶ：
 
-## 3.5 視点操作（View Control）
+    ```text
+    BOOT  <devLabel>
+    MODEL <modelUrl or (unknown)>
+    CAMERA {"position":[...],"target":[...],"fov":50}
+    LAYERS points=on/off lines=on/off aux=on/off
+    FRAME  frame_id=<n>
+    ```
 
-common 規範：
+- 出力経路：
+  - `bootstrapViewer` オプション `devBootLog: true` 時、
+  - `options.logger` があればそれを使い、無ければ `console.log` を用いる。
+  - viewer_dev ハーネスでは `logger: devLogger` を渡し、  
+    `devLogger` が `appendModelLog` を通じて Model パネルへ追記する。
 
-- Z+ を絶対上方向
-- 左ドラッグ：orbit
-- 右ドラッグ：pan
-- ホイール：zoom
+devBootLog の詳細仕様は 1.8 節を正とする。
 
-カメラは ui_state にのみ保持され、保存不可。
 
-ui_state.camera_state = {
-position,
-target,
-zoom,
-fov,
-spherical: { theta, phi, radius }
-}
+## 3.4 表示コントロールパネル
 
+表示コントロールパネルは、viewer の **状態を外側から操作する唯一の UI 集約** である。  
+ただし本番 viewer では、配置や見た目はホストに任せ、  
+API 呼び出し（hub.core.*）だけを仕様として固定する。
 
-カメラ設定は .3dss.json へ書き込まれない。
+### 3.4.1 Frame コントロール
 
+dev viewer の frame UI は次の構成とする：
 
-### 3.6 Frame 操作（viewer_dev ハーネス共通）
+- スライダ（`#frame-slider`）
+  - `min = range.min`, `max = range.max`, `step = 1`
+  - `input` イベントで `hub.core.frame.set(newValue)` を呼ぶ。
+- ラベル（`#frame-slider-label`）
+  - 現在 frame ID を表示（`hub.core.frame.get()`）。
+- ボタン群
+  - `btn-rew` … `frame.set(range.min)`（先頭へ）
+  - `btn-step-back` … `frame.step(-1)`
+  - `btn-home` … `frame.set(range.min)`（表示上の「HOME」だが、frame 用）
+  - `btn-step-forward` … `frame.step(+1)`
+  - `btn-ff` … `frame.set(range.max)`（末尾へ）
+  - `btn-play` … 再生トグル
 
-- frame は構造データに書き戻さない
-- frames 未定義 or 空の要素は常時表示
+再生トグルは dev viewer 固有の実装とし、  
+内部的には `setInterval` 等で `frame.step(1)` を一定間隔で呼び出す。  
+runtime 本体の仕様としては「frame 再生 API」がなくてもよく、  
+実装する場合は `hub.core.runtime.*` として別途定義する。
 
-viewer は `runtime.setActiveFrame(frame_id:number)` を通じて
-アクティブフレームを切り替える。viewer_dev ハーネスでは、次の UI を提供する：
+frame UI の要件：
 
-- **キーボード**
-  - `Home` … フレーム ID = 0 にリセット
-  - `PageUp` … 現在値 +1（`getFrameRange()` の最大値でクランプ）
-  - `PageDown` … 現在値 −1（`getFrameRange()` の最小値でクランプ）
-  - `Shift + PageUp` … `maxFrameId` にジャンプ
-  - `Shift + PageDown` … `minFrameId` にジャンプ
-- **マウスホイール（Frame モード時）**
-  - Frame モード中はホイール量を蓄積し、
-    一定しきい値ごとに ±1 フレーム移動する
-- すべての UI 変更は `runtime.setActiveFrame()` を経由し、
-  `FRAME_UI` ログ（`frame_id` / `source`）として記録する。
+- frame ID 変更は **常に `hub.core.frame.*` 経由** とする。
+- UI 以外（KeyboardInput）からの変更は、`frameUiLoop` によりスライダ・ラベルへ反映する。
+- マウスホイールは v1 では **Zoom 専用** とし、frame 変更には使わない。
 
-※ Alt+P のオートプレイは viewer_dev 専用の開発用機能とし、
-本番 viewer 仕様からは除外してよい。
+### 3.4.2 Layer フィルタ
 
+points / lines / aux の表示切替 UI を持つ。
+
+- ボタン：
+  - `#filter-points`
+  - `#filter-lines`
+  - `#filter-aux`
+- 表示状態：
+  - `filter-on` / `filter-off` クラスと絵文字（👁 / 🙈）で表現。
+- ロジック：
+  - 各ボタンは `filters.setTypeEnabled(kind, enabled)` を呼ぶ。
+  - `filters.get()` の結果から UI 状態を同期する。
+
+内部では：
+
+- `hub.core.filters.setTypeEnabled(kind, enabled)`  
+  → `visibilityController.setTypeFilter` が `uiState.filters.types.*` と `visibleSet` を更新する。
+- `hub.core.filters.get()`  
+  → 現在の `FiltersState` を返す。
 
+### 3.4.3 Mode / Focus 操作
 
-## 3.7 要素表示トグル（viewer ローカル機能）
+- mode ピル（HUD）
+  - 表示のみ。クリックによる mode 切替は dev viewer では必須ではない（実装してもよい）。
+- focus トグルボタン（`#mode-focus-toggle`）
+  - クリック時：
+    - 現在 selection を取得（`hub.core.selection.get()`）。
+    - `sel.uuid` があれば `hub.core.mode.set("micro", sel.uuid)` を呼ぶ。
+- MESO pill（`#mode-label-meso`）
+  - クリック可能にし、
+    - selection があれば `hub.core.mode.set("meso", sel.uuid)` を呼ぶ。
 
-points / lines / aux の表示 ON/OFF を UI で制御する。
+mode と microFX の詳細ルールは 6.8 節・runtime_spec を正とし、  
+本節は「UI から呼ぶ API のパターン」だけを定義する。
+
+
+## 3.5 入力操作（PointerInput / KeyboardInput）
 
-機能の範囲
+入力操作は runtime 側の **PointerInput / KeyboardInput** に集約し、  
+dev ハーネスは原則として追加ショートカット（Space → Play）程度にとどめる。
 
-対象：
-points / lines / aux
+### 3.5.1 PointerInput（マウス / タッチ）
 
-役割：
-画面の見やすさ調整の一時的な非表示
+PointerInput の責務：
 
-表現：
-👁 アイコン（visibility / visibility_off）で ON/OFF
-デフォルトは全部 ON
+- キャンバス上のポインタ操作を一手に集約する。
+- camera / selection / mode への変更は **hub.core.* 経由** で行う。
+- renderer や three.js を直接触らない。
 
-永続化まわり
-3DSS には一切保存しない（構造データとは無関係）
-viewer をリロードしたら全部 ON に戻るセッションローカル状態
-「意味論」「構造の解釈」には関わらない
+v1 の標準マッピング（マウス）：
 
-Scene viewport のダイナミックレイアウト採用
-要素表示トグルは「viewer 独自のビュー状態」であり、
-modeler の編集結果（3DSS）には影響しない
-他クライアントとも共有されない
+- 左ドラッグ：orbit（カメラ回転）
+- 右ドラッグ or 中ドラッグ：pan（カメラ平行移動）
+- ホイール：zoom（前後）
+- クリック：
+  - click / pointerup 時に canvas 座標 → NDC 変換し、
+  - `hub.pickObjectAt(ndcX, ndcY)` を呼び、
+  - ヒットした uuid があれば `hub.core.selection.select(uuid)` を呼ぶ。
+  - その結果、mode / microFX は core 側で再計算される。
 
-## 3.8 情報パネル（Detail View）
+注意：
 
-### 3.8.1 表示内容
+- Frame の増減をマウスホイールに割り当てることは禁止（3.4.1 参照）。
+- モード遷移条件（canEnter / exit など）は core/modeController の責務とし、  
+  PointerInput は「click → select」までで止める。
 
-- signification.name
-- signification.description
-- appearance.*
-- end_a / end_b（lines）
-- frames
-- 構造データそのままを階層表示（スキーマ準拠順）
+### 3.5.2 KeyboardInput（キーボード）
 
-viewer 独自の派生情報（bounding box など）は表示しない。
+KeyboardInput の責務：
 
-### 3.8.2 表示モード
+- `window` の `keydown` を 1 箇所に集約する。
+- **core.camera / core.frame / core.mode / core.selection のみ** を叩く。
+- UI 要素（DOM）や CameraEngine には直接触れない。
 
-- hover
-- click（詳細）
-- off
+キー入力は次のルールに従う：
 
-入力 UI（テキストボックス等）は持たない。
+1. 入力欄除外
+   - `ev.target.tagName` が `INPUT` / `TEXTAREA` の場合は無視。
 
+2. Home（カメラ HOME）
+   - `ev.code === "Home"` かつ `core.camera.reset` が存在する場合：
+     - `ev.preventDefault()`
+     - `core.camera.reset()` を呼ぶ。
 
-## 3.9 表示補助（Viewer Assistance）
+3. Frame 操作（PageUp / PageDown）
+   - `core.frame` が存在する場合：
+     - `PageUp` … `frame.step(+1)`
+     - `PageDown` … `frame.step(-1)`
+   - frame 範囲外へは FrameController 側でクランプする（runtime_spec 参照）。
 
-- grid ON/OFF（HUD/UI 専用。構造データとは無関係）
-- axis ON/OFF（HUD/UI 専用。構造データとは無関係）
-- 背景色変更
-- ワイヤーフレーム表示
-- ポイントサイズ調整
-- 選択強調色変更
-- lineWidth 補正（auto / fixed / adaptive）
+4. Mode 切替（Q / W / Esc）
+   - `Q` / `q`：
+     - selection.get() に uuid があれば `mode.set("micro", uuid)`
+   - `W` / `w`：
+     - selection.get() に uuid があれば `mode.set("meso", uuid)`
+   - `Escape`：
+     - `mode.set("macro")`
 
-いずれも構造データを変更しない。
+5. カメラ Zoom（+ / -）
+   - `+` / `NumpadAdd`：
+     - `camera.zoom(-Δ)`（前進）
+   - `-` / `NumpadSubtract`：
+     - `camera.zoom(+Δ)`（後退）
+   - Δ（ZOOM_STEP）は実装側の定数（例：0.1）とする。
 
-aux.module.* と UI の grid/axis は **別物** であり混同しない。
+6. カメラ Orbit（矢印キー）
+   - `ArrowLeft` … `camera.rotate(-step, 0)`
+   - `ArrowRight` … `camera.rotate(+step, 0)`
+   - `ArrowUp` … `camera.rotate(0, -step)`（上にチルト）
+   - `ArrowDown` … `camera.rotate(0, +step)`（下にチルト）
+   - `Shift` 押しで step を増やし、早回しとする（例：2° → 4°）。
 
+dev viewer では、これに加えてハーネス側で次を追加してよい：
 
-## 3.10 UI 禁止事項
+- `Space`：
+  - 再生ボタン（`#btn-play`）の click を代理発火し、frame 再生をトグルする。
+  - これは **viewer_dev 専用ショートカット** とし、runtime 本体仕様には含めない。
 
-viewer に次は存在しない：
 
-1. 編集フォームの提供  
-2. add / update / remove / undo / redo  
-3. annotation / comment / report / note  
-4. UI 状態の JSON 保存  
-5. viewer 独自ファイル出力  
-6. カメラ位置を .3dss.json に保存  
-7. frame 情報を編集する UI  
-8. normalize / resolve / prune / reorder の実行  
-9. 構造データに影響する UI（暗黙の編集を含む）
+## 3.6 dev viewer 固有の拡張
 
-viewer は **閲覧専用であり、構造に影響を与えない**。
+viewer_dev（開発用 harness）は、本番 viewer に含めない補助機能を持つ：
+
+- `window.hub` … `viewerHub` へのデバッグ用参照
+- `window.viewerLog(line)` … Model パネルへのログ追記
+- `window.viewerToast(text, options)` … HUD トースト表示
+- 起動時 devBootLog
+  - `BOOT / MODEL / CAMERA / LAYERS / FRAME` の 5 行を Model パネルへ表示
+- gizmo HOME / axis ボタン
+  - カメラ操作コマンドのショートカット（reset / snapToAxis）
+
+これらは **「開発支援機能」** として扱い、  
+本番 viewer 仕様（機能要件）には含めない。  
+ただし、将来 host アプリで再利用したい場合に備え、  
+名前・責務は本章の定義から大きく外れないようにする。
+
 
 ---
 
 # 4 三次元描画とカメラ（viewer）
 
 viewer の描画システムは modeler と同じ three.js を用いるが、  
+閲覧専用アプリ# 4 三次元描画とカメラ（viewer）
+
+viewer の描画システムは modeler と同じ three.js を用いるが、  
 閲覧専用アプリとして **透明性・忠実性・非編集性** を最優先する。
 
-本章では、描画規範とカメラ挙動を定義する。
+本章では、renderer 層と CameraEngine を中心に、  
+三次元描画・visibleSet・microFX・カメラ挙動の規範を定義する。
+
+※ 入力レイヤ（PointerInput / KeyboardInput）は 3 章、および `runtime_spec` を正とする。  
+本章では「入力済みの状態が renderer にどう反映されるか」を扱う。
 
 
-## 4.0 viewer_min による最小描画プロトコル（本体アーキへの写像基準）
+## 4.1 描画レイヤ構造
 
-### 4.0.1 モジュール構成（viewer_min.*）
+viewer の描画レイヤ構造は次の通りとする：
 
-viewer_min 系は「DOM／3DSS／three.js」を最小構成で直結するためのリファレンス実装とする。  
-ファイルと責務は次の通り。
+- Core 層（runtime/core）
+  - `uiState` / `CameraEngine` / `frameController`
+  - `selectionController` / `modeController`
+  - `visibilityController` / `microController`
+  - 3DSS 構造（immutable）と各種 index を保持
+- Renderer 層（runtime/renderer）
+  - `createRendererContext(canvas)` が three.js まわりを一手に担当
+  - three.js の Scene / Camera / Renderer / light / Object3D 群を内部に保持
+  - microFX（axes / bounds / glow / marker / highlight）を含む
+- Hub 層（runtime/viewerHub）
+  - `core` と `renderer` をまとめ、  
+    毎フレーム `uiState` のスナップショットを renderer に流す
+  - `hub.start()` / `hub.stop()` による render loop を単一箇所で管理
 
-- `viewer_min.html`
-  - `<canvas id="viewer-canvas">` を 1 枚だけ持つ。
-  - `<script type="module" src="./viewer_min_boot.js">` でブートストラップを呼ぶ。
-  - CSS によりキャンバスのサイズを決める（JS からは `clientWidth / clientHeight` を読むだけ）。
+### 4.1.1 所有権と禁止事項
 
-- `viewer_min_boot.js`
-  - DOMContentLoaded 後にだけ動く。
-  - `../3dss/sample/demo.3dss.json` を fetch し、3DSS.schema.json に準拠した JSON を取得する（ここではバリデータを省略）。
-  - `getCanvasOrThrow()` で `#viewer-canvas` を取得し、存在しなければ例外。
-  - `initCore(canvas)` を呼び、`{ canvas, renderer, scene, camera }` を受け取る。
-  - `setupPoints(core, threeDSS)` → `pointPosByUUID: Map<uuid, {x,y,z}>` を受け取る。
-  - `setupLines(core, threeDSS, pointPosByUUID)` で線を生成する。
-  - 最後に `startLoop(core)` を呼び、three.js のレンダリングループを開始する。
-  - ここは「DOM＋I/O のみ」を扱い、three.js / 3DSS の詳細ロジックは一切持たない。
+- 3DSS document（構造データ）
+  - Core 層が deep-freeze 済みのオブジェクトとして保持
+  - Renderer 層は **参照のみ** 許可、書き換え禁止
+- uiState / visibleSet / microState / cameraState
+  - Core 層が唯一の正規所有者
+  - Renderer 層は hub 経由で **読み取り専用** として受け取り、反映のみ行う
+- three.js Object3D 群
+  - Renderer 層が所有
+  - Core / UI / hub は Object3D を直接触らない（UUID 等で参照するのみ）
 
-- `viewer_min_core.js`
-  - three.js だけを知る「Core レイヤ」。
-  - `initCore(canvas) => { canvas, renderer, scene, camera }`
-    - `canvas.clientWidth / clientHeight` を優先し、なければ `window.innerWidth / innerHeight` を使う。
-    - renderer の生成・サイズ設定・背景色・カメラ配置・ライト配置を行う。
-    - `resize` イベントで aspect / size を自動更新する。
-  - `startLoop(core)`  
-    - requestAnimationFrame ループを持ち、毎フレーム `renderer.render(scene, camera)` を呼ぶ。
-    - ここには 3DSS の知識を一切入れない（scene が何で構成されているかには関心を持たない）。
+### 4.1.2 frame → visibleSet → renderer の流れ
 
-- `viewer_min_scene.js`
-  - 「3DSS → three.js Object3D」への最小写像レイヤ。
-  - `setupPoints(core, threeDSS) => Map<uuid, {x,y,z}>`
-    - `threeDSS.points[]` を走査し、`appearance.position`（3 要素の配列）を world 座標として Sphere を配置する。
-    - `p.meta.uuid`（なければ `p.uuid`）を key に、実際の `mesh.position` を Map に記録する。
-  - `setupLines(core, threeDSS, pointPosByUUID)`
-    - `threeDSS.lines[]` を走査し、`appearance.end_a.ref / end_b.ref` から point の位置を解決する。
-    - 解決できたものだけを `THREE.Line` として生成し、グループにぶら下げて scene へ追加する。
-  - DOM も renderer も直接は触らず、`core.scene` と 3DSS だけを前提にする。
+1. Core の `frameController` が `uiState.frame.current` を更新する。
+2. `visibilityController.recompute()` が
+   - `frames` / `appearance.visible` / filters（points/lines/aux）を合成し、
+   - `uiState.visibleSet: Set<uuid>` を更新する。
+3. hub の 1 フレーム tick で、
+   - `renderer.applyFrame(uiState.visibleSet)` が呼ばれ、
+   - 各 Object3D の `obj.visible` が UUID ベースで更新される。
 
-
-### 4.0.2 プロトコル（契約）として固定するルール
-
-viewer_min で確認した挙動を、3DSD-viewer 本体でも守るべき「プロトコル」として次のように固定する。
-
-1. **DOM 契約**
-   - ブートストラップは「ターゲット canvas が DOM 上に存在すること」を前提とし、存在しなければ明示的にエラーを投げる。
-   - canvas サイズは CSS 主体で決め、JS 側は `clientWidth / clientHeight` を読むだけにする。
-
-2. **Core 契約（three.js レイヤ）**
-   - Core は three.js のみを知る。3DSS / frame / UI / HUD などの知識は持たない。
-   - Core の公開 API は、基本的に次のような形に揃える。
-     - `initCore(canvas, options?) => coreContext`
-     - `startLoop(coreContext)` / `stopLoop(coreContext)`
-     - 将来 viewer 本体ではここに `resize(width, height)` や `setCameraState` などを足す。
-
-3. **Scene 契約（構造 → Object3D 写像）**
-   - Scene レイヤは「構造 or runtime state → Object3D」を一手に引き受ける。
-   - Core から渡されるのは `core.scene`（と必要に応じて `objectByUUID` など）だけにする。
-   - DOM / fetch / UI イベントなどに触れてはいけない。
-
-4. **3DSS 契約**
-   - viewer_min では直接 3DSS を読んでいるが、想定する構造は 3DSS.schema.json 準拠とする。
-   - 最低限、次のプロパティを前提にする。
-     - `points[].meta.uuid`
-     - `points[].appearance.position`（3 要素の配列として解釈）
-     - `lines[].meta.uuid`
-     - `lines[].appearance.end_a.ref / end_b.ref`
-     - `lines[].appearance.color / opacity`（なければデフォルト値）
-   - 本体 viewer では、必ず「strict バリデーション済みの 3DSS」だけが Scene レイヤに渡される。
-
-5. **責務分離まとめ**
-   - **Boot**（HTML＋boot モジュール）  
-     - I/O（3DSS ロード、URL 解釈、DOM 取得）、Core・Scene への呼び出し。
-   - **Core**（three.js ラッパ）  
-     - renderer / scene / camera / ループ管理。
-   - **Scene**（レイヤ描画）  
-     - points / lines / aux などの Object3D 生成と更新。
-   - それぞれ“下のレイヤ”にしか依存しないようにする。
-     - Boot → Core / Scene  
-     - Scene → Core（scene のみ）  
-     - Core → three.js / WebGL
-
-
-### 4.0.3 3DSD-viewer 本体への写像
-
-viewer_min で固めたプロトコルを、本体アーキにそのまま対応付ける。
-
-| viewer_min 側 | 3DSD-viewer 本体側（想定対応） |
-| --- | --- |
-| `viewer_min.html` | `viewer_dev.html`（および最終 viewer.html） |
-| `viewer_min_boot.js.main()` | `bootstrapViewer` / `viewerHub.startViewer()` |
-| `initCore(canvas)` / `startLoop(core)` | `viewerRenderer.init(canvas)` / `viewerRenderer.start()` |
-| `setupPoints(core, threeDSS)` | `drawPoints(ctx, state)`（points レイヤ） |
-| `setupLines(core, threeDSS, pointPosByUUID)` | `drawLines(ctx, state)`（lines レイヤ） |
-
-- 本体では、Boot → Core → Scene の間に **Runtime State レイヤ** が 1 段入る：
-  - Boot がロードした 3DSS を core/runtime に渡す。
-  - runtime が frame / filter を適用して「points / lines / aux の表示用状態（state）」を生成する。
-  - viewerRenderer が各フレームで `drawLayer(ctx, layerState)` を呼び出す。
-- それでも「依存方向」と「データの受け渡しの基本形」は viewer_min と同じに保つ。
-  - DOM / fetch は Boot に閉じ込める。
-  - three.js 固有処理は Core に閉じ込める。
-  - Object3D の生成は Scene（各 drawXXX）に閉じ込める。
-  - 3DSS 仕様への依存は Runtime と Scene に集中させる。
-
-### 4.0.4 検証パス
-
-- viewer_min は「3DSS → three.js → 画面」の最小経路として常に残し、次を確認するためのリグとする。
-  - points / lines / aux の単体描画が期待通りか。
-  - Core のリサイズ / カメラ 初期状態が期待通りか。
-  - 3DSS サンプルの追加・変更によって描画が壊れていないか。
-- 本体 viewer で問題が出た場合は、まず viewer_min で同じ 3DSS を読み込ませ、
-  - **viewer_min では描けるが本体では描けない** → Runtime / Layer 間の設計／実装ミス。
-  - **viewer_min でも描けない** → 3DSS サンプル or three.js 初期化側の問題。
-  という切り分けを行う。
-
-
-## 4.1 描画システムの目的
-
-Renderer の目的：
-
-- .3dss.json の内容を **忠実に** 再現
-- 構造データは完全 read-only
-- 表示は three.js による「視覚表現」に限定（編集ではない）
-- appearance.* は **スキーマの値をそのまま反映**
-- frame / visibility / camera の変更は ui_state のみ
-- 描画によって構造データが変化することはない
+Renderer は `visibleSet` 以外の条件で表示／非表示を勝手に決めてはならない。
 
 
 ## 4.2 描画対象要素（points / lines / aux）
 
-
 ### 4.2.1 Points
 
-- marker.shape に応じてジオメトリ選択  
-  （sphere / box / cone / pyramid / corona / none）
-- color / opacity をそのまま反映
-- position（x,y,z）は変換せず three.js 空間に配置
-- text がある場合はビルボード 2D として重畳（camera facing）
-- text.content / text.font / text.size / text.align / text.plane は  
-  viewer が意味変更を伴う再整形を行うことを禁止する  
-  （自動折り返しやわずかな縮小・kerning の差異は、可読性確保やレンダラ依存の範囲にとどめる）。
-- viewer は位置補正・丸めを行わない
+points は「空間上の代表点」として描画する。
+
+- 参照元：
+  - `points[*].position`
+  - `points[*].appearance`（color / opacity / marker など）
+- 最低要件：
+  - 各 point につき 1 つの Object3D（通常は小さな球 or billboard）を生成する。
+  - color / opacity は appearance.* の値をそのまま反映する。
+- 追加表現（optional）：
+  - microFX による glow / marker の上乗せ
+  - selection によるハイライト（色／太さ／発光）
+
+points に関して viewer は **位置の補間や丸めを行わない**。  
+position ベクトルは 3DSS JSON の値をそのまま world 座標として用いる。
 
 ### 4.2.2 Lines
 
-- line_type:
-  - straight  
-  - polyline（点列を順番に接続）
-  - bezier / catmullrom / arc（スキーマ定義通り）
-- arrow.shape / arrow.placement をそのまま描画
-- color / opacity / width を反映
-- effect（none / flow / glow / pulse）は描画限定の視覚効果  
-  （`none` は視覚効果なしを意味し、追加描画を行わない）
+lines は「points 同士の接続（ベクトル）」として描画する。
 
-lineWidth に関して：
+- 参照元：
+  - `lines[*].appearance.end_a.ref` / `end_b.ref` から point UUID を解決
+  - `lines[*].appearance.shape` / `arrow` / `effect` / `color` / `opacity` など
+- 最低要件：
+  - ref から両端 point の位置を解決できたものだけを描画対象とする。
+  - 各線分を THREE.Line / Tube / Cylinder 等で描画する（形状は実装依存）。
+  - color / opacity / width を appearance.* に従って反映する。
+- 箭頭（arrow）：
+  - `arrow.shape` / `arrow.placement` の値をそのまま反映する。
+  - 仕様としては 3DSS の定義を正とし、viewer 側で勝手に補正・拡張しない。
+- effect:
+  - `effect: none | flow | glow | pulse` は **描画限定の視覚効果** として扱う。
+  - `none` は追加の視覚効果なしを意味する。
 
-- WebGL 制限により 1px になる環境があるため  
-  viewer は以下の補助モードを持つ：
+lineWidth について：
 
-line_width_mode: auto | fixed | adaptive
-
-
-- **appearance.width を変更してはならない**（viewer 内補正に限定）
+- WebGL 実装により 1px 以下や固定幅になる環境が存在する。
+- viewer は内部に `line_width_mode: auto | fixed | adaptive` の概念を持ってよいが、
+  - v1 実装では **auto 固定** とし、
+  - 他モードは「将来拡張候補」として本仕様に残すに留める。
 
 ### 4.2.3 Aux
 
-aux.module により描画方法が異なる：
+aux は points / lines 以外の補助的描画要素である。
 
-- grid：座標ガイド線
-- axis：XYZ 軸マーカー
-- plate / shell：平面・境界
-- hud：視点補助（視覚ガイド）
-- extension：スキーマが定める構造を範囲内で描画
+代表的な module と v1 における扱い例：
 
-aux は **構造データとしての表示補助** であり、viewer は意味解釈を行わない。
+| module 名  | スキーマ | Viewer v1 の扱い       | 備考                                      |
+|------------|---------|------------------------|-------------------------------------------|
+| `grid`     | あり    | 描画必須（保証）       | ground グリッド。基本パラメータのみ対応で可。 |
+| `axis`     | あり    | 描画任意・無視可       | 構造層の軸。HUD の gizmo axis とは別物。   |
+| `plate`    | あり    | 描画任意・無視可       | 床プレート／背景板。v1 では非必須。       |
+| `shell`    | あり    | 描画任意・無視可       | 外皮表現。v1 では非必須。                 |
+| `hud`      | あり    | 描画任意・無視可       | 構造側 HUD。Viewer UI で代替する想定。    |
 
-#### aux.module v1 対応範囲（3DSD Viewer v1）
-
-3DSS v1.0.1 の aux.appearance.module では、grid / axis / plate / shell / hud / extension など複数の補助構造が定義されている。
-本バージョン（3DSD Viewer v1）の公式実装が 描画を保証する aux.module は grid のみ とする。
- - module.grid
-  - ground グリッドとして 3D 表示することを v1 の挙動として保証する。
- - module.axis / module.plate / module.shell / module.hud / module.extension.*
-  - スキーマ上は有効な構造やが、Viewer v1 では 描画されなくてもよい（無視されても仕様どおり）。
-  - 無視された場合でも、それだけを理由に「エラー扱い」にはしない。
-
-将来の Viewer バージョンで追加の aux.module をサポートする場合は、以下の表を拡張して対応状況を明示する。
-| module 名               | スキーマ定義有無 | Viewer v1 の扱い | 備考                                          |
-| ---------------------- | -------- | ------------- | ------------------------------------------- |
-| `grid`                 | あり       | 描画必須（保証）      | ground グリッド。`subdivisions` 等、基本パラメータのみ対応で可。 |
-| `axis`                 | あり       | 描画任意・無視可      | 無視しても SCHEMA_OK。ギズモは別レイヤで実装する。              |
-| `plate`                | あり       | 描画任意・無視可      | 将来の床プレート／背景板候補。v1 ではノーサポートでよい。              |
-| `shell`                | あり       | 描画任意・無視可      | ドーム／外皮表現用。v1 では無視してよい。                      |
-| `hud`                  | あり       | 描画任意・無視可      | HUD 系は基本的に Viewer 側の UI でまかなう。              |
-| `extension.latex`      | あり       | 描画任意・無視可      | 数式レンダリングは将来拡張。                              |
-| `extension.parametric` | あり       | 描画任意・無視可      | パラメトリック形状も将来拡張。                             |
+v1 では grid 以外の aux module は「存在しても無視可」とし、  
+将来対応時にのみ本表を更新する。
 
 
----
-
-UI レイヤの grid/axis（第3章）は  
-aux.module.grid / aux.module.axis と完全に独立し、混同不可。
-
-
-## 4.3 frame（時間層）による表示制御
+## 4.3 frame（時間層）と表示制御
 
 ### 4.3.1 表示ルール
 
+`uiState.frame.current = n` のとき、表示ルールは次の通り：
+
 - active_frame == n  
-  → frames に n を含む要素のみ表示
+  → `frames` に n を含む要素のみ表示
 - active_frame が null  
-  → frames を無視して全要素を表示（frame フィルタ OFF）
+  → `frames` を無視して全要素を表示（frame フィルタ OFF）
 - frames が未定義または空  
-  → 常時表示（active_frame の値にかかわらず表示対象）
-- フレーム切替は UI 状態の更新のみ（構造不変）
+  → 常時表示（active_frame に依存しない）
+- frame 切替は UI 状態（uiState.frame）の更新のみで行い、  
+  構造データ（3DSS JSON）は変更しない。
 
-### 4.3.2 注意点
+### 4.3.2 Core / Renderer の責務分離
 
-- frame を viewer が変更しない
-- frames の推測・補完禁止
-- “active_frame ∈ frames” の一致判定のみ
-- 順番・範囲を解釈しない
+- Core：
+  - `frameController.set / step / range` により `uiState.frame` を更新する。
+  - `visibilityController.recompute()` で `uiState.visibleSet` を再計算する。
+- Renderer：
+  - `renderer.applyFrame(uiState.visibleSet)` で `obj.visible` を更新する。
+  - frame ID や frames 配列を直接読むことは禁止。
 
-
-## 4.4 差分描画（更新時の高速反映）
-
-差分更新の対象：
-
-- active_frame の変更
-- レイヤ可視性（points/lines/aux）
-- 選択状態
-- hover 状態
-
-構造データは変化しないため、**structure の再パースは行わない**。
-
-ui_state の変化だけで描画反映を行う。
+frames の推測・補完・補正は行わない。  
+3DSS に入っている frames 情報のみを正とする。
 
 
-## 4.5 カメラ仕様（閲覧用）
+## 4.4 microFX レイヤと selection / mode
 
-common 規範：
+microFX は「視覚補助レイヤ」であり、構造データには一切影響しない。  
+renderer 内の `microFX/*` モジュールとして実装される。
 
-- Z+ が絶対上方向
-- orbit（左ドラッグ）
-- pan（右ドラッグ）
-- zoom（ホイール）
+### 4.4.1 入出力と invariants
 
-### 4.5.1 カメラ状態
+- 入力：
+  - `uiState.microState`（MicroFXPayload）
+  - `uiState.selection`
+  - scene metrics（中心・半径など）
+- 出力：
+  - 既存 Object3D の color / opacity / scale などの上書き
+  - 追加の overlay Object3D（axes / bounds / marker / glow / highlight）群
+- 不変条件：
+  - 3DSS document は決して変更しない。
+  - baseStyle（元の色・不透明度）は必ず保持し、microFX OFF で完全復元できる。
+  - 座標系は 3DSS と同じ「unitless な world 座標系」とし、px などの画素単位を持ち込まない。
 
-- カメラ位置・角度・FOV・zoom は ui_state.camera_state に保持（構造不変）
-- .3dss.json への書き込み禁止
-- 永続化禁止（session-limited）
+### 4.4.2 microFX モジュールの役割
 
-### 4.5.2 初期カメラ
+代表的なモジュールの責務：
 
-初期表示時：
+- `axes`：
+  - focus 要素まわりのローカル軸を簡易表示する。
+  - scene 半径とカメラ距離からスケールを決め、常に読みやすい大きさに保つ。
+- `bounds`：
+  - focus クラスタの AABB（軸平行境界ボックス）を描く。
+  - shrinkFactor により少し内側に縮めて描くことで視認性を上げる。
+- `marker`：
+  - focus 位置に小さなマーカーを配置する（点 or 矢印）。
+- `glow`：
+  - focus 要素に対して halo 的な glow を追加する。
+- `highlight`：
+  - `microState.relatedUuids` に含まれる要素群を「なぞる」オーバーレイを描画し、
+  - 構造的関係（近傍／経路など）を強調する。
 
-- 構造全体が収まる距離
-- わずかに俯瞰した角度（Y 軸に対してマイナス角度）
-- grid / axis が見える位置
-- bounding box から最大外接球半径を取得  
-  → radius × 1.8 を距離の基準とする
+microState の詳細な形は 7.11 節および `runtime_spec` の MicroFXPayload を正とする。  
+本章では「renderer が何をしてよいか／してはならないか」だけを定義する。
 
-初期値を構造へ書き戻さない。
+### 4.4.3 斜め線シャドウ（将来拡張）
 
+斜め線（non-axis-aligned line）に対するシャドウ表現（Shadow Convention）は、  
+microFX の将来拡張案として仕様上に保持する：
 
-## 4.6 選択・ホバーの描画挙動
+- 対象：
+  - ベクトル v = (dx, dy, dz) において複数軸に非ゼロ成分を持つ線分。
+- 方針：
+  - 各軸成分ごとに「影線」を落とし、方向感と奥行きを補助する。
+- 実装有無：
+  - v1 の必須要件ではない。
+  - 実装する場合は 3DSS を一切変更せず、microFX だけで完結させる。
 
-### 4.6.1 選択（Select）
-
-- 色・太さ・発光などで強調
-- 他要素との差別化
-- 情報パネル更新
-
-### 4.6.2 ホバー（Hover）
-
-- 選択より弱い強調
-- 一時的な可視補助（情報パネルは更新しない）
-
-選択・ホバーのいずれも **構造データへ影響しない**。
-
-# 4.7 斜め線（non-axis-aligned line）に対するシャドー表現規範（Shadow Convention）
-
-viewer は構造データを編集せず、  
-lines の視認性向上のみを目的に **描画層限定の軸方向シャドー（Axis-Aligned Shadow）** を付与する。
-
-斜め線は空間的方向が読み取りづらく、  
-特に多要素構造では誤読が生じやすいため、  
-三次元方向を補助表示するための「非破壊・描画専用」規範を定義する。
-
-本規範は構造データを変更せず viewer 内部の描画処理のみに適用される。
-
-
-### 4.7.1 対象
-
-start/end ベクトル v = (dx, dy, dz) において、  
-複数軸に非ゼロ成分を持つ（= 斜め）線分および polyline の各セグメント。
-
-- dx/dy/dz のうち 2 軸以上が非ゼロ → 斜め線として判定  
-- polyline の場合、各セグメント単位で判定  
-
-ベクトル方向から軸方向成分を抽出し、  
-それぞれに対してシャドーを投影する。
+詳細な濃度や方向規範は旧 4.7 節の案を参考にしてよいが、  
+本仕様では「任意実装」として扱う。
 
 
-### 4.7.2 シャドー方向（符号に基づく）
+## 4.5 カメラ仕様（閲覧用 CameraEngine）
 
-v = (dx, dy, dz) の符号に基づいて影を落とす。
+カメラは `CameraEngine` によって一元管理される。  
+cameraState は Core 層が持ち、renderer は毎フレームそれを受け取って反映する。
 
-| 成分 | dx > 0 | dx < 0 | dy > 0 | dy < 0 | dz > 0 | dz < 0 |
-|------|--------|--------|--------|--------|--------|--------|
-| 影方向 | X+ | X− | Y+ | Y− | Z+ | Z− |
+### 4.5.1 空間座標系とカメラ状態
 
-複数軸が傾く場合、各軸成分ごとに独立して影を描画する。
+空間座標系：
 
+- 右手系を前提とし、
+- `Z+` を絶対上方向とする（grid / axis もこれに従う）。
 
-### 4.7.3 シャドー濃度（軸別の視認性補正）
-
-視覚的分離性の観点から、軸ごとに濃度を変える：
-
-- X軸：10〜20%（薄め）
-- Y軸：20〜30%（中）
-- Z軸：30〜40%（濃い）
-
-理由：  
-Z（上下）は最も誤読しやすいため補助を強くし、  
-Y（前後）は中間、  
-X（左右）は相対的に理解しやすいので弱くする。
-
-
-### 4.7.4 シャドーの描画方法（offset + falloff）
-
-shadow は元の line geometry と完全に独立した  
-**1–2px 程度の offset line** として描画する。
-
-手順：
-
-1. 元ラインの複製 geometry を生成  
-2. 軸方向に 0.5〜1px 程度 offset（screen space）  
-3. 濃度に応じたカラー適用  
-4. 始点→終点方向に向かって falloff（100%→0%）を適用  
-
-falloff は線形または指数減衰のどちらでもよいが  
-視認性を損なわない範囲に限定する。
-
-※ depth bias を用いて Z-fighting を厳密に回避する。
-
-
-### 4.7.5 polyline / bezier / spline との関係
-
-- polyline：各セグメントごとに v = p[i+1] − p[i] を用いてシャドー判定  
-- bezier/catmullrom/arc：サンプリング点間の接線方向ベクトルを使用  
-- フィレット（round corner）も同様に接線方向へシャドーを投影
-
-shadow の計算は geometry ベースで行い、  
-構造データ（座標値）には一切変更を加えない。
-
-
-### 4.7.6 viewer の役割と制約
-
-シャドーは viewer 内部の視覚補助であり、構造には影響しない：
-
-- JSON への保存禁止  
-- appearance.* を変更禁止  
-- lineType 変更禁止  
-- polyline 化の強制禁止  
-- 推測・補完・自動変形は禁止  
-
-viewer は **“3D 方向の理解補助”** のみ行い、  
-構造変化・意味変化となる処理は一切実施しない。
-
-
-### 4.7.7 設定（viewer_settings）
-
-shadow 表示は viewer 内の設定として管理される：
+cameraState の基本形：
 
 ```ts
-ui_state.viewer_settings.render.shadow = {
-    enabled: true,
-    intensity_scale: 1.0
+cameraState = {
+  theta:    number,             // 水平角（ラジアン）
+  phi:      number,             // 垂直角（ラジアン）
+  distance: number,             // target からカメラまでの距離
+  target:   { x, y, z },        // 注視点（world 座標）
+  fov:      number              // 垂直 FOV（度）
 }
 ```
 
-- `enabled` は UI で ON/OFF 可能  
-- 設定値は session 限定で永続化禁止  
-- 構造データへ混入させてはならない  
+- Renderer は `theta / phi / distance / target` から camera.position / lookAt を算出する。
+- position などを逆に直接いじるのは CameraEngine の内部実装に限定する。
+
+### 4.5.2 初期カメラ
+
+bootstrapViewer では、renderer の scene metrics から初期カメラを決める：
+
+1. `renderer.syncDocument()` 後に scene の bounding sphere（center, radius）を取得する。
+2. `target = center` とする。
+3. `distance ≈ radius × 2.4` 程度離し、構造全体が画面に収まる距離を確保する。
+4. `theta / phi` はわずかに俯瞰（やや斜め上）となるように設定する。
+
+この初期状態は `uiState.cameraState` にのみ保持し、  
+3DSS document へ書き戻してはならない。
+
+### 4.5.3 CameraEngine API
+
+CameraEngine は少なくとも次を提供する（詳細は `runtime_spec`）：
+
+- `rotate(dTheta, dPhi)`  
+  - `theta += dTheta`, `phi += dPhi` として orbit を行う。
+  - `phi` は極点付近でクランプし、カメラの裏返り（gimbal lock）を避ける。
+- `pan(dx, dy)`  
+  - 画面座標系に沿って `target` を平行移動する。
+  - distance / FOV に応じて pan の実距離をスケーリングする。
+- `zoom(delta)`  
+  - `distance += delta` として前後移動する。
+  - `MIN_DISTANCE` / `MAX_DISTANCE` でクランプする。
+  - キーボード／ホイールの符号規約は「負で前進（ズームイン）」とする。
+- `reset()`  
+  - 初期カメラ状態に戻す（bootstrap 時に記録しておく）。
+- `snapToAxis(axis: 'x' | 'y' | 'z')`  
+  - 指定軸方向から構造を俯瞰する角度（theta, phi）へスナップする。
+  - target / distance は維持する。
+- `setFOV(value)` / `setState(partial)` / `getState()`
+
+Renderer 側では、毎フレーム：
+
+1. `camState = cameraEngine.getState()`
+2. `renderer.updateCamera(camState)`
+3. `renderer.render()`
+
+という流れで反映する。
+
+### 4.5.4 入力レイヤとの関係
+
+- Mouse / Wheel / Keyboard / Gizmo などの物理入力は、
+  - PointerInput / KeyboardInput / gizmo.js が受け取り、
+  - `hub.core.camera.rotate / pan / zoom / reset / snapToAxis` だけを呼び出す。
+- CameraEngine 自体を UI や renderer から直接叩くことは禁止する。
+
+入力マッピングの詳細は 3.5 節および `runtime_spec` の KeyboardInput / PointerInput を参照する。
 
 
-### 4.7.8 本規範の目的
+## 4.6 カメラモード（macro / meso / micro）と描画
 
-本規範は、特に斜め線が増えた構造において  
-閲覧者が直感的に方向を把握できるようにするための  
-**非破壊・補助的な視覚表現** を提供することを目的とする。
+mode（"macro" / "meso" / "micro"）は「どのスケールで構造を見るか」を表す。  
+uiState.mode を唯一の正規状態とし、modeController が管理する。
 
-構造データは手つかずのまま維持し、  
-viewer の表示レイヤでのみ方向性のヒントを与える。
+### 4.6.1 モード定義
+
+| モード | 用途         | 説明                                  |
+|--------|--------------|---------------------------------------|
+| macro  | 全体俯瞰     | シーン全体を俯瞰する基本モード。      |
+| meso   | 近傍クラスタ | 選択要素の周辺クラスタをまとめて観察。 |
+| micro  | 1 要素原点   | 1 要素を原点とみなす近接観察モード。  |
+
+- mode は常に 3 値のいずれか。
+- frame 再生は原則 macro モードで行う。
+
+### 4.6.2 モードと microFX の関係
+
+- macro
+  - microFX は無効（`uiState.microState = null` 相当）。
+  - 全オブジェクトを baseStyle のまま表示する。
+- meso
+  - microController が selection / cameraState / structIndex から microState を計算。
+  - focus 近傍の要素は強調し、遠方は距離に応じてフェードする。
+- micro
+  - focus 要素を原点とみなし、localBounds や axes を表示する。
+  - 非 focus 要素は大きくフェードし、局所構造だけをくっきり見せる。
+
+詳細な距離係数や opacity の設計は microFX 定義（6.8 節と `runtime_spec`）を正とする。
+
+### 4.6.3 モード遷移と selection
+
+modeController は次のルールを満たす：
+
+- micro / meso に入るとき：
+  - selection.get() に uuid がなければ入れない。
+  - canEnter(uuid) が false の場合（非表示など）は micro / meso へ遷移しない。
+- Esc キー：
+  - どのモードからでも macro へ戻る（selection は維持）。
+- frame 再生開始時：
+  - mode を macro へ戻し、microFX を OFF にする（推奨）。
+
+モード遷移は必ず `core.mode.set(mode, uuid?)` を経由し、  
+renderer 側で独自に mode を判定してはいけない。
 
 
-## 4.8 描画パフォーマンス要件
+## 4.7 描画パフォーマンス要件
 
-viewer は閲覧専用であり、以下を満たす：
+viewer は閲覧専用であり、次を目標とする：
 
 - frame 切替：100ms 以内
-- 2000〜5000 要素で遅延なし
-- カメラ操作：60fps 以上を目標（実行環境依存）
-- aux 切替：即時反映
-- 選択・ホバー：1フレーム以内に反映
+- 2000〜5000 要素で明確な遅延なし
+- カメラ操作：60fps 以上（実行環境依存）
+- aux 切替：ユーザ操作から 1 フレーム以内に反映
+- selection / microFX：1 フレーム以内に視覚的変化が見えること
 
-パフォーマンス補助（instancing / LOD / caching）は  
-**viewer 内部で完結** し、構造データには影響させない。
+パフォーマンス向上のために：
+
+- instancing / LOD / caching / frustum culling などの最適化を行ってよい。
+- ただしこれらは **viewer 内部で完結** させ、3DSS や uiState の意味を変えてはならない。
+
+例えば：
+
+- 遠景では points を billboard へ落とす
+- 長大な polyline を距離に応じて簡略化する
+
+といった最適化は許容されるが、  
+元の構造データが「こうなっている」と誤解されるような描画は避ける。
 
 
-## 4.9 描画禁止事項（viewer）
+## 4.8 描画禁止事項（viewer）
 
 viewer は次の行為を行ってはならない：
 
 1. 位置の丸め・補完
+   - 例：座標を勝手に整数へ丸める、格子点へスナップする、など。
 2. ジオメトリの推測・補正
+   - 例：座標が近いからといって自動で接続線を追加する。
 3. ref 整合の修復
+   - 例：存在しない UUID に対して「それらしい」 point を勝手に補完する。
 4. 構造データに存在しない要素の追加
+   - 例：線分を補完するための「仮想ノード」を 3DSS 上に生やす。
 5. 描画状態を JSON へ書き戻す
-6. カメラ状態の保存
-7. viewer 独自データの付与
+   - camera / frame / filters / selection などの UI 状態を 3DSS に保存しない。
+6. カメラ状態の保存（永続化）
+   - session 内で保持するのはよいが、構造データや外部ストレージに記録しない。
+7. viewer 独自データの 3DSS への付与
+   - 例：viewerConvenience などのフィールドを 3DSS に追記する。
 8. modeler の編集 UI の混入
+   - viewer から構造を編集できるような UI を紛れ込ませない。
 9. 注釈・レポート等を描画へ介入させる
-10. 曲線・座標の normalize（平滑化等）
-11. bounding box / collision / metrics を  
-    **構造表示へ混入すること**（内部計算の利用は可）
+   - テキストレポート生成やコメントは UI 層で行い、描画規範を崩さない。
+10. 曲線・座標の「自動修正」
+    - 例：直線で定義されているものを spline でスムージングする、など。
 
+これらは禁止事項に違反する実装が見つかった場合、  
+仕様上は「viewer バグ」として扱い、修正対象とする。
+```として **透明性・忠実性・非編集性** を最優先する。
 
-## 4.10 Frame 操作 UI（v1 実装範囲）
-### 4.10.1 UI 構成
+本章では、描画規範とカメラ挙動を定義する。
 
-Frame 表示は HUD の右上に Frame: N として常時表示。
 
-v1 では **直接指定入力（数字ボックス）**と
-**インクリ/デクリ操作（キー／ホイール）**の 2 系統のみ。
-
-フレームが多数ある場合でも、UI の複雑化を避けるため
-全フレーム一覧やスライダーは v1 に含めない。
-
-### 4.10.2 小プレビュー（optional, 後段検討）
-
-中央 frame の左右に N-1 / N+1 の簡易サムネイルを配置し、
-連続性を視覚的に補助する案を 仕様として保持するが
-v1 では実装しない。
-
-
-## 4.11 カメラモード（macro / meso / micro）
-### 4.11.1 概要
-
-3DSL Viewer におけるカメラには、次の 3 モードを定義する。
-
-モード	用途	説明
-macro	全体俯瞰	シーン全体の構造を俯瞰する基本モード。フレーム再生もこのモードで行う。
-meso	近傍クラスタ	選択要素の周辺にある小さな部分構造（近傍クラスタ）をまとめて観察する中距離モード。
-micro	1 要素原点	選択中の 1 要素をローカル原点とみなし、そのごく近傍だけを強調して観察する近接モード。
-
-ui_state.mode に "macro" | "meso" | "micro" を保持する。
-
-モード遷移はすべて core.mode.setMode(mode, uuid?) を経由して行う。
-
-MicroFX（視覚補助効果）は meso/micro モードでのみ有効とし、macro では一切適用しない。
-
-### 4.11.2 モード遷移トリガ（PC viewer_dev）
-
-PC 版 viewer_dev における標準トリガを次のように定める。
-
-macro モード
-
-Esc キー：どのモードからでも macro に戻る（選択は維持）。
-
-右下パネルの MACRO pill（クリック）。
-
-micro モード
-
-Q キー：現在選択中の要素に対して micro モードでフォーカスする。
-
-core.canEnterMicro(uuid) が false の場合は無視する。
-
-右下パネルの FOCUS [Q] ボタン：Q キーと同等。
-
-meso モード
-
-右下パネルの MESO pill：現在選択中の要素を起点に meso モードへ遷移する。
-
-選択なし／非可視要素の場合は無視する。
-
-いまの段階ではキーボードショートカットは予約のみ（将来拡張で割り当て）。
-
-共通制約：
-
-フレーム再生中（ui_state.runtime.isFramePlaying === true）は meso/micro には入らない。
-
-カメラ自動制御中（ui_state.runtime.isCameraAuto === true）も meso/micro には入らない。
-
-モード遷移は常に modeController.setMode(mode, uuid) を用いる。
-
-### 4.11.3 CameraEngine の振る舞い差
-
-CameraEngine.setMode(mode, uuid) は、渡されたモードに応じてカメラ状態 camera_state を次のように更新する。
-
-共通：
-
-uuid が指定されている場合は rendererContext.getElementBounds(uuid) から
-center:[x,y,z], radius を取得し、target と基準距離の計算に用いる。
-
-uuid が無い／境界が取得できない場合は getBoundingBox() にフォールバックする。
-
-macro
-
-target をシーン全体の中心に設定し、半径 R_scene に対して
-
-radius ≈ k_macro * R_scene（k_macro ≒ 1.8）
-
-theta = phi = 45° の対角俯瞰ビューに初期化。
-
-MicroFX を全解除する。
-
-meso
-
-uuid の bounding sphere 半径を r_elem とするとき、
-
-target = center(uuid)
-
-radius ≈ k_meso * r_elem（k_meso ≒ 2.0〜2.5 の範囲で viewerSettings から決定）
-
-視野角 fov は macro と同等（例: 45°）を維持する。
-
-MicroFX は「近傍クラスタを残しつつ、遠方をやや暗くする」程度の強さとする。
-
-micro
-
-target = center(uuid)
-
-radius ≈ k_micro * r_elem（k_micro ≒ 0.5〜1.0。meso より近い）
-
-必要に応じて若干 fov を狭めることを許容する（例: 40° など）。
-
-MicroFX は「選択要素を最も強く強調し、その他を大きく減光」する。
-
-数値は実装側では viewerSettings.camera および viewerSettings.fx から取得し、
-仕様上は「macro > meso > micro の順に 距離が近く / 周辺が暗くなる」という関係のみを保証する。
-
-### 4.11.4 MicroFX（距離フェード）のモード差
-
-rendererContext.applyMicroFX({ mode, uuid, origin, settings }) は、
-モードに応じて以下のポリシーで不透明度とハイライトを決める。
-
-macro:
-
-常に applyMicroFX(null) と同義。全オブジェクトを元のマテリアルに復元する。
-
-meso:
-
-origin からの距離 d とシーン基準半径 R_scene から
-
-フェード上限距離 D_meso ≈ α_meso * R_scene（例: 1.0〜1.5）
-
-最低不透明度 opacity_min_meso（例: 0.3〜0.5）
-
-d >= D_meso で opacity = opacity_min_meso、
-d → 0 で opacity → 1.0 となる線形補間を行う。
-
-フォーカス要素には中程度の emissive 強調を行う。
-
-micro:
-
-D_micro ≈ α_micro * R_scene（例: 0.4〜0.8）を用いて meso より狭い範囲で補間。
-
-最低不透明度 opacity_min_micro は meso より小さく（例: 0.05〜0.2）設定する。
-
-フォーカス要素には meso より強い emissive 強調を行う。
-
-有効・無効フラグ：
-
-viewerSettings.fx.meso === false の場合、meso モードでも MicroFX は適用せず、
-カメラ位置のみ meso 用に変更する。
-
-viewerSettings.fx.micro === false の場合も同様。
-
-## 4.12 カメラ入力レイヤ正式仕様
-
-（Keyboard / Gizmo / core.camera.*）
-
-### 4.12.1 レイヤ構造
-
-カメラ関連の入力レイヤは、次の 4 段階に分離する。
-
-Input Source（物理入力）
-
-Mouse / Wheel（Canvas 上ドラッグ＋ホイール）
-
-Keyboard（グローバル keydown）
-
-Gizmo/UI ボタン（右下パネル内）
-
-Input Adapter（変換レイヤ）
-
-CameraInput … Canvas 上の Mouse / Wheel → CameraEngine.rotate / pan / zoom
-
-KeyboardInput（viewer_dev 内部） … keydown → core.* API 呼び出し
-
-GizmoInput（gizmo.js＋viewer_dev） … ギズモ DOM イベント → core.gizmo.* / core.camera.*
-
-Core API（viewerHub で公開される窓口）
-
-core.camera.*
-
-core.frame.*
-
-core.mode.* / core.micro.*
-
-core.runtime.*
-
-Engine 層
-
-CameraEngine … camera_state を唯一のソースオブトゥルースとして three.js Camera を制御する。
-
-原則：
-
-UI / HTML は CameraEngine に直接触らない。
-
-すべての入力は一旦 core.* を経由してから CameraEngine に届く。
-
-簡易の流れ図：
-
-Mouse/Wheel ──> CameraInput ──> CameraEngine ──> three.js Camera
-Keyboard    ──> KeyboardInput ──> core.[camera/frame/mode] ──> ...
-Gizmo Btn   ──> GizmoInput ──> core.gizmo.* / core.camera.* ──> ...
-
-### 4.12.2 CameraInput（マウス／ホイール）
-
-CameraInput は「canvas 上のマウス操作をカメラ操作に変換する」専用レイヤとし、
-UI の状態（mode や selection）は一切参照しない。
-
-コンストラクタ引数
-
-名前	説明
-domElement	対象 Canvas 要素
-engine	CameraEngine インスタンス
-rotateSpeed	回転速度スケール（既定 1.0）
-panSpeed	平行移動速度スケール（既定 1.0）
-zoomSpeed	ズーム速度スケール（既定 1.0）
-invertOrbitY	縦回転の向き反転フラグ（既定 false）
-
-マッピング（PC viewer_dev 既定）
-
-入力	操作	コア呼び出し
-左ボタンドラッグ	orbit（回転）	engine.rotate(dTheta, dPhi)
-中ボタン or 右ボタンドラッグ	pan（平行移動）	engine.pan(dx, dy)
-マウスホイール（スクロール）	zoom（視点距離スケール）	engine.zoom(delta)
-
-CameraInput は core や ui_state を知らず、純粋に CameraEngine だけを操作する。
-
-### 4.12.3 KeyboardInput（キーボード）
-
-キーボード入力は「グローバルショートカット → core. API*」という形で扱う。
-viewer_dev では window.addEventListener("keydown", ...) によって実装する。
-
-#### 4.12.3.1 キーイベント共通ルール
-
-event.target.tagName が INPUT / TEXTAREA の場合は何もしない（フォーム操作優先）。
-
-修飾キー（Shift / Ctrl / Alt）は、下表に明示されている組み合わせ以外は無視する。
-
-キーハンドラは core の存在を前提とするが、CameraEngine には直接触れない。
-
-#### 4.12.3.2 カメラ系以外のキーマップ（参考）
-
-（すでに実装済み）
-
-キー	動作	コア API
-Space	フレーム再生 / 停止 トグル	core.runtime.startFramePlayback/stop
-PageUp	1 フレーム進む	core.frame.next()
-Shift+PageUp	最終フレームへジャンプ	core.frame.setActive(range.max)
-PageDown	1 フレーム戻る	core.frame.prev()
-Shift+PageDown	最初のフレームへジャンプ	core.frame.setActive(range.min)
-Home	フレーム 0 へジャンプ	core.frame.setActive(0)
-Q / q	選択要素に micro でフォーカス	core.mode.setMode("micro", uuid)
-Esc	macro に戻る	core.micro.exit()
-
-#### 4.12.3.3 カメラ系キーマップ（提案仕様）
-
-PC viewer_dev の標準カメラショートカットを次のように定義する。
-
-キー	条件	動作	コア API 呼び出し例
-ArrowLeft	いずれのモードでも可	左方向に少し orbit する	core.camera.rotate(-Δθ, 0)
-ArrowRight		右方向に少し orbit する	core.camera.rotate(+Δθ, 0)
-ArrowUp		上方向に少し orbit する	core.camera.rotate(0, +Δφ)
-ArrowDown		下方向に少し orbit する	core.camera.rotate(0, -Δφ)
-Shift+ArrowLeft		左へ pan	core.camera.pan(-Δx, 0)
-Shift+ArrowRight		右へ pan	core.camera.pan(+Δx, 0)
-Shift+ArrowUp		上へ pan	core.camera.pan(0, +Δy)
-Shift+ArrowDown		下へ pan	core.camera.pan(0, -Δy)
-+ / =		1 ステップ前進ズーム	core.camera.zoom(-Δz)（ホイール前方向相当）
-- / _		1 ステップ後退ズーム	core.camera.zoom(+Δz)
-Ctrl+0		カメラリセット（zoom fit）	core.camera.reset()
-
-Δθ, Δφ は 1 キー押下で 5〜10 度程度を目安とし、
-viewerSettings.camera.keyboardStep から決定する。
-
-Δx, Δy, Δz も viewerSettings.camera.panStep / zoomStep で指定する。
-
-micro / meso / macro いずれのモードでも同じマッピングを使うが、
-実際の挙動は CameraEngine 内部で mode に応じて調整してよい（例：micro 中は pan を弱める等）。
-
-### 4.12.4 GizmoInput（ギズモ／ボタン）
-
-ギズモおよびカメラ用ボタン類は、最終的にすべて core.gizmo.* / core.camera.* を直接叩く。
-
-#### 4.12.4.1 現行 viewer_dev 実装（暫定仕様）
-
-右下の矢印ボタン（↑↓←→）は、クリック時に対応する KeyboardEvent("keydown", { key: "ArrowUp", ... }) を擬似発火し、
-KeyboardInput 側で Arrow キー扱いされる、という実装になっている。
-
-これは「PC dev 用の簡易実装」であり、将来の正式版では廃止してよい。
-
-#### 4.12.4.2 目標仕様（最終形）
-
-最終的な設計としては、ギズモはキーイベントを経由せずに core API を直接呼ぶ。
-
-UI 要素	動作	コア API
-ギズモ中央の HOME ボタン	カメラリセット（zoom fit）	core.gizmo.homeClick() → core.camera.reset()
-ギズモ X 軸クリック	X 軸正方向からのビューへ	core.camera.snapToAxis("x")
-ギズモ Y 軸クリック	Y 軸正方向からのビューへ	core.camera.snapToAxis("y")
-ギズモ Z 軸クリック	上からのトップビュー	core.camera.snapToAxis("z")
-ギズモ周囲の矢印ボタン ↑↓←→	Orbit or Pan 小ステップ	core.camera.rotate / pan（Keyboard と同等）
-
-クリック → core 呼び出しまでの処理は gizmo.js（または gizmoController）側で完結させ、
-viewer_dev.html には「ボタン DOM と eventListener を張る」だけを残す。
-
-将来的に 3D ギズモ自体を three.js シーン内に描画する場合も、
-「ギズモ → core.camera.*」という関係は変えない。
-
-### 4.12.5 優先順位と拡張方針
-
-現状のコードに対して必須の整理
-
-KeyboardInput に「カメラ系ショートカット（Arrow / Shift+Arrow / +/- / Ctrl+0）」を追加。
-
-gizmo 矢印ボタンの擬似 KeyboardEvent は、一旦そのまま許容（挙動が揃うため）。
-
-次のステップ
-
-gizmo.js に onAxisClick / onHomeClick のハンドラを整理し、
-core.gizmo.* の呼び出しに寄せる。
-
-矢印ボタンも KeyboardEvent ではなく、core.camera.rotate / pan を直接叩く形に移行。
-
-将来拡張
-
-TAB プリセットカメラ（TAB で事前登録したカメラ状態を巡回）
-
-マウス中ボタンドラッグによる「ローカル orbit」など、高度な操作は別セクションで定義。
 ---
 
-# 5 UIイベントと状態管理（viewer）
+# 5 UI イベントと状態管理（viewer）
 
 viewer の UI イベントは、  
-**構造データへの変更を一切伴わず**、  
-内部の ui_state を変更するだけで完結する。
+**構造データ（3DSS）を一切変更せず**、  
+内部の `uiState` を更新することで完結する。
 
-viewer の UI イベント体系は modeler と異なり  
-「状態遷移のみ」で構成される。
-
-
-## 5.1 ui_state の役割
-
-ui_state の目的は次の 2 点。
-
-1. 閲覧体験に必要な一時状態（選択・hover・frame・可視性）を保持する  
-2. 構造データ（points/lines/aux）への変更を防ぐため完全分離する
-
-ui_state は構造データと完全に独立し、  
-**.3dss.json に保存されることはない**。
+本章では、UI イベント → core → renderer までの状態遷移と、  
+「どの経路だけが正規ルートか」を整理する。
 
 
-## 5.2 ui_state の構造
+## 5.1 uiState の役割と所有権
+
+uiState の目的は次の 2 点：
+
+1. 閲覧体験に必要な一時状態（selection / frame / filters / mode / runtime / microFX）を保持する  
+2. 構造データ（3DSS）への変更を防ぐため、構造層と完全分離する  
+
+所有権：
+
+- `data`（3DSS 構造）：core が保持・deep-freeze 済み・read-only
+- `uiState`：core が唯一の書き込み権を持つ
+- `visibleSet` / `microState` / `cameraState`：uiState の一部として core が管理
+- renderer / ui / hub は uiState を **読むだけ**（core の API 経由）
+
+uiState の詳細構造は 2.3 節および `runtime_spec` の `uiState` 定義を正とする。
+
+
+## 5.2 イベントソースと正規ルート
+
+UI イベントの主なソース：
+
+- PointerInput（マウス / タッチ）
+- KeyboardInput（キーボード）
+- dev ハーネス（frame スライダ / 再生ボタン / filter ボタン / gizmo ボタン）
+- 将来のホストアプリからの直接 API 呼び出し（`hub.core.*`）
+
+正規ルート（唯一の書き換え経路）：
+
+```text
+DOM Event
+  ↓
+PointerInput / KeyboardInput / viewerDevHarness
+  ↓（hub.core.*）
+core controller 群
+  - frameController
+  - visibilityController
+  - selectionController
+  - modeController
+  - microController
+  - CameraEngine
+  ↓
+uiState 更新（frame / selection / mode / filters / runtime / microState / cameraState）
+  ↓
+hub（render loop）
+  ↓
+renderer.applyFrame / applyMicroFX / applySelection / updateCamera
+  ↓
+three.js Scene に反映
 ```
-ui_state: {      // session-limited viewer-only state
-  selected_uuid: string | null,
-  hovered_uuid: string | null,
-  active_frame: number | null,
 
-  visibility_state: {
-      points: boolean,
-      lines: boolean,
-      aux: boolean,
+禁止事項：
 
-      aux_module: {
-          grid: boolean,
-          axis: boolean,
-          plate: boolean,
-          shell: boolean,
-          hud: boolean,
-          extension: boolean
-      }
-  },
+- UI 層が `uiState` を直接書き換えてはならない
+- UI 層が `CameraEngine` や three.js の `camera` / `scene` に直接触れてはならない
+- renderer 層が `uiState` や 3DSS を書き換えてはならない
 
-  panel_state: {
-      info_panel_open: boolean,
-      control_panel_open: boolean
-  },
 
-  camera_state: {
-      position,     // vec3
-      target,       // vec3
-      zoom,         // number
+## 5.3 Frame 系イベント
 
-      spherical: {  // optional
-          theta,
-          phi,
-          radius
-      },
+### 5.3.1 イベントソース
 
-      fov: number
-  },
+- dev viewer の frame スライダ / ボタン
+- KeyboardInput（PageUp / PageDown）
+- 将来：ホストアプリからの `hub.core.frame.*` 呼び出し
 
-  viewer_settings: {      // 表示オプション（構造とは独立）
-      info_display: "hover",
-      render: {
-          line_width_mode: "auto",
-          min_line_width: 1.0,
-          fixed_line_width: 2.0
-      },
-      camera: {
-          fov: 45,
-          near: 0.1,
-          far: 50000
-      }
-  }
+### 5.3.2 正規ルート
+
+例：frame スライダ操作（dev viewer）
+
+1. `#frame-slider` の `input` イベント発火
+2. viewerDevHarness 内の `initFrameControls` が `frameAPI.set(v)` を呼ぶ
+   - `frameAPI` は `viewerHub.core.frame` のラッパ
+3. `core/frameController.set(v)` が呼ばれる
+4. `uiState.frame.current` を更新し、必要ならクランプ
+5. `visibilityController.recompute()` により `uiState.visibleSet` を再計算
+6. hub の次フレーム tick で
+   - `renderer.applyFrame(uiState.visibleSet)`
+   - `renderer.render()`
+7. `frameUiLoop` が `frameAPI.get()` を読んで
+   - スライダ値
+   - ラベル（`#frame-slider-label`）  
+   を同期
+
+KeyboardInput（PageUp / PageDown）も同様に：
+
+- `frame.step(+1)` / `frame.step(-1)` を経由して  
+  `frameController.step` → `uiState.frame.current` → `visibleSet` → renderer  
+  というルートのみを使う。
+
+### 5.3.3 禁止事項（Frame）
+
+- renderer が `frames` を直接読んで表示可否を決める
+- UI 層が `uiState.frame.current` に直接書き込む
+- frame 範囲外に自由に飛ばし、その後で勝手にクランプする  
+  （クランプは frameController 側の責務とする）
+
+
+## 5.4 Filter / Layer 系イベント
+
+### 5.4.1 イベントソース
+
+- dev viewer の filter ボタン（points / lines / aux）
+- 将来：ホストアプリからの `hub.core.filters.*`
+
+### 5.4.2 正規ルート
+
+1. ユーザが filter ボタン（例：`#filter-lines`）をクリック
+2. viewerDevHarness の `initFilterControls` が  
+   `filtersAPI.setTypeEnabled("lines", enabled)` を呼ぶ
+3. `filtersAPI` は `hub.core.filters` のラッパ
+4. `visibilityController.setTypeFilter("lines", enabled)` が呼ばれる
+5. `uiState.filters.types.lines` を更新し、`visibleSet` を再計算
+6. hub の次フレーム tick で `renderer.applyFrame(visibleSet)` が反映
+7. `syncFilterUI()` が `filtersAPI.get()` を読んで  
+   ボタンのクラス（filter-on / filter-off）と icon（👁 / 🙈）を更新
+
+### 5.4.3 禁止事項（Filter）
+
+- renderer が `appearance.visible` や `frames` を見て独自に filter する
+  - filter 合成（frames / appearance.visible / filters.types）は  
+    **visibilityController に一元化** する
+- UI 層が `uiState.visibleSet` を直接書き換える
+
+
+## 5.5 Selection / Picker 系イベント
+
+### 5.5.1 イベントソース
+
+- PointerInput による canvas click（ray picking）
+- 将来：UI から直接 `hub.core.selection.select(uuid)` を呼ぶケース
+
+v1 実装では PointerInput が `hub.pickObjectAt` を使って選択を行う。
+
+### 5.5.2 正規ルート
+
+1. ユーザが canvas 上をクリック
+2. PointerInput が `pointerup` / `click` をフックし、
+   - 画面座標 → NDC 座標へ変換
+   - `hub.pickObjectAt(ndcX, ndcY)` を呼ぶ
+3. viewerHub が `renderer.pickObjectAt` に委譲し、
+   - `userData.uuid` を持つ最前面ヒットを返す（なければ null）
+4. PointerInput が `uuid` を受け取り、  
+   - `hub.core.selection.select(uuid)` を呼ぶ
+5. `selectionController.select(uuid)` が
+   - `structIndex` から `kind` を解決
+   - `uiState.selection = {kind, uuid}` を更新
+6. modeController / microController が必要に応じて
+   - `uiState.mode` / `uiState.microState` を更新
+7. hub の次フレーム tick で
+   - `renderer.applySelection(uiState.selection)`
+   - `renderer.applyMicroFX(uiState.microState)`
+   - `renderer.render()`
+
+### 5.5.3 禁止事項（Selection）
+
+- UI 層が `uiState.selection` を直接書く
+- renderer が「最後に hit したオブジェクト」を勝手に selection として扱う
+- modeController を迂回して microState を直接書き換える
+
+
+## 5.6 Mode / MicroFX 系イベント
+
+### 5.6.1 イベントソース
+
+- KeyboardInput（Q / W / Esc）
+- dev viewer の focus トグルボタン / MESO pill（クリック）
+- 将来：ホストアプリからの `hub.core.mode.*` 呼び出し
+
+### 5.6.2 正規ルート
+
+例：KeyboardInput（Q → micro mode）
+
+1. `keydown`（`ev.key === "q" || "Q"`）を KeyboardInput が受け取る
+2. `selection.get()` で現在 selection を取得
+3. `sel.uuid` があれば `mode.set("micro", sel.uuid)` を呼ぶ
+4. `modeController.set("micro", uuid)` が
+   - `canEnter(uuid)` で遷移可能かチェック
+   - `uiState.mode = "micro"` に更新
+   - `microController.compute(selection, cameraState, structIndex)` を呼び、
+     `uiState.microState` を更新
+5. hub の次フレーム tick で `renderer.applyMicroFX(microState)` が反映される
+
+Esc キー（macro 戻り）も同様：
+
+- `mode.set("macro")` → `modeController.set("macro")` → `uiState.mode` 更新
+- `uiState.microState = null` にする（microFX OFF）
+
+### 5.6.3 禁止事項（Mode / MicroFX）
+
+- renderer が `uiState.mode` を独自解釈して microFX ロジックを持つ
+  - microFX の対象決定は core/microController の責務
+- UI 層が `uiState.microState` を直接書き換える
+- modeController を経由せずに microController を直接叩く
+
+
+## 5.7 Camera 系イベント
+
+### 5.7.1 イベントソース
+
+- PointerInput（ドラッグ / ホイール）
+- KeyboardInput（矢印キー / Home / +/-）
+- gizmo ボタン（HOME / axis）
+- dev viewer の追加ショートカット（例：Home キー → reset）
+
+### 5.7.2 正規ルート
+
+PointerInput（orbit / zoom / pan）：
+
+- 左ドラッグ：
+  - ドラッグ量から `dTheta` / `dPhi` を算出し、`camera.rotate(dTheta, dPhi)`
+- 右 or 中ドラッグ：
+  - 画面座標差分から `dx` / `dy` を算出し、`camera.pan(dx, dy)`
+- ホイール：
+  - `deltaY` から縮尺を決めて `camera.zoom(delta)`
+
+KeyboardInput：
+
+- `ArrowLeft/Right/Up/Down`：
+  - `camera.rotate(±step, 0)` / `camera.rotate(0, ±step)`
+- `Home`：
+  - `camera.reset()`
+- `+` / `-` / `NumpadAdd` / `NumpadSubtract`：
+  - `camera.zoom(±ZOOM_STEP)`
+
+gizmo：
+
+- HOME ボタン：
+  - `camera.reset()`
+- X/Y/Z ボタン：
+  - `camera.snapToAxis('x'|'y'|'z')`
+
+いずれも最終的には `CameraEngine` のメソッドに集約され、  
+`uiState.cameraState` を更新する。
+
+### 5.7.3 禁止事項（Camera）
+
+- UI 層が `uiState.cameraState` を直接書き換える
+- renderer が `camera.position` を勝手に動かし、CameraEngine と二重管理する
+- modeController や microController が直接 camera を操作する  
+  （必要なら CameraEngine API を通す）
+
+
+## 5.8 runtime フラグ（isFramePlaying / isCameraAuto）
+
+`uiState.runtime` は、再生状態・自動カメラ状態などの  
+**ランタイムレベルのフラグ** を保持する。
+
+```ts
+uiState.runtime = {
+  isFramePlaying: boolean,
+  isCameraAuto:   boolean,
 }
 ```
 
-### 特徴
+v1 では：
 
-- viewer 内限定状態（session-limited）
-- 構造データに紐づくのは uuid のみ  
-  → 選択対象の参照として保持
-- visibility_state は appearance.visible と連動しない  
-  → UI 専用の可視設定
+- dev viewer の再生ボタン（Play/Stop）は  
+  ハーネス内部の `setInterval` で完結しており、  
+  `isFramePlaying` はまだ runtime API からは使用していない。
+- 将来、frame 再生ロジックを core/frameController 側へ移す場合は、
+  - `hub.core.runtime.startFramePlayback()` / `.stopFramePlayback()` などを追加し、
+  - `uiState.runtime.isFramePlaying` を core が唯一の正規ルートとして更新する。
 
+禁止事項：
 
-## 5.3 イベント体系（viewer）
-
-viewer が扱う UI イベントは次の 6 種類のみ：
-
-● **Select**  
-● **Hover**  
-● **Frame Switch**  
-● **Visibility Toggle**  
-● **Camera Control**  
-● **InfoModeChange**（情報パネル表示方式の変更）
-
-Add / Update / Remove / Duplicate / Undo / Redo  
-などの編集イベントは viewer には存在しない。
+- UI 層が runtime フラグを直接書き換え、  
+  core 側のロジックと矛盾を起こすこと
+- renderer が runtime フラグを見て独自の状態マシンを持つこと
 
 
-## 5.4 Select（選択）
+## 5.9 dev ハーネス（viewerDevHarness.js）の責務
 
-viewer の Select は “編集カーソル” ではなく “閲覧対象の焦点”。
+viewer_dev 用ハーネスは、  
+UI と hub のブリッジであり、runtime そのものではない。
 
-### 5.4.1 動作フロー
+責務：
 
-UI.select(uuid)
-→ Core.ui_state.selected_uuid = uuid
-→ Renderer が強調表示
-→ 情報パネルが 構造データそのまま を表示
+- 起動：
+  - `window.load` → `boot()` を 1 回だけ実行
+  - `bootstrapViewerFromUrl(canvasId, modelUrl, options)` を呼び出す
+- devBootLog の配線：
+  - `options.devBootLog = true` / `options.logger = devLogger`
+  - Model ログパネルへ  
+    `BOOT / MODEL / CAMERA / LAYERS / FRAME` を表示
+- UI 接続：
+  - frame スライダ / ボタン → `hub.core.frame.*`
+  - filter ボタン → `hub.core.filters.*`
+  - mode HUD / focus トグル → `hub.core.mode.*` / `hub.core.selection.get()`
+  - gizmo → `hub.core.camera.reset / snapToAxis`
+  - Keyboard shortcuts（Space → Play）など、  
+    dev 専用ショートカットの実装
+- HUD / メタ情報表示：
+  - File パネル（Source / frame range / current frame）
+  - Model パネル（ログ）
+  - HUD トースト（viewerToast）
 
+制約：
 
-### 5.4.2 特徴
+- runtime 層（core / renderer）の内部構造には触れない
+  - 触ってよいのは `viewerHub` の公開 API（`hub.core.*` / `hub.pickObjectAt` / `hub.start` / `hub.stop`）のみ
+- KeyboardInput / PointerInput のロジックを上書きしない
+  - 例外は「Space → Play」など dev 固有ショートカットのみ
 
-- 構造データは不変
-- uuid の整合性は読込時に Validator が保証
+以上により、UI イベントはすべて  
+「viewerDevHarness / PointerInput / KeyboardInput → hub.core.* → core → uiState → renderer」  
+という一本化された経路を通ることが保証される。
 
-
-## 5.5 Hover（ホバー）
-
-Hover は一時的な視覚補助。
-
-### 5.5.1 動作フロー
-UI.hover(uuid or null)
-→ Core.ui_state.hovered_uuid = uuid
-→ Renderer が弱い強調を適用
-
-
-- 情報パネルは更新しない
-- 構造データは変更されない
-
-
-## 5.6 Frame Switch（フレーム切替）
-
-frames による表示フィルタが動作。
-
-### 5.6.1 動作フロー
-
-UI.frame_switch(n)
-→ ui_state.active_frame = n
-→ Renderer が active_frame に合致する要素だけ表示
-
-
-### 5.6.2 特徴
-
-- frame 値は構造データへ書き戻さない
-- 未定義 or 空 frames は常時表示
-
-
-## 5.7 Visibility Toggle（表示切替）
-
-points / lines / aux の表示制御。
-
-appearance.visible（構造側）とは無関係。
-
-### 5.7.1 動作フロー
-
-UI.toggle("points")
-→ ui_state.visibility_state.points = !current
-→ Renderer が反映
-
-
-- aux は module 単位（grid / axis / shell…）で切替可能
-
-
-## 5.8 Camera Control（カメラ操作）
-
-カメラ操作も ui_state のみ変更。
-
-### 5.8.1 動作フロー
-
-UI.camera_orbit()
-UI.camera_zoom()
-UI.camera_pan()
-→ ui_state.camera_state 更新
-→ Renderer 即時反映
-
-UI.camera_fov(value)
-→ ui_state.camera_state.fov = value
-→ Renderer 即時反映
-
-
-### 5.8.2 特徴
-
-- .3dss.json に書き込まない（永続化禁止）
-- session lifetime のみ有効
-
-
-## 5.9 UI 状態の初期化
-
-ファイル読込直後に全状態は初期化される。
-selected_uuid = null
-hovered_uuid = null
-active_frame = null
-visibility_state = { points:true, lines:true, aux:true, aux_module:{全て true} }
-camera_state = 初期カメラ配置  
-panel_state = 既定状態
-
-camera_state は構造データの bounding box から初期位置を算出する。  
-このとき active_frame は null（frame フィルタ OFF）とし、全要素を表示する。
-
-
-## 5.10 viewer における状態管理の禁止事項
-
-viewer は次を行ってはならない：
-
-1. ui_state を .3dss.json に混入  
-2. 選択状態を保存  
-3. カメラ状態を保存  
-4. frame の編集  
-5. 新規 uuid の生成  
-6. 構造データの編集（update/remove）  
-7. annotation/comment/report の付与  
-8. viewer 独自形式の出力  
-9. ui_state を外部ファイル化  
-10. viewer 派生値（bounding box / collision / metrics 等）の情報パネル表示  
-11. 推測・補間・最適化を構造表示へ混入
-
-viewer は軽量・非編集・非永続の状態管理に徹する。
 
 ---
 
-# 6 入出力仕様（viewer：読み込み専用 I/O）
+# 6 ログ・診断・外部連携と禁止機能（viewer）
 
-viewer は **「I/O による構造変化が一切起こらない」** ことを  
-設計原則とする読み込み専用アプリである。
+viewer は構造データを変更しない閲覧専用アプリであると同時に、  
+開発・検証のための **診断ログ** を出力できる dev viewer（viewer_dev）を持つ。
 
-本章では、viewer が扱う I/O の範囲と制限を規定する。
+本章では、
 
+- ログ（特に devBootLog）の仕様
+- エラー報告とユーザ向けメッセージ
+- runtime API を介した外部連携
+- スクリーンショット／エクスポート機能の扱い
+- microFX の運用ルール（詳細版）
 
-## 6.1 入力対象（Input）
+を定義する。
 
-viewer が入力として扱うのは **3DSS 構造データ 1 種類のみ**。
 
-- `.3dss.json`
-- modeler によって生成された正規構造データ
-- `/schemas/3DSS.schema.json` に完全準拠
-- 読込後は Core 内で deep-freeze（不変化）
+## 6.1 ログの基本方針
 
-### 入力対象外
+### 6.1.1 ログレイヤ
 
-以下は **読み込み禁止**：
+viewer のログは大きく 3 レイヤに分かれる：
 
-- `.note.json`（注釈／メモ）
-- viewer 独自形式
-- UI 状態ファイル
-- glTF, CSV, TXT, XML など他形式
-- future version（未定義プロパティを含む）
-- schema_uri が不一致のデータ（major 非一致）
+1. **dev viewer UI ログ**
+   - viewer_devHarness 内で扱う「Model パネル」等への出力
+   - 人間が開発時に確認するためのもの
+2. **ブラウザコンソールログ**
+   - `console.log` / `console.warn` / `console.error` による出力
+   - 開発時のデバッグ、および本番でも必要最小限のエラー通知に利用
+3. **ホストアプリ側ログ（任意）**
+   - Astro / 外部 JS などが viewer のイベントを拾って、  
+     サーバロギングや独自 UI に出す場合
+   - viewer 仕様としては「イベント通知の形」までを保証し、  
+     実際のログストレージはホストの責務とする
 
-viewer は **変換器ではなく、構造データの正規性確認装置**。
+### 6.1.2 ログの目的
 
+ログの主目的は次の通りとする：
 
-## 6.2 入力処理フロー（strict full validation）
+- 3DSS ロード・検証・初期化の成功／失敗を可視化する
+- frame / filter / selection / mode / camera の挙動を診断する
+- microFX や structIndex など、内部処理の不整合を検知する
 
-(0) Core：前処理
-- JSON 最大 10MB （viewer 実装における安全上限。スキーマ仕様としての制約ではない）
-- UTF-8 テキストであること
-- JavaScript / HTML タグ混入を拒否
-- JSONC（コメント付き）は拒否（純 JSON のみ許可）
+逆に、
 
-(1) UI：ファイル指定
-↓
-(2) Core：JSON 読込
-↓
-(3) Validation：
-Version Check（SemVer major 一致）
-schema_uri と document_meta.version の照合
-strict full validation
-↓ OK
-(4) Core：state へ反映（read-only）
-↓
-(5) Renderer：描画開始
+- エンドユーザ向けの常時ログビューアを提供する
+- 3DSS の内容を「ログとしてエクスポート」する
 
+といった用途は viewer 本体の責務外とする。
 
-strict に通らないデータは **部分読込／auto-fix 禁止**。
 
+## 6.2 devBootLog（起動ログ）仕様
 
-## 6.3 strict full validation の検証項目
+### 6.2.1 役割
 
-読み込み時に実施される検証項目は以下すべて必須：
+devBootLog は、dev viewer 起動時に **最低 1 回だけ** 出力される  
+標準形式の起動ログ群である。
 
-- **type**：型一致
-- **required**：必須項目
-- **enum 完全一致**
-- **additionalProperties:false**
-- **ref → uuid の整合性**
-- **frames の形式と値域**
-- **appearance.* の構造整合**
-- **appearance.effect の enum 一致**  
-  （none / flow / glow / pulse）
-- **document_meta の整合**
-- **uuid 重複チェック**
-- **uuid が RFC4122 v4 形式か**
-- **$defs の整合性**（未知キー禁止・schema と完全一致）
-- **schema $id と document_meta.version の major 一致**
+目的：
 
-### NG の場合：
+- 起動経路が仕様どおりになっているかを確認する
+- model URL / 初期 camera / layers / frame 状態を一目で把握する
+- デバッグ時に「起動までは正常か」を素早く切り分ける
 
-→ **読込中止**（データ修正は行わない。理由のみ UI に返す）。
+### 6.2.2 出力形式
 
+起動完了後、次の 5 レコードをこの順で出力する：
 
-## 6.4 読込結果の内部処理（state / ui_state）
-
-読み込みが完了し strict full validation をパスした 3DSS は、viewer runtime 内部で次の 2 系列の状態として保持される。
-
-- **構造 state（struct）** … 3DSS ドキュメントそのもの（読み取り専用）
-- **UI state（ui_state）** … frame / selection / camera / filter / micro など、閲覧操作に伴って変化する状態
-
-viewer はこの 2 種の state のみを扱い、構造データを変形・補完する追加の内部形式は持たない。
-
-### 6.4.1 構造 state（struct）
-
-- strict validation を通過した `.3dss.json` は、そのまま「構造 state（struct）」として保持する。
-- struct は次のような top-level 構造を持つ（3DSS v1.0.1 に対応）：
-
- - `document_meta`
-  - `points[]`
- - `lines[]`
-  - `aux[]`
-  - （将来のバージョンで追加されうる他の top-level フィールド）
-
-- viewer runtime は struct を **immutable（変更不可）** として扱う。
-  - 要素の追加・削除・書き換え、座標の再配置、正規化などは一切行わない。
-- 要素への高速アクセスのため、`meta.uuid` をキーとした内部インデックス（例：`indexByUUID`）を構築するが、これはあくまで内部最適化であり、外部 API には公開しない。
-
-### 6.4.2 UI state（ui_state）
-
-- UI state は、構造 state をどう見せるかに関する「現在の閲覧状態」を表す。
-- `ui_state` は viewer runtime によって生成され、`core.ui_state` 経由で **読み取り専用** として公開される。
-  - 外部（UI / Host）は、`core.*` API を通じてのみ ui_state を変更できる。
-
-ui_state の v1 最小構成は以下とする。
-
-- `camera_state`
-  - `CameraEngine` が管理するカメラ状態一式。
-  - 位置・姿勢・FOV・orbit 等、three.js カメラに必要な情報。
-
-- `activeFrame: number`
-  - 現在の frame 番号。
-
-- `frameRange: { min: number, max: number }`
-  - ドキュメント全体で参照されている frame の最小値・最大値。
-
-- `runtime`
-  - `isFramePlaying: boolean`  
-    タイムライン再生中かどうか。
-  - `isCameraAuto: boolean`  
-    自動カメラ演出中かどうか（v1 では常に false / 予約フィールド）。
-
-- `selection`
-  - `uuid: string | null`
-  - `kind: "point" | "line" | "aux" | null`
-  - 現在選択中の要素（なければ null）。
-
-- `mode`
-  - `"macro" | "meso" | "micro"`
-  - 現在の閲覧モード。macro=俯瞰、micro=1 要素フォーカス、meso=将来拡張用。
-
-- `microFocus`
-  - `uuid: string | null`
-  - `kind: "point" | "line" | "aux" | null`
-  - micro / meso モード時のフォーカス対象。macro 中は null を基本とする。
-
-- `filters`
-  - `types: { points: boolean, lines: boolean, aux: boolean }`
-  - type フィルタ（points / lines / aux）。未設定時はすべて true とみなす。
-
-- `visibleSet`
-  - `points: string[]`
-  - `lines: string[]`
-  - `aux: string[]`
-  - 現在の frame / filter 適用後に「描画対象」となっている要素の uuid 集合。
-
-  viewer_settings: {      // 表示オプション（構造とは独立）
-
-      info_display: "hover" | "select" | "off",
-
-      render: {
-          line_width_mode: "auto" | "fixed" | "adaptive",
-          min_line_width: number,      // px
-          fixed_line_width: number     // px
-      },
-
-      camera: {
-          fov: number,
-          near: number,
-          far: number
-      },
-
-      fx: {
-          // microFX の設定（第 7.11 節）
-          micro: {
-              enabled: boolean,               // false のとき micro モードでも FX を一切かけない
-              profile: "weak" | "normal" | "strong",
-
-              // シーン半径に対する距離カーブ設定
-              radius: {
-                  inner_ratio: number,        // 0〜1, 代表値: 0.10（フォーカス近傍）
-                  outer_ratio: number         // 0〜1, 代表値: 0.40（効果がほぼ切れる距離）
-              },
-
-              // フェード／強調の係数
-              fade: {
-                  min_opacity: number,        // 0〜1, 遠方の下限透過度（0.02〜0.20 程度で調整）
-                  hop_boost: number,          // 1hop 要素の強調係数（0.5〜0.8 程度）
-                  far_factor: number          // その他要素の上限係数（0.1〜0.3 程度）
-              }
-          },
-
-          // 将来用フラグ（v1 ではダミー or UI からは触れない）
-          meso: boolean,
-          modeTransitions: boolean,
-          depthOfField: boolean,
-          glow: boolean,
-          flow: boolean
-      }
-  }
-
-- `focus`
-  - `{ active: boolean, uuid: string | null }`
-  - 旧実装との互換用フィールド。`microFocus` と同期される。
-  - 新規機能は `microFocus` を優先して利用する。
-
-ui_state のフィールドは仕様上拡張可能だが、構造 state（struct）を変更する情報を含めてはならない。  
-viewer runtime は常に「構造 state（struct） → UI state（ui_state） → 描画」という一方向パイプラインで動作する。
-
-## 6.5 出力（Output）
-
-viewer は **一切の出力を行わない**。
-
-- クリップボードへ構造データコピーしない
-- viewer から JSON を取得する API を持たない
-
-### 禁止される出力
-
-- .3dss.json の保存
-- UI 状態ファイルの生成
-- カメラ情報の保存
-- スクリーンショット生成（viewer 機能としての提供は禁止。OS の標準キャプチャ機能は仕様外）
-- glTF / CSV など他形式への変換
-- viewer 独自 JSON の生成
-
-※ OS の画面キャプチャは仕様外（制限不可）。
-
-
-## 6.6 データ変換（format conversion）
-
-viewer が行ってよいのは **three.js 用座標系への mapping のみ**（構造不変）。
-
-### 禁止される変換
-
-- .3dss.json → .json / .jsonc
-- .3dss.json → .csv
-- .3dss.json → .glb / .gltf
-- .3dss.json → .txt
-- .3dss.json → viewer 独自形式
-- 構造データの圧縮・再構築・平坦化
-
-viewer は **データ変換エンジンではない**。
-
-- SVG / PNG / DXF / PDF 等への投影生成禁止
-- ミニマップ等の 2D サマリー生成も禁止  
-  （構造補正につながるため）
-
-
-## 6.7 I/O に関する禁止事項
-
-viewer が行ってはならない I/O：
-
-1. 構造データへの書き込み  
-2. 自動修復・自動補完（AI補完含む）  
-3. 不整合データの部分読込  
-4. スキーマ外項目の保持  
-5. 保存機能（Exporter）  
-6. UI 状態の永続化  
-7. viewer 独自フォーマットの出力  
-8. バージョン不一致データの読込  
-9. AI 推測で欠落値を埋める  
-10. 座標補完・意味推定・グラフ補修  
-11. schema $id / version を無視する「寛容モード」
-12. _viewer_xxx などの内部プロパティを構造へ注入する
-
-viewer は **strict / read-only / non-generative** の原則に従う。
-
-## 6.8 Runtime 状態と API（core.*, micro 優先順位）
-
-viewer runtime は、読み込んだ struct と ui_state を対象に、core.* API を通じてのみ外部から操作される。
-
-### 6.8.1 hub / core オブジェクト
-
-- viewer の Host（Astro ページ / 開発用 HTML 等）は、bootstrapViewer(...) の戻り値として hub オブジェクトを受け取る。
-- hub.core が viewer runtime への唯一の外向き API であり、少なくとも以下を公開する。
-- hub.core.data
- struct（3DSS ドキュメント）。read-only（deep-freeze 済み）。
-- hub.core.ui_state
- ui_state。read-only（値の更新は core.* 経由）。
-
-本仕様では簡略のため、以降は
-- core = hub.core
-として core.* を記述する。
-
-### 6.8.2 core.* の最小セット
-
-v1 viewer が公開する runtime API の最小セットは次のとおりとする。
-
-- フレーム系
- - core.frame.setActive(frame: number)
- ui_state.activeFrame を更新し、recomputeVisibleSet() を伴う。
- - core.frame.getActive(): number
- - core.frame.getRange(): { min: number, max: number }
- - core.frame.next(), core.frame.prev()
-
-- カメラ系
- - core.camera.rotate(dTheta: number, dPhi: number)
- - core.camera.pan(dx: number, dy: number)
- - core.camera.zoom(delta: number)
- - core.camera.reset()
- - core.camera.setState(partialState: object)
- - core.camera.getState(): CameraState
- - core.camera.snapToAxis(axis: 'x' | 'y' | 'z')
- - core.camera.setFOV(value: number)
-
-- 選択系
- - core.selection.select(uuid: string)
- - core.selection.clear()
- - core.selection.get(): { uuid: string | null, kind: 'point' | 'line' | 'aux' | null }
-
-- モード / micro 系
- - core.mode.setMode(mode: "macro" | "meso" | "micro", uuid?)
- - core.mode.getMode(): "macro" | "meso" | "micro"
- - core.mode.canEnter(uuid: string): boolean
- - core.micro.enter(uuid: string)
-mode="micro" へのショートカット。内部で core.mode.canEnter(uuid) を必ず経由する。
- - core.micro.exit()
- - core.micro.isActive(): boolean
-
-- フィルタ系
- - core.filters.setTypeEnabled(kind: "points" | "lines" | "aux", enabled: boolean)
- - core.filters.get(): { points: boolean, lines: boolean, aux: boolean }
-
-- runtime 系
- - core.runtime.startFramePlayback()
- - core.runtime.stopFramePlayback()
- - core.runtime.isFramePlaying(): boolean
- - core.runtime.isCameraAuto(): boolean
-
-これらのメソッドはすべて 構造 state（struct）を変更しない。
-変更されるのは ui_state と three.js 側の描画状態だけである。
-
-### 6.8.3 micro / meso の優先順位ルール
-
-micro / meso 関連の状態と frame / camera 再生との優先順位は、次のルールに従う。
-1. core.runtime.startFramePlayback() 呼び出し時
- - ui_state.runtime.isFramePlaying = true にする。
- - ui_state.mode = "macro" に強制する。
- - ui_state.microFocus と ui_state.focus をクリアする。
- - Renderer には applyMicroFX(null) 相当を指示し、micro 視覚効果をすべて OFF にする。
-
-2. 再生中の挙動
- - ui_state.runtime.isFramePlaying === true の間は、micro / meso モードには入らない。
-  - core.mode.setMode("micro" | "meso", ...) や core.micro.enter(...) が呼ばれても無視されるか、直ちに mode="macro" に戻すものとする。
- - selection 自体（ui_state.selection）は更新してよいが、micro 視覚効果は適用しない。
-
-3. core.runtime.stopFramePlayback() 呼び出し時
- - ui_state.runtime.isFramePlaying = false にする。
- - mode は「停止時点の値（通常は macro）」のままとし、自動で micro に復帰させない。
-
-4. core.mode.canEnter(targetUuid) の条件
- - 引数が truthy な文字列であること。
- - ui_state.runtime.isFramePlaying === false。
- - ui_state.runtime.isCameraAuto === false。
- - targetUuid が現在の ui_state.visibleSet.points / lines / aux のいずれかに含まれていること。
-
-上記をすべて満たすときのみ true を返す。
-
-5. micro への遷移
- - selection や F キーなどから micro に入る場合は、必ず core.mode.canEnter(uuid) を経由する。
- - false の場合は何も行わない（ui_state.mode / ui_state.microFocus を変更しない）。
- - true の場合のみ ui_state.mode = "micro" とし、ui_state.microFocus に { uuid, kind } を設定する。
-
-6. visibleSet との整合性
- - recomputeVisibleSet() の結果、ui_state.microFocus.uuid が visibleSet.* から外れた場合、
-  - ui_state.microFocus をクリアし、
-  - ui_state.mode = "macro" に戻し、
-  - Renderer に applyMicroFX(null) を指示する。
- - これにより、常に「現在の micro フォーカス対象は可視である」ことが保証される。
-
-7. Renderer への microFX 指示
- - runtime から Renderer への micro 効果の指示は、次の payload で行う（または null）：
-
+```text
+BOOT  <devLabel>
+MODEL <modelUrl or (unknown)>
+CAMERA {"position":[x,y,z],"target":[x,y,z],"fov":number}
+LAYERS points=on|off lines=on|off aux=on|off
+FRAME  frame_id=<number>
 ```
-type MicroFXPayload = {
-  mode: "micro" | "meso" | "macro",   // 現仕様では "micro" のみ有効
-  uuid: string,                       // フォーカス対象 UUID
-  origin: [number, number, number],   // フォーカス原点（world 座標）
-  activeFrame: number | null,         // 参考値（任意）
-  settings?: {
-    fx?: {
-      micro?: {
-        enabled?: boolean,
-        profile?: "weak" | "normal" | "strong",
-        radius?: { inner_ratio?: number, outer_ratio?: number },
-        fade?: { min_opacity?: number, hop_boost?: number, far_factor?: number }
-      }
-    }
-  }
+
+- BOOT
+  - ラベル文字列（通常は `"viewer_dev"`）を出す。
+- MODEL
+  - JSON ロード元の URL（`modelUrl`）を出す。  
+    未設定の場合は `"MODEL (unknown)"` とする。
+- CAMERA
+  - `cameraEngine.getState()` などから cameraState を取得し、
+    - position: `[x,y,z]`（存在しない場合は `[0,0,0]`）
+    - target: `[x,y,z]`（存在しない場合は `[0,0,0]`）
+    - fov: number（存在しない場合は `50`）
+  - を JSON 文字列として埋め込む。
+- LAYERS
+  - `uiState.filters.types.{points,lines,aux}` を優先し、
+  - なければ古い `uiState.visibility_state` などへフォールバックしつつ、
+  - `on` / `off` を判定する。
+- FRAME
+  - `uiState.frame.current` または `frameController.get()` の値を出す。
+
+### 6.2.3 出力先とオプション
+
+`bootstrapViewer` / `bootstrapViewerFromUrl` の `options` として：
+
+- `devBootLog: boolean`  
+  - true の場合のみ devBootLog を出力する。
+- `devLabel?: string`  
+  - BOOT 行に埋め込むラベル（省略時 `"viewer_dev"`）。
+- `modelUrl?: string`  
+  - MODEL 行に出す model URL。
+- `logger?: (line: string) => void`
+  - ログ出力関数。省略時は `console.log` を用いる。
+
+viewer_dev ハーネスでは通常：
+
+- `devBootLog: true`
+- `devLabel: "viewer_dev"`
+- `modelUrl: jsonUrl`
+- `logger: devLogger`（devLogger は Model パネルへ追記）
+
+として呼び出す。
+
+### 6.2.4 dev / 本番での扱い（C-10 対応）
+
+- dev viewer（viewer_dev.html）：
+  - 上記 5 行を **必須** とする。
+  - 出力先は UI（Model パネル）＋ コンソールを想定。
+- 本番 viewer：
+  - 同じフォーマットのログを **任意で** 出力してよい。
+  - 必須ではないが、診断上有用なため将来的な再利用を想定する。
+
+つまり devBootLog は「dev viewer で必須、本番で任意」の診断ログとする。  
+フォーマットは将来も安易に変更しない。
+
+
+## 6.3 追加ログカテゴリ（開発用）
+
+実装上、次のようなカテゴリを DEBUG フラグ付きで持ってよい：
+
+- HUB (`DEBUG_HUB`)
+  - hub のフレームごとの状態スナップショット
+  - 例：`[hub] frame n { cam, visibleSet, selection }`
+- POINTER (`DEBUG_POINTER`)
+  - PointerInput の pointerdown / move / up / click イベント
+- KEYBOARD (`DEBUG_KEYBOARD`)
+  - KeyboardInput の keydown イベント
+- MICROFX (`DEBUG_MICROFX`)
+  - microFX 適用前後の state 変化（focusUuid / relatedUuids / localBounds 等）
+
+これらは **デフォルト OFF** とし、  
+開発時にのみ true にして使う。
+
+禁止事項：
+
+- DEBUG フラグ OFF 時にも大量のログを出し続けること
+- 個人情報など 3DSS 外部のデータを勝手にログへ書き込むこと
+
+
+## 6.4 エラー処理とユーザメッセージ
+
+### 6.4.1 3DSS ロード／検証エラー
+
+`bootstrapViewerFromUrl` は次を行う：
+
+1. `loadJSON(url)` で fetch
+2. `ensureValidatorInitialized()` → AJV にスキーマを読み込む
+3. `validate3DSS(doc)` で strict validation
+4. NG の場合は `getErrors()` の結果をまとめて Error として投げる
+
+dev viewer では：
+
+- File パネルに
+  - Source: `<url>`
+  - Load error / validation error のメッセージ
+- Model パネルに
+  - エラー内容を `<pre>` で表示
+
+を行う。
+
+本番 viewer では：
+
+- エラー詳細を直接 UI に出さず、
+  - ユーザには「データ読込エラー」等の簡易メッセージ
+  - 詳細はコンソールログやホストアプリ側で扱う
+- 3DSS が不正な場合は viewer の render loop を開始しない
+
+### 6.4.2 ランタイムエラー
+
+ランタイムエラー（例：microFX 内で null 参照など）は：
+
+- 可能な限り try/catch で握りつつ、
+  - `console.warn` / `console.error` に記録
+- viewer 全体のクラッシュを避ける方向でハンドリングする
+
+ただし、カメラや frame 操作が完全に不能になるような致命的エラーは、  
+ユーザ UI にも簡易なエラー表示（トースト等）を出してよい。
+
+
+## 6.5 runtime API と外部連携（viewerCore）
+
+viewer は **read-only な runtime API** を持ち、  
+ホストアプリ（Astro / 他 SPA など）から利用できる。
+
+本仕様では、runtime API の最小セットを `viewerCore.js` に集約し、  
+2.9 節の定義を正とする。
+
+### 6.5.1 API レイヤリング
+
+- viewerCore（外部公開）
+  - `createViewerCore(canvasOrId, options)` などを通じ、
+  - 内部で `bootstrapViewerFromUrl` / `bootstrapViewer` を呼び、
+  - `hub` への安全なファサードを提供する。
+- hub（内部）
+  - `hub.core.*` / `hub.pickObjectAt` / `hub.start` / `hub.stop` を持つ。
+- core / renderer（完全内部）
+  - 外部から直接触らない。
+
+ホストアプリは **必ず viewerCore 経由** で viewer を操作する。  
+hub / core / renderer を直 import してはならない。
+
+### 6.5.2 許可される操作
+
+runtime API を通じて許可される操作は：
+
+- frame / filter / mode / selection / camera / runtime フラグに関する
+  - 読み取り（get 系）
+  - 書き込み（set / step / next / prev 系）
+- pick（`pickObjectAt`）による UUID 取得
+- イベント購読（将来拡張）：
+  - 例：`onFrameChanged`, `onSelectionChanged`
+
+禁止される操作は：
+
+- 3DSS document の書き換え
+- 3DSS の「保存」や「エクスポート」としての利用
+- viewer 内部の three.js / Object3D への直接アクセス
+
+
+## 6.6 スクリーンショット・エクスポート機能（C-11）
+
+### 6.6.1 スクリーンショット
+
+viewer 本体（runtime / viewerCore / hub）は、  
+**スクリーンショット生成 API を提供してはならない**。
+
+- `toDataURL` / `toBlob` などで canvas から画像を取る行為は、
+  - ホストアプリ（HTML / Astro）の責務とする。
+- viewer が独自の「スクショボタン」を持ち、  
+  内部で画像生成・ダウンロードを行うことは禁止。
+
+理由：
+
+- viewer は「構造の閲覧・体験」に特化し、  
+  画像生成ツール化を避ける。
+- 専用 API を設計すると、モデルごとに仕様が膨らむため。
+
+### 6.6.2 構造エクスポート
+
+viewer 本体は次のエクスポート機能を持ってはならない：
+
+- glTF / OBJ / FBX 等 3D モデル形式へのエクスポート
+- CSV / TSV 等テキスト形式へのエクスポート
+- SVG / PDF / 画像ベクトル形式へのエクスポート
+- 「現在の filter / selection / frame 状態」を含んだ 3DSS への書き戻し
+
+3DSS から他形式への変換は **modeler や専用ツールの責務** とし、  
+viewer は read-only のまま保つ。
+
+### 6.6.3 例外：ホスト側ユーティリティ
+
+ホストアプリが独自に：
+
+- canvas をキャプチャして画像ダウンロードボタンを設置
+- API から 3DSS を取得して別ツールへ渡す
+
+といった実装をすることは許可される。  
+ただしそれは viewer 仕様の一部ではなく、  
+ホスト固有のユーティリティとして位置づける。
+
+
+## 6.7 開発時のテスト・デバッグ指針（非規範）
+
+本節は推奨事項であり、必須ではない。
+
+### 6.7.1 最低限確認すべきルート
+
+開発時に最低限確認するべき項目：
+
+- 起動ルート
+  - viewer_dev.html → viewerDevHarness → bootstrapViewerFromUrl → hub.start
+- 入力
+  - マウスドラッグ：orbit / pan / zoom
+  - PageUp / PageDown：frame ±1（slider / label 追随）
+  - Q / W / Esc：mode 切替（HUD pill / toast）
+  - Home：camera reset（gizmo HOME と一致）
+- devBootLog
+  - Model パネルに BOOT / MODEL / CAMERA / LAYERS / FRAME の 5 行が並ぶこと
+- filter
+  - points / lines / aux の ON/OFF が可視に反映されること
+- selection / microFX
+  - クリックで selection / focus UUID が更新され、
+  - microFX（axes / bounds / marker / glow / highlight）が想定どおり出ること
+
+### 6.7.2 DEBUG フラグの運用
+
+- DEBUG_* は git commit 前に false に戻すか、  
+  環境変数やビルドフラグで切り替える。
+- 一時的な `console.log` / `debugger` などは  
+  ローカル検証後に削除し、DEBUG フラグ付きロガーへ移す。
+
+
+## 6.8 microFX 運用ルール（詳細）
+
+本節は、4.4 節で述べた microFX の補足として、  
+runtime_spec / 7.11 節の MicroFXPayload を踏まえた運用ルールを示す。
+
+### 6.8.1 microState（MicroFXPayload）の前提
+
+microState は概ね次のような構造とする（7.11 節参照）：
+
+```ts
+microState = {
+  focusUuid: string | null,       // フォーカス対象
+  kind: "points" | "lines" | "aux" | null,
+  focusPosition: [number,number,number] | null,
+  relatedUuids: string[],         // ハイライト対象群
+  localBounds: {
+    center: [number,number,number],
+    size:   [number,number,number]
+  } | null,
+  // 任意の追加フィールド（renderer 側で拡張可能）
 }
 ```
 
- - null を渡した場合は、すべての micro / meso 効果を解除する。
+生成ルート：
+
+- modeController / microController が、
+  - selection（uuid, kind）
+  - cameraState
+  - structIndex
+  をもとに計算して `uiState.microState` を更新する。
+
+renderer は **microState を読むだけ** とし、  
+自分で microState を書き換えてはならない。
+
+### 6.8.2 microFXConfig による係数集中管理
+
+`runtime/renderer/microFX/config.js` にて、  
+microFX 全体の係数を一元管理する：
+
+- axes:
+  - `scalePerDistance`
+  - `minScale` / `maxScale`
+- bounds:
+  - `shrinkFactor`
+  - `minEdge` / `maxEdge`
+- glow:
+  - `offsetFactor`
+  - `scalePerDistance`
+  - ほか intensity / falloff 等
+- highlight:
+  - 線の太さ・フェード係数 など
+
+調整方針：
+
+- 単位はすべて「world 単位」ベースとし、ピクセルには依存しない。
+- カメラ距離や scene 半径から係数を決め、  
+  遠近によらずある程度読みやすいスケールにする。
+- 実装者は **config だけを触れば見え方を調整できる** ことを目標とする。
+
+### 6.8.3 focus / selection との関係
+
+- microFX は常に selection / mode に従属する：
+  - mode = macro → microState = null（microFX OFF）
+  - mode = meso / micro → microState ≠ null（必要に応じて）
+- focusUuid は selection.uuid と一致するのが基本だが、
+  - 将来、modeController が「派生 focus」を導入する場合でも、
+  - microState に「どの UUID を focus と扱っているか」を必ず明示する。
+
+### 6.8.4 microFX の ON/OFF
+
+ON/OFF の制御は core 側の責務とし、  
+renderer は「渡された microState が null かどうか」で判断する。
+
+- microState === null
+  - microFX overlay をすべて解除し、baseStyle に戻す。
+- microState !== null
+  - focusUuid / relatedUuids / localBounds 等に応じて overlay を適用する。
+
+viewer UI に「microFX OFF」のようなボタンを設ける場合も、  
+- UI → hub.core.mode / hub.core.micro などの API を通じて  
+  microState を null にする形で実現する。
+
+### 6.8.5 renderer 内部での禁止事項
+
+renderer / microFX 実装が行ってはならないこと：
+
+- microState を書き換える
+- struct（3DSS）を参照せずに独自の「意味」を決める
+  - 例：UUID 末尾の記号や名前に応じて特別扱いする
+- uiState.mode / selection を直接書き換える
+- 構造データに依存するような「恒久的な補正」を内部にキャッシュする
+
+microFX はあくまで「純粋な視覚効果レイヤ」であり、  
+構造データや状態遷移ロジックには介入しない。
+
 
 ---
 
 # 7 拡張・互換性（viewer：schema の変化への追従）
 
-viewer は 3DSS 構造データを **読み取り → 可視化** するだけの read-only アプリであり、
-modeler と異なり、構造データへの拡張・補完・変換を一切行わない。
-viewer は “スキーマに従うことだけ” を役割とし、  
-推測・自動修復・意味解釈を行わない。
-
-本章では、スキーマ拡張の扱い・互換性・許可される／禁止される拡張方針を定義する。
-
-
 ## 7.1 viewer の拡張方針（基本原則）
 
-viewer の守るべき 4 原則：
+viewer は 3DSS に対して、つねに次の原則を守る。
 
-1. **構造データを勝手に変更しない（read-only）**  
-2. **スキーマに忠実に表示する（忠実性）**  
-3. **スキーマ外項目を解釈・保存・補完しない（strict）**  
-4. **意味論的推測（semantic inference）を一切行わない**
+1. **構造データは絶対に変更しない（strict read-only）**
+   - `.3dss.json` は AJV による strict validation を通過した後、
+     `core.data` / `core.document3dss` として deep-freeze される。
+   - runtime / renderer / UI のいかなる層も、この構造を mutate してはならない。
 
-viewer は “visualizer” であって “semantic engine” ではない（意味論の解釈禁止）。
+2. **スキーマ準拠を最優先し、寛容モードを持たない**
+   - 採用中の `3DSS.schema.json` に合致しないファイルは読み込みエラーとする。
+   - `additionalProperties:false` 前提で運用し、未知プロパティの黙認は行わない。
+
+3. **“理解はしなくてもよいが、壊してはならない”**
+   - viewer が表示や UI に使わない項目であっても、構造としてはそのまま保持する。
+   - 不要と見なした項目の削除・正規化・補完などは一切行わない。
+
+4. **拡張の余地は UI／描画補助のみに限定する**
+   - microFX・HUD・gizmo など、純粋に描画レイヤに閉じた機能のみ追加可能。
+   - 構造データに影響する拡張（保存・編集・マイグレーション等）は全て禁止。
 
 
 ## 7.2 スキーマの将来拡張への対応
 
-3DSS.schema.json は SemVer に基づき更新される。  
-viewer は **読取側としてのみ** これに追従する。
+3DSS スキーマは SemVer（`MAJOR.MINOR.PATCH`）に従って更新される。  
+viewer は **読み取り専用クライアント**として、これにこう追従する。
 
+### 7.2.1 SemVer と validator
 
-### 7.2.1 新規プロパティ・項目の追加
+- スキーマファイルは常に単一の `3DSS.schema.json` を canonical とする。
+- viewer は起動時にこの schema を AJV へ読み込み、strict モードで validator を構成する。
+  - `removeAdditional = false`
+  - `useDefaults = false`
+  - `coerceTypes = false`
+  - `allErrors = true`
+  - `strict` 系オプションは警告ではなくエラーとして扱う。
+- 入力 `.3dss.json` の
+  - `document_meta.version`（3DSS ドキュメントのバージョン）
+  - schema 側 `$id` / `$defs` 等  
+  を参照し、**major バージョンが schema と一致していること**を確認する。
 
-（viewer が新しい `/schemas/3DSS.schema.json` に追従済みであることを前提とする）
+### 7.2.2 minor / patch での追加・変更
 
-- 読み込み時に **そのまま internal state へ保持（deep-freeze）**
-- UI 表示は「可能な範囲のみ」
-- 理解できない項目を削除・補完してはならない
-- 再配置・ソート・整形なども禁止
+`MAJOR` が一致し、`MINOR/PATCH` の差分が schema 側で吸収可能な場合：
 
-viewer は **“理解はせず、破壊もしない”** のが原則。
+- viewer が新しい schema に追従済みの場合
+  - 新規プロパティ・enum 値・$defs などは、構造としてそのまま deep-freeze して保持する。
+  - viewer がまだ意味を理解していない項目は
+    - UI に出さない、もしくは「raw JSON」として補助表示するに留める。
+    - 値の変換や補完は行わない。
+- viewer が古い schema のままの場合
+  - `additionalProperties:false` により未知プロパティは validation NG となる。
+  - この場合、viewer はファイル全体の読み込みを拒否し、  
+    modeler や schema 更新側の対応を待つ。
 
-
-### 7.2.2 enum の追加
-
-- 読み込み可能  
-- UI 特別処理は不要  
-- 描画不能な値は fallback（最低限の形状・色）で対応  
-- 値を修正・丸めることは禁止
-
-※ viewer は値を書き換えないため modeler ほど影響しない。
-
+※「古い viewer が新しい schema を緩く受け入れる」挙動は採用しない。
 
 ### 7.2.3 major バージョンの非互換変更
 
-- **major 不一致 = 読込不可**
-- マイグレーション処理は禁止（modeler の担当）
-- スキーマ外データを許容する “寛容モード” は持たない
-
-viewer は strict validator として動作する。
+- **major 不一致 = 読込不可** とする。
+  - 例：schema `2.x` に対して `1.x` のファイル、もしくはその逆。
+- viewer が行ってよいのは、validation エラーとして報告するところまで。
+- **マイグレーション・自動変換・推測補完**は一切禁止。
+  - 過去 → 現行、未来 → 現行 いずれの方向も同様。
+- 「寛容モード」「自動アップグレード」などは  
+  modeler や専用変換ツールの責任範囲とする。
 
 
 ## 7.3 aux.extension の扱い
 
-extension の詳細解釈は行わず、描画可能な最小単位のみ描画する。  
-（aux.module の一般的処理は第4章を参照）
+`aux.extension` は、構造データ側の拡張用フックであり、viewer は次のように扱う。
 
 ### 7.3.1 extension の存在は許容する
 
-- internal state にそのまま保持（deep-freeze）
-- 表示可能な部分だけ描画（viewer が理解できる最小単位）
-- 自動補完・推測生成は禁止
-- 意味論の解釈は禁止
+- internal state（core.data）には **そのまま保持** する（deep-freeze 対象）。
+- viewer が理解できる最小単位（例：位置・ベクトル・色など）のみ描画に利用してよい。
+- extension 内の意味論について
+  - 自動補完・推論生成は禁止。
+  - 「足りない情報を AI で埋める」なども禁止。
 
-### 7.3.2 extension 専用 UI の追加は任意
+### 7.3.2 extension 専用 UI は任意（閲覧限定）
 
-- 必須なのは “描ける範囲だけ描く”  
-- 編集 UI の追加は禁止（viewer は非編集アプリ）
+- 許されるのは以下のような **閲覧補助 UI** に限られる：
+  - extension の生 JSON を表示するインスペクタ
+  - extension の一部フィールドをラベルや tooltip に表示
+- extension を編集・保存する UI（追加 / 削除 / 更新）は viewer からは提供しない。  
+  これらは modeler または別ツールの責務とする。
 
 
 ## 7.4 前方互換性（未来バージョン）
 
-未来バージョンの .3dss.json：
+未来の schema に合わせて作られた `.3dss.json` について：
 
-- 未定義プロパティ → additionalProperties:false → NG  
-- 読込不可  
-- “柔軟な読み込み” は行わない  
-- 未来 $defs を含んでいても NG
+- 現在採用中の `3DSS.schema.json` にない項目 → `additionalProperties:false` により NG。
+- `$defs` などに未知の定義が含まれていても同様に NG。
+- 「未来バージョンを緩く読み込む」ことはしない。
 
-viewer は strict のみで動作する。
+ここでいう viewer とは、本番利用を想定した `runtime/*`（core / hub / renderer）であり、  
+開発者向けの実験ローダやデバッガ（dev-only ツール）はこの限りではない。  
+それら dev 用ツールは viewer 仕様の対象外とする。
 
 
 ## 7.5 後方互換性（過去バージョン）
 
-古い 3DSS ファイル：
+古い 3DSS ファイルについて：
 
-- 必須項目不足 → required で NG  
-- 型不一致 → NG  
-- 古い構造 → NG  
-- viewer は旧バージョンの補正・変換を行わない
+- 必須項目不足 → `required` で NG（viewer が補完してはならない）。
+- 型不一致 → NG（数値を文字列として緩和するなどは NG）。
+- 古い構造 → NG（互換レイヤは持たない）。
+- viewer が独自に旧バージョンを変換・補修することは禁止。
 
-修正は modeler または人間の作業範囲であり、viewer の役割外。
+過去バージョンから現行バージョンへの移行は、  
+modeler / 専用変換スクリプト / 人間の作業範囲であり、viewer の役割外とする。
 
 
 ## 7.6 viewer 側の許容される拡張
 
-viewer が拡張できるのは **UI レイヤの表示補助だけ**。
+viewer が拡張してよいのは **UI レイヤと描画補助レイヤのみ**。
 
 ### 許容される拡張例
 
-- テーマ（ライト／ダーク）
-- HUD（凡例・軸・グリッド強調）
-- 選択強調エフェクト
-- 表示最適化（instancing / caching / LOD）は、構造不変の範囲でのみ許可
-- カメラ操作改善
-- レイヤフィルタ / visibility UI の拡張
-- 視点プリセット（UI のみ）
+- テーマ切替（ライト / ダークなど）
+- HUD 要素
+  - 軸・グリッド強調
+  - 凡例・スケールバー
+  - モード・フレーム・フィルタ状態の表示
+- カメラ操作の改善
+  - ease 付き orbit / pan / zoom
+  - 視点プリセット（front / side / top / iso 等）
+- microFX 系の視覚補助
+  - focus 周辺の glow / bounds / axes 表示など
+- 表示最適化
+  - instancing / caching / LOD など、構造不変の範囲での最適化
 
-いずれも構造データには影響しない（UI レイヤ限定）。
+いずれも **3DSS の構造（points / lines / aux / document_meta）を書き換えない**  
+という条件を満たす限り、自由に拡張してよい。
 
 
 ## 7.7 禁止される拡張
 
-viewer は次の機能を **追加してはならない**：
+viewer に対して、次のような拡張を追加してはならない。
 
-1. 構造データの項目追加  
-2. 構造データの修復・補完・マイグレーション  
-3. 未来スキーマ項目の推測生成  
-4. annotation / comment / report / note など編集概念  
-5. viewer 独自形式の保存  
-6. modeler に相当する編集 UI（Add/Update/Remove/Undo/Redo）  
-7. viewer_settings を JSON として保存（永続化）すること
-8. AI 推測による補完・変換・修復  
-9. 不足値の推測埋め  
-10. 表示補助を構造表示へ混入させる  
-11. extension を viewer が「意味解釈」して生成・補完すること
-12. extension の不完全データを viewer が「推測で補完」すること
-13. extension の構造を書き換えること（viewer は strict read-only）
+1. **構造データの編集機能**
+   - 項目の追加・更新・削除
+   - Undo / Redo
+   - annotation / comment / note など編集概念
+2. **構造データの修復・補完・マイグレーション**
+   - 欠損値の推測埋め
+   - 未来スキーマ項目の推測生成
+   - 「viewer 独自形式」への保存
+3. **AI 補完・変換**
+   - 意味論に基づく自動変換・要約・再配置
+   - extension の内容を AI で自動補完
+4. **viewer_settings の永続化**
+   - viewer_settings を JSON として保存し、再読み込みすること（詳細は 5.x 参照）。
+   - v1 では UI 状態はセッション内の一時状態に限定する。
+5. **スクリーンショット / export 機能の内蔵**
+   - glTF / SVG / CSV などへの構造 export を viewer runtime に直接持たせること。
+   - Canvas のスクリーンショット取得 API を viewer の正式機能として提供すること。  
+     （必要なら host 側がブラウザ標準機能や外部ツールで取得する。）
+
+これらは禁止事項として明示し、viewer は **純閲覧アプリ** であることを保証する。
+
 
 ## 7.8 仕様変更時の viewer 側の対応
 
-viewer が行うのは以下に限定される：
+3DSS スキーマや viewer 仕様が更新された場合、viewer が行うべき対応は以下に限定される。
 
-1. Validator の差し替え（新しい 3DSS.schema.json をそのまま採用）
-2. 描画ロジックの最小限の更新（appearance/aux が増えた場合など）
-3. UI の調整（新モジュールの表示切替のみ）
-4. 構造データへの書き戻しは一切行わない
+1. **Validator の更新**
+   - 採用する `3DSS.schema.json` を差し替え、AJV 初期化を更新する。
+   - validation エラーのログ・メッセージ形式を必要に応じて調整する。
+
+2. **描画ロジックの最小限の更新**
+   - appearance / aux.module など、schema 拡張に応じて renderer の解釈を拡張する。
+   - 既存の構造解釈を壊さない範囲でのみ変更する。
+
+3. **UI の調整**
+   - 新しい module / signification / tags などをフィルタ・凡例に追加する。
+   - 不要になった UI 要素を削除する。
+
+4. **構造データへの書き戻しは禁止**
+   - 仕様変更を理由に viewer 側が自動変換を行い、  
+     新しい .3dss.json を書き出すことは行わない。
 
 
 ## 7.9 拡張・互換性に関する禁止事項（統合）
 
-viewer は以下を行ってはならない：
+本章の内容をまとめると、viewer は次をしてはならない。
 
-1. 採用中の `/schemas/3DSS.schema.json` に定義されていない項目（スキーマ外項目）の読込・保持・解釈
-2. 未来バージョン（major 不一致）の寛容読込
-3. 構造データの修復・自動補完
-4. 架空のプロパティ生成（AI補完含む）
-5. スキーマ項目の推測（semantic inference）
-6. 編集 UI の追加（add/update/remove/undo/redo）
-7. viewer_settings を JSON 化して保存（永続化）すること
-8. extension の意味解釈・生成・補完（構造変更に相当）
+1. 採用中の `3DSS.schema.json` に定義されていない項目（スキーマ外項目）の読込・保持・解釈。
+2. major 不一致の 3DSS ファイルを「寛容モード」で読み込むこと。
+3. 構造データの修復・自動補完・マイグレーション。
+4. AI による構造推測・追加項目の生成。
+5. 編集 UI（add / update / remove / undo / redo）の導入。
+6. viewer_settings を永続化し、次回起動時に自動復元すること。
+7. extension の意味解釈・構造生成・補完（構造変更に相当するもの）。
+8. スクリーンショット / export を viewer runtime の責務として内蔵すること。
+
+これらを禁じることで、viewer は **「strict かつ非破壊な閲覧専用クライアント」** として
+長期的な互換性を維持する。
+
 
 ## 7.10 Frame UI 操作ポリシー（フレーム操作規範）
+
 ### 7.10.1 基本方針
 
-Frame は 一次元の整数 ID によって管理する（activeFrameId: number）。
+- frame は一次元の整数 ID で管理する（`frameId: number`）。
+- `frame.range = {min, max}` を満たす `min ≤ frameId ≤ max` の離散値のみを扱う。
+- viewer コア（`core.frameController`）は **離散ステップ** として frame を管理し、  
+  連続値や補間は扱わない。
+- frame 切替の責務は
+  - 入力操作 → `activeFrameId` 更新
+  - それに伴う `visibleSet` 再計算  
+  に限定し、2D タイムライン UI の表現や装飾は UI 層に委ねる。
 
-Viewer コアは frame を 離散ステップとして扱い、連続値を扱わない。
+### 7.10.2 操作体系（±1 ステップ中心）
 
-Frame の切り替えは 入力操作 → activeFrameId 更新 という最小責務だけを担い、
-2D ナビゲーションや複合 UI は上位レイヤに委任する。
+v1 の基本操作は、**±1 ステップのページ送り** を中心に設計する。
 
-### 7.10.2 操作体系（一次元パラパラ漫画モデル）
+- UI ボタン
+  - Step Back: `frame.step(-1)`
+  - Step Forward: `frame.step(+1)`
+  - Rew/Home: `frame.set(range.min)`
+  - FF: `frame.set(range.max)`
+  - Play: 一定間隔で `frame.step(+1)`（末尾到達時は `range.min` にループ）
+- スライダ
+  - `range.min`〜`range.max` の整数値のみを取る。
+  - `input` / `change` イベントで `frame.set(value)` を呼ぶ。
+- キーボード（標準ハンドリング）
+  - `PageUp`: `frame.step(+1)`
+  - `PageDown`: `frame.step(-1)`
+  - これらは `KeyboardInput` → `hub.core.frame.step()` 経由で処理し、  
+    UI ハーネス側から直接 frameController を触らない。
 
-Frame 操作は 「ページ送り」操作として設計する。
+Space → Play/Pause トグルなど、UI 専用ショートカットは  
+viewerDevHarness 側でのみ実装してよい（本番 viewer では任意）。
 
-主となる操作軸は ±1 のステップ移動。
+### 7.10.3 mode / microFX との関係
 
-UI は「前後フレームへのラチェット的移動」を視覚効果のみで表現する。
+- 単発の frame 移動（±1 step / slider）は  
+  macro / meso / micro いずれの mode からも実行してよい。
+  - 実行後は `visibilityController.recompute()` により `visibleSet` を再計算し、
+    必要であれば `microController.refresh()` で microState を更新する。
+- **frame 再生（Play）中の制約**
+  - 再生開始時に `uiState.mode` を `"macro"` に戻す。
+  - `uiState.runtime.isFramePlaying = true` とし、7.11.2 に従って microFX を無効化する。
+  - 再生停止時に `isFramePlaying = false` とし、必要なら microFX を再評価する。
 
-### 7.10.3 キーバインド（標準設定）
-操作	動作
-PageUp	activeFrameId += 1
-PageDown	activeFrameId -= 1
-Shift + PageUp	最大フレームへジャンプ
-Shift + PageDown	最小フレームへジャンプ
-Mouse Wheel Up	activeFrameId += 1
-Mouse Wheel Down	activeFrameId -= 1
-Home	frame = 0（デフォルトの起点）
+### 7.10.4 camera / filter との関係
 
-### 7.10.4 Frame 0 の意味づけ
+- frame 操作はカメラ state を直接変更しない（自動カメラは将来拡張）。
+- filter（points/lines/aux）変更時と同様に、frame 変更後は
+  - `visibleSet` を再計算
+  - microFX / selection ハイライトを必要に応じて再適用  
+  するのみとし、構造データには介入しない。
 
-Frame ID のデフォルトは 0 とする（従来の 1 を廃止）。
+### 7.10.5 音声ポリシー
 
-Frame 0 は「基準状態（base layer）」の意味を持ち、
+viewer / modeler ともに **UI 効果音は採用しない**。
 
-すべての points / lines / aux が最も共通して存在する「軸」として扱う。
+- コンテンツ側（動画・3D アニメーション等）が独自に鳴らす音は例外。
+- viewer UI の操作（frame 移動・再生ボタン・gizmo 等）は完全サイレントとする。
+- 設定画面にも「Sound」「SFX」などの項目は追加しない。
 
-### 7.10.5 ラチェット感（視覚表現のみ）
-
-効果音などの聴覚フィードバックは採用しない（将来も導入しない）。
-
-ラチェット的フィードバックは 視覚効果で統一する。
-
-現在 frame の表示（HUD）が切り替え時に瞬間ハイライト。
-
-将来的にはタイムライン UI に「目盛りスナップ」を導入。
-
-必要に応じて前後フレームの **ゴースト表示（薄い小型プレビュー）**で連続性を補助できるが
-これは optional（負荷を考慮して後段で設計）。
-
-### 7.10.6 音声ポリシー
-
-viewer / modeler ともに UI 効果音は採用しない。
-
-コンテンツ側（動画 / 3D アニメーション）が独自に鳴らす音は例外だが、
-viewer UI の操作は 完全サイレントとする。
-
-設定画面にも「Sound」「SFX」などの項目は追加しない。
 
 ## 7.11 microFX ― ミクロ視覚補助アルゴリズム（viewer 専用）
-### 7.11.1 目的と前提
 
-microFX は「構造データを一切変更せず、描画レイヤのみで局所構造を強調する」ための視覚補助アルゴリズムである。
+### 7.11.0 概要とモジュール構造
 
-対象は points / lines / aux で、すべて 既に可視状態（visibleSet に含まれている要素のみ） を処理する。
+microFX は「構造データを一切変更せず、micro / meso モード時の局所構造を  
+読み取りやすくするための視覚補助」の総称とする。
 
-効果はすべて three.js マテリアルの color / opacity / transparent など描画属性に限定される。
-3DSS の内容・座標・接続関係を変更してはならない。
+内部的には次の 3 レイヤに分かれる。
 
-### 7.11.2 適用条件（モード・ランタイム状態）
+1. **microState（core.microController）**
+   - selection / cameraState / structIndex などから、
+     フォーカス UUID・原点座標・局所バウンディングなどを計算する。
+   - three.js の Object3D には依存しない純ドメイン層。
+2. **microFX-core**
+   - `visibleSet` を前提に、フォーカス原点からの距離・接続関係などを評価し、
+     「どの uuid をどの程度強調 / 減衰するか」を決定する。
+   - opacity・color などへの影響度（係数）を算出する。
+3. **microFX-overlays（renderer 側）**
+   - microState と microFX-core の結果を受け取り、
+     three.js シーン内に glow / bounds / axes / highlight などの  
+     補助オブジェクトを追加・更新・削除する。
 
-microFX が有効になる条件は次とする。
-- ui_state.mode === "micro"
-- ui_state.viewerSettings.fx.micro.enabled === true
-以下の条件のいずれかを満たす場合は 常に無効 とし、直ちに「素の描画状態」に戻す。
-- ui_state.runtime.isFramePlaying === true
-- ui_state.runtime.isCameraAuto === true
-- rendererContext.applyMicroFX(null) が明示的に呼ばれた場合
+### 7.11.1 microState の形式
 
-無効化時は、現在 visible な全要素に対し「baseStyle（初期の色・不透明度）」を復元する。
+microState は `MicroFXPayload` と呼ぶ内部オブジェクトで、概ね次の形をとる。
 
-### 7.11.3 フォーカス対象と原点
-
-アクティブなフォーカス UUID は次の優先順位で決定する。
-1. ui_state.microFocus.uuid が存在する場合、それを優先
-2. 次に ui_state.focus.active === true かつ ui_state.focus.uuid があればそれを使用
-3. いずれも存在しない場合、microFX は適用されない（payload は null 相当）
-
-フォーカス原点 origin: [x,y,z] は computeFocusOrigin(uuid) により算出する。
-- point: point.appearance.position を使用
-- line: end_a / end_b の両端座標を取得し、その中点を原点とする
-- aux: aux.appearance.position を使用
-origin が無効な場合（座標なし等）は、microFX は適用されない。
-
-### 7.11.4 入力・出力インターフェース
-
-rendererContext 側の公開インターフェース：
-
-```
-// viewerHub / microVisualController から呼び出される
-rendererContext.applyMicroFX(payload: MicroFXPayload | null)
-
+```ts
 type MicroFXPayload = {
-  mode: "micro" | "meso" | "macro",   // 現仕様では "micro" のみ有効
-  uuid: string,                       // フォーカス対象 UUID
-  origin: [number, number, number],   // フォーカス原点（world 座標）
-  activeFrame: number | null,         // 参考値（任意）
-  settings?: {
-    fx?: {
-      micro?: {
-        enabled?: boolean,
-        profile?: "weak" | "normal" | "strong",
-        radius?: { inner_ratio?: number, outer_ratio?: number },
-        fade?: { min_opacity?: number, hop_boost?: number, far_factor?: number }
-      }
-    }
-  }
-}
+  focusUuid: string;                      // フォーカス対象の UUID
+  kind: "points" | "lines" | "aux" | null;
+  focusPosition: [number, number, number];// マーカー等の基準位置（world 座標）
+  relatedUuids: string[];                 // 1hop 接続など、関連 UUID 群
+  localBounds: {
+    center: [number, number, number];
+    size:   [number, number, number];
+  } | null;
+};
 ```
 
-- payload === null の場合：
-現在 visible な要素に対し、全て baseStyle を復元する（microFX 完全 OFF）。
+- `core.microController` は selection / structIndex / cameraState をもとに  
+  毎フレームではなく、必要なときだけ `MicroFXPayload | null` を更新する。
+- `uiState.microState` にこの payload が保持され、viewerHub → renderer に伝達される。
 
-- payload.mode !== "micro" の場合：
-microFX は適用せず、baseStyle へリセットする。
+### 7.11.2 適用条件（mode・ランタイム状態）
 
-### 7.11.5 可視要素集合（visibleSet）との関係
+microFX は次の条件をすべて満たすときのみ有効となる。
 
-VisibilityController は frame / filter の結果を ui_state.visibleSet に保持し、
-rendererContext.applyFrame(visibleSet) 経由で three.js オブジェクトの visible を更新する。
+1. `uiState.mode === "micro"`  
+   - mode の定義・遷移条件は第 4.11 節（カメラモード）を参照。
+2. `uiState.viewer_settings.fx.micro.enabled === true`
+3. `uiState.runtime.isFramePlaying === false`
+4. `uiState.runtime.isCameraAuto === false`（将来の自動カメラ用フラグ）
 
-microFX は 常に visibleSet の内容を前提に動作 し、
-visibleSet に含まれない要素は一切処理しない（非表示要素に効果をかけない）。
+いずれかが満たされない場合、renderer は
 
-frame 切り替え・filter 切り替えのたびに
- - visibleSet 再計算
- - rendererContext.applyMicroFX(...) 再呼び出し
-を行い、効果を追従させる。
+- `applyMicroFX(null)` 相当の処理を行い、
+- `visibleSet` 内の全要素の描画属性を baseStyle（構造に基づくデフォルト）へ戻す。
 
-### 7.11.6 視覚効果アルゴリズム
+### 7.11.3 microFX-overlays（marker / glow / axes / bounds / highlight）
 
-(1) 事前リセット
+microFX-overlays は、microState を元に three.js シーン内へ追加される  
+補助オブジェクト群の総称とする。
 
-microFX を適用する前に、現在の visibleSet に含まれる要素すべてを baseStyle に戻す。
-これにより、効果の重ね掛け・誤差の蓄積を防ぐ。
+v1 では次のモジュールを想定する。
 
-(2) 距離減衰（distance fade）
+- **marker**
+  - `focusPosition` を基準に、小さなマーカー（アイコン）を表示する。
+- **glow**
+  - フォーカス要素の周辺に球状 / チューブ状のハローを重ねる。
+- **axes**
+  - microFocus 周辺に局所座標軸（X/Y/Z）を表示する。
+- **bounds**
+  - `localBounds` に基づく局所 bounding box を表示する。
+- **highlight**
+  - フォーカス要素に沿ったオーバーレイ線を描画する。
 
-シーンの代表半径 sceneRadius から 内側半径 R1 / 外側半径 R2 を定義する。
+共通ルール：
 
-```
-const R  = sceneRadius;
-const cfg = ui_state.viewerSettings.fx.micro;
+- いずれも struct（3DSS）には一切触れず、three.js の Object3D 追加・削除と  
+  material（color / opacity / transparent 等）の変更のみで実装する。
+- macro モードでは microFX-overlays は常に無効（7.11.7 参照）。
 
-const innerRatio = cfg.radius.inner_ratio ?? 0.10;
-const outerRatio = cfg.radius.outer_ratio ?? 0.40;
-const minOpacity = cfg.fade.min_opacity   ?? 0.05;
+v1 では **highlight を必須** とし、その他のモジュールは optional とする。
 
-const R1 = R * innerRatio; // フォーカス近傍
-const R2 = R * outerRatio; // 効果がほぼ消える距離
-```
+### 7.11.4 距離フェードと接続強調
 
-任意の要素に対し、「要素の代表位置」とフォーカス原点 origin との距離 d を計算する。
- - point / aux: ワールド座標上の位置
- - line: ワールド座標上の中点（computeLineMidpointWorld）
+microFX-core は、フォーカス原点との距離と接続関係に基づき  
+各要素の描画強度を決める。
 
-距離に応じてフェード係数 fade(d) を定義する：
+1. **距離フェード**
+   - 任意要素 `u` に対し、その代表位置 `p(u)` と `focusPosition` との距離 `d` を計算する。
+   - 距離 `d` に基づいて 0〜1 のフェード係数 `fade(d)` を定義する。
+   - 例：
+     - `d ≤ R1` → `fade = 1.0`（完全不透明）
+     - `d ≥ R2` → `fade = minOpacity`（遠方は薄く）
+     - `R1 < d < R2` → 線形補間、もしくは ease 付きカーブ
 
-```
-function distanceFadeFactor(
-  d: number,
-  R1: number,
-  R2: number,
-  minOpacity = 0.05
-): number {
-  const min = clamp(minOpacity, 0, 1);
-  if (d <= R1) return 1.0;
-  if (d >= R2) return min;
-  const t = (d - R1) / (R2 - R1 || 1e-6);
-  return 1.0 - (1.0 - min) * t;  // 線形補間
-}
-```
+2. **接続強調（1 hop 周辺）**
+   - フォーカスが point の場合：
+     - その point を端点に持つ line を 1hop line とする。
+     - それらの line のもう一方の端点 point を 1hop point とする。
+   - フォーカスが line の場合：
+     - その line の端点 point を 1hop point とする。
+     - これらとつながる line を 1hop line とする。
+   - 1hop 要素は距離フェードに加えて、加点（明るさ増し・太さ増しなど）で強調してよい。
 
-(3) 接続強調（connection emphasis）
+具体的な係数やカーブは `renderer/microFX/config.js` に集約し、  
+数値チューニングはそのファイルのみを変更すればよい設計とする。
 
-point / line について、フォーカス対象から 1hop の接続集合を求める。
-- フォーカスが point の場合：
- - その point を端点に持つ全ての line を 1hop line とする
- - それら line のもう一方の端点 point を 1hop point とする
-- フォーカスが line の場合：
- - その line の端点 point を 1hop point とする
- - 各 1hop point に接続する別の line を 1hop line とする
+### 7.11.5 パフォーマンスとスコープ
 
-aux 要素については接続関係を考慮しない（距離減衰のみ）。
+- microFX は **常に `visibleSet` 内の要素のみ** を対象とする。
+  - 非表示要素に対して距離計算や overlay を行わない。
+- 大規模データに対しても破綻しないよう、
+  - per-frame での大量 `new` を避ける（配列再利用など）。
+  - オーバーレイ用 Object3D の再利用（`ensure*` パターン）を基本とする。
+- frame / filter 変更時のみ再評価し、カメラの微小移動ごとに  
+  全体を再計算しないように実装してよい（近似の範囲で）。
 
-(4) マテリアル更新規則
+### 7.11.6 renderer とのインタフェース
 
-各要素ごとに baseStyle（color0, opacity0）をもとに、以下の優先順で置き換える。
-パラメータは cfg.fade から取得する。
+renderer 側の microFX 関連 API は次のような最小インタフェースとする。
 
-```
-const hopBoost  = cfg.fade.hop_boost  ?? 0.6; // 1hop 強調
-const farFactor = cfg.fade.far_factor ?? 0.2; // その他の上限
-```
+- `applyMicroFX(microState: MicroFXPayload | null): void`
+  - `null` の場合：全オーバーレイを削除し、baseStyle に戻す。
+  - payload がある場合：
+    - microFX-overlays を `ensure*/update*/remove*` で更新。
+    - 対象要素の material をフェード係数に応じて変更。
+- renderer は microState のフィールドを **読み取るだけ** でよい。  
+  struct に書き戻すことや、microState を mutate することは禁止。
 
-- フォーカス要素（id === uuid）
- - opacity = 1.0（または opacity0 以上で 1.0 を上限）
- - color = color0 を基準に、明度を一定量だけ上げる（例：offsetHSL(0, 0, +0.25)）
+### 7.11.7 mode・他機能との相互作用
 
-- 1hop 要素（conn.point1hop / conn.line1hop に含まれる）
- - opacity = max(opacity0 * hopBoost, opacity0 * fade(d))
- - color = color0 の明度をわずかに上げる（例：+0.10〜0.15）
+- **macro モード**
+  - microFX は常に無効（renderer は `applyMicroFX(null)` の状態を保つ）。
+  - 局所強調は 7.12 節の selection ハイライトに委ねる。
+- **meso モード**
+  - v1 では microFX 無効。
+  - 将来拡張として meso 専用 payload を許容する余地のみ残す。
+- **frame 再生**
+  - `core.runtime.startFramePlayback()`（または UI 側の Play トグル）開始時に  
+    `uiState.mode = "macro"` とし、既存 microFocus をクリアする。
+  - 再生中に microFX が再度有効化されないことを保証する  
+    （`uiState.runtime.isFramePlaying` フラグで制御）。
+- **filter 切替**
+  - filter 変更後は必ず `visibleSet` を再計算し、その結果に基づいて  
+    `microController.refresh()` → `renderer.applyMicroFX(...)` を再評価する。
 
-- その他の visible 要素
- - opacity = min(opacity0 * farFactor, opacity0 * fade(d))
- - color は原則変更しない（必要に応じて僅かに暗くしてよい）
-
-いずれの場合も、mat.transparent は opacity < 1.0 のとき true とする。
-更新後は material.needsUpdate = true を立て、GPU への反映漏れを防ぐ。
-
-### 7.11.7 モード・他機能との相互作用
-
-- macro モード
- - microFX は常に無効（rendererContext.applyMicroFX(null) を適用した状態を保つ）。
- - 局所強調は selection ハイライトに委ねる（7.12 節）。
-- meso モード
- - 現仕様では microFX 無効。将来の拡張として meso 専用 payload を許容する余地のみ残す。
-- frame 再生
- - core.runtime.startFramePlayback() 呼び出し時に ui_state.mode = "macro" とし、既存フォーカス／microFocus をクリアする。
- - 再生中に microFX が再度有効化されないことを保証する。
-- filter 切替
- - filter 変更後は必ず visibleSet を再計算し、その後 rendererContext.applyMicroFX(...) を再評価する。
 
 ## 7.12 Selection ハイライト（macro モード用）
+
 ### 7.12.1 目的
 
-macro モード時に「現在選択中の 1 要素」を明示するための軽量な強調表現である。
+selection ハイライトは、**macro モード時に「現在選択中の 1 要素」を明示する**ための  
+軽量な強調表現とする。
 
-microFX と役割を分担し、
+- macro：全体俯瞰＋「どれを選んだか」を中心に selection ハイライトを使う。
+- micro：microFX を中心とし、selection ハイライトは抑制する。
 
-macro: selection ハイライト中心（全体俯瞰＋どれを選んだか）
-
-micro: microFX 中心（局所構造の読解）
-となるよう設計する。
+この役割分担により、同じ uuid に対して  
+「macro では selection highlight」「micro では microFX」という  
+分かりやすい挙動に統一する。
 
 ### 7.12.2 適用条件
 
-ui_state.mode === "macro" のときのみ選択ハイライトを描画する。
+selection ハイライトは、次の条件をすべて満たすときにのみ描画される。
 
-ui_state.selection.uuid が存在しない場合、ハイライトは描画しない。
+1. `uiState.mode === "macro"`
+2. `uiState.selection` が `{kind, uuid}` で、`uuid` が非 null
+3. `uuid` が `visibleSet` に含まれている
 
-micro / meso モードでは、選択状態（ui_state.selection 自体）は保持するが、
-描画上のハイライトは一切行わない。
+この条件を満たさない場合、renderer は selection ハイライト用オーバーレイを解除し、  
+baseStyle（構造に基づくデフォルト）のみを表示する。
 
-### 7.12.3 インターフェース
+### 7.12.3 制御フローと責務分担
 
-runtime 側コントローラ：
+- `core.selectionController`
+  - selection の唯一の正規ルートとする。
+  - `select(uuid)` / `clear()` / `get()` などの API を提供し、
+    `uiState.selection` を更新する責務を持つ。
+  - renderer への通知は、bootstrap 時に渡される
+    `setHighlight(payload)` / `clearAllHighlights()` コールバックを通じて行う。
+- `viewerHub.core.selection`
+  - UI レイヤ（pointerInput / gizmo / dev ハーネス等）には  
+    `hub.core.selection.*` のみを公開し、renderer へは直接触らせない。
+- renderer
+  - `setHighlight({kind, uuid})` を受けて、対象 Object3D の material を軽く強調する。
+  - 具体例：
+    - 線の場合：太さ・色を少し強くする。
+    - 点の場合：サイズや色を強める。
+  - microFX とは別レイヤとして実装し、混線を避ける。
 
-// /runtime/core/selectionController.js
-selectionController.select(uuid: string | null)
-selectionController.clear()
-selectionController.get(): { uuid, kind, label } | null
+### 7.12.4 microFX / mode 遷移との関係
 
+- **macro → micro への遷移**
+  - `modeController.setMode("micro", uuid)` により micro モードへ入るとき、
+    - `uiState.selection` 自体は保持してよいが、
+    - 描画上の selection ハイライトは無効化する（`clearAllHighlights()`）。
+  - 同じ `uuid` をフォーカスとした microFX（7.11）が有効になる。
+- **micro → macro への遷移**
+  - `modeController.setMode("macro")` で戻った時点で、
+    - microFX は `applyMicroFX(null)` により解除。
+    - `selectionController` 側で、現在の selection を基に  
+      `setHighlight({kind, uuid})` を再適用する。
+- **frame / filter 変更時**
+  - frame / filter の変更で selection の対象が非表示になった場合、
+    - selection を維持するかどうかは `selectionController` のポリシーとする。
+    - いずれにせよ、`visibleSet` に含まれない要素への highlight は描画しない。
 
-rendererContext インターフェース：
+### 7.12.5 仕様上の位置づけ
 
-rendererContext.clearAllHighlights(): void
-rendererContext.setHighlight({ uuid: string, level?: 1 | 2 }): void
-
-
-selectionController の挙動（概要）：
-
-select(uuid):
-
-indexByUUID から kind と label を引き、ui_state.selection を更新。
-
-ui_state.mode === "macro" かつ rendererContext.setHighlight が存在する場合のみ、
-
-まず clearAllHighlights() で全要素を baseStyle に戻す。
-
-その後 setHighlight({ uuid, level: 1 }) を呼び出し、選択要素のみ強調する。
-
-clear():
-
-ui_state.selection を { uuid:null, kind:null, label:null } にリセット。
-
-ui_state.mode === "macro" の場合、clearAllHighlights() を呼び出す。
-
-### 7.12.4 視覚効果の内容
-
-rendererContext 内でのデフォルト実装（参考）：
-
-clearAllHighlights()
-
-現在の visibleSet に含まれる要素すべてに対し、baseStyle（色・不透明度）を復元する
-（microFX のリセット処理を流用してもよい）。
-
-setHighlight({ uuid, level })
-
-対象のオブジェクトを特定し、その baseStyle を元に次を行う：
-
-color: 明度を少しだけ上げる（例：offsetHSL(0, 0, +0.18〜0.22)）。
-
-opacity: min(1.0, opacity0 * 1.2) 程度まで上げる。
-
-transparent: opacity < 1.0 のとき true。
-
-line / point / aux いずれにも同じルールで適用する（オブジェクト種類には依存しない）。
-
-※ 必要に応じて level に応じた強弱（例：level=2 でやや強め）をつけてもよいが、
-selection ハイライトは「常時 ON の軽い強調」を想定し、過度な演出は避ける。
-いずれの更新後も、three.js マテリアルに対して `mat.needsUpdate = true` を立て、  
-GPU 側へ即座に反映されるようにする（実装細部だが、再描画漏れ防止のため明示しておく）。
-
-
-### 7.12.5 microFX との相互作用
-
-macro → micro への遷移：
-
-modeController.setMode("micro", uuid) によりモード遷移する際、
-
-selection ハイライトは描画上は無効化される（ただし ui_state.selection 自体は保持）。
-
-microFX が有効であれば、同一 uuid をフォーカスとして microFX が適用される。
-
-micro → macro への遷移：
-
-modeController.setMode("macro") で戻った時点で、
-
-microFX は applyMicroFX(null) により解除。
-
-selectionController 側で refreshHighlight()（または select(currentSelection.uuid) を再適用）し、
-macro モード用の選択ハイライトを再描画する。
+- selection ハイライトは **「macro モード用の最低限の局所強調」** と位置づける。
+- microFX は 7.11 のとおり、micro モードにおける詳細な局所読解のための  
+  視覚補助であり、両者は競合せず補完し合うように設計する。
+- どちらの機構も 3DSS 構造は一切変更せず、描画属性と overlay にのみ作用する。

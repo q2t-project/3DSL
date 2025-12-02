@@ -1,5 +1,15 @@
 // viewerDevHarness.js
 
+// viewerDevHarness.js の責務
+//
+// - エントリ：window.load → boot() 1 回だけ
+// - 3D canvas 生成や runtime 初期化はすべて bootstrapViewerFromUrl に委譲する
+// - viewerHub.core.* / viewerHub.pickObjectAt 以外の runtime 内部には触らない
+// - dev 用 HUD / メタパネル / ログ表示を提供する（本番 viewer には含めない）
+// - KeyboardInput / PointerInput のロジックには干渉しない
+//   - 例外：Space → Play トグルなど UI 専用ショートカットのみ許可
+
+
 import { bootstrapViewerFromUrl } from "./runtime/bootstrapViewer.js";
 import { attachGizmo } from "./ui/gizmo.js";
 
@@ -399,18 +409,13 @@ function initKeyboardShortcuts() {
       return;
     }
 
-    // Home → カメラ HOME
-    if (ev.code === "Home") {
-      ev.preventDefault();
-      const cam = viewerHub.core.camera;
-      if (cam && typeof cam.reset === "function") {
-        console.log("[viewer-dev key] Home → camera.reset()");
-        cam.reset();
-        showHudMessage("Camera: HOME", { duration: 800, level: "info" });
-      }
-    }
   });
 }
+
+    function devLogger(line) {
+      console.log(line);
+      appendModelLog(line);
+    }
 
 // ------------------------------------------------------------
 // boot: viewer_dev.html → viewerDevHarness → bootstrapViewerFromUrl
@@ -440,6 +445,7 @@ async function boot() {
       devBootLog: true,
       devLabel: "viewer_dev",
       modelUrl: jsonUrl,
+      logger: devLogger,
     });
     window.hub = viewerHub; // デバッグ用
 

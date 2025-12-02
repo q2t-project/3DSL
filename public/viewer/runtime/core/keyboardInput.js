@@ -53,12 +53,16 @@ export class KeyboardInput {
     // -----------------------------
     // Frame 操作（PgUp / PgDn）
     // -----------------------------
-    if (frame) {
+    if (frame && typeof frame.step === "function") {
       if (ev.code === "PageUp") {
-        if (typeof frame.step === "function") {
-          ev.preventDefault();
-          frame.step(1);
-        }
+        ev.preventDefault();
+        frame.step(1);
+        return;
+      }
+
+      if (ev.code === "PageDown") {
+        ev.preventDefault();
+        frame.step(-1);
         return;
       }
     }

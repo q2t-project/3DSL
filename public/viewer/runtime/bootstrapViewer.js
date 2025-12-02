@@ -110,13 +110,15 @@ function emitDevBootLog(core, options = {}) {
   try {
     const label = options.devLabel || "viewer_dev";
     const modelPath = options.modelUrl || "";
+    const logger =
+      typeof options.logger === "function" ? options.logger : console.log;
 
     // 1) BOOT
-    console.log(`BOOT  ${label}`);
+    logger(`BOOT  ${label}`);
 
     // 2) MODEL
     if (modelPath) {
-      console.log(`MODEL ${modelPath}`);
+      logger(`MODEL ${modelPath}`);
     } else {
       console.log("MODEL (unknown)");
     }
@@ -167,7 +169,7 @@ function emitDevBootLog(core, options = {}) {
       };
     }
 
-    console.log("CAMERA " + JSON.stringify(camPayload));
+    logger("CAMERA " + JSON.stringify(camPayload));
 
     // 4) LAYERS points/lines/aux
     let pointsOn = true;
@@ -190,7 +192,7 @@ function emitDevBootLog(core, options = {}) {
       if (typeof v.aux === "boolean") auxOn = v.aux;
     }
 
-    console.log(
+    logger(
       `LAYERS points=${pointsOn ? "on" : "off"} ` +
         `lines=${linesOn ? "on" : "off"} aux=${auxOn ? "on" : "off"}`
     );
@@ -206,7 +208,7 @@ function emitDevBootLog(core, options = {}) {
      frameId = core.frameController.get();
     }
 
-    console.log(`FRAME  frame_id=${frameId}`);
+    logger(`FRAME  frame_id=${frameId}`);
   } catch (e) {
     // dev 用ログなんで、こけても致命傷にはしない
     console.warn("[bootstrap] emitDevBootLog failed:", e);
