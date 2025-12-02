@@ -4,6 +4,14 @@
     <meta charset="UTF-8" />
     <title>3DSL Viewer – Dev Harness</title>
     <style>
+
+      /* 追加：全体レイアウトを 2 カラムのグリッドにして、高さを画面にフィットさせる */
+      #viewer-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 240px; /* 左=3Dビュー, 右=メタエリア */
+      height: 100vh; /* 画面の高さに固定 */
+      }
+
       html,
       body {
         margin: 0;
@@ -23,13 +31,13 @@
          左 = 3D ビュー
          中 = 300×600 広告ストリップ
          右 = メタ情報エリア（やや細め） */
-
-      /* 左側：3D ビューポート＋HUD＋ツールバー＋ギズモ＋300×250 AD */
+         
       #viewer-main {
         position: relative;
         background: #111;
         overflow: hidden;
         touch-action: none; /* タッチ／トラックパッドでのスクロールを抑止 */
+        height: 100%;       /* グリッド行いっぱいに伸ばす */
       }
 
       #viewer-canvas {
@@ -307,10 +315,9 @@
       #camera-panel {
         position: absolute;
         right: 12px;
-        bottom: 12px; /* ビューポートの最下部まで下げる */
+        bottom: 12px; /* 右下固定：mode スタック専用 */
         display: flex;
         align-items: flex-end;
-        gap: 12px;
         pointer-events: none; /* 子要素側で必要なところだけ auto にする */
       }
 
@@ -368,23 +375,28 @@
         cursor: pointer;
       }
 
-      /* ギズモ＋矢印ナビ */
+      /* Gizmo 本体 */
       #gizmo-wrapper {
-        position: relative;
-        width: 120px;
-        height: 120px;
+        position: absolute;
+        right: 120px;
+        bottom: 12px;
+        width: 180px;
+        height: 180px;
         pointer-events: auto;
+        z-index: 20; /* ほかの HUD より少し前 */
       }
 
+      /* 枠は absolute で箱いっぱいに広げる（フローから外す） */
       #gizmo-slot {
-        width: 100%;
-        height: 100%;
+        position: absolute;
+        inset: 0; /* top:0; right:0; bottom:0; left:0 と同じ */
         border-radius: 8px;
         border: 1px solid rgba(255, 255, 255, 0.3);
         background: rgba(0, 0, 0, 0.5);
         box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
       }
 
+      /* 「GIZMO」ラベルは枠の中央 */
       #gizmo-slot::before {
         content: "GIZMO";
         position: absolute;
@@ -395,41 +407,7 @@
         opacity: 0.6;
       }
 
-      .gizmo-arrow {
-        position: absolute;
-        width: 22px;
-        height: 22px;
-        font-size: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-      }
-
-      .gizmo-arrow-up {
-        top: -14px;
-        left: 50%;
-        transform: translateX(-50%);
-      }
-      .gizmo-arrow-down {
-        bottom: -14px;
-        left: 50%;
-        transform: translateX(-50%);
-      }
-      .gizmo-arrow-left {
-        left: -14px;
-        top: 50%;
-        transform: translateY(-50%);
-      }
-      .gizmo-arrow-right {
-        right: -14px;
-        top: 50%;
-        transform: translateY(-50%);
-      }
-
-      /* ★ ここから追加: HOME ボタン + 軸ボタン */
-
-      /* HOME ボタン（左上あたりに小さく） */
+      /* HOME ボタン（左上） */
       #gizmo-home {
         position: absolute;
         left: 4px;
@@ -448,7 +426,7 @@
         background: rgba(255, 255, 255, 0.18);
       }
 
-      /* X/Y/Z 軸ボタンを右下に横並びで配置 */
+      /* X/Y/Z 行（右下に絶対配置） */
       .gizmo-axis-row {
         position: absolute;
         right: 4px;
@@ -473,6 +451,27 @@
 
       .gizmo-axis:hover {
         background: rgba(255, 255, 255, 0.18);
+      }
+
+      /* ------------------------------------------------------------
+      * Gizmo: SVG は素通り、ボタンだけ確実にクリック可にする
+      * ---------------------------------------------------------- */
+
+      /* gizmo wrapper 自体はイベントを受け取る（上で pointer-events: auto 済） */
+      /* クリック可能領域は #gizmo-wrapper 配下のボタン類 */
+
+      /* 中に描いている SVG はクリックを殺さず素通りさせる */
+      #gizmo-slot svg {
+        pointer-events: none;
+      }
+
+      /* HOME / X / Y / Z のボタンは確実にクリック可能にする */
+      #gizmo-wrapper button,
+      #gizmo-wrapper .keycap,
+      #gizmo-wrapper .gizmo-axis {
+        pointer-events: auto;
+        position: relative;
+        z-index: 30;
       }
 
     </style>
@@ -564,11 +563,10 @@
           </div>
         </div>
 
-        <!-- カメラモード表示＋ギズモ -->
+        <!-- カメラモード表示（右下固定） -->
         <div id="camera-panel">
-          <div id="viewer-gizmo-root" class="viewer-gizmo"></div>
           <div id="mode-stack">
-            <div id="mode-label-macro" class="mode-pill mode-pill-active">
+              <div id="mode-label-macro" class="mode-pill mode-pill-active">
               MACRO
             </div>
 
@@ -589,37 +587,55 @@
               </button>
               <div id="mode-focus-label" class="mode-focus-label">-</div>
             </div>
+
           </div>
 
-<div id="gizmo-wrapper">
-  <!-- 既存の矢印ボタン ... -->
-
-  <!-- HOME（カメラリセット） -->
-  <button
-    id="gizmo-home"
-    class="keycap"
-    type="button"
-    data-gizmo="home"
-    title="Reset camera (HOME)"
-  >
-    HOME
-  </button>
-
-  <!-- 軸スナップ -->
-  <button class="gizmo-axis keycap" type="button" data-axis="x" title="+X axis">
-    X
-  </button>
-  <button class="gizmo-axis keycap" type="button" data-axis="y" title="+Y axis">
-    Y
-  </button>
-  <button class="gizmo-axis keycap" type="button" data-axis="z" title="+Z axis">
-    Z
-  </button>
-
-  <div id="gizmo-slot"></div>
-</div>
         </div>
-      </div>
+
+        <!-- Gizmo -->
+        <div id="gizmo-wrapper">
+          <!-- HOME（カメラリセット） -->
+          <button
+            id="gizmo-home"
+            class="keycap"
+            type="button"
+            data-gizmo="home"
+            title="Reset camera (HOME)"
+          >
+            HOME
+          </button>
+
+          <!-- 軸スナップボタン（右下に横並び） -->
+          <div class="gizmo-axis-row">
+            <button
+              class="gizmo-axis keycap"
+              type="button"
+              data-gizmo-axis="x"
+              title="+X axis"
+            >
+              X
+            </button>
+            <button
+              class="gizmo-axis keycap"
+              type="button"
+              data-gizmo-axis="y"
+              title="+Y axis"
+            >
+              Y
+            </button>
+            <button
+              class="gizmo-axis keycap"
+              type="button"
+              data-gizmo-axis="z"
+              title="+Z axis"
+            >
+              Z
+            </button>
+          </div>
+
+          <!-- 中身の SVG ギズモはここに差し込まれる -->
+          <div id="gizmo-slot"></div>
+        </div>
 
       <!-- 右：メタ情報エリア -->
       <aside id="viewer-meta">

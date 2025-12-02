@@ -1,5 +1,7 @@
 // viewerDevHarness.js
+
 import { bootstrapViewerFromUrl } from "./runtime/bootstrapViewer.js";
+import { attachGizmo } from "./ui/gizmo.js";
 
 const DEFAULT_MODEL = "/data/sample/core_viewer_baseline.3dss.json";
 
@@ -320,57 +322,57 @@ function initModeHudLoop() {
 // ギズモボタン（HOME / 軸スナップ）
 // ------------------------------------------------------------
 function initGizmoButtons() {
-  if (!viewerHub || !viewerHub.core || !viewerHub.core.camera) return;
+  console.log(
+    "[viewer-dev gizmo] initGizmoButtons start",
+    viewerHub && viewerHub.core && viewerHub.core.camera
+  );
+
+  if (!viewerHub || !viewerHub.core || !viewerHub.core.camera) {
+    console.warn("[viewer-dev gizmo] hub/core.camera not ready");
+    return;
+  }
+
   const camera = viewerHub.core.camera;
 
-  // 矢印ボタン（data-key="ArrowLeft" など）がもしあれば回す
-  const gizmoArrows = document.querySelectorAll(".gizmo-arrow");
-  gizmoArrows.forEach((btn) => {
-    btn.addEventListener("click", (ev) => {
-      const key = btn.dataset.key;
-      if (!key) return;
-      const fast = ev.shiftKey === true;
-      const STEP = Math.PI / 90; // 約 2°
-      const STEP_FAST = Math.PI / 45; // 約 4°
-      const s = fast ? STEP_FAST : STEP;
-
-      switch (key) {
-        case "ArrowLeft":
-          camera.rotate(-s, 0);
-          break;
-        case "ArrowRight":
-          camera.rotate(s, 0);
-          break;
-        case "ArrowUp":
-          camera.rotate(0, -s);
-          break;
-        case "ArrowDown":
-          camera.rotate(0, s);
-          break;
-      }
-    });
-  });
-
   // HOME ボタン
-  const btnHomeCam = document.querySelector("[data-gizmo='home']");
+  const btnHomeCam = document.getElementById("gizmo-home");
   if (btnHomeCam) {
+    console.log("[viewer-dev gizmo] HOME button found", btnHomeCam);
     btnHomeCam.addEventListener("click", () => {
+      console.log("[viewer-dev gizmo] HOME clicked");
       if (typeof camera.reset === "function") {
         camera.reset();
       }
       showHudMessage("Camera: HOME", { duration: 800, level: "info" });
     });
+  } else {
+    console.warn("[viewer-dev gizmo] gizmo-home button not found");
   }
 
   // X/Y/Z 軸ボタン
-  const axisButtons = document.querySelectorAll("[data-axis]");
+  const axisButtons = document.querySelectorAll(
+    ".gizmo-axis[data-gizmo-axis]"
+  );
+  console.log(
+    "[viewer-dev gizmo] axis buttons found:",
+    axisButtons.length,
+    axisButtons
+  );
+
   axisButtons.forEach((btn) => {
+    const axis = btn.dataset.gizmoAxis; // "x" | "y" | "z"
+    console.log("[viewer-dev gizmo] axis button wired", axis, btn);
+
     btn.addEventListener("click", () => {
-      const axis = btn.dataset.axis; // "x" | "y" | "z" の想定
+      console.log("[viewer-dev gizmo] axis clicked", axis);
       if (!axis) return;
+
       if (typeof camera.snapToAxis === "function") {
         camera.snapToAxis(axis);
+      } else {
+        console.warn("[viewer-dev gizmo] camera.snapToAxis not available");
       }
+
       showHudMessage(`Camera axis: ${axis.toUpperCase()}`, {
         duration: 800,
         level: "info",
@@ -380,7 +382,7 @@ function initGizmoButtons() {
 }
 
 // ------------------------------------------------------------
-// キーボードショートカット（Space → Play トグル）
+// キーボードショートカット（Space → Play, Home → Camera HOME）
 // ------------------------------------------------------------
 function initKeyboardShortcuts() {
   window.addEventListener("keydown", (ev) => {
@@ -389,10 +391,23 @@ function initKeyboardShortcuts() {
     const tag = (ev.target && ev.target.tagName) || "";
     if (tag === "INPUT" || tag === "TEXTAREA") return;
 
+    // Space → 再生トグル
     if (ev.code === "Space") {
       ev.preventDefault();
       const btnPlay = document.getElementById("btn-play");
       if (btnPlay) btnPlay.click();
+      return;
+    }
+
+    // Home → カメラ HOME
+    if (ev.code === "Home") {
+      ev.preventDefault();
+      const cam = viewerHub.core.camera;
+      if (cam && typeof cam.reset === "function") {
+        console.log("[viewer-dev key] Home → camera.reset()");
+        cam.reset();
+        showHudMessage("Camera: HOME", { duration: 800, level: "info" });
+      }
     }
   });
 }
@@ -424,9 +439,14 @@ async function boot() {
     viewerHub = await bootstrapViewerFromUrl(canvasId, jsonUrl, {
       devBootLog: true,
       devLabel: "viewer_dev",
-      modelUrl: jsonUrl, // CAMERA/LAYERS/FRAME ログの MODEL 行用
+      modelUrl: jsonUrl,
     });
     window.hub = viewerHub; // デバッグ用
+
+    console.log(
+      "[viewer-dev] hub created, core.camera =",
+      viewerHub.core && viewerHub.core.camera
+    );
 
     appendModelLog("Viewer boot OK.");
 
@@ -466,6 +486,15 @@ async function boot() {
     });
 
     return;
+  }
+
+  // --- ここから viewerHub が生きている前提で各 UI を接続 ---
+  const gizmoWrapper = document.getElementById("gizmo-wrapper");
+  if (gizmoWrapper && typeof attachGizmo === "function") {
+    console.log("[viewer-dev gizmo] attachGizmo", gizmoWrapper);
+    attachGizmo(gizmoWrapper, viewerHub);
+  } else {
+    console.warn("[viewer-dev gizmo] gizmoWrapper missing or attachGizmo NG");
   }
 
   initFrameControls();

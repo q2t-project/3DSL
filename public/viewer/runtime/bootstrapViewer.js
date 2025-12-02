@@ -18,7 +18,7 @@ import { init as initValidator, validate3DSS, getErrors } from "./core/validator
 // ------------------------------------------------------------
 // logging
 // ------------------------------------------------------------
-const DEBUG_BOOTSTRAP = false; // 開発中だけ true にして詳細ログを見る
+const DEBUG_BOOTSTRAP = true; // 開発中だけ true にして詳細ログを見る
 
 function debugBoot(...args) {
   if (!DEBUG_BOOTSTRAP) return;

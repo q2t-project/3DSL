@@ -5,7 +5,7 @@
 //   - core.camera / core.frame / core.mode / core.selection だけを叩く
 //   - UI や CameraEngine には直接触れない
 
-const DEBUG_KEYBOARD = false; // 必要なとき true に
+const DEBUG_KEYBOARD = true; // 必要なとき true に
 
 export class KeyboardInput {
   constructor(target, hub) {
@@ -51,35 +51,13 @@ export class KeyboardInput {
     const selection = core.selection;
 
     // -----------------------------
-    // Frame 操作（PgUp / PgDn / Home）
+    // Frame 操作（PgUp / PgDn）
     // -----------------------------
     if (frame) {
       if (ev.code === "PageUp") {
         if (typeof frame.step === "function") {
           ev.preventDefault();
           frame.step(1);
-        }
-        return;
-      }
-
-      if (ev.code === "PageDown") {
-        if (typeof frame.step === "function") {
-          ev.preventDefault();
-          frame.step(-1);
-        }
-        return;
-      }
-
-      if (ev.code === "Home") {
-        if (
-          typeof frame.range === "function" &&
-          typeof frame.set === "function"
-        ) {
-          ev.preventDefault();
-          const range = frame.range();
-          if (range && typeof range.min === "number") {
-            frame.set(range.min);
-          }
         }
         return;
       }
@@ -111,6 +89,34 @@ export class KeyboardInput {
     if (mode && ev.key === "Escape") {
       ev.preventDefault();
       mode.set("macro");
+      return;
+    }
+
+    // -----------------------------
+    // カメラ Zoom（+ / -）
+    // -----------------------------
+    if (camera && typeof camera.zoom === "function") {
+      const ZOOM_STEP = 0.1; // 必要なら調整
+
+      // 日本語配列など：key="+" / "-" を優先
+      if (ev.key === "+" || ev.code === "NumpadAdd") {
+        ev.preventDefault();
+        camera.zoom(-ZOOM_STEP);
+        return;
+      }
+      if (ev.key === "-" || ev.code === "NumpadSubtract") {
+        ev.preventDefault();
+        camera.zoom(ZOOM_STEP);
+        return;
+      }
+    }
+
+    // -----------------------------
+    // カメラ HOME（Home キー）
+    // -----------------------------
+    if (camera && typeof camera.reset === "function" && ev.code === "Home") {
+      ev.preventDefault();
+      camera.reset();
       return;
     }
 
