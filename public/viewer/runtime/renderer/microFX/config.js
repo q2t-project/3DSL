@@ -7,7 +7,8 @@
 // （必要なら各レイヤごとに config ファイルを分ける）
 //
 // microFX 全体の係数をここに集約しておく。
-// すべて「unitless な world 座標・距離」に対する係数。
+// 原則としてすべて「unitless な world 座標・距離」に対する係数。
+// （一部、three.js の描画用パラメータ値 linewidth などを含む）
 // px や画面解像度には依存しないようにしておき、
 // 数値チューニングは基本ここだけ触れば OK にする。
 
@@ -17,6 +18,13 @@
 export const DEBUG_MICROFX = true;
 
 export const microFXConfig = {
+  // フォーカスマーカー（plane）の見た目
+  marker: {
+    // world 座標系での一辺長さ（unitless）
+    baseSize: 0.14,
+    // plane の不透明度
+    opacity: 0.06,
+  },
   axes: {
   // target との距離 1.0（unitless）あたりの軸長スケール係数
     scalePerDistance: 0.045,
@@ -30,7 +38,16 @@ export const microFXConfig = {
     shrinkFactor: 0.7,
     // AABB エッジ長の下限・上限（unitless）
     minEdge: 0.4,
-    maxEdge: 3.0
+    maxEdge: 3.0,
+
+    // コーナーハンドルのスケール計算用
+    // - minBase/maxBase: 「最小辺長」から切り出す基準スケールの範囲
+    // - scaleFactor: 基準スケールに掛ける係数
+    handle: {
+      minBase: 0.2,
+      maxBase: 1.0,
+      scaleFactor: 0.05,
+    },
   },
 
   glow: {
@@ -78,6 +95,11 @@ export const microFXConfig = {
       opacityMultiplier: 0.4
     },
 
+    // 線オーバーレイの線幅（three.js LineBasicMaterial の linewidth 単位）
+    line: {
+      focusWidth: 4,
+      relatedWidth: 2,
+    },
     // 線フォーカス時の「線そのものが光って見える」用グロー
     lineGlow: {
       enabled: true,
@@ -88,7 +110,15 @@ export const microFXConfig = {
       // 1 セグメントあたりの細分数（増やすと滑らか・重くなる）
       tubularSegmentsPerSegment: 32,
       radialSegments: 32,
-      color: "#00ffff"
+      color: "#00ffff",
+
+      // radius に対する多層グローの倍率と不透明度
+      // radiusMul: 半径倍率, opacityMul: 不透明度倍率
+      layers: [
+        { radiusMul: 1.0, opacityMul: 1.0 },   // コア
+        { radiusMul: 4.8, opacityMul: 0.35 },  // 内側ハロー
+        { radiusMul: 9.6, opacityMul: 0.12 },  // 外側ハロー
+      ],
     }
   }
 };

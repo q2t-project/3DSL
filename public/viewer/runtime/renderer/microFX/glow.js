@@ -3,8 +3,11 @@
 import * as THREE from "../../../../vendor/three/build/three.module.js";
 import { microFXConfig } from "./config.js";
 
-// unitless な world 座標系上での「輝き」オーバーレイ。
-// position, offsetFactor, scalePerDistance などはすべて無次元スカラーとして扱う。
+// microState.focusPosition をアンカーにした「輝き」オーバーレイ。
+// - position: world 座標系（unitless）の点位置（通常は microState.focusPosition）
+// - offsetFactor: カメラ距離 dist に対する係数（無次元）
+// - baseScale / minScale / maxScale: 同一 world 長さ単位でのスカラー
+//   （viewer 全体での「unitless world 長さ」に揃える）
 
 let glow = null;
 let glowTexture = null;
@@ -78,16 +81,18 @@ export function ensureGlow(scene) {
   return glow;
 }
 
+// microState.focusPosition 相当の座標を軽くサニタイズ
 function sanitizePosition(position) {
   if (!Array.isArray(position) || position.length < 3) return null;
 
   const raw = position.map((v) => Number(v));
   if (!raw.every((v) => Number.isFinite(v))) return null;
 
-  // unitless な world 座標として ±MAX_COORD にだけクランプ
+  // world 座標（unitless）として ±MAX_COORD にだけクランプ
   return raw.map((v) => clamp(v, -MAX_COORD, MAX_COORD))
 }
 
+// position: microState.focusPosition を想定（null の場合は呼び出し側でフォールバック済み）
 export function updateGlow(target, position, camera) {
   if (!target) return;
   if (!camera) return;
@@ -99,7 +104,7 @@ export function updateGlow(target, position, camera) {
 
   const cfg = microFXConfig.glow || {};
 
-  // 距離は「点とカメラの現在距離」
+  // 距離は「点とカメラの現在距離」（world 長さ）
   const dist = camera.position.distanceTo(target.position) || 1.0;
 
   // 設定が無ければ適当なデフォルトを持つ

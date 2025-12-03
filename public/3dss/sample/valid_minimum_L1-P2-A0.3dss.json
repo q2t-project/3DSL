@@ -1,0 +1,122 @@
+{
+  "document_meta": {
+    "document_uuid": "4e0f9c45-1b7a-4b9c-8c2f-3d7f4a9b6c01",
+    "version": "1.0.0",
+    "updated_at": "2025-12-02T15:00:00Z",
+    "tags": [
+      "s:sample",
+      "m:minimal"
+    ],
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.1",
+    "generator": "https://q2t-project.github.io/3dsl/",
+    "reference": "L1-P2-A0 minimal sample",
+    "coordinate_system": "Z+up/freeXY",
+    "units": "mm",
+    "i18n": "ja",
+    "author": "sample.author",
+    "creator_memo": "minimal 3DSS sample (1 line, 2 points, no aux)"
+  },
+
+  "points": [
+    {
+      "signification": {
+        "name": {
+          "ja": "ポイントA",
+          "en": "Point A"
+        }
+      },
+      "appearance": {
+        "position": [-10, 0, 0],
+        "marker": {
+          "text":{
+            "content": "",
+            "size": 64
+          } 
+        },
+        "visible": true,
+        "frames": 0
+      },
+      "meta": {
+        "uuid": "8e5c7a10-3f2b-4d1a-9a3b-1c2d3e4f5a60",
+        "tags": ["s:node"],
+        "creator_memo": "endpoint A"
+      }
+    },
+    {
+      "signification": {
+        "name": {
+          "ja": "ポイントB",
+          "en": "Point B"
+        }
+      },
+      "appearance": {
+        "position": [10, 0, 0],
+        "marker": {
+          "shape": "sphere"
+        },
+          "text":{
+            "content": "",
+            "size": 32
+          }
+        },
+        "visible": true,
+        "frames": 0
+      },
+      "meta": {
+        "uuid": "1a2b3c4d-5e6f-41a2-8b9c-0d1e2f3a4b5c",
+        "tags": ["s:node"],
+        "creator_memo": "endpoint B"
+      }
+    }
+  ],
+
+  "lines": [
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "8e5c7a10-3f2b-4d1a-9a3b-1c2d3e4f5a60"
+        },
+        "end_b": {
+          "ref": "1a2b3c4d-5e6f-41a2-8b9c-0d1e2f3a4b5c"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#ffffff",
+        "opacity": 0.8,
+        "renderOrder": 0,
+        "arrow": {
+          "shape": "cone",
+          "size": 1,
+          "aspect": 4,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "effect": {
+          "effect_type": "none",
+          "amplitude": 1,
+          "speed": 1,
+          "duration": 1,
+          "loop": true,
+          "phase": 0,
+          "easing": "linear",
+          "width": 1
+        },
+        "visible": true,
+        "frames": 0
+      },
+      "meta": {
+        "uuid": "9f8e7d6c-5b4a-4c3d-8e7f-6a5b4c3d2e1f",
+        "tags": ["m:edge"],
+        "creator_memo": "A→B association"
+      }
+    }
+  ],
+
+  "aux": []
+}

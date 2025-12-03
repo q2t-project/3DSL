@@ -428,7 +428,7 @@ async function boot() {
   const canvasId = "viewer-canvas";
 
   // ★使うサンプルをここで切り替える
-  // const jsonUrl = "../3dss/sample/frame_test.3dss.json";
+  // const jsonUrl = "../3dss/sample/valid_minimum_L1-P2-A0.3dss.json";
   // const jsonUrl = "../3dss/sample/frame_filter_test.3dss.json";
   // const jsonUrl = "../3dss/sample/microfx_cluster_medium.3dss.json";
   // const jsonUrl = "../3dss/sample/microfx_depth_layers.3dss.json";
@@ -438,7 +438,11 @@ async function boot() {
   // const jsonUrl = "../3dss/sample/microfx_mixed.3dss.json";
   // const jsonUrl = "../3dss/sample/xyz_basis.3dss.json";
   // const jsonUrl = "../3dss/sample/sample_arrows.3dss.json";
-  const jsonUrl = "../3dss/sample/frame_aux_demo.3dss.json";
+  // const jsonUrl = "../3dss/sample/frame_aux_demo.3dss.json";
+  // const jsonUrl = "../3dss/sample/rpref-20p-40l.3dss.json";
+  // const jsonUrl = "../3dss/sample/rpref-200p-400l.3dss.json";
+   const jsonUrl = "../3dss/sample/rpref-1000p-2000l.3dss.json";
+  // const jsonUrl = "../3dss/sample/rpref-4000p-8000l.3dss.json";
 
   try {
     viewerHub = await bootstrapViewerFromUrl(canvasId, jsonUrl, {

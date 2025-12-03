@@ -4,7 +4,8 @@ import * as THREE from "../../../../vendor/three/build/three.module.js";
 import { microFXConfig } from "./config.js";
 
 // このモジュールは「unitless な world 座標系」でのローカル座標軸可視化だけを担当する。
-// px や画面解像度は一切参照せず、すべてのスカラーは「長さ係数」として解釈する。
+// microState そのものは参照せず、呼び出し側から渡される localAxes 情報だけを見る。
+// px や画面解像度は一切参照せず、すべてのスカラーは「world 長さの係数」として解釈する。
 let axesGroup = null; // singleton
 
 // 3DSS / microState 由来の unitless ベクトルを、
@@ -23,8 +24,8 @@ function sanitizeVector3(arr) {
   return [x, y, z];
 }
 
-// microState.localAxes:
-//   - origin : world 座標（unitless）
+// localAxes オブジェクトの想定フォーマット:
+//   - origin : world 座標（unitless）  … 通常は microState.focusPosition から構成
 //   - xDir/yDir/zDir : unitless な方向ベクトル（省略可）
 //   - scale : 軸長さに掛ける無次元スカラー
 // ここでは数値の範囲だけ整え、幾何学的な単位は決めない。
@@ -116,6 +117,11 @@ export function updateAxes(target, localAxes, camera) {
 
   // localAxes が既に sanitize 済み（origin: Vec3, baseScale: number）ならそのまま使用。
   // そうでなければここで sanitize する。
+  // 呼び出し側（microFX/index.js）では、基本的に:
+  //   localAxes = microState
+  //     ? { origin: microState.focusPosition, scale: 1 }
+  //     : null;
+  // のように組み立てることを想定。
   let sanitized = null;
 
   if (

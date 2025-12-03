@@ -3,7 +3,9 @@
 // micro-highlight:
 //   - microState の focusUuid / relatedUuids を元に、
 //     元オブジェクトをなぞるオーバーレイを描く。
-//   - 長さ単位には一切踏み込まず、position/rotation/scale をそのままコピー。
+//   - microState.focusPosition / localBounds には依存しない。
+//     （three.js 側の src.position / src.quaternion / src.scale をそのままコピー）
+//   - 長さ単位は「元 geometry の座標系」に丸投げし、カメラ距離や sceneRadius には踏み込まない。
 
 import * as THREE from "../../../../vendor/three/build/three.module.js";
 import { microFXConfig } from "./config.js";
@@ -80,20 +82,27 @@ function createLineGlowMeshes(src, lineGlowCfg) {
   const baseOpacity =
     typeof lineGlowCfg.opacity === "number" ? lineGlowCfg.opacity : 0.7;
 
- // 中心コア + 外側ハロー層
-  const layers = [
-    { r: 1.0, opacityMul: 1.0 },  // コア
-    { r: 4.8, opacityMul: 0.35 }, // 内側ハロー
-    { r: 9.6, opacityMul: 0.12 }, // 外側ハロー
-  ];
+  // 中心コア + 外側ハロー層
+  const layersCfg = Array.isArray(lineGlowCfg.layers)
+    ? lineGlowCfg.layers
+    : [
+        { radiusMul: 1.0, opacityMul: 1.0 },  // コア
+        { radiusMul: 4.8, opacityMul: 0.35 }, // 内側ハロー
+        { radiusMul: 9.6, opacityMul: 0.12 }, // 外側ハロー
+      ];
 
   const meshes = [];
 
-  for (const layer of layers) {
+  for (const layer of layersCfg) {
+    const radiusMul =
+      typeof layer.radiusMul === "number" ? layer.radiusMul : 1.0;
+    const opacityMul =
+      typeof layer.opacityMul === "number" ? layer.opacityMul : 1.0;
+
     const tubeGeom = new THREE.TubeGeometry(
       curve,
       tubularSegments,
-      radius * layer.r,
+       radius * radiusMul,
       radialSegments,
       false
     );
@@ -101,7 +110,7 @@ function createLineGlowMeshes(src, lineGlowCfg) {
     const material = new THREE.MeshBasicMaterial({
       color: lineGlowCfg.color || "#00ffff",
       transparent: true,
-      opacity: baseOpacity * layer.opacityMul,
+      opacity: baseOpacity * opacityMul,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       depthTest: false
@@ -130,6 +139,8 @@ export function applyHighlight(
   clearHighlight(scene);
   if (!microState) return;
 
+  // highlight が見る microState フィールドは focusUuid / relatedUuids のみ。
+  // kind / focusPosition / localBounds は別エフェクト（marker / bounds 等）が使う。
   const { focusUuid, relatedUuids } = microState;
 
   const ids = [];
@@ -148,6 +159,7 @@ export function applyHighlight(
   const relatedCfg = hlCfg.related || {};
   const othersCfg = hlCfg.others || {};
   const lineGlowCfg = hlCfg.lineGlow || {};
+  const lineCfg = hlCfg.line || {};
   const lineGlowEnabled = lineGlowCfg.enabled !== false;
 
   for (const uuid of uniqIds) {
@@ -227,7 +239,11 @@ export function applyHighlight(
     let clone;
     if (src.isLine) {
       // 対応ブラウザではちょっと太く見えるかも（効かなくても害はない）
-      material.linewidth = isFocus ? 4 : 2;
+      const focusWidth =
+        typeof lineCfg.focusWidth === "number" ? lineCfg.focusWidth : 4;
+      const relatedWidth =
+        typeof lineCfg.relatedWidth === "number" ? lineCfg.relatedWidth : 2;
+      material.linewidth = isFocus ? focusWidth : relatedWidth;
       clone = new THREE.Line(src.geometry, material);
     } else {
       clone = new THREE.Mesh(src.geometry, material);

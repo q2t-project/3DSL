@@ -124,30 +124,109 @@
                                 "default":0
                             },
                             "arrow": {
-                                "type": "object",
-                                "properties": {
-                                    "shape": {
-                                        "type": "string",
-                                        "enum": ["cone", "pyramid", "line"],
-                                        "default": "cone"
+                                "oneOf": [
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "primitive": {
+                                                "type": "string",
+                                                "const": "none"
+                                            },
+                                            "placement": {
+                                                "type": "string",
+                                                "enum": ["end_a", "end_b", "both", "none"],
+                                                "default": "end_b"
+                                            },
+                                            "auto_orient": {
+                                                "type": "boolean",
+                                                "default": true
+                                            }
+                                        }, "required": ["primitive"], "additionalProperties": false
                                     },
-                                    "size": {
-                                        "type": "number","minimum": 0.0001,
-                                        "default":8
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "primitive": {
+                                                "type": "string",
+                                                "const": "line"
+                                            },
+                                            "length": {
+                                                "type": "number",
+                                                "minimum": 0.0001
+                                            },
+                                            "thickness": {
+                                                "type": "number",
+                                                "minimum": 0.0001
+                                            },
+                                            "placement": {
+                                                "type": "string",
+                                                "enum": ["end_a", "end_b", "both", "none"],
+                                                "default": "end_b"
+                                            },
+                                            "auto_orient": {
+                                                "type": "boolean",
+                                                "default": true
+                                            }
+                                        },  "required": ["primitive", "length", "thickness"], "additionalProperties": false
                                     },
-                                    "aspect": {
-                                        "type": "number","minimum": 0.0001,
-                                        "default":2
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "primitive": {
+                                                "type": "string",
+                                                "const": "cone"
+                                            },
+                                            "radius": {
+                                                "type": "number",
+                                                "minimum": 0.0001
+                                            },
+                                            "height": {
+                                                "type": "number",
+                                                "minimum": 0.0001
+                                            },
+                                            "placement": {
+                                                "type": "string",
+                                                "enum": ["end_a", "end_b", "both", "none"],
+                                                "default": "end_b"
+                                            },
+                                            "auto_orient": {
+                                                "type": "boolean",
+                                                "default": true
+                                            }
+                                        }, "required": ["primitive", "radius", "height"], "additionalProperties": false
                                     },
-                                    "placement": {
-                                        "type": "string",
-                                        "enum": ["end_a", "end_b", "both", "none"],
-                                        "default": "end_b"
-                                    },
-                                    "auto_orient": {
-                                        "type": "boolean", "default": true
+                                    {
+                                    "type": "object",
+                                        "properties": {
+                                            "primitive": {
+                                                "type": "string",
+                                                "const": "pyramid"
+                                            },
+                                            "base": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "number",
+                                                    "minimum": 0.0001
+                                                },
+                                                "minItems": 2,
+                                                "maxItems": 2
+                                            },
+                                            "height": {
+                                                "type": "number",
+                                                "minimum": 0.0001
+                                            },
+                                            "placement": {
+                                                "type": "string",
+                                                "enum": ["end_a", "end_b", "both", "none"],
+                                                "default": "end_b"
+                                            },
+                                            "auto_orient": {
+                                                "type": "boolean",
+                                                "default": true
+                                            }
+                                        }, "required": ["primitive", "base", "height"], "additionalProperties": false
                                     }
-                                }, "additionalProperties": false
+                                ]
                             },
                             "bezier_controls": {
                                 "$ref": "#/$defs/validator/properties/line_geometry/properties/bezier_controls"
@@ -249,89 +328,631 @@
                         "properties": {
                             "position": {"$ref": "#/$defs/spatial/position" },
                             "marker": {
-                                "type": "object",
-                                "properties": {
-                                    "common": { "type": "object",
-                                        "properties": {
-                                            "orientation": {
-                                                "$ref": "#/$defs/spatial/orientation",
-                                                "default": [0,0,0]
-                                            },
-                                            "scale": {
-                                                "$ref": "#/$defs/spatial/scale",
-                                                "default": [1,1,1]
-                                            },
-                                            "color": {
-                                                "$ref": "#/$defs/validator/properties/type_check/properties/color",
-                                                "default": "#ffffff"
-                                            },
-                                            "opacity": {
-                                                "type": "number", "minimum":0, "maximum":1,
-                                                "default":0.4
-                                            },
-                                            "emissive": {
-                                                "type": "boolean",
-                                                "default": false
-                                            },
-                                            "wireframe": {
-                                                "type": "boolean",
-                                                "default": false
-                                            }
-                                        }, "additionalProperties": false
-                                    },
-                                    "shape": {
-                                        "type": "string",
-                                        "enum": ["sphere", "box", "cone", "pyramid", "corona", "none"],
-                                        "default": "sphere"
-                                    },
-                                    "gltf": {
+                                "oneOf": [
+                                    {
                                         "type": "object",
                                         "properties": {
-                                            "url": {
-                                            "type": "string",
-                                            "default": ""
+                                            "common": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "orientation": {
+                                                        "$ref": "#/$defs/spatial/orientation",
+                                                        "default": [0, 0, 0]
+                                                    },
+                                                    "scale": {
+                                                        "$ref": "#/$defs/spatial/scale",
+                                                        "default": [1, 1, 1]
+                                                    },
+                                                    "color": {
+                                                        "$ref": "#/$defs/validator/properties/type_check/properties/color",
+                                                        "default": "#ffffff"
+                                                    },
+                                                    "opacity": {
+                                                        "type": "number",
+                                                        "minimum": 0,
+                                                        "maximum": 1,
+                                                        "default": 0.4
+                                                    },
+                                                    "emissive": {
+                                                        "type": "boolean",
+                                                        "default": false
+                                                    },
+                                                    "wireframe": {
+                                                        "type": "boolean",
+                                                        "default": false
+                                                    }
+                                                }, "additionalProperties": false
                                             },
-                                            "scale": {
-                                                "$ref": "#/$defs/spatial/scale",
-                                                "default": [1,1,1]
+                                            "primitive": {
+                                                "type": "string",
+                                                "const": "sphere"
                                             },
-                                            "rotation": {
-                                                "$ref": "#/$defs/spatial/rotation",
-                                                "default": [0,0,0]
+                                            "radius": {
+                                                "type": "number",
+                                                "minimum": 0.0001
                                             },
-                                            "offset": {
-                                                "$ref": "#/$defs/spatial/offset",
-                                                "default": [0,0,0]
+                                            "gltf": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "url": {
+                                                        "type": "string",
+                                                        "default": ""
+                                                    },
+                                                    "scale": {
+                                                        "$ref": "#/$defs/spatial/scale",
+                                                        "default": [1, 1, 1]
+                                                    },
+                                                    "rotation": {
+                                                        "$ref": "#/$defs/spatial/rotation",
+                                                        "default": [0, 0, 0]
+                                                    },
+                                                    "offset": {
+                                                        "$ref": "#/$defs/spatial/offset",
+                                                        "default": [0, 0, 0]
+                                                    }
+                                                }, "additionalProperties": false
+                                            },
+                                            "text": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "content": {
+                                                        "type": "string",
+                                                        "default": ""
+                                                    },
+                                                    "font": {
+                                                        "type": "string",
+                                                        "default": "helvetiker_regular"
+                                                    },
+                                                    "size": {
+                                                        "type": "number",
+                                                        "default": 8
+                                                    },
+                                                    "align": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "left&top",
+                                                            "left&middle",
+                                                            "left&baseline",
+                                                            "center&top",
+                                                            "center&middle",
+                                                            "center&baseline",
+                                                            "right&top",
+                                                            "right&middle",
+                                                            "right&baseline"
+                                                        ],
+                                                        "default": "center&middle"
+                                                    },
+                                                    "plane": {
+                                                        "type": "string",
+                                                        "enum": ["xy", "yz", "zx", "billboard"],
+                                                        "default": "zx"
+                                                    }
+                                                }, "additionalProperties": false
                                             }
-                                        }, "additionalProperties": false
+                                        }, "required": ["primitive", "radius"], "additionalProperties": false
                                     },
-                                    "text": {
+                                    {
                                         "type": "object",
                                         "properties": {
-                                            "content": {
-                                                "type": "string",
-                                                "default": ""
+                                            "common": {
+                                            "type": "object",
+                                            "properties": {
+                                                "orientation": {
+                                                    "$ref": "#/$defs/spatial/orientation",
+                                                    "default": [0, 0, 0]
+                                                },
+                                                "scale": {
+                                                    "$ref": "#/$defs/spatial/scale",
+                                                    "default": [1, 1, 1]
+                                                },
+                                                "color": {
+                                                    "$ref": "#/$defs/validator/properties/type_check/properties/color",
+                                                    "default": "#ffffff"
+                                                },
+                                                "opacity": {
+                                                    "type": "number",
+                                                    "minimum": 0, "maximum": 1,
+                                                    "default": 0.4
+                                                },
+                                                "emissive": {
+                                                    "type": "boolean",
+                                                    "default": false
+                                                },
+                                                "wireframe": {
+                                                    "type": "boolean",
+                                                    "default": false
+                                                }
+                                            },  "additionalProperties": false
                                             },
-                                            "font": {
+                                            "primitive": {
                                                 "type": "string",
-                                                "default": "helvetiker_regular"
+                                                "const": "box"
                                             },
                                             "size": {
-                                                "type": "number", 
-                                                "default":8
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "number",
+                                                    "minimum": 0.0001
+                                                },
+                                                "minItems": 3, "maxItems": 3
                                             },
-                                            "align": {
-                                                "$ref": "#/$defs/validator/properties/enum_constraint/properties/text_align",
-                                                "default": "center&middle"
+                                            "gltf": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "url": {
+                                                        "type": "string",
+                                                        "default": ""
+                                                    },
+                                                    "scale": {
+                                                        "$ref": "#/$defs/spatial/scale",
+                                                        "default": [1, 1, 1]
+                                                    },
+                                                    "rotation": {
+                                                        "$ref": "#/$defs/spatial/rotation",
+                                                        "default": [0, 0, 0]
+                                                    },
+                                                    "offset": {
+                                                        "$ref": "#/$defs/spatial/offset",
+                                                        "default": [0, 0, 0]
+                                                    }
+                                                }, "additionalProperties": false
                                             },
-                                            "plane": {
-                                                "type": "string",
-                                                "enum": ["xy", "yz", "zx", "billboard"],
-                                                "default": "zx"
+                                            "text": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "content": {
+                                                        "type": "string",
+                                                        "default": ""
+                                                    },
+                                                    "font": {
+                                                        "type": "string",
+                                                        "default": "helvetiker_regular"
+                                                    },
+                                                    "size": {
+                                                        "type": "number",
+                                                        "default": 8
+                                                    },
+                                                    "align": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "left&top",
+                                                            "left&middle",
+                                                            "left&baseline",
+                                                            "center&top",
+                                                            "center&middle",
+                                                            "center&baseline",
+                                                            "right&top",
+                                                            "right&middle",
+                                                            "right&baseline"
+                                                        ], "default": "center&middle"
+                                                    },
+                                                    "plane": {
+                                                        "type": "string",
+                                                        "enum": ["xy", "yz", "zx", "billboard"],
+                                                        "default": "zx"
+                                                    }
+                                                }, "additionalProperties": false
                                             }
-                                        }, "additionalProperties": false
+                                        }, "required": ["primitive", "size"], "additionalProperties": false
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "common": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "orientation": {
+                                                        "$ref": "#/$defs/spatial/orientation",
+                                                        "default": [0, 0, 0]
+                                                    },
+                                                    "scale": {
+                                                        "$ref": "#/$defs/spatial/scale",
+                                                        "default": [1, 1, 1]
+                                                    },
+                                                    "color": {
+                                                        "$ref": "#/$defs/validator/properties/type_check/properties/color",
+                                                        "default": "#ffffff"
+                                                    },
+                                                    "opacity": {
+                                                        "type": "number",
+                                                        "minimum": 0,
+                                                        "maximum": 1,
+                                                        "default": 0.4
+                                                    },
+                                                    "emissive": {
+                                                        "type": "boolean",
+                                                        "default": false
+                                                    },
+                                                    "wireframe": {
+                                                        "type": "boolean",
+                                                        "default": false
+                                                    }
+                                                }, "additionalProperties": false
+                                            },
+                                            "primitive": {
+                                                "type": "string",
+                                                "const": "cone"
+                                            },
+                                            "radius": {
+                                                "type": "number",
+                                                "minimum": 0.0001
+                                            },
+                                            "height": {
+                                                "type": "number",
+                                                "minimum": 0.0001
+                                            },
+                                            "gltf": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "url": {
+                                                        "type": "string",
+                                                        "default": ""
+                                                    },
+                                                    "scale": {
+                                                        "$ref": "#/$defs/spatial/scale",
+                                                        "default": [1, 1, 1]
+                                                    },
+                                                    "rotation": {
+                                                        "$ref": "#/$defs/spatial/rotation",
+                                                        "default": [0, 0, 0]
+                                                    },
+                                                    "offset": {
+                                                        "$ref": "#/$defs/spatial/offset",
+                                                        "default": [0, 0, 0]
+                                                    }
+                                                }, "additionalProperties": false
+                                            },
+                                            "text": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "content": {
+                                                        "type": "string",
+                                                        "default": ""
+                                                    },
+                                                    "font": {
+                                                        "type": "string",
+                                                        "default": "helvetiker_regular"
+                                                    },
+                                                    "size": {
+                                                        "type": "number",
+                                                        "default": 8
+                                                    },
+                                                    "align": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "left&top",
+                                                            "left&middle",
+                                                            "left&baseline",
+                                                            "center&top",
+                                                            "center&middle",
+                                                            "center&baseline",
+                                                            "right&top",
+                                                            "right&middle",
+                                                            "right&baseline"
+                                                        ],
+                                                        "default": "center&middle"
+                                                    },
+                                                    "plane": {
+                                                        "type": "string",
+                                                        "enum": ["xy", "yz", "zx", "billboard"],
+                                                        "default": "zx"
+                                                    }
+                                                }, "additionalProperties": false
+                                            }
+                                        }, "required": ["primitive", "radius", "height"], "additionalProperties": false
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "common": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "orientation": {
+                                                        "$ref": "#/$defs/spatial/orientation",
+                                                        "default": [0, 0, 0]
+                                                    },
+                                                    "scale": {
+                                                        "$ref": "#/$defs/spatial/scale",
+                                                        "default": [1, 1, 1]
+                                                    },
+                                                    "color": {
+                                                        "$ref": "#/$defs/validator/properties/type_check/properties/color",
+                                                        "default": "#ffffff"
+                                                    },
+                                                    "opacity": {
+                                                        "type": "number",
+                                                        "minimum": 0, "maximum": 1,
+                                                        "default": 0.4
+                                                    },
+                                                    "emissive": {
+                                                        "type": "boolean",
+                                                        "default": false
+                                                    },
+                                                    "wireframe": {
+                                                        "type": "boolean",
+                                                        "default": false
+                                                    }
+                                                }, "additionalProperties": false
+                                            },
+                                            "primitive": {
+                                                "type": "string",
+                                                "const": "pyramid"
+                                            },
+                                            "base": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "number",
+                                                    "minimum": 0.0001
+                                                },
+                                                "minItems": 2, "maxItems": 2
+                                            },
+                                            "height": {
+                                                "type": "number",
+                                                "minimum": 0.0001
+                                            },
+                                            "gltf": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "url": {
+                                                        "type": "string",
+                                                        "default": ""
+                                                    },
+                                                    "scale": {
+                                                        "$ref": "#/$defs/spatial/scale",
+                                                        "default": [1, 1, 1]
+                                                    },
+                                                    "rotation": {
+                                                        "$ref": "#/$defs/spatial/rotation",
+                                                        "default": [0, 0, 0]
+                                                    },
+                                                    "offset": {
+                                                        "$ref": "#/$defs/spatial/offset",
+                                                        "default": [0, 0, 0]
+                                                    }
+                                                }, "additionalProperties": false
+                                            },
+                                            "text": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "content": {
+                                                        "type": "string",
+                                                        "default": ""
+                                                    },
+                                                    "font": {
+                                                        "type": "string",
+                                                        "default": "helvetiker_regular"
+                                                    },
+                                                    "size": {
+                                                        "type": "number",
+                                                        "default": 8
+                                                    },
+                                                    "align": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "left&top",
+                                                            "left&middle",
+                                                            "left&baseline",
+                                                            "center&top",
+                                                            "center&middle",
+                                                            "center&baseline",
+                                                            "right&top",
+                                                            "right&middle",
+                                                            "right&baseline"
+                                                        ], "default": "center&middle"
+                                                    },
+                                                    "plane": {
+                                                        "type": "string",
+                                                        "enum": ["xy", "yz", "zx", "billboard"],
+                                                        "default": "zx"
+                                                    }
+                                                }, "additionalProperties": false
+                                            }
+                                        }, "required": ["primitive", "base", "height"], "additionalProperties": false
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                                "common": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "orientation": {
+                                                        "$ref": "#/$defs/spatial/orientation",
+                                                        "default": [0, 0, 0]
+                                                    },
+                                                    "scale": {
+                                                        "$ref": "#/$defs/spatial/scale",
+                                                        "default": [1, 1, 1]
+                                                    },
+                                                    "color": {
+                                                        "$ref": "#/$defs/validator/properties/type_check/properties/color",
+                                                        "default": "#ffffff"
+                                                    },
+                                                    "opacity": {
+                                                        "type": "number",
+                                                        "minimum": 0, "maximum": 1,
+                                                        "default": 0.4
+                                                    },
+                                                    "emissive": {
+                                                        "type": "boolean",
+                                                        "default": false
+                                                    },
+                                                    "wireframe": {
+                                                        "type": "boolean",
+                                                        "default": false
+                                                    }
+                                                }, "additionalProperties": false
+                                            },
+                                            "primitive": {
+                                                "type": "string",
+                                                "const": "corona"
+                                            },
+                                            "inner_radius": {
+                                                "type": "number",
+                                                "minimum": 0.0001
+                                            },
+                                            "outer_radius": {
+                                                "type": "number",
+                                                "minimum": 0.0001
+                                            },
+                                            "gltf": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "url": {
+                                                        "type": "string",
+                                                        "default": ""
+                                                    },
+                                                    "scale": {
+                                                        "$ref": "#/$defs/spatial/scale",
+                                                        "default": [1, 1, 1]
+                                                    },
+                                                    "rotation": {
+                                                        "$ref": "#/$defs/spatial/rotation",
+                                                        "default": [0, 0, 0]
+                                                    },
+                                                    "offset": {
+                                                        "$ref": "#/$defs/spatial/offset",
+                                                        "default": [0, 0, 0]
+                                                    }
+                                                }, "additionalProperties": false
+                                            },
+                                            "text": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "content": {
+                                                        "type": "string",
+                                                        "default": ""
+                                                    },
+                                                    "font": {
+                                                        "type": "string",
+                                                        "default": "helvetiker_regular"
+                                                    },
+                                                    "size": {
+                                                        "type": "number",
+                                                        "default": 8
+                                                    },
+                                                    "align": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "left&top",
+                                                            "left&middle",
+                                                            "left&baseline",
+                                                            "center&top",
+                                                            "center&middle",
+                                                            "center&baseline",
+                                                            "right&top",
+                                                            "right&middle",
+                                                            "right&baseline"
+                                                        ],
+                                                        "default": "center&middle"
+                                                    },
+                                                    "plane": {
+                                                        "type": "string",
+                                                        "enum": ["xy", "yz", "zx", "billboard"],
+                                                        "default": "zx"
+                                                    }
+                                                }, "additionalProperties": false
+                                            }
+                                        }, "required": ["primitive", "inner_radius", "outer_radius"], "additionalProperties": false
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "common": {
+                                            "type": "object",
+                                            "properties": {
+                                                "orientation": {
+                                                    "$ref": "#/$defs/spatial/orientation",
+                                                    "default": [0, 0, 0]
+                                                },
+                                                "scale": {
+                                                    "$ref": "#/$defs/spatial/scale",
+                                                    "default": [1, 1, 1]
+                                                },
+                                                "color": {
+                                                    "$ref": "#/$defs/validator/properties/type_check/properties/color",
+                                                    "default": "#ffffff"
+                                                },
+                                                "opacity": {
+                                                    "type": "number",
+                                                    "minimum": 0, "maximum": 1,
+                                                    "default": 0.4
+                                                },
+                                                "emissive": {
+                                                    "type": "boolean",
+                                                    "default": false
+                                                },
+                                                "wireframe": {
+                                                    "type": "boolean",
+                                                    "default": false
+                                                }
+                                            },
+                                            "additionalProperties": false
+                                            },
+                                            "primitive": {
+                                                "type": "string",
+                                                "const": "none"
+                                            },
+                                            "gltf": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "url": {
+                                                        "type": "string",
+                                                        "default": ""
+                                                    },
+                                                    "scale": {
+                                                        "$ref": "#/$defs/spatial/scale",
+                                                        "default": [1, 1, 1]
+                                                    },
+                                                    "rotation": {
+                                                        "$ref": "#/$defs/spatial/rotation",
+                                                        "default": [0, 0, 0]
+                                                    },
+                                                    "offset": {
+                                                        "$ref": "#/$defs/spatial/offset",
+                                                        "default": [0, 0, 0]
+                                                    }
+                                                }, "additionalProperties": false
+                                            },
+                                            "text": {
+                                            "type": "object",
+                                            "properties": {
+                                                "content": {
+                                                    "type": "string",
+                                                    "default": ""
+                                                },
+                                                "font": {
+                                                    "type": "string",
+                                                    "default": "helvetiker_regular"
+                                                },
+                                                "size": {
+                                                    "type": "number",
+                                                    "default": 8
+                                                },
+                                                "align": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "left&top",
+                                                        "left&middle",
+                                                        "left&baseline",
+                                                        "center&top",
+                                                        "center&middle",
+                                                        "center&baseline",
+                                                        "right&top",
+                                                        "right&middle",
+                                                        "right&baseline"
+                                                    ],
+                                                    "default": "center&middle"
+                                                },
+                                                "plane": {
+                                                    "type": "string",
+                                                    "enum": ["xy", "yz", "zx", "billboard"],
+                                                    "default": "zx"
+                                                }
+                                            }, "additionalProperties": false
+                                            }
+                                        }, "required": ["primitive"], "additionalProperties": false
                                     }
-                                }, "additionalProperties": false
+                                ]
                             },
                             "visible": {
                                 "type": "boolean"
@@ -406,28 +1027,79 @@
                                         "properties": {
                                             "length": {
                                                 "type": ["number", "integer"],
-                                                "default":64
+                                                "default": 64
                                             },
                                             "labels": {
                                                 "type": "boolean",
                                                 "default": true
                                             },
                                             "arrow": {
-                                                "type": "object",
-                                                "properties": {
-                                                    "enabled": {
-                                                        "type": "boolean",
-                                                        "default": true
+                                                "oneOf": [
+                                                    {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "primitive": {
+                                                                "type": "string",
+                                                                "const": "none"
+                                                            }
+                                                        }, "required": ["primitive"], "additionalProperties": false
                                                     },
-                                                    "size": {
-                                                        "type": "number",
-                                                        "default": 8
+                                                    {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "primitive": {
+                                                                "type": "string",
+                                                                "const": "line"
+                                                            },
+                                                            "length": {
+                                                                "type": "number",
+                                                                "minimum": 0.0001
+                                                            },
+                                                            "thickness": {
+                                                                "type": "number",
+                                                                "minimum": 0.0001
+                                                            }
+                                                        }, "required": ["primitive", "length", "thickness"], "additionalProperties": false
                                                     },
-                                                    "aspect": {
-                                                        "type": "number",
-                                                        "default": 2
+                                                    {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "primitive": {
+                                                                "type": "string",
+                                                                "const": "cone"
+                                                            },
+                                                            "radius": {
+                                                                "type": "number",
+                                                                "minimum": 0.0001
+                                                            },
+                                                            "height": {
+                                                                "type": "number",
+                                                                "minimum": 0.0001
+                                                            }
+                                                        }, "required": ["primitive", "radius", "height"], "additionalProperties": false
+                                                    },
+                                                    {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "primitive": {
+                                                                "type": "string",
+                                                                "const": "pyramid"
+                                                            },
+                                                            "base": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "number",
+                                                                "minimum": 0.0001
+                                                            },
+                                                            "minItems": 2, "maxItems": 2
+                                                            },
+                                                            "height": {
+                                                                "type": "number",
+                                                                "minimum": 0.0001
+                                                            }
+                                                        }, "required": ["primitive", "base", "height"],"additionalProperties": false
                                                     }
-                                                }, "additionalProperties": false
+                                                ]
                                             }
                                         }, "additionalProperties": false
                                     },
@@ -587,7 +1259,7 @@
                 }
             },"required": ["document_uuid","schema_uri","author","version"], "additionalProperties": false
         }
-    }, "required": ["document_meta"],
+    }, "required": ["document_meta"], "additionalProperties": false,
 
 
     "$defs": {
@@ -669,133 +1341,6 @@
                         "path_ref": {
                             "type": "string",
                             "pattern": "^[\\w\\-/\\.]+$"
-                        }
-                    }, "additionalProperties": false
-                },
-                "enum_constraint": {
-                    "type": "object",
-                    "properties": {
-                        "language": {
-                            "type": "string",
-                            "enum": ["ja", "en"]
-                        },
-                        "units": {
-                            "type": "string",
-                            "enum": ["m","cm", "mm", "non_si:px"]
-                        },
-                        "coordinate_system": {
-                            "type": "string",
-                            "const": ["Z+up/freeXY"]
-                        },
-                        "relation_structural": {
-                            "type": "string",
-                            "enum": ["association", "containment", "hierarchy"]
-                        },
-                        "relation_dynamic": {
-                            "type": "string",
-                            "enum": ["causal", "flow", "influence", "derivation", "transformation", "feedback", "recursion", "reflection"]
-                        },
-                        "relation_logical": {
-                            "type": "string",
-                            "enum": ["equivalence", "negation", "implication", "support", "conflict"]
-                        },
-                        "relation_temporal": {
-                            "type": "string",
-                            "enum": ["precedence", "succession"]
-                        },
-                        "relation_meta": {
-                            "type": "string",
-                            "enum": ["reference"]
-                        },
-                        "sense": {
-                            "type": "string",
-                            "enum": ["a_to_b", "b_to_a", "bidirectional","neutral"]
-                        },
-                        "line_style": {
-                            "type": "string",
-                            "enum": ["solid", "dashed", "dotted", "double", "none"]
-                        },
-                        "arrow_shape": {
-                            "type": "string",
-                            "enum": ["cone", "pyramid", "line"]
-                        },
-                        "arrow_placement": {
-                            "type": "string", "enum": ["end_a", "end_b", "both", "none"]
-                        },
-                        "marker_shape": {
-                            "type": "string",
-                            "enum": ["sphere", "box", "cone", "pyramid", "corona", "none"]
-                        },
-                        "marker_plane": {
-                            "type": "string",
-                            "enum": ["xy", "yz", "zx", "billboard"]
-                        },
-                        "text_align": {
-                            "type": "string",
-                            "enum": ["left&top", "left&middle", "left&baseline", "center&top", "center&middle", "center&baseline", "right&top", "right&middle", "right&baseline"] 
-                        },
-                        "effect_type": {
-                            "type": "string",
-                            "enum": ["none", "pulse", "flow", "glow"]
-                        },
-                        "easing_mode": {
-                            "type": "string",
-                            "enum": ["linear", "ease-in", "ease-out", "ease-in-out"]
-                        },
-                        "document_tag_system": {
-                            "type": "string",
-                            "enum": ["s", "m", "x"]
-                        }
-                    }, "additionalProperties": false
-                },
-                "required_sets": {
-                    "type": "object",
-                    "properties": {
-                        "document_meta": {
-                            "type": "array",
-                            "const": ["document_uuid", "schema_uri", "author", "version"]
-                        },
-                        "point_item": {
-                            "type": "array",
-                            "const": ["appearance", "meta"]
-                        },
-                        "line_item": {
-                            "type": "array",
-                            "const": ["appearance", "meta"]
-                        },
-                        "aux_item": {
-                            "type": "array",
-                            "const": ["meta"]
-                        },
-                        "meta_core": {
-                            "type": "array", "const": ["uuid"]
-                        },
-                        "relation_core": {
-                            "type": "array",
-                            "const": ["relation", "sense"]
-                        },
-                        "appearance_core": {
-                            "type": "array",
-                            "const": ["visible", "frames","renderOrder", "color", "opacity"]
-                        },
-                        "validator_core": {
-                            "type": "array",
-                            "const": ["type_check", "pattern", "enum_constraint", "required_sets"]
-                        }
-                    }, "additionalProperties": false
-                },
-                "ref_integrity": {
-                    "type": "object",
-                    "properties": {
-                        "ref_target_type": {
-                            "type": "string",
-                            "enum": ["line", "point", "aux"]
-                        },
-                        "allow_self_reference": {
-                            "type": "boolean"
-                        },
-                        "allow_cross_reference": {
-                            "type": "boolean"
                         }
                     }, "additionalProperties": false
                 },

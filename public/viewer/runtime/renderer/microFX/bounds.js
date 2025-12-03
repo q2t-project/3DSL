@@ -1,10 +1,12 @@
 // viewer/runtime/renderer/microFX/bounds.js
-
 import * as THREE from "../../../../vendor/three/build/three.module.js";
 import { microFXConfig } from "./config.js";
 
-// このモジュールは「unitless な world 座標系」での局所 AABB 可視化専用。
-// center / size / shrinkFactor / minEdge / maxEdge はすべて無次元スカラーとして扱う。
+
+// このモジュールは microState.localBounds（world 座標系での局所 AABB）を
+// そのまま受け取って可視化する専用。
+// center / size は world 座標 / edge 長で、shrinkFactor / minEdge / maxEdge も
+// すべて「同じ world 長さ単位のスカラー」として扱う。
 let boundsGroup = null;
 
 const baseWireColor = new THREE.Color("#66ccff");
@@ -97,7 +99,7 @@ export function ensureBounds(scene) {
 }
 
 /* -------------------------------------------------------
- *  Utility（unitless ベクトルの軽いサニタイズ）
+ *  Utility（microState.localBounds.* 用の軽いサニタイズ）
  * ----------------------------------------------------- */
 function sanitizeVector3(arr) {
   if (!Array.isArray(arr)) return [0, 0, 0];
@@ -124,9 +126,14 @@ function updateHandles(group, size) {
   const magnitudes = size.map(v => Math.abs(v));
   const minSize = Math.max(Math.min(...magnitudes), 0.0);
 
-  // 「最小辺長に比例した取っ手の大きさ」を unitless のまま決める。
-  const baseScale = clamp(minSize, 0.2, 1.0);
-  const handleScale = 0.05 * baseScale;
+    // ---- Plane marker（フォーカス位置に重なる薄い板） ----
+    // baseSize/opacity は microFXConfig.marker から取得。
+    const cfg = microFXConfig.marker || {};
+    const baseSize = Number.isFinite(cfg.baseSize) ? cfg.baseSize : 0.14;
+    const opacity =
+      Number.isFinite(cfg.opacity) ? cfg.opacity : 0.06;
+
+    const geometry = new THREE.PlaneGeometry(baseSize, baseSize);
 
   handlesGroup.children.forEach((handle) => {
     handle.scale.setScalar(handleScale);
@@ -139,7 +146,9 @@ function updateHandles(group, size) {
 export function updateBounds(group, localBounds) {
   if (!group || !localBounds) return;
 
-  // center / size は 3DSS 側から渡される unitless world 座標／edge 長
+  // localBounds は microState.localBounds 前提：
+  // - center: world 座標系での AABB 中心
+  // - size:   world 座標系での AABB edge 長（raw）
   const center = sanitizeVector3(localBounds.center);
   const rawSize = sanitizeVector3(localBounds.size);
 

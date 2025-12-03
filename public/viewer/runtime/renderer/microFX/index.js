@@ -49,9 +49,11 @@ function sanitizePosition(position) {
   return sanitizeVector3(position);
 }
 
-// microState.localAxes: unitless な局所座標軸。
-// origin は world 座標、xDir/yDir/zDir は unitless な方向ベクトル、
-// scale も「長さ係数」として unitless で扱う。
+// localAxes: unitless な局所座標軸。
+// - origin: world 座標（通常は microState.focusPosition から構成）
+// - xDir/yDir/zDir: unitless な方向ベクトル（省略可）
+// - scale: 軸長さに掛ける無次元スカラー
+// ここでは数値範囲だけ整え、幾何学的な単位は決めない。
 function sanitizeLocalAxes(localAxes) {
   if (!localAxes) return null;
 
@@ -80,7 +82,7 @@ function sanitizeLocalAxes(localAxes) {
   return sanitizedAxes;
 }
 
-// microState.localBounds: unitless な AABB。
+// microState.localBounds を想定した unitless な AABB 正規化。
 // center/size ともに world 座標系の数値やけど、
 // ここでは「長さの単位名」は一切決めず、数値だけを扱う。
 function sanitizeLocalBounds(localBounds) {
@@ -105,7 +107,16 @@ function sanitizeLocalBounds(localBounds) {
  * microFX のメイン入口
  * @param {THREE.Scene} scene
  * @param {object|null} microState   // MicroState | null
- * @param {object}      cameraState  // unitless な CameraEngine state（今はほぼ未使用）
+ *   - focusUuid: string                    // フォーカス対象 UUID
+ *   - kind: "points" | "lines" | "aux"     // フォーカス対象の種別
+ *   - focusPosition: [x,y,z]               // marker/glow/axes のアンカー
+ *   - relatedUuids: string[]               // highlight 用 1-hop 近傍
+ *   - localBounds: { center:[x,y,z], size:[x,y,z] } | null // bounds 用 AABB
+ *   - localAxes?: { origin,xDir,yDir,zDir,scale }          // 明示的ローカル軸（任意）
+*   - isHover?: boolean                    // bounds の outline 切り替え用（任意）
+ *   - editing?: boolean                    // bounds/handles 表示判定用（任意）
+ *
+ * @param {object}      cameraState  // unitless な CameraEngine state（現状は未使用・将来拡張用）
  * @param {object}      indexMaps    // { points, lines, aux, baseStyle?, camera, labels? }
  * @param {Set?}        visibleSet   // 現在の frame/filter 後の visibleSet（任意）
   */
@@ -116,7 +127,7 @@ export function applyMicroFX(
   indexMaps,
   visibleSet
 ) {
-    const camera = indexMaps?.camera || null;
+  const camera = indexMaps?.camera || null;
 
   // ★ まとめて OFF モード：
   //   - microFX 関連オブジェクトは毎フレーム掃除

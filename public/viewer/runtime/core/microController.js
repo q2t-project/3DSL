@@ -5,11 +5,11 @@
 // ------------------------------------------------------------
 //
 // {
-//   focusUuid: string,                     // フォーカス対象の UUID
+//   focusUuid: string,                     // フォーカス対象の UUID（microFX の「主役」）
 //   kind: "points" | "lines" | "aux" | null,
-//   focusPosition: [number, number, number], // マーカー等の基準位置
-//   relatedUuids: string[],               // ハイライトなどに使う関連 UUID 群
-//   localBounds: {
+//   focusPosition: [number, number, number], // marker / glow / axes のアンカーとなる world 座標
+//   relatedUuids: string[],               // highlight 等で一緒に扱う 1-hop 近傍 UUID 群
+//   localBounds: {                        // bounds 用のローカル AABB（world 単位）
 //     center: [number, number, number],
 //     size:   [number, number, number],
 //   } | null,
@@ -97,26 +97,46 @@ function resolveEndpointPosition(end, indices) {
   return null;
 }
 
-// line ノード（3DSS）から頂点群の重心を計算するフォールバック
-function computeLineCenterFromVertices(lineItem) {
+// line ノード（3DSS）から AABB ベースの center / size を計算するフォールバック
+function computeLineBoundsFromVertices(lineItem) {
   if (!lineItem || !Array.isArray(lineItem.vertices)) return null;
 
-  let sx = 0;
-  let sy = 0;
-  let sz = 0;
+  let minX = Infinity;
+  let minY = Infinity;
+  let minZ = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  let maxZ = -Infinity;
   let count = 0;
 
   for (const v of lineItem.vertices) {
     const p = sanitizeVec3(v);
     if (!p) continue;
-    sx += p[0];
-    sy += p[1];
-    sz += p[2];
+    const [x, y, z] = p;
+    if (x < minX) minX = x;
+    if (y < minY) minY = y;
+    if (z < minZ) minZ = z;
+    if (x > maxX) maxX = x;
+    if (y > maxY) maxY = y;
+    if (z > maxZ) maxZ = z;
     count += 1;
   }
 
   if (count <= 0) return null;
-  return [sx / count, sy / count, sz / count];
+
+  const center = [
+    (minX + maxX) / 2,
+    (minY + maxY) / 2,
+    (minZ + maxZ) / 2,
+  ];
+
+  const size = [
+    Math.max(maxX - minX, 0.1),
+    Math.max(maxY - minY, 0.1),
+    Math.max(maxZ - minZ, 0.1),
+  ];
+
+  return { center, size };
 }
 
 // ------------------------------------------------------------
@@ -220,13 +240,13 @@ function computeLineMicroState(base, indices) {
       Math.abs(posA[2] - posB[2]) || 0.1,
     ];
   } else {
-    // 端点から取れへん場合は頂点群の重心にフォールバック
+     // 端点から取れへん場合は頂点群の AABB にフォールバック
     const item = getItemByUuid(indices, base.focusUuid);
-    const c = computeLineCenterFromVertices(item);
-    if (!c) return null;
+    const bounds = computeLineBoundsFromVertices(item);
+    if (!bounds) return null;
 
-    center = c;
-    size = [0.5, 0.5, 0.5]; // フォールバックなので控えめなサイズ
+    center = bounds.center;
+    size = bounds.size;
   }
 
   const related = [base.focusUuid];
@@ -297,7 +317,8 @@ function buildBaseMicroState(selection, indices) {
 //
 // - uiState を触らへん「ただの関数」
 // - modeController / viewerHub から直接呼び出しても OK
-export function computeMicroState(selection, cameraState, indices) {
+// - いまのところ cameraState は使っていない（将来の拡張用に残す）
+export function computeMicroState(selection, _cameraState, indices) {
   const effectiveIndices =
     indices && indices.uuidToKind instanceof Map ? indices : null;
 
