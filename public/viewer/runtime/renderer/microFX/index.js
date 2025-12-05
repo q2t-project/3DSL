@@ -11,12 +11,72 @@ import {
   setOutlineMode,
   setHandlesVisible,
 } from "./bounds.js";
-import { DEBUG_MICROFX } from "./config.js";
+import { DEBUG_MICROFX, microFXConfig } from "./config.js";
+
+// ------------------------------------------------------------
+// intensity 管理（0..1）
+// ------------------------------------------------------------
+let currentIntensity = 0; // 実際に使う値
+let targetIntensity = 0;  // microState 有無から決まる目標値
+let lastUpdateTime = null;
+let lastMicroState = null; // fade-out 用に直近の microState を保持
+
+function stepIntensity(now) {
+  const cfg = (microFXConfig && microFXConfig.transition) || {};
+  const enabled = cfg.enabled !== undefined ? !!cfg.enabled : true;
+
+  // トランジション無効なら target に即追従
+  if (!enabled) {
+    currentIntensity = targetIntensity;
+    lastUpdateTime = now;
+    return currentIntensity;
+  }
+
+  if (lastUpdateTime == null) {
+    lastUpdateTime = now;
+    currentIntensity = targetIntensity;
+    return currentIntensity;
+  }
+
+  const duration =
+    typeof cfg.durationMs === "number" && cfg.durationMs > 0
+      ? cfg.durationMs
+      : 1;
+
+  const dt = now - lastUpdateTime;
+  lastUpdateTime = now;
+
+  const delta = dt / duration;
+
+  if (targetIntensity > currentIntensity) {
+    currentIntensity = Math.min(targetIntensity, currentIntensity + delta);
+  } else if (targetIntensity < currentIntensity) {
+    currentIntensity = Math.max(targetIntensity, currentIntensity - delta);
+  }
+
+  if (currentIntensity < 0) currentIntensity = 0;
+  if (currentIntensity > 1) currentIntensity = 1;
+
+  return currentIntensity;
+}
+
+function resetIntensity() {
+  currentIntensity = 0;
+  targetIntensity = 0;
+  lastUpdateTime = null;
+  lastMicroState = null;
+}
+
+function resetAllFX(scene) {
+  removeMarker(scene);
+  removeGlow(scene);
+  removeAxes(scene);
+  removeBounds(scene);
+  clearHighlight(scene);
+}
 
 // ------------------------------------------------------------
 // 共通ヘルパ: UUID から any Object3D を引く
-// bundles: { points, lines, aux, labels? ... }
-// どれも「unitless な world 座標系」での Object3D 群（px とは無関係）
 // ------------------------------------------------------------
 function getObjectByUuid(uuid, bundles) {
   if (!uuid || !bundles) return null;
@@ -31,9 +91,7 @@ function getObjectByUuid(uuid, bundles) {
   );
 }
 
-// 3DSS / microState から渡される unitless ベクトルを、
-// 数値として妥当な範囲（±1e4）にクランプするだけの正規化。
-// 幾何的な意味付けや単位はここでは一切いじらない。
+// 3DSS / microState から渡される unitless ベクトルを、±1e4 にクランプ
 function sanitizeVector3(arr) {
   if (!Array.isArray(arr) || arr.length < 3) return null;
   const MAX = 1e4;
@@ -49,11 +107,7 @@ function sanitizePosition(position) {
   return sanitizeVector3(position);
 }
 
-// localAxes: unitless な局所座標軸。
-// - origin: world 座標（通常は microState.focusPosition から構成）
-// - xDir/yDir/zDir: unitless な方向ベクトル（省略可）
-// - scale: 軸長さに掛ける無次元スカラー
-// ここでは数値範囲だけ整え、幾何学的な単位は決めない。
+// localAxes: unitless な局所座標軸
 function sanitizeLocalAxes(localAxes) {
   if (!localAxes) return null;
 
@@ -82,9 +136,7 @@ function sanitizeLocalAxes(localAxes) {
   return sanitizedAxes;
 }
 
-// microState.localBounds を想定した unitless な AABB 正規化。
-// center/size ともに world 座標系の数値やけど、
-// ここでは「長さの単位名」は一切決めず、数値だけを扱う。
+// microState.localBounds 用 AABB 正規化
 function sanitizeLocalBounds(localBounds) {
   if (!localBounds) return null;
 
@@ -105,21 +157,13 @@ function sanitizeLocalBounds(localBounds) {
 
 /**
  * microFX のメイン入口
+ *
  * @param {THREE.Scene} scene
  * @param {object|null} microState   // MicroState | null
- *   - focusUuid: string                    // フォーカス対象 UUID
- *   - kind: "points" | "lines" | "aux"     // フォーカス対象の種別
- *   - focusPosition: [x,y,z]               // marker/glow/axes のアンカー
- *   - relatedUuids: string[]               // highlight 用 1-hop 近傍
- *   - localBounds: { center:[x,y,z], size:[x,y,z] } | null // bounds 用 AABB
- *   - localAxes?: { origin,xDir,yDir,zDir,scale }          // 明示的ローカル軸（任意）
-*   - isHover?: boolean                    // bounds の outline 切り替え用（任意）
- *   - editing?: boolean                    // bounds/handles 表示判定用（任意）
- *
- * @param {object}      cameraState  // unitless な CameraEngine state（現状は未使用・将来拡張用）
+ * @param {object}      cameraState  // unitless な CameraEngine state
  * @param {object}      indexMaps    // { points, lines, aux, baseStyle?, camera, labels? }
  * @param {Set?}        visibleSet   // 現在の frame/filter 後の visibleSet（任意）
-  */
+ */
 export function applyMicroFX(
   scene,
   microState,
@@ -129,26 +173,35 @@ export function applyMicroFX(
 ) {
   const camera = indexMaps?.camera || null;
 
-  // ★ まとめて OFF モード：
-  //   - microFX 関連オブジェクトは毎フレーム掃除
-  //   - ラベル側の microFX は context.js 側で止める想定（必要ならそっちにもフラグ）
-  if (!DEBUG_MICROFX) {
-    removeMarker(scene);
-    removeGlow(scene);
-    removeAxes(scene);
-    removeBounds(scene);
-    clearHighlight(scene);
-    return;
+// ★ グローバル OFF モード
+// NOTE: DEBUG_MICROFX=false の間は、microState が来ていても microFX 全体を封印する。
+//       viewerSettings.fx.micro.enabled 等とは別レイヤの「開発フェーズ用マスタースイッチ」。
+if (!DEBUG_MICROFX) {
+  resetIntensity();
+  resetAllFX(scene);
+  return;
+}
+
+  // microState の有無から targetIntensity を決定
+  if (microState) {
+    lastMicroState = microState;
+    targetIntensity = 1;
+  } else {
+    targetIntensity = 0;
   }
-  if (!microState) {
-    removeMarker(scene);
-    removeGlow(scene);
-    removeAxes(scene);
-    removeBounds(scene);
-    clearHighlight(scene);
+
+  const intensity = stepIntensity(performance.now());
+
+  // microState もなく intensity も 0 なら完全 OFF
+  if (!lastMicroState || intensity <= 0) {
+    if (!microState) {
+      lastMicroState = null;
+    }
+    resetAllFX(scene);
     return;
   }
 
+  // ここから先は「lastMicroState」をソースとする
   const {
     focusUuid,
     focusPosition,
@@ -158,10 +211,9 @@ export function applyMicroFX(
     isHover,
     editing,
     kind,
-  } = microState;
+  } = lastMicroState;
 
-  // localAxes が未指定でも、focusPosition があれば
-  // そこを原点とする標準 XYZ 軸を自動で生やす。
+  // localAxes が未指定でも、focusPosition があればそこを原点とする標準 XYZ 軸を自動生成
   let effectiveLocalAxes = localAxes;
   if (!effectiveLocalAxes && Array.isArray(focusPosition)) {
     effectiveLocalAxes = {
@@ -177,20 +229,20 @@ export function applyMicroFX(
   const sanitizedAxes = sanitizeLocalAxes(effectiveLocalAxes);
   if (sanitizedAxes && camera) {
     const axes = ensureAxes(scene);
-    updateAxes(axes, sanitizedAxes, camera);
+    // intensity は第 4 引数として渡す（実装側で使っても使わなくてもよい）
+    updateAxes(axes, sanitizedAxes, camera, intensity);
   } else {
     removeAxes(scene);
   }
 
   // --- Bounds ---
   const sanitizedBounds = sanitizeLocalBounds(localBounds);
-  // 単なる micro フォーカスでは出さず、
-  // 「編集中」のときだけ AABB とハンドルを表示する。
+  // 「編集中」のときだけ AABB とハンドルを表示
   const wantBounds = !!(sanitizedBounds && editing === true);
 
   if (wantBounds) {
     const bounds = ensureBounds(scene);
-    updateBounds(bounds, sanitizedBounds);
+    updateBounds(bounds, sanitizedBounds, intensity);
     setOutlineMode(!!isHover);
     setHandlesVisible(true);
   } else {
@@ -201,7 +253,7 @@ export function applyMicroFX(
   const sanitizedFocus = sanitizePosition(focusPosition);
   if (sanitizedFocus) {
     const marker = ensureMarker(scene);
-    updateMarker(marker, sanitizedFocus);
+    updateMarker(marker, sanitizedFocus, intensity);
   } else {
     removeMarker(scene);
   }
@@ -210,12 +262,12 @@ export function applyMicroFX(
   // 線選択時（kind === "lines"）は中点からの玉グローは出さない
   if (sanitizedFocus && camera && kind !== "lines") {
     const glow = ensureGlow(scene);
-    updateGlow(glow, sanitizedFocus, camera);
+    updateGlow(glow, sanitizedFocus, camera, intensity);
   } else {
     removeGlow(scene);
   }
 
   // --- Highlight ---
   const getFromMaps = (uuid) => getObjectByUuid(uuid, indexMaps);
-  applyHighlight(scene, microState, getFromMaps, visibleSet);
+  applyHighlight(scene, lastMicroState, getFromMaps, visibleSet, intensity);
 }

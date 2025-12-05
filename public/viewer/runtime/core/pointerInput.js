@@ -49,6 +49,14 @@ export class PointerInput {
   }
 
   stopAutoCamera() {
+    // AutoOrbit 停止はまず hub.core.camera.stopAutoOrbit 経由で行う
+    const camera = this.hub?.core?.camera;
+    if (camera && typeof camera.stopAutoOrbit === "function") {
+      camera.stopAutoOrbit();
+      return;
+    }
+
+    // フォールバック：旧実装互換
     const runtime = this.hub?.core?.uiState?.runtime;
     if (runtime) {
       runtime.isCameraAuto = false;
@@ -65,6 +73,18 @@ export class PointerInput {
     }
   }
 
+  // pan スケール計算用に「今の cameraState」を安全に取得する
+  getCameraState() {
+    const camApi = this.hub?.core?.camera;
+    if (camApi && typeof camApi.getState === "function") {
+      return camApi.getState();
+    }
+    if (this.cameraEngine && typeof this.cameraEngine.getState === "function") {
+      return this.cameraEngine.getState();
+    }
+    return null;
+  }
+
   determineMode(event) {
     if (event.button === 2) return "pan"; // 右ドラッグ = PAN
     if (event.button === 1) return "rotate"; // 中ボタン = ROTATE
@@ -74,7 +94,11 @@ export class PointerInput {
   }
 
   onPointerDown(event) {
-    this.canvas.setPointerCapture(event.pointerId);
+    try {
+      this.canvas.setPointerCapture(event.pointerId);
+    } catch (_e) {
+      // capture 非対応 / 失敗時は無視
+    }
     this.isPointerDown = true;
     this.activeMode = this.determineMode(event);
     this.lastX = event.clientX;
@@ -98,7 +122,11 @@ export class PointerInput {
     }
 
     if (this.activeMode === "pan") {
-      const distance = this.cameraEngine.getState().distance;
+      const camState = this.getCameraState();
+      const distance =
+        camState && typeof camState.distance === "number"
+          ? camState.distance
+          : 1;
       const panScale = distance * PAN_SPEED;
       this.dispatch("pan", dx * panScale, dy * panScale);
     } else {
@@ -121,10 +149,8 @@ export class PointerInput {
       const y = -(((event.clientY - rect.top) / rect.height) * 2 - 1);
       const hit = this.hub?.pickObjectAt?.(x, y);
       if (hit?.uuid) {
-        // cameraAuto（自動移動）を停止し、手動操作に切替
-        if (this.hub?.core?.uiState?.runtime) {
-          this.hub.core.uiState.runtime.isCameraAuto = false;
-        }
+      // 自動カメラを止めてから selection/mode に渡す
+        this.stopAutoCamera();
 
         this.hub?.core?.selection?.select?.(hit.uuid);
         this.hub?.core?.mode?.focus?.(hit.uuid);

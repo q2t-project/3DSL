@@ -89,17 +89,30 @@ function sanitizePosition(position) {
   if (!raw.every((v) => Number.isFinite(v))) return null;
 
   // world 座標（unitless）として ±MAX_COORD にだけクランプ
-  return raw.map((v) => clamp(v, -MAX_COORD, MAX_COORD))
+  return raw.map((v) => clamp(v, -MAX_COORD, MAX_COORD));
 }
 
 // position: microState.focusPosition を想定（null の場合は呼び出し側でフォールバック済み）
-export function updateGlow(target, position, camera) {
+export function updateGlow(target, position, camera, intensity = 1) {
   if (!target) return;
   if (!camera) return;
 
-  const sanitized = sanitizePosition(position);
-  if (!sanitized) return;
+  // intensity を 0..1 にクランプ、0 以下なら完全 OFF
+  let s = Number.isFinite(intensity) ? intensity : 1;
+  s = clamp(s, 0, 1);
 
+  if (s <= 0) {
+    target.visible = false;
+    return;
+  }
+
+  const sanitized = sanitizePosition(position);
+  if (!sanitized) {
+    target.visible = false;
+    return;
+  }
+
+  target.visible = true;
   target.position.set(sanitized[0], sanitized[1], sanitized[2]);
 
   const cfg = microFXConfig.glow || {};
@@ -111,9 +124,7 @@ export function updateGlow(target, position, camera) {
   const offsetFactor = Number.isFinite(cfg.offsetFactor)
     ? cfg.offsetFactor
     : 0.04;
-  const baseScale = Number.isFinite(cfg.baseScale)
-    ? cfg.baseScale
-    : 0.3;
+  const baseScale = Number.isFinite(cfg.baseScale) ? cfg.baseScale : 0.3;
   const minScale = Number.isFinite(cfg.minScale) ? cfg.minScale : 0.1;
   const maxScale = Number.isFinite(cfg.maxScale) ? cfg.maxScale : 3.0;
 
@@ -129,7 +140,16 @@ export function updateGlow(target, position, camera) {
   //    → ズームすると画面上では一緒に大きく／小さく見える。
   const scale = clamp(baseScale, minScale, maxScale);
   target.scale.setScalar(scale);
+
+  // ★ intensity に応じてフェード
+  const mat = target.material;
+  if (mat && "opacity" in mat) {
+    mat.transparent = true;
+    mat.opacity = s;
+    mat.needsUpdate = true;
+  }
 }
+
 export function removeGlow(scene) {
   if (glow) {
     scene.remove(glow);

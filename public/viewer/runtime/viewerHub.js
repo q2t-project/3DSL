@@ -13,20 +13,89 @@ function debugHub(...args) {
 
 export function createViewerHub({ core, renderer }) {
   let animationId = null;
+  let lastTime = null; // ★ 前フレームの timestamp 記憶
+
   const modeController = core.modeController || core.mode;
   const cameraEngine = core.cameraEngine;
 
   const frameController = core.frameController;
   const visibilityController = core.visibilityController;
 
-  const renderFrame = () => {
+  // --- viewer 設定（いまはワールド座標軸の ON/OFF だけ） ---
+  const viewerSettingsState = {
+    worldAxesVisible: false,
+    worldAxesListeners: [],
+  };
+
+  const viewerSettings = {
+    setWorldAxesVisible(flag) {
+      const visible = !!flag;
+      if (visible === viewerSettingsState.worldAxesVisible) return;
+
+      viewerSettingsState.worldAxesVisible = visible;
+
+      if (
+        renderer &&
+        typeof renderer.setWorldAxesVisible === "function"
+      ) {
+        renderer.setWorldAxesVisible(visible);
+      }
+
+      // UI へ通知
+      viewerSettingsState.worldAxesListeners.forEach((fn) => {
+        try {
+          fn(visible);
+        } catch (e) {
+          debugHub("[hub.viewerSettings] listener error", e);
+        }
+      });
+    },
+
+    toggleWorldAxes() {
+      this.setWorldAxesVisible(!viewerSettingsState.worldAxesVisible);
+    },
+
+    getWorldAxesVisible() {
+      return viewerSettingsState.worldAxesVisible;
+    },
+
+    // listener: (visible:boolean) => void
+    onWorldAxesChanged(listener) {
+      if (typeof listener === "function") {
+        viewerSettingsState.worldAxesListeners.push(listener);
+      }
+    },
+  };
+
+  const cameraTransition = core.cameraTransition || null;
+
+  const renderFrame = (timestamp) => {
     if (!cameraEngine || typeof cameraEngine.getState !== "function") {
-      // cameraEngine 未初期化ならレンダーループだけ止める
       animationId = null;
       return;
     }
 
-    const camState = cameraEngine.getState();
+    // ★ timestamp から dt(sec) を計算して cameraEngine.update(dt) へ
+    if (typeof timestamp === "number") {
+      if (lastTime === null) {
+        lastTime = timestamp;
+      }
+      const dt = (timestamp - lastTime) / 1000;
+      lastTime = timestamp;
+
+      if (typeof cameraEngine.update === "function") {
+        cameraEngine.update(dt);
+      }
+    }
+
+    let camState = cameraEngine.getState();
+
+    if (cameraTransition && cameraTransition.isActive()) {
+      const transitioned = cameraTransition.update();
+      if (transitioned) {
+        camState = transitioned;
+      }
+    }
 
     debugHub("[hub] frame", debugFrameCount++, {
       cam: camState,
@@ -35,18 +104,16 @@ export function createViewerHub({ core, renderer }) {
     });
 
     renderer.updateCamera(camState);
-    renderer.applyFrame(core.uiState.visibleSet);
 
-    // ★ A-7 対応：
-    //   selection ハイライトは selectionController + rendererContext.setHighlight/clearAllHighlights
-    //   に任せるので、毎フレームの applySelection 呼び出しは廃止。
-    // renderer.applySelection(core.uiState.selection);
+    if (typeof renderer.applyFrame === "function") {
+      renderer.applyFrame(core.uiState.visibleSet);
+    }
 
     // --- microFX 有効条件 / OFF 条件（7.11 準拠） -----------------
     const ui = core.uiState || {};
     const runtime = ui.runtime || {};
-    const viewerSettings = ui.viewerSettings || {};
-    const fx = (viewerSettings.fx && viewerSettings.fx.micro) || {};
+    const uiViewerSettings = ui.viewerSettings || {};
+    const fx = (uiViewerSettings.fx && uiViewerSettings.fx.micro) || {};
 
     // viewerSettings.fx.micro.enabled が未指定なら true 扱い
     const enabledFlag = fx.enabled !== undefined ? !!fx.enabled : true;
@@ -67,20 +134,25 @@ export function createViewerHub({ core, renderer }) {
       renderer.applyMicroFX(microState, camState, visibleSet);
     }
 
-    renderer.render();
+    renderer.render(core);
 
-    animationId = requestAnimationFrame(renderFrame);
+    animationId = window.requestAnimationFrame(renderFrame);
   };
 
   const hub = {
     start() {
       if (animationId !== null) return;
+      lastTime = null; // ★ 起動時にリセット
       animationId = requestAnimationFrame(renderFrame);
     },
     stop() {
       if (animationId !== null) {
         cancelAnimationFrame(animationId);
         animationId = null;
+      }
+      lastTime = null; // ★ 停止時もリセット
+      if (core.uiState && core.uiState.runtime) {
+        core.uiState.runtime.isCameraAuto = false;
       }
     },
     pickObjectAt(ndcX, ndcY) {
@@ -89,6 +161,8 @@ export function createViewerHub({ core, renderer }) {
       }
       return null;
     },
+
+    viewerSettings,
 
     core: {
       frame: {
@@ -104,6 +178,17 @@ export function createViewerHub({ core, renderer }) {
         },
         startPlayback: () => {
           const result = frameController?.startPlayback?.();
+
+         // フレーム再生との排他:
+         // 再生開始時点で AutoOrbit が動いてたら必ず止める
+         if (
+           hub &&
+           hub.core &&
+           hub.core.camera &&
+           typeof hub.core.camera.stopAutoOrbit === "function"
+         ) {
+           hub.core.camera.stopAutoOrbit();
+         }
 
           // 7.11 / 6.8.3: 再生開始時は必ず macro に戻し、micro 系を全リセット
           if (core.uiState) {
@@ -129,7 +214,8 @@ export function createViewerHub({ core, renderer }) {
               cameraEngine && typeof cameraEngine.getState === "function"
                 ? cameraEngine.getState()
                 : undefined;
-            renderer.applyMicroFX(null, camStateNow);
+            const visibleSetNow = core.uiState && core.uiState.visibleSet;
+            renderer.applyMicroFX(null, camStateNow, visibleSetNow);
           }
 
           return result;
@@ -233,29 +319,21 @@ export function createViewerHub({ core, renderer }) {
             return cameraEngine.getState();
           }
 
-          // 2) uuid 指定
+          // 2) uuid 指定 → modeController 側に任せる（micro 侵入＆カメラ遷移）
           if (typeof target === "string") {
-            if (!cameraEngine) return null;
-            const focusUuid = target;
-
-            // modeController 経由で micro へ入りつつ microState を計算
-            const nextMode = modeController.set("micro", focusUuid);
-
-            if (
-              nextMode !== "micro" ||
-              !core.uiState?.microState?.focusPosition
-            ) {
+            if (!modeController || typeof modeController.focus !== "function") {
               debugHub(
-                "[hub.camera.focusOn] failed to enter micro for uuid:",
-                focusUuid
+                "[hub.camera.focusOn] modeController.focus not available"
               );
-              return cameraEngine.getState();
+              return cameraEngine && cameraEngine.getState
+                ? cameraEngine.getState()
+                : null;
             }
 
-            const focusPos = core.uiState.microState.focusPosition;
-            const next = cameraEngine.computeFocusState(focusPos, mergedOpts);
-            cameraEngine.setState(next);
-            return cameraEngine.getState();
+            modeController.focus(target);
+            return cameraEngine && cameraEngine.getState
+              ? cameraEngine.getState()
+              : null;
           }
 
           // それ以外は何もしない
@@ -287,21 +365,62 @@ export function createViewerHub({ core, renderer }) {
             ? cameraEngine.getState()
             : null;
         },
+
+        // ★ AutoOrbit（自動ぐるり俯瞰）用のパススルー API
+        startAutoOrbit: (opts) => {
+          if (
+            cameraEngine &&
+            typeof cameraEngine.startAutoOrbit === "function"
+          ) {
+            cameraEngine.startAutoOrbit(opts || {});
+
+            // runtime.isCameraAuto フラグもここで立てる
+            if (core.uiState && core.uiState.runtime) {
+              core.uiState.runtime.isCameraAuto = true;
+            }
+          } else {
+            debugHub(
+              "[hub.camera.startAutoOrbit] CameraEngine.startAutoOrbit missing"
+            );
+          }
+        },
+
+        updateAutoOrbitSettings: (opts) => {
+          if (
+            cameraEngine &&
+            typeof cameraEngine.updateAutoOrbitSettings === "function"
+          ) {
+            cameraEngine.updateAutoOrbitSettings(opts || {});
+          } else {
+            debugHub(
+              "[hub.camera.updateAutoOrbitSettings] CameraEngine.updateAutoOrbitSettings missing"
+            );
+          }
+        },
+
+        stopAutoOrbit: () => {
+          if (
+            cameraEngine &&
+            typeof cameraEngine.stopAutoOrbit === "function"
+          ) {
+            cameraEngine.stopAutoOrbit();
+
+            // Auto 停止時に isCameraAuto を落とす
+            if (core.uiState && core.uiState.runtime) {
+              core.uiState.runtime.isCameraAuto = false;
+            }
+          } else {
+            debugHub(
+              "[hub.camera.stopAutoOrbit] CameraEngine.stopAutoOrbit missing"
+            );
+          }
+        },
       },
 
       mode: {
         set: (mode, uuid) => {
           debugHub("[hub.mode] set", mode, uuid);
           const nextMode = modeController.set(mode, uuid);
-
-          if (
-            nextMode === "micro" &&
-            core.uiState?.microState?.focusPosition
-          ) {
-            // microState で計算された focusPosition へベクトルフォーカス
-            hub.core.camera.focusOn(core.uiState.microState.focusPosition, {});
-          }
-
           return nextMode;
         },
 
@@ -323,15 +442,6 @@ export function createViewerHub({ core, renderer }) {
         focus: (uuid) => {
           debugHub("[hub.mode] focus", uuid);
           const nextMode = modeController.focus(uuid);
-
-          if (
-            nextMode === "micro" &&
-            core.uiState?.microState?.focusPosition
-          ) {
-            // ここも uuid じゃなく「計算済みの focusPosition」をそのまま使う
-            hub.core.camera.focusOn(core.uiState.microState.focusPosition, {});
-          }
-
           return nextMode;
         },
       },
@@ -401,6 +511,7 @@ export function createViewerHub({ core, renderer }) {
         return core.uiState?.visibleSet ?? null;
       },
       uiState: core.uiState,
+      structIndex: core.indices || core.structIndex || null,
     },
   };
 

@@ -7,7 +7,7 @@
       "s:sample",
       "m:minimal"
     ],
-    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.1",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.2",
     "generator": "https://q2t-project.github.io/3dsl/",
     "reference": "L1-P2-A0 minimal sample",
     "coordinate_system": "Z+up/freeXY",
@@ -28,10 +28,11 @@
       "appearance": {
         "position": [-10, 0, 0],
         "marker": {
-          "text":{
+          "primitive": "none",
+          "text": {
             "content": "",
             "size": 64
-          } 
+          }
         },
         "visible": true,
         "frames": 0
@@ -52,11 +53,11 @@
       "appearance": {
         "position": [10, 0, 0],
         "marker": {
-          "shape": "sphere"
-        },
-          "text":{
+          "primitive": "sphere",
+          "radius": 64,
+          "text": {
             "content": "",
-            "size": 32
+            "size": 64
           }
         },
         "visible": true,
@@ -91,9 +92,9 @@
         "opacity": 0.8,
         "renderOrder": 0,
         "arrow": {
-          "shape": "cone",
-          "size": 1,
-          "aspect": 4,
+          "primitive": "cone",
+          "radius": 1,
+          "height": 4,
           "placement": "end_b",
           "auto_orient": true
         },

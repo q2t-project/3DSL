@@ -108,7 +108,7 @@ export function buildPointLabelFromPoint(point, lang = "ja") {
   const plane =
     typeof textCfg.plane === "string" && textCfg.plane
       ? textCfg.plane
-      : "zx"; // schema default: ['xy','yz','zx','billboard']
+      : "zx"; // enum: ['xy','yz','zx','billboard'], default: 'zx'（billboard はメタ用途）
 
   return {
     uuid,

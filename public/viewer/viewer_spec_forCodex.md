@@ -63,7 +63,7 @@ hub は 集約点
 
 core 内に置ける名前は 4種類だけ。
 
-CameraEngine.js          → 状態を持つ engine
+cameraEngine.js          → 状態を持つ engine
 frameController.js       → 状態を持つ controller
 selectionController.js   → 状態を持つ controller
 modeController.js        → 状態を持つ controller
@@ -81,7 +81,7 @@ XxxController.js
 public API は imperative（set/get/step/...）
 
 ●Engine の命名規範
-CameraEngine.js
+cameraEngine.js
 
 
 “状態を保持するが controller ではない” 特別ユニット

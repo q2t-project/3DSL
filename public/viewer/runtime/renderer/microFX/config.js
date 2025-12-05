@@ -28,9 +28,9 @@ export const microFXConfig = {
   axes: {
   // target との距離 1.0（unitless）あたりの軸長スケール係数
     scalePerDistance: 0.045,
-    // clamp
-    minScale: 0.08,
-    maxScale: 1.8
+    minScale: 0.6,
+    maxScale: 3.0,
+    opacity: 0.9,
   },
 
   bounds: {
@@ -120,5 +120,11 @@ export const microFXConfig = {
         { radiusMul: 9.6, opacityMul: 0.12 },  // 外側ハロー
       ],
     }
+  },
+
+// micro⇆macro のフェード用
+    transition: {
+    enabled: true,
+    durationMs: 180,
   }
 };

@@ -1,18 +1,37 @@
 // viewer/runtime/core/microController.js
 
 // ------------------------------------------------------------
-// microState の想定フォーマット
+// microState の想定フォーマット（viewer v1 現行）
 // ------------------------------------------------------------
 //
 // {
-//   focusUuid: string,                     // フォーカス対象の UUID（microFX の「主役」）
-//   kind: "points" | "lines" | "aux" | null,
-//   focusPosition: [number, number, number], // marker / glow / axes のアンカーとなる world 座標
-//   relatedUuids: string[],               // highlight 等で一緒に扱う 1-hop 近傍 UUID 群
-//   localBounds: {                        // bounds 用のローカル AABB（world 単位）
-//     center: [number, number, number],
-//     size:   [number, number, number],
+//   // --- 主役 ---
+//   focusUuid: string,                        // フォーカス対象の UUID
+//   kind: "points" | "lines" | "aux" | null,  // フォーカス対象の種別
+//
+//   // --- 位置・範囲 ---
+//   focusPosition: [number, number, number] | null, // marker / glow / axes の基準位置（world）
+//   localBounds: {
+//     center: [number, number, number],       // micro 用ローカル AABB の中心（world）
+//     size:   [number, number, number],       // AABB サイズ（world）
 //   } | null,
+//
+//   // --- 近傍構造 ---
+//   relatedUuids: string[],                   // 1-hop 近傍（focus と一緒に扱う UUID 群）
+//   degreeByUuid?: { [uuid: string]: number } // 任意: ラベル Fader 用の「何親等」情報
+//
+//   // --- ローカル座標系（任意） ---
+//   localAxes?: {
+//     origin: [number, number, number],
+//     xDir:   [number, number, number] | null,
+//     yDir:   [number, number, number] | null,
+//     zDir:   [number, number, number] | null,
+//     scale?: number,     // unitless
+//   },
+//
+//   // --- 状態フラグ（任意・将来拡張含む） ---
+//   isHover?: boolean,    // hover 中かどうか（bounds のハイライト用）
+//   editing?: boolean,    // 編集モードかどうか（viewer では通常 false）
 // }
 //
 // microController は：
@@ -23,6 +42,14 @@
 // ------------------------------------------------------------
 // 共通ヘルパ
 // ------------------------------------------------------------
+
+const DEBUG_MICRO = false;
+function debugMicro(...args) {
+  if (!DEBUG_MICRO) return;
+  console.log(...args);
+}
+
+debugMicro("[micro] microController loaded v2");
 
 function sanitizeVec3(raw) {
   if (!Array.isArray(raw) || raw.length < 3) return null;
@@ -173,16 +200,26 @@ function computePointMicroState(base, indices) {
   const posMap = indices.pointPosition;
   let pos = null;
 
+  // 1) structIndex で事前計算されている座標（あれば）
   if (posMap instanceof Map) {
     pos = posMap.get(base.focusUuid) || null;
   }
+
+  // 2) まだ無ければ 3DSS ノード側から拾う
   if (!pos) {
     const item = getItemByUuid(indices, base.focusUuid);
     if (item) {
       pos = getNodePositionFromItem(item);
     }
   }
-  if (!pos) return null;
+
+  debugMicro("[micro] point micro", {
+    uuid: base.focusUuid,
+    pos,
+  });
+
+  // ★ ここで「pos ないから null 返す」はやめる
+  //    → micro モード自体は成立させて、カメラ lerp / marker だけ抑止する
 
   const related = [base.focusUuid];
 
@@ -196,14 +233,18 @@ function computePointMicroState(base, indices) {
     }
   }
 
-  const localBounds = {
-    center: pos.slice(),
-    size: [0.5, 0.5, 0.5], // とりあえず固定。あとで microFXConfig と合わせて調整。
-  };
+  let localBounds = null;
+  if (pos) {
+    localBounds = {
+      center: pos.slice(),
+      size: [0.5, 0.5, 0.5], // あとで microFXConfig と揃えて調整
+    };
+  }
 
   return {
     ...base,
-    focusPosition: pos,
+    // 位置が取れなかったら null のまま（modeController 側で lerp だけ抑止）
+    focusPosition: pos || null,
     relatedUuids: related,
     localBounds,
   };
@@ -224,6 +265,12 @@ function computeLineMicroState(base, indices) {
     }
   }
 
+  debugMicro("[micro] line micro", {
+    uuid: base.focusUuid,
+    posA,
+    posB,
+  });
+
   let center = null;
   let size = null;
 
@@ -240,13 +287,14 @@ function computeLineMicroState(base, indices) {
       Math.abs(posA[2] - posB[2]) || 0.1,
     ];
   } else {
-     // 端点から取れへん場合は頂点群の AABB にフォールバック
+    // 端点から取れへん場合は頂点群の AABB にフォールバック
     const item = getItemByUuid(indices, base.focusUuid);
     const bounds = computeLineBoundsFromVertices(item);
-    if (!bounds) return null;
-
-    center = bounds.center;
-    size = bounds.size;
+    if (bounds) {
+      center = bounds.center;
+      size = bounds.size;
+    }
+    // bounds も取れへん場合は center/size は null のまま
   }
 
   const related = [base.focusUuid];
@@ -261,11 +309,15 @@ function computeLineMicroState(base, indices) {
     }
   }
 
-  const localBounds = { center, size };
+  let localBounds = null;
+  if (center && size) {
+    localBounds = { center, size };
+  }
 
   return {
     ...base,
-    focusPosition: center,
+    // center が無ければ focusPosition は null（micro モードは有効、カメラ lerp なし）
+    focusPosition: center || null,
     relatedUuids: related,
     localBounds,
   };
@@ -275,19 +327,30 @@ function computeAuxMicroState(base, indices) {
   if (!indices) return null;
 
   const item = getItemByUuid(indices, base.focusUuid);
-  if (!item) return null;
+
+  if (!item) {
+    // 位置情報ゼロでも、とりあえず highlight 用だけ成立させる
+    return {
+      ...base,
+      focusPosition: null,
+      relatedUuids: [base.focusUuid],
+      localBounds: null,
+    };
+  }
 
   const pos = getNodePositionFromItem(item);
-  if (!pos) return null;
 
-  const localBounds = {
-    center: pos.slice(),
-    size: [2, 2, 2], // HUD/補助オブジェクト用に少し大きめ
-  };
+  let localBounds = null;
+  if (pos) {
+    localBounds = {
+      center: pos.slice(),
+      size: [2, 2, 2], // HUD/補助オブジェクト用に少し大きめ
+    };
+  }
 
   return {
     ...base,
-    focusPosition: pos,
+    focusPosition: pos || null,
     relatedUuids: [base.focusUuid],
     localBounds,
   };
@@ -312,7 +375,6 @@ function buildBaseMicroState(selection, indices) {
   };
 }
 
-
 // 純計算版 microState 生成関数
 //
 // - uiState を触らへん「ただの関数」
@@ -323,7 +385,18 @@ export function computeMicroState(selection, _cameraState, indices) {
     indices && indices.uuidToKind instanceof Map ? indices : null;
 
   const base = buildBaseMicroState(selection, effectiveIndices);
+
+  debugMicro("[micro] computeMicroState input", {
+    selection,
+    base,
+    hasIndices: !!effectiveIndices,
+  });
+
   if (!base || !base.kind || !effectiveIndices) {
+    console.warn("[micro] base invalid", {
+      base,
+      hasIndices: !!effectiveIndices,
+    });
     return null;
   }
 
@@ -346,6 +419,12 @@ export function computeMicroState(selection, _cameraState, indices) {
  */
 export function createMicroController(uiState, indices) {
   const baseIndices = indices || null;
+
+  debugMicro("[micro] createMicroController", {
+    hasIndices: !!baseIndices,
+    hasUuidToKind: baseIndices?.uuidToKind instanceof Map,
+    uuidToKindSize: baseIndices?.uuidToKind?.size,
+  });
 
   const state = {
     microState: uiState.microState ?? null,
@@ -373,11 +452,21 @@ export function createMicroController(uiState, indices) {
     const effectiveIndices =
       _indices && _indices.uuidToKind instanceof Map ? _indices : baseIndices;
 
+    debugMicro("[micro] compute()", {
+      selection,
+      hasBaseIndices:
+        !!baseIndices && baseIndices.uuidToKind instanceof Map,
+      hasEffectiveIndices:
+        !!effectiveIndices && effectiveIndices.uuidToKind instanceof Map,
+    });
+
     const microState = computeMicroState(
       selection,
       cameraState,
       effectiveIndices
     );
+
+    debugMicro("[micro] compute() result", { microState });
 
     if (!microState) {
       return null; // 失敗時は clear せず、前回値を保持

@@ -13,6 +13,10 @@ export function createTextSprite(text, {
 
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    console.warn("[textSprite] 2d context unavailable");
+    return new THREE.Sprite(); // ダミー返す or null 返す
+  }
 
   ctx.font = `${fontPx}px ${fontFamily}`;
   const metrics = ctx.measureText(text || "");

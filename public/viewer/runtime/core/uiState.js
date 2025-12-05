@@ -3,9 +3,20 @@
 
 export function createUiState(initial = {}) {
   // --- viewerSettings 初期化（microFX まわりのデフォルト込み） ---
-  const initialViewerSettings = initial.viewerSettings ?? {};
-  const initialFx = initialViewerSettings.fx ?? {};
-  const initialMicro = initialFx.micro ?? {};
+  const initialViewerSettings =
+    initial.viewerSettings && typeof initial.viewerSettings === "object"
+      ? initial.viewerSettings
+      : {};
+
+  const initialFx =
+    initialViewerSettings.fx && typeof initialViewerSettings.fx === "object"
+      ? initialViewerSettings.fx
+      : {};
+
+  const initialMicro =
+    initialFx.micro && typeof initialFx.micro === "object"
+      ? initialFx.micro
+      : {};
 
   const viewerSettings = {
     ...initialViewerSettings,
@@ -15,31 +26,23 @@ export function createUiState(initial = {}) {
         ...initialMicro,
         // microFX 全体の ON/OFF フラグ（デフォルト true）
         enabled:
-          initialMicro.enabled !== undefined
-            ? !!initialMicro.enabled
-            : true,
+          initialMicro.enabled !== undefined ? !!initialMicro.enabled : true,
         profile: initialMicro.profile ?? "normal",
         radius: {
           ...(initialMicro.radius || {}),
-          inner_ratio:
-            initialMicro.radius?.inner_ratio ?? 0.10,
-          outer_ratio:
-            initialMicro.radius?.outer_ratio ?? 0.40,
+          inner_ratio: initialMicro.radius?.inner_ratio ?? 0.1,
+          outer_ratio: initialMicro.radius?.outer_ratio ?? 0.4,
         },
         fade: {
           ...(initialMicro.fade || {}),
-          min_opacity:
-            initialMicro.fade?.min_opacity ?? 0.05,
-          hop_boost:
-            initialMicro.fade?.hop_boost ?? 0.6,
-          far_factor:
-            initialMicro.fade?.far_factor ?? 0.2,
+          min_opacity: initialMicro.fade?.min_opacity ?? 0.05,
+          hop_boost: initialMicro.fade?.hop_boost ?? 0.6,
+          far_factor: initialMicro.fade?.far_factor ?? 0.2,
         },
       },
 
       // 将来用フラグ（v1 では基本 false スタート）
-      meso:
-        initialFx.meso !== undefined ? !!initialFx.meso : false,
+      meso: initialFx.meso !== undefined ? !!initialFx.meso : false,
       modeTransitions:
         initialFx.modeTransitions !== undefined
           ? !!initialFx.modeTransitions
@@ -48,12 +51,25 @@ export function createUiState(initial = {}) {
         initialFx.depthOfField !== undefined
           ? !!initialFx.depthOfField
           : false,
-      glow:
-        initialFx.glow !== undefined ? !!initialFx.glow : false,
-      flow:
-        initialFx.flow !== undefined ? !!initialFx.flow : false,
+      glow: initialFx.glow !== undefined ? !!initialFx.glow : false,
+      flow: initialFx.flow !== undefined ? !!initialFx.flow : false,
     },
   };
+
+  // --- selection 初期化（null/undefined も安全に扱う） ---
+  let selection = null;
+  const selInit = initial.selection;
+  if (selInit && typeof selInit === "object") {
+    selection = {
+      uuid: selInit.uuid ?? null,
+      kind:
+        selInit.kind === "lines" ||
+        selInit.kind === "points" ||
+        selInit.kind === "aux"
+          ? selInit.kind
+          : null,
+    };
+  }
 
   // --- スケルトン準拠の正規フィールド ----------------------
   const state = {
@@ -68,18 +84,7 @@ export function createUiState(initial = {}) {
 
     // 選択状態（詳細は selectionController が管理）
     // selection: null | { uuid, kind? }
-    selection:
-      initial.selection === undefined
-        ? null
-        : {
-            uuid: initial.selection.uuid ?? null,
-            kind:
-              initial.selection.kind === "lines" ||
-              initial.selection.kind === "points" ||
-              initial.selection.kind === "aux"
-                ? initial.selection.kind
-                : null,
-          },
+    selection,
 
     // カメラ状態（初期値 & スナップショット用途）
     cameraState: {
@@ -122,160 +127,8 @@ export function createUiState(initial = {}) {
     //   - null   ... フレームフィルタ無し（全部表示）
     //   - Set<>  ... 含まれている uuid だけ表示
     visibleSet:
-      initial.visibleSet === undefined
-        ? null
-        : initial.visibleSet,
+      initial.visibleSet === undefined ? null : initial.visibleSet,
   };
-
-  // ============================================================
-  // 旧実装との互換 alias（既存コードを壊さんための一時レイヤ）
-  // 呼び出し側から順次置き換えが終わったら消していく。
-  // ============================================================
-
-  // 旧: uiState.currentFrame -> 新: uiState.frame.current
-  Object.defineProperty(state, "currentFrame", {
-    get() {
-      return state.frame.current;
-    },
-    set(v) {
-      if (typeof v === "number") state.frame.current = v;
-    },
-    enumerable: false,
-    configurable: true,
-  });
-
-  // 旧: uiState.selectedUuid -> 新: uiState.selection.uuid
-  Object.defineProperty(state, "selectedUuid", {
-    get() {
-      return state.selection?.uuid ?? null;
-    },
-    set(v) {
-      if (!v) {
-        // falsy（null/undefined/空文字）は「未選択」に倒す
-        state.selection = null;
-        return;
-      }
-      if (!state.selection) {
-        state.selection = { uuid: null, kind: null };
-      }
-      state.selection.uuid = v;
-    },
-    enumerable: false,
-    configurable: true,
-  });
-
-  // 旧: uiState.selectionKind -> 新: uiState.selection.kind
-  Object.defineProperty(state, "selectionKind", {
-    get() {
-      return state.selection?.kind ?? null;
-    },
-    set(v) {
-      if (!v) {
-        if (state.selection) state.selection.kind = null;
-        return;
-      }
-      if (!state.selection) {
-        state.selection = { uuid: null, kind: null };
-      }
-      state.selection.kind = v;
-    },
-    enumerable: false,
-    configurable: true,
-  });
-
-  // 旧: トップレベルに isFramePlaying があった場合
-  Object.defineProperty(state, "isFramePlaying", {
-    get() {
-      return state.runtime.isFramePlaying;
-    },
-    set(v) {
-      state.runtime.isFramePlaying = !!v;
-    },
-    enumerable: false,
-    configurable: true,
-  });
-
-  // 旧: フィルタが showPoints / showLines / showAux だった場合
-  Object.defineProperty(state, "showPoints", {
-    get() {
-      return state.filters.points;
-    },
-    set(v) {
-      state.filters.points = !!v;
-    },
-    enumerable: false,
-    configurable: true,
-  });
-
-  Object.defineProperty(state, "showLines", {
-    get() {
-      return state.filters.lines;
-    },
-    set(v) {
-      state.filters.lines = !!v;
-    },
-    enumerable: false,
-    configurable: true,
-  });
-
-  Object.defineProperty(state, "showAux", {
-    get() {
-      return state.filters.aux;
-    },
-    set(v) {
-      state.filters.aux = !!v;
-    },
-    enumerable: false,
-    configurable: true,
-  });
-
-  // 旧: カメラがトップレベル散在してた場合の保険
-  Object.defineProperty(state, "cameraTheta", {
-    get() {
-      return state.cameraState.theta;
-    },
-    set(v) {
-      if (typeof v === "number") state.cameraState.theta = v;
-    },
-    enumerable: false,
-    configurable: true,
-  });
-
-  Object.defineProperty(state, "cameraPhi", {
-    get() {
-      return state.cameraState.phi;
-    },
-    set(v) {
-      if (typeof v === "number") state.cameraState.phi = v;
-    },
-    enumerable: false,
-    configurable: true,
-  });
-
-  Object.defineProperty(state, "cameraDistance", {
-    get() {
-      return state.cameraState.distance;
-    },
-    set(v) {
-      if (typeof v === "number") state.cameraState.distance = v;
-    },
-    enumerable: false,
-    configurable: true,
-  });
-
-  Object.defineProperty(state, "cameraTarget", {
-    get() {
-      return state.cameraState.target;
-    },
-    set(v) {
-      if (!v || typeof v !== "object") return;
-      if (typeof v.x === "number") state.cameraState.target.x = v.x;
-      if (typeof v.y === "number") state.cameraState.target.y = v.y;
-      if (typeof v.z === "number") state.cameraState.target.z = v.z;
-    },
-    enumerable: false,
-    configurable: true,
-  });
 
   return state;
 }

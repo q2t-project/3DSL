@@ -1,5 +1,5 @@
 // tools/generate-large-3dss.mjs
-// 3DSS v1.0.1 向けの巨大サンプル生成スクリプト（ESM）
+// 3DSS v1.0.2 向けの巨大サンプル生成スクリプト（ESM）
 // - points / lines / aux を指定数だけ生成
 // - position は unitless world 座標（units は mm 前提）
 // - Z 座標もランダムで振る
@@ -30,7 +30,7 @@ function isoUtcSeconds() {
 }
 
 // ------------------------------------------------------------
-// points 生成
+// points 生成（3DSS v1.0.2 準拠）
 // ------------------------------------------------------------
 
 function createPoints(count) {
@@ -39,11 +39,10 @@ function createPoints(count) {
 
   // だいたい正方グリッドに並べる
   const side = Math.ceil(Math.sqrt(count)); // 一辺に並べる数
-  const spacing = 10;                       // XY の間隔（units=mm 前提）
+  const spacing = 10; // XY の間隔（units=mm 前提）
   const halfXY = (side - 1) * spacing * 0.5;
 
-  // ★ Z も XY と同じくらいのレンジにする
-  //    （必要なら zScale を 0.3 とかに落として調整してもOK）
+  // Z も XY と同じくらいのレンジにする
   const zScale = 1.0;
   const zSpan = halfXY * zScale;
 
@@ -52,18 +51,21 @@ function createPoints(count) {
     for (let ix = 0; ix < side && i < count; ix++, i++) {
       const x = -halfXY + ix * spacing;
       const y = -halfXY + iy * spacing;
-
-      // ここを変更：[-zSpan, +zSpan] でランダム
       const z = randRange(-zSpan, zSpan);
 
       const uuid = randomUUID();
+
       points.push({
+        // signification.name は string で OK（oneOf の片方）
         signification: {
           name: `P${pad4(i)}`,
         },
         appearance: {
+          // required: position
           position: [x, y, z],
+          // marker は省略（viewer 側でデフォルトジオメトリを使う想定）
           visible: true,
+          // frames: integer | integer[]
           frames: 0,
         },
         meta: {
@@ -78,9 +80,8 @@ function createPoints(count) {
   return points;
 }
 
-
 // ------------------------------------------------------------
-// lines 生成
+// lines 生成（3DSS v1.0.2 準拠）
 // ------------------------------------------------------------
 
 function createLines(count, points) {
@@ -101,27 +102,36 @@ function createLines(count, points) {
     const lineUuid = randomUUID();
 
     lines.push({
+      // signification は optional だが、構造サンプルとして入れておく
       signification: {
         relation: {
+          // oneOf で structural/dynamic/... のいずれか 1 つだけ
           structural: "association",
         },
         sense: "a_to_b",
       },
       appearance: {
+        // end_a / end_b: ref | coord の oneOf
         end_a: { ref: uuidA },
         end_b: { ref: uuidB },
-        line_type: "straight",
+
+        line_type: "straight", // geometry は straight の場合は必須ではない
         line_style: "solid",
         color: "#ffffff",
         opacity: 0.4,
         renderOrder: 0,
+
+        // arrow: v1.0.2 の oneOf 仕様に準拠
+        // primitive: "none" | "line" | "cone" | "pyramid"
         arrow: {
-          shape: "cone",
-          size: 2,
-          aspect: 4,
+          primitive: "cone",
+          radius: 32,
+          height: 64,
           placement: "end_b",
           auto_orient: true,
         },
+
+        // effect: 仕様どおりのプロパティだけを持つ
         effect: {
           effect_type: "none",
           amplitude: 1,
@@ -132,6 +142,7 @@ function createLines(count, points) {
           easing: "linear",
           width: 1,
         },
+
         visible: true,
         frames: 0,
       },
@@ -147,7 +158,7 @@ function createLines(count, points) {
 }
 
 // ------------------------------------------------------------
-// aux 生成
+// aux 生成（3DSS v1.0.2 準拠）
 // ------------------------------------------------------------
 
 function createAux(count) {
@@ -159,13 +170,16 @@ function createAux(count) {
         orientation: [0, 0, 0],
         opacity: 0.4,
         module: {
+          // axis モジュールだけを持つシンプルなサンプル
           axis: {
             length: 64,
             labels: true,
+            // axis.arrow も v1.0.2 の oneOf 仕様に合わせる
+            // primitive: "none" | "line" | "cone" | "pyramid"
             arrow: {
-              enabled: true,
-              size: 8,
-              aspect: 2,
+              primitive: "cone",
+              radius: 8,
+              height: 16,
             },
           },
         },
@@ -194,11 +208,12 @@ export function generate3dss(pointsCount, linesCount, auxCount) {
   const doc = {
     document_meta: {
       document_uuid: randomUUID(),
+      // ドキュメント自体のバージョン（SemVer）
       version: "1.0.0",
       updated_at: isoUtcSeconds(),
       tags: ["s:perf_sample"],
       schema_uri:
-        "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.1",
+        "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.2",
       generator: "https://q2t-project.github.io/3dsl/sample-generator",
       reference: "performance test sample",
       coordinate_system: "Z+up/freeXY",
@@ -232,7 +247,6 @@ if (process.argv[1] === __filename) {
 
   if (outPath) {
     fs.writeFileSync(outPath, json, { encoding: "utf8" });
-    // 一応ログだけ出しとく
     console.log(
       `[generate-large-3dss] wrote ${pointsCount} points / ${linesCount} lines / ${auxCount} aux → ${outPath}`,
     );

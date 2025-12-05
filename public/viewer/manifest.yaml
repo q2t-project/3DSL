@@ -255,7 +255,7 @@ runtime_spec:
     # =========================
     # 2.3 core
     # =========================
-    - name: runtime/core/CameraEngine.js
+    - name: runtime/core/cameraEngine.js
       layer: core
       responsibility:
         - "cameraState を内部に保持し、renderer に渡すための状態を作る"

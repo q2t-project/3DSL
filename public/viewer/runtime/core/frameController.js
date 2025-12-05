@@ -39,6 +39,11 @@ export function createFrameController(uiState, visibilityController) {
   // ------------------------------------------------------------
   function clampFrame(n) {
     if (!Number.isFinite(n)) return uiState.frame.current;
+
+    // frames は schema 上 integer (-9999〜9999) 前提なので
+    // UI から誤って小数が来ても最寄り整数に寄せる
+    n = Math.round(n);
+
     if (n < range.min) return range.min;
     if (n > range.max) return range.max;
     return n;
@@ -48,9 +53,10 @@ export function createFrameController(uiState, visibilityController) {
     // まず、外部から差し込まれた正規ルートがあればそちらを優先
     if (typeof recomputeHandler === "function") {
       const next = recomputeHandler();
-      if (next) {
-        uiState.visibleSet = next;
-      }
+    // Set が返ってきたときだけ正として採用
+     if (next instanceof Set) {
+       uiState.visibleSet = next;
+     }
       return uiState.visibleSet;
     }
 
@@ -61,7 +67,10 @@ export function createFrameController(uiState, visibilityController) {
     ) {
       // visibilityController 側で uiState.visibleSet を更新してくれる想定やけど、
       // 戻り値もそのまま同期しておく（冗長やけど安全側）。
-      uiState.visibleSet = visibilityController.recompute();
+     const next = visibilityController.recompute();
+     if (next instanceof Set) {
+       uiState.visibleSet = next;
+     }
     }
     return uiState.visibleSet;
   }

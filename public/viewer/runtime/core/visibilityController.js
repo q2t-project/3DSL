@@ -13,7 +13,8 @@
 // - appearance.frames が付いている要素は、framesSet に currentFrame が含まれるときだけ表示
 // - appearance.frames が無い要素は「全フレーム共通」で表示対象
 
-export function createVisibilityController(uiState, document, indices) {
+export function createVisibilityController(uiState, _document, indices) {
+  // _document は現状未使用だが、将来の拡張（例えば struct 全体の統計）用に残している。
   const uuidToKind =
     indices && indices.uuidToKind instanceof Map ? indices.uuidToKind : new Map();
 

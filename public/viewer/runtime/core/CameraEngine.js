@@ -1,12 +1,31 @@
-// runtime/core/CameraEngine.js
+// runtime/core/cameraEngine.js
+
+import { CAMERA_VIEW_DEFS } from "./cameraViewDefs.js";
 
 const EPSILON = 1e-4;
 const MIN_DISTANCE = 0.01;
 const MAX_DISTANCE = 1000;
 const MAX_COORD = 1e4;
 
+// AutoOrbit 用の速度テーブル（段階：1〜N）
+const AUTO_ORBIT_SPEED_TABLE = [
+  0,                 // 0 は未使用
+  Math.PI / 24,      // level 1: ゆっくり
+  Math.PI / 16,      // level 2
+  Math.PI / 12,      // level 3: そこそこ速い
+];
+
+const MAX_AUTO_ORBIT_SPEED_LEVEL = AUTO_ORBIT_SPEED_TABLE.length - 1;
+
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
+}
+
+function clampAutoOrbitSpeedLevel(level) {
+  let n = Number(level);
+  if (!Number.isFinite(n)) n = 1;
+  n = Math.floor(n);
+  return clamp(n, 1, MAX_AUTO_ORBIT_SPEED_LEVEL);
 }
 
 function sanitizeScalarCoord(v) {
@@ -30,10 +49,12 @@ function sanitizePosition(positionVec3) {
 export function createCameraEngine(initialState = {}) {
   // ★ この state だけを真実として使う
   const state = {
+    // theta: Yaw（水平回転）
     theta:
       typeof initialState.theta === "number"
         ? initialState.theta
         : 0,
+    // phi: Z 軸からの極角（0 ≒ 真上, π/2 ≒ 水平, π ≒ 真下）
     phi: clamp(
       initialState.phi ?? Math.PI / 2,
       EPSILON,
@@ -49,10 +70,19 @@ export function createCameraEngine(initialState = {}) {
       y: sanitizeScalarCoord(initialState.target?.y ?? 0),
       z: sanitizeScalarCoord(initialState.target?.z ?? 0),
     },
+    // three.js Camera と同様、fov は「度数法」で扱う想定
     fov:
       typeof initialState.fov === "number"
         ? initialState.fov
         : 50,
+  };
+
+  // ★ 自動ぐるり俯瞰用 AutoOrbit 状態
+  const autoOrbit = {
+    enabled: false,
+    direction: 1,      // +1: 正転, -1: 逆転
+    speedLevel: 0,     // 0: 無効, 1〜N
+    angularSpeed: 0,   // 実際に使う角速度 [rad/sec]
   };
 
   const api = {
@@ -68,53 +98,44 @@ export function createCameraEngine(initialState = {}) {
      * 距離 / ターゲット / FOV はそのまま、theta/phi だけ切り替える。
      */
     snapToAxis(axis) {
-     const a = String(axis || "").toLowerCase();
+      const raw = String(axis || "").toLowerCase();
 
-      switch (a) {
+      let key = null;
+      switch (raw) {
         case "x":
         case "+x":
-          // +X から見る（水平ビュー）
-          state.theta = 0;
-          state.phi = clamp(Math.PI / 2, EPSILON, Math.PI - EPSILON);
+          key = "x+";
           break;
-
         case "-x":
-          state.theta = Math.PI;
-          state.phi = clamp(Math.PI / 2, EPSILON, Math.PI - EPSILON);
+          key = "x-";
           break;
 
         case "y":
         case "+y":
-          state.theta = Math.PI / 2;
-          state.phi = clamp(Math.PI / 2, EPSILON, Math.PI - EPSILON);
+          key = "y+";
           break;
-
         case "-y":
-          state.theta = -Math.PI / 2;
-          state.phi = clamp(Math.PI / 2, EPSILON, Math.PI - EPSILON);
+          key = "y-";
           break;
 
         case "z":
         case "+z":
-          // 真上から（ほぼ俯瞰）
-          state.theta = 0;
-          state.phi = clamp(EPSILON * 4, EPSILON, Math.PI - EPSILON);
+          key = "z+";
           break;
-
         case "-z":
-          // 真下から
-          state.theta = 0;
-          state.phi = clamp(
-            Math.PI - EPSILON * 4,
-            EPSILON,
-            Math.PI - EPSILON
-          );
+          key = "z-";
           break;
 
         default:
           // よくわからん指定は無視
           return state;
       }
+
+      const def = CAMERA_VIEW_DEFS[key];
+      if (!def) return state;
+
+      state.theta = def.theta;
+      state.phi = clamp(def.phi, EPSILON, Math.PI - EPSILON);
 
       return state;
     },
@@ -202,6 +223,144 @@ export function createCameraEngine(initialState = {}) {
       };
     },
 
+    // ------------------------------------------------------------
+    // AutoOrbit（自動ぐるり俯瞰）制御
+    // ------------------------------------------------------------
+
+    /**
+     * 毎フレーム呼ばれる想定（viewerHub から dt[sec] を渡す）
+     * - AutoOrbit 中なら theta を dt ベースで進める
+     */
+    update(dt) {
+      const d = Number(dt);
+      if (!Number.isFinite(d) || d <= 0) return state;
+
+      if (autoOrbit.enabled && autoOrbit.angularSpeed > 0) {
+        const deltaAngle =
+          autoOrbit.direction * autoOrbit.angularSpeed * d;
+        state.theta += deltaAngle;
+      }
+
+      return state;
+    },
+
+    /**
+     * AutoOrbit 開始
+     *
+     * opts:
+     *  - center   : {x,y,z} or [x,y,z]（なければ現在 target）
+     *  - radius   : number                （なければ現在 distance を流用）
+     *  - isoPhi   : アイソメ用の phi 値（rad）。なければ現状の phi を維持
+     *  - fov      : 視野角（deg）。なければ現状の fov を維持
+     *  - margin   : 画面上の余白係数（デフォルト 1.15）
+     *  - direction: +1（正転） or -1（逆転）
+     *  - speedLevel: 1〜MAX_AUTO_ORBIT_SPEED_LEVEL（ぐるり速度）
+     */
+    startAutoOrbit(opts = {}) {
+      const {
+        center,
+        radius,
+        isoPhi,
+        fov,
+        margin = 1.15,
+        direction = 1,
+        speedLevel = 1,
+      } = opts;
+
+      // center 正規化：{x,y,z} / [x,y,z] / 未指定 いずれにも対応
+      let cx = state.target.x;
+      let cy = state.target.y;
+      let cz = state.target.z;
+
+      if (Array.isArray(center) && center.length === 3) {
+        cx = sanitizeScalarCoord(center[0]);
+        cy = sanitizeScalarCoord(center[1]);
+        cz = sanitizeScalarCoord(center[2]);
+      } else if (center && typeof center === "object") {
+        if ("x" in center) cx = sanitizeScalarCoord(center.x);
+        if ("y" in center) cy = sanitizeScalarCoord(center.y);
+        if ("z" in center) cz = sanitizeScalarCoord(center.z);
+      }
+
+      let R = typeof radius === "number" ? radius : state.distance;
+      if (!Number.isFinite(R) || R <= 0) R = state.distance;
+      R = Math.max(R, MIN_DISTANCE);
+
+      const nextPhi =
+        typeof isoPhi === "number"
+          ? clamp(isoPhi, EPSILON, Math.PI - EPSILON)
+          : state.phi;
+
+      const nextFov =
+        typeof fov === "number" ? fov : state.fov;
+
+      // fov[deg] → rad 変換
+      const fovRad = (nextFov * Math.PI) / 180;
+      const half = fovRad * 0.5 || (25 * Math.PI) / 180;
+
+      // 縦 FOV 基準で「バウンディング球が収まる距離」を計算
+      const safeMargin =
+        typeof margin === "number" && margin > 0 ? margin : 1.15;
+      let desiredDistance =
+        (R * safeMargin) / Math.sin(half || (25 * Math.PI) / 180);
+      desiredDistance = clamp(desiredDistance, MIN_DISTANCE, MAX_DISTANCE);
+
+      // カメラ state 更新
+      state.target.x = cx;
+      state.target.y = cy;
+      state.target.z = cz;
+      state.phi = nextPhi;
+      state.distance = desiredDistance;
+      state.fov = nextFov;
+
+      // AutoOrbit 設定
+      autoOrbit.enabled = true;
+      autoOrbit.direction = direction >= 0 ? 1 : -1;
+      autoOrbit.speedLevel = clampAutoOrbitSpeedLevel(speedLevel);
+      autoOrbit.angularSpeed =
+        AUTO_ORBIT_SPEED_TABLE[autoOrbit.speedLevel];
+
+      return state;
+    },
+
+    /**
+     * AutoOrbit 中のパラメータ更新
+     * - 正転／逆転ボタンの押下や速度段階変更から呼ぶ用
+     *
+     * opts:
+     *  - direction : +1 / -1
+     *  - speedLevel: 1〜MAX_AUTO_ORBIT_SPEED_LEVEL
+     */
+    updateAutoOrbitSettings(opts = {}) {
+      if (!autoOrbit.enabled) return state;
+
+      const { direction, speedLevel } = opts;
+
+      if (direction != null) {
+        autoOrbit.direction = direction >= 0 ? 1 : -1;
+      }
+
+      if (speedLevel != null) {
+        autoOrbit.speedLevel = clampAutoOrbitSpeedLevel(speedLevel);
+        autoOrbit.angularSpeed =
+          AUTO_ORBIT_SPEED_TABLE[autoOrbit.speedLevel];
+      }
+
+      return state;
+    },
+
+    /**
+     * AutoOrbit 停止
+     * - 停止ボタン
+     * - もしくは pointerInput 側のドラッグ開始で直叩き想定
+     */
+    stopAutoOrbit() {
+      autoOrbit.enabled = false;
+      autoOrbit.speedLevel = 0;
+      autoOrbit.angularSpeed = 0;
+      return state;
+    },
+
     // TODO: camera lerp（スムーズ遷移）を再導入する場合は、
     // ここに beginLerp / stepLerp を追加して制御する。
     // 現状は「即時反映のみ」で運用しているため未実装。
@@ -252,6 +411,13 @@ export function createCameraEngine(initialState = {}) {
       state.target.y = 0;
       state.target.z = 0;
       state.fov = 50;
+
+      // AutoOrbit もリセットしておく
+      autoOrbit.enabled = false;
+      autoOrbit.direction = 1;
+      autoOrbit.speedLevel = 0;
+      autoOrbit.angularSpeed = 0;
+
       return state;
     },
   };

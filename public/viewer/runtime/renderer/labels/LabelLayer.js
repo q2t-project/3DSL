@@ -1,4 +1,4 @@
-// viewer/runtime/renderer/labels/LabelLayer.js
+// viewer/runtime/renderer/labels/labelLayer.js
 import * as THREE from "../../../../vendor/three/build/three.module.js";
 import { createTextSprite } from "./textSprite.js";
 
@@ -10,11 +10,11 @@ import { createTextSprite } from "./textSprite.js";
  *     text: string,
  *     size: number,           // marker.text.size or デフォルト 8
  *     align: string,          // "center&middle" など（いまは未使用でもOK）
- *     plane: "billboard"|"xy"|"yz"|"zx", // billboard の時だけ使う 等
+ *     plane: "xy"|"yz"|"zx"|"billboard", // 未指定は 'zx'。billboard はメタ用途で明示指定された時だけ使う
  *     frames: number | number[] | null,  // 表示 frame 情報
  *   }>
  */
-export class LabelLayer {
+export class labelabelLayer {
   constructor(scene, { renderOrder = 900 } = {}) {
     this.scene = scene;
     this.group = new THREE.Group();
@@ -114,8 +114,8 @@ export class LabelLayer {
       // 少し上に持ち上げる（ラベルを点の上に）
       sprite.position.y += baseScale * 0.6;
 
-      // billboard 的にカメラへ向ける（Sprite は元からカメラ向き）
-      // plane === "billboard" 以外のときは、将来 plate 方向に合わせるなど拡張余地
+      // plane === "billboard" のときだけ、メタ用途としてカメラ向き（インフォ系ラベルなど）
+      // それ以外（xy/yz/zx）は軸の意味を優先し、その平面に貼るのを原則とする
 
       // スケールを距離ベースで調整（text.size も反映）
       const sizeFactor = (entry.size || 8) / 8;

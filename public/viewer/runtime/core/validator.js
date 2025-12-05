@@ -13,8 +13,8 @@ let lastErrors = null;
 // ここを基準に document_meta.schema_uri / document_meta.version の major をチェックする。
 const schemaInfo = {
   $id: null,
-  baseUri: null,  // "#v1.0.1" より前のベース URL
-  version: null,  // "1.0.1" など
+  baseUri: null,  // "#vX.Y.Z" より前のベース URL
+  version: null,  // "1.0.0" など
   major: null,    // 1 など
 };
  
@@ -25,7 +25,7 @@ function parseSemverMajor(v) {
   return m ? Number(m[1]) : null;
 }
 
-// "....#v1.0.1" 形式の末尾から version を抜き出すユーティリティ
+// "....#vX.Y.Z" 形式の末尾から version を抜き出すユーティリティ
 function extractVersionFromId(id) {
   if (typeof id !== "string") {
     return { base: null, version: null, major: null };
@@ -65,7 +65,7 @@ export function init(schemaJson) {
   lastErrors = null;
 
   // schema 側の $id から「この validator が想定している 3DSS の major version」を決める。
-  // 例: "https://.../3DSS.schema.json#v1.0.1" → base / version / major(=1)
+  // 例: "https://.../3DSS.schema.json#v1.0.2" → base / version / major(=1)
   const fromId = extractVersionFromId(schemaJson.$id || "");
 
   schemaInfo.$id = schemaJson.$id || null;
@@ -108,7 +108,7 @@ function checkVersionAndSchemaUri(doc) {
           instancePath: "/document_meta/schema_uri",
           keyword: "schema_uri",
           message:
-            "schema_uri must include '#v<major.minor.patch>' (e.g. ...#v1.0.1)",
+            "schema_uri must include '#v<major.minor.patch>' (e.g. ...#v1.0.2)",
         });
       } else if (uriInfo.major == null) {
         errors.push({

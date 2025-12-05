@@ -2,7 +2,6 @@
 import * as THREE from "../../../../vendor/three/build/three.module.js";
 import { microFXConfig } from "./config.js";
 
-
 // このモジュールは microState.localBounds（world 座標系での局所 AABB）を
 // そのまま受け取って可視化する専用。
 // center / size は world 座標 / edge 長で、shrinkFactor / minEdge / maxEdge も
@@ -21,17 +20,22 @@ function createHandlesGroup() {
   handlesGroup.name = "micro-bounds-handles";
   handlesGroup.renderOrder = 12;
 
-  const material = new THREE.MeshBasicMaterial({ color: "#88ccff" });
+  const material = new THREE.MeshBasicMaterial({
+    color: "#88ccff",
+    transparent: true,
+    opacity: 1,
+    depthWrite: false,
+  });
 
   const corners = [
     [-0.5, -0.5, -0.5],
-    [ 0.5, -0.5, -0.5],
-    [-0.5,  0.5, -0.5],
-    [ 0.5,  0.5, -0.5],
-    [-0.5, -0.5,  0.5],
-    [ 0.5, -0.5,  0.5],
-    [-0.5,  0.5,  0.5],
-    [ 0.5,  0.5,  0.5],
+    [0.5, -0.5, -0.5],
+    [-0.5, 0.5, -0.5],
+    [0.5, 0.5, -0.5],
+    [-0.5, -0.5, 0.5],
+    [0.5, -0.5, 0.5],
+    [-0.5, 0.5, 0.5],
+    [0.5, 0.5, 0.5],
   ];
 
   for (const c of corners) {
@@ -64,14 +68,13 @@ export function ensureBounds(scene) {
       color: "#44aaff",
       transparent: true,
       opacity: 0.15,
-      depthWrite: false
+      depthWrite: false,
     });
     const mesh = new THREE.Mesh(boxGeom, boxMat);
     mesh.renderOrder = 10;
     boundsGroup.add(mesh);
 
     // 外枠 Wireframe
-    // Box の「外枠 12 本」だけを取り出す（面の対角線は含めない）
     const wireGeom = new THREE.EdgesGeometry(boxGeom);
     const wireMat = new THREE.LineBasicMaterial({
       color: baseWireColor.clone(),
@@ -118,33 +121,47 @@ function clamp(value, min, max) {
 /* -------------------------------------------------------
  *  Handles resize according to bounding box size
  * ----------------------------------------------------- */
-function updateHandles(group, size) {
+function updateHandles(group, size, intensity = 1) {
   const handlesGroup = group.userData?.handlesGroup;
   if (!handlesGroup) return;
 
-  // size は unitless world 空間での辺の長さ。
-  const magnitudes = size.map(v => Math.abs(v));
+  // size は unitless world 空間での edge 長
+  const magnitudes = size.map((v) => Math.abs(v));
   const minSize = Math.max(Math.min(...magnitudes), 0.0);
 
-    // ---- Plane marker（フォーカス位置に重なる薄い板） ----
-    // baseSize/opacity は microFXConfig.marker から取得。
-    const cfg = microFXConfig.marker || {};
-    const baseSize = Number.isFinite(cfg.baseSize) ? cfg.baseSize : 0.14;
-    const opacity =
-      Number.isFinite(cfg.opacity) ? cfg.opacity : 0.06;
+  // AABB が小さくてもある程度は見えるように最低サイズを確保
+  const baseScale = minSize > 0 ? minSize * 0.18 : 0.18;
 
-    const geometry = new THREE.PlaneGeometry(baseSize, baseSize);
+  let s = Number.isFinite(intensity) ? intensity : 1;
+  s = clamp(s, 0, 1);
+
+  const handleScale = baseScale * s;
 
   handlesGroup.children.forEach((handle) => {
     handle.scale.setScalar(handleScale);
+    if (handle.material && "opacity" in handle.material) {
+      handle.material.opacity = s;
+      handle.material.transparent = true;
+    }
   });
 }
 
 /* -------------------------------------------------------
  *  Main update entry
  * ----------------------------------------------------- */
-export function updateBounds(group, localBounds) {
+export function updateBounds(group, localBounds, intensity = 1) {
   if (!group || !localBounds) return;
+
+  // intensity を 0..1 にクランプ
+  let s = Number.isFinite(intensity) ? intensity : 1;
+  s = clamp(s, 0, 1);
+
+  if (s <= 0) {
+    group.visible = false;
+    return;
+  }
+
+  group.visible = true;
 
   // localBounds は microState.localBounds 前提：
   // - center: world 座標系での AABB 中心
@@ -168,8 +185,26 @@ export function updateBounds(group, localBounds) {
   group.position.set(center[0], center[1], center[2]);
   group.scale.set(size[0], size[1], size[2]);
 
-  // handles のスケールは “描画中の box の最小寸法（unitless）に比例”
-  updateHandles(group, size);
+  // handles のスケールは “描画中の box の最小寸法（unitless）× intensity”
+  updateHandles(group, size, s);
+
+  // Box / Wire の opacity も intensity に合わせてフェード
+  const box = group.children[0];
+  const wire = group.children[1];
+
+  if (box && box.material && "opacity" in box.material) {
+    const baseOpacity = 0.15;
+    box.material.opacity = baseOpacity * s;
+    box.material.transparent = true;
+    box.material.depthWrite = false;
+  }
+
+  if (wire && wire.material && "opacity" in wire.material) {
+    const baseOpacity = 0.9;
+    wire.material.opacity = baseOpacity * s;
+    wire.material.transparent = true;
+    wire.material.depthWrite = false;
+  }
 }
 
 /* -------------------------------------------------------

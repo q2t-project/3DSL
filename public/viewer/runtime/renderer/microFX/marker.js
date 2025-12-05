@@ -13,29 +13,32 @@ export function ensureMarker(scene) {
 
   if (!marker) {
     // ---- Plane marker（フォーカス位置に重なる薄い板） ----
-    // baseSize/opacity は microFXConfig.marker から取得。
+    // baseSize/baseOpacity は microFXConfig.marker から取得。
     const cfg = microFXConfig.marker || {};
     const baseSize = Number.isFinite(cfg.baseSize) ? cfg.baseSize : 0.14;
-    const opacity =
+    const baseOpacity =
       Number.isFinite(cfg.opacity) ? cfg.opacity : 0.06;
 
     const geometry = new THREE.PlaneGeometry(baseSize, baseSize);
     const material = new THREE.MeshBasicMaterial({
       color: "#ffffaa",
       transparent: true,
-      opacity,              // さらに控えめ
-      depthTest: false,     // 奥行き判定しない
-      depthWrite: false,    // 深度バッファにも書き込まない
+      opacity: baseOpacity,
+      depthTest: false,  // 奥行き判定しない
+      depthWrite: false, // 深度バッファにも書き込まない
     });
 
     marker = new THREE.Mesh(geometry, material);
     marker.renderOrder = 20; // 球(renderOrder=10前後)より少し前
     marker.visible = false;
+
+    marker.userData.baseOpacity = baseOpacity;
   }
 
   if (marker.parent !== scene) {
     scene.add(marker);
   }
+
   return marker;
 }
 
@@ -50,16 +53,43 @@ function sanitizePosition(position) {
 }
 
 // position: microState.focusPosition を想定（world 座標系, unitless）
-export function updateMarker(target, position) {
+export function updateMarker(target, position, intensity = 1) {
   if (!target) return;
 
   const sanitized = sanitizePosition(position);
-  if (!sanitized) {
+  let s = Number.isFinite(intensity) ? intensity : 1;
+  s = THREE.MathUtils.clamp(s, 0, 1);
+
+  // 位置が無効 or intensity=0 なら完全 OFF
+  if (!sanitized || s <= 0) {
     target.visible = false;
     return;
   }
 
   target.position.set(sanitized[0], sanitized[1], sanitized[2]);
+
+  // opacity は baseOpacity × intensity
+  const cfg = microFXConfig.marker || {};
+  const fallbackOpacity =
+    Number.isFinite(cfg.opacity) ? cfg.opacity : 0.06;
+  const baseOpacity =
+    typeof target.userData.baseOpacity === "number"
+      ? target.userData.baseOpacity
+      : fallbackOpacity;
+
+  const mat = target.material;
+  if (mat && "opacity" in mat) {
+    mat.transparent = true;
+    mat.opacity = baseOpacity * s;
+    mat.depthTest = false;
+    mat.depthWrite = false;
+  }
+
+  // サイズも intensity に応じて軽く縮ませる（0.3〜1 の間）
+  const minScale = 0.3;
+  const scale = minScale + (1 - minScale) * s;
+  target.scale.setScalar(scale);
+
   target.visible = true;
 }
 

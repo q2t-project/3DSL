@@ -31,7 +31,7 @@ viewer/runtime/bootstrapViewer.js
 
 viewer/runtime/viewerHub.js
 
-viewer/runtime/core/CameraEngine.js
+viewer/runtime/core/cameraEngine.js
 
 viewer/runtime/core/frameController.js
 
@@ -243,7 +243,7 @@ viewer/runtime/core/microController.js（必要な範囲）
 
 viewer/runtime/core/visibilityController.js
 
-viewer/runtime/core/CameraEngine.js
+viewer/runtime/core/cameraEngine.js
 
 やること：
 

@@ -38,7 +38,7 @@ function ensureGroup(scene) {
 
 // focus line 用の「多層チューブグロー」を生成
 // 返り値: Mesh の配列（中核 + ハロー）
-function createLineGlowMeshes(src, lineGlowCfg) {
+function createLineGlowMeshes(src, lineGlowCfg, intensity = 1) {
   const geom = src.geometry;
   const posAttr = geom && geom.attributes && geom.attributes.position;
   if (!posAttr) return null;
@@ -92,6 +92,7 @@ function createLineGlowMeshes(src, lineGlowCfg) {
       ];
 
   const meshes = [];
+  const s = clamp01(Number.isFinite(intensity) ? intensity : 1);
 
   for (const layer of layersCfg) {
     const radiusMul =
@@ -102,7 +103,7 @@ function createLineGlowMeshes(src, lineGlowCfg) {
     const tubeGeom = new THREE.TubeGeometry(
       curve,
       tubularSegments,
-       radius * radiusMul,
+      radius * radiusMul,
       radialSegments,
       false
     );
@@ -110,10 +111,10 @@ function createLineGlowMeshes(src, lineGlowCfg) {
     const material = new THREE.MeshBasicMaterial({
       color: lineGlowCfg.color || "#00ffff",
       transparent: true,
-      opacity: baseOpacity * opacityMul,
+      opacity: clamp01(baseOpacity * opacityMul * s),
       blending: THREE.AdditiveBlending,
       depthWrite: false,
-      depthTest: false
+      depthTest: false,
     });
 
     const mesh = new THREE.Mesh(tubeGeom, material);
@@ -134,10 +135,15 @@ export function applyHighlight(
   scene,
   microState,
   getObjectByUuid,
-  visibleSet
+  visibleSet,
+  intensity = 1
 ) {
   clearHighlight(scene);
   if (!microState) return;
+
+  let s = Number.isFinite(intensity) ? intensity : 1;
+  s = clamp01(s);
+  if (s <= 0) return;
 
   // highlight が見る microState フィールドは focusUuid / relatedUuids のみ。
   // kind / focusPosition / localBounds は別エフェクト（marker / bounds 等）が使う。
@@ -234,8 +240,10 @@ export function applyHighlight(
       }
     }
 
-    material.opacity = clamp01(opacity);
+    // ★ intensity を掛けて最終不透明度にする
+    material.opacity = clamp01(opacity * s);
 
+    // opacity がゼロに落ちたら生成しても見えへんので、そのまま続行
     let clone;
     if (src.isLine) {
       // 対応ブラウザではちょっと太く見えるかも（効かなくても害はない）
@@ -260,7 +268,7 @@ export function applyHighlight(
 
     // 線がフォーカス対象なら、線全体に沿った多層チューブグローを追加
     if (src.isLine && isFocus && lineGlowEnabled) {
-      const glowMeshes = createLineGlowMeshes(src, lineGlowCfg);
+      const glowMeshes = createLineGlowMeshes(src, lineGlowCfg, s);
       if (Array.isArray(glowMeshes)) {
         glowMeshes.forEach((m) => group.add(m));
       }

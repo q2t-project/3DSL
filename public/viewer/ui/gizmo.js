@@ -1,6 +1,6 @@
 // viewer/ui/gizmo.js
-
 import * as THREE from "../../vendor/three/build/three.module.js";
+import { CAMERA_VIEW_DEFS } from "../runtime/core/cameraPresets.js";
 
 // 軸カラー設定
 //   XY 平面 (Z 軸) = 赤 : existence (上下)
@@ -8,24 +8,19 @@ import * as THREE from "../../vendor/three/build/three.module.js";
 //   ZX 平面 (Y 軸) = 緑 : time   (前後)
 const COLOR_AXIS_X = 0x5588ff; // X / YZ plane → blue
 const COLOR_AXIS_Y = 0x55ff55; // Y / ZX plane → green
-const COLOR_AXIS_Z = 0xff5555; // Z / XY plane → red
+const COLOR_AXIS_Z = 0xff5555; // Z / XY plane → red;
 
 // メインカメラ state から「向き」だけをもらって、
 // 原点まわりの小さい「リング型 gizmo」を描画するミニ・ビューポート
 export function attachGizmo(wrapper, hub) {
-  if (!wrapper) return;
+  if (!wrapper) return null;
 
-  // いったん中身クリア
-  while (wrapper.firstChild) wrapper.removeChild(wrapper.firstChild);
+  // 二重 attach 対策で一回中身クリアしとく
+  wrapper.innerHTML = "";
 
-  // キャンバス作成
   const canvas = document.createElement("canvas");
-  canvas.style.width = "100%";
-  canvas.style.height = "100%";
   canvas.style.display = "block";
-  // gizmo をドラッグしてカメラ回転させるので pointer 有効
   canvas.style.pointerEvents = "auto";
-
   wrapper.appendChild(canvas);
 
   const renderer = new THREE.WebGLRenderer({
@@ -33,35 +28,127 @@ export function attachGizmo(wrapper, hub) {
     alpha: true,
     antialias: true,
   });
+
+  // ★ dispose 用フラグと rAF ハンドル
+  let isDisposed = false;
+  let rafId = null;
+
+  // 初期値
+  const width = wrapper.clientWidth || 210;
+  const height = wrapper.clientHeight || 210;
+  canvas.width = canvas.height = 1;
+  renderer.setSize(1, 1, false);
+
   renderer.setClearColor(0x000000, 0); // 透明
   renderer.autoClear = true;
 
-  // ★ 第1象限用のローカルクリッピングを有効化
-  renderer.localClippingEnabled = true;
-
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
-  // viewer 全体と同じく Z-up
+  const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
   camera.up.set(0, 0, 1);
-
-  // ------------------------------------------------------------
-  // ジャイロ風 gizmo 本体（リング 3 本 + 中心球 + Z 軸シャフト）
-  //  - 各リングは「断面の円」をその平面法線の +/− で二分して着色
-  // ------------------------------------------------------------
+  camera.updateProjectionMatrix();
 
   const gyroGroup = new THREE.Group();
 
-  // snap 用：どのメッシュがどの軸かを覚えておく
+  // ------------------------------------------------------------
+  // ジャイロ本体パラメータ
+  // ------------------------------------------------------------
+  const ringRadius = 1.3;
+  const ringTube = 0.12;
+  const ringRadialSegments = 16;
+  const ringTubularSegments = 48;
+
+  const CAM_DISTANCE = ringRadius * 1.3; // カメラ中心と原点の距離
+  const LENS_OFFSET = 0.18;              // カメラローカル原点→レンズ中心の距離（-Z 方向）
+
   const clickableRingMeshes = [];
+  const clickablePresetMeshes = [];
+  const presetBeams = []; // アイソメ4方だけ登録する
+  const presetGroupsById = Object.create(null);
+  let activePresetId = null;
 
-  const ringRadius = 1.2;
-  const ringTube   = 0.12;
-  const ringRadialSegments  = 18;
-  const ringTubularSegments = 64;
+  // ------------------------------------------------------------
+  // 7 ビュー定義: 3 軸 (+X,+Y,+Z) + アイソメ 4 方
+  // 角度(theta,phi)は CAMERA_VIEW_DEFS から取得して一元管理
+  // ------------------------------------------------------------
 
+  const RAW_PRESET_DEFS = [
+    // 軸 3 面
+    {
+      id: "x+",
+      label: "X+",
+      kind: "axis",
+      uiPos: "right",
+    },
+    {
+      id: "y+",
+      label: "Y+",
+      kind: "axis",
+      uiPos: "top",
+    },
+    {
+      id: "z+",
+      label: "Z+",
+      kind: "axis",
+      uiPos: "top",
+    },
+
+    // アイソメ 4 方（NE / NW / SW / SE）
+    {
+      id: "iso-ne",
+      label: "ISO NE",
+      kind: "iso",
+      uiPos: "ne",
+    },
+    {
+      id: "iso-nw",
+      label: "ISO NW",
+      kind: "iso",
+      uiPos: "nw",
+    },
+    {
+      id: "iso-sw",
+      label: "ISO SW",
+      kind: "iso",
+      uiPos: "sw",
+    },
+    {
+      id: "iso-se",
+      label: "ISO SE",
+      kind: "iso",
+      uiPos: "se",
+    },
+  ];
+
+  const PRESET_DEFS = RAW_PRESET_DEFS.map((def) => {
+    const view = CAMERA_VIEW_DEFS[def.id];
+    return {
+      ...def,
+      theta: view ? view.theta : 0,
+      phi: view ? view.phi : Math.PI / 2,
+    };
+  });
+
+  function dirFromAngles(theta, phi, out = new THREE.Vector3()) {
+    const sinPhi = Math.sin(phi);
+    const cosPhi = Math.cos(phi);
+    const sinTheta = Math.sin(theta);
+    const cosTheta = Math.cos(theta);
+
+    out.set(
+      sinPhi * cosTheta, // X
+      sinPhi * sinTheta, // Y
+      cosPhi // Z
+    );
+    return out;
+  }
+
+  PRESET_DEFS.forEach((def) => {
+    def.dir = dirFromAngles(def.theta, def.phi, new THREE.Vector3());
+  });
+
+  // ------------------------------------------------------------
   // 軸ごとにリングを作る
-  //  - geometry は軸の法線に合わせて回転
-  //  - 頂点 position の「その軸の成分」が + か − かで色を変える
+  // ------------------------------------------------------------
   function createAxisRing(axis, baseHex) {
     const geom = new THREE.TorusGeometry(
       ringRadius,
@@ -87,8 +174,8 @@ export function attachGizmo(wrapper, hub) {
     }
 
     const baseColor = new THREE.Color(baseHex);
-    const bright = baseColor.clone();                 // ＋側
-    const dark   = baseColor.clone().multiplyScalar(0.3); // −側は暗く
+    const bright = baseColor.clone(); // ＋側
+    const dark = baseColor.clone().multiplyScalar(0.3); // −側は暗く
 
     const pos = geom.attributes.position;
     const colorArray = new Float32Array(pos.count * 3);
@@ -110,10 +197,7 @@ export function attachGizmo(wrapper, hub) {
       colorArray[i * 3 + 2] = c.b;
     }
 
-    geom.setAttribute(
-      "color",
-      new THREE.BufferAttribute(colorArray, 3)
-    );
+    geom.setAttribute("color", new THREE.BufferAttribute(colorArray, 3));
 
     const mat = new THREE.MeshStandardMaterial({
       vertexColors: true,
@@ -122,16 +206,16 @@ export function attachGizmo(wrapper, hub) {
     });
 
     const mesh = new THREE.Mesh(geom, mat);
-    mesh.userData.axis = axis;       // snap 用
-    clickableRingMeshes.push(mesh);  // raycast 用
+    mesh.userData.axis = axis; // snap 用
+    clickableRingMeshes.push(mesh); // raycast 用
     gyroGroup.add(mesh);
     return mesh;
   }
 
-  // 各軸リング生成（平面意味づけに合わせた色）
-  const ringX = createAxisRing("x", COLOR_AXIS_X); // YZ 平面 = 青
-  const ringY = createAxisRing("y", COLOR_AXIS_Y); // ZX 平面 = 緑
-  const ringZ = createAxisRing("z", COLOR_AXIS_Z); // XY 平面 = 赤
+  // 各軸リング生成
+  createAxisRing("x", COLOR_AXIS_X); // YZ 平面 = 青
+  createAxisRing("y", COLOR_AXIS_Y); // ZX 平面 = 緑
+  createAxisRing("z", COLOR_AXIS_Z); // XY 平面 = 赤
 
   // 中心の小さなメタル球
   const centerSphere = new THREE.Mesh(
@@ -144,180 +228,235 @@ export function attachGizmo(wrapper, hub) {
   );
   gyroGroup.add(centerSphere);
 
-
   // ------------------------------------------------------------
-  // 第1象限を示す 3 枚の 1/4 円サーフェス（XY, XZ, YZ 面）
+  // 第1象限サーフェス
   // ------------------------------------------------------------
-
-  // リングの内側に少しだけ収まる半径
   const patchRadius = ringRadius - ringTube * 0.6;
-
-  // XY 平面の +X +Y 側 1/4 円
   const patchGeom = new THREE.CircleGeometry(
     patchRadius,
-    48,             // 分割数
-    0,              // startAngle
-    Math.PI / 2     // thetaLength = 90°
+    48,
+    0,
+    Math.PI / 2 // 90°
   );
 
   const basePatchMat = new THREE.MeshStandardMaterial({
-    color: 0xffff99,        // ほんのり黄
+    color: 0xffff99,
     emissive: 0x332200,
     transparent: true,
     opacity: 0.36,
     side: THREE.DoubleSide,
-    depthWrite: false,      // gizmo のリングを邪魔しないように
+    depthWrite: false,
   });
 
-  // z = 0 平面（XY 面）: +X +Y
   const patchXY = new THREE.Mesh(patchGeom, basePatchMat);
-  // rotation ゼロのままで OK（法線 +Z）
   gyroGroup.add(patchXY);
 
-  // y = 0 平面（XZ 面）: +X +Z
   const patchXZ = new THREE.Mesh(patchGeom, basePatchMat.clone());
-  patchXZ.rotation.x = Math.PI / 2; // XY 面を XZ 面に倒す（法線 +Y）
+  patchXZ.rotation.x = Math.PI / 2;
   gyroGroup.add(patchXZ);
 
-  // x = 0 平面（YZ 面）: +Y +Z
   const patchYZ = new THREE.Mesh(patchGeom, basePatchMat.clone());
-  patchYZ.rotation.y =  -Math.PI / 2; // XY 面を YZ 面に回す（法線 +X）
+  patchYZ.rotation.y = -Math.PI / 2;
   gyroGroup.add(patchYZ);
 
   // ------------------------------------------------------------
-  // Z 軸シャフト（リングを上下に突き抜ける黒寄りシルバー）
+  // Z 軸シャフト（シルバー）
   // ------------------------------------------------------------
   const rodRadius = 0.32;
   const rodLength = ringRadius * 2.8;
-  const rodGeom = new THREE.CylinderGeometry(
-    rodRadius,
-    rodRadius,
-    rodLength,
-    32
-  );
+  const rodGeom = new THREE.CylinderGeometry(rodRadius, rodRadius, rodLength, 32);
   const rodMat = new THREE.MeshStandardMaterial({
-    color: 0xb8c8ff,   // うっすら青いアルミっぽい色
+    color: 0xb8c8ff,
     metalness: 0.9,
-    roughness: 0.35,   // 磨き鉄よりはザラザラ
+    roughness: 0.35,
   });
   const zRod = new THREE.Mesh(rodGeom, rodMat);
   zRod.rotation.x = Math.PI / 2;
   gyroGroup.add(zRod);
 
-// ------------------------------------------------------------
-// 軸端ラベル "x+","y+","z+"（ビルボードせずローカル固定）
-// ------------------------------------------------------------
-function createAxisLabel(text, axisColorHex, dirVec3, options = {}) {
-  const {
-    // 原点→ラベル中心の距離スケール（ringRadius * labelRadiusScale）
-    labelRadiusScale = 1.4,
-    // ラベル平面内での回転量（ラジアン, CW/CCW 調整用）
-    rotateInPlaneRad = 0,
-    // ラベルの向いている方向を 180° 反転させるか（裏表ひっくり返し）
-    flipFacing = false,
-    // lookAt 後に X 軸回りに足すチルト量（ラジアン）
-    tiltXRadians = 0,
-  } = options;
+  // ------------------------------------------------------------
+  // 軸端ラベル "x+","y+","z+"
+  // ------------------------------------------------------------
+  function createAxisLabel(text, axisColorHex, dirVec3, options = {}) {
+    const {
+      labelRadiusScale = 1.4,
+      rotateInPlaneRad = 0,
+      flipFacing = false,
+      tiltXRadians = 0,
+    } = options;
 
-  const size = 128;
-  const canvasLabel = document.createElement("canvas");
-  canvasLabel.width = size;
-  canvasLabel.height = size / 2;
+    const size = 128;
+    const canvasLabel = document.createElement("canvas");
+    canvasLabel.width = size;
+    canvasLabel.height = size / 2;
 
-  const ctx = canvasLabel.getContext("2d");
-  ctx.clearRect(0, 0, canvasLabel.width, canvasLabel.height);
+    const ctx = canvasLabel.getContext("2d");
+    ctx.clearRect(0, 0, canvasLabel.width, canvasLabel.height);
 
-  const basePx = 48;
-  ctx.font =
-    "italic 600 " +
-    basePx +
-    "px " +
-    "'Cambria Math', 'Cambria', 'Times New Roman', serif";
+    const basePx = 48;
+    ctx.font =
+      "italic 600 " +
+      basePx +
+      "px " +
+      "'Cambria Math', 'Cambria', 'Times New Roman', serif";
 
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
 
-  ctx.fillStyle = "rgba(0,0,0,0)";
-  ctx.fillRect(0, 0, canvasLabel.width, canvasLabel.height);
+    ctx.fillStyle = "rgba(0,0,0,0)";
+    ctx.fillRect(0, 0, canvasLabel.width, canvasLabel.height);
 
-  const colorStr = "#" + axisColorHex.toString(16).padStart(6, "0");
-  ctx.strokeStyle = colorStr;
-  ctx.fillStyle = "#ffffff";
-  ctx.lineWidth = 3;
+    const colorStr = "#" + axisColorHex.toString(16).padStart(6, "0");
+    ctx.strokeStyle = colorStr;
+    ctx.fillStyle = "#ffffff";
+    ctx.lineWidth = 3;
 
-  const cx = canvasLabel.width / 2;
-  const cy = canvasLabel.height / 2;
-  ctx.strokeText(text, cx, cy);
-  ctx.fillText(text, cx, cy);
+    const cx = canvasLabel.width / 2;
+    const cy = canvasLabel.height / 2;
+    ctx.strokeText(text, cx, cy);
+    ctx.fillText(text, cx, cy);
 
-  const tex = new THREE.CanvasTexture(canvasLabel);
-  tex.needsUpdate = true;
+    const tex = new THREE.CanvasTexture(canvasLabel);
+    tex.needsUpdate = true;
 
-  const mat = new THREE.MeshBasicMaterial({
-    map: tex,
-    transparent: true,
-    depthTest: true,
-    side: THREE.DoubleSide,
+    const mat = new THREE.MeshBasicMaterial({
+      map: tex,
+      transparent: true,
+      depthTest: true,
+      side: THREE.DoubleSide,
+    });
+
+    const planeW = 1.0;
+    const planeH = 0.5;
+    const geo = new THREE.PlaneGeometry(planeW, planeH);
+    const mesh = new THREE.Mesh(geo, mat);
+
+    const pos = dirVec3.clone().setLength(ringRadius * labelRadiusScale);
+    mesh.position.copy(pos);
+
+    mesh.lookAt(dirVec3.clone().multiplyScalar(2));
+
+    if (flipFacing) {
+      mesh.rotateY(Math.PI);
+    }
+
+    if (tiltXRadians !== 0) {
+      mesh.rotateX(tiltXRadians);
+    }
+
+    if (rotateInPlaneRad !== 0) {
+      mesh.rotateZ(rotateInPlaneRad);
+    }
+
+    gyroGroup.add(mesh);
+  }
+
+  createAxisLabel("x+", COLOR_AXIS_X, new THREE.Vector3(0.9, 0, 0), {
+    labelRadiusScale: 1.2,
+    rotateInPlaneRad: Math.PI / 2,
   });
 
-  const planeW = 1.0;
-  const planeH = 0.5;
-  const geo = new THREE.PlaneGeometry(planeW, planeH);
-  const mesh = new THREE.Mesh(geo, mat);
+  createAxisLabel("y+", COLOR_AXIS_Y, new THREE.Vector3(0, 0.9, 0), {
+    labelRadiusScale: 1.2,
+    rotateInPlaneRad: Math.PI,
+  });
 
-  // 原点から dirVec3 方向に ringRadius * labelRadiusScale だけオフセット
-  const pos = dirVec3.clone().setLength(ringRadius * labelRadiusScale);
-  mesh.position.copy(pos);
+  createAxisLabel("z+", COLOR_AXIS_Z, new THREE.Vector3(0, 0, 0.5), {
+    labelRadiusScale: 1.5,
+    tiltXRadians: -Math.PI / 2,
+  });
 
-  // まずラベルの法線を軸の + 方向へ向ける
-  mesh.lookAt(dirVec3.clone().multiplyScalar(2));
+  // ------------------------------------------------------------
+  // 7 ビュー用ミニカメラ（3D メッシュ）＋ビーム
+  // ------------------------------------------------------------
+  const camBodyGeo = new THREE.BoxGeometry(0.36, 0.2, 0.26);
+  const camBodyMat = new THREE.MeshStandardMaterial({
+    color: 0x999999, // グレー筐体
+    metalness: 0.3,
+    roughness: 0.6,
+  });
 
-  // 必要なら裏表を反転
-  if (flipFacing) {
-    mesh.rotateY(Math.PI);
+  const lensGeo = new THREE.CircleGeometry(0.09, 32);
+  const lensMat = new THREE.MeshStandardMaterial({
+    color: 0x99c0ff,
+    emissive: 0x3355ff,
+    metalness: 0.6,
+    roughness: 0.1,
+  });
+
+  const beamRadius = 0.03;
+
+  const beamMatBase = new THREE.MeshStandardMaterial({
+    color: 0x99bbff,
+    emissive: 0x3355ff,
+    transparent: true,
+    opacity: 0.0,
+    depthWrite: false,
+  });
+
+  function createPresetCamera(def) {
+    const group = new THREE.Group();
+    const dir = def.dir.clone().normalize();
+
+    // カメラ位置（原点から CAM_DISTANCE の位置）
+    const camPos = dir.clone().setLength(CAM_DISTANCE);
+    group.position.copy(camPos);
+
+    // 「前方向」(-Z) を原点に向ける
+    const forward = new THREE.Vector3(0, 0, -1);
+    const toCenter = camPos.clone().multiplyScalar(-1).normalize();
+    const q = new THREE.Quaternion().setFromUnitVectors(forward, toCenter);
+    group.quaternion.copy(q);
+
+    // 本体
+    const body = new THREE.Mesh(camBodyGeo, camBodyMat);
+    body.position.z = 0;
+    group.add(body);
+
+    // レンズ（原点側の面）
+    const lens = new THREE.Mesh(lensGeo, lensMat);
+    lens.position.z = -LENS_OFFSET;
+    lens.rotation.y = Math.PI; // 法線を -Z（原点向き）へ
+    group.add(lens);
+
+    // 視線ビーム（アイソメ4方のみ）
+    if (def.kind === "iso") {
+      const beamLength = CAM_DISTANCE - LENS_OFFSET; // レンズ中心〜原点
+      const beamGeom = new THREE.CylinderGeometry(
+        beamRadius,
+        beamRadius,
+        beamLength,
+        16
+      );
+
+      const beam = new THREE.Mesh(beamGeom, beamMatBase.clone());
+
+      // Cylinder は Y 軸方向に伸びるので、Z 軸に合わせる
+      beam.rotation.x = Math.PI / 2;
+
+      // レンズ(z = -LENS_OFFSET) と 原点(z = -CAM_DISTANCE) の中点に置く
+      const beamCenterZ = -(CAM_DISTANCE + LENS_OFFSET) / 2;
+      beam.position.set(0, 0, beamCenterZ);
+
+      group.add(beam);
+      presetBeams.push({ id: def.id, mesh: beam });
+    }
+
+    group.userData.presetId = def.id;
+    gyroGroup.add(group);
+
+    clickablePresetMeshes.push(group);
+    presetGroupsById[def.id] = group;
   }
 
-  // X 軸回りの追加チルト
-  if (tiltXRadians !== 0) {
-    mesh.rotateX(tiltXRadians);
-  }
+  PRESET_DEFS.forEach(createPresetCamera);
 
-  // 平面内の微調整回転（CW/CCW）
-  if (rotateInPlaneRad !== 0) {
-    mesh.rotateZ(rotateInPlaneRad);
-  }
-
-  gyroGroup.add(mesh);
-}
-
-// 既存リングの色に合わせてラベル作成
-
-// X+: 少し内側寄せ（labelRadiusScale 小さめ）＋ CW90° 回転
-createAxisLabel("x+", COLOR_AXIS_X, new THREE.Vector3(0.9, 0, 0), {
-  labelRadiusScale: 1.2,          // リング外周ぎりぎりくらい
-  rotateInPlaneRad: Math.PI / 2,  // CW 90°
-});
-
-// Y+: 少し内側寄せ ＋ 上下反転
-createAxisLabel("y+", COLOR_AXIS_Y, new THREE.Vector3(0, 0.9, 0), {
-  labelRadiusScale: 1.2,
-  rotateInPlaneRad: Math.PI,      // 180° 回転
-});
-
-// Z+: ちょい外側寄せ ＋ X 軸回りに −90° チルト
-createAxisLabel("z+", COLOR_AXIS_Z, new THREE.Vector3(0, 0, 0.5), {
-  labelRadiusScale: 1.5,
-  tiltXRadians: -Math.PI / 2,
-  // rotateInPlaneRad: 0, // 特になし
-});
-
-  
   // 枠から少し余白が出るように全体を縮小
-  const GIZMO_SCALE = 0.7; // 0.7〜0.9 くらいで好みに調整
+  const GIZMO_SCALE = 0.8;
   gyroGroup.scale.set(GIZMO_SCALE, GIZMO_SCALE, GIZMO_SCALE);
   scene.add(gyroGroup);
 
-  // ライティング（上下感の演出はそのまま流用して OK）
+  // ライティング
   const ambient = new THREE.AmbientLight(0xffffff, 0.55);
   scene.add(ambient);
 
@@ -333,30 +472,156 @@ createAxisLabel("z+", COLOR_AXIS_Z, new THREE.Vector3(0, 0, 0.5), {
   const raycaster = new THREE.Raycaster();
   const ndc = new THREE.Vector2();
 
+ // ------------------------------------------------------------
+  // 7ビュー UI 制御（ON/OFF）
+  // ------------------------------------------------------------
+  const presetToggleBtn = document.getElementById("gizmo-presets-toggle");
+  let presetsVisible = false;
+
+  function updatePresetVisibility() {
+    clickablePresetMeshes.forEach((g) => {
+      g.visible = presetsVisible;
+    });
+
+    if (presetToggleBtn) {
+      presetToggleBtn.setAttribute(
+        "aria-pressed",
+        presetsVisible ? "true" : "false"
+      );
+    }
+  }
+
+  // ★ リスナを外せるように名前付き関数に
+  function handlePresetToggle(ev) {
+    if (isDisposed) return;
+    ev.preventDefault();
+    presetsVisible = !presetsVisible;
+    updatePresetVisibility();
+  }
+
+  if (presetToggleBtn) {
+    presetToggleBtn.addEventListener("click", handlePresetToggle);
+  }
+
+  updatePresetVisibility();
+
+  // ------------------------------------------------------------
+  // 角度から最寄りプリセットを探す
+  // ------------------------------------------------------------
+  // 閾値: theta/phi の二乗和がこれ未満なら「ほぼそのプリセット」
+  const ACTIVE_PRESET_MAX_ERR = 0.5; // (rad^2) ざっくり 30° 前後のズレまで
+
+  function findNearestPreset(theta, phi) {
+    let bestId = null;
+    let bestScore = Infinity;
+
+    PRESET_DEFS.forEach((def) => {
+      const dTheta = Math.atan2(
+        Math.sin(theta - def.theta),
+        Math.cos(theta - def.theta)
+      );
+      const dPhi = phi - def.phi;
+      const score = dTheta * dTheta + dPhi * dPhi;
+      if (score < bestScore) {
+        bestScore = score;
+        bestId = def.id;
+      }
+    });
+
+    return bestScore < ACTIVE_PRESET_MAX_ERR ? bestId : null;
+  }
+
+  // ------------------------------------------------------------
+  // プリセット適用 → CameraEngine 側へ通知
+  // ------------------------------------------------------------
+  function applyPresetById(id) {
+    if (!hub?.core?.camera) return;
+
+    const cam = hub.core.camera;
+    const def = PRESET_DEFS.find((d) => d.id === id);
+    if (!def) return;
+
+    // AutoOrbit 中なら先に止める（キーボードと挙動を揃える）
+    if (typeof cam.stopAutoOrbit === "function") {
+      cam.stopAutoOrbit();
+    } else if (hub.core.uiState?.runtime) {
+      hub.core.uiState.runtime.isCameraAuto = false;
+    }
+
+    const cur =
+      typeof cam.getState === "function" ? cam.getState() : {};
+
+    if (typeof cam.setState === "function") {
+      cam.setState({
+        ...cur,
+        theta: def.theta,
+        phi: def.phi,
+      });
+    }
+
+    activePresetId = id;
+  }
+
+  // ------------------------------------------------------------
+  // アクティブビューに応じたビーム演出（アイソメだけ点滅）
+  // ------------------------------------------------------------
+  function updatePresetBeams(timeSec) {
+    presetBeams.forEach(({ id, mesh }) => {
+      const mat = mesh.material;
+      if (!mat) return;
+
+    if (!presetsVisible || !activePresetId || id !== activePresetId) {
+        mat.opacity = 0.0;
+        return;
+      }
+
+      const t = (timeSec * 2.0) % 1.0;
+      const pulse = 0.4 + 0.6 * Math.sin(t * Math.PI * 2) * 0.5 + 0.3;
+      mat.opacity = pulse;
+    });
+  }
 
   // ------------------------------------------------------------
   // サイズ調整（wrapper の大きさに追従）
   // ------------------------------------------------------------
   function resizeIfNeeded() {
     const rect = wrapper.getBoundingClientRect();
-    const size = Math.max(32, Math.min(rect.width || 100, rect.height || 100));
+    if (!rect.width || !rect.height) return;
+
+    // 枠の中で正方形を確保（末広がり前提なので最小辺）
+    const logicalSize = Math.max(
+      32,
+      Math.min(rect.width, rect.height)
+    );
+
     const dpr = window.devicePixelRatio || 1;
 
-    const w = Math.round(size * dpr);
-    const h = Math.round(size * dpr);
+    // CSS 上の表示サイズ（px）
+    const displaySize = Math.round(logicalSize);
 
-    if (canvas.width !== w || canvas.height !== h) {
-      canvas.width = w;
-      canvas.height = h;
-      renderer.setSize(w, h, false);
+    // 実ピクセルは DPR でスケール
+    const renderSize = Math.round(logicalSize * dpr);
 
-      camera.aspect = 1; // 正方形固定
-      camera.updateProjectionMatrix();
-    }
+    // 既に同じなら何もしない
+    if (canvas.width === renderSize && canvas.height === renderSize) return;
+
+    // DOM（見た目）は displaySize の正方形に固定
+    canvas.style.width = `${displaySize}px`;
+    canvas.style.height = `${displaySize}px`;
+
+    // 描画バッファは DPR 倍の正方形
+    canvas.width = renderSize;
+    canvas.height = renderSize;
+
+    renderer.setPixelRatio(dpr);
+    renderer.setSize(renderSize, renderSize, false);
+
+    camera.aspect = 1;
+    camera.updateProjectionMatrix();
   }
 
   // ------------------------------------------------------------
-  // メインカメラの state からミニカメラ姿勢を計算
+  // メインカメラ state → ミニカメラ姿勢
   // ------------------------------------------------------------
   const vPos = new THREE.Vector3();
 
@@ -367,7 +632,6 @@ createAxisLabel("z+", COLOR_AXIS_Z, new THREE.Vector3(0, 0, 0.5), {
       !hub.core.camera ||
       typeof hub.core.camera.getState !== "function"
     ) {
-      // hub がまだならデフォルト姿勢
       camera.position.set(3, 3, 3);
       camera.up.set(0, 0, 1);
       camera.lookAt(0, 0, 0);
@@ -377,13 +641,8 @@ createAxisLabel("z+", COLOR_AXIS_Z, new THREE.Vector3(0, 0, 0.5), {
     const state = hub.core.camera.getState();
     if (!state) return;
 
-    // CameraEngine の state: { theta, phi, distance, target, fov }
-    const theta =
-      typeof state.theta === "number" ? state.theta : 0;
-    const phi =
-      typeof state.phi === "number" ? state.phi : Math.PI / 2;
-
-    // 距離は gizmo 上では適当な固定値で OK（向きだけ使いたい）
+    const theta = typeof state.theta === "number" ? state.theta : 0;
+    const phi = typeof state.phi === "number" ? state.phi : Math.PI / 2;
     const distance = 4;
 
     const sinPhi = Math.sin(phi);
@@ -391,13 +650,10 @@ createAxisLabel("z+", COLOR_AXIS_Z, new THREE.Vector3(0, 0, 0.5), {
     const sinTheta = Math.sin(theta);
     const cosTheta = Math.cos(theta);
 
-    // Z-up の球座標:
-    // φ: +Z からの極角 [0,π]
-    // θ: XY 平面での方位角
     vPos.set(
-      distance * sinPhi * cosTheta, // X
-      distance * sinPhi * sinTheta, // Y
-      distance * cosPhi             // Z
+      distance * sinPhi * cosTheta,
+      distance * sinPhi * sinTheta,
+      distance * cosPhi
     );
 
     camera.position.copy(vPos);
@@ -408,44 +664,35 @@ createAxisLabel("z+", COLOR_AXIS_Z, new THREE.Vector3(0, 0, 0.5), {
       camera.fov = state.fov;
       camera.updateProjectionMatrix();
     }
+
+    activePresetId = findNearestPreset(theta, phi);
+
+    // 視点に合わせてプリセットカメラの見た目を更新
+    Object.entries(presetGroupsById).forEach(([id, group]) => {
+      if (!group) return;
+      const s = id === activePresetId ? 1.1 : 1.0;
+      group.scale.set(s, s, s);
+    });
   }
 
-  // ------------------------------------------------------------
-  // gizmo ドラッグ → カメラ回転 ＋ クリック → snapToAxis
+ // ------------------------------------------------------------
+  // gizmo ドラッグ → カメラ回転 ＋ クリック → snapToAxis / 7ビュー
   // ------------------------------------------------------------
   let isDragging = false;
   let lastX = 0;
   let lastY = 0;
   let dragDistSq = 0;
 
-  function snapCameraByRing(ev) {
-    if (!hub || !hub.core || !hub.core.camera) return;
-    const cam = hub.core.camera;
-    if (typeof cam.snapToAxis !== "function") return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
-    const y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
-    ndc.set(x, y);
-    raycaster.setFromCamera(ndc, camera);
-
-    const hits = raycaster.intersectObjects(clickableRingMeshes, false);
-    if (!hits.length) return;
-
-    const hit = hits[0].object;
-    const axis = hit && hit.userData && hit.userData.axis;
-    if (!axis) return;
-
-    cam.snapToAxis(axis);
-    if (window && window.console) {
-      console.log("[gizmo] ring clicked → snapToAxis", axis);
-    }
-  }
-
   function handlePointerDown(ev) {
-    // 左クリックだけ受ける
+    if (isDisposed) return;            // ★
     if (ev.button !== 0) return;
     if (!hub || !hub.core || !hub.core.camera) return;
+
+    // gizmo ドラッグ開始 = 手動操作 → AutoOrbit 停止
+    const cam = hub.core.camera;
+    if (cam && typeof cam.stopAutoOrbit === "function") {
+      cam.stopAutoOrbit();
+    }
 
     isDragging = true;
     lastX = ev.clientX;
@@ -454,13 +701,13 @@ createAxisLabel("z+", COLOR_AXIS_Z, new THREE.Vector3(0, 0, 0.5), {
 
     try {
       canvas.setPointerCapture(ev.pointerId);
-    } catch (_) {
-      // 古いブラウザ用に黙殺
-    }
+    } catch (_) {}
+
     ev.preventDefault();
   }
 
   function handlePointerMove(ev) {
+    if (isDisposed) return;            // ★
     if (!isDragging) return;
     if (!hub || !hub.core || !hub.core.camera) return;
 
@@ -473,31 +720,72 @@ createAxisLabel("z+", COLOR_AXIS_Z, new THREE.Vector3(0, 0, 0.5), {
     lastY = ev.clientY;
     dragDistSq += dx * dx + dy * dy;
 
-    // 画面座標 → ラジアン換算
-    const SENS_THETA = 0.01; // 水平回転
-    const SENS_PHI   = 0.01; // 垂直回転
+    const SENS_THETA = 0.01;
+    const SENS_PHI = 0.01;
 
-    // メインビューと同じ感覚:
-    //  - 右ドラッグ → 右回転（theta +）
-    //  - 上ドラッグ → 上向きにチルト（phi -）
     cam.rotate(dx * SENS_THETA, -dy * SENS_PHI);
 
     ev.preventDefault();
   }
 
+  function handleGizmoClick(ev) {
+    if (isDisposed) return;            // ★
+    if (!hub || !hub.core || !hub.core.camera) return;
+
+    const cam = hub.core.camera;
+    if (cam && typeof cam.stopAutoOrbit === "function") {
+      cam.stopAutoOrbit();
+    }
+
+    const rect = canvas.getBoundingClientRect();
+    const x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
+    const y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
+    ndc.set(x, y);
+
+    raycaster.setFromCamera(ndc, camera);
+
+    // まずリング（軸スナップ）
+    const ringHit = raycaster.intersectObjects(clickableRingMeshes, false)[0];
+    if (ringHit && ringHit.object && hub.core.camera.snapToAxis) {
+      const axis = ringHit.object.userData.axis;
+      if (axis) {
+        hub.core.camera.snapToAxis(axis);
+      }
+      return;
+    }
+
+    // 次に 7 ビューカメラ
+    if (presetsVisible) {
+      const presetHit = raycaster.intersectObjects(
+        clickablePresetMeshes,
+        true
+      )[0];
+      if (presetHit && presetHit.object && presetHit.object.parent) {
+        const g = presetHit.object.parent;
+        const id = g.userData.presetId;
+        if (id) {
+          applyPresetById(id);
+        }
+      }
+    }
+  }
+
   function handlePointerUp(ev) {
+    if (isDisposed) return;            // ★
     if (!isDragging) return;
 
-    // ほとんど動いていなければ「クリック」とみなして軸スナップ
-    const CLICK_THRESH_SQ = 36; // ≒ 6px
-    if (dragDistSq <= CLICK_THRESH_SQ && ev.type === "pointerup") {
-      snapCameraByRing(ev);
-    }
+    const CLICK_THRESH_SQ = 36;
+    const clicked = dragDistSq <= CLICK_THRESH_SQ && ev.type === "pointerup";
 
     isDragging = false;
     try {
       canvas.releasePointerCapture(ev.pointerId);
     } catch (_) {}
+
+    if (clicked) {
+      handleGizmoClick(ev);
+    }
+
     ev.preventDefault();
   }
 
@@ -510,16 +798,74 @@ createAxisLabel("z+", COLOR_AXIS_Z, new THREE.Vector3(0, 0, 0.5), {
   // ------------------------------------------------------------
   // ループ: サイズ調整 → カメラ同期 → レンダ
   // ------------------------------------------------------------
-  function loop() {
+  function loop(now) {
+    if (isDisposed) return;            // ★
+
     try {
       resizeIfNeeded();
       syncCameraFromHub();
+      updatePresetBeams(now * 0.001);
       renderer.render(scene, camera);
     } catch (e) {
       console.warn("[gizmo] loop error", e);
     }
-    requestAnimationFrame(loop);
+
+    rafId = requestAnimationFrame(loop);  // ★ id を保持
   }
 
-  requestAnimationFrame(loop);
+  rafId = requestAnimationFrame(loop);    // ★ 初回キック
+
+  // ------------------------------------------------------------
+  // dispose ハンドルを返す
+  // ------------------------------------------------------------
+  function dispose() {
+    if (isDisposed) return;
+    isDisposed = true;
+
+    // rAF 停止
+    if (rafId !== null) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+
+    // イベントリスナ解除
+    canvas.removeEventListener("pointerdown", handlePointerDown);
+    canvas.removeEventListener("pointermove", handlePointerMove);
+    canvas.removeEventListener("pointerup", handlePointerUp);
+    canvas.removeEventListener("pointercancel", handlePointerUp);
+    canvas.removeEventListener("pointerleave", handlePointerUp);
+
+    if (presetToggleBtn) {
+      presetToggleBtn.removeEventListener("click", handlePresetToggle);
+    }
+
+    // three.js リソース破棄
+    renderer.dispose();
+    // 余裕があればジオメトリ/マテリアルも開放しておく
+    scene.traverse((obj) => {
+      if (obj.geometry && typeof obj.geometry.dispose === "function") {
+        obj.geometry.dispose();
+      }
+      if (obj.material) {
+        if (Array.isArray(obj.material)) {
+          obj.material.forEach((m) => m && m.dispose && m.dispose());
+        } else if (typeof obj.material.dispose === "function") {
+          obj.material.dispose();
+        }
+      }
+    });
+
+    // WebGL コンテキストを積極的に捨てたい場合
+    if (typeof renderer.forceContextLoss === "function") {
+      renderer.forceContextLoss();
+    }
+
+    // DOM から取り外し
+    if (canvas.parentElement === wrapper) {
+      wrapper.removeChild(canvas);
+    }
+    wrapper.innerHTML = ""; // 念のため
+  }
+
+  return { dispose };                  // ★ ハンドル返却
 }

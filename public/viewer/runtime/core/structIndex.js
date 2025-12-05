@@ -1,7 +1,7 @@
 // runtime/core/structIndex.js
 
 // 3DSS ドキュメントから「よく使う索引」をまとめて構築する。
-// buildUUIDIndex(document) の返り値（structIndex）の構造：
+// buildUUIDIndex(doc) の返り値（structIndex）の構造：
 //
 // {
 //   // 1) UUID → kind
@@ -18,8 +18,7 @@
 //
 //   // 3b) aux 用： UUID → position [x,y,z]
 //   //    - appearance.position をそのまま格納（数値配列のみ）
-//   auxPosition: Map<stre.position をそのまま格納（数値配列のみ）
-//   auxPosition: Map<string, [number, number, number]>,//
+//   auxPosition: Map<string, [number, number, number]>,
 //
 //   // 4) lines 用： UUID → { endA, endB }
 //   //    - appearance.end_a / end_b をそのまま格納
@@ -47,6 +46,21 @@
 //   // 7) 既存互換用：UUID → frames の集合
 //   //    - 旧実装互換のために残してある
 //   uuidToFrames: Map<string, Set<number>>,
+//
+//   // 8) シーン全体の境界（points / aux / lines の coord をざっくり全部含めたもの）
+//   //    - center: [x,y,z]
+//   //    - radius: number（バウンディングボックス対角線の半分）
+//   //    - min/max: [x,y,z]
+//   bounds: {
+//     center: [number, number, number],
+//     radius: number,
+//     min: [number, number, number],
+//     max: [number, number, number],
+//   },
+//
+//   // 9) bounds を取り出すヘルパ
+//   //    - 将来内部表現を変えてもここから取れば OK
+//   getSceneBounds(): { center, radius, min, max },
 // }
 //
 // ※ structIndex 自体は「document を速く引くための只の索引」であり、
@@ -110,7 +124,7 @@ function addToMultiMap(map, key, value) {
 }
 
 // 3DSS から structIndex を構築するメイン関数。
-export function buildUUIDIndex(document) {
+export function buildUUIDIndex(doc) {
   const uuidToKind = new Map();
   const uuidToItem = new Map();
   const pointPosition = new Map();
@@ -129,100 +143,159 @@ export function buildUUIDIndex(document) {
     lineToPoints: new Map(),
   };
 
-  // 不正な document なら空の index を返して終了。
-  if (!document || typeof document !== "object") {
-    return {
-      uuidToKind,
-      uuidToItem,
-      pointPosition,
-      lineEndpoints,
-      auxPosition,
-      frameIndex,
-      adjacency,
-      uuidToFrames,
+  // ★ バウンディング用の min/max
+  let minX = Infinity;
+  let minY = Infinity;
+  let minZ = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  let maxZ = -Infinity;
+
+  function expandBounds(pos) {
+    if (!pos || pos.length < 3) return;
+    const x = pos[0];
+    const y = pos[1];
+    const z = pos[2];
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) {
+      return;
+    }
+    if (x < minX) minX = x;
+    if (y < minY) minY = y;
+    if (z < minZ) minZ = z;
+    if (x > maxX) maxX = x;
+    if (y > maxY) maxY = y;
+    if (z > maxZ) maxZ = z;
+  }
+
+  if (doc && typeof doc === "object") {
+    // ---- points ----
+    if (Array.isArray(doc.points)) {
+      for (const node of doc.points) {
+        if (!node || typeof node !== "object") continue;
+
+        const uuid = node?.meta?.uuid;
+        if (!uuid) continue;
+
+        uuidToKind.set(uuid, "points");
+        uuidToItem.set(uuid, { kind: "points", item: node });
+
+        const pos = sanitizeVec3(node?.appearance?.position);
+        if (pos) {
+          pointPosition.set(uuid, pos);
+          expandBounds(pos);
+        }
+
+        const framesSet = normalizeFrames(node?.appearance?.frames);
+        if (framesSet) {
+          uuidToFrames.set(uuid, framesSet);
+          addFramesToFrameIndex(frameIndex.points, uuid, framesSet);
+        }
+      }
+    }
+
+    // ---- lines ----
+    if (Array.isArray(doc.lines)) {
+      for (const node of doc.lines) {
+        if (!node || typeof node !== "object") continue;
+
+        const uuid = node?.meta?.uuid;
+        if (!uuid) continue;
+
+        uuidToKind.set(uuid, "lines");
+        uuidToItem.set(uuid, { kind: "lines", item: node });
+
+        const endA = node?.appearance?.end_a ?? null;
+        const endB = node?.appearance?.end_b ?? null;
+        lineEndpoints.set(uuid, { endA, endB });
+
+        const framesSet = normalizeFrames(node?.appearance?.frames);
+        if (framesSet) {
+          uuidToFrames.set(uuid, framesSet);
+          addFramesToFrameIndex(frameIndex.lines, uuid, framesSet);
+        }
+
+        // adjacency: points ↔ lines
+        const refA = endA && typeof endA.ref === "string" ? endA.ref : null;
+        const refB = endB && typeof endB.ref === "string" ? endB.ref : null;
+
+        if (refA) addToMultiMap(adjacency.pointToLines, refA, uuid);
+        if (refB && refB !== refA) {
+          addToMultiMap(adjacency.pointToLines, refB, uuid);
+        }
+
+        adjacency.lineToPoints.set(uuid, [refA, refB]);
+
+        // lines の end_x.coord もバウンディングに含める（あれば）
+        const coordA = endA && sanitizeVec3(endA.coord);
+        if (coordA) expandBounds(coordA);
+        const coordB = endB && sanitizeVec3(endB.coord);
+        if (coordB) expandBounds(coordB);
+      }
+    }
+
+    // ---- aux ----
+    if (Array.isArray(doc.aux)) {
+      for (const node of doc.aux) {
+        if (!node || typeof node !== "object") continue;
+
+        const uuid = node?.meta?.uuid;
+        if (!uuid) continue;
+
+        uuidToKind.set(uuid, "aux");
+        uuidToItem.set(uuid, { kind: "aux", item: node });
+
+        const pos = sanitizeVec3(node?.appearance?.position);
+        if (pos) {
+          auxPosition.set(uuid, pos);
+          expandBounds(pos);
+        }
+
+        const framesSet = normalizeFrames(node?.appearance?.frames);
+        if (framesSet) {
+          uuidToFrames.set(uuid, framesSet);
+          addFramesToFrameIndex(frameIndex.aux, uuid, framesSet);
+        }
+      }
+    }
+  }
+
+  // ★ min/max から bounds を確定
+  let bounds;
+  if (
+    Number.isFinite(minX) &&
+    Number.isFinite(minY) &&
+    Number.isFinite(minZ) &&
+    Number.isFinite(maxX) &&
+    Number.isFinite(maxY) &&
+    Number.isFinite(maxZ)
+  ) {
+    const centerX = (minX + maxX) * 0.5;
+    const centerY = (minY + maxY) * 0.5;
+    const centerZ = (minZ + maxZ) * 0.5;
+
+    const dx = maxX - minX;
+    const dy = maxY - minY;
+    const dz = maxZ - minZ;
+    const radius = Math.sqrt(dx * dx + dy * dy + dz * dz) * 0.5;
+
+    bounds = {
+      center: [centerX, centerY, centerZ],
+      radius: radius > 0 ? radius : 1,
+      min: [minX, minY, minZ],
+      max: [maxX, maxY, maxZ],
+    };
+  } else {
+    // ジオメトリがまったく無い場合のフォールバック
+    bounds = {
+      center: [0, 0, 0],
+      radius: 1,
+      min: [0, 0, 0],
+      max: [0, 0, 0],
     };
   }
 
-  // ---- points ----
-  if (Array.isArray(document.points)) {
-    for (const node of document.points) {
-      if (!node || typeof node !== "object") continue;
-
-      const uuid = node?.meta?.uuid;
-      if (!uuid) continue;
-
-      uuidToKind.set(uuid, "points");
-      uuidToItem.set(uuid, { kind: "points", item: node });
-
-      const pos = sanitizeVec3(node?.appearance?.position);
-      if (pos) {
-        pointPosition.set(uuid, pos);
-      }
-
-      const framesSet = normalizeFrames(node?.appearance?.frames);
-      if (framesSet) {
-        uuidToFrames.set(uuid, framesSet);
-        addFramesToFrameIndex(frameIndex.points, uuid, framesSet);
-      }
-    }
-  }
-
-  // ---- lines ----
-  if (Array.isArray(document.lines)) {
-    for (const node of document.lines) {
-      if (!node || typeof node !== "object") continue;
-
-      const uuid = node?.meta?.uuid;
-      if (!uuid) continue;
-
-      uuidToKind.set(uuid, "lines");
-      uuidToItem.set(uuid, { kind: "lines", item: node });
-
-      const endA = node?.appearance?.end_a ?? null;
-      const endB = node?.appearance?.end_b ?? null;
-      lineEndpoints.set(uuid, { endA, endB });
-
-      const framesSet = normalizeFrames(node?.appearance?.frames);
-      if (framesSet) {
-        uuidToFrames.set(uuid, framesSet);
-        addFramesToFrameIndex(frameIndex.lines, uuid, framesSet);
-      }
-
-      // adjacency: points ↔ lines
-      const refA = endA && typeof endA.ref === "string" ? endA.ref : null;
-      const refB = endB && typeof endB.ref === "string" ? endB.ref : null;
-
-      if (refA) addToMultiMap(adjacency.pointToLines, refA, uuid);
-      if (refB && refB !== refA) {
-        addToMultiMap(adjacency.pointToLines, refB, uuid);
-      }
-
-      adjacency.lineToPoints.set(uuid, [refA, refB]);
-    }
-  }
-
-  // ---- aux ----
-  if (Array.isArray(document.aux)) {
-    for (const node of document.aux) {
-      if (!node || typeof node !== "object") continue;
-
-      const uuid = node?.meta?.uuid;
-      if (!uuid) continue;
-
-      uuidToKind.set(uuid, "aux");
-      uuidToItem.set(uuid, { kind: "aux", item: node });
-
-      const pos = sanitizeVec3(node?.appearance?.position);
-      if (pos) {
-        auxPosition.set(uuid, pos);
-      }
-
-      const framesSet = normalizeFrames(node?.appearance?.frames);
-      if (framesSet) {
-        uuidToFrames.set(uuid, framesSet);
-        addFramesToFrameIndex(frameIndex.aux, uuid, framesSet);
-      }
-    }
+  function getSceneBounds() {
+    return bounds;
   }
 
   return {
@@ -234,13 +307,15 @@ export function buildUUIDIndex(document) {
     frameIndex,
     adjacency,
     uuidToFrames,
+    bounds,
+    getSceneBounds,
   };
 }
 
 // appearance.frames 全体をスキャンして [min,max] を返す。
 // 何も無ければ {0,0}。
-export function detectFrameRange(document) {
-  if (!document || typeof document !== "object") {
+export function detectFrameRange(doc) {
+  if (!doc || typeof doc !== "object") {
     return { min: 0, max: 0 };
   }
 
@@ -263,9 +338,9 @@ export function detectFrameRange(document) {
     }
   }
 
-  scanArray(document.points);
-  scanArray(document.lines);
-  scanArray(document.aux);
+  scanArray(doc.points);
+  scanArray(doc.lines);
+  scanArray(doc.aux);
 
   if (!Number.isFinite(min) || !Number.isFinite(max)) {
     return { min: 0, max: 0 };

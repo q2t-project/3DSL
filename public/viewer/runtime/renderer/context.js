@@ -3,6 +3,7 @@ import * as THREE from "../../../vendor/three/build/three.module.js";
 import { applyMicroFX as applyMicroFXImpl } from "./microFX/index.js";
 import { labelConfig } from "./labels/labelConfig.js";
 import { buildPointLabelIndex } from "../core/labelModel.js";
+import { createWorldAxesLayer } from "./worldAxes.js"; 
 
 // ------------------------------------------------------------
 // logging
@@ -66,13 +67,6 @@ function getOpacity(node, fallback = 1.0) {
   return typeof o === "number" ? o : fallback;
 }
 
-function getPointSize(node, fallback = 0.06) {
-  const s =
-    node?.appearance?.size ??
-    node?.size;
-  return typeof s === "number" ? s : fallback;
-}
-
 export function createRendererContext(canvasOrOptions) {
   const canvas =
     canvasOrOptions instanceof HTMLCanvasElement
@@ -100,6 +94,11 @@ export function createRendererContext(canvasOrOptions) {
   directional.position.set(5, 10, 7.5);
   scene.add(directional);
 
+  // ------------------------------------------------------------
+  // ワールド軸レイヤ（背景）: X=青, Y=緑, Z=赤
+  // ------------------------------------------------------------
+  const worldAxes = createWorldAxesLayer(scene);
+
   const pointObjects = new Map(); // uuid -> THREE.Mesh（point）
   const lineObjects  = new Map(); // uuid -> THREE.Line / LineSegments
   const auxObjects   = new Map(); // uuid -> THREE.Object3D
@@ -108,8 +107,11 @@ export function createRendererContext(canvasOrOptions) {
   const labelSprites    = new Map(); // uuid -> THREE.Sprite
 
   // シーンメトリクス（この viewer インスタンス内で共有）
+  // シーンメトリクス（この viewer インスタンス内で共有）
   let sceneRadius = 1;
   const sceneCenter = new THREE.Vector3(0, 0, 0);
+
+
   const lookupByUuid = (uuid) =>
     pointObjects.get(uuid) || lineObjects.get(uuid) || auxObjects.get(uuid);
 
@@ -230,51 +232,65 @@ export function createRendererContext(canvasOrOptions) {
     const worldHeight = labelConfig.world.baseHeight * worldScale;
     const aspect = canvas.width / canvas.height;
 
-    // plane モードを解釈
-    const plane = label.plane || "screen"; // "screen" | "xy" | "yz" | "xz" など
+// plane モードを解釈
+//  - "billboard" / "screen" → 画面向き（メタ用途）
+//  - それ以外（未指定含む） → world 平面（xy / yz / zx）
+//    未知値は zx にフォールバック
+const rawPlane = label.plane;
+let plane;
 
-    let obj;
+// 互換のため "screen" は "billboard" の別名扱い
+if (rawPlane === "screen" || rawPlane === "billboard") {
+  plane = "billboard";
+} else if (rawPlane === "xy" || rawPlane === "yz" || rawPlane === "zx") {
+  plane = rawPlane;
+} else {
+  // 未指定 or 想定外 → 静的存在として zx に貼る
+  plane = "zx";
+}
 
-    if (plane === "screen" || plane === "billboard") {
-      // 画面向き（ビルボード）
-      const material = new THREE.SpriteMaterial({
-        map: texture,
-        transparent: true,
-        depthWrite: false,
-      });
-      obj = new THREE.Sprite(material);
-      obj.scale.set(worldHeight * aspect, worldHeight, 1);
-    } else {
-      // ワールド平面貼り付け
-      const geom = new THREE.PlaneGeometry(
-        worldHeight * aspect,
-        worldHeight
-      );
-      const material = new THREE.MeshBasicMaterial({
-        map: texture,
-        transparent: true,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-      });
-      obj = new THREE.Mesh(geom, material);
+let obj;
 
-      // 面の向き
-      switch (plane) {
-        case "xy": // Z+ を向く
-          obj.rotation.set(0, 0, 0);
-          break;
-        case "yz": // X+ を向く
-          obj.rotation.set(Math.PI / 2, Math.PI / 2, 0);
-          break;
-        case "zx": // Y+ を向く
-          obj.rotation.set(-Math.PI / 2, 0, Math.PI);
-          break;
-        default:
-          // 想定外はとりあえず画面向きに近い向き
-          obj.rotation.set(0, 0, 0);
-          break;
-      }
-    }
+if (plane === "billboard") {
+  // 画面向き（ビルボード）
+  const material = new THREE.SpriteMaterial({
+    map: texture,
+    transparent: true,
+    depthWrite: false,
+  });
+  obj = new THREE.Sprite(material);
+  obj.scale.set(worldHeight * aspect, worldHeight, 1);
+} else {
+  // ワールド平面貼り付け
+  const geom = new THREE.PlaneGeometry(
+    worldHeight * aspect,
+    worldHeight
+  );
+  const material = new THREE.MeshBasicMaterial({
+    map: texture,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  });
+  obj = new THREE.Mesh(geom, material);
+
+  switch (plane) {
+    case "xy": // Z+ を向く
+      obj.rotation.set(0, 0, 0);
+      break;
+    case "yz": // X+ を向く
+      obj.rotation.set(Math.PI / 2, Math.PI / 2, 0);
+      break;
+    case "zx": // Y+ を向く（静的な存在のデフォ）
+      obj.rotation.set(-Math.PI / 2, 0, Math.PI);
+      break;
+    default:
+      // ここには来ない想定やけど、保険で zx
+      obj.rotation.set(-Math.PI / 2, 0, Math.PI);
+      break;
+  }
+}
+
 
     const pos = Array.isArray(basePosition) ? basePosition : [0, 0, 0];
     obj.position.set(
@@ -431,18 +447,126 @@ export function createRendererContext(canvasOrOptions) {
   }
 
   // ---------- 3DSS: points ----------
+  // 3DSS v1.0.2: appearance.marker.primitive 別にジオメトリと「代表半径」を決める
   const createPoint = (pointNode) => {
-    const uuid =
-      pointNode?.meta?.uuid ??
-      pointNode?.uuid ??
-      null;
+    const uuid = getUuid(pointNode);
+    if (!uuid) return null;
 
-    // structIndex（currentIndices）を優先して position を取得
-    const pos = getPointPosition(pointNode, currentIndices);
-    const size = getPointSize(pointNode, 0.06);
-    const geometry = new THREE.SphereGeometry(size, 16, 16);
-    const color = getColor(pointNode, "#ffffff");
-    const opacity = getOpacity(pointNode, 1.0);
+    // 位置（structIndex 優先）
+    const posArr = getPointPosition(pointNode, currentIndices);
+    const pos = Array.isArray(posArr) && posArr.length === 3 ? posArr : [0, 0, 0];
+
+    const marker = pointNode?.appearance?.marker || {};
+    const common = marker.common || {};
+
+    // 共通スタイル
+    const color =
+      common.color
+        ? new THREE.Color(common.color)
+        : getColor(pointNode, "#ffffff");
+
+    const opacity =
+      typeof common.opacity === "number"
+        ? common.opacity
+        : getOpacity(pointNode, 0.9);
+
+    const scaleArr =
+      Array.isArray(common.scale) && common.scale.length === 3
+        ? common.scale
+        : [1, 1, 1];
+
+    const sx = scaleArr[0] ?? 1;
+    const sy = scaleArr[1] ?? 1;
+    const sz = scaleArr[2] ?? 1;
+
+    const primitive = marker.primitive || "sphere";
+
+    const ensurePositive = (v, def) =>
+      typeof v === "number" && v > 0 ? v : def;
+
+    let geometry;
+    let bboxRadius = 0.5; // world 単位での代表半径（fallback）
+
+    switch (primitive) {
+      case "none": {
+        // ジオメトリ無しだと pick できないので、ごく小さい球を置いておく
+        const r = 0.03;
+        geometry = new THREE.SphereGeometry(r, 12, 12);
+        bboxRadius = r;
+        break;
+      }
+
+      case "sphere": {
+        const r = ensurePositive(marker.radius, 1);
+        geometry = new THREE.SphereGeometry(r, 24, 24);
+        bboxRadius = r * Math.max(sx, sy, sz);
+        break;
+      }
+
+      case "box": {
+        const size = Array.isArray(marker.size) ? marker.size : [1, 1, 1];
+        const wx = ensurePositive(size[0], 1);
+        const wy = ensurePositive(size[1], 1);
+        const wz = ensurePositive(size[2], 1);
+        geometry = new THREE.BoxGeometry(wx, wy, wz);
+
+        const hx = (wx * sx) / 2;
+        const hy = (wy * sy) / 2;
+        const hz = (wz * sz) / 2;
+        bboxRadius = Math.sqrt(hx * hx + hy * hy + hz * hz);
+        break;
+      }
+
+      case "cone": {
+        const r = ensurePositive(marker.radius, 1);
+        const h = ensurePositive(marker.height, 2 * r);
+        // three.js の ConeGeometry はデフォルトで [-h/2, +h/2] に分布して原点中心
+        geometry = new THREE.ConeGeometry(r, h, 24);
+
+        const hx = r * sx;
+        const hz = r * sz;
+        const hy = (h * sy) / 2;
+        bboxRadius = Math.sqrt(hx * hx + hy * hy + hz * hz);
+        break;
+      }
+
+      case "pyramid": {
+        const base = Array.isArray(marker.base) ? marker.base : [1, 1];
+        const bw = ensurePositive(base[0], 1);
+        const bd = ensurePositive(base[1] ?? base[0], 1);
+        const h = ensurePositive(marker.height, Math.max(bw, bd));
+
+        // 四角錐は 4 分割 cone で近似
+        const baseRadius = Math.max(bw, bd) / 2;
+        geometry = new THREE.ConeGeometry(baseRadius, h, 4);
+        geometry.rotateY(Math.PI / 4);
+
+        const hx = (bw * sx) / 2;
+        const hz = (bd * sz) / 2;
+        const hy = (h * sy) / 2;
+        bboxRadius = Math.sqrt(hx * hx + hy * hy + hz * hz);
+        break;
+      }
+
+      case "corona": {
+        const inner = ensurePositive(marker.inner_radius, 0.5);
+        const outer = ensurePositive(marker.outer_radius, inner * 1.5);
+
+        geometry = new THREE.RingGeometry(inner, outer, 32);
+        // Z+ up 系なので、そのまま XY 平面に置いて OK
+
+        bboxRadius = outer * Math.max(sx, sy, sz);
+        break;
+      }
+
+      default: {
+        // 未知 primitive はとりあえず unit sphere
+        const r = 1;
+        geometry = new THREE.SphereGeometry(r, 16, 16);
+        bboxRadius = r * Math.max(sx, sy, sz);
+        break;
+      }
+    }
 
     const material = new THREE.MeshStandardMaterial({
       color,
@@ -451,24 +575,38 @@ export function createRendererContext(canvasOrOptions) {
     });
 
     const obj = new THREE.Mesh(geometry, material);
-    obj.position.fromArray(pos);
+    obj.position.set(pos[0], pos[1], pos[2]);
+    obj.scale.set(sx, sy, sz);
     obj.userData.uuid = uuid;
+
+    // orientation (Z+ up 基準)
+    if (Array.isArray(common.orientation) && common.orientation.length === 3) {
+      const [rx, ry, rz] = common.orientation;
+      obj.rotation.set(rx, ry, rz);
+    }
 
     baseStyle.set(uuid, {
       color: color.clone(),
       opacity: material.opacity,
     });
 
-    // line 用に position / radius をキャッシュ
+    // line 端部計算用キャッシュ
     pointPositionByUuid.set(uuid, pos);
-    if (uuid) {
-      pointRadiusByUuid.set(uuid, size);
-    }
+    // 少しマージンを乗せておくと、線が確実に marker の外から出る
+    pointRadiusByUuid.set(uuid, bboxRadius * 1.05);
 
     return obj;
   };
 
+  // ------------------------------------------------------------
   // line 端点の補正と arrow 用ヘルパ
+  //   - resolveLineEndpoint:
+  //       end.{ref|coord} から「端点座標＋代表半径」を取得
+  //   - computeTrimmedSegment:
+  //       2 つの端点と半径から「marker の表面で止まる線分」を計算
+  //   - arrow:
+  //       base を marker 表面に置き、外向きにだけ伸びる
+  // ------------------------------------------------------------
 
   function resolveLineEndpoint(endNode) {
     const position = new THREE.Vector3();
@@ -483,9 +621,9 @@ export function createRendererContext(canvasOrOptions) {
     if (typeof endNode.ref === "string") {
       refUuid = endNode.ref;
       const p = pointPositionByUuid.get(refUuid);
-      if (Array.isArray(p) && p.length >= 3) {
+      if (Array.isArray(p) && p.length === 3) {
         position.set(p[0], p[1], p[2]);
-      } else if (p && typeof p.x === "number" && typeof p.y === "number" && typeof p.z === "number") {
+      } else if (p && typeof p.x === "number") {
         position.set(p.x, p.y, p.z);
       }
       const r = pointRadiusByUuid.get(refUuid);
@@ -522,7 +660,7 @@ export function createRendererContext(canvasOrOptions) {
     dir.divideScalar(length);
 
     if (radiusA > 0 || radiusB > 0) {
-      // 「球の中に潜り込まない」範囲に clamp
+      // 端点同士が食い違わないよう、最大でも 49% だけカット
       const maxCut = length * 0.49;
       const cutA = Math.min(radiusA, maxCut);
       const cutB = Math.min(radiusB, maxCut);
@@ -543,30 +681,81 @@ export function createRendererContext(canvasOrOptions) {
 
   function createArrowMesh(arrowCfg, color, segmentLength) {
     if (!arrowCfg) return null;
-    // shape === "none" なら表示しない
-    if (arrowCfg.shape === "none") return null;
 
-    const sizeRaw =
-      typeof arrowCfg.size === "number" && arrowCfg.size > 0
-        ? arrowCfg.size
-        : null;
+    // v1.0.2: primitive, v1.0.1: shape の両対応
+    const primitive = arrowCfg.primitive || arrowCfg.shape || "none";
+    if (primitive === "none") return null;
 
-    // size 未指定時は線分長の 20% を基準（0.03〜0.5 に clamp）
-    const length =
-      sizeRaw ??
-      Math.max(0.03, Math.min(segmentLength * 0.2, 0.5));
+    let geometry = null;
 
-    const aspect =
-      typeof arrowCfg.aspect === "number" && arrowCfg.aspect > 0
-        ? arrowCfg.aspect
-        : 2.0;
+    switch (primitive) {
+      case "line": {
+        const length =
+          typeof arrowCfg.length === "number" && arrowCfg.length > 0
+            ? arrowCfg.length
+            : Math.max(0.03, Math.min(segmentLength * 0.2, 0.5));
+        const thickness =
+          typeof arrowCfg.thickness === "number" && arrowCfg.thickness > 0
+            ? arrowCfg.thickness
+            : length * 0.15;
 
-    const radius = length / aspect;
-    const height = length;
+        const radius = thickness * 0.5;
+        geometry = new THREE.CylinderGeometry(radius, radius, length, 8);
+        // base がローカル原点になるように
+        geometry.translate(0, length / 2, 0);
+        break;
+      }
 
-    const geometry = new THREE.ConeGeometry(radius, height, 16);
-    // 先端（apex）がローカル原点に来るようにシフト
-    geometry.translate(0, -height / 2, 0);
+      case "cone": {
+        // v1.0.1: size & aspect からも復元できるようにしておく
+        const fallbackLen = Math.max(0.03, Math.min(segmentLength * 0.2, 0.5));
+        const size =
+          typeof arrowCfg.size === "number" && arrowCfg.size > 0
+            ? arrowCfg.size
+            : fallbackLen;
+        const aspect =
+          typeof arrowCfg.aspect === "number" && arrowCfg.aspect > 0
+            ? arrowCfg.aspect
+            : 2.0;
+
+        const radius =
+          typeof arrowCfg.radius === "number" && arrowCfg.radius > 0
+            ? arrowCfg.radius
+            : size / aspect;
+        const height =
+          typeof arrowCfg.height === "number" && arrowCfg.height > 0
+            ? arrowCfg.height
+            : size;
+
+        geometry = new THREE.ConeGeometry(radius, height, 16);
+        // base をローカル原点に
+        geometry.translate(0, height / 2, 0);
+        break;
+      }
+
+      case "pyramid": {
+        const base = Array.isArray(arrowCfg.base) ? arrowCfg.base : null;
+        const bw =
+          typeof base?.[0] === "number" && base[0] > 0
+            ? base[0]
+            : Math.max(0.03, Math.min(segmentLength * 0.15, 0.3));
+        const bd =
+          typeof base?.[1] === "number" && base[1] > 0 ? base[1] : bw;
+        const height =
+          typeof arrowCfg.height === "number" && arrowCfg.height > 0
+            ? arrowCfg.height
+            : bw * 2;
+
+        const radius = 0.5 * Math.max(bw, bd);
+        geometry = new THREE.ConeGeometry(radius, height, 4);
+        geometry.rotateY(Math.PI / 4); // 正方形っぽく
+        geometry.translate(0, height / 2, 0); // base を原点
+        break;
+      }
+
+      default:
+        return null;
+    }
 
     const material = new THREE.MeshBasicMaterial({
       color: color.clone ? color.clone() : new THREE.Color(color),
@@ -576,11 +765,10 @@ export function createRendererContext(canvasOrOptions) {
 
     const mesh = new THREE.Mesh(geometry, material);
     mesh.renderOrder = 5;
-
     return mesh;
   }
 
-  function positionArrowMesh(mesh, tipPosition, dir) {
+  function positionArrowMesh(mesh, basePosition, dir) {
     if (!mesh) return;
 
     const normDir = dir.clone().normalize();
@@ -588,7 +776,8 @@ export function createRendererContext(canvasOrOptions) {
       return;
     }
 
-    mesh.position.copy(tipPosition);
+    // base（= marker 表面）をこの位置に置く
+    mesh.position.copy(basePosition);
 
     const q = new THREE.Quaternion();
     q.setFromUnitVectors(ARROW_BASE_AXIS, normDir);
@@ -617,16 +806,12 @@ export function createRendererContext(canvasOrOptions) {
 
   // ---------- 3DSS: lines ----------
   const createLine = (lineNode) => {
-    const uuid =
-      lineNode?.meta?.uuid ??
-      lineNode?.uuid ??
-      null;
+    const uuid = getUuid(lineNode);
 
     let positions = null;
     let segmentInfo = null;
 
-    // 3DSS 正式: appearance.end_a / end_b → point の中心＋代表半径から
-    // 「球の表面で止まる」線分を算出
+    // 3DSS 正式: end_a / end_b から「表面で止まる線分」を計算
     const endA = lineNode?.appearance?.end_a;
     const endB = lineNode?.appearance?.end_b;
 
@@ -649,8 +834,8 @@ export function createRendererContext(canvasOrOptions) {
         segmentInfo.end.z,
       ];
     }
-    
-    // プロト互換: vertices: [[x,y,z],[x,y,z],...]
+
+    // 旧プロト互換: vertices: [[x,y,z], ...]
     if (!positions && Array.isArray(lineNode?.vertices)) {
       const flat = [];
       for (const v of lineNode.vertices) {
@@ -660,31 +845,18 @@ export function createRendererContext(canvasOrOptions) {
       }
       if (flat.length >= 6) {
         positions = flat;
+
+        // arrow 用に dir だけは拾っておく
+        const start = new THREE.Vector3(flat[0], flat[1], flat[2]);
+        const end = new THREE.Vector3(flat[3], flat[4], flat[5]);
+        const dir = new THREE.Vector3().subVectors(end, start);
+        const len = dir.length();
+        if (len > 0) dir.divideScalar(len);
+        segmentInfo = { start, end, dir, length: len };
       }
     }
 
-    // vertices 経由で作ったときも arrow で使えるように一応 dir を拾っておく
-    if (!segmentInfo && positions && positions.length >= 6) {
-      const start = new THREE.Vector3(
-        positions[0],
-        positions[1],
-        positions[2]
-      );
-      const end = new THREE.Vector3(
-        positions[3],
-        positions[4],
-        positions[5]
-      );
-      const dir = new THREE.Vector3().subVectors(end, start);
-      const len = dir.length();
-      if (len > 0) {
-        dir.divideScalar(len);
-      }
-      segmentInfo = { start, end, dir, length: len };
-    }
-
-    // データが足りなければ描かない
-    if (!positions) return null;
+    if (!positions) return null; // データ不足
 
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute(
@@ -709,7 +881,6 @@ export function createRendererContext(canvasOrOptions) {
       opacity: material.opacity,
     });
 
-    // トリミング済み線分情報を userData に保存（microFX や他の演出用）
     if (segmentInfo) {
       obj.userData.segment = {
         start: segmentInfo.start.clone(),
@@ -719,7 +890,7 @@ export function createRendererContext(canvasOrOptions) {
       };
     }
 
-    // 3DSS: lines.appearance.arrow に基づき矢印を生やす
+    // arrow: base が marker 表面に乗るように配置
     if (segmentInfo && segmentInfo.length > 0) {
       const arrowCfg = lineNode?.appearance?.arrow;
       const placement = resolveArrowPlacement(lineNode, arrowCfg);
@@ -735,6 +906,7 @@ export function createRendererContext(canvasOrOptions) {
             : null;
 
         if (arrowA) {
+          // A 側は B→A 方向に向ける
           positionArrowMesh(
             arrowA,
             segmentInfo.start,
@@ -744,6 +916,7 @@ export function createRendererContext(canvasOrOptions) {
           obj.add(arrowA);
         }
         if (arrowB) {
+          // B 側は A→B 方向
           positionArrowMesh(arrowB, segmentInfo.end, segmentInfo.dir);
           arrowB.userData.uuid = uuid;
           obj.add(arrowB);
@@ -1103,6 +1276,18 @@ updateCamera: (cameraState) => {
       radius: sceneRadius,
       center: sceneCenter.clone(),
     }),
+
+    // ワールド軸の表示制御（worldAxes レイヤへの薄いラッパ）
+    setWorldAxesVisible: (flag) => {
+      if (worldAxes && typeof worldAxes.setVisible === "function") {
+        worldAxes.setVisible(flag);
+      }
+    },
+    toggleWorldAxes: () => {
+      if (worldAxes && typeof worldAxes.toggle === "function") {
+        worldAxes.toggle();
+      }
+    },
   };
 
   function recomputeSceneRadius() {
@@ -1122,15 +1307,19 @@ updateCamera: (cameraState) => {
     if (!hasAny) {
       sceneRadius = 1;
       sceneCenter.set(0, 0, 0);
-      return;
+    } else {
+      box.getCenter(sceneCenter);
+
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      // 一番長い辺の半分を「シーン半径」とみなす
+      const maxEdge = Math.max(size.x, size.y, size.z);
+      sceneRadius = maxEdge > 0 ? maxEdge * 0.5 : 1;
     }
 
-    box.getCenter(sceneCenter);
-
-    const size = new THREE.Vector3();
-    box.getSize(size);
-    // 一番長い辺の半分を「シーン半径」とみなす
-    const maxEdge = Math.max(size.x, size.y, size.z);
-    sceneRadius = maxEdge > 0 ? maxEdge * 0.5 : 1;
+    // ★ worldAxes レイヤに sceneRadius を通知
+    if (worldAxes && typeof worldAxes.updateMetrics === "function") {
+      worldAxes.updateMetrics({ radius: sceneRadius });
+    }
   }
 }

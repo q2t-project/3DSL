@@ -9,7 +9,7 @@ viewer/
     bootstrapViewer.js
     viewerHub.js
     core/
-      CameraEngine.js
+      cameraEngine.js
       frameController.js
       selectionController.js
       modeController.js
@@ -36,7 +36,7 @@ viewer/
 // runtime/bootstrapViewer.js
 import { createUiState } from './core/uiState.js';
 import { buildUUIDIndex, detectFrameRange } from './core/structIndex.js';
-import { CameraEngine } from './core/CameraEngine.js';
+import { CameraEngine } from './core/cameraEngine.js';
 import { createFrameController } from './core/frameController.js';
 import { createSelectionController } from './core/selectionController.js';
 import { createModeController } from './core/modeController.js';
@@ -134,9 +134,9 @@ export function createUiState() {
 }
 
 ==========================================
-📁 runtime/core/CameraEngine.js
+📁 runtime/core/cameraEngine.js
 ==========================================
-// runtime/core/CameraEngine.js
+// runtime/core/cameraEngine.js
 export class CameraEngine {
   constructor(initialState) {
     this.state = { ...initialState };

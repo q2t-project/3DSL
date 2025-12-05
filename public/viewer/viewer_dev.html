@@ -3,662 +3,1129 @@
   <head>
     <meta charset="UTF-8" />
     <title>3DSL Viewer – Dev Harness</title>
-    <style>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
 
-      /* 追加：全体レイアウトを 2 カラムのグリッドにして、高さを画面にフィットさせる */
-      #viewer-layout {
+    /* =========================================================
+    *  全体レイアウト
+    * ======================================================= */
+    #viewer-layout {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 240px; /* 左=3Dビュー, 右=メタエリア */
+      grid-template-columns: minmax(0, 1fr) 300px 240px; /* 左=3Dビュー, 右=メタエリア */
       height: 100vh; /* 画面の高さに固定 */
-      }
+    }
 
-      html,
-      body {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-      }
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
 
-      body {
-        background: #000;
-        color: #ddd;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-          sans-serif;
-        overflow: hidden; /* ページ全体のスクロールを封じる */
-      }
+    body {
+      background: #000;
+      color: #ddd;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      overflow: hidden; /* ページ全体のスクロールを封じる */
+    }
 
-      /* 全体レイアウト：
-         左 = 3D ビュー
-         中 = 300×600 広告ストリップ
-         右 = メタ情報エリア（やや細め） */
-         
-      #viewer-main {
-        position: relative;
-        background: #111;
-        overflow: hidden;
-        touch-action: none; /* タッチ／トラックパッドでのスクロールを抑止 */
-        height: 100%;       /* グリッド行いっぱいに伸ばす */
-      }
+    #viewer-main {
+      position: relative;
+      background: #111;
+      overflow: hidden;
+      touch-action: none; /* タッチ／トラックパッドでのスクロールを抑止 */
+      height: 100%; /* グリッド行いっぱいに伸ばす */
+    }
 
-      #viewer-canvas {
-        width: 100%;
-        height: 100%;
-        display: block;
-        background: #111;
-        touch-action: none;
-      }
+    #viewer-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: #111;
+      touch-action: none;
+    }
 
-      /* ビューポート右上の 300×250 AD（プレースホルダ） */
-      #ad-slot-300x250 {
+/*
+/* 広告枠
+/*
+     /* 左上 300x250 広告枠（シーン上にオーバーレイ） */
+      #ad-top-left {
         position: absolute;
-        right: 12px;
-        top: 40px;
+        top: 8px;
+        left: 8px;
         width: 300px;
         height: 250px;
-        border-radius: 4px;
-        border: 1px dashed rgba(255, 255, 255, 0.4);
-        background: rgba(0, 0, 0, 0.5);
-        box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 11px;
-        color: rgba(255, 255, 255, 0.7);
-        pointer-events: auto; /* 将来の広告クリック用 */
-      }
+        z-index: 20; /* HUD/gizmo との前後は後で調整 */
 
-      /* 中央ストリップ：300×600 AD 用カラム */
-      #viewer-ad-strip {
-        background: #050505;
-        border-left: 1px solid rgba(255, 255, 255, 0.12);
-        border-right: 1px solid rgba(255, 255, 255, 0.12);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      #ad-slot-300x600 {
-        width: 300px;
-        height: 600px;
-        border-radius: 4px;
-        border: 1px dashed rgba(255, 255, 255, 0.4);
-        background: rgba(0, 0, 0, 0.5);
-        box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 11px;
-        color: rgba(255, 255, 255, 0.7);
-      }
-
-      /* 右側：メタ情報エリア（細め） */
-      #viewer-meta {
-        background: #050505;
-        border-left: 1px solid rgba(255, 255, 255, 0.12);
-        display: flex;
-        flex-direction: column;
-        font-size: 11px;
-        min-width: 220px;
-        max-width: 260px;
-      }
-
-      /* 右パネル最上部：ロゴヘッダ */
-      #meta-header {
-        flex: 0 0 auto;
-        padding: 1px 10px 2px; /* ロゴ直下まで詰める */
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      }
-
-      #meta-logo-link {
-        display: inline-block;
-      }
-
-      #meta-logo {
-        display: block;
-        height: 112px;
-        width: auto;
-        filter: invert(1); /* 黒ロゴを白基調に反転 */
-      }
-
-      /* メタ情報エリア（上下分割） */
-      #meta-file,
-      #meta-model {
-        padding: 4px 2px 8px;
-        overflow-y: auto;
-      }
-
-      /* 上：ファイルメタ（固定高さ 40%） */
-      #meta-file {
-        flex: 0 0 40%;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      }
-
-      /* 下：モデルメタ＋ログ（残り全部） */
-      #meta-model {
-        flex: 1 1 auto;
-      }
-
-      #viewer-meta h3 {
-        margin: 0 0 4px 0;
-        font-size: 11px;
-        font-weight: 600;
-        letter-spacing: 0.03em;
-        text-transform: uppercase;
-        opacity: 0.9;
-      }
-
-      #viewer-meta pre {
-        margin: 4px 0 0 0;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          "Liberation Mono", "Courier New", monospace;
-        font-size: 10px;
-      }
-
-      /* 上部 HUD（トースト用） */
-      #viewer-hud {
-        position: absolute;
-        top: 16px;
-        left: 50%;
-        transform: translateX(-50%) translateY(-8px);
-        max-width: 60%;
-        padding: 8px 14px;
-        background: rgba(0, 0, 0, 0.85);
-        color: #eee;
-        font-size: 12px;
-        line-height: 1.4;
-        border-radius: 999px;
-        pointer-events: none;
-        opacity: 0;
-        transform-origin: top center;
-        transition:
-          opacity 0.25s ease-out,
-          transform 0.25s ease-out;
-      }
-
-      #viewer-hud.hud-visible {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-      }
-
-      #viewer-hud.hud-hidden {
-        opacity: 0;
-        transform: translateX(-50%) translateY(-8px);
-      }
-
-      /* レベル別色 */
-      #viewer-hud.hud-info {
-        background: rgba(0, 0, 0, 0.85);
-      }
-
-      #viewer-hud.hud-warn {
-        background: rgba(190, 140, 32, 0.9);
-      }
-
-      #viewer-hud.hud-error {
-        background: rgba(180, 32, 32, 0.9);
-      }
-
-      /* 下部ツールバー（frame / 再生 / filter） */
-      #viewer-toolbar {
-        position: absolute;
-        left: 12px;
-        bottom: 12px;
-        padding: 8px 12px;
-        background: rgba(0, 0, 0, 0.7);
-        color: #eee;
-        font-size: 11px;
-        border-radius: 4px;
-        pointer-events: auto;
-        display: inline-flex;
-        align-items: flex-start;
-        gap: 12px;
-      }
-
-      .toolbar-main {
-        display: flex;
-        align-items: flex-start;
-        gap: 12px;
-      }
-
-      .frame-block {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      }
-
-      /* スライダはやや短め */
-      #frame-slider {
-        width: 8vw;
-        min-width: 160px;
-        max-width: 260px;
-      }
-
-      #viewer-toolbar button {
-        font-size: 11px;
-        padding: 2px 8px;
-        border-radius: 3px;
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        background: rgba(255, 255, 255, 0.04);
-        color: #eee;
-        cursor: pointer;
-      }
-
-      #viewer-toolbar button:hover {
-        background: rgba(255, 255, 255, 0.12);
-      }
-
-      /* frame controls（連続 / パラパラ 2 段） */
-      #frame-controls {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        margin-top: 4px;
-      }
-
-      #frame-controls .row {
-        display: flex;
-        gap: 4px;
-      }
-
-      #frame-controls .row-continuous,
-      #frame-controls .row-flip {
-        opacity: 0.4;
-        transition: opacity 0.15s ease-out;
-      }
-
-      #frame-controls.mode-continuous .row-continuous,
-      #frame-controls.mode-flip .row-flip {
-        opacity: 1;
-      }
-
-      /* filter：frame の右に縦並びで 3 つ */
-      .filter-column {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        margin-top: 18px;
-      }
-
-      .filter-toggle {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        padding: 2px 6px;
-        border-radius: 3px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        background: rgba(255, 255, 255, 0.02);
-      }
-
-      .filter-toggle .icon {
-        font-size: 13px;
-      }
-
-      .filter-toggle.filter-off {
-        opacity: 0.3;
-      }
-
-      /* キー操作系の統一スタイル（keycap 風） */
-      .keycap {
-        border-radius: 999px;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        background: rgba(0, 0, 0, 0.8);
-        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          "Liberation Mono", "Courier New", monospace;
-      }
-
-      .keycap:hover {
-        background: rgba(255, 255, 255, 0.18);
-      }
-
-      /* カメラパネル（mode スタック＋ギズモ＋矢印ナビ） */
-      #camera-panel {
-        position: absolute;
-        right: 12px;
-        bottom: 12px; /* 右下固定：mode スタック専用 */
-        display: flex;
-        align-items: flex-end;
-        pointer-events: none; /* 子要素側で必要なところだけ auto にする */
-      }
-
-      #mode-stack {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        font-size: 11px;
-        pointer-events: auto;
-      }
-
-      .mode-pill {
-        min-width: 72px;
-        padding: 3px 10px;
-        border-radius: 999px;
+        /* プレースホルダ用（本番ではタグに置き換え） */
+        box-sizing: border-box;
         border: 1px solid rgba(255, 255, 255, 0.25);
-        background: rgba(0, 0, 0, 0.7);
-        text-align: center;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        opacity: 0.5;
-        filter: blur(1px); /* 非アクティブは軽くぼかす */
-        transition: all 0.15s ease-out;
-      }
-
-      .mode-pill-active {
-        background: #ffffff;
-        color: #000000;
-        opacity: 1;
-        filter: none; /* アクティブはくっきり */
-      }
-
-      .mode-micro-block {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-      }
-
-      .mode-focus-label {
-        font-size: 11px;
-        max-width: 140px;
-        padding-left: 4px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        opacity: 0.85;
-      }
-
-      .mode-focus-toggle {
-        align-self: flex-start;
-        margin-top: 2px;
-        padding: 1px 8px;
-        font-size: 10px;
-        color: #eee;
-        cursor: pointer;
-      }
-
-      /* Gizmo 本体 */
-      #gizmo-wrapper {
-        position: absolute;
-        right: 120px;
-        bottom: 12px;
-        width: 180px;
-        height: 180px;
-        pointer-events: auto;
-        z-index: 20; /* ほかの HUD より少し前 */
-      }
-
-      /* 枠は absolute で箱いっぱいに広げる（フローから外す） */
-      #gizmo-slot {
-        position: absolute;
-        inset: 0; /* top:0; right:0; bottom:0; left:0 と同じ */
-        border-radius: 8px;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        background: rgba(0, 0, 0, 0.5);
-        box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
-      }
-
-      /* 「GIZMO」ラベルは枠の中央 */
-      #gizmo-slot::before {
-        content: "GIZMO";
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 10px;
-        opacity: 0.6;
-      }
-
-      /* HOME ボタン（左上） */
-      #gizmo-home {
-        position: absolute;
-        left: 4px;
-        top: 4px;
-        padding: 1px 8px;
-        font-size: 9px;
-        line-height: 1.4;
-        border-radius: 999px;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        background: rgba(0, 0, 0, 0.8);
-        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-        cursor: pointer;
-      }
-
-      #gizmo-home:hover {
-        background: rgba(255, 255, 255, 0.18);
-      }
-
-      /* X/Y/Z 行（右下に絶対配置） */
-      .gizmo-axis-row {
-        position: absolute;
-        right: 4px;
-        bottom: 4px;
-        display: flex;
-        gap: 4px;
-      }
-
-      .gizmo-axis {
-        width: 22px;
-        height: 22px;
-        font-size: 10px;
+        background: rgba(255, 255, 255, 0.04);
+        font-size: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 999px;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        background: rgba(0, 0, 0, 0.8);
-        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-        cursor: pointer;
+        pointer-events: none; /* いったん3D操作優先にするなら */
       }
 
-      .gizmo-axis:hover {
-        background: rgba(255, 255, 255, 0.18);
+      /* 中央の 300x600 スクレイパー枠 */
+      #viewer-ad-rail {
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        /* プレースホルダ用スタイル */
+        border-left: 1px solid #222;
+        border-right: 1px solid #222;
+        background: rgba(255, 255, 255, 0.02);
+        font-size: 12px;
       }
 
-      /* ------------------------------------------------------------
-      * Gizmo: SVG は素通り、ボタンだけ確実にクリック可にする
-      * ---------------------------------------------------------- */
+    /* =========================================================
+    *  右側メタ情報エリア
+    * ======================================================= */
+    #viewer-meta {
+      background: #050505;
+      border-left: 1px solid rgba(255, 255, 255, 0.12);
+      display: flex;
+      flex-direction: column;
+      font-size: 11px;
+      min-width: 220px;
+      max-width: 260px;
+    }
 
-      /* gizmo wrapper 自体はイベントを受け取る（上で pointer-events: auto 済） */
-      /* クリック可能領域は #gizmo-wrapper 配下のボタン類 */
+    #meta-header {
+      flex: 0 0 auto;
+      padding: 8px 10px 4px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 
-      /* 中に描いている SVG はクリックを殺さず素通りさせる */
-      #gizmo-slot svg {
-        pointer-events: none;
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-start; /* 左寄せ */
+    }
+
+    #meta-logo-link {
+      display: inline-block;
+    }
+
+    #meta-logo {
+      display: block;
+      max-width: 100%;   /* 列幅に収まるように */
+      height: auto;      /* アスペクト比維持 */
+      filter: invert(1);
+    }
+
+    #meta-file,
+    #meta-model {
+      padding: 4px 2px 8px;
+      overflow-y: auto;
+    }
+
+    #meta-file {
+      flex: 0 0 40%;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    #meta-model {
+      flex: 1 1 auto;
+    }
+
+    #viewer-meta h3 {
+      margin: 0 0 4px 0;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      opacity: 0.9;
+    }
+
+    #viewer-meta pre {
+      margin: 4px 0 0 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        "Liberation Mono", "Courier New", monospace;
+      font-size: 10px;
+    }
+
+    /* =========================================================
+    *  HUD（トースト）
+    * ======================================================= */
+    #viewer-hud {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-8px);
+      max-width: 60%;
+      padding: 8px 14px;
+      background: rgba(0, 0, 0, 0.85);
+      color: #eee;
+      font-size: 12px;
+      line-height: 1.4;
+      border-radius: 999px;
+      pointer-events: none;
+      opacity: 0;
+      transform-origin: top center;
+      transition:
+        opacity 0.25s ease-out,
+        transform 0.25s ease-out;
+    }
+
+    #viewer-hud.hud-visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    #viewer-hud.hud-hidden {
+      opacity: 0;
+      transform: translateX(-50%) translateY(-8px);
+    }
+
+    #viewer-hud.hud-info {
+      background: rgba(0, 0, 0, 0.85);
+    }
+
+    #viewer-hud.hud-warn {
+      background: rgba(190, 140, 32, 0.9);
+    }
+
+    #viewer-hud.hud-error {
+      background: rgba(180, 32, 32, 0.9);
+    }
+
+    /* =========================================================
+    *  下部ツールバー（frame / 再生 / filter）
+    * ======================================================= */
+    #viewer-toolbar {
+      position: absolute;
+      left: 12px;
+      bottom: 12px;
+      padding: 8px 12px;
+      background: rgba(0, 0, 0, 0.7);
+      color: #eee;
+      font-size: 11px;
+      border-radius: 4px;
+      pointer-events: auto;
+      display: inline-flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .toolbar-main {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .frame-block {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+
+    /* frame-block の中を左右に割る */
+    .frame-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    /* frame-main は縦積み：上がヘッダ、下がスライダ */
+    .frame-main {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 220px;
+    }
+
+    /* 上段：左に filter、右にラベル＋ボタン */
+    .frame-top-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    /* 右側ヘッダ（ラベル＋再生ボタン群） */
+    .frame-header-main {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1 1 auto;
+    }
+
+    /* 複数フレームなし → 全体をうっすらグレーアウト（JS から .frame-single が付く想定） */
+    .frame-block.frame-single {
+      opacity: 0.35;
+    }
+
+    /* =========================================================
+    *  filter トグル（左上縦積み）
+    * ======================================================= */
+    .filter-column {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 0;
+    }
+
+    .filter-toggle {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.02);
+      color: #eee;
+      cursor: pointer;
+    }
+
+    .filter-toggle .icon {
+      font-size: 13px;
+    }
+
+    .filter-toggle.filter-off {
+      opacity: 0.3;
+    }
+
+    /* =========================================================
+    *  frame ボタン群（右上）
+    * ======================================================= */
+    #frame-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    #frame-controls .row {
+      display: flex;
+      gap: 4px;
+    }
+
+    #frame-controls .row-continuous,
+    #frame-controls .row-flip {
+      opacity: 0.4;
+      transition: opacity 0.15s ease-out;
+    }
+
+    #frame-controls.mode-continuous .row-continuous,
+    #frame-controls.mode-flip .row-flip {
+      opacity: 1;
+    }
+
+    /* =========================================================
+    *  frame スライダ（ゼロ基準ゲージ / タイムライン）
+    * ======================================================= */
+
+    #frame-slider {
+      width: 8vw;
+      min-width: 160px;
+      max-width: 260px;
+
+      --frame-zero-frac: 0.5;        /* 0 がレンジ内のどこか（0.0〜1.0） */
+      --frame-track-height: 4px;
+      --frame-zero-width: 2px;
+
+      -webkit-appearance: none;
+      appearance: none;
+      height: var(--frame-track-height);
+      border-radius: 999px;
+      background: transparent;
+    }
+
+    /* WebKit */
+    #frame-slider::-webkit-slider-runnable-track {
+      height: var(--frame-track-height);
+      border-radius: 999px;
+      background: #444;
+    }
+
+    #frame-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 1px solid rgba(0, 0, 0, 0.6);
+      margin-top: calc(-0.5 * var(--frame-track-height));
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+      cursor: pointer;
+    }
+
+    /* Firefox */
+    #frame-slider::-moz-range-track {
+      height: var(--frame-track-height);
+      border-radius: 999px;
+      background: #444;
+    }
+
+    #frame-slider::-moz-range-thumb {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 1px solid rgba(0, 0, 0, 0.6);
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+      cursor: pointer;
+    }
+
+    /* gauge モード：中央 0 の基準線を強調 */
+    #frame-slider.frame-mode-gauge::-webkit-slider-runnable-track {
+      background:
+        linear-gradient(#ffffff, #ffffff) no-repeat,
+        linear-gradient(#444444, #444444);
+      background-size:
+        var(--frame-zero-width) 100%,
+        100% 100%;
+      background-position:
+        calc(var(--frame-zero-frac) * 100%) 0,
+        0 0;
+    }
+
+    #frame-slider.frame-mode-gauge::-moz-range-track {
+      background:
+        linear-gradient(#ffffff, #ffffff) no-repeat,
+        linear-gradient(#444444, #444444);
+      background-size:
+        var(--frame-zero-width) 100%,
+        100% 100%;
+      background-position:
+        calc(var(--frame-zero-frac) * 100%) 0,
+        0 0;
+    }
+
+    /* timeline モード：左→右の動画バー風 */
+    #frame-slider.frame-mode-timeline::-webkit-slider-runnable-track {
+      background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0.55),
+        rgba(255, 255, 255, 0.12)
+      );
+    }
+
+    #frame-slider.frame-mode-timeline::-moz-range-track {
+      background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0.55),
+        rgba(255, 255, 255, 0.12)
+      );
+    }
+
+    /* =========================================================
+    *  共通ボタンスタイル
+    * ======================================================= */
+    #viewer-toolbar button {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 3px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.04);
+      color: #eee;
+      cursor: pointer;
+    }
+
+    #viewer-toolbar button:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .keycap {
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      background: rgba(0, 0, 0, 0.8);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        "Liberation Mono", "Courier New", monospace;
+    }
+
+    .keycap:hover {
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    /* =========================================================
+    *  カメラモード表示（右下）
+    * ======================================================= */
+    #camera-panel {
+      position: absolute;
+      right: 12px;
+      bottom: 232px; /* gizmo(210px) + マージン 12px + 少し余白 */
+      display: flex;
+      align-items: flex-end;
+      pointer-events: none; /* 子要素で制御 */
+    }
+
+    #mode-stack {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 0;
+    }
+
+    .mode-pills-block {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .mode-pill {
+      min-width: 60px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent;
+      text-align: center;
+      font-size: 9px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      opacity: 0.5;
+      transition:
+        opacity 0.15s ease-out,
+        background-color 0.15s ease-out,
+        color 0.15s ease-out;
+    }
+
+    .mode-pill-active {
+      background: rgba(255, 255, 255, 0.85);
+      color: #000000;
+      opacity: 1;
+    }
+
+    /* =========================================================
+    *  Gizmo 本体
+    * ======================================================= */
+    /* gizmo コンテナ：シーンカラムの右下に寄せる */
+    #viewer-gizmo {
+      position: absolute;
+      right: 24px;   /* ← ここが「シーンの右端からの距離」になる */
+      bottom: 24px;
+      pointer-events: auto;
+    }
+
+    #gizmo-wrapper {
+      position: absolute;
+      right: 12px;
+      bottom: 64px;   /* 12px → 64px：全体を少し上へ */
+      width: 210px;
+      height: 210px;
+      pointer-events: auto;
+      z-index: 20;
+    }
+
+    #gizmo-slot {
+      position: absolute;
+      inset: 0;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      background: rgba(0, 0, 0, 0.5);
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+    }
+
+    #gizmo-slot canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* HOME ボタン（左上） */
+    #gizmo-home {
+      position: absolute;
+      left: 4px;
+      top: 4px;
+      padding: 1px 8px;
+      font-size: 9px;
+      line-height: 1.4;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      background: rgba(0, 0, 0, 0.8);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+      cursor: pointer;
+    }
+
+    #gizmo-home:hover {
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    /* X/Y/Z 行（右下に絶対配置） */
+    .gizmo-axis-row {
+      position: absolute;
+      right: 4px;
+      bottom: 4px;
+      display: flex;
+      gap: 4px;
+    }
+
+    .gizmo-axis {
+      width: 22px;
+      height: 22px;
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      background: rgba(0, 0, 0, 0.8);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+      cursor: pointer;
+    }
+
+    .gizmo-axis:hover {
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    #gizmo-slot svg {
+      pointer-events: none;
+    }
+
+    #gizmo-wrapper button,
+    #gizmo-wrapper .keycap,
+    #gizmo-wrapper .gizmo-axis {
+      pointer-events: auto;
+      position: relative;
+      z-index: 30;
+    }
+
+    /* preset view トグル（右下 row 内の pill） */
+    #gizmo-presets-toggle {
+      padding: 2px 10px;
+      font-size: 10px;
+      line-height: 1.4;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      background: rgba(0, 0, 0, 0.8);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+      cursor: pointer;
+    }
+
+    #gizmo-presets-toggle:hover {
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    /* =========================================================
+    *  座標軸トグル + AutoOrbit + preset view（右下一列）
+    * ======================================================= */
+    #camera-bottom-row {
+      position: absolute;
+      right: 16px;
+      bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 25;
+      pointer-events: auto;
+    }
+
+    #camera-panel {
+      position: absolute;
+      right: 12px;
+      bottom: 286px; /* 232px → 286px = (64 + 210 + 12) */
+      display: flex;
+      align-items: flex-end;
+      pointer-events: none;
+    }
+
+    .world-axes-toggle {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: #ccc;
+    }
+
+    .world-axes-label {
+      opacity: 0.8;
+    }
+
+    #world-axes-toggle {
+      border: none;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      color: inherit;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    #world-axes-toggle[data-visible="true"] {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    #world-axes-toggle .icon {
+      font-size: 14px;
+    }
+
+    #world-axes-toggle[data-visible="true"] [data-icon="off"],
+    #world-axes-toggle[data-visible="false"] [data-icon="on"] {
+      display: none;
+    }
+
+    /* AutoOrbit スロット本体：常に同じ枠サイズ */
+    .auto-orbit-slot {
+      position: relative;
+      flex: 0 0 auto;
+      width: 130px; /* 3ボタン分の固定幅 */
+      height: 24px;
+    }
+
+    .auto-orbit-pill,
+    .auto-orbit-controls {
+      position: absolute;
+      inset: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .auto-orbit-pill {
+      font-size: 10px;
+      padding: 2px 10px;
+    }
+
+    .auto-orbit-controls {
+      gap: 4px;
+    }
+
+    .auto-orbit-btn {
+      min-width: 26px;
+      padding: 1px 0;
+      font-size: 11px;
+    }
+
+    .auto-orbit-slot[data-mode="collapsed"] .auto-orbit-controls {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .auto-orbit-slot[data-mode="collapsed"] .auto-orbit-pill {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .auto-orbit-slot[data-mode="expanded"] .auto-orbit-controls {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .auto-orbit-slot[data-mode="expanded"] .auto-orbit-pill {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .auto-orbit-pill,
+    .auto-orbit-controls {
+      transition: opacity 0.15s ease-out;
+    }
+
+    /* =========================================================
+    *  2D preset overlay（今は基本オフ。残しておくだけ）
+    * ======================================================= */
+    #view-presets-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 25;
+      opacity: 0;
+      transition: opacity 0.15s ease-out;
+    }
+
+    #view-presets-overlay[data-open="true"] {
+      pointer-events: auto;
+      opacity: 1;
+    }
+
+    .view-preset {
+      position: absolute;
+      width: 26px;
+      height: 26px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      background: radial-gradient(
+        circle at 20% 20%,
+        rgba(255, 255, 255, 0.3),
+        rgba(0, 0, 0, 0.95)
+      );
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+      outline: none;
+    }
+
+    .view-preset::before {
+      content: "";
+      position: absolute;
+      inset: 4px;
+      border-radius: 3px;
+      border: 1px solid rgba(255, 255, 255, 0.8);
+    }
+
+    .view-preset::after {
+      content: "";
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      border: 1px solid rgba(220, 235, 255, 0.9);
+      background: radial-gradient(
+        circle,
+        #ffffff,
+        #88aaff 60%,
+        rgba(0, 0, 0, 0)
+      );
+      box-shadow: 0 0 4px rgba(160, 200, 255, 0.9);
+    }
+
+    .view-preset:hover {
+      border-color: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 0 6px rgba(200, 230, 255, 0.9);
+    }
+
+    .view-preset[data-active="true"] {
+      border-color: rgba(200, 220, 255, 1);
+      box-shadow: 0 0 8px rgba(170, 210, 255, 1);
+    }
+
+    .view-preset-beam {
+      position: absolute;
+      width: 2px;
+      height: 22px;
+      background: linear-gradient(
+        to bottom,
+        rgba(150, 190, 255, 0),
+        rgba(190, 220, 255, 0.6),
+        rgba(255, 255, 255, 1)
+      );
+      transform-origin: top center;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    @keyframes presetBeamPulse {
+      0% {
+        opacity: 0.05;
       }
-
-      /* HOME / X / Y / Z のボタンは確実にクリック可能にする */
-      #gizmo-wrapper button,
-      #gizmo-wrapper .keycap,
-      #gizmo-wrapper .gizmo-axis {
-        pointer-events: auto;
-        position: relative;
-        z-index: 30;
+      50% {
+        opacity: 1;
       }
+      100% {
+        opacity: 0.05;
+      }
+    }
 
-    </style>
+    .view-preset[data-active="true"] .view-preset-beam {
+      animation: presetBeamPulse 1.2s ease-out infinite;
+    }
+
+    /* ビームの向き・位置 */
+    .view-preset[data-pos="top"] .view-preset-beam {
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .view-preset[data-pos="bottom"] .view-preset-beam {
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%) rotate(180deg);
+    }
+
+    .view-preset[data-pos="left"] .view-preset-beam {
+      left: 100%;
+      top: 50%;
+      transform: translateY(-50%) rotate(90deg);
+    }
+
+    .view-preset[data-pos="right"] .view-preset-beam {
+      right: 100%;
+      top: 50%;
+      transform: translateY(-50%) rotate(-90deg);
+    }
+
+    .view-preset[data-pos="ne"] .view-preset-beam {
+      top: 88%;
+      right: 88%;
+      transform: translate(50%, -50%) rotate(-135deg);
+    }
+
+    .view-preset[data-pos="nw"] .view-preset-beam {
+      top: 88%;
+      left: 88%;
+      transform: translate(-50%, -50%) rotate(-45deg);
+    }
+
+    .view-preset[data-pos="se"] .view-preset-beam {
+      bottom: 88%;
+      right: 88%;
+      transform: translate(50%, 50%) rotate(135deg);
+    }
+
+    .view-preset[data-pos="sw"] .view-preset-beam {
+      bottom: 88%;
+      left: 88%;
+      transform: translate(-50%, 50%) rotate(45deg);
+    }
+
+    /* ギズモまわりに配置するポジション */
+    .view-preset[data-pos="top"] {
+      top: 2px;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .view-preset[data-pos="bottom"] {
+      bottom: 2px;
+      left: 50%;
+      transform: translate(-50%, 50%);
+    }
+
+    .view-preset[data-pos="left"] {
+      left: 2px;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .view-preset[data-pos="right"] {
+      right: 2px;
+      top: 50%;
+      transform: translate(50%, -50%);
+    }
+
+    .view-preset[data-pos="ne"] {
+      top: 6px;
+      right: 6px;
+      transform: translate(0, -50%);
+    }
+
+    .view-preset[data-pos="nw"] {
+      top: 6px;
+      left: 6px;
+      transform: translate(0, -50%);
+    }
+
+    .view-preset[data-pos="se"] {
+      bottom: 6px;
+      right: 6px;
+      transform: translate(0, 50%);
+    }
+
+    .view-preset[data-pos="sw"] {
+      bottom: 6px;
+      left: 6px;
+      transform: translate(0, 50%);
+    }
+  </style>
+
   </head>
 
-  <body>
-    <div id="viewer-layout">
-      <!-- 左：3D ビュー＋HUD＋ツールバー＋ギズモ＋300×250 AD -->
-      <div id="viewer-main">
-        <canvas id="viewer-canvas"></canvas>
+<body>
+  <div id="viewer-layout">
+    <!-- 左：3D ビュー＋オーバーレイ全部 -->
+    <div id="viewer-main">
+      <!-- 左上 300x250 -->
+      <div id="ad-top-left">300×250 AD</div>
 
-        <!-- HUD: 一時メッセージ用トースト -->
-        <div id="viewer-hud" class="hud-hidden"></div>
+      <!-- 3D シーン -->
+      <canvas id="viewer-canvas"></canvas>
 
-        <!-- 下部ツールバー -->
-        <div id="viewer-toolbar">
-          <div class="toolbar-main">
-            <!-- frame / 再生 -->
-            <div class="frame-block">
-              <div style="opacity: 0.8">
-                Frame: <span id="frame-slider-label">0</span>
+      <!-- HUD: 一時メッセージ用トースト -->
+      <div id="viewer-hud" class="hud-hidden"></div>
+
+      <!-- 下部ツールバー -->
+      <div id="viewer-toolbar">
+        <div class="frame-block">
+          <div class="frame-main">
+            <div class="frame-top-row">
+              <div class="filter-column">
+                <button
+                  id="filter-lines"
+                  class="filter-toggle filter-on"
+                  type="button"
+                  title="toggle lines"
+                >
+                  <span class="icon">👁</span><span class="label">lines</span>
+                </button>
+                <button
+                  id="filter-points"
+                  class="filter-toggle filter-on"
+                  type="button"
+                  title="toggle points"
+                >
+                  <span class="icon">👁</span><span class="label">points</span>
+                </button>
+                <button
+                  id="filter-aux"
+                  class="filter-toggle filter-on"
+                  type="button"
+                  title="toggle aux"
+                >
+                  <span class="icon">👁</span><span class="label">aux</span>
+                </button>
               </div>
-              <input
-                id="frame-slider"
-                type="range"
-                min="0"
-                max="0"
-                value="0"
-                step="1"
-              />
 
-              <!-- 2 段構成：上段＝連続再生モード / 下段＝パラパラめくり -->
-              <div id="frame-controls" class="mode-flip">
-                <!-- 1 行目：連続再生モード -->
-                <div class="row row-continuous">
-                  <button id="btn-rew" title="逆送り（最小までジャンプ）">
-                    ⏮
-                  </button>
-                  <button id="btn-play" title="再生 / 一時停止 (Space)">
-                    Play
-                  </button>
-                  <button id="btn-ff" title="先送り（最大までジャンプ）">
-                    ⏭
-                  </button>
+              <div class="frame-header-main">
+                <div class="frame-label">
+                  Frame: <span id="frame-slider-label">0</span>
                 </div>
-                <!-- 2 行目：パラパラめくりモード -->
-                <div class="row row-flip">
-                  <button id="btn-step-back" title="1 フレーム戻る (PgDn)">
-                    ◀
-                  </button>
-                  <button id="btn-home" title="ホームフレーム (0)">●</button>
-                  <button
-                    id="btn-step-forward"
-                    title="1 フレーム進む (PgUp)"
-                  >
-                    ▶
-                  </button>
+
+                <div id="frame-controls" class="mode-flip">
+                  <div class="row row-continuous">
+                    <button id="btn-rew" title="逆送り（最小までジャンプ）">
+                      ⏮
+                    </button>
+                    <button id="btn-play" title="再生 / 一時停止 (Space)">
+                      Play
+                    </button>
+                    <button id="btn-ff" title="先送り（最大までジャンプ）">
+                      ⏭
+                    </button>
+                  </div>
+                  <div class="row row-flip">
+                    <button id="btn-step-back" title="1 フレーム戻る (PgDn)">
+                      ◀
+                    </button>
+                    <button id="btn-home" title="ホームフレーム (0)">●</button>
+                    <button
+                      id="btn-step-forward"
+                      title="1 フレーム進む (PgUp)"
+                    >
+                      ▶
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- filter -->
-            <div class="filter-column">
-              <button
-                id="filter-lines"
-                class="filter-toggle filter-on"
-                type="button"
-                title="toggle lines"
-              >
-                <span class="icon">👁</span><span class="label">lines</span>
-              </button>
-              <button
-                id="filter-points"
-                class="filter-toggle filter-on"
-                type="button"
-                title="toggle points"
-              >
-                <span class="icon">👁</span><span class="label">points</span>
-              </button>
-              <button
-                id="filter-aux"
-                class="filter-toggle filter-on"
-                type="button"
-                title="toggle aux"
-              >
-                <span class="icon">👁</span><span class="label">aux</span>
-              </button>
-            </div>
+            <input
+              id="frame-slider"
+              type="range"
+              min="0"
+              max="0"
+              value="0"
+              step="1"
+            />
           </div>
         </div>
+      </div>
 
-        <!-- カメラモード表示（右下固定） -->
-        <div id="camera-panel">
-          <div id="mode-stack">
-              <div id="mode-label-macro" class="mode-pill mode-pill-active">
+      <!-- カメラモード表示（右上寄り） -->
+      <div id="camera-panel">
+        <div id="mode-stack">
+          <div class="mode-pills-block">
+            <div id="mode-label-macro" class="mode-pill mode-pill-active">
               MACRO
             </div>
-
-            <!-- MESO モード pill -->
-            <div id="mode-label-meso" class="mode-pill">
-              MESO
-            </div>
-
-            <div class="mode-micro-block">
-              <div id="mode-label-micro" class="mode-pill">micro</div>
-              <button
-                id="mode-focus-toggle"
-                class="mode-focus-toggle keycap"
-                type="button"
-                title="Toggle micro focus (Q)"
-              >
-                FOCUS&nbsp;[Q]
-              </button>
-              <div id="mode-focus-label" class="mode-focus-label">-</div>
-            </div>
-
+            <div id="mode-label-meso" class="mode-pill">MESO</div>
+            <div id="mode-label-micro" class="mode-pill">MICRO</div>
           </div>
+        </div>
+      </div>
 
+      <!-- Gizmo 本体（右下） -->
+      <div id="gizmo-wrapper">
+        <div class="gizmo-axis-row"></div>
+        <div id="gizmo-slot"></div>
+      </div>
+
+      <!-- 座標軸トグル + autoOrbit + preset view（右下横並び） -->
+      <div id="camera-bottom-row">
+        <div class="world-axes-toggle">
+          <button
+            id="world-axes-toggle"
+            type="button"
+            aria-pressed="false"
+            data-visible="false"
+          >
+            <span class="icon" data-icon="on">👁</span>
+            <span class="icon" data-icon="off">👁‍🗨</span>
+          </button>
+          <span class="world-axes-label">coord.</span>
         </div>
 
-        <!-- Gizmo -->
-        <div id="gizmo-wrapper">
-          <!-- HOME（カメラリセット） -->
+        <div id="auto-orbit-slot" class="auto-orbit-slot">
           <button
-            id="gizmo-home"
-            class="keycap"
+            id="auto-orbit-pill"
             type="button"
-            data-gizmo="home"
-            title="Reset camera (HOME)"
+            class="keycap auto-orbit-pill"
+            title="Auto orbit"
           >
-            HOME
+            autoOrbit
           </button>
 
-          <!-- 軸スナップボタン（右下に横並び） -->
-          <div class="gizmo-axis-row">
+          <div id="auto-orbit-controls" class="auto-orbit-controls">
             <button
-              class="gizmo-axis keycap"
               type="button"
-              data-gizmo-axis="x"
-              title="+X axis"
+              class="keycap auto-orbit-btn"
+              data-role="rev"
+              title="Reverse orbit / faster reverse"
             >
-              X
+              ⟲
             </button>
             <button
-              class="gizmo-axis keycap"
               type="button"
-              data-gizmo-axis="y"
-              title="+Y axis"
+              class="keycap auto-orbit-btn"
+              data-role="stop"
+              title="Stop auto orbit"
             >
-              Y
+              ■
             </button>
             <button
-              class="gizmo-axis keycap"
               type="button"
-              data-gizmo-axis="z"
-              title="+Z axis"
+              class="keycap auto-orbit-btn"
+              data-role="fwd"
+              title="Forward orbit / faster"
             >
-              Z
+              ⟳
             </button>
           </div>
-
-          <!-- 中身の SVG ギズモはここに差し込まれる -->
-          <div id="gizmo-slot"></div>
         </div>
 
-      <!-- 右：メタ情報エリア -->
-      <aside id="viewer-meta">
-        <div id="meta-header">
-          <a id="meta-logo-link" href="/viewer/">
-            <img
-              id="meta-logo"
-              src="../assets/logo/3DSD-viewer.svg"
-              alt="3DSD-viewer"
-            />
-          </a>
-        </div>
+        <button
+          id="gizmo-presets-toggle"
+          class="keycap"
+          type="button"
+          title="Preset views"
+        >
+          preset view
+        </button>
+      </div>
+    </div> <!-- /viewer-main -->
 
-        <div id="meta-file">
-          <h3>File</h3>
-          <div>(no file yet)</div>
-        </div>
-        <div id="meta-model">
-          <h3>Model</h3>
-          <div>(logs will appear here)</div>
-        </div>
-      </aside>
-    </div>
-      <script type="module" src="./viewerDevHarness.js"></script>
-    </body>
+    <!-- 中央：300x600 -->
+    <aside id="viewer-ad-rail">
+      300×600 AD
+    </aside>
+
+    <!-- 右：メタ情報エリア -->
+    <aside id="viewer-meta">
+      <div id="meta-header">
+        <a id="meta-logo-link" href="/viewer/">
+          <img
+            id="meta-logo"
+            src="../assets/logo/3DSD-viewer.svg"
+            alt="3DSD-viewer"
+          />
+        </a>
+      </div>
+
+      <div id="meta-file">
+        <h3>File</h3>
+        <div>(no file yet)</div>
+      </div>
+      <div id="meta-model">
+        <h3>Model</h3>
+        <div>(logs will appear here)</div>
+      </div>
+    </aside>
+  </div>
+
+  <script type="module" src="./viewerDevHarness.js"></script>
+</body>
 </html>
