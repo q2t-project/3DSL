@@ -527,18 +527,7 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     frameController,
     visibilityController,
     microController,
-
-    // 互換用エイリアス
-    document3dss: struct,
-    indices,
-
-    // 入力レイヤ用エイリアス
-    camera: cameraEngine,
-    frame: frameController,
-    mode: modeController,
-    selection: selectionController,
-
-    // A-5: frame / filter 変更時の唯一の正規ルート
+    // ... 省略 ...
     recomputeVisibleSet() {
       let visible = null;
 
@@ -558,6 +547,14 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
       return visible;
     },
   };
+
+  // ★ visibility 側からも必ず正規ルートを叩く
+  if (
+    visibilityController &&
+    typeof visibilityController.setRecomputeHandler === "function"
+  ) {
+    visibilityController.setRecomputeHandler(() => core.recomputeVisibleSet());
+  }
 
   // 起動直後の visibleSet / microFX 同期（A-5）
   if (typeof core.recomputeVisibleSet === "function") {

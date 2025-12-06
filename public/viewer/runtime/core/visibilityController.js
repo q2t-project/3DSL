@@ -35,6 +35,14 @@ export function createVisibilityController(uiState, _document, indices) {
   // frames 未指定（= 全フレーム共通）の要素
   const uuidsWithoutFrames = allUuids.filter((uuid) => !uuidToFrames.has(uuid));
 
+  function createEmptyVisibleSets() {
+    return {
+      points: new Set(),
+      lines:  new Set(),
+      aux:    new Set(),
+    };
+  }
+
   function getCurrentFrame() {
     const n = Number(uiState?.frame?.current);
     return Number.isFinite(n) ? n : 0;
@@ -48,7 +56,7 @@ export function createVisibilityController(uiState, _document, indices) {
 
   // frameIndex を使った最適化パス
   function recomputeWithFrameIndex(frame, filters) {
-    const visible = new Set();
+    const result = createEmptyVisibleSets();
 
     const tryKind = (kind) => {
       const perKindIndex = frameIndex && frameIndex[kind];
@@ -58,8 +66,11 @@ export function createVisibilityController(uiState, _document, indices) {
       const set = perKindIndex.get(frame);
       if (!(set instanceof Set)) return;
 
+      const dst = result[kind];
+      if (!dst) return;
+
       for (const uuid of set) {
-        visible.add(uuid);
+        dst.add(uuid);
       }
     };
 
@@ -68,19 +79,21 @@ export function createVisibilityController(uiState, _document, indices) {
     tryKind("lines");
     tryKind("aux");
 
-    // frames を持たない要素は「全フレーム共通」扱いで種別フィルタだけ見る
+    // frames を持たない要素は「全フレーム共通」扱い
     for (const uuid of uuidsWithoutFrames) {
       const kind = uuidToKind.get(uuid);
       if (!typeEnabled(filters, kind)) continue;
-      visible.add(uuid);
+
+      const dst = result[kind];
+      if (dst) dst.add(uuid);
     }
 
-    return visible;
+    return result;
   }
 
   // 旧ロジック（uuidToFrames を総なめ）へのフォールバック
   function recomputeFallback(frame, filters) {
-    const visible = new Set();
+    const result = createEmptyVisibleSets();
 
     for (const uuid of allUuids) {
       const kind = uuidToKind.get(uuid);
@@ -98,18 +111,18 @@ export function createVisibilityController(uiState, _document, indices) {
         }
       }
 
-      visible.add(uuid);
+      const dst = result[kind];
+      if (dst) dst.add(uuid);
     }
 
-    return visible;
+    return result;
   }
 
   function recompute() {
-    // ここは「純粋に visibleSet を作り直す」ベースロジックとして残す。
     const frame = getCurrentFrame();
     const filters = uiState.filters || {};
 
-    let visible;
+    let subsets;
 
     if (
       frameIndex &&
@@ -118,21 +131,65 @@ export function createVisibilityController(uiState, _document, indices) {
       frameIndex.aux instanceof Map
     ) {
       // structIndex.frameIndex が揃っている場合はそっち優先
-      visible = recomputeWithFrameIndex(frame, filters);
+      subsets = recomputeWithFrameIndex(frame, filters);
     } else {
       // 無ければ従来どおり uuidToFrames を総なめ
-      visible = recomputeFallback(frame, filters);
+      subsets = recomputeFallback(frame, filters);
     }
 
-    uiState.visibleSet = visible;
-    return uiState.visibleSet;
+    // union（全部まとめた Set）も作っておくと便利
+    const all = new Set();
+    for (const kind of ["points", "lines", "aux"]) {
+      const set = subsets[kind];
+      if (!(set instanceof Set)) continue;
+      for (const uuid of set) {
+        all.add(uuid);
+      }
+    }
+
+    const visibleSet = {
+      points: subsets.points,
+      lines:  subsets.lines,
+      aux:    subsets.aux,
+      all,
+    };
+
+    uiState.visibleSet = visibleSet;
+    return visibleSet;
   }
 
   function isVisible(uuid) {
     if (!uuid) return false;
     const vs = uiState.visibleSet;
-    if (!(vs instanceof Set)) return true; // null or 不正 → 全部表示扱い
-    return vs.has(uuid);
+
+    // 未設定 → 全部見える扱い（従来どおり）
+    if (!vs) return true;
+
+    // 旧形式: Set<uuid>
+    if (vs instanceof Set) {
+      return vs.has(uuid);
+    }
+
+    // 新形式: { points:Set, lines:Set, aux:Set, all?:Set }
+    if (typeof vs === "object") {
+      const kind = uuidToKind.get(uuid);
+
+      // kind が分かってて、その kind 用 Set があればそれを見る
+      if (kind && vs[kind] instanceof Set) {
+        return vs[kind].has(uuid);
+      }
+
+      // all Set があればそれを見る
+      if (vs.all instanceof Set) {
+        return vs.all.has(uuid);
+      }
+
+      // ここまで来たら情報不足 → とりあえず見える扱いに倒す
+      return true;
+    }
+
+    // よく分からん値が入ってた場合も安全側に倒す
+    return true;
   }
 
   function getFilters() {

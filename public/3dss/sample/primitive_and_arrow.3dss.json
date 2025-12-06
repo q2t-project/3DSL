@@ -205,6 +205,10 @@
         "color": "#ffffff",
         "opacity": 0.8,
         "renderOrder": 0,
+        "effect": {
+          "effect_type": "flow",
+          "speed": 1.0
+        },
         "arrow": {
           "primitive": "none",
           "placement": "end_b",
@@ -238,22 +242,16 @@
         "color": "#00ccff",
         "opacity": 0.9,
         "renderOrder": 0,
+        "effect": {
+          "effect_type": "glow",
+          "amplitude": 0.8 
+        },
         "arrow": {
           "primitive": "line",
           "length": 6,
           "thickness": 1,
           "placement": "end_b",
           "auto_orient": true
-        },
-        "effect": {
-          "effect_type": "flow",
-          "amplitude": 1,
-          "speed": 1.5,
-          "duration": 1,
-          "loop": true,
-          "phase": 0,
-          "easing": "linear",
-          "width": 1
         },
         "visible": true,
         "frames": 0
@@ -335,6 +333,10 @@
           "placement": "end_b",
           "auto_orient": true
         },
+        "effect": {
+          "effect_type": "glow",
+          "amplitude": 0.3
+        },
         "visible": true,
         "frames": 1
       },
@@ -369,6 +371,12 @@
           "height": 3,
           "placement": "both",
           "auto_orient": true
+        },
+        "effect": {
+          "effect_type": "pulse",
+          "amplitude": 0.5,
+          "speed": 1.0,
+          "phase": 0.0
         },
         "visible": true,
         "frames": [1, 2]

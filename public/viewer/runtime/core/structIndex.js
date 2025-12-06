@@ -61,8 +61,22 @@
 //   // 9) bounds を取り出すヘルパ
 //   //    - 将来内部表現を変えてもここから取れば OK
 //   getSceneBounds(): { center, radius, min, max },
-// }
 //
+//   // 10) lines 用の意味プロファイル
+//   //   - relation: { family, kind, raw }
+//   //   - sense: "a_to_b" | "b_to_a" | "bidirectional" | "neutral"
+//   //   - lineType:  "straight" | "polyline" | ...
+//   //   - lineStyle: "solid" | "dashed" | ...
+//   //   - effect:    { effect_type, amplitude, speed,... } | null
+//   //   - frames:    Set<number> | null
+//   lineProfile: Map<string, {
+//     relation: { family: string, kind: string | null, raw: any | null } | null,
+//     sense: string,
+//     lineType: string,
+//     lineStyle: string,
+//     effect: any | null,
+//     frames: Set<number> | null,
+//   }>,
 // ※ structIndex 自体は「document を速く引くための只の索引」であり、
 //    UI 状態や three.js のシーンには一切関与しない。
 
@@ -143,6 +157,9 @@ export function buildUUIDIndex(doc) {
     lineToPoints: new Map(),
   };
 
+  // ★ lines 用の意味プロファイル
+  const lineProfile = new Map();
+
   // ★ バウンディング用の min/max
   let minX = Infinity;
   let minY = Infinity;
@@ -167,6 +184,118 @@ export function buildUUIDIndex(doc) {
     if (z > maxZ) maxZ = z;
   }
 
+  // ------------------------------------------------------------
+  // lines 用 normalize ヘルパ
+  // ------------------------------------------------------------
+  const SENSE_VALUES = new Set(["a_to_b", "b_to_a", "bidirectional", "neutral"]);
+  const LINE_TYPE_VALUES = new Set([
+    "straight",
+    "polyline",
+    "catmullrom",
+    "bezier",
+    "arc",
+  ]);
+  const LINE_STYLE_VALUES = new Set(["solid", "dashed", "dotted", "double", "none"]);
+  const EFFECT_TYPE_VALUES = new Set(["none", "pulse", "flow", "glow"]);
+  const EASING_VALUES = new Set(["linear", "ease-in", "ease-out", "ease-in-out"]);
+
+  function normalizeSense(raw) {
+    if (typeof raw !== "string") return "a_to_b";
+    return SENSE_VALUES.has(raw) ? raw : "a_to_b";
+  }
+
+  function extractRelationInfo(signification) {
+    const rel = signification && signification.relation;
+    if (!rel || typeof rel !== "object") {
+      return { raw: rel || null, family: null, kind: null };
+    }
+    const families = ["structural", "dynamic", "logical", "temporal", "meta"];
+    for (const f of families) {
+      const v = rel[f];
+      if (typeof v === "string" && v.length > 0) {
+        return { raw: rel, family: f, kind: v };
+      }
+    }
+    return { raw: rel, family: null, kind: null };
+  }
+
+  function inferDefaultEffectType(family, kind) {
+    if (family === "dynamic") {
+      if (kind === "flow") return "flow";
+      if (kind === "causal") return "glow";
+      if (kind === "feedback" || kind === "recursion") return "pulse";
+    }
+    if (family === "temporal") {
+      if (kind === "precedence" || kind === "succession") return "flow";
+    }
+    return "none";
+  }
+
+  function normalizeLineType(raw) {
+    if (typeof raw !== "string") return "straight";
+    return LINE_TYPE_VALUES.has(raw) ? raw : "straight";
+  }
+
+  function normalizeLineStyle(raw) {
+    if (typeof raw !== "string") return "solid";
+    return LINE_STYLE_VALUES.has(raw) ? raw : "solid";
+  }
+
+  function normalizeEffect(rawEffect, relationInfo) {
+    const base = {
+      effect_type: "none",
+      amplitude: 1,
+      speed: 1,
+      duration: 1,
+      loop: true,
+      phase: 0,
+      easing: "linear",
+      width: 1,
+    };
+
+    if (rawEffect && typeof rawEffect === "object") {
+      if (
+        typeof rawEffect.effect_type === "string" &&
+        EFFECT_TYPE_VALUES.has(rawEffect.effect_type)
+      ) {
+        base.effect_type = rawEffect.effect_type;
+      }
+
+      if (typeof rawEffect.amplitude === "number") {
+        base.amplitude = rawEffect.amplitude;
+      }
+      if (typeof rawEffect.speed === "number") {
+        base.speed = rawEffect.speed;
+      }
+      if (typeof rawEffect.duration === "number") {
+        base.duration = rawEffect.duration;
+      }
+      if (typeof rawEffect.loop === "boolean") {
+        base.loop = rawEffect.loop;
+      }
+      if (typeof rawEffect.phase === "number") {
+        base.phase = rawEffect.phase;
+      }
+      if (
+        typeof rawEffect.easing === "string" &&
+        EASING_VALUES.has(rawEffect.easing)
+      ) {
+        base.easing = rawEffect.easing;
+      }
+      if (typeof rawEffect.width === "number") {
+        base.width = rawEffect.width;
+      }
+    } else if (relationInfo) {
+      const t = inferDefaultEffectType(relationInfo.family, relationInfo.kind);
+      base.effect_type = t;
+    }
+
+    return base;
+  }
+
+  // ------------------------------------------------------------
+  // 本体スキャン
+  // ------------------------------------------------------------
   if (doc && typeof doc === "object") {
     // ---- points ----
     if (Array.isArray(doc.points)) {
@@ -189,6 +318,31 @@ export function buildUUIDIndex(doc) {
         if (framesSet) {
           uuidToFrames.set(uuid, framesSet);
           addFramesToFrameIndex(frameIndex.points, uuid, framesSet);
+        }
+      }
+    }
+
+    // ---- aux ----
+    if (Array.isArray(doc.aux)) {
+      for (const node of doc.aux) {
+        if (!node || typeof node !== "object") continue;
+
+        const uuid = node?.meta?.uuid;
+        if (!uuid) continue;
+
+        uuidToKind.set(uuid, "aux");
+        uuidToItem.set(uuid, { kind: "aux", item: node });
+
+        const pos = sanitizeVec3(node?.appearance?.position);
+        if (pos) {
+          auxPosition.set(uuid, pos);
+          expandBounds(pos);
+        }
+
+        const framesSet = normalizeFrames(node?.appearance?.frames);
+        if (framesSet) {
+          uuidToFrames.set(uuid, framesSet);
+          addFramesToFrameIndex(frameIndex.aux, uuid, framesSet);
         }
       }
     }
@@ -230,31 +384,23 @@ export function buildUUIDIndex(doc) {
         if (coordA) expandBounds(coordA);
         const coordB = endB && sanitizeVec3(endB.coord);
         if (coordB) expandBounds(coordB);
-      }
-    }
 
-    // ---- aux ----
-    if (Array.isArray(doc.aux)) {
-      for (const node of doc.aux) {
-        if (!node || typeof node !== "object") continue;
+        // ★ lineProfile 構築
+        const sig = node.signification || {};
+        const relationInfo = extractRelationInfo(sig);
+        const sense = normalizeSense(sig.sense);
+        const lineType = normalizeLineType(node?.appearance?.line_type);
+        const lineStyle = normalizeLineStyle(node?.appearance?.line_style);
+        const effect = normalizeEffect(node?.appearance?.effect, relationInfo);
 
-        const uuid = node?.meta?.uuid;
-        if (!uuid) continue;
-
-        uuidToKind.set(uuid, "aux");
-        uuidToItem.set(uuid, { kind: "aux", item: node });
-
-        const pos = sanitizeVec3(node?.appearance?.position);
-        if (pos) {
-          auxPosition.set(uuid, pos);
-          expandBounds(pos);
-        }
-
-        const framesSet = normalizeFrames(node?.appearance?.frames);
-        if (framesSet) {
-          uuidToFrames.set(uuid, framesSet);
-          addFramesToFrameIndex(frameIndex.aux, uuid, framesSet);
-        }
+        lineProfile.set(uuid, {
+          relation: relationInfo,
+          sense,
+          lineType,
+          lineStyle,
+          effect,
+          frames: framesSet || null,
+        });
       }
     }
   }
@@ -309,8 +455,10 @@ export function buildUUIDIndex(doc) {
     uuidToFrames,
     bounds,
     getSceneBounds,
+    lineProfile, // ★ ここで export
   };
 }
+
 
 // appearance.frames 全体をスキャンして [min,max] を返す。
 // 何も無ければ {0,0}。

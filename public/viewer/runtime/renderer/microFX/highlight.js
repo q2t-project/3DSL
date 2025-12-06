@@ -145,8 +145,49 @@ export function applyHighlight(
   s = clamp01(s);
   if (s <= 0) return;
 
-  // highlight が見る microState フィールドは focusUuid / relatedUuids のみ。
-  // kind / focusPosition / localBounds は別エフェクト（marker / bounds 等）が使う。
+  // ---------------- visibleSet を判定関数に正規化 ----------------
+  function buildVisiblePredicate(vs) {
+    if (!vs) return null;
+
+    // うっかり getVisibleSet 関数が渡ってきたケース
+    if (typeof vs === "function") {
+      try {
+        vs = vs();
+      } catch {
+        return null;
+      }
+    }
+
+    // 旧仕様: Set<uuid>
+    if (vs instanceof Set) {
+      return (uuid) => vs.has(uuid);
+    }
+
+    // 新仕様: { points:Set|uuid[], lines:Set|uuid[], aux:Set|uuid[] }
+    if (typeof vs === "object") {
+      const pools = [];
+      if (vs.points) pools.push(vs.points);
+      if (vs.lines)  pools.push(vs.lines);
+      if (vs.aux)    pools.push(vs.aux);
+
+      if (!pools.length) return null;
+
+      return (uuid) => {
+        for (const pool of pools) {
+          if (!pool) continue;
+          if (pool instanceof Set && pool.has(uuid)) return true;
+          if (Array.isArray(pool) && pool.includes(uuid)) return true;
+        }
+        return false;
+      };
+    }
+
+    return null;
+  }
+
+  const isVisible = buildVisiblePredicate(visibleSet);
+  // ------------------------------------------------------------
+
   const { focusUuid, relatedUuids } = microState;
 
   const ids = [];
@@ -157,22 +198,29 @@ export function applyHighlight(
 
   const group = ensureGroup(scene);
 
-  const focusSet = new Set(focusUuid ? [focusUuid] : []);
+  const focusSet   = new Set(focusUuid ? [focusUuid] : []);
   const relatedSet = new Set(Array.isArray(relatedUuids) ? relatedUuids : []);
 
-  const hlCfg = microFXConfig.highlight || {};
-  const focusCfg = hlCfg.focus || {};
-  const relatedCfg = hlCfg.related || {};
-  const othersCfg = hlCfg.others || {};
+  const hlCfg       = microFXConfig.highlight || {};
+  const focusCfg    = hlCfg.focus   || {};
+  const relatedCfg  = hlCfg.related || {};
+  const othersCfg   = hlCfg.others  || {};
   const lineGlowCfg = hlCfg.lineGlow || {};
-  const lineCfg = hlCfg.line || {};
+  const lineCfg     = hlCfg.line || {};
   const lineGlowEnabled = lineGlowCfg.enabled !== false;
 
-  for (const uuid of uniqIds) {
-    // 7.11.5: visibleSet に含まれない要素は処理しない
-    if (visibleSet && !visibleSet.has(uuid)) continue;
+for (const uuid of uniqIds) {
+  // 7.11.5: visibleSet に含まれない要素は処理しない
+  // Set 以外が来ても絶対に落ちないようにガード
+  if (
+    visibleSet &&
+    typeof visibleSet.has === "function" &&
+    !visibleSet.has(uuid)
+  ) {
+    continue;
+  }
 
-    // getObjectByUuid は indexMaps を閉じ込めた関数を期待している
+  // getObjectByUuid は indexMaps を閉じ込めた関数を期待している
     const src = getObjectByUuid(uuid);
     if (!src) continue;
 
@@ -266,8 +314,19 @@ export function applyHighlight(
 
     group.add(clone);
 
-    // 線がフォーカス対象なら、線全体に沿った多層チューブグローを追加
-    if (src.isLine && isFocus && lineGlowEnabled) {
+    // 線がフォーカス対象かつ effect_type="glow" のときだけ、
+    // 線全体に沿った多層チューブグローを追加（L2 入口）
+    let wantsLineGlow = false;
+    if (src.isLine) {
+      const ud = src.userData || {};
+      const eff = ud.effect;
+      const effType =
+        ud.effectType ||
+        (eff && (eff.effect_type || eff.type));
+      wantsLineGlow = effType === "glow";
+    }
+
+    if (src.isLine && isFocus && lineGlowEnabled && wantsLineGlow) {
       const glowMeshes = createLineGlowMeshes(src, lineGlowCfg, s);
       if (Array.isArray(glowMeshes)) {
         glowMeshes.forEach((m) => group.add(m));

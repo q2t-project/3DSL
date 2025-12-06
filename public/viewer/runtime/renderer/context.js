@@ -1,78 +1,39 @@
 // viewer/runtime/renderer/context.js
+
 import * as THREE from "../../../vendor/three/build/three.module.js";
 import { applyMicroFX as applyMicroFXImpl } from "./microFX/index.js";
-import { labelConfig } from "./labels/labelConfig.js";
 import { buildPointLabelIndex } from "../core/labelModel.js";
-import { createWorldAxesLayer } from "./worldAxes.js"; 
+import { createLabelRuntime } from "./labels/labelRuntime.js";
+import { createWorldAxesLayer } from "./worldAxes.js";
+import { createLineEffectsRuntime } from "./effects/lineEffects.js";
+import {
+  getUuid,
+  getPointPosition,
+  getColor,
+  getOpacity,
+  clamp01,
+} from "./shared.js";
 
 // ------------------------------------------------------------
 // logging
 // ------------------------------------------------------------
+
 const DEBUG_RENDERER = false; // 開発中だけ true にする
+
 function debugRenderer(...args) {
   if (!DEBUG_RENDERER) return;
   console.log(...args);
 }
 
-// 3DSS / プロト両対応のユーティリティ
-// （createPoint / createLine / createAux / getPointPosition から参照）
-function getUuid(node) {
-  if (!node) return null;
-  return node?.meta?.uuid ?? node?.uuid ?? null;
-}
-
-// 3DSS / プロト両対応のユーティリティ
-// structIndex があれば indices.pointPosition を優先して座標を返す
-function getPointPosition(node, indices) {
-  const uuid = getUuid(node);
-
-  // 1) structIndex 優先（正規化済みの座標）
-  if (
-    uuid &&
-    indices &&
-    indices.pointPosition instanceof Map &&
-    indices.pointPosition.has(uuid)
-  ) {
-    return indices.pointPosition.get(uuid);
-  }
-
-  // 2) 3DSS 正式: appearance.position: [x,y,z]
-  if (
-    Array.isArray(node?.appearance?.position) &&
-    node.appearance.position.length === 3
-  ) {
-    return node.appearance.position;
-  }
-
-  // 3) プロト互換: position: [x,y,z]
-  if (Array.isArray(node?.position) && node.position.length === 3) {
-    return node.position;
-  }
-
-  return [0, 0, 0];
-}
-
-function getColor(node, fallback = "#ffffff") {
-  const c =
-    node?.appearance?.color ??
-    node?.color ??
-    fallback;
-  return new THREE.Color(c);
-}
-
-function getOpacity(node, fallback = 1.0) {
-  const o =
-    node?.appearance?.opacity ??
-    node?.opacity;
-  return typeof o === "number" ? o : fallback;
-}
+// ============================================================
+// createRendererContext 本体
+// ============================================================
 
 export function createRendererContext(canvasOrOptions) {
   const canvas =
     canvasOrOptions instanceof HTMLCanvasElement
       ? canvasOrOptions
       : canvasOrOptions?.canvas ?? canvasOrOptions;
-
   if (!(canvas instanceof HTMLCanvasElement)) {
     throw new Error("canvas must be an HTMLCanvasElement");
   }
@@ -97,36 +58,51 @@ export function createRendererContext(canvasOrOptions) {
   // ------------------------------------------------------------
   // ワールド軸レイヤ（背景）: X=青, Y=緑, Z=赤
   // ------------------------------------------------------------
+
   const worldAxes = createWorldAxesLayer(scene);
 
+  // three.js オブジェクト群
   const pointObjects = new Map(); // uuid -> THREE.Mesh（point）
-  const lineObjects  = new Map(); // uuid -> THREE.Line / LineSegments
-  const auxObjects   = new Map(); // uuid -> THREE.Object3D
-  const baseStyle    = new Map(); // uuid -> { color: THREE.Color, opacity: number }
-  let   pointLabelIndex = new Map(); // uuid -> { text, size, font, align, plane }
-  const labelSprites    = new Map(); // uuid -> THREE.Sprite
+  const lineObjects = new Map(); // uuid -> THREE.Line / LineSegments
+  const auxObjects = new Map(); // uuid -> THREE.Object3D
 
-  // シーンメトリクス（この viewer インスタンス内で共有）
-  // シーンメトリクス（この viewer インスタンス内で共有）
+  // ベーススタイル（selection/microFX から参照）
+  const baseStyle = new Map(); // uuid -> { color: THREE.Color, opacity: number }
+
+  // ラベルランタイム
+  const labelRuntime = createLabelRuntime(scene);
+  const labelSprites = labelRuntime.labelSprites; // applyFrame / pick から参照
+
+  // シーンメトリクス
   let sceneRadius = 1;
   const sceneCenter = new THREE.Vector3(0, 0, 0);
 
+  // structIndex（あれば）
+  let currentIndices = null;
+  let lineProfileByUuid = null;
+
+  // 3DSS points の位置キャッシュ（line の end_a/end_b 参照用）
+  //   - position: [x,y,z]
+  //   - radius:   SphereGeometry の半径（代表半径）
+  let pointPositionByUuid = new Map();
+  let pointRadiusByUuid = new Map();
 
   const lookupByUuid = (uuid) =>
     pointObjects.get(uuid) || lineObjects.get(uuid) || auxObjects.get(uuid);
 
   const raycaster = new THREE.Raycaster();
 
-  // この renderer インスタンスに紐づく structIndex（あれば）
-  let currentIndices = null;
+  // ラインエフェクトランタイム（flow/glow/pulse + selection overlay）
+  const lineEffects = createLineEffectsRuntime({
+    lineObjects,
+    baseStyle,
+  });
 
-  // 3DSS points の位置キャッシュ（line の end_a/end_b 参照用）
-  //   - position: [x,y,z]
-  //   - radius:   SphereGeometry の半径（代表半径）
-  let pointPositionByUuid = new Map();
-  let pointRadiusByUuid   = new Map();
+  // ------------------------------------------------------------
+  // マップ類のクリア
+  // ------------------------------------------------------------
 
-  const clearMaps = () => {
+  function clearMaps() {
     for (const obj of [
       ...pointObjects.values(),
       ...lineObjects.values(),
@@ -138,315 +114,20 @@ export function createRendererContext(canvasOrOptions) {
     lineObjects.clear();
     auxObjects.clear();
     baseStyle.clear();
+
     pointPositionByUuid = new Map();
-    pointRadiusByUuid   = new Map();
+    pointRadiusByUuid = new Map();
     currentIndices = null;
+    lineProfileByUuid = null;
 
-    // ラベル Sprite も掃除
-    for (const sprite of labelSprites.values()) {
-      scene.remove(sprite);
-    }
-    labelSprites.clear();
-    pointLabelIndex = new Map();
-  };
-
-  // ------------------------------------------------------------
-  // ラベル描画: CanvasTexture + Sprite / Plane
-  // （実際のスカラー値は labelConfig に退避）
-  // ------------------------------------------------------------
-
-  function createLabelSprite(label, basePosition) {
-    if (!label || !label.text) return null;
-
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return null;
-
-    // 「論理フォントサイズ」（world 上の高さに対応）
-    // 3DSS 上では unitless な「論理ラベルサイズ」
-    const logicalSize =
-      typeof label.size === "number" ? label.size : labelConfig.baseLabelSize;
-
-    // 実際にラスタライズするフォント px は supersample 倍
-    // Canvas2D に描くときだけ px に落とし込む
-
-    const fontPx = Math.max(
-      labelConfig.raster.minFontPx,
-      Math.min(
-        logicalSize * labelConfig.raster.supersamplePx,
-        labelConfig.raster.maxFontPx
-      )
-    );
-
-    const basePadding = labelConfig.raster.padding ?? 0;
-    const outlinePadding =
-      (labelConfig.outline && labelConfig.outline.extraPaddingPx) || 0;
-    const padding = basePadding + outlinePadding;
-
-    const fontFamily = labelConfig.raster.fontFamily;
-    ctx.font = `${fontPx}px ${fontFamily}`;
-
-    const metrics    = ctx.measureText(label.text);
-    const textWidth  = metrics.width;
-    const textHeight = fontPx;
-
-    canvas.width  = Math.ceil(textWidth + padding * 2);
-    canvas.height = Math.ceil(textHeight + padding * 2);
-
-    // サイズ変更後に state がリセットされるので再設定
-    ctx.font = `${fontPx}px ${fontFamily}`;
-    ctx.textBaseline = "top";
-
-    // 背景
-    if (labelConfig.background.enabled) {
-      ctx.fillStyle = labelConfig.background.fillStyle;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    } else {
-      // 背景プレートを使わない場合は一旦クリア
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
-
-    // アウトライン（縁取り）
-    if (labelConfig.outline && labelConfig.outline.enabled) {
-      ctx.lineWidth = labelConfig.outline.widthPx ?? 4;
-      ctx.strokeStyle =
-        labelConfig.outline.color || "rgba(0, 0, 0, 0.95)";
-      ctx.lineJoin = labelConfig.outline.lineJoin || "round";
-
-      // 先に縁取りを描く
-      ctx.strokeText(label.text, padding, padding);
-    }
-
-    // 本体の文字
-    ctx.fillStyle = labelConfig.text.fillStyle;
-    ctx.fillText(label.text, padding, padding);
-
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.minFilter = THREE.LinearFilter;
-    texture.magFilter = THREE.LinearFilter;
-    texture.wrapS = THREE.ClampToEdgeWrapping;
-    texture.wrapT = THREE.ClampToEdgeWrapping;
-
-    // ★ world 上の高さは「unitless な論理サイズ」から計算する
-    const worldScale = logicalSize / labelConfig.baseLabelSize;
-    const worldHeight = labelConfig.world.baseHeight * worldScale;
-    const aspect = canvas.width / canvas.height;
-
-// plane モードを解釈
-//  - "billboard" / "screen" → 画面向き（メタ用途）
-//  - それ以外（未指定含む） → world 平面（xy / yz / zx）
-//    未知値は zx にフォールバック
-const rawPlane = label.plane;
-let plane;
-
-// 互換のため "screen" は "billboard" の別名扱い
-if (rawPlane === "screen" || rawPlane === "billboard") {
-  plane = "billboard";
-} else if (rawPlane === "xy" || rawPlane === "yz" || rawPlane === "zx") {
-  plane = rawPlane;
-} else {
-  // 未指定 or 想定外 → 静的存在として zx に貼る
-  plane = "zx";
-}
-
-let obj;
-
-if (plane === "billboard") {
-  // 画面向き（ビルボード）
-  const material = new THREE.SpriteMaterial({
-    map: texture,
-    transparent: true,
-    depthWrite: false,
-  });
-  obj = new THREE.Sprite(material);
-  obj.scale.set(worldHeight * aspect, worldHeight, 1);
-} else {
-  // ワールド平面貼り付け
-  const geom = new THREE.PlaneGeometry(
-    worldHeight * aspect,
-    worldHeight
-  );
-  const material = new THREE.MeshBasicMaterial({
-    map: texture,
-    transparent: true,
-    depthWrite: false,
-    side: THREE.DoubleSide,
-  });
-  obj = new THREE.Mesh(geom, material);
-
-  switch (plane) {
-    case "xy": // Z+ を向く
-      obj.rotation.set(0, 0, 0);
-      break;
-    case "yz": // X+ を向く
-      obj.rotation.set(Math.PI / 2, Math.PI / 2, 0);
-      break;
-    case "zx": // Y+ を向く（静的な存在のデフォ）
-      obj.rotation.set(-Math.PI / 2, 0, Math.PI);
-      break;
-    default:
-      // ここには来ない想定やけど、保険で zx
-      obj.rotation.set(-Math.PI / 2, 0, Math.PI);
-      break;
-  }
-}
-
-
-    const pos = Array.isArray(basePosition) ? basePosition : [0, 0, 0];
-    obj.position.set(
-      pos[0],
-      pos[1] + worldHeight * (labelConfig.world.offsetYFactor ?? 0),
-      pos[2]
-    );
-
-    // pickObjectAt からは無視
-    obj.userData.label = label;
-
-    // ラベルの「論理サイズ」とテクスチャ解像度を記録しておく
-    obj.userData.logicalSize = logicalSize;
-    obj.userData.texHeightPx = canvas.height;
-
-    // microFX 用ベース値
-    obj.userData.baseScale = obj.scale.clone();
-    const mat = obj.material;
-    obj.userData.baseOpacity =
-      mat && typeof mat.opacity === "number" ? mat.opacity : 1.0;
-
-    return obj;
+    // ラベル Sprite / Plane も掃除
+    labelRuntime.clear();
   }
 
-  function rebuildLabelSprites() {
-    // 既存ラベルを一旦掃除
-    for (const sprite of labelSprites.values()) {
-      scene.remove(sprite);
-    }
-    labelSprites.clear();
+  // ============================================================
+  // 3DSS: points
+  // ============================================================
 
-    if (!pointLabelIndex || pointLabelIndex.size === 0) return;
-
-    for (const [uuid, label] of pointLabelIndex.entries()) {
-      const basePos =
-        pointPositionByUuid.get(uuid) ||
-        pointObjects.get(uuid)?.position?.toArray() ||
-        [0, 0, 0];
-
-      const sprite = createLabelSprite(label, basePos);
-      if (!sprite) continue;
-
-      labelSprites.set(uuid, sprite);
-      scene.add(sprite);
-    }
-  }
-
-  // ------------------------------------------------------------
-  // microState とラベルの連携（「何親等」ごとに徐々に暗くする）
-  // ------------------------------------------------------------
-  function applyLabelMicroFX(microState) {
-    if (!labelSprites || labelSprites.size === 0) return;
-
-    // microState 無し → スケール／濃さだけベース状態に戻す
-    // visible は frame 側に任せて触らない
-    if (!microState) {
-      labelSprites.forEach((obj) => {
-        const baseScale =
-          obj.userData.baseScale instanceof THREE.Vector3
-            ? obj.userData.baseScale
-            : obj.scale;
-        const baseOpacity =
-          typeof obj.userData.baseOpacity === "number"
-            ? obj.userData.baseOpacity
-            : obj.material && typeof obj.material.opacity === "number"
-            ? obj.material.opacity
-            : 1.0;
-
-        obj.scale.copy(baseScale);
-        if (obj.material && typeof baseOpacity === "number") {
-          obj.material.opacity = baseOpacity;
-        }
-      });
-      return;
-    }
-
-    const { focusUuid, degreeByUuid, relatedUuids } = microState;
-
-    // degree 情報が無い場合は、従来どおり「focus+related 強調」にフォールバック
-    const hasDegree =
-      degreeByUuid && typeof degreeByUuid === "object";
-
-    // 親等ごとの減衰テーブル（必要ならあとでチューニング）
-    // idx = degree（0〜）
-    const DEGREE_ALPHA = [1.0, 0.7, 0.4, 0.15]; // 3親等以降は 0.15 で頭打ち
-    const DEGREE_SCALE = [1.2, 1.0, 0.95, 0.9]; // 0 親等だけ少し大きく
-
-    labelSprites.forEach((obj, uuid) => {
-      const baseScale =
-        obj.userData.baseScale instanceof THREE.Vector3
-          ? obj.userData.baseScale
-          : obj.scale;
-      const baseOpacity =
-        typeof obj.userData.baseOpacity === "number"
-          ? obj.userData.baseOpacity
-          : obj.material && typeof obj.material.opacity === "number"
-          ? obj.material.opacity
-          : 1.0;
-
-      // frame 側の可視状態を尊重
-      const frameVisible = obj.visible;
-
-      let degree = Infinity;
-
-      if (hasDegree && uuid in degreeByUuid) {
-        degree = degreeByUuid[uuid];
-      } else if (!hasDegree) {
-        // フォールバック: focus / related / その他 で３段階に割り振る
-        if (focusUuid && uuid === focusUuid) {
-          degree = 0;
-        } else if (
-          Array.isArray(relatedUuids) &&
-          relatedUuids.includes(uuid)
-        ) {
-          degree = 1;
-        } else {
-          degree = 3;
-        }
-      }
-
-      const clampedDegree =
-        Number.isFinite(degree)
-          ? Math.max(0, Math.min(degree, DEGREE_ALPHA.length - 1))
-          : DEGREE_ALPHA.length - 1;
-
-      const alphaFactor = DEGREE_ALPHA[clampedDegree];
-      const scaleFactor = DEGREE_SCALE[clampedDegree];
-
-      // 「何親等まで見せるか」ポリシー（例: 3 親等まで）
-      const MAX_VISIBLE_DEGREE = 3;
-      const visibleByDegree =
-        Number.isFinite(degree) ? degree <= MAX_VISIBLE_DEGREE : false;
-
-      obj.visible = frameVisible && visibleByDegree;
-
-      // 完全に隠すものはここで終わり
-      if (!obj.visible) {
-        obj.scale.copy(baseScale);
-        if (obj.material) obj.material.opacity = baseOpacity;
-        return;
-      }
-
-      // スケールと透明度を degree に応じて変える
-      obj.scale.set(
-        baseScale.x * scaleFactor,
-        baseScale.y * scaleFactor,
-        baseScale.z
-      );
-
-      if (obj.material) {
-        obj.material.opacity = baseOpacity * alphaFactor;
-      }
-    });
-  }
-
-  // ---------- 3DSS: points ----------
   // 3DSS v1.0.2: appearance.marker.primitive 別にジオメトリと「代表半径」を決める
   const createPoint = (pointNode) => {
     const uuid = getUuid(pointNode);
@@ -454,16 +135,16 @@ if (plane === "billboard") {
 
     // 位置（structIndex 優先）
     const posArr = getPointPosition(pointNode, currentIndices);
-    const pos = Array.isArray(posArr) && posArr.length === 3 ? posArr : [0, 0, 0];
+    const pos =
+      Array.isArray(posArr) && posArr.length === 3 ? posArr : [0, 0, 0];
 
     const marker = pointNode?.appearance?.marker || {};
     const common = marker.common || {};
 
     // 共通スタイル
-    const color =
-      common.color
-        ? new THREE.Color(common.color)
-        : getColor(pointNode, "#ffffff");
+    const color = common.color
+      ? new THREE.Color(common.color)
+      : getColor(pointNode, "#ffffff");
 
     const opacity =
       typeof common.opacity === "number"
@@ -520,7 +201,7 @@ if (plane === "billboard") {
       case "cone": {
         const r = ensurePositive(marker.radius, 1);
         const h = ensurePositive(marker.height, 2 * r);
-        // three.js の ConeGeometry はデフォルトで [-h/2, +h/2] に分布して原点中心
+        // three.js の ConeGeometry は [-h/2, +h/2] に分布して原点中心
         geometry = new THREE.ConeGeometry(r, h, 24);
 
         const hx = r * sx;
@@ -598,15 +279,9 @@ if (plane === "billboard") {
     return obj;
   };
 
-  // ------------------------------------------------------------
+  // ============================================================
   // line 端点の補正と arrow 用ヘルパ
-  //   - resolveLineEndpoint:
-  //       end.{ref|coord} から「端点座標＋代表半径」を取得
-  //   - computeTrimmedSegment:
-  //       2 つの端点と半径から「marker の表面で止まる線分」を計算
-  //   - arrow:
-  //       base を marker 表面に置き、外向きにだけ伸びる
-  // ------------------------------------------------------------
+  // ============================================================
 
   function resolveLineEndpoint(endNode) {
     const position = new THREE.Vector3();
@@ -620,16 +295,26 @@ if (plane === "billboard") {
     // ref(uuid) → point の中心＋代表半径
     if (typeof endNode.ref === "string") {
       refUuid = endNode.ref;
-      const p = pointPositionByUuid.get(refUuid);
+
+      // point → center + radius
+      let p = pointPositionByUuid.get(refUuid);
+
+      // point に無ければ aux（structIndex）も見る
+      if (!p && currentIndices && currentIndices.auxPosition instanceof Map) {
+        p = currentIndices.auxPosition.get(refUuid) || null;
+      }
+
       if (Array.isArray(p) && p.length === 3) {
         position.set(p[0], p[1], p[2]);
       } else if (p && typeof p.x === "number") {
         position.set(p.x, p.y, p.z);
       }
+
       const r = pointRadiusByUuid.get(refUuid);
       if (typeof r === "number" && Number.isFinite(r) && r > 0) {
         radius = r;
       }
+
       return { position, radius, refUuid };
     }
 
@@ -679,7 +364,114 @@ if (plane === "billboard") {
 
   const ARROW_BASE_AXIS = new THREE.Vector3(0, 1, 0);
 
-  function createArrowMesh(arrowCfg, color, segmentLength) {
+  // glow / pulse 共通の二重ハロー帯を作る
+  function createHaloMeshesForLine(
+    segmentInfo,
+    color,
+    rawEffect,
+    baseRenderOrder
+  ) {
+    if (!segmentInfo || !(segmentInfo.length > 0)) {
+      return { inner: null, outer: null };
+    }
+
+    const length = segmentInfo.length;
+
+    const ampRaw =
+      rawEffect && typeof rawEffect.amplitude === "number"
+        ? rawEffect.amplitude
+        : 0.6;
+    const amp = clamp01(ampRaw);
+
+    // 線の長さに対する割合で半径を決める
+    const baseRatioInner = 0.012; // 1.2%
+    const extraRatioInner = 0.018; // +1.8% まで
+    const baseRatioOuter = 0.02; // 2.0%
+    const extraRatioOuter = 0.03; // +3.0% まで
+
+    const innerRadius = length * (baseRatioInner + extraRatioInner * amp);
+    const outerRadius = length * (baseRatioOuter + extraRatioOuter * amp);
+
+    const innerGeom = new THREE.CylinderGeometry(
+      innerRadius,
+      innerRadius,
+      length,
+      16,
+      1,
+      true
+    );
+    innerGeom.translate(0, length / 2, 0);
+
+    const outerGeom = new THREE.CylinderGeometry(
+      outerRadius,
+      outerRadius,
+      length,
+      16,
+      1,
+      true
+    );
+    outerGeom.translate(0, length / 2, 0);
+
+    const innerMat = new THREE.MeshBasicMaterial({
+      color: color.clone(),
+      transparent: true,
+      opacity: 0.85, // 濃い帯
+      depthWrite: false,
+    });
+
+    const outerMat = new THREE.MeshBasicMaterial({
+      color: color.clone(),
+      transparent: true,
+      opacity: 0.35, // 薄い帯
+      depthWrite: false,
+    });
+
+    const inner = new THREE.Mesh(innerGeom, innerMat);
+    const outer = new THREE.Mesh(outerGeom, outerMat);
+
+    // A→B 方向にそろえる
+    const q = new THREE.Quaternion();
+    q.setFromUnitVectors(
+      ARROW_BASE_AXIS,
+      segmentInfo.dir.clone().normalize()
+    );
+    inner.quaternion.copy(q);
+    outer.quaternion.copy(q);
+
+    // A 側の表面から出す
+    inner.position.copy(segmentInfo.start);
+    outer.position.copy(segmentInfo.start);
+
+    const baseOrder =
+      typeof baseRenderOrder === "number" && Number.isFinite(baseRenderOrder)
+        ? baseRenderOrder
+        : 0;
+
+    // 線より少しだけ奥（=先に描画されるように）
+    inner.renderOrder = baseOrder - 0.1;
+    outer.renderOrder = baseOrder - 0.2;
+
+    inner.userData.isHaloInner = true;
+    outer.userData.isHaloOuter = true;
+
+    inner.userData.baseOpacity =
+      typeof innerMat.opacity === "number" ? innerMat.opacity : 1.0;
+    outer.userData.baseOpacity =
+      typeof outerMat.opacity === "number" ? outerMat.opacity : 1.0;
+
+    inner.userData.baseScale = inner.scale.clone();
+    outer.userData.baseScale = outer.scale.clone();
+
+    return { inner, outer };
+  }
+
+  function createArrowMesh(
+    arrowCfg,
+    color,
+    segmentLength,
+    opacity = 1.0,
+    renderOrder = 0
+  ) {
     if (!arrowCfg) return null;
 
     // v1.0.2: primitive, v1.0.1: shape の両対応
@@ -708,7 +500,10 @@ if (plane === "billboard") {
 
       case "cone": {
         // v1.0.1: size & aspect からも復元できるようにしておく
-        const fallbackLen = Math.max(0.03, Math.min(segmentLength * 0.2, 0.5));
+        const fallbackLen = Math.max(
+          0.03,
+          Math.min(segmentLength * 0.2, 0.5)
+        );
         const size =
           typeof arrowCfg.size === "number" && arrowCfg.size > 0
             ? arrowCfg.size
@@ -757,14 +552,25 @@ if (plane === "billboard") {
         return null;
     }
 
+    const matOpacity =
+      typeof opacity === "number" && Number.isFinite(opacity) ? opacity : 1.0;
+
     const material = new THREE.MeshBasicMaterial({
       color: color.clone ? color.clone() : new THREE.Color(color),
       transparent: true,
+      opacity: matOpacity,
       depthWrite: false,
     });
 
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.renderOrder = 5;
+
+    // line 本体と同じ renderOrder をベースに、ほんの少しだけ前面に
+    const baseOrder =
+      typeof renderOrder === "number" && Number.isFinite(renderOrder)
+        ? renderOrder
+        : 0;
+    mesh.renderOrder = baseOrder + 0.1;
+
     return mesh;
   }
 
@@ -804,9 +610,13 @@ if (plane === "billboard") {
     }
   }
 
-  // ---------- 3DSS: lines ----------
-  const createLine = (lineNode) => {
+  // ============================================================
+  // 3DSS: lines
+  // ============================================================
+
+  const createLine = (lineNode, lineProfile = null) => {
     const uuid = getUuid(lineNode);
+    if (!uuid) return null;
 
     let positions = null;
     let segmentInfo = null;
@@ -867,14 +677,168 @@ if (plane === "billboard") {
     const color = getColor(lineNode, "#ffffff");
     const opacity = getOpacity(lineNode, 1.0);
 
-    const material = new THREE.LineBasicMaterial({
-      color,
-      transparent: true,
-      opacity,
-    });
+    // -------- effect 情報の取り出し（doc優先＋profile補完でマージ） --------
+    const docEffect =
+      lineNode?.appearance && typeof lineNode.appearance.effect === "object"
+        ? lineNode.appearance.effect
+        : null;
+
+    const profileEffect =
+      lineProfile && typeof lineProfile.effect === "object"
+        ? lineProfile.effect
+        : null;
+
+    // profile → doc の順で上書き（profile がデフォルト、doc が上書き）
+    const mergedEffect = {
+      ...(profileEffect || {}),
+      ...(docEffect || {}),
+    };
+
+    const hasEffect = Object.keys(mergedEffect).length > 0;
+
+    // effect_type / type / kind のどれでも拾う
+    const effectType =
+      mergedEffect.effect_type ||
+      mergedEffect.type ||
+      mergedEffect.kind ||
+      null;
+
+    const isFlow  = effectType === "flow";
+    const isGlow  = effectType === "glow";
+    const isPulse = effectType === "pulse";
+
+    // -------- line visual style (solid / dashed / dotted ...) --------
+    let lineVisualStyle = "solid";
+    if (lineProfile && typeof lineProfile.lineStyle === "string") {
+      lineVisualStyle = lineProfile.lineStyle;
+    } else if (
+      lineNode?.appearance &&
+      typeof lineNode.appearance.line_style === "string"
+    ) {
+      lineVisualStyle = lineNode.appearance.line_style;
+    }
+    const isDashedStyle =
+      lineVisualStyle === "dashed" || lineVisualStyle === "dotted";
+
+    // flow じゃなくても dashed/dotted は LineDashedMaterial を使う
+    const useDashedMaterial = isFlow || isDashedStyle;
+
+    let material;
+
+    if (useDashedMaterial) {
+      let dashSize;
+      let gapSize;
+
+      if (isFlow) {
+        dashSize =
+          typeof mergedEffect?.dash_size === "number"
+            ? mergedEffect.dash_size
+            : typeof mergedEffect?.dashSize === "number"
+            ? mergedEffect.dashSize
+            : 0.4;
+        gapSize =
+          typeof mergedEffect?.gap_size === "number"
+            ? mergedEffect.gap_size
+            : typeof mergedEffect?.gapSize === "number"
+            ? mergedEffect.gapSize
+            : 0.2;
+      } else {
+        // 静的な dashed/dotted のデフォルトパターン
+        if (lineVisualStyle === "dotted") {
+          dashSize = 0.06;
+          gapSize = 0.18;
+        } else {
+          // dashed
+          dashSize = 0.35;
+          gapSize = 0.25;
+        }
+      }
+
+      material = new THREE.LineDashedMaterial({
+        color,
+        transparent: true,
+        opacity,
+        dashSize,
+        gapSize,
+      });
+    } else {
+      // glow はちょい明るめ＋加算ブレンド
+      let finalColor = color.clone();
+
+      if (isGlow) {
+        const hsl = { h: 0, s: 0, l: 0 };
+        finalColor.getHSL(hsl);
+
+        const rawIntensity =
+          mergedEffect && typeof mergedEffect.intensity === "number"
+            ? mergedEffect.intensity
+            : 0.3; // 0〜1
+        const intensity = Math.max(0, Math.min(rawIntensity, 1));
+
+        hsl.l = Math.min(1.0, hsl.l + intensity);
+        finalColor.setHSL(hsl.h, hsl.s, hsl.l);
+      }
+
+      material = new THREE.LineBasicMaterial({
+        color: finalColor,
+        transparent: true,
+        opacity,
+        depthWrite: !isGlow,
+        blending: isGlow ? THREE.AdditiveBlending : THREE.NormalBlending,
+      });
+    }
 
     const obj = new THREE.Line(geometry, material);
     obj.userData.uuid = uuid;
+
+    // dashed 系は一度だけ距離を計算
+    if (
+      typeof obj.computeLineDistances === "function" &&
+      obj.material &&
+      obj.material.isLineDashedMaterial
+    ) {
+      obj.computeLineDistances();
+    }
+
+    // effect 情報を userData に保持
+    obj.userData.effect = mergedEffect;
+    obj.userData.effectType = effectType || null;
+
+    // renderOrder を決定（lineProfile → appearance.render_order の順で参照）
+    let renderOrder = null;
+    if (lineProfile && typeof lineProfile.renderOrder === "number") {
+      renderOrder = lineProfile.renderOrder;
+    } else if (
+      lineNode?.appearance &&
+      (lineNode.appearance.render_order !== undefined ||
+        lineNode.appearance.renderOrder !== undefined)
+    ) {
+      const raw =
+        lineNode.appearance.render_order ?? lineNode.appearance.renderOrder;
+      const n = Number(raw);
+      if (Number.isFinite(n)) renderOrder = n;
+    }
+    if (renderOrder !== null) {
+      obj.renderOrder = renderOrder;
+    }
+
+    // structIndex lineProfile から意味情報を userData にコピー
+    if (lineProfile) {
+      obj.userData.relation = lineProfile.relation || null;
+      obj.userData.sense = lineProfile.sense || "a_to_b";
+      obj.userData.lineStyle = lineProfile.lineType || "straight";
+      obj.userData.lineVisualStyle = lineVisualStyle;
+      obj.userData.frames =
+        lineProfile.frames instanceof Set ? lineProfile.frames : null;
+    } else {
+      const sig = lineNode?.signification || {};
+      obj.userData.relation = null;
+      obj.userData.sense = sig.sense || "a_to_b";
+      obj.userData.lineStyle =
+        lineNode?.appearance?.line_type || "straight";
+      obj.userData.lineVisualStyle = lineVisualStyle;
+      obj.userData.frames = null;
+    }
 
     baseStyle.set(uuid, {
       color: color.clone(),
@@ -890,19 +854,62 @@ if (plane === "billboard") {
       };
     }
 
+    // glow / pulse 用の二重ハロー帯（flow では使わない）
+    if ((isGlow || isPulse) && segmentInfo && segmentInfo.length > 0) {
+      const baseOrder =
+        typeof obj.renderOrder === "number" && Number.isFinite(obj.renderOrder)
+          ? obj.renderOrder
+          : 0;
+
+      const { inner, outer } = createHaloMeshesForLine(
+        segmentInfo,
+        color,
+        mergedEffect,
+        baseOrder
+      );
+
+      if (inner) {
+        obj.add(inner);
+        obj.userData.haloInner = inner;
+      }
+      if (outer) {
+        obj.add(outer);
+        obj.userData.haloOuter = outer;
+      }
+    }
+
     // arrow: base が marker 表面に乗るように配置
     if (segmentInfo && segmentInfo.length > 0) {
       const arrowCfg = lineNode?.appearance?.arrow;
       const placement = resolveArrowPlacement(lineNode, arrowCfg);
 
       if (arrowCfg && placement !== "none") {
+        const arrowOpacity = material.opacity;
+        const baseOrder =
+          typeof obj.renderOrder === "number" &&
+          Number.isFinite(obj.renderOrder)
+            ? obj.renderOrder
+            : 0;
+
         const arrowA =
           placement === "end_a" || placement === "both"
-            ? createArrowMesh(arrowCfg, color, segmentInfo.length)
+            ? createArrowMesh(
+                arrowCfg,
+                color,
+                segmentInfo.length,
+                arrowOpacity,
+                baseOrder
+              )
             : null;
         const arrowB =
           placement === "end_b" || placement === "both"
-            ? createArrowMesh(arrowCfg, color, segmentInfo.length)
+            ? createArrowMesh(
+                arrowCfg,
+                color,
+                segmentInfo.length,
+                arrowOpacity,
+                baseOrder
+              )
             : null;
 
         if (arrowA) {
@@ -927,12 +934,12 @@ if (plane === "billboard") {
     return obj;
   };
 
-  // ---------- 3DSS: aux ----------
+  // ============================================================
+  // 3DSS: aux
+  // ============================================================
+
   const createAux = (auxNode) => {
-    const uuid =
-      auxNode?.meta?.uuid ??
-      auxNode?.uuid ??
-      null;
+    const uuid = auxNode?.meta?.uuid ?? auxNode?.uuid ?? null;
 
     // とりあえず汎用的な小さな Box として可視化
     // （将来的に appearance.module / type に応じて切り替え可）
@@ -954,341 +961,16 @@ if (plane === "billboard") {
     obj.userData.uuid = uuid;
 
     baseStyle.set(uuid, {
-      color: color.clone(),
+      color: material.color ? material.color.clone() : color.clone(),
       opacity: material.opacity,
     });
 
     return obj;
   };
 
-  // ------------------------------------------------------------
-  // selection ハイライト用ヘルパ
-  //  - restoreBaseStyle(): baseStyle から全オブジェクトを元の色・opacity に戻す
-  //  - highlightUuid(uuid, level): 対象 1 要素だけを少しだけ持ち上げる
-  // ------------------------------------------------------------
-  function restoreBaseStyle() {
-    baseStyle.forEach((style, uuid) => {
-      const obj = lookupByUuid(uuid);
-      if (!obj) return;
-
-      const mat = obj.material;
-      if (!mat) return;
-
-      // color
-      if (style.color && mat.color) {
-        mat.color.copy(style.color);
-      }
-
-      // opacity
-      if (typeof style.opacity === "number") {
-        mat.opacity = style.opacity;
-        if ("transparent" in mat) {
-          mat.transparent = mat.opacity < 1.0;
-        }
-      }
-
-      mat.needsUpdate = true;
-    });
-  }
-
-  function highlightUuid(uuid, level = 1) {
-    if (!uuid) return;
-
-    const obj = lookupByUuid(uuid);
-    const base = baseStyle.get(uuid);
-    if (!obj || !obj.material || !base) return;
-
-    const mat = obj.material;
-    const baseOpacity =
-      typeof base.opacity === "number" ? base.opacity : mat.opacity;
-
-    // level に応じた持ち上げ量（あんまり派手にしない）
-    const opacityBoost = level === 2 ? 0.35 : 0.2;
-    mat.opacity = Math.min(1.0, baseOpacity + opacityBoost);
-    if ("transparent" in mat) {
-      mat.transparent = mat.opacity < 1.0;
-    }
-
-    if (base.color && mat.color) {
-      // 明度だけちょっと上げる
-      const hsl = { h: 0, s: 0, l: 0 };
-      base.color.getHSL(hsl);
-      const lightBoost = level === 2 ? 0.25 : 0.18;
-      hsl.l = Math.min(1.0, hsl.l + lightBoost);
-
-      const tmp = base.color.clone();
-      tmp.setHSL(hsl.h, hsl.s, hsl.l);
-      mat.color.copy(tmp);
-    }
-
-    mat.needsUpdate = true;
-  }
-
-  return {
-    /**
-     * 3DSS document を three.js Scene に同期
-     * @param {object} doc 3DSS document
-     * @param {Map} indices structIndex（uuid→kind）の予定だが、ここでは必須ではない
-     */
-    syncDocument: (doc, indices) => {
-      clearMaps();
-
-      // structIndex が渡されていれば保持し、points の座標キャッシュもそこから初期化
-      currentIndices =
-        indices && indices.pointPosition instanceof Map ? indices : null;
-
-      pointPositionByUuid =
-        currentIndices && currentIndices.pointPosition instanceof Map
-          ? new Map(currentIndices.pointPosition)
-          : new Map();
-
-      // 半径は structIndex では持っていないので毎回作り直す
-      pointRadiusByUuid = new Map();
-
-      // points
-      if (Array.isArray(doc?.points)) {
-        for (const p of doc.points) {
-          const obj = createPoint(p);
-          const uuid = getUuid(p);
-          if (obj && uuid) {
-            pointObjects.set(uuid, obj);
-            scene.add(obj);
-          }
-        }
-      }
-
-      // lines
-      if (Array.isArray(doc?.lines)) {
-        for (const l of doc.lines) {
-          const obj = createLine(l);
-          const uuid = getUuid(l);
-          if (obj && uuid) {
-            lineObjects.set(uuid, obj);
-            scene.add(obj);
-          }
-        }
-      }
-
-      // aux
-      if (Array.isArray(doc?.aux)) {
-        for (const a of doc.aux) {
-          const obj = createAux(a);
-          const uuid = getUuid(a);
-          if (obj && uuid) {
-            auxObjects.set(uuid, obj);
-            scene.add(obj);
-          }
-        }
-      }
-      // シーン全体のスケールを更新
-      recomputeSceneRadius();
-
-      // points からラベル index を構築し、Sprite 群を再構成
-      pointLabelIndex = buildPointLabelIndex(doc);
-      rebuildLabelSprites();
-
-      debugRenderer(
-        "[renderer] syncDocument: added",
-        pointObjects.size, "points,",
-        lineObjects.size, "lines,",
-        auxObjects.size, "aux, labels",
-        pointLabelIndex.size
-      );
-    },
-
-    /**
-     * visibleSet: Set<uuid> を受け取り、各オブジェクトの visible を更新
-     */
-    applyFrame: (visibleSet) => {
-      const updateVisibility = (map) => {
-        map.forEach((obj, uuid) => {
-          if (!visibleSet) {
-            obj.visible = true;
-          } else {
-            obj.visible = visibleSet.has(uuid);
-          }
-        });
-      };
-      updateVisibility(pointObjects);
-      updateVisibility(lineObjects);
-      updateVisibility(auxObjects);
-      // ラベルも対象 point と同じ visibility に合わせる
-      if (visibleSet) {
-        labelSprites.forEach((sprite, uuid) => {
-          sprite.visible = visibleSet.has(uuid);
-        });
-      } else {
-        labelSprites.forEach((sprite) => {
-          sprite.visible = true;
-        });
-      }
-    },
-
-/**
- * cameraState: { theta, phi, distance, target:{x,y,z}, fov }
- * 3DSS には入っていない viewer 側の状態
- */
-updateCamera: (cameraState) => {
-  const { theta, phi, distance, target, fov } = cameraState;
-
-  debugRenderer("[renderer] updateCamera in", {
-    theta,
-    phi,
-    distance,
-    target,
-    fov,
-  });
-
-  // Y-up → Z-up への入れ替え
-  const x = target.x + distance * Math.sin(phi) * Math.cos(theta);
-  const z = target.z + distance * Math.cos(phi);              // ← ここが「高さ」
-  const y = target.y + distance * Math.sin(phi) * Math.sin(theta);
-
-  camera.position.set(x, y, z);
-  camera.up.set(0, 0, 1); // ← up ベクトルも Z+ に
-
-  camera.lookAt(new THREE.Vector3(target.x, target.y, target.z));
-
-  if (camera.fov !== fov) {
-    camera.fov = fov;
-    camera.updateProjectionMatrix();
-  }
-
-  const aspect = canvas.clientWidth / canvas.clientHeight;
-  if (camera.aspect !== aspect) {
-    camera.aspect = aspect;
-    camera.updateProjectionMatrix();
-    renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
-  }
-  debugRenderer("[renderer] updateCamera out", {
-    pos: camera.position.toArray(),
-    up: camera.up.toArray(),
-  });
-},
-
-    /**
-     * microState に応じて focus / connection / bounds などをハイライト
-     *
-     * microState: {
-     *   focusUuid: string,
-     *   kind: "points" | "lines" | "aux",
-     *   focusPosition: [number, number, number],
-     *   relatedUuids: string[],
-     *   localBounds: {
-     *     center: [number, number, number],
-     *     size:   [number, number, number],
-     *   } | null,
-     * }
-     *
-     *
-     * microState + cameraState を microFX に渡す
-     */
-    applyMicroFX: (microState, cameraState, visibleSet) => {
-      // まずラベル側のマイクロ演出
-      applyLabelMicroFX(microState);
-      applyMicroFXImpl(
-        scene,
-        microState,
-        cameraState,
-        {
-          points: pointObjects,
-          lines:  lineObjects,
-          aux:    auxObjects,
-          baseStyle,
-         camera,
-          // （必要なら microFX 側でも参照できるように渡しておく）
-          labels: labelSprites,
-        },
-        visibleSet
-      );
-    },
-    
-    /**
-     * selection ハイライト（macro 専用想定）のための API 群
-     *
-     * - clearAllHighlights():
-     *     baseStyle に全オブジェクトを戻す。
-     * - setHighlight({ uuid, level }):
-     *     いったん clear した上で、その uuid だけ少しだけ強調。
-     *
-     * これらは「モードを知らない」素の描画 API。
-     * macro / micro の切り替えは selectionController / modeController から制御する。
-     */
-    clearAllHighlights: () => {
-      restoreBaseStyle();
-    },
-
-    setHighlight: ({ uuid, level = 1 } = {}) => {
-      restoreBaseStyle();
-      if (uuid) {
-        highlightUuid(uuid, level);
-      }
-    },
-
-    /**
-     * 互換用の簡易 API。
-     *
-     * 互換用 – 新ルートは selectionController + setHighlight/clearAllHighlights
-    */
-    applySelection: (selectionState) => {
-      if (!selectionState || !selectionState.uuid) {
-        restoreBaseStyle();
-        return;
-      }
-      restoreBaseStyle();
-      highlightUuid(selectionState.uuid, 1);
-    },
-
-
-
-
-    /**
-     * NDC 座標（-1〜+1）から Raycast して uuid を返す
-     */
-    pickObjectAt: (ndcX, ndcY) => {
-      raycaster.setFromCamera({ x: ndcX, y: ndcY }, camera);
-
-      raycaster.params.Line = raycaster.params.Line || {};
-      raycaster.params.Line.threshold = 0.15;  // ← これ重要
-
-      const intersects = raycaster.intersectObjects(scene.children, true);
-      const hit = intersects.find(
-        (i) => i.object && i.object.userData && i.object.userData.uuid
-      );
-      if (!hit) return null;
-      return {
-        uuid: hit.object.userData.uuid,
-        distance: hit.distance,
-        point: hit.point.clone(),
-      };
-    },
-
-    render: () => {
-      debugRenderer("[renderer] render", {
-        children: scene.children.length,
-        camPos: camera.position.toArray(),
-      });
-      renderer.render(scene, camera);
-    },
-
-    // ★ カメラ初期化や UI 用に、シーンの中心と半径を渡す
-    getSceneMetrics: () => ({
-      radius: sceneRadius,
-      center: sceneCenter.clone(),
-    }),
-
-    // ワールド軸の表示制御（worldAxes レイヤへの薄いラッパ）
-    setWorldAxesVisible: (flag) => {
-      if (worldAxes && typeof worldAxes.setVisible === "function") {
-        worldAxes.setVisible(flag);
-      }
-    },
-    toggleWorldAxes: () => {
-      if (worldAxes && typeof worldAxes.toggle === "function") {
-        worldAxes.toggle();
-      }
-    },
-  };
+  // ============================================================
+  // 公開 API 群
+  // ============================================================
 
   function recomputeSceneRadius() {
     const box = new THREE.Box3();
@@ -1317,9 +999,311 @@ updateCamera: (cameraState) => {
       sceneRadius = maxEdge > 0 ? maxEdge * 0.5 : 1;
     }
 
-    // ★ worldAxes レイヤに sceneRadius を通知
+    // worldAxes レイヤに sceneRadius を通知
     if (worldAxes && typeof worldAxes.updateMetrics === "function") {
       worldAxes.updateMetrics({ radius: sceneRadius });
     }
   }
+
+  return {
+    /**
+     * 3DSS document を three.js Scene に同期
+     * @param {object} doc 3DSS document
+     * @param {Map} indices structIndex（uuid→kind）の予定だが、ここでは必須ではない
+     */
+    syncDocument: (doc, indices) => {
+      clearMaps();
+
+      // structIndex が渡されていれば保持し、points の座標キャッシュもそこから初期化
+      currentIndices =
+        indices && indices.pointPosition instanceof Map ? indices : null;
+
+      // lineProfile を覚えておく（なければ null）
+      lineProfileByUuid =
+        currentIndices && currentIndices.lineProfile instanceof Map
+          ? currentIndices.lineProfile
+          : null;
+
+      pointPositionByUuid =
+        currentIndices && currentIndices.pointPosition instanceof Map
+          ? new Map(currentIndices.pointPosition)
+          : new Map();
+
+      // 半径は structIndex では持っていないので毎回作り直す
+      pointRadiusByUuid = new Map();
+
+      // points
+      if (Array.isArray(doc?.points)) {
+        for (const p of doc.points) {
+          const obj = createPoint(p);
+          const uuid = getUuid(p);
+          if (obj && uuid) {
+            pointObjects.set(uuid, obj);
+            scene.add(obj);
+          }
+        }
+      }
+
+      // lines
+      if (Array.isArray(doc?.lines)) {
+        for (const l of doc.lines) {
+          const uuid = getUuid(l);
+          const profile =
+            lineProfileByUuid && uuid ? lineProfileByUuid.get(uuid) : null;
+
+          const obj = createLine(l, profile);
+          if (obj && uuid) {
+            lineObjects.set(uuid, obj);
+            scene.add(obj);
+          }
+        }
+      }
+
+      // aux
+      if (Array.isArray(doc?.aux)) {
+        for (const a of doc.aux) {
+          const obj = createAux(a);
+          const uuid = getUuid(a);
+          if (obj && uuid) {
+            auxObjects.set(uuid, obj);
+            scene.add(obj);
+          }
+        }
+      }
+
+      // シーン全体のスケールを更新
+      recomputeSceneRadius();
+
+      // points からラベル index を構築し、Sprite 群を再構成
+      const labelIndex = buildPointLabelIndex(doc);
+      labelRuntime.setPointLabelIndex(labelIndex);
+      labelRuntime.rebuild(pointPositionByUuid, pointObjects);
+
+      debugRenderer(
+        "[renderer] syncDocument: added",
+        pointObjects.size,
+        "points,",
+        lineObjects.size,
+        "lines,",
+        auxObjects.size,
+        "aux, labels",
+        labelRuntime.labelSprites.size
+      );
+    },
+
+    /**
+     * フレーム／フィルタ結果を反映
+     *
+     * visibleSet は 2 方式どちらも許容：
+     *   - 旧: Set<uuid>
+     *   - 新: { points:Set<uuid>, lines:Set<uuid>, aux:Set<uuid> }
+     */
+    applyFrame: (visibleSet) => {
+      const isSet = visibleSet instanceof Set;
+
+      const getSetForKind = (kind) => {
+        if (!visibleSet) return null;
+        if (isSet) return visibleSet; // 旧仕様: 全レイヤ共通 Set
+        const set = visibleSet?.[kind];
+        return set instanceof Set ? set : null;
+      };
+
+      const updateVisibility = (map, kind) => {
+        // visibleSet 未指定 → 全部表示（従来互換）
+        if (!visibleSet) {
+          map.forEach((obj) => {
+            obj.visible = true;
+          });
+          return;
+        }
+
+        const set = getSetForKind(kind);
+
+        // visibleSet はあるが、この kind 用 Set が無い
+        // → そのレイヤは「全部非表示」に倒す（filter-* OFF 相当）
+        if (!set) {
+          map.forEach((obj) => {
+            obj.visible = false;
+          });
+          return;
+        }
+
+        map.forEach((obj, uuid) => {
+          obj.visible = set.has(uuid);
+        });
+      };
+
+      // kind 別に可視状態を反映
+      updateVisibility(pointObjects, "points");
+      updateVisibility(lineObjects, "lines");
+      updateVisibility(auxObjects, "aux");
+
+      // ラベルは points と同じ可視性に合わせる
+      if (!visibleSet) {
+        labelSprites.forEach((sprite) => {
+          sprite.visible = true;
+        });
+      } else {
+        const pointSet = getSetForKind("points");
+        if (!pointSet) {
+          labelSprites.forEach((sprite) => {
+            sprite.visible = false;
+          });
+        } else {
+          labelSprites.forEach((sprite, uuid) => {
+            sprite.visible = pointSet.has(uuid);
+          });
+        }
+      }
+    },
+
+    /**
+     * cameraState: { theta, phi, distance, target:{x,y,z}, fov }
+     * 3DSS には入っていない viewer 側の状態
+     */
+    updateCamera: (cameraState) => {
+      const { theta, phi, distance, target, fov } = cameraState;
+
+      debugRenderer("[renderer] updateCamera in", {
+        theta,
+        phi,
+        distance,
+        target,
+        fov,
+      });
+
+      // Y-up → Z-up への入れ替え
+      const x = target.x + distance * Math.sin(phi) * Math.cos(theta);
+      const z = target.z + distance * Math.cos(phi); // ← ここが「高さ」
+      const y = target.y + distance * Math.sin(phi) * Math.sin(theta);
+
+      camera.position.set(x, y, z);
+      camera.up.set(0, 0, 1); // ← up ベクトルも Z+ に
+
+      camera.lookAt(new THREE.Vector3(target.x, target.y, target.z));
+
+      if (camera.fov !== fov) {
+        camera.fov = fov;
+        camera.updateProjectionMatrix();
+      }
+
+      const aspect = canvas.clientWidth / canvas.clientHeight;
+      if (camera.aspect !== aspect) {
+        camera.aspect = aspect;
+        camera.updateProjectionMatrix();
+        renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+      }
+
+      debugRenderer("[renderer] updateCamera out", {
+        pos: camera.position.toArray(),
+        up: camera.up.toArray(),
+      });
+    },
+
+    /**
+     * microState に応じて focus / connection / bounds などをハイライト
+     *
+     * microState: {
+     *   focusUuid: string,
+     *   kind: "points" | "lines" | "aux",
+     *   focusPosition: [number, number, number],
+     *   relatedUuids: string[],
+     *   localBounds: {
+     *     center: [number, number, number],
+     *     size:   [number, number, number],
+     *   } | null,
+     * }
+     *
+     * microState + cameraState を microFX に渡す
+     */
+    applyMicroFX: (microState, cameraState, visibleSet) => {
+      // まずラベル側のマイクロ演出
+      labelRuntime.applyMicroFX(microState);
+
+      applyMicroFXImpl(
+        scene,
+        microState,
+        cameraState,
+        {
+          points: pointObjects,
+          lines: lineObjects,
+          aux: auxObjects,
+          baseStyle,
+          camera,
+          // （必要なら microFX 側でも参照できるように渡しておく）
+          labels: labelRuntime.labelSprites,
+        },
+        visibleSet
+      );
+    },
+
+    // ----------------------------------------------------------
+    // selection ハイライト（macro 専用）: 状態だけ保持
+    // ----------------------------------------------------------
+
+    clearAllHighlights: () => {
+      lineEffects.clearAllHighlights();
+    },
+
+    setHighlight: ({ uuid, level = 1 } = {}) => {
+      lineEffects.setHighlight({ uuid, level });
+    },
+
+    // 互換用 – 旧 selectionState: { uuid } を level=1 で扱う
+    applySelection: (selectionState) => {
+      lineEffects.applySelection(selectionState);
+    },
+
+    /**
+     * NDC 座標（-1〜+1）から Raycast して uuid を返す
+     */
+    pickObjectAt: (ndcX, ndcY) => {
+      raycaster.setFromCamera({ x: ndcX, y: ndcY }, camera);
+
+      raycaster.params.Line = raycaster.params.Line || {};
+      raycaster.params.Line.threshold = 0.15;
+
+      const intersects = raycaster.intersectObjects(scene.children, true);
+      const hit = intersects.find(
+        (i) => i.object && i.object.userData && i.object.userData.uuid
+      );
+      if (!hit) return null;
+      return {
+        uuid: hit.object.userData.uuid,
+        distance: hit.distance,
+        point: hit.point.clone(),
+      };
+    },
+
+    render: () => {
+      debugRenderer("[renderer] render", {
+        children: scene.children.length,
+        camPos: camera.position.toArray(),
+      });
+
+      // flow / pulse / glow エフェクト更新
+      lineEffects.updateLineEffects();
+
+      renderer.render(scene, camera);
+    },
+
+    // カメラ初期化や UI 用に、シーンの中心と半径を渡す
+    getSceneMetrics: () => ({
+      radius: sceneRadius,
+      center: sceneCenter.clone(),
+    }),
+
+    // ワールド軸の表示制御（worldAxes レイヤへの薄いラッパ）
+    setWorldAxesVisible: (flag) => {
+      if (worldAxes && typeof worldAxes.setVisible === "function") {
+        worldAxes.setVisible(flag);
+      }
+    },
+
+    toggleWorldAxes: () => {
+      if (worldAxes && typeof worldAxes.toggle === "function") {
+        worldAxes.toggle();
+      }
+    },
+  };
 }
