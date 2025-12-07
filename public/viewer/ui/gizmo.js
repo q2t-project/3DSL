@@ -1,6 +1,7 @@
 // viewer/ui/gizmo.js
+
 import * as THREE from "../../vendor/three/build/three.module.js";
-import { CAMERA_VIEW_DEFS } from "../runtime/core/cameraPresets.js";
+import { CAMERA_VIEW_DEFS } from "../runtime/core/cameraViewDefs.js";
 
 // 軸カラー設定
 //   XY 平面 (Z 軸) = 赤 : existence (上下)
@@ -73,50 +74,15 @@ export function attachGizmo(wrapper, hub) {
 
   const RAW_PRESET_DEFS = [
     // 軸 3 面
-    {
-      id: "x+",
-      label: "X+",
-      kind: "axis",
-      uiPos: "right",
-    },
-    {
-      id: "y+",
-      label: "Y+",
-      kind: "axis",
-      uiPos: "top",
-    },
-    {
-      id: "z+",
-      label: "Z+",
-      kind: "axis",
-      uiPos: "top",
-    },
+    { id: "x+", label: "X+", kind: "axis", uiPos: "right" },
+    { id: "y+", label: "Y+", kind: "axis", uiPos: "top" },
+    { id: "z+", label: "Z+", kind: "axis", uiPos: "top" },
 
     // アイソメ 4 方（NE / NW / SW / SE）
-    {
-      id: "iso-ne",
-      label: "ISO NE",
-      kind: "iso",
-      uiPos: "ne",
-    },
-    {
-      id: "iso-nw",
-      label: "ISO NW",
-      kind: "iso",
-      uiPos: "nw",
-    },
-    {
-      id: "iso-sw",
-      label: "ISO SW",
-      kind: "iso",
-      uiPos: "sw",
-    },
-    {
-      id: "iso-se",
-      label: "ISO SE",
-      kind: "iso",
-      uiPos: "se",
-    },
+    { id: "iso-ne", label: "ISO NE", kind: "iso", uiPos: "ne" },
+    { id: "iso-nw", label: "ISO NW", kind: "iso", uiPos: "nw" },
+    { id: "iso-sw", label: "ISO SW", kind: "iso", uiPos: "sw" },
+    { id: "iso-se", label: "ISO SE", kind: "iso", uiPos: "se" },
   ];
 
   const PRESET_DEFS = RAW_PRESET_DEFS.map((def) => {
@@ -472,7 +438,7 @@ export function attachGizmo(wrapper, hub) {
   const raycaster = new THREE.Raycaster();
   const ndc = new THREE.Vector2();
 
- // ------------------------------------------------------------
+  // ------------------------------------------------------------
   // 7ビュー UI 制御（ON/OFF）
   // ------------------------------------------------------------
   const presetToggleBtn = document.getElementById("gizmo-presets-toggle");
@@ -548,15 +514,33 @@ export function attachGizmo(wrapper, hub) {
       hub.core.uiState.runtime.isCameraAuto = false;
     }
 
-    const cur =
-      typeof cam.getState === "function" ? cam.getState() : {};
+    // kind に応じて呼び分け
+    if (def.kind === "axis") {
+      // 例: id = "z+" → snapToAxis("z")
+      const axis =
+        def.id === "x+" ? "x" :
+        def.id === "y+" ? "y" :
+        def.id === "z+" ? "z" :
+        null;
 
-    if (typeof cam.setState === "function") {
-      cam.setState({
-        ...cur,
-        theta: def.theta,
-        phi: def.phi,
-      });
+      if (axis && typeof cam.snapToAxis === "function") {
+        cam.snapToAxis(axis);
+      }
+    } else {
+      // iso-ne / iso-nw / iso-sw / iso-se などは view 名で切り替え
+      if (typeof cam.setViewByName === "function") {
+        // id 自体が "iso-ne" など CAMERA_VIEW_DEFS の key なので
+        cam.setViewByName(def.id);
+      } else if (typeof cam.setState === "function") {
+        // 保険のフォールバック（古い実装）
+        const cur =
+          typeof cam.getState === "function" ? cam.getState() : {};
+        cam.setState({
+          ...cur,
+          theta: def.theta,
+          phi: def.phi,
+        });
+      }
     }
 
     activePresetId = id;
@@ -570,7 +554,7 @@ export function attachGizmo(wrapper, hub) {
       const mat = mesh.material;
       if (!mat) return;
 
-    if (!presetsVisible || !activePresetId || id !== activePresetId) {
+      if (!presetsVisible || !activePresetId || id !== activePresetId) {
         mat.opacity = 0.0;
         return;
       }
@@ -675,7 +659,7 @@ export function attachGizmo(wrapper, hub) {
     });
   }
 
- // ------------------------------------------------------------
+  // ------------------------------------------------------------
   // gizmo ドラッグ → カメラ回転 ＋ クリック → snapToAxis / 7ビュー
   // ------------------------------------------------------------
   let isDragging = false;
@@ -684,7 +668,7 @@ export function attachGizmo(wrapper, hub) {
   let dragDistSq = 0;
 
   function handlePointerDown(ev) {
-    if (isDisposed) return;            // ★
+    if (isDisposed) return;
     if (ev.button !== 0) return;
     if (!hub || !hub.core || !hub.core.camera) return;
 
@@ -707,7 +691,7 @@ export function attachGizmo(wrapper, hub) {
   }
 
   function handlePointerMove(ev) {
-    if (isDisposed) return;            // ★
+    if (isDisposed) return;
     if (!isDragging) return;
     if (!hub || !hub.core || !hub.core.camera) return;
 
@@ -729,7 +713,7 @@ export function attachGizmo(wrapper, hub) {
   }
 
   function handleGizmoClick(ev) {
-    if (isDisposed) return;            // ★
+    if (isDisposed) return;
     if (!hub || !hub.core || !hub.core.camera) return;
 
     const cam = hub.core.camera;
@@ -771,7 +755,7 @@ export function attachGizmo(wrapper, hub) {
   }
 
   function handlePointerUp(ev) {
-    if (isDisposed) return;            // ★
+    if (isDisposed) return;
     if (!isDragging) return;
 
     const CLICK_THRESH_SQ = 36;
@@ -799,7 +783,7 @@ export function attachGizmo(wrapper, hub) {
   // ループ: サイズ調整 → カメラ同期 → レンダ
   // ------------------------------------------------------------
   function loop(now) {
-    if (isDisposed) return;            // ★
+    if (isDisposed) return;
 
     try {
       resizeIfNeeded();
@@ -841,7 +825,6 @@ export function attachGizmo(wrapper, hub) {
 
     // three.js リソース破棄
     renderer.dispose();
-    // 余裕があればジオメトリ/マテリアルも開放しておく
     scene.traverse((obj) => {
       if (obj.geometry && typeof obj.geometry.dispose === "function") {
         obj.geometry.dispose();
@@ -855,7 +838,6 @@ export function attachGizmo(wrapper, hub) {
       }
     });
 
-    // WebGL コンテキストを積極的に捨てたい場合
     if (typeof renderer.forceContextLoss === "function") {
       renderer.forceContextLoss();
     }
@@ -868,4 +850,74 @@ export function attachGizmo(wrapper, hub) {
   }
 
   return { dispose };                  // ★ ハンドル返却
+}
+
+// ------------------------------------------------------------
+// HUD 側 gizmo ボタン初期化
+//   - data-view-preset="front" / "top" / "right" / "iso-ne" ...
+//   - data-axis-snap="x" / "y" / "z"
+// ------------------------------------------------------------
+export function initGizmoButtons(hub) {
+  if (!hub || !hub.core || !hub.core.camera) {
+    console.warn("[viewer-dev gizmo] initGizmoButtons: camera not ready");
+    return;
+  }
+
+  const cam = hub.core.camera;
+  console.log("[viewer-dev gizmo] initGizmoButtons start", cam);
+
+  const root = document;
+
+  // 例: <button data-view-preset="front">FRONT</button>
+  const viewButtons = root.querySelectorAll("[data-view-preset]");
+  viewButtons.forEach((btn) => {
+    const name = btn.dataset.viewPreset;
+    if (!name) return;
+
+    btn.addEventListener("click", (ev) => {
+      ev.preventDefault();
+
+      if (typeof cam.stopAutoOrbit === "function") {
+        cam.stopAutoOrbit();
+      }
+
+      if (typeof cam.setViewByName === "function") {
+        // ここで front / top / right / iso-ne 等を渡す
+        cam.setViewByName(name);
+      } else if (
+        CAMERA_VIEW_DEFS &&
+        Object.prototype.hasOwnProperty.call(CAMERA_VIEW_DEFS, name) &&
+        typeof cam.setState === "function"
+      ) {
+        // 古い実装へのフォールバック
+        const def = CAMERA_VIEW_DEFS[name];
+        const cur =
+          typeof cam.getState === "function" ? cam.getState() : {};
+        cam.setState({
+          ...cur,
+          theta: def.theta,
+          phi: def.phi,
+        });
+      }
+    });
+  });
+
+  // 例: <button data-axis-snap="z">Z</button>
+  const axisButtons = root.querySelectorAll("[data-axis-snap]");
+  axisButtons.forEach((btn) => {
+    const axis = btn.dataset.axisSnap; // "x" / "y" / "z"
+    if (!axis) return;
+
+    btn.addEventListener("click", (ev) => {
+      ev.preventDefault();
+
+      if (typeof cam.stopAutoOrbit === "function") {
+        cam.stopAutoOrbit();
+      }
+
+      if (typeof cam.snapToAxis === "function") {
+        cam.snapToAxis(axis);
+      }
+    });
+  });
 }

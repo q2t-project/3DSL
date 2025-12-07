@@ -1,31 +1,82 @@
 // viewer/runtime/core/cameraViewDefs.js
-//
-// 極座標 (theta, phi) によるカメラ向き定義の単一ソース。
-// - Z-up
-// - theta: Z 軸まわりのヨー（水平回転）、0 = +X, +π/2 = +Y
-// - phi  : +Z からの極角（0 ≒ 真上, π/2 ≒ 水平, π ≒ 真下）
+// カメラの「定義済み視点」テーブル
+// - Z+ が絶対上
+// - theta: Z 軸まわり（ヨー）[rad]
+// - phi  : Z+ からの極角       [rad]  (0=真上, π/2=水平, π=真下)
 
-// 「ほぼ真上／真下」用の少しだけ傾けた値
-// cameraEngine の EPSILON(1e-4) * 4 相当
-const TOP_EPS = 4e-4;
+const DEG = Math.PI / 180;
 
+// 真上すぎると数値的に不安なので、ちょいだけ寝かせる
+export const TOP_EPS = 5 * DEG;
+
+// アイソメ用の俯角（地平線からの角度） ≒ 35°
+export const ISO_PITCH = 35 * DEG;
+// pitch（地平線からの角度）→ phi（Z+ からの極角）への変換
+// pitch = 0   → phi = π/2  (水平)
+// pitch = π/2 → phi = 0    (真上)
+const ISO_PHI = Math.PI / 2 - ISO_PITCH;
+
+// ------------------------------------------------------------
+// 基本 6 面 (x±, y±, z±)
+// ------------------------------------------------------------
 export const CAMERA_VIEW_DEFS = {
-  // 軸 6 面
-  "x+": { theta: 0,            phi: Math.PI / 2 },
-  "x-": { theta: Math.PI,      phi: Math.PI / 2 },
-  "y+": { theta: Math.PI / 2,  phi: Math.PI / 2 },
-  "y-": { theta: -Math.PI / 2, phi: Math.PI / 2 },
-  "z+": { theta: 0,            phi: TOP_EPS },
-  "z-": { theta: 0,            phi: Math.PI - TOP_EPS },
+  // X+
+  "x+": {
+    theta: 0,             // +X 側から原点を見る
+    phi: Math.PI / 2,     // 水平
+  },
+  // X-
+  "x-": {
+    theta: Math.PI,       // -X 側
+    phi: Math.PI / 2,
+  },
+  // Y+（正面扱い）
+  "y+": {
+    theta: Math.PI / 2,   // +Y 側
+    phi: Math.PI / 2,
+  },
+  // Y-
+  "y-": {
+    theta: -Math.PI / 2,  // -Y 側
+    phi: Math.PI / 2,
+  },
+  // Z+（天）
+  "z+": {
+    theta: 0,
+    phi: TOP_EPS,         // ほぼ真上
+  },
+  // Z-（地）
+  "z-": {
+    theta: 0,
+    phi: Math.PI - TOP_EPS,
+  },
 
-  // アイソメ 4 方（NE / NW / SW / SE）
-  "iso-ne": { theta:  Math.PI / 4,        phi: Math.PI / 3 },
-  "iso-nw": { theta:  3 * Math.PI / 4,    phi: Math.PI / 3 },
-  "iso-sw": { theta: -3 * Math.PI / 4,    phi: Math.PI / 3 },
-  "iso-se": { theta: -Math.PI / 4,        phi: Math.PI / 3 },
+  // ----------------------------------------------------------
+  // アイソメ 4 方位（俯角 = ISO_PITCH, 方位は 45° + 90°×k）
+  // ----------------------------------------------------------
+  // NE: +X, +Y
+  "iso-ne": {
+    theta: 45 * DEG,
+    phi: ISO_PHI,
+  },
+  // NW: -X, +Y
+  "iso-nw": {
+    theta: 135 * DEG,
+    phi: ISO_PHI,
+  },
+  // SW: -X, -Y
+  "iso-sw": {
+    theta: -135 * DEG,
+    phi: ISO_PHI,
+  },
+  // SE: +X, -Y
+  "iso-se": {
+    theta: -45 * DEG,
+    phi: ISO_PHI,
+  },
 };
 
-// 7ビュー巡回などで使う論理名→プリセット ID のマップ（必要なら拡張）
+// わかりやすい名前からのショートカット
 export const CAMERA_VIEW_ALIASES = {
   top: "z+",
   bottom: "z-",
@@ -33,5 +84,19 @@ export const CAMERA_VIEW_ALIASES = {
   back: "y-",
   right: "x+",
   left: "x-",
-  iso: "iso-ne", // 代表として NE
+  iso: "iso-ne",
 };
+
+// 7 プリセット巡回の順番（view_preset_index）
+export const CAMERA_VIEW_PRESET_SEQUENCE = [
+  "z+",      // 0: top
+  "y+",      // 1: front
+  "x+",      // 2: right
+  "iso-ne",  // 3
+  "iso-nw",  // 4
+  "iso-sw",  // 5
+  "iso-se",  // 6
+];
+
+export const CAMERA_VIEW_PRESET_COUNT =
+  CAMERA_VIEW_PRESET_SEQUENCE.length;

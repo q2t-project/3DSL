@@ -134,6 +134,68 @@
       flex: 1 1 auto;
     }
 
+    /* viewer_dev.css 等 */
+
+    .detail-panel {
+      font-size: 11px;
+      line-height: 1.4;
+      color: #ddd;
+    }
+
+    .detail-header {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      margin-bottom: 4px;
+      border-bottom: 1px solid #444;
+      padding-bottom: 4px;
+    }
+
+    .detail-kind {
+      font-weight: 600;
+      opacity: 0.7;
+    }
+
+    .detail-name {
+      font-weight: 600;
+    }
+
+    .detail-body {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .detail-section {
+      margin-bottom: 4px;
+    }
+
+    .detail-summary .detail-row {
+      display: grid;
+      grid-template-columns: minmax(0, 90px) minmax(0, 1fr);
+      gap: 2px 6px;
+      margin-bottom: 2px;
+    }
+
+    .detail-key {
+      opacity: 0.7;
+      white-space: nowrap;
+    }
+
+    .detail-value {
+      word-break: break-all;
+    }
+
+    .detail-json {
+      background: #050505;
+      border: 1px solid #333;
+      padding: 4px;
+      max-height: 260px;
+      overflow: auto;
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+      font-size: 10px;
+    }
+
     #viewer-meta h3 {
       margin: 0 0 4px 0;
       font-size: 11px;
@@ -723,6 +785,39 @@
     }
 
     /* =========================================================
+    *  viewerSettings 簡易コントロール
+    * ======================================================= */
+    .viewer-settings-block {
+      margin-top: 4px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .viewer-settings-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .viewer-settings-label {
+      opacity: 0.8;
+      font-size: 10px;
+      white-space: nowrap;
+    }
+
+    .viewer-settings-row select {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: rgba(0, 0, 0, 0.8);
+      color: #eee;
+    }
+
+
+    /* =========================================================
     *  2D preset overlay（今は基本オフ。残しておくだけ）
     * ======================================================= */
     #view-presets-overlay {
@@ -1011,6 +1106,25 @@
               value="0"
               step="1"
             />
+             <!-- viewerSettings: line width / microFX profile -->
+            <div class="viewer-settings-block">
+              <div class="viewer-settings-row">
+                <span class="viewer-settings-label">line width</span>
+                <select id="vs-linewidth-mode">
+                  <option value="auto">auto</option>
+                  <option value="fixed">fixed</option>
+                  <option value="adaptive">adaptive</option>
+                </select>
+              </div>
+              <div class="viewer-settings-row">
+                <span class="viewer-settings-label">micro FX</span>
+                <select id="vs-micro-profile">
+                  <option value="weak">weak</option>
+                  <option value="normal" selected>normal</option>
+                  <option value="strong">strong</option>
+                </select>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1022,7 +1136,6 @@
             <div id="mode-label-macro" class="mode-pill mode-pill-active">
               MACRO
             </div>
-            <div id="mode-label-meso" class="mode-pill">MESO</div>
             <div id="mode-label-micro" class="mode-pill">MICRO</div>
           </div>
         </div>
@@ -1121,7 +1234,10 @@
       </div>
       <div id="meta-model">
         <h3>Model</h3>
-        <div>(logs will appear here)</div>
+        <div id="meta-model-log" class="meta-log">
+          (logs will appear here)
+        </div>
+        <div id="viewer-detail"></div>
       </div>
     </aside>
   </div>

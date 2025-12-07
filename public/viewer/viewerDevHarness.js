@@ -2,13 +2,68 @@
 
 import { bootstrapViewerFromUrl } from "./runtime/bootstrapViewer.js";
 import { attachGizmo } from "./ui/gizmo.js";
+import { attachDetailView } from "./ui/detailView.js";
+import { PointerInput } from "./ui/pointerInput.js";
+import { KeyboardInput } from "./ui/keyboardInput.js";
 
 let viewerHub = null;
 let playTimer = null;
+let detailViewHandle = null;
+
+let pointerInput = null;
+let keyboardInput = null;
+
+function attachInputs(hub) {
+  const canvas = document.getElementById("viewer-canvas");
+  if (!canvas) {
+    console.warn("[viewer-dev] attachInputs: canvas not found");
+    return;
+  }
+
+  // 既存があれば一旦 dispose（dev 中の再起動ケア）
+  if (pointerInput && typeof pointerInput.dispose === "function") {
+    pointerInput.dispose();
+  }
+  if (keyboardInput && typeof keyboardInput.dispose === "function") {
+    keyboardInput.dispose();
+  }
+
+  // ★ runtime core から cameraEngine を素直に取る
+  const camEngine =
+    hub && hub.core && hub.core.cameraEngine
+      ? hub.core.cameraEngine
+      : null;
+
+  console.log("[viewer-dev] attachInputs: camEngine =", camEngine);
+
+  // ★ PointerInput は (canvas, cameraEngine, hub) で渡す
+  pointerInput = new PointerInput(canvas, camEngine, hub);
+  if (typeof pointerInput.attach === "function") {
+    pointerInput.attach();
+  }
+
+  // KeyboardInput は第2引数に hub
+  keyboardInput = new KeyboardInput(window, hub);
+  if (typeof keyboardInput.attach === "function") {
+    keyboardInput.attach();
+  }
+
+  devLog("[viewer-dev] Pointer/Keyboard attached", {
+    pointerInput,
+    keyboardInput,
+  });
+
+  // デバッグ用
+  window.pointerInput = pointerInput;
+  window.keyboardInput = keyboardInput;
+}
+
 
 const elMetaFile = document.getElementById("meta-file");
 const elMetaModel = document.getElementById("meta-model");
+const elMetaModelLog = document.getElementById("meta-model-log"); 
 const elHud = document.getElementById("viewer-hud");
+
 
 // ------------------------------------------------------------
 // メタパネル / ログ / HUD
@@ -17,22 +72,26 @@ function clearMetaPanels() {
   if (elMetaFile) {
     elMetaFile.innerHTML = "<h3>File</h3><div>(loading...)</div>";
   }
-  if (elMetaModel) {
-    elMetaModel.innerHTML =
-      "<h3>Model</h3><div>(logs will appear here)</div>";
+  if (elMetaModelLog) {
+    elMetaModelLog.textContent = "(logs will appear here)";
+    delete elMetaModelLog.dataset.initialized;
   }
 }
 
 function appendModelLog(line) {
-  if (!elMetaModel) return;
-  if (!elMetaModel.dataset.initialized) {
-    elMetaModel.innerHTML = "<h3>Model</h3><div class='meta-log'></div>";
-    elMetaModel.dataset.initialized = "1";
+  if (!elMetaModel || !elMetaModelLog) return;
+
+  // 最初の1回だけプレースホルダを消す
+  if (!elMetaModelLog.dataset.initialized) {
+    elMetaModelLog.textContent = "";
+    elMetaModelLog.dataset.initialized = "1";
   }
-  const logArea = elMetaModel.querySelector(".meta-log") || elMetaModel;
+
   const div = document.createElement("div");
   div.textContent = line;
-  logArea.appendChild(div);
+  elMetaModelLog.appendChild(div);
+
+  // スクロールは親コンテナ側で OK
   elMetaModel.scrollTop = elMetaModel.scrollHeight;
 }
 
@@ -125,6 +184,88 @@ function initFilterControls() {
 
   syncFilterUI();
 }
+
+// ------------------------------------------------------------
+// viewerSettings コントロール（lineWidthMode / microFX profile）
+// ------------------------------------------------------------
+function initViewerSettingsControls(hub) {
+  if (!hub || !hub.core || !hub.core.uiState) return;
+
+  const uiState = hub.core.uiState;
+  const vs = uiState.viewerSettings || {};
+
+  const elLineMode = document.getElementById("vs-linewidth-mode");
+  const elMicroProfile = document.getElementById("vs-micro-profile");
+
+  // lineWidthMode
+  if (elLineMode) {
+    const currentMode =
+      vs.render && typeof vs.render.lineWidthMode === "string"
+        ? vs.render.lineWidthMode
+        : "auto";
+
+    elLineMode.value = currentMode;
+
+    elLineMode.addEventListener("change", () => {
+      const mode = elLineMode.value;
+
+      if (!uiState.viewerSettings) uiState.viewerSettings = {};
+      if (!uiState.viewerSettings.render)
+        uiState.viewerSettings.render = {};
+
+      uiState.viewerSettings.render.lineWidthMode = mode;
+
+      if (
+        hub.viewerSettings &&
+        typeof hub.viewerSettings.setLineWidthMode === "function"
+      ) {
+        hub.viewerSettings.setLineWidthMode(mode);
+      }
+
+      devLog("[viewer-dev settings] lineWidthMode =", mode);
+      showHudMessage(`Line width: ${mode}`, {
+        duration: 700,
+        level: "info",
+      });
+    });
+  }
+
+  // microFX profile
+  if (elMicroProfile) {
+    const currentProfile =
+      vs.fx &&
+      vs.fx.micro &&
+      typeof vs.fx.micro.profile === "string"
+        ? vs.fx.micro.profile
+        : "normal";
+
+    elMicroProfile.value = currentProfile;
+
+    elMicroProfile.addEventListener("change", () => {
+      const profile = elMicroProfile.value;
+
+      if (!uiState.viewerSettings) uiState.viewerSettings = {};
+      const fx = uiState.viewerSettings.fx || (uiState.viewerSettings.fx = {});
+      const micro = fx.micro || (fx.micro = {});
+
+      micro.profile = profile;
+
+      if (
+        hub.viewerSettings &&
+        typeof hub.viewerSettings.setMicroFXProfile === "function"
+      ) {
+        hub.viewerSettings.setMicroFXProfile(profile);
+      }
+
+      devLog("[viewer-dev settings] microFX profile =", profile);
+      showHudMessage(`micro FX: ${profile}`, {
+        duration: 700,
+        level: "info",
+      });
+    });
+  }
+}
+
 
 // ------------------------------------------------------------
 // frame コントロール
@@ -376,7 +517,6 @@ function initModeHudLoop() {
   if (!viewerHub || !viewerHub.core) return;
 
   const elModeMacro = document.getElementById("mode-label-macro");
-  const elModeMeso  = document.getElementById("mode-label-meso");
   const elModeMicro = document.getElementById("mode-label-micro");
 
   let lastMode = null;
@@ -406,7 +546,6 @@ function initModeHudLoop() {
       lastMode = mode;
       let msg = "";
       if (mode === "macro") msg = "MACRO MODE";
-      else if (mode === "meso") msg = "MESO MODE";
       else if (mode === "micro") msg = "MICRO MODE";
       if (msg) showHudMessage(msg, { duration: 800, level: "info" });
     }
@@ -414,9 +553,6 @@ function initModeHudLoop() {
     // pill の ON/OFF
     if (elModeMacro) {
       elModeMacro.classList.toggle("mode-pill-active", mode === "macro");
-    }
-    if (elModeMeso) {
-      elModeMeso.classList.toggle("mode-pill-active", mode === "meso");
     }
     if (elModeMicro) {
       elModeMicro.classList.toggle("mode-pill-active", mode === "micro");
@@ -765,6 +901,8 @@ async function boot() {
     });
     window.hub = viewerHub; // デバッグ用
 
+    attachInputs(viewerHub);
+
     // ★ gizmo 用 canvas を差し込む
     const gizmoSlot = document.getElementById("gizmo-slot");
     if (gizmoSlot && typeof attachGizmo === "function") {
@@ -773,6 +911,11 @@ async function boot() {
     } else {
       console.warn("[viewer-dev gizmo] gizmo-slot missing or attachGizmo NG");
     }
+
+  const detailWrapper = document.getElementById("viewer-detail");
+  if (detailWrapper) {
+    detailViewHandle = attachDetailView(detailWrapper, viewerHub);
+  }
 
     devLog(
       "[viewer-dev] hub created, core.camera =",
@@ -821,11 +964,17 @@ async function boot() {
   // --- ここから viewerHub が生きている前提で各 UI を接続 ---
   initFrameControls();
   initFilterControls();
+  initViewerSettingsControls(viewerHub);   // ★ viewerSettings UI
   initModeHudLoop();
   initGizmoButtons();
-  initWorldAxesToggle(viewerHub); // gizmo そばトグル
+  initWorldAxesToggle(viewerHub);          // gizmo そばトグル
   initKeyboardShortcuts();
-  initOrbitControls(viewerHub);   // ★ hub を渡すように変更
+  initOrbitControls(viewerHub);            // ★ hub を渡すように変更
+
+  // ★ 最後にレンダーループ開始（仕様どおり host 側で start）
+  if (viewerHub && typeof viewerHub.start === "function") {
+    viewerHub.start();
+  }
 }
 
 // window load → boot（エントリは 1 回だけ）

@@ -28,6 +28,9 @@ export function createViewerHub({ core, renderer }) {
   };
 
   const viewerSettings = {
+    // --------------------------------------------------------
+    // 既存: ワールド座標軸の表示 ON/OFF
+    // --------------------------------------------------------
     setWorldAxesVisible(flag) {
       const visible = !!flag;
       if (visible === viewerSettingsState.worldAxesVisible) return;
@@ -64,6 +67,76 @@ export function createViewerHub({ core, renderer }) {
       if (typeof listener === "function") {
         viewerSettingsState.worldAxesListeners.push(listener);
       }
+    },
+
+    // --------------------------------------------------------
+    // 追加: lineWidthMode の切り替え ("auto" | "fixed" | "adaptive")
+    // --------------------------------------------------------
+    setLineWidthMode(mode) {
+      if (!core || !core.uiState) return;
+
+      if (mode !== "auto" && mode !== "fixed" && mode !== "adaptive") {
+        debugHub(
+          "[hub.viewerSettings.setLineWidthMode] invalid mode",
+          mode
+        );
+        return;
+      }
+
+      const ui = core.uiState;
+      if (!ui.viewerSettings) ui.viewerSettings = {};
+      const render =
+        ui.viewerSettings.render ||
+        (ui.viewerSettings.render = {});
+
+      render.lineWidthMode = mode;
+
+      // renderer 側に専用 API があれば渡す（無ければ state だけ保持）
+      if (
+        renderer &&
+        typeof renderer.setLineWidthMode === "function"
+      ) {
+        renderer.setLineWidthMode(mode);
+      }
+
+      debugHub("[hub.viewerSettings] lineWidthMode =", mode);
+    },
+
+    // --------------------------------------------------------
+    // 追加: microFX profile の切り替え ("weak" | "normal" | "strong")
+    // --------------------------------------------------------
+    setMicroFXProfile(profile) {
+      if (!core || !core.uiState) return;
+
+      if (
+        profile !== "weak" &&
+        profile !== "normal" &&
+        profile !== "strong"
+      ) {
+        debugHub(
+          "[hub.viewerSettings.setMicroFXProfile] invalid profile",
+          profile
+        );
+        return;
+      }
+
+      const ui = core.uiState;
+      if (!ui.viewerSettings) ui.viewerSettings = {};
+      const fx =
+        ui.viewerSettings.fx || (ui.viewerSettings.fx = {});
+      const micro = fx.micro || (fx.micro = {});
+
+      micro.profile = profile;
+
+      // renderer 側に専用 API があれば渡す（無ければ state だけ保持）
+      if (
+        renderer &&
+        typeof renderer.setMicroFXProfile === "function"
+      ) {
+        renderer.setMicroFXProfile(profile);
+      }
+
+      debugHub("[hub.viewerSettings] microFX.profile =", profile);
     },
   };
 
@@ -129,6 +202,21 @@ export function createViewerHub({ core, renderer }) {
       microAllowed && ui.microState ? ui.microState : null;
 
     const visibleSet = ui.visibleSet;
+
+    const selectionForHighlight =
+      ui.mode === "macro" &&
+      ui.selection &&
+      ui.selection.uuid
+        ? ui.selection // { uuid, kind? }
+        : null;
+
+    if (typeof renderer.applySelectionHighlight === "function") {
+      renderer.applySelectionHighlight(
+        selectionForHighlight,
+        camState,
+        visibleSet
+      );
+    }
 
     if (typeof renderer.applyMicroFX === "function") {
       renderer.applyMicroFX(microState, camState, visibleSet);
@@ -353,6 +441,32 @@ export function createViewerHub({ core, renderer }) {
             debugHub("[hub.camera.setFOV] setFOV/setState not available");
           }
         },
+
+         // ビュー名で切り替え
+      setViewByName: (name) => {
+        if (!cameraEngine || !name) return;
+        if (typeof cameraEngine.setViewByName === "function") {
+          cameraEngine.setViewByName(name);
+        } else {
+          debugHub(
+            "[hub.camera.setViewByName] CameraEngine.setViewByName missing",
+            name
+          );
+        }
+      },
+
+      // index ベース（キーボード循環用ラッパ）
+      setViewPreset: (index, opts) => {
+        if (!cameraEngine) return;
+        if (typeof cameraEngine.setViewPreset === "function") {
+          cameraEngine.setViewPreset(index, opts || {});
+        } else {
+          debugHub(
+            "[hub.camera.setViewPreset] CameraEngine.setViewPreset missing",
+            index
+          );
+        }
+      },
 
         setState: (partial) => {
           if (cameraEngine && typeof cameraEngine.setState === "function") {

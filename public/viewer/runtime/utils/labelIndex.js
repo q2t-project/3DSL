@@ -1,4 +1,4 @@
-// viewer/runtime/core/labelModel.js
+// viewer/runtime/utils/labelIndex.js"
 //
 // points の「代表ラベル」（テキスト + フォントサイズなど）を
 // 3DSS から抜き出して正規化する純ドメイン層。

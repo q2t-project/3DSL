@@ -1,6 +1,11 @@
 // runtime/core/cameraEngine.js
 
-import { CAMERA_VIEW_DEFS } from "./cameraViewDefs.js";
+import {
+  CAMERA_VIEW_DEFS,
+  CAMERA_VIEW_ALIASES,
+  CAMERA_VIEW_PRESET_SEQUENCE,
+  CAMERA_VIEW_PRESET_COUNT,
+} from "./cameraViewDefs.js";
 
 const EPSILON = 1e-4;
 const MIN_DISTANCE = 0.01;
@@ -44,6 +49,20 @@ function sanitizePosition(positionVec3) {
     if (!Number.isFinite(n)) n = 0;
     return clamp(n, -MAX_COORD, MAX_COORD);
   });
+}
+
+function normalizePresetIndex(index) {
+  const n = CAMERA_VIEW_PRESET_COUNT || 0;
+  if (!n) return 0;
+
+  let i = Number(index);
+  if (!Number.isFinite(i)) i = 0;
+  i = Math.floor(i);
+
+  if (i < 0) {
+    return ((i % n) + n) % n;
+  }
+  return i % n;
 }
 
 export function createCameraEngine(initialState = {}) {
@@ -97,37 +116,42 @@ export function createCameraEngine(initialState = {}) {
      *
      * 距離 / ターゲット / FOV はそのまま、theta/phi だけ切り替える。
      */
-    snapToAxis(axis) {
+      snapToAxis(axis) {
       const raw = String(axis || "").toLowerCase();
 
       let key = null;
       switch (raw) {
         case "x":
         case "+x":
+        case "x+":
           key = "x+";
           break;
         case "-x":
+        case "x-":
           key = "x-";
           break;
 
         case "y":
         case "+y":
+        case "y+":
           key = "y+";
           break;
         case "-y":
+        case "y-":
           key = "y-";
           break;
 
         case "z":
         case "+z":
+        case "z+":
           key = "z+";
           break;
         case "-z":
+        case "z-":
           key = "z-";
           break;
 
         default:
-          // よくわからん指定は無視
           return state;
       }
 
@@ -136,19 +160,102 @@ export function createCameraEngine(initialState = {}) {
 
       state.theta = def.theta;
       state.phi = clamp(def.phi, EPSILON, Math.PI - EPSILON);
+      return state;
+    },
+
+    // --------------------------------------------------------
+    // 名前からビューを切り替え ("front" / "top" / "iso-ne" など)
+    // --------------------------------------------------------
+    setViewByName(name) {
+      if (!name) return state;
+
+      const raw = String(name);
+      let key = null;
+
+      if (
+        CAMERA_VIEW_ALIASES &&
+        Object.prototype.hasOwnProperty.call(CAMERA_VIEW_ALIASES, raw)
+      ) {
+        key = CAMERA_VIEW_ALIASES[raw];
+      } else if (
+        CAMERA_VIEW_DEFS &&
+        Object.prototype.hasOwnProperty.call(CAMERA_VIEW_DEFS, raw)
+      ) {
+        key = raw;
+      }
+
+      if (!key) return state;
+
+      const def = CAMERA_VIEW_DEFS[key];
+      if (!def) return state;
+
+      state.theta = def.theta;
+      state.phi = clamp(def.phi, EPSILON, Math.PI - EPSILON);
+      return state;
+    },
+
+    // --------------------------------------------------------
+    // 7 プリセット index からビューを切り替え
+    //   - 仕様の setViewPreset(view_preset_index) に対応
+    // --------------------------------------------------------
+    setViewPreset(index, opts = {}) {
+      if (!CAMERA_VIEW_PRESET_COUNT) return state;
+
+      const i = normalizePresetIndex(index);
+      const key = CAMERA_VIEW_PRESET_SEQUENCE[i];
+      const def = key && CAMERA_VIEW_DEFS[key];
+      if (!def) return state;
+
+      // 方向はテーブル通りに決め打ち
+      state.theta = def.theta;
+      state.phi = clamp(def.phi, EPSILON, Math.PI - EPSILON);
+
+      // ターゲット / 距離 / FOV はオプションで上書き可能
+      const { target, distance, fov } = opts;
+
+      if (target && typeof target === "object") {
+        if (Array.isArray(target)) {
+          const [tx = 0, ty = 0, tz = 0] = target;
+          state.target.x = sanitizeScalarCoord(tx);
+          state.target.y = sanitizeScalarCoord(ty);
+          state.target.z = sanitizeScalarCoord(tz);
+        } else {
+          if ("x" in target) state.target.x = sanitizeScalarCoord(target.x);
+          if ("y" in target) state.target.y = sanitizeScalarCoord(target.y);
+          if ("z" in target) state.target.z = sanitizeScalarCoord(target.z);
+        }
+      }
+
+      if (typeof distance === "number") {
+        state.distance = clamp(distance, MIN_DISTANCE, MAX_DISTANCE);
+      }
+      if (typeof fov === "number") {
+        state.fov = fov;
+      }
 
       return state;
     },
 
+    // --------------------------------------------------------
+    // 角度回転（オービット）
+    //   - dTheta: 水平回転量（rad）
+    //   - dPhi  : 垂直回転量（rad）
+    // --------------------------------------------------------
     rotate(dTheta, dPhi) {
-      state.theta += dTheta;
+      let dth = Number(dTheta);
+      let dph = Number(dPhi);
+      if (!Number.isFinite(dth)) dth = 0;
+      if (!Number.isFinite(dph)) dph = 0;
+
+      state.theta += dth;
       state.phi = clamp(
-        state.phi + dPhi,
+        state.phi + dph,
         EPSILON,
         Math.PI - EPSILON
       );
       return state;
     },
+
 
     // Z-up 版パン処理
     // - 水平方向（dx）は「画面右方向」に相当するベクトル R（Z 軸回りの右）に沿って移動
@@ -222,6 +329,9 @@ export function createCameraEngine(initialState = {}) {
         fov: state.fov,
       };
     },
+
+
+
 
     // ------------------------------------------------------------
     // AutoOrbit（自動ぐるり俯瞰）制御
@@ -383,6 +493,7 @@ export function createCameraEngine(initialState = {}) {
           MAX_DISTANCE
         );
       }
+
       if (partial.target && typeof partial.target === "object") {
         if ("x" in partial.target) {
           state.target.x = sanitizeScalarCoord(partial.target.x);
@@ -394,6 +505,7 @@ export function createCameraEngine(initialState = {}) {
           state.target.z = sanitizeScalarCoord(partial.target.z);
         }
       }
+
       if ("fov" in partial) state.fov = partial.fov;
 
       return state;

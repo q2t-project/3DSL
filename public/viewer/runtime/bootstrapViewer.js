@@ -5,8 +5,6 @@ import { createViewerHub } from "./viewerHub.js";
 import { createModeController } from "./core/modeController.js";
 import { createCameraEngine } from "./core/cameraEngine.js";
 import { createCameraTransition } from "./core/cameraTransition.js";
-import { PointerInput } from "./core/pointerInput.js";
-import { KeyboardInput } from "./core/keyboardInput.js";
 import { createMicroController } from "./core/microController.js";
 import { createSelectionController } from "./core/selectionController.js";
 import { createUiState } from "./core/uiState.js";
@@ -145,13 +143,6 @@ async function loadJSON(url) {
   const json = await res.json();
   debugBoot("[bootstrap] loaded JSON keys =", Object.keys(json));
   return json;
-}
-
-// 3DSS から uuid index を構築（互換ラッパ）
-function buildSimpleIndices(document3dss) {
-  // 既存コードは indices.uuidToKind だけを使っているので、
-  // structIndex の戻り値をそのまま渡して問題ない。
-  return buildUUIDIndex(document3dss);
 }
 
 // ------------------------------------------------------------
@@ -322,7 +313,8 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   const canvasEl = resolveCanvas(canvasOrId);
   debugBoot("[bootstrap] canvas resolved =", canvasEl);
 
-  const indices = buildSimpleIndices(struct);
+  // ★ 3DSS から structIndex を構築
+  const structIndex = buildUUIDIndex(struct);
 
   debugBoot("[bootstrap] createRendererContext");
   const renderer = createRendererContext(canvasEl);
@@ -330,7 +322,8 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   // 明示同期
   if (typeof renderer.syncDocument === "function") {
     debugBoot("[bootstrap] syncDocument()");
-    renderer.syncDocument(struct, indices);
+    // ★ 第2引数に structIndex を渡す
+    renderer.syncDocument(struct, structIndex);
   } else {
     console.warn("[bootstrap] renderer.syncDocument missing");
   }
@@ -341,10 +334,10 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   // ------------------------------------------------------------
   const sceneBounds =
     // structIndex 側で worldBounds を持っている場合
-    (indices && indices.worldBounds) ||
-    (indices &&
-      typeof indices.getWorldBounds === "function" &&
-      indices.getWorldBounds()) ||
+    (structIndex && structIndex.worldBounds) ||
+    (structIndex &&
+      typeof structIndex.getWorldBounds === "function" &&
+      structIndex.getWorldBounds()) ||
     // なければ renderer 側のメトリクスにフォールバック
     (typeof renderer.getSceneMetrics === "function"
       ? renderer.getSceneMetrics()
@@ -354,111 +347,104 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     debugBoot("[bootstrap] sceneBounds =", sceneBounds);
   }
 
+  // 明示同期
+  if (typeof renderer.syncDocument === "function") {
+    debugBoot("[bootstrap] syncDocument()");
+    renderer.syncDocument(struct, structIndex);
+  } else {
+    console.warn("[bootstrap] renderer.syncDocument missing");
+  }
+
+  // ------------------------------------------------------------
+  // シーンの worldBounds / メトリクスから
+  // 「全部がビューに入る」初期カメラを決める（1.8.2 準拠）
+  // ------------------------------------------------------------
   const initialCameraState = {
     theta: 0,
+    // 仕様 1.8.2: phi ≒ 1 rad（やや俯瞰）
     phi: 1,
     distance: 4,
     target: { x: 0, y: 0, z: 0 },
     fov: 50,
   };
 
-  if (sceneBounds) {
-    const center =
-      sceneBounds.center ||
-      sceneBounds.centre ||
-      sceneBounds.mid ||
-      null;
-    const size = sceneBounds.size || sceneBounds.extents || null;
+  const RADIUS_DISTANCE_FACTOR = 2.4;
 
-    let cx = 0,
-      cy = 0,
-      cz = 0;
+  // renderer 側のメトリクスを最優先（metrics.center / metrics.radius）
+  let metrics = null;
+  if (typeof renderer.getSceneMetrics === "function") {
+    metrics = renderer.getSceneMetrics();
+  }
+
+  // structIndex 側に worldBounds があればフォールバックとして利用
+  if (!metrics && structIndex) {
+    metrics =
+      structIndex.worldBounds ||
+      (typeof structIndex.getWorldBounds === "function"
+        ? structIndex.getWorldBounds()
+        : null);
+  }
+
+  if (DEBUG_BOOTSTRAP) {
+    debugBoot("[bootstrap] sceneMetrics =", metrics);
+  }
+
+ if (metrics) {
+    const center =
+      metrics.center ||
+      metrics.centre ||
+      metrics.mid ||
+      null;
+    const size = metrics.size || metrics.extents || null;
+
+    let cx = 0;
+    let cy = 0;
+    let cz = 0;
+
     if (center) {
-      cx =
-        center.x != null
-          ? center.x
-          : Array.isArray(center)
-          ? center[0] || 0
-          : 0;
-      cy =
-        center.y != null
-          ? center.y
-          : Array.isArray(center)
-          ? center[1] || 0
-          : 0;
-      cz =
-        center.z != null
-          ? center.z
-          : Array.isArray(center)
-          ? center[2] || 0
-          : 0;
+      if (Array.isArray(center)) {
+        const [x = 0, y = 0, z = 0] = center;
+        cx = Number(x) || 0;
+        cy = Number(y) || 0;
+        cz = Number(z) || 0;
+      } else if (typeof center === "object") {
+        cx = center.x != null ? Number(center.x) || 0 : 0;
+        cy = center.y != null ? Number(center.y) || 0 : 0;
+        cz = center.z != null ? Number(center.z) || 0 : 0;
+      }
     }
 
-    // 幅・高さ（Z+ up 想定：横幅= max(x, y), 高さ = z）
-    let sx = 0,
-      sy = 0,
-      sz = 0;
+    // radius 優先、なければ size から最大半径を推定
     let radius =
-      typeof sceneBounds.radius === "number"
-        ? sceneBounds.radius
+      typeof metrics.radius === "number"
+        ? Number(metrics.radius)
         : null;
 
-    if (size) {
-      sx =
-        size.x != null
-          ? size.x
-          : Array.isArray(size)
-          ? size[0] || 0
-          : 0;
-      sy =
-        size.y != null
-          ? size.y
-          : Array.isArray(size)
-          ? size[1] || 0
-          : 0;
-      sz =
-        size.z != null
-          ? size.z
-          : Array.isArray(size)
-          ? size[2] || 0
-          : 0;
+    if ((radius == null || !Number.isFinite(radius) || radius <= 0) && size) {
+      let sx = 0;
+      let sy = 0;
+      let sz = 0;
 
-      if (radius == null) {
-        radius = Math.max(sx, sy, sz) * 0.5;
+      if (Array.isArray(size)) {
+        const [wx = 0, wy = 0, wz = 0] = size;
+        sx = Number(wx) || 0;
+        sy = Number(wy) || 0;
+        sz = Number(wz) || 0;
+      } else if (typeof size === "object") {
+        sx = size.x != null ? Number(size.x) || 0 : 0;
+        sy = size.y != null ? Number(size.y) || 0 : 0;
+        sz = size.z != null ? Number(size.z) || 0 : 0;
       }
-    } else if (radius != null) {
-      sx = sy = sz = radius * 2;
-    } else {
-      // 何も情報ないときはデフォルトのまま
-      radius = 1;
-      sx = sy = sz = 2;
+
+      radius = Math.max(sx, sy, sz) * 0.5;
     }
 
-    const width = Math.max(sx, sy);
-    const height = sz || Math.max(sx, sy);
-
-    // ビューポートのアスペクト比
-    const canvas =
-      renderer.domElement || document.getElementById("viewer-canvas");
-    const aspect =
-      canvas && canvas.clientHeight > 0
-        ? canvas.clientWidth / canvas.clientHeight
-        : 16 / 9;
-
-    const fovDeg = initialCameraState.fov;
-    const vFov = (fovDeg * Math.PI) / 180;
-    const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
-
-    const halfW = width / 2;
-    const halfH = height / 2;
-
-    // 縦横どちらもギリ入る距離
-    const distV = halfH / Math.tan(vFov / 2);
-    const distH = halfW / Math.tan(hFov / 2);
-    const distance = Math.max(distV, distH) * 1.2; // ちょいマージン
-
     initialCameraState.target = { x: cx, y: cy, z: cz };
-    initialCameraState.distance = distance;
+
+    if (Number.isFinite(radius) && radius > 0) {
+      initialCameraState.distance = radius * RADIUS_DISTANCE_FACTOR;
+    }
+    // radius が取れないときは distance=4 のまま
   }
 
   const frameRange = detectFrameRange(struct);
@@ -483,7 +469,7 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   });
 
   // selection の唯一の正規ルート
-  const selectionController = createSelectionController(uiState, indices, {
+  const selectionController = createSelectionController(uiState, structIndex, {
     setHighlight:
       typeof renderer.setHighlight === "function"
         ? (payload) => renderer.setHighlight(payload)
@@ -497,13 +483,13 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   const visibilityController = createVisibilityController(
     uiState,
     struct,
-    indices,
+    structIndex,
   );
 
   const frameController = createFrameController(uiState, visibilityController);
 
   // microState 計算は専用モジュールへ委譲
-  const microController = createMicroController(uiState, indices);
+  const microController = createMicroController(uiState, structIndex);
 
   const modeController = createModeController(
     uiState,
@@ -513,12 +499,14 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     microController,
     frameController,
     visibilityController,
-    indices,
+    structIndex,
   );
 
   const core = {
     // 仕様上の struct 本体（3DSS 生データ）：immutable
     data: struct,
+    structIndex,          // ★ ここで初めて structIndex を載せる
+
     uiState,
     cameraEngine,
     cameraTransition,
@@ -561,6 +549,7 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     core.recomputeVisibleSet();
   }
 
+
   if (
     frameController &&
     typeof frameController.setRecomputeHandler === "function"
@@ -572,12 +561,6 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
 
   const hub = createViewerHub({ core, renderer });
 
-  // ポインタ（マウス / タッチ）入力
-  const pointerInput = new PointerInput(canvasEl, cameraEngine, hub);
-
-  // キーボード入力（Arrow / PgUp / PgDn / Home / Q / W / Esc）
-  const keyboardInput = new KeyboardInput(window, hub);
-
   if (typeof hub.start === "function") {
     debugBoot("[bootstrap] hub.start()");
     hub.start();
@@ -585,7 +568,7 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     console.warn("[bootstrap] hub.start missing");
   }
 
-  // A-9: dev viewer 起動ログ
+  // dev viewer 起動ログ
   if (options.devBootLog) {
     emitDevBootLog(core, options);
   }
@@ -593,7 +576,6 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   debugBoot("[bootstrap] bootstrapViewer COMPLETE");
   return hub;
 }
-
 
 // ------------------------------------------------------------
 // URL から読む標準ルート
@@ -625,7 +607,6 @@ export async function bootstrapViewerFromUrl(canvasOrId, url, options = {}) {
 
     throw new Error(msg);
   }
-
   debugBoot(
     "[bootstrap] document_meta OK:",
     doc && doc.document_meta ? doc.document_meta : "(no document_meta?)"

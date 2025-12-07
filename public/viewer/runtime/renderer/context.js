@@ -2,7 +2,7 @@
 
 import * as THREE from "../../../vendor/three/build/three.module.js";
 import { applyMicroFX as applyMicroFXImpl } from "./microFX/index.js";
-import { buildPointLabelIndex } from "../core/labelModel.js";
+import { buildPointLabelIndex } from "../utils/labelIndex.js";
 import { createLabelRuntime } from "./labels/labelRuntime.js";
 import { createWorldAxesLayer } from "./worldAxes.js";
 import { createLineEffectsRuntime } from "./effects/lineEffects.js";
@@ -13,6 +13,10 @@ import {
   getOpacity,
   clamp01,
 } from "./shared.js";
+import {
+  updateSelectionHighlight,
+  clearSelectionHighlight,
+} from "./selectionHighlight.js";
 
 // ------------------------------------------------------------
 // logging
@@ -122,7 +126,11 @@ export function createRendererContext(canvasOrOptions) {
 
     // ラベル Sprite / Plane も掃除
     labelRuntime.clear();
+
+    // ★ selection ハイライトもクリア
+    clearSelectionHighlight(scene);
   }
+
 
   // ============================================================
   // 3DSS: points
@@ -1238,7 +1246,37 @@ export function createRendererContext(canvasOrOptions) {
     },
 
     // ----------------------------------------------------------
-    // selection ハイライト（macro 専用）: 状態だけ保持
+    // selection ハイライト（macro 専用）
+    // ----------------------------------------------------------
+
+    applySelectionHighlight: (selection, cameraState, visibleSet) => {
+      // selection 無し → ハイライト全部消す
+      if (!selection || !selection.uuid) {
+        clearSelectionHighlight(scene);
+        return;
+      }
+
+      const uuid = selection.uuid;
+      const src = lookupByUuid(uuid);
+
+      // 対象オブジェクトが見つからん or 現在非表示なら、ハイライトもしない
+      if (!src || !src.visible) {
+        clearSelectionHighlight(scene);
+        return;
+      }
+
+      const bundles = {
+        points: pointObjects,
+        lines: lineObjects,
+        aux: auxObjects,
+        labels: labelRuntime.labelSprites,
+      };
+
+      updateSelectionHighlight(scene, bundles, selection);
+    },
+
+    // ----------------------------------------------------------
+    // selection （lineEffects 用の旧 API 群）
     // ----------------------------------------------------------
 
     clearAllHighlights: () => {

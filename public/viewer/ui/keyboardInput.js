@@ -1,16 +1,91 @@
-// viewer/runtime/core/keyboardInput.js
+// viewer/ui/keyboardInput.js
 
-import { getNextPresetName, applyCameraPreset } from "./cameraPresets.js";
+const DEBUG_KEYBOARD = false;
+const VIEW_PRESET_COUNT = 7;
 
-const DEBUG_KEYBOARD = false; // 必要なとき true に
+// 0〜6 を ±1 で巡回
+function stepViewPresetIndex(current, dir) {
+  let i = Number(current);
+  if (!Number.isFinite(i)) i = 0;
+  i = Math.floor(i);
+
+  let next = i + (dir || 1);
+
+  if (VIEW_PRESET_COUNT > 0) {
+    if (next < 0) {
+      next =
+        ((next % VIEW_PRESET_COUNT) + VIEW_PRESET_COUNT) %
+        VIEW_PRESET_COUNT;
+    } else {
+      next = next % VIEW_PRESET_COUNT;
+    }
+  } else {
+    next = 0;
+  }
+
+  return next;
+}
+
+// index → 実際のカメラ操作に変換
+function applyViewPreset(camera, index) {
+  if (!camera) return;
+  if (typeof camera.snapToAxis !== "function") return;
+  if (typeof camera.rotate !== "function") return;
+
+  const i = stepViewPresetIndex(index, 0); // 正規化だけ
+
+  const PI = Math.PI;
+  const YAW_45  = PI / 4;
+  const YAW_135 = (3 * PI) / 4;
+  const PITCH_ISO = PI / 6; // 30deg
+
+  switch (i) {
+    case 0:
+      // top: +Z
+      camera.snapToAxis("z+");
+      break;
+
+    case 1:
+      // front: +Y
+      camera.snapToAxis("y+");
+      break;
+
+    case 2:
+      // right: +X
+      camera.snapToAxis("x+");
+      break;
+
+    case 3:
+      // iso-ne: front → yaw -45°, pitch -30°
+      camera.snapToAxis("y+");
+      camera.rotate(-YAW_45, -PITCH_ISO);
+      break;
+
+    case 4:
+      // iso-se: front → yaw -135°, pitch -30°
+      camera.snapToAxis("y+");
+      camera.rotate(-YAW_135, -PITCH_ISO);
+      break;
+
+    case 5:
+      // iso-sw: front → yaw +135°, pitch -30°
+      camera.snapToAxis("y+");
+      camera.rotate(+YAW_135, -PITCH_ISO);
+      break;
+
+    case 6:
+    default:
+      // iso-nw: front → yaw +45°, pitch -30°
+      camera.snapToAxis("y+");
+      camera.rotate(+YAW_45, -PITCH_ISO);
+      break;
+  }
+}
 
 export class KeyboardInput {
   constructor(target, hub) {
     this.target = target || window;
     this.hub = hub;
-
-    // 7 ビュー巡回用：最後に使ったプリセット名
-    this.currentPresetName = null;
 
     this.onKeyDown = this.onKeyDown.bind(this);
     this.target.addEventListener("keydown", this.onKeyDown);
@@ -35,10 +110,9 @@ export class KeyboardInput {
     const hub = this.hub;
     if (!hub || !hub.core) return;
 
-    const camera = hub.core.camera;
+    const camera = hub.core.camera || hub.core.cameraEngine;
     if (camera && typeof camera.stopAutoOrbit === "function") {
       camera.stopAutoOrbit();
-      return;
     }
 
     const runtime = hub.core.uiState && hub.core.uiState.runtime;
@@ -69,6 +143,7 @@ export class KeyboardInput {
     const mode      = core.mode;
     const camera    = core.camera || core.cameraEngine;
     const selection = core.selection;
+    const uiState   = core.uiState;
 
     // --- ワールド軸の表示トグル（C キー） ----------------
     if (
@@ -89,8 +164,10 @@ export class KeyboardInput {
     // - key:
     //     "\" / "¥" も保険で拾う
     //
-    // - 単押し   → 順方向（top → front → right → iso_ne → ...）
-    // - Shift+押 → 逆方向（… → iso_ne → right → front → top）
+    // - 単押し   → 順方向
+    // - Shift+押 → 逆方向
+    //
+    // uiState.view_preset_index を ±1 して applyViewPreset(camera, index)
     // -----------------------------
     const isViewCycleKey =
       code === "Backslash" ||
@@ -99,23 +176,26 @@ export class KeyboardInput {
       key === "\\" ||
       key === "¥";
 
-    if (camera && isViewCycleKey) {
-      ev.preventDefault();
+    if (isViewCycleKey) {
+      if (!camera) return;
 
-      // キーボードでビュー切り替えしたら自動カメラを停止
+      ev.preventDefault();
       this.stopAutoCamera();
 
       const dir = ev.shiftKey ? -1 : 1;
-      const next = getNextPresetName(this.currentPresetName, dir);
 
-      if (next) {
-        const applied = applyCameraPreset(camera, next);
-        if (applied) {
-          // applyCameraPreset が実際に適用した名前を記憶
-          this.currentPresetName = applied;
-        }
+      const currentIndex =
+        uiState && typeof uiState.view_preset_index === "number"
+          ? uiState.view_preset_index
+          : 0;
+
+      const nextIndex = stepViewPresetIndex(currentIndex, dir);
+
+      if (uiState) {
+        uiState.view_preset_index = nextIndex;
       }
 
+      applyViewPreset(camera, nextIndex);
       return;
     }
 
@@ -192,8 +272,6 @@ export class KeyboardInput {
       ev.preventDefault();
       this.stopAutoCamera();
       camera.reset();
-      // HOME 叩いたらプリセット状態もリセットしとく
-      this.currentPresetName = null;
       return;
     }
 
@@ -213,26 +291,21 @@ export class KeyboardInput {
         ev.preventDefault();
         this.stopAutoCamera();
         camera.rotate(-step, 0);
-        // 手動オービットしたらプリセット名は忘れる
-        this.currentPresetName = null;
         return;
       case "ArrowRight":
         ev.preventDefault();
         this.stopAutoCamera();
         camera.rotate(step, 0);
-        this.currentPresetName = null;
         return;
       case "ArrowUp":
         ev.preventDefault();
         this.stopAutoCamera();
         camera.rotate(0, -step); // 上：上にチルト
-        this.currentPresetName = null;
         return;
       case "ArrowDown":
         ev.preventDefault();
         this.stopAutoCamera();
         camera.rotate(0, step); // 下：下にチルト
-        this.currentPresetName = null;
         return;
       default:
         return;

@@ -1,4 +1,4 @@
-// runtime/core/pointerInput.js
+// viewer/ui/pointerInput.js
 // canvas 上の pointer / wheel イベントを受けて
 // CameraEngine / selectionController を操作する入力アダプタ。
 
