@@ -5,79 +5,79 @@
 // - フレーム移動時に visibleSet を再計算
 // をやる役。
 // A-5 対応：後から core.recomputeVisibleSet を差し込めるフックを用意する。
+// runtime/core/frameController.js
 
 export function createFrameController(uiState, visibilityController) {
   if (!uiState.frame) {
     uiState.frame = { current: 0, range: { min: 0, max: 0 } };
   }
 
-  // A-5: visibleSet 再計算の正規ルート（後から差し替え可能なハンドラ）
-  // ここに core.recomputeVisibleSet を注入できるようにしておく。
+  // 正規の再計算ルート（core.recomputeVisibleSet を差し込む想定）
   let recomputeHandler = null;
 
-  const range = uiState.frame.range || { min: 0, max: 0 };
-  // fallback オブジェクトを使った場合は、ちゃんと uiState 側にも反映しておく
+  let range = uiState.frame.range || { min: 0, max: 0 };
   if (!uiState.frame.range) {
     uiState.frame.range = range;
   }
 
-  // range の妥当化
   if (typeof range.min !== "number") range.min = 0;
   if (typeof range.max !== "number") range.max = range.min;
-
-  // min > max になっていた場合は揃えておく
-  if (range.max < range.min) {
-    range.max = range.min;
-  }
+  if (range.max < range.min) range.max = range.min;
 
   if (typeof uiState.frame.current !== "number") {
     uiState.frame.current = range.min;
   }
 
-  // ------------------------------------------------------------
-  // 内部ユーティリティ
-  // ------------------------------------------------------------
   function clampFrame(n) {
     if (!Number.isFinite(n)) return uiState.frame.current;
-
-    // frames は schema 上 integer (-9999〜9999) 前提なので
-    // UI から誤って小数が来ても最寄り整数に寄せる
     n = Math.round(n);
-
     if (n < range.min) return range.min;
     if (n > range.max) return range.max;
     return n;
   }
 
   function recomputeVisible() {
-    // まず、外部から差し込まれた正規ルートがあればそちらを優先
+    // A-5: 正規ルート（core.recomputeVisibleSet）が入っていればそれだけ呼ぶ
     if (typeof recomputeHandler === "function") {
-      const next = recomputeHandler();
-    // Set が返ってきたときだけ正として採用
-     if (next instanceof Set) {
-       uiState.visibleSet = next;
-     }
-      return uiState.visibleSet;
+      return recomputeHandler(); // uiState.visibleSet への反映や renderer は core 側
     }
 
-    // フォールバック：従来どおり visibilityController に直接委譲
+    // フォールバック：visibilityController 単体で再計算し、
+    // uiState.visibleSet だけ更新しておく（renderer は触らない）
     if (
       visibilityController &&
       typeof visibilityController.recompute === "function"
     ) {
-      // visibilityController 側で uiState.visibleSet を更新してくれる想定やけど、
-      // 戻り値もそのまま同期しておく（冗長やけど安全側）。
-     const next = visibilityController.recompute();
-     if (next instanceof Set) {
-       uiState.visibleSet = next;
-     }
+      const subsets = visibilityController.recompute();
+
+      const toArray = (s) =>
+        s instanceof Set
+          ? Array.from(s)
+          : Array.isArray(s)
+          ? s.slice()
+          : [];
+
+      const visibleSet =
+        subsets && typeof subsets === "object"
+          ? {
+              points: toArray(subsets.points),
+              lines:  toArray(subsets.lines),
+              aux:    toArray(subsets.aux),
+            }
+          : {
+              points: [],
+              lines:  [],
+              aux:    [],
+            };
+
+      uiState.visibleSet = visibleSet;
+      return visibleSet;
     }
+
     return uiState.visibleSet;
   }
 
-  // ------------------------------------------------------------
-  // 公開 API
-  // ------------------------------------------------------------
+
   function set(n) {
     const next = clampFrame(n);
     uiState.frame.current = next;
@@ -95,14 +95,13 @@ export function createFrameController(uiState, visibilityController) {
   }
 
   function getRange() {
+    // ★ ここが重要：必ず {min,max} を返す
     return { min: range.min, max: range.max };
   }
 
   function startPlayback() {
     if (!uiState.runtime) uiState.runtime = {};
     uiState.runtime.isFramePlaying = true;
-    // 実際のタイマー再生は dev HTML 側（setInterval）でやってるので、
-    // ここではフラグだけ立てておく。
   }
 
   function stopPlayback() {
@@ -110,15 +109,8 @@ export function createFrameController(uiState, visibilityController) {
     uiState.runtime.isFramePlaying = false;
   }
 
-  // A-5: core 側から「正規の再計算ルート」を注入するためのフック。
-  // 例: frameController.setRecomputeHandler(() => core.recomputeVisibleSet());
   function setRecomputeHandler(fn) {
-    if (typeof fn === "function") {
-      recomputeHandler = fn;
-    } else {
-      // 無効な値が来たら外しておく（安全側）
-      recomputeHandler = null;
-    }
+    recomputeHandler = typeof fn === "function" ? fn : null;
   }
 
   return {

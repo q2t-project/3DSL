@@ -1,114 +1,102 @@
 // runtime/core/selectionController.js
 
-const DEBUG_SELECTION = false; // 必要なとき true にする
-function debugSel(...args) {
-  if (!DEBUG_SELECTION) return;
-  console.warn(...args);
-}
+export function createSelectionController(uiState, structIndex, handlers = {}) {
+  const { setHighlight, clearAllHighlights } = handlers;
 
-export function createSelectionController(uiState, indices, highlightApi = {}) {
-  const uuidToKind =
-    indices && indices.uuidToKind instanceof Map ? indices.uuidToKind : null;
+  // 内部的に持つ「現在の selection」
+  let current = {
+    uuid: uiState?.selection?.uuid ?? null,
+    kind: uiState?.selection?.kind ?? null,
+  };
 
-  // rendererContext から渡してもらう想定
-  const { setHighlight, clearAllHighlights } = highlightApi || {};
+  // --------------------------------------------------
+  // macro 専用 selection ハイライト
+  // --------------------------------------------------
+  function applySelectionHighlight() {
+    // renderer 側ハンドラが無いなら何もしない
+    if (!clearAllHighlights && !setHighlight) return;
 
-  function resolveKind(uuid, explicitKind) {
-    if (
-      explicitKind === "points" ||
-      explicitKind === "lines" ||
-      explicitKind === "aux"
-    ) {
-      return explicitKind;
-    }
-
-    if (!uuidToKind) return null;
-    const k = uuidToKind.get(uuid);
-    if (k === "points" || k === "lines" || k === "aux") {
-      return k;
-    }
-    return null;
-  }
-
-  function clear() {
-    debugSel("[selection] clear()");
-    uiState.selection = null;
-
-    // モード関係なく「とりあえず全部元に戻す」だけは OK
+    // まずは一旦全部クリア
     if (typeof clearAllHighlights === "function") {
       clearAllHighlights();
     }
 
-    return null;
+    // macro 以外（micro / meso / 不明）は selection ハイライトを出さない
+    if (uiState.mode !== "macro") {
+      return;
+    }
+
+    // uuid / kind が揃ってなければ何も描かない
+    if (!current || !current.uuid || !current.kind) {
+      return;
+    }
+
+    if (typeof setHighlight === "function") {
+      // payload の形は renderer.setHighlight の期待に合わせる
+      // 例：{ kind: "lines", uuids: [uuid] }
+      setHighlight({
+        kind: current.kind,
+        uuids: [current.uuid],
+      });
+    }
+  }
+
+  // --------------------------------------------------
+  // selection API 本体
+  // --------------------------------------------------
+
+  function get() {
+    return current;
+  }
+
+  function clear() {
+    // ui_state.selection を空に
+    if (uiState && uiState.selection) {
+      uiState.selection.uuid = null;
+      uiState.selection.kind = null;
+    }
+
+    current = { uuid: null, kind: null };
+
+    // ハイライトも消す（mode に関わらずクリア）
+    applySelectionHighlight();
+
+    return current;
   }
 
   function select(uuid, kind) {
-    // uuid が falsy → クリア扱い
-    if (!uuid) {
-      debugSel("[selection] clear via select(null)");
-      return clear();
+    const newUuid = uuid || null;
+    const newKind = kind || null;
+
+    // ui_state.selection 更新
+    if (uiState && uiState.selection) {
+      uiState.selection.uuid = newUuid;
+      uiState.selection.kind = newKind;
     }
 
-    const finalKind = resolveKind(uuid, kind);
+    // 内部状態も更新
+    current = { uuid: newUuid, kind: newKind };
 
-    if (finalKind) {
-      uiState.selection = { uuid, kind: finalKind };
-      debugSel("[selection] select", uiState.selection);
-    } else {
-      uiState.selection = { uuid };
-      debugSel("[selection] select (kind unresolved)", uiState.selection);
-    }
+    // ★ここで必ずハイライト更新を呼ぶ
+    //   ※「同じ uuid なのでスキップ」みたいなショートカットは入れない
+    //      （mode だけ変わったケースでも applySelectionHighlight が走るように）
+    applySelectionHighlight();
 
-    // --- ハイライト反映（A-7：macro 限定） ---
-    if (
-      typeof setHighlight === "function" ||
-      typeof clearAllHighlights === "function"
-    ) {
-      if (uiState.mode === "macro") {
-        if (typeof setHighlight === "function") {
-          setHighlight({ uuid, level: 1 });
-        }
-      } else if (typeof clearAllHighlights === "function") {
-        // micro / meso では selection ハイライトを出さない
-        clearAllHighlights();
-      }
-    }
-
-    return uiState.selection;
+    return current;
   }
 
-  function get() {
-    return uiState.selection || null;
+  /**
+   * モード変更時などに「selection はそのまま、見え方だけ更新したい」とき用。
+   * modeController から叩けるように出しておくと便利。
+   */
+  function refreshHighlightForCurrentMode() {
+    applySelectionHighlight();
   }
 
-  const controller = {
-    select,
-    clear,
+  return {
     get,
+    clear,
+    select,
+    refreshHighlightForCurrentMode,
   };
-
-  // 旧実装互換: controller.selection プロパティで現状態を読めるようにしておく
-  Object.defineProperty(controller, "selection", {
-    get() {
-      return uiState.selection || null;
-    },
-    set(v) {
-      // 旧コードから直接 .selection = {uuid,kind} が来た場合でも
-      // select/clear を経由させてハイライトも同期させる
-      if (!v || !v.uuid) {
-        clear();
-      } else {
-        select(
-          v.uuid,
-          v.kind === "points" || v.kind === "lines" || v.kind === "aux"
-            ? v.kind
-            : undefined
-        );
-      }
-    },
-    enumerable: false,
-    configurable: true,
-  });
-
-  return controller;
 }

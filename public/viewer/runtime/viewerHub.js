@@ -178,6 +178,8 @@ export function createViewerHub({ core, renderer }) {
 
     renderer.updateCamera(camState);
 
+
+    
     if (typeof renderer.applyFrame === "function") {
       renderer.applyFrame(core.uiState.visibleSet);
     }

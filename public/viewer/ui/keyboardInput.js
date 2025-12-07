@@ -1,6 +1,8 @@
 // viewer/ui/keyboardInput.js
 
 const DEBUG_KEYBOARD = false;
+
+// 2.10 仕様：view preset は 7 スロット固定（0〜6）
 const VIEW_PRESET_COUNT = 7;
 
 // 0〜6 を ±1 で巡回
@@ -27,59 +29,14 @@ function stepViewPresetIndex(current, dir) {
 }
 
 // index → 実際のカメラ操作に変換
+//   角度テーブルは CameraEngine 側に固定してあるので、ここでは
+//   「正規化した index を setViewPreset に渡す」だけにする。
 function applyViewPreset(camera, index) {
   if (!camera) return;
-  if (typeof camera.snapToAxis !== "function") return;
-  if (typeof camera.rotate !== "function") return;
+  if (typeof camera.setViewPreset !== "function") return;
 
   const i = stepViewPresetIndex(index, 0); // 正規化だけ
-
-  const PI = Math.PI;
-  const YAW_45  = PI / 4;
-  const YAW_135 = (3 * PI) / 4;
-  const PITCH_ISO = PI / 6; // 30deg
-
-  switch (i) {
-    case 0:
-      // top: +Z
-      camera.snapToAxis("z+");
-      break;
-
-    case 1:
-      // front: +Y
-      camera.snapToAxis("y+");
-      break;
-
-    case 2:
-      // right: +X
-      camera.snapToAxis("x+");
-      break;
-
-    case 3:
-      // iso-ne: front → yaw -45°, pitch -30°
-      camera.snapToAxis("y+");
-      camera.rotate(-YAW_45, -PITCH_ISO);
-      break;
-
-    case 4:
-      // iso-se: front → yaw -135°, pitch -30°
-      camera.snapToAxis("y+");
-      camera.rotate(-YAW_135, -PITCH_ISO);
-      break;
-
-    case 5:
-      // iso-sw: front → yaw +135°, pitch -30°
-      camera.snapToAxis("y+");
-      camera.rotate(+YAW_135, -PITCH_ISO);
-      break;
-
-    case 6:
-    default:
-      // iso-nw: front → yaw +45°, pitch -30°
-      camera.snapToAxis("y+");
-      camera.rotate(+YAW_45, -PITCH_ISO);
-      break;
-  }
+  camera.setViewPreset(i);
 }
 
 export class KeyboardInput {
@@ -122,7 +79,7 @@ export class KeyboardInput {
   }
 
   onKeyDown(ev) {
-    const key  = ev.key;
+    const key = ev.key;
     const code = ev.code;
 
     if (DEBUG_KEYBOARD) {
@@ -138,12 +95,12 @@ export class KeyboardInput {
     const tag = (ev.target && ev.target.tagName) || "";
     if (tag === "INPUT" || tag === "TEXTAREA") return;
 
-    const core      = hub.core;
-    const frame     = core.frame;
-    const mode      = core.mode;
-    const camera    = core.camera || core.cameraEngine;
+    const core = hub.core;
+    const frame = core.frame;
+    const mode = core.mode;
+    const camera = core.camera || core.cameraEngine;
     const selection = core.selection;
-    const uiState   = core.uiState;
+    const uiState = core.uiState;
 
     // --- ワールド軸の表示トグル（C キー） ----------------
     if (
@@ -167,7 +124,7 @@ export class KeyboardInput {
     // - 単押し   → 順方向
     // - Shift+押 → 逆方向
     //
-    // uiState.view_preset_index を ±1 して applyViewPreset(camera, index)
+    // uiState.view_preset_index を ±1 して camera.setViewPreset(index)
     // -----------------------------
     const isViewCycleKey =
       code === "Backslash" ||
@@ -217,7 +174,9 @@ export class KeyboardInput {
     }
 
     // -----------------------------
-    // Mode 切り替え（Q / W / Esc）
+    // Mode 切り替え（Q / Esc）
+    //   - W（meso）はいったん画面/UI から外す方針なので
+    //     キーボードショートカットも予約のみで何もしない。
     // -----------------------------
     if (mode && selection && typeof selection.get === "function") {
       if (key === "q" || key === "Q") {
@@ -229,14 +188,11 @@ export class KeyboardInput {
         return;
       }
 
-      if (key === "w" || key === "W") {
-        ev.preventDefault();
-        const sel = selection.get();
-        if (sel && sel.uuid) {
-          mode.set("meso", sel.uuid);
-        }
-        return;
-      }
+      // if (key === "w" || key === "W") {
+      //   // meso 用: 将来拡張のため予約。現行 v1 では何もしない。
+      //   ev.preventDefault();
+      //   return;
+      // }
     }
 
     if (mode && key === "Escape") {

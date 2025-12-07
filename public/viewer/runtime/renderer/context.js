@@ -1097,73 +1097,51 @@ export function createRendererContext(canvasOrOptions) {
         "aux, labels",
         labelRuntime.labelSprites.size
       );
+
+        console.log("[renderer] objects",
+        "points=", pointObjects.size,
+        "lines=", lineObjects.size,
+        "aux=",   auxObjects.size
+      );
+
     },
 
     /**
      * フレーム／フィルタ結果を反映
      *
-     * visibleSet は 2 方式どちらも許容：
-     *   - 旧: Set<uuid>
-     *   - 新: { points:Set<uuid>, lines:Set<uuid>, aux:Set<uuid> }
+     * 引数は 2 形式どっちも許容：
+     *
+     *   1) 旧形式: visibleSet そのもの
+     *      - Set<uuid>
+     *      - { points:Set<uuid>, lines:Set<uuid>, aux:Set<uuid> }
+     *
+     *   2) 新形式: ペイロードオブジェクト
+     *      {
+     *        frame: number | null,
+     *        visibleSet: Set | {points:Set|Array,lines:Set|Array,aux:Set|Array},
+     *        filters: any,
+     *        mode: string,
+     *        microState: any,
+     *      }
      */
-    applyFrame: (visibleSet) => {
-      const isSet = visibleSet instanceof Set;
+// ============================================================
+//  デバッグ用：visibleSet を完全に無視して全部表示
+// ============================================================
+applyFrame: (_framePayload) => {
+  pointObjects.forEach((obj) => {
+    obj.visible = true;
+  });
+  lineObjects.forEach((obj) => {
+    obj.visible = true;
+  });
+  auxObjects.forEach((obj) => {
+    obj.visible = true;
+  });
 
-      const getSetForKind = (kind) => {
-        if (!visibleSet) return null;
-        if (isSet) return visibleSet; // 旧仕様: 全レイヤ共通 Set
-        const set = visibleSet?.[kind];
-        return set instanceof Set ? set : null;
-      };
-
-      const updateVisibility = (map, kind) => {
-        // visibleSet 未指定 → 全部表示（従来互換）
-        if (!visibleSet) {
-          map.forEach((obj) => {
-            obj.visible = true;
-          });
-          return;
-        }
-
-        const set = getSetForKind(kind);
-
-        // visibleSet はあるが、この kind 用 Set が無い
-        // → そのレイヤは「全部非表示」に倒す（filter-* OFF 相当）
-        if (!set) {
-          map.forEach((obj) => {
-            obj.visible = false;
-          });
-          return;
-        }
-
-        map.forEach((obj, uuid) => {
-          obj.visible = set.has(uuid);
-        });
-      };
-
-      // kind 別に可視状態を反映
-      updateVisibility(pointObjects, "points");
-      updateVisibility(lineObjects, "lines");
-      updateVisibility(auxObjects, "aux");
-
-      // ラベルは points と同じ可視性に合わせる
-      if (!visibleSet) {
-        labelSprites.forEach((sprite) => {
-          sprite.visible = true;
-        });
-      } else {
-        const pointSet = getSetForKind("points");
-        if (!pointSet) {
-          labelSprites.forEach((sprite) => {
-            sprite.visible = false;
-          });
-        } else {
-          labelSprites.forEach((sprite, uuid) => {
-            sprite.visible = pointSet.has(uuid);
-          });
-        }
-      }
-    },
+  labelSprites.forEach((sprite) => {
+    sprite.visible = true;
+  });
+},
 
     /**
      * cameraState: { theta, phi, distance, target:{x,y,z}, fov }

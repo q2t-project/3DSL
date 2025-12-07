@@ -1,176 +1,362 @@
-// viewer/runtime/core/uiState.js
+// runtime/core/uiState.js
 
-// ビュー・プリセット index 正規化（0〜6 に丸める）
-function normalizeViewPresetIndex(v) {
-  const N = 7;
-  if (v == null) return 0; // デフォルトは 0 = 西
-
-  let i = Number(v);
-  if (!Number.isFinite(i)) return 0;
-  i = Math.floor(i);
-
-  if (i < 0) {
-    return ((i % N) + N) % N; // 負数にも対応した mod
-  }
-  return i % N;
-}
+// ui_state の正準構造を 5.2 に合わせて初期化するヘルパ
+// initial は bootstrapViewer 側から渡される初期値（カメラ・frame・runtime 等）
 
 export function createUiState(initial = {}) {
-  // --- viewerSettings 初期化（microFX + render/camera まで含める） ---
-  const initialViewerSettings =
-    initial.viewerSettings && typeof initial.viewerSettings === "object"
-      ? initial.viewerSettings
-      : {};
+  const selInit   = initial.selection || {};
+  const hoverInit = initial.hover || {};
 
-  const initialRender =
-    initialViewerSettings.render &&
-    typeof initialViewerSettings.render === "object"
-      ? initialViewerSettings.render
-      : {};
+  // ------------------------------
+  // frame / frameRange
+  // ------------------------------
+  const frameInit      = initial.frame || {};
+  const frameRangeInit =
+    initial.frameRange ||
+    frameInit.range ||
+    null;
 
-  const initialCameraSettings =
-    initialViewerSettings.camera &&
-    typeof initialViewerSettings.camera === "object"
-      ? initialViewerSettings.camera
-      : {};
-
-  const initialFx =
-    initialViewerSettings.fx && typeof initialViewerSettings.fx === "object"
-      ? initialViewerSettings.fx
-      : {};
-
-  const initialMicro =
-    initialFx.micro && typeof initialFx.micro === "object"
-      ? initialFx.micro
-      : {};
-
-  const viewerSettings = {
-    // もともとの任意項目は生かしたまま上書きしていく
-    ...initialViewerSettings,
-
-    // 情報パネルの基本モード（5.2）
-    infoDisplay: initialViewerSettings.infoDisplay ?? "select",
-
-    // 描画まわり（lineWidthMode など）
-    render: {
-      ...initialRender,
-      lineWidthMode: initialRender.lineWidthMode ?? "auto", // "auto" | "fixed" | "adaptive"
-      minLineWidth: initialRender.minLineWidth ?? 1.0,      // px
-      fixedLineWidth: initialRender.fixedLineWidth ?? 2.0,  // px
-      shadow: {
-        ...(initialRender.shadow || {}),
-        enabled: initialRender.shadow?.enabled ?? false,
-        intensityScale: initialRender.shadow?.intensityScale ?? 1.0,
-      },
-    },
-
-    // カメラ設定（5.2）
-    camera: {
-      ...initialCameraSettings,
-      fov:
-        initialCameraSettings.fov ??
-        initial.cameraState?.fov ??
-        50,
-      near: initialCameraSettings.near ?? 0.1,
-      far: initialCameraSettings.far ?? 1000,
-      // キーボード操作ステップ（ざっくりデフォルト値。仕様に合わせて後で微調整可）
-      keyboardStepYaw: initialCameraSettings.keyboardStepYaw ?? 0.1,   // rad
-      keyboardStepPitch: initialCameraSettings.keyboardStepPitch ?? 0.1, // rad
-      panStep: initialCameraSettings.panStep ?? 0.25,
-      zoomStep: initialCameraSettings.zoomStep ?? 0.2,
-    },
-
-    // エフェクト系（既存の microFX 初期化を 5.2 の fx.micro に寄せる）
-    fx: {
-      ...initialFx,
-      micro: {
-        ...initialMicro,
-        // microFX 全体の ON/OFF フラグ（デフォルト true）
-        enabled:
-          initialMicro.enabled !== undefined ? !!initialMicro.enabled : true,
-        profile: initialMicro.profile ?? "normal", // "weak" | "normal" | "strong"
-        radius: {
-          ...(initialMicro.radius || {}),
-          inner_ratio: initialMicro.radius?.inner_ratio ?? 0.1,
-          outer_ratio: initialMicro.radius?.outer_ratio ?? 0.4,
-        },
-        fade: {
-          ...(initialMicro.fade || {}),
-          min_opacity: initialMicro.fade?.min_opacity ?? 0.05,
-          hop_boost: initialMicro.fade?.hop_boost ?? 0.6,
-          far_factor: initialMicro.fade?.far_factor ?? 0.2,
-        },
-      },
-
-      // 将来用フラグ（v1 では基本 false スタート）
-      meso: initialFx.meso !== undefined ? !!initialFx.meso : false,
-      modeTransitions:
-        initialFx.modeTransitions !== undefined
-          ? !!initialFx.modeTransitions
-          : false,
-      depthOfField:
-        initialFx.depthOfField !== undefined
-          ? !!initialFx.depthOfField
-          : false,
-      glow: initialFx.glow !== undefined ? !!initialFx.glow : false,
-      flow: initialFx.flow !== undefined ? !!initialFx.flow : false,
-    },
-  };
-
-  // --- selection 初期化（以下、既存ロジックはそのまま） ---
-  let selection = null;
-  const selInit = initial.selection;
-  if (selInit && typeof selInit === "object") {
-    selection = {
-      uuid: selInit.uuid ?? null,
-      kind:
-        selInit.kind === "lines" ||
-        selInit.kind === "points" ||
-        selInit.kind === "aux"
-          ? selInit.kind
-          : null,
-    };
+  let activeFrame = null;
+  if (typeof frameInit.current === "number") {
+    activeFrame = frameInit.current;
+  } else if (frameRangeInit && typeof frameRangeInit.min === "number") {
+    activeFrame = frameRangeInit.min;
   }
 
-  const state = {
-    frame: {
-      current: initial.frame?.current ?? 0,
-      range: {
-        min: initial.frame?.range?.min ?? 0,
-        max: initial.frame?.range?.max ?? 0,
-      },
-    },
-    selection,
-    cameraState: {
-      theta: initial.cameraState?.theta ?? 0,
-      phi: initial.cameraState?.phi ?? 0,
-      distance: initial.cameraState?.distance ?? 10,
-      target: {
-        x: initial.cameraState?.target?.x ?? 0,
-        y: initial.cameraState?.target?.y ?? 0,
-        z: initial.cameraState?.target?.z ?? 0,
-      },
-      fov: initial.cameraState?.fov ?? 50,
-    },
-    view_preset_index: normalizeViewPresetIndex(initial.view_preset_index),
-    mode: initial.mode ?? "macro",
-    filters: {
-      lines: initial.filters?.lines ?? true,
-      points: initial.filters?.points ?? true,
-      aux: initial.filters?.aux ?? true,
-    },
-    runtime: {
-      isFramePlaying: initial.runtime?.isFramePlaying ?? false,
-      isCameraAuto: initial.runtime?.isCameraAuto ?? false,
-    },
-    microState: initial.microState ?? null,
+  // ------------------------------
+  // filters（types / auxModules）
+  // ------------------------------
+  const filtersInit = initial.filters || {};
+  // 旧形式 { points,lines,aux } も受けつつ、新形式 types.* を優先
+  const typesInit = filtersInit.types || filtersInit;
 
-    // ここに正準 viewerSettings を載せる
-    viewerSettings,
-
-    visibleSet:
-      initial.visibleSet === undefined ? null : initial.visibleSet,
+  const filters = {
+    types: {
+      points:
+        typeof typesInit.points === "boolean" ? typesInit.points : true,
+      lines:
+        typeof typesInit.lines === "boolean" ? typesInit.lines : true,
+      aux:
+        typeof typesInit.aux === "boolean" ? typesInit.aux : true,
+    },
+    auxModules: {
+      grid:
+        filtersInit.auxModules &&
+        typeof filtersInit.auxModules.grid === "boolean"
+          ? filtersInit.auxModules.grid
+          : true,
+      axis:
+        filtersInit.auxModules &&
+        typeof filtersInit.auxModules.axis === "boolean"
+          ? filtersInit.auxModules.axis
+          : true,
+      plate:
+        filtersInit.auxModules &&
+        typeof filtersInit.auxModules.plate === "boolean"
+          ? filtersInit.auxModules.plate
+          : true,
+      shell:
+        filtersInit.auxModules &&
+        typeof filtersInit.auxModules.shell === "boolean"
+          ? filtersInit.auxModules.shell
+          : true,
+      hud:
+        filtersInit.auxModules &&
+        typeof filtersInit.auxModules.hud === "boolean"
+          ? filtersInit.auxModules.hud
+          : true,
+      extension:
+        filtersInit.auxModules &&
+        typeof filtersInit.auxModules.extension === "boolean"
+          ? filtersInit.auxModules.extension
+          : true,
+    },
   };
 
-  return state;
+  // visibleSet は visibilityController で上書きされる派生値
+  const visibleSetInit = initial.visibleSet || {};
+  const visibleSet = {
+    points: Array.isArray(visibleSetInit.points)
+      ? visibleSetInit.points.slice()
+      : [],
+    lines: Array.isArray(visibleSetInit.lines)
+      ? visibleSetInit.lines.slice()
+      : [],
+    aux: Array.isArray(visibleSetInit.aux)
+      ? visibleSetInit.aux.slice()
+      : [],
+  };
+
+  // ------------------------------
+  // camera / cameraState
+  // ------------------------------
+  const camStateInit = initial.cameraState || {};
+  const targetInit   = camStateInit.target || {};
+
+  const camera = {
+    position: [0, 0, 0], // 実位置は renderer 側で決定しても OK
+    target: [
+      typeof targetInit.x === "number" ? targetInit.x : 0,
+      typeof targetInit.y === "number" ? targetInit.y : 0,
+      typeof targetInit.z === "number" ? targetInit.z : 0,
+    ],
+    zoom: 1,
+    fov:
+      typeof camStateInit.fov === "number" ? camStateInit.fov : 50,
+    spherical: {
+      theta:
+        typeof camStateInit.theta === "number"
+          ? camStateInit.theta
+          : 0,
+      phi:
+        typeof camStateInit.phi === "number"
+          ? camStateInit.phi
+          : Math.PI / 2,
+      radius:
+        typeof camStateInit.distance === "number"
+          ? camStateInit.distance
+          : 4,
+    },
+  };
+
+  // ------------------------------
+  // mode / microFocus
+  // ------------------------------
+  const modeInit = initial.mode || "macro";
+
+  const microFocusInit = initial.microFocus || {};
+  const microFocus = {
+    uuid: microFocusInit.uuid ?? null,
+    kind: microFocusInit.kind ?? null,
+  };
+
+  // ------------------------------
+  // microState（初期値のみ。以降は microController が更新）
+  // ------------------------------
+  const microStateInit = initial.microState || {};
+  const microState = {
+    focusUuid: microStateInit.focusUuid ?? null,
+    kind: microStateInit.kind ?? null,
+    focusPosition:
+      Array.isArray(microStateInit.focusPosition) ||
+      microStateInit.focusPosition === null
+        ? microStateInit.focusPosition
+        : null,
+    relatedUuids: Array.isArray(microStateInit.relatedUuids)
+      ? microStateInit.relatedUuids.slice()
+      : [],
+    localBounds:
+      microStateInit.localBounds && typeof microStateInit.localBounds === "object"
+        ? microStateInit.localBounds
+        : null,
+  };
+
+  // ------------------------------
+  // runtime / panels
+  // ------------------------------
+  const runtimeInit = initial.runtime || {};
+  const runtime = {
+    isFramePlaying: !!runtimeInit.isFramePlaying,
+    isCameraAuto: !!runtimeInit.isCameraAuto,
+  };
+
+  const panelsInit = initial.panels || {};
+  const panels = {
+    infoOpen:
+      typeof panelsInit.infoOpen === "boolean"
+        ? panelsInit.infoOpen
+        : true,
+    controlOpen:
+      typeof panelsInit.controlOpen === "boolean"
+        ? panelsInit.controlOpen
+        : true,
+  };
+
+  // ------------------------------
+  // viewerSettings（5.2 準拠）
+  // ------------------------------
+  const vsInit      = initial.viewerSettings || {};
+  const vsRender    = vsInit.render || {};
+  const vsCamera    = vsInit.camera || {};
+  const vsFx        = vsInit.fx || {};
+  const vsFxMicro   = vsFx.micro || {};
+  const vsFxMicroR  = vsFxMicro.radius || {};
+  const vsFxMicroF  = vsFxMicro.fade || {};
+
+  const viewerSettings = {
+    // 情報パネルの基本モード
+    infoDisplay:
+      vsInit.infoDisplay === "hover" ||
+      vsInit.infoDisplay === "off" ||
+      vsInit.infoDisplay === "select"
+        ? vsInit.infoDisplay
+        : "select",
+
+    render: {
+      lineWidthMode:
+        vsRender.lineWidthMode === "fixed" ||
+        vsRender.lineWidthMode === "adaptive" ||
+        vsRender.lineWidthMode === "auto"
+          ? vsRender.lineWidthMode
+          : "auto",
+      minLineWidth:
+        typeof vsRender.minLineWidth === "number"
+          ? vsRender.minLineWidth
+          : 1,
+      fixedLineWidth:
+        typeof vsRender.fixedLineWidth === "number"
+          ? vsRender.fixedLineWidth
+          : 2,
+      shadow: {
+        enabled:
+          vsRender.shadow && typeof vsRender.shadow.enabled === "boolean"
+            ? vsRender.shadow.enabled
+            : false,
+        intensityScale:
+          vsRender.shadow &&
+          typeof vsRender.shadow.intensityScale === "number"
+            ? vsRender.shadow.intensityScale
+            : 1.0,
+      },
+    },
+
+    camera: {
+      fov:
+        typeof vsCamera.fov === "number"
+          ? vsCamera.fov
+          : (typeof camStateInit.fov === "number"
+              ? camStateInit.fov
+              : 50),
+      near:
+        typeof vsCamera.near === "number"
+          ? vsCamera.near
+          : 0.1,
+      far:
+        typeof vsCamera.far === "number"
+          ? vsCamera.far
+          : 10000,
+      keyboardStepYaw:
+        typeof vsCamera.keyboardStepYaw === "number"
+          ? vsCamera.keyboardStepYaw
+          : Math.PI / 90, // ≒2deg
+      keyboardStepPitch:
+        typeof vsCamera.keyboardStepPitch === "number"
+          ? vsCamera.keyboardStepPitch
+          : Math.PI / 90,
+      panStep:
+        typeof vsCamera.panStep === "number"
+          ? vsCamera.panStep
+          : 1,
+      zoomStep:
+        typeof vsCamera.zoomStep === "number"
+          ? vsCamera.zoomStep
+          : 0.1,
+    },
+
+    fx: {
+      micro: {
+        enabled:
+          typeof vsFxMicro.enabled === "boolean"
+            ? vsFxMicro.enabled
+            : true,
+        profile:
+          vsFxMicro.profile === "weak" ||
+          vsFxMicro.profile === "strong" ||
+          vsFxMicro.profile === "normal"
+            ? vsFxMicro.profile
+            : "normal",
+        radius: {
+          inner_ratio:
+            typeof vsFxMicroR.inner_ratio === "number"
+              ? vsFxMicroR.inner_ratio
+              : 0.1,
+          outer_ratio:
+            typeof vsFxMicroR.outer_ratio === "number"
+              ? vsFxMicroR.outer_ratio
+              : 0.4,
+        },
+        fade: {
+          min_opacity:
+            typeof vsFxMicroF.min_opacity === "number"
+              ? vsFxMicroF.min_opacity
+              : 0.05,
+          hop_boost:
+            typeof vsFxMicroF.hop_boost === "number"
+              ? vsFxMicroF.hop_boost
+              : 0.6,
+          far_factor:
+            typeof vsFxMicroF.far_factor === "number"
+              ? vsFxMicroF.far_factor
+              : 0.2,
+        },
+      },
+        meso: false,
+        modeTransitions: true,
+        depthOfField: false,
+        glow: true,
+        flow: false,
+        ...(initial.viewerSettings && initial.viewerSettings.fx),
+    },
+  };
+
+  // ------------------------------
+  // ui_state 本体構築
+  // ------------------------------
+  const ui = {
+    // selection / hover
+    selection: {
+      uuid: selInit.uuid ?? null,
+      kind: selInit.kind ?? null,
+    },
+    hover: {
+      uuid: hoverInit.uuid ?? null,
+      kind: hoverInit.kind ?? null,
+    },
+
+    // frame
+    activeFrame:
+      typeof activeFrame === "number" ? activeFrame : null,
+    frameRange: frameRangeInit,
+
+    // filters / visibleSet
+    filters,
+    visibleSet,
+
+    // camera / mode / micro*
+    camera,
+    mode: modeInit,
+    microFocus,
+    microState,
+
+    // runtime / panels / settings
+    runtime,
+    panels,
+    viewerSettings,
+
+    // --------------------------------------------------
+    // 互換フィールド（既存コード用）
+    // --------------------------------------------------
+
+    // 旧 frame ブロック（frameController 等から参照されている可能性あり）
+    frame: {
+      current:
+        typeof activeFrame === "number"
+          ? activeFrame
+          : frameRangeInit && typeof frameRangeInit.min === "number"
+          ? frameRangeInit.min
+          : 0,
+      range: frameRangeInit || { min: 0, max: 0 },
+    },
+
+    // CameraEngine 初期化用の「生 cameraState」
+    cameraState: camStateInit,
+
+    // view preset 巡回用 index（KeyboardInput 用）
+    view_preset_index:
+      typeof initial.view_preset_index === "number"
+        ? initial.view_preset_index
+        : 0,
+  };
+
+  return ui;
 }

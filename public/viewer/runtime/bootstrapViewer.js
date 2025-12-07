@@ -10,9 +10,13 @@ import { createSelectionController } from "./core/selectionController.js";
 import { createUiState } from "./core/uiState.js";
 import { buildUUIDIndex, detectFrameRange } from "./core/structIndex.js";
 import { createVisibilityController } from "./core/visibilityController.js";
-import { createFrameController } from "./core/frameController.js"; 
+import { createFrameController } from "./core/frameController.js";
 import { deepFreeze } from "./core/deepFreeze.js";
-import { init as initValidator, validate3DSS, getErrors } from "./core/validator.js";
+import {
+  init as initValidator,
+  validate3DSS,
+  getErrors,
+} from "./core/validator.js";
 
 // ------------------------------------------------------------
 // logging
@@ -23,7 +27,6 @@ function debugBoot(...args) {
   if (!DEBUG_BOOTSTRAP) return;
   console.log(...args);
 }
-
 
 // ------------------------------------------------------------
 // schema / version 情報
@@ -84,11 +87,11 @@ function ensureValidatorInitialized() {
     // public/3dss/3dss/release/3DSS.schema.json
     const schemaUrl = "../../3dss/3dss/release/3DSS.schema.json";
 
-validatorInitPromise = fetch(schemaUrl)
+    validatorInitPromise = fetch(schemaUrl)
       .then((res) => {
         if (!res.ok) {
           throw new Error(
-            `validator.init: failed to load schema JSON (${schemaUrl} ${res.status})`
+            `validator.init: failed to load schema JSON (${schemaUrl} ${res.status})`,
           );
         }
         return res.json();
@@ -175,7 +178,7 @@ function assertDocumentMetaCompatibility(doc) {
   if (schemaId) {
     if (schemaUri !== schemaId) {
       throw new Error(
-        `Unsupported schema_uri: expected "${schemaId}" but got "${schemaUri}"`
+        `Unsupported schema_uri: expected "${schemaId}" but got "${schemaUri}"`,
       );
     }
   }
@@ -184,7 +187,7 @@ function assertDocumentMetaCompatibility(doc) {
   const docMajor = parseMajorFromSemver(version);
   if (schemaMajor != null && docMajor != null && docMajor !== schemaMajor) {
     throw new Error(
-      `document_meta.version major (${docMajor}) does not match schema major (${schemaMajor})`
+      `document_meta.version major (${docMajor}) does not match schema major (${schemaMajor})`,
     );
   }
 }
@@ -243,10 +246,10 @@ function emitDevBootLog(core, options = {}) {
         camState.fov != null
           ? Number(camState.fov) || 50
           : core.uiState &&
-            core.uiState.cameraState &&
-            core.uiState.cameraState.fov != null
-          ? Number(core.uiState.cameraState.fov) || 50
-          : 50;
+              core.uiState.cameraState &&
+              core.uiState.cameraState.fov != null
+            ? Number(core.uiState.cameraState.fov) || 50
+            : 50;
 
       camPayload = {
         position: toVec3Array(pos),
@@ -279,7 +282,9 @@ function emitDevBootLog(core, options = {}) {
     }
 
     logger(
-      `LAYERS points=${pointsOn ? "on" : "off"} lines=${linesOn ? "on" : "off"} aux=${auxOn ? "on" : "off"}`
+      `LAYERS points=${pointsOn ? "on" : "off"} lines=${
+        linesOn ? "on" : "off"
+      } aux=${auxOn ? "on" : "off"}`,
     );
 
     // 5) FRAME  frame_id=...
@@ -290,7 +295,7 @@ function emitDevBootLog(core, options = {}) {
       core.frameController &&
       typeof core.frameController.get === "function"
     ) {
-     frameId = core.frameController.get();
+      frameId = core.frameController.get();
     }
 
     logger(`FRAME  frame_id=${frameId}`);
@@ -313,41 +318,13 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   const canvasEl = resolveCanvas(canvasOrId);
   debugBoot("[bootstrap] canvas resolved =", canvasEl);
 
-  // ★ 3DSS から structIndex を構築
+  // 3DSS から structIndex を構築
   const structIndex = buildUUIDIndex(struct);
 
   debugBoot("[bootstrap] createRendererContext");
   const renderer = createRendererContext(canvasEl);
 
-  // 明示同期
-  if (typeof renderer.syncDocument === "function") {
-    debugBoot("[bootstrap] syncDocument()");
-    // ★ 第2引数に structIndex を渡す
-    renderer.syncDocument(struct, structIndex);
-  } else {
-    console.warn("[bootstrap] renderer.syncDocument missing");
-  }
-
-  // ------------------------------------------------------------
-  // シーンの worldBounds / メトリクスから
-  // 「全部がビューに入る」初期カメラを決める
-  // ------------------------------------------------------------
-  const sceneBounds =
-    // structIndex 側で worldBounds を持っている場合
-    (structIndex && structIndex.worldBounds) ||
-    (structIndex &&
-      typeof structIndex.getWorldBounds === "function" &&
-      structIndex.getWorldBounds()) ||
-    // なければ renderer 側のメトリクスにフォールバック
-    (typeof renderer.getSceneMetrics === "function"
-      ? renderer.getSceneMetrics()
-      : null);
-
-  if (DEBUG_BOOTSTRAP) {
-    debugBoot("[bootstrap] sceneBounds =", sceneBounds);
-  }
-
-  // 明示同期
+  // struct + structIndex を renderer へ同期
   if (typeof renderer.syncDocument === "function") {
     debugBoot("[bootstrap] syncDocument()");
     renderer.syncDocument(struct, structIndex);
@@ -356,27 +333,19 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   }
 
   // ------------------------------------------------------------
-  // シーンの worldBounds / メトリクスから
-  // 「全部がビューに入る」初期カメラを決める（1.8.2 準拠）
+  // シーンメトリクスから初期カメラを決める（1.8.2 / 4.5 準拠）
   // ------------------------------------------------------------
-  const initialCameraState = {
-    theta: 0,
-    // 仕様 1.8.2: phi ≒ 1 rad（やや俯瞰）
-    phi: 1,
-    distance: 4,
-    target: { x: 0, y: 0, z: 0 },
-    fov: 50,
-  };
-
   const RADIUS_DISTANCE_FACTOR = 2.4;
+  const DEFAULT_RADIUS = 1;
 
-  // renderer 側のメトリクスを最優先（metrics.center / metrics.radius）
   let metrics = null;
+
+  // renderer 側の metrics を最優先
   if (typeof renderer.getSceneMetrics === "function") {
     metrics = renderer.getSceneMetrics();
   }
 
-  // structIndex 側に worldBounds があればフォールバックとして利用
+  // なければ structIndex 側の worldBounds をフォールバックとして利用
   if (!metrics && structIndex) {
     metrics =
       structIndex.worldBounds ||
@@ -389,38 +358,38 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     debugBoot("[bootstrap] sceneMetrics =", metrics);
   }
 
- if (metrics) {
-    const center =
-      metrics.center ||
-      metrics.centre ||
-      metrics.mid ||
-      null;
-    const size = metrics.size || metrics.extents || null;
+  // center
+  let cx = 0;
+  let cy = 0;
+  let cz = 0;
 
-    let cx = 0;
-    let cy = 0;
-    let cz = 0;
-
-    if (center) {
-      if (Array.isArray(center)) {
-        const [x = 0, y = 0, z = 0] = center;
-        cx = Number(x) || 0;
-        cy = Number(y) || 0;
-        cz = Number(z) || 0;
-      } else if (typeof center === "object") {
-        cx = center.x != null ? Number(center.x) || 0 : 0;
-        cy = center.y != null ? Number(center.y) || 0 : 0;
-        cz = center.z != null ? Number(center.z) || 0 : 0;
-      }
+  if (metrics && metrics.center) {
+    const center = metrics.center;
+    if (Array.isArray(center)) {
+      const [x = 0, y = 0, z = 0] = center;
+      cx = Number(x) || 0;
+      cy = Number(y) || 0;
+      cz = Number(z) || 0;
+    } else if (typeof center === "object") {
+      cx = center.x != null ? Number(center.x) || 0 : 0;
+      cy = center.y != null ? Number(center.y) || 0 : 0;
+      cz = center.z != null ? Number(center.z) || 0 : 0;
     }
+  }
 
-    // radius 優先、なければ size から最大半径を推定
-    let radius =
-      typeof metrics.radius === "number"
-        ? Number(metrics.radius)
-        : null;
+  // radius 優先、なければ size から推定
+  let radius = null;
 
-    if ((radius == null || !Number.isFinite(radius) || radius <= 0) && size) {
+  if (metrics && typeof metrics.radius === "number") {
+    const r = Number(metrics.radius);
+    if (Number.isFinite(r) && r > 0) {
+      radius = r;
+    }
+  }
+
+  if ((radius == null || !Number.isFinite(radius) || radius <= 0) && metrics) {
+    const size = metrics.size || metrics.extents || null;
+    if (size) {
       let sx = 0;
       let sy = 0;
       let sz = 0;
@@ -436,16 +405,24 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
         sz = size.z != null ? Number(size.z) || 0 : 0;
       }
 
-      radius = Math.max(sx, sy, sz) * 0.5;
+      const maxSide = Math.max(sx, sy, sz);
+      if (maxSide > 0) {
+        radius = maxSide * 0.5;
+      }
     }
-
-    initialCameraState.target = { x: cx, y: cy, z: cz };
-
-    if (Number.isFinite(radius) && radius > 0) {
-      initialCameraState.distance = radius * RADIUS_DISTANCE_FACTOR;
-    }
-    // radius が取れないときは distance=4 のまま
   }
+
+  if (radius == null || !Number.isFinite(radius) || radius <= 0) {
+    radius = DEFAULT_RADIUS;
+  }
+
+  const initialCameraState = {
+    theta: 0, // yaw=0 → 西（X−側）から
+    phi: 1, // 約 57° の俯瞰
+    distance: radius * RADIUS_DISTANCE_FACTOR,
+    target: { x: cx, y: cy, z: cz },
+    fov: 50,
+  };
 
   const frameRange = detectFrameRange(struct);
 
@@ -502,41 +479,134 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     structIndex,
   );
 
+  // ------------------------------------------------------------
+  // core オブジェクト（runtime の中枢）
+  // ------------------------------------------------------------
   const core = {
-    // 仕様上の struct 本体（3DSS 生データ）：immutable
-    data: struct,
-    structIndex,          // ★ ここで初めて structIndex を載せる
-
+    struct,
+    structIndex,
     uiState,
+
     cameraEngine,
-    cameraTransition,
-    selectionController,
-    modeController,
+    camera: cameraEngine,
+
     frameController,
+    frame: frameController,
+
+    modeController,
+    mode: modeController,
+
+    selectionController,
+    selection: selectionController,
+
     visibilityController,
     microController,
-    // ... 省略 ...
+    micro: microController,
+
+    // frame / filters → visibleSet → microState → renderer.applyFrame
     recomputeVisibleSet() {
-      let visible = null;
+      // --- 1) visibilityController から生の visibleSet を取得（型は問わない） ---
+      let rawVisible = null;
 
       if (
         visibilityController &&
         typeof visibilityController.recompute === "function"
       ) {
-        visible = visibilityController.recompute();
-      } else if (uiState && uiState.visibleSet) {
-        visible = uiState.visibleSet;
+        rawVisible = visibilityController.recompute();
+      } else {
+        rawVisible = uiState.visibleSet || null;
       }
 
-      if (microController && typeof microController.refresh === "function") {
-        microController.refresh();
+      // --- 2) renderer 向けに「Set 版」に正規化 ---
+      const normalizeForRenderer = (raw) => {
+        if (!raw) {
+          return {
+            points: new Set(),
+            lines:  new Set(),
+            aux:    new Set(),
+          };
+        }
+
+        // 旧形式: Set<uuid> 単体
+        if (raw instanceof Set) {
+          return {
+            points: new Set(raw),
+            lines:  new Set(raw),
+            aux:    new Set(raw),
+          };
+        }
+
+        if (typeof raw === "object") {
+          const toSet = (v) => {
+            if (!v) return new Set();
+            if (v instanceof Set) return new Set(v);
+            if (Array.isArray(v)) return new Set(v);
+            return new Set();
+          };
+          return {
+            points: toSet(raw.points),
+            lines:  toSet(raw.lines),
+            aux:    toSet(raw.aux),
+          };
+        }
+
+        return {
+          points: new Set(),
+          lines:  new Set(),
+          aux:    new Set(),
+        };
+      };
+
+      const subsets = normalizeForRenderer(rawVisible); // ← Set 版
+
+      // --- 3) UI 用に「配列版 visibleSet」を作って uiState に保存 ---
+      const toArray = (s) =>
+        s instanceof Set
+          ? Array.from(s)
+          : Array.isArray(s)
+          ? s.slice()
+          : [];
+
+      const visibleForUi = {
+        points: toArray(subsets.points),
+        lines:  toArray(subsets.lines),
+        aux:    toArray(subsets.aux),
+      };
+
+      core.uiState.visibleSet = visibleForUi;
+
+      // --- 4) microState 再計算（selection + camera + structIndex → microState） ---
+      if (
+        microController &&
+        typeof microController.refresh === "function"
+      ) {
+        microController.refresh(); // uiState.microState を更新する実装想定
       }
 
-      return visible;
+      // --- 5) renderer に「Set 版 visibleSet」で frame 状態を適用 ---
+      if (renderer && typeof renderer.applyFrame === "function") {
+        const frameId =
+          core.uiState &&
+          core.uiState.frame &&
+          typeof core.uiState.frame.current === "number"
+            ? core.uiState.frame.current
+            : null;
+
+        renderer.applyFrame({
+          frame: frameId,
+          visibleSet: subsets,          // ★ここは Set 版を渡す
+          filters: core.uiState.filters,
+          mode: core.uiState.mode,
+          microState: core.uiState.microState,
+        });
+      }
+
+      // 呼び出し側からは UI 版が見えたほうが便利なので配列版を返す
+      return visibleForUi;
     },
   };
 
-  // ★ visibility 側からも必ず正規ルートを叩く
+  // visibility 側からも必ず正規ルートを叩く
   if (
     visibilityController &&
     typeof visibilityController.setRecomputeHandler === "function"
@@ -549,7 +619,6 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     core.recomputeVisibleSet();
   }
 
-
   if (
     frameController &&
     typeof frameController.setRecomputeHandler === "function"
@@ -560,13 +629,6 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   debugBoot("[bootstrap] creating viewerHub");
 
   const hub = createViewerHub({ core, renderer });
-
-  if (typeof hub.start === "function") {
-    debugBoot("[bootstrap] hub.start()");
-    hub.start();
-  } else {
-    console.warn("[bootstrap] hub.start missing");
-  }
 
   // dev viewer 起動ログ
   if (options.devBootLog) {
@@ -601,7 +663,7 @@ export async function bootstrapViewerFromUrl(canvasOrId, url, options = {}) {
           (e) =>
             `${e.instancePath || ""} ${
               e.message || e.keyword || "validation error"
-            }`
+            }`,
         )
         .join("\n");
 
@@ -609,7 +671,7 @@ export async function bootstrapViewerFromUrl(canvasOrId, url, options = {}) {
   }
   debugBoot(
     "[bootstrap] document_meta OK:",
-    doc && doc.document_meta ? doc.document_meta : "(no document_meta?)"
+    doc && doc.document_meta ? doc.document_meta : "(no document_meta?)",
   );
 
   // schema_uri / version の整合チェック（1.0.2 仕様）

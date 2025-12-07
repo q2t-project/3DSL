@@ -20,7 +20,7 @@ function attachInputs(hub) {
     return;
   }
 
-  // 既存があれば一旦 dispose（dev 中の再起動ケア）
+  // 既存インスタンスがあれば一旦 dispose
   if (pointerInput && typeof pointerInput.dispose === "function") {
     pointerInput.dispose();
   }
@@ -28,21 +28,22 @@ function attachInputs(hub) {
     keyboardInput.dispose();
   }
 
-  // ★ runtime core から cameraEngine を素直に取る
+  // runtime core から cameraEngine を素直に取る
   const camEngine =
-    hub && hub.core && hub.core.cameraEngine
-      ? hub.core.cameraEngine
-      : null;
+    (hub &&
+      hub.core &&
+      (hub.core.cameraEngine || hub.core.camera)) ||
+    null;
 
   console.log("[viewer-dev] attachInputs: camEngine =", camEngine);
 
-  // ★ PointerInput は (canvas, cameraEngine, hub) で渡す
+  // PointerInput は (canvas, cameraEngine, hub)
   pointerInput = new PointerInput(canvas, camEngine, hub);
   if (typeof pointerInput.attach === "function") {
     pointerInput.attach();
   }
 
-  // KeyboardInput は第2引数に hub
+  // KeyboardInput は (window, hub)
   keyboardInput = new KeyboardInput(window, hub);
   if (typeof keyboardInput.attach === "function") {
     keyboardInput.attach();
@@ -58,12 +59,10 @@ function attachInputs(hub) {
   window.keyboardInput = keyboardInput;
 }
 
-
 const elMetaFile = document.getElementById("meta-file");
 const elMetaModel = document.getElementById("meta-model");
-const elMetaModelLog = document.getElementById("meta-model-log"); 
+const elMetaModelLog = document.getElementById("meta-model-log");
 const elHud = document.getElementById("viewer-hud");
-
 
 // ------------------------------------------------------------
 // メタパネル / ログ / HUD
@@ -152,11 +151,12 @@ function initFilterControls() {
   }
 
   function syncFilterUI() {
-    const f = filtersAPI.get();
-    setFilterButtonState(btnLines, !!f.lines);
-    setFilterButtonState(btnPoints, !!f.points);
-    setFilterButtonState(btnAux, !!f.aux);
+    const f = filtersAPI.get() || {};
+    setFilterButtonState(btnLines,  f.lines  !== false);
+    setFilterButtonState(btnPoints, f.points !== false);
+    setFilterButtonState(btnAux,    f.aux    !== false);
   }
+
 
   if (btnLines) {
     btnLines.addEventListener("click", () => {
@@ -266,7 +266,6 @@ function initViewerSettingsControls(hub) {
   }
 }
 
-
 // ------------------------------------------------------------
 // frame コントロール
 // ------------------------------------------------------------
@@ -278,7 +277,7 @@ function initFrameControls() {
   const slider = document.getElementById("frame-slider");
   const label = document.getElementById("frame-slider-label");
 
-  const frameBlock    = document.querySelector(".frame-block");
+  const frameBlock = document.querySelector(".frame-block");
   const frameControls = document.getElementById("frame-controls");
 
   // "gauge" = パラパラ用ゲージ, "timeline" = 連続再生バー
@@ -367,12 +366,9 @@ function initFrameControls() {
     if (frameControls) {
       frameControls.classList.toggle(
         "mode-continuous",
-        mode === "timeline"
+        mode === "timeline",
       );
-      frameControls.classList.toggle(
-        "mode-flip",
-        mode === "gauge"
-      );
+      frameControls.classList.toggle("mode-flip", mode === "gauge");
     }
     if (slider) {
       slider.classList.toggle("frame-mode-timeline", mode === "timeline");
@@ -416,7 +412,6 @@ function initFrameControls() {
       showFrameToast("jump");
     });
   }
-
 
   if (btnStepBack) {
     btnStepBack.addEventListener("click", () => {
@@ -564,7 +559,6 @@ function initModeHudLoop() {
   requestAnimationFrame(loop);
 }
 
-
 // dev 用ログフラグ
 const DEBUG_DEV_HARNESS = true;
 
@@ -688,13 +682,13 @@ function initOrbitControls(hub) {
     return;
   }
 
-  const camera   = hub.core.camera;
-  const uiState  = hub.core.uiState || {};
-  const runtime  = uiState.runtime || {};
+  const camera = hub.core.camera;
+  const uiState = hub.core.uiState || {};
+  const runtime = uiState.runtime || {};
 
-  const elSlot    = document.getElementById("auto-orbit-slot");
-  const elPill    = document.getElementById("auto-orbit-pill");
-  const elControls= document.getElementById("auto-orbit-controls");
+  const elSlot = document.getElementById("auto-orbit-slot");
+  const elPill = document.getElementById("auto-orbit-pill");
+  const elControls = document.getElementById("auto-orbit-controls");
 
   if (!elSlot || !elPill || !elControls) {
     console.warn("[viewer-dev orbit] auto-orbit elements not found");
@@ -779,12 +773,12 @@ function initOrbitControls(hub) {
 
     setUiMode("expanded");
 
-    autoOrbitState.enabled   = true;
+    autoOrbitState.enabled = true;
     autoOrbitState.direction = 1;
-    autoOrbitState.speedLevel= 1;
+    autoOrbitState.speedLevel = 1;
 
     applyAutoOrbit();
-    showOrbitStatusToast("start")
+    showOrbitStatusToast("start");
   });
 
   // 3ボタン（⟲ / ■ / ⟳）
@@ -802,7 +796,7 @@ function initOrbitControls(hub) {
       return;
     }
 
-    const prevDir   = autoOrbitState.direction;
+    const prevDir = autoOrbitState.direction;
     const prevSpeed = autoOrbitState.speedLevel;
 
     autoOrbitState.enabled = true;
@@ -814,7 +808,7 @@ function initOrbitControls(hub) {
           autoOrbitState.speedLevel + 1,
         );
       } else {
-        autoOrbitState.direction  = 1;
+        autoOrbitState.direction = 1;
         autoOrbitState.speedLevel = 1;
       }
     } else if (role === "rev") {
@@ -824,7 +818,7 @@ function initOrbitControls(hub) {
           autoOrbitState.speedLevel + 1,
         );
       } else {
-        autoOrbitState.direction  = -1;
+        autoOrbitState.direction = -1;
         autoOrbitState.speedLevel = 1;
       }
     }
@@ -838,7 +832,6 @@ function initOrbitControls(hub) {
     ) {
       showOrbitStatusToast("speed");
     }
-
   });
 
   // 初期状態は折りたたみ
@@ -885,12 +878,12 @@ async function boot() {
 
   const canvasId = "viewer-canvas";
 
-    // ★使うサンプルをここで切り替える
-    //  const jsonUrl = "../3dss/sample/";
-    //  const jsonUrl = "../3dss/sample/valid_minimum_L1-P2-A0.3dss.json";
-      const jsonUrl = "../3dss/sample/primitive_and_arrow.3dss.json";
-    //  const jsonUrl = "../3dss/sample/rpref_L1000-P1000-A20.3dss.json";
-    //  const jsonUrl = "../3dss/sample/rpref_L2-P2-A2.3dss.json";
+  // ★使うサンプルをここで切り替える
+  //  const jsonUrl = "../3dss/sample/";
+  //  const jsonUrl = "../3dss/sample/valid_minimum_L1-P2-A0.3dss.json";
+  const jsonUrl = "../3dss/sample/primitive_and_arrow.3dss.json";
+  //  const jsonUrl = "../3dss/sample/rpref_L1000-P1000-A20.3dss.json";
+  //  const jsonUrl = "../3dss/sample/rpref_L2-P2-A2.3dss.json";
 
   try {
     viewerHub = await bootstrapViewerFromUrl(canvasId, jsonUrl, {
@@ -903,7 +896,7 @@ async function boot() {
 
     attachInputs(viewerHub);
 
-    // ★ gizmo 用 canvas を差し込む
+    // gizmo 用 canvas を差し込む
     const gizmoSlot = document.getElementById("gizmo-slot");
     if (gizmoSlot && typeof attachGizmo === "function") {
       devLog("[viewer-dev gizmo] attachGizmo", gizmoSlot);
@@ -912,10 +905,10 @@ async function boot() {
       console.warn("[viewer-dev gizmo] gizmo-slot missing or attachGizmo NG");
     }
 
-  const detailWrapper = document.getElementById("viewer-detail");
-  if (detailWrapper) {
-    detailViewHandle = attachDetailView(detailWrapper, viewerHub);
-  }
+    const detailWrapper = document.getElementById("viewer-detail");
+    if (detailWrapper) {
+      detailViewHandle = attachDetailView(detailWrapper, viewerHub);
+    }
 
     devLog(
       "[viewer-dev] hub created, core.camera =",
@@ -923,15 +916,44 @@ async function boot() {
     );
 
     appendModelLog("Viewer boot OK.");
-    if (elMetaFile && viewerHub.core && viewerHub.core.frame) {
-      const range = viewerHub.core.frame.range();
-      const current = viewerHub.core.frame.get();
+// viewerDevHarness.js, boot() 内
+
+    appendModelLog("Viewer boot OK.");
+    if (elMetaFile && viewerHub.core) {
+      const core = viewerHub.core;
+
+      const frameAPI =
+        core.frame ||
+        core.frameController ||
+        null;
+
+      let range   = { min: 0, max: 0 };
+      let current = 0;
+
+      // range
+      if (frameAPI && typeof frameAPI.range === "function") {
+        const r = frameAPI.range();
+        if (r && typeof r.min === "number" && typeof r.max === "number") {
+          range = r;
+        }
+      } else if (core.uiState && core.uiState.frame && core.uiState.frame.range) {
+        range = core.uiState.frame.range;
+      }
+
+      // current
+      if (frameAPI && typeof frameAPI.get === "function") {
+        current = frameAPI.get();
+      } else if (core.uiState && core.uiState.frame && typeof core.uiState.frame.current === "number") {
+        current = core.uiState.frame.current;
+      }
+
       elMetaFile.innerHTML =
         "<h3>File</h3>" +
         `<div>Source: ${jsonUrl}</div>` +
         `<div>Frame range: [${range.min}, ${range.max}]</div>` +
         `<div>Current frame: ${current}</div>`;
     }
+
 
     showHudMessage("Viewer loaded", {
       duration: 1200,
@@ -964,18 +986,14 @@ async function boot() {
   // --- ここから viewerHub が生きている前提で各 UI を接続 ---
   initFrameControls();
   initFilterControls();
-  initViewerSettingsControls(viewerHub);   // ★ viewerSettings UI
+  initViewerSettingsControls(viewerHub); // viewerSettings UI
   initModeHudLoop();
   initGizmoButtons();
-  initWorldAxesToggle(viewerHub);          // gizmo そばトグル
+  initWorldAxesToggle(viewerHub); // gizmo そばトグル
   initKeyboardShortcuts();
-  initOrbitControls(viewerHub);            // ★ hub を渡すように変更
+  initOrbitControls(viewerHub); // hub を渡すように変更
 
-  // ★ 最後にレンダーループ開始（仕様どおり host 側で start）
-  if (viewerHub && typeof viewerHub.start === "function") {
-    viewerHub.start();
-  }
+  // ★ レンダーループ開始は bootstrapViewer 側で実行済み
 }
 
-// window load → boot（エントリは 1 回だけ）
 window.addEventListener("load", boot);
