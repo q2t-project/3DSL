@@ -84,9 +84,12 @@ export function createModeController(
     uiState.mode = "macro";
 
     // microState は必ずクリア
-   if (microController && typeof microController.clear === "function") {
-    microController.clear();
-  }
+    if (microController && typeof microController.clear === "function") {
+      microController.clear();
+    } else {
+      uiState.microState = null;
+    }
+
     // いまの selection を使って macro 用ハイライトを再適用
     if (
       selectionController &&
@@ -120,18 +123,12 @@ export function createModeController(
   function set(mode, uuid) {
     const prevMode = uiState.mode;
 
-    // --- meso 要求は v1 では macro 扱い ---
-    if (mode === "meso") {
-      debugMode("[mode] meso requested -> macro (alias in v1)", { uuid });
-      return enterMacro();
-    }
-
     // --- 明示的に macro を指定された場合 ---
     if (mode === "macro") {
       return enterMacro();
     }
 
-    // micro への遷移
+    // micro / meso への遷移
     const currentSelection = selectionController?.get?.();
     const targetUuid = uuid ?? currentSelection?.uuid ?? null;
 
@@ -143,7 +140,7 @@ export function createModeController(
       return enterMacro();
     }
 
-    if (mode === "micro") {
+    if (mode === "meso" || mode === "micro") {
       // macro から出るときだけ「macro ビューのカメラ状態」を保存
       if (
         prevMode === "macro" &&
@@ -158,7 +155,7 @@ export function createModeController(
       }
 
       // 先に mode を切り替えてから select
-      uiState.mode = "micro";
+      uiState.mode = mode;
 
       if (
         selectionController &&
@@ -168,6 +165,7 @@ export function createModeController(
       }
 
       // ---- micro 侵入処理 ----
+      if (mode === "micro") {
         const selection = selectionController?.get?.();
 
         debugMode("[mode] before micro compute", {
@@ -221,7 +219,17 @@ export function createModeController(
             console.warn("[mode] cameraTransition.start(micro) failed:", e);
           }
         }
-      } 
+      } else {
+        // ---- meso ----
+        if (microController && typeof microController.clear === "function") {
+          microController.clear();
+        } else {
+          uiState.microState = null;
+        }
+        debugMode("[mode] enter meso", { targetUuid });
+      }
+    }
+
     return uiState.mode;
   }
 

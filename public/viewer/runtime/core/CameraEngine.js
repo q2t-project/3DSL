@@ -14,10 +14,10 @@ const MAX_COORD = 1e4;
 
 // AutoOrbit 用の速度テーブル（段階：1〜N）
 const AUTO_ORBIT_SPEED_TABLE = [
-  0, // 0 は未使用
-  Math.PI / 24, // level 1: ゆっくり
-  Math.PI / 16, // level 2
-  Math.PI / 12, // level 3: そこそこ速い
+  0,                 // 0 は未使用
+  Math.PI / 24,      // level 1: ゆっくり
+  Math.PI / 16,      // level 2
+  Math.PI / 12,      // level 3: そこそこ速い
 ];
 
 const MAX_AUTO_ORBIT_SPEED_LEVEL = AUTO_ORBIT_SPEED_TABLE.length - 1;
@@ -69,46 +69,39 @@ export function createCameraEngine(initialState = {}) {
   // ★ この state だけを真実として使う
   const state = {
     // theta: Yaw（水平回転）
-    theta: typeof initialState.theta === "number" ? initialState.theta : 0,
-
+    theta:
+      typeof initialState.theta === "number"
+        ? initialState.theta
+        : 0,
     // phi: Z 軸からの極角（0 ≒ 真上, π/2 ≒ 水平, π ≒ 真下）
     phi: clamp(
       initialState.phi ?? Math.PI / 2,
       EPSILON,
-      Math.PI - EPSILON,
+      Math.PI - EPSILON
     ),
-
     distance: clamp(
       initialState.distance ?? 4,
       MIN_DISTANCE,
-      MAX_DISTANCE,
+      MAX_DISTANCE
     ),
-
     target: {
       x: sanitizeScalarCoord(initialState.target?.x ?? 0),
       y: sanitizeScalarCoord(initialState.target?.y ?? 0),
       z: sanitizeScalarCoord(initialState.target?.z ?? 0),
     },
-
     // three.js Camera と同様、fov は「度数法」で扱う想定
-    fov: typeof initialState.fov === "number" ? initialState.fov : 50,
-  };
-
-  // ★ reset 用に「正規化済みの初期スナップショット」を保持
-  const initial = {
-    theta: state.theta,
-    phi: state.phi,
-    distance: state.distance,
-    target: { x: state.target.x, y: state.target.y, z: state.target.z },
-    fov: state.fov,
+    fov:
+      typeof initialState.fov === "number"
+        ? initialState.fov
+        : 50,
   };
 
   // ★ 自動ぐるり俯瞰用 AutoOrbit 状態
   const autoOrbit = {
     enabled: false,
-    direction: 1, // +1: 正転, -1: 逆転
-    speedLevel: 0, // 0: 無効, 1〜N
-    angularSpeed: 0, // 実際に使う角速度 [rad/sec]
+    direction: 1,      // +1: 正転, -1: 逆転
+    speedLevel: 0,     // 0: 無効, 1〜N
+    angularSpeed: 0,   // 実際に使う角速度 [rad/sec]
   };
 
   const api = {
@@ -123,7 +116,7 @@ export function createCameraEngine(initialState = {}) {
      *
      * 距離 / ターゲット / FOV はそのまま、theta/phi だけ切り替える。
      */
-    snapToAxis(axis) {
+      snapToAxis(axis) {
       const raw = String(axis || "").toLowerCase();
 
       let key = null;
@@ -258,10 +251,11 @@ export function createCameraEngine(initialState = {}) {
       state.phi = clamp(
         state.phi + dph,
         EPSILON,
-        Math.PI - EPSILON,
+        Math.PI - EPSILON
       );
       return state;
     },
+
 
     // Z-up 版パン処理
     // - 水平方向（dx）は「画面右方向」に相当するベクトル R（Z 軸回りの右）に沿って移動
@@ -274,17 +268,17 @@ export function createCameraEngine(initialState = {}) {
 
       // カメラから見た「右」ベクトル（Z-up）
       const rightX = -sinTheta;
-      const rightY = cosTheta;
+      const rightY =  cosTheta;
 
       // カメラ移動と逆向きにターゲットを動かす
       state.target.x = sanitizeScalarCoord(
-        state.target.x + -dx * rightX,
+        state.target.x + -dx * rightX
       );
       state.target.y = sanitizeScalarCoord(
-        state.target.y + -dx * rightY,
+        state.target.y + -dx * rightY
       );
       state.target.z = sanitizeScalarCoord(
-        state.target.z + dy,
+        state.target.z + dy
       );
       return state;
     },
@@ -294,7 +288,7 @@ export function createCameraEngine(initialState = {}) {
       state.distance = clamp(
         state.distance * factor,
         MIN_DISTANCE,
-        MAX_DISTANCE,
+        MAX_DISTANCE
       );
       return state;
     },
@@ -302,9 +296,12 @@ export function createCameraEngine(initialState = {}) {
     computeFocusState(positionVec3, opts = {}) {
       const [x, y, z] = sanitizePosition(positionVec3);
 
-      const mode = opts.mode === "preserve" ? "preserve" : "approach";
+      const mode =
+        opts.mode === "preserve" ? "preserve" : "approach";
       const distanceFactor =
-        typeof opts.distanceFactor === "number" ? opts.distanceFactor : 0.7;
+        typeof opts.distanceFactor === "number"
+          ? opts.distanceFactor
+          : 0.7;
 
       // min/max は「渡されていればそれを使う」、無ければグローバルな範囲
       const minD =
@@ -332,6 +329,9 @@ export function createCameraEngine(initialState = {}) {
         fov: state.fov,
       };
     },
+
+
+
 
     // ------------------------------------------------------------
     // AutoOrbit（自動ぐるり俯瞰）制御
@@ -483,14 +483,14 @@ export function createCameraEngine(initialState = {}) {
         state.phi = clamp(
           partial.phi,
           EPSILON,
-          Math.PI - EPSILON,
+          Math.PI - EPSILON
         );
       }
       if ("distance" in partial) {
         state.distance = clamp(
           partial.distance,
           MIN_DISTANCE,
-          MAX_DISTANCE,
+          MAX_DISTANCE
         );
       }
 
@@ -516,14 +516,13 @@ export function createCameraEngine(initialState = {}) {
     },
 
     reset() {
-      // ★ bootstrap 時の initialCameraState にきっちり戻す
-      state.theta = initial.theta;
-      state.phi = initial.phi;
-      state.distance = initial.distance;
-      state.target.x = initial.target.x;
-      state.target.y = initial.target.y;
-      state.target.z = initial.target.z;
-      state.fov = initial.fov;
+      state.theta = 0;
+      state.phi = clamp(Math.PI / 2, EPSILON, Math.PI - EPSILON);
+      state.distance = 4;
+      state.target.x = 0;
+      state.target.y = 0;
+      state.target.z = 0;
+      state.fov = 50;
 
       // AutoOrbit もリセットしておく
       autoOrbit.enabled = false;

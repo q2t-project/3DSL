@@ -48,20 +48,11 @@ export function createVisibilityController(uiState, _document, indices) {
     return Number.isFinite(n) ? n : 0;
   }
 
-function typeEnabled(filters, kind) {
-  if (kind !== "points" && kind !== "lines" && kind !== "aux") return true;
-  if (!filters) return true;
-
-  // 新形式: filters.types.{points,lines,aux}
-  if (filters.types && typeof filters.types === "object") {
-    const enabled = filters.types[kind];
+  function typeEnabled(filters, kind) {
+    if (kind !== "points" && kind !== "lines" && kind !== "aux") return true;
+    const enabled = filters[kind];
     return enabled !== false;
   }
-
-  // 旧形式: filters.{points,lines,aux}
-  const enabled = filters[kind];
-  return enabled !== false;
-}
 
   // frameIndex を使った最適化パス
   function recomputeWithFrameIndex(frame, filters) {
@@ -129,12 +120,7 @@ function typeEnabled(filters, kind) {
 
   function recompute() {
     const frame = getCurrentFrame();
-
-    // uiState.filters は { types, auxModules } なので
-    // 種別フィルタだけを取り出して渡す
-    const root = uiState.filters || {};
-    const filters =
-      root.types && typeof root.types === "object" ? root.types : root;
+    const filters = uiState.filters || {};
 
     let subsets;
 
@@ -151,16 +137,32 @@ function typeEnabled(filters, kind) {
       subsets = recomputeFallback(frame, filters);
     }
 
-    // A-5: uiState.visibleSet への書き込みや renderer 連携は
-    // core.recomputeVisibleSet 側の責務にする
-    return subsets; // { points:Set, lines:Set, aux:Set }
+    // union（全部まとめた Set）も作っておくと便利
+    const all = new Set();
+    for (const kind of ["points", "lines", "aux"]) {
+      const set = subsets[kind];
+      if (!(set instanceof Set)) continue;
+      for (const uuid of set) {
+        all.add(uuid);
+      }
+    }
+
+    const visibleSet = {
+      points: subsets.points,
+      lines:  subsets.lines,
+      aux:    subsets.aux,
+      all,
+    };
+
+    uiState.visibleSet = visibleSet;
+    return visibleSet;
   }
 
   function isVisible(uuid) {
     if (!uuid) return false;
     const vs = uiState.visibleSet;
 
-    // 未設定 → 全部見える扱い
+    // 未設定 → 全部見える扱い（従来どおり）
     if (!vs) return true;
 
     // 旧形式: Set<uuid>
@@ -168,24 +170,25 @@ function typeEnabled(filters, kind) {
       return vs.has(uuid);
     }
 
-    // 新形式: { points:string[], lines:string[], aux:string[] }
+    // 新形式: { points:Set, lines:Set, aux:Set, all?:Set }
     if (typeof vs === "object") {
       const kind = uuidToKind.get(uuid);
-      if (kind && Array.isArray(vs[kind])) {
-        return vs[kind].includes(uuid);
+
+      // kind が分かってて、その kind 用 Set があればそれを見る
+      if (kind && vs[kind] instanceof Set) {
+        return vs[kind].has(uuid);
       }
 
-      // kind 不明 or 配列が無いときは、全部なめてざっくり判定
-      for (const k of ["points", "lines", "aux"]) {
-        const arr = vs[k];
-        if (Array.isArray(arr) && arr.includes(uuid)) {
-          return true;
-        }
+      // all Set があればそれを見る
+      if (vs.all instanceof Set) {
+        return vs.all.has(uuid);
       }
-      // 情報不足のときは安全側で「見える」
+
+      // ここまで来たら情報不足 → とりあえず見える扱いに倒す
       return true;
     }
 
+    // よく分からん値が入ってた場合も安全側に倒す
     return true;
   }
 
@@ -195,25 +198,19 @@ function typeEnabled(filters, kind) {
 
   function setTypeFilter(kind, enabled) {
     if (kind !== "points" && kind !== "lines" && kind !== "aux") return;
+    if (!uiState.filters) uiState.filters = {};
+    uiState.filters[kind] = !!enabled;
 
-    if (!uiState.filters) {
-      uiState.filters = {
-        types: { points: true, lines: true, aux: true },
-        auxModules: {},
-      };
-    }
-
-    const types =
-      uiState.filters.types ||
-      (uiState.filters.types = { points: true, lines: true, aux: true });
-
-    types[kind] = !!enabled;
-
-    // frameController と同様、「正規ルート」があればそれだけ叩く
+    // A-5:
+    //  フィルタ変更 → まず「正規ルート」があればそちらを呼ぶ。
+    //  （core.recomputeVisibleSet が差し込まれている前提）
     if (typeof recomputeHandler === "function") {
-      recomputeHandler();            // core.recomputeVisibleSet()
+      const next = recomputeHandler();
+      if (next) {
+        uiState.visibleSet = next;
+      }
     } else {
-      // まだフック未設定ならローカル再計算だけ
+      // まだフック未設定の場合は従来どおりローカル再計算。
       recompute();
     }
   }
