@@ -776,7 +776,6 @@ runtime_spec:
         - "Backslash / IntlYen / IntlRo / '\\' / '¥': view preset index を ±1 巡回（Shift で逆方向）"
         - "PageUp:   frame.step(+1)"
         - "PageDown: frame.step(-1)"
-        - "Q / q:    selection.get().uuid があれば mode.set('micro', uuid)"
         - "Esc:      mode.set('macro')"
         - "Home:     camera.reset()"
         - "+ / NumpadAdd:      camera.zoom(-0.1)"

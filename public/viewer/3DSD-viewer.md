@@ -1211,11 +1211,7 @@ KeyboardInput の責務：
      - `PageDown` … `prev`
    - frame 範囲外へは FrameController 側でクランプする（runtime_spec 参照）。
 
-4. Mode 切替（Q / W / Esc）
-   - `Q` / `q`：
-     - selection.get() に uuid があれば `mode.set("micro", uuid)`
-   - `W` / `w`：
-     - selection.get() に uuid があれば `mode.set("meso", uuid)`
+4. Mode 切替（Esc）
    - `Escape`：
      - `mode.set("macro")`
 
@@ -1818,12 +1814,12 @@ v1 実装では PointerInput が `hub.pickObjectAt` を使って選択を行う�
 
 ### 5.6.1 イベントソース
 
-- KeyboardInput（Q / W / Esc）
+- KeyboardInput（Esc）
 - dev viewer の focus トグルボタン / MESO pill（クリック）
 - 将来：ホストアプリからの `hub.core.mode.*` 呼び出し
 
 ### 5.6.2 正規ルート
-
+将来用。V1では実装しない。
 例：KeyboardInput（Q → micro mode）
 
 1. `keydown`（`ev.key === "q" || "Q"`）を KeyboardInput が受け取る
@@ -2248,7 +2244,7 @@ viewer は read-only のまま保つ。
 - 入力
   - マウスドラッグ：orbit / pan / zoom
   - PageUp / PageDown：frame ±1（slider / label 追随）
-  - Q / W / Esc：mode 切替（HUD pill / toast）
+  - Esc：mode 切替（HUD pill / toast）
   - Home：camera reset（gizmo HOME と一致）
 - devBootLog
   - Model パネルに BOOT / MODEL / CAMERA / LAYERS / FRAME の 5 行が並ぶこと

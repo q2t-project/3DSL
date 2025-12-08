@@ -189,28 +189,11 @@ export class KeyboardInput {
         return;
       }
     }
-    
-    // -----------------------------
-    // Mode 切り替え（Q / Esc）
-    //   - W（meso）はいったん画面/UI から外す方針なので
-    //     キーボードショートカットも予約のみで何もしない。
-    // -----------------------------
-    if (mode && selection && typeof selection.get === "function") {
-      if (key === "q" || key === "Q") {
-        ev.preventDefault();
-        const sel = selection.get();
-        if (sel && sel.uuid) {
-          mode.set("micro", sel.uuid);
-        }
-        return;
-      }
 
-      // if (key === "w" || key === "W") {
-      //   // meso 用: 将来拡張のため予約。現行 v1 では何もしない。
-      //   ev.preventDefault();
-      //   return;
-      // }
-    }
+    // -----------------------------
+    // Mode 切り替え（Esc）
+    //   - Q/W は v1 では未使用（予約のみ）
+    // -----------------------------
 
     if (mode && key === "Escape") {
       ev.preventDefault();
