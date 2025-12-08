@@ -51,16 +51,20 @@
 //   //    - center: [x,y,z]
 //   //    - radius: number（バウンディングボックス対角線の半分）
 //   //    - min/max: [x,y,z]
-//   bounds: {
-//     center: [number, number, number],
-//     radius: number,
-//     min: [number, number, number],
-//     max: [number, number, number],
-//   },
-//
-//   // 9) bounds を取り出すヘルパ
-//   //    - 将来内部表現を変えてもここから取れば OK
-//   getSceneBounds(): { center, radius, min, max },
+//   //   bounds: {
+//   //     center: [number, number, number],
+//   //     radius: number,
+//   //     min: [number, number, number],
+//   //     max: [number, number, number],
+//   //   },
+//   //
+//   //   // 互換 alias（旧 worldBounds / getWorldBounds 呼び出し用）
+//   //   worldBounds: bounds,
+//   //
+//   //   // 9) bounds を取り出すヘルパ
+//   //   //    - 将来内部表現を変えてもここから取れば OK
+//   //   getSceneBounds(): { center, radius, min, max },
+//   //   getWorldBounds(): { center, radius, min, max },
 //
 //   // 10) lines 用の意味プロファイル
 //   //   - relation: { family, kind, raw }
@@ -455,6 +459,9 @@ export function buildUUIDIndex(doc) {
     uuidToFrames,
     bounds,
     getSceneBounds,
+    // 旧コード互換用 alias（bootstrapViewer が worldBounds / getWorldBounds を見る）
+    worldBounds: bounds,
+    getWorldBounds: getSceneBounds,
     lineProfile, // ★ ここで export
   };
 }

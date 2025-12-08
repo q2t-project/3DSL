@@ -29,9 +29,12 @@ function debugRenderer(...args) {
   console.log(...args);
 }
 
-// ============================================================
-// createRendererContext 本体
-// ============================================================
+/**
+ * createRendererContext は viewer runtime の内部 API。
+ *
+ * - host アプリ（Astro 等）は直接呼び出してはならない。
+ * - viewer の起動は bootstrapViewer* のみを入口とする。
+ */
 
 export function createRendererContext(canvasOrOptions) {
   const canvas =

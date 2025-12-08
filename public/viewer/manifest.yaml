@@ -102,7 +102,7 @@ runtime_spec:
         - "core/modeController.*"
         - "core/microController.*"
         - "core/visibilityController.*"
-        - "core/CameraEngine.*"
+        - "core/cameraEngine.*"
         - "renderer/context.applyFrame"
         - "renderer/context.applyMicroFX"
         - "renderer/context.updateCamera"
@@ -165,23 +165,23 @@ runtime_spec:
           - name: rotate
             signature: "(dTheta:number, dPhi:number) → void"
             calls:
-              - core/CameraEngine.rotate
+              - core/cameraEngine.rotate
           - name: pan
             signature: "(dx:number, dy:number) → void"
             calls:
-              - core/CameraEngine.pan
+              - core/cameraEngine.pan
           - name: zoom
             signature: "(delta:number) → void"
             calls:
-              - core/CameraEngine.zoom
+              - core/cameraEngine.zoom
           - name: reset
             signature: "() → void"
             calls:
-              - core/CameraEngine.reset
+              - core/cameraEngine.reset
           - name: snapToAxis
             signature: "(axis:'x'|'y'|'z') → void"
             calls:
-              - core/CameraEngine.snapToAxis
+              - core/cameraEngine.snapToAxis
           - name: focusOn
             signature: "(uuid:string) → void"
             calls:
@@ -189,15 +189,15 @@ runtime_spec:
           - name: setFOV
             signature: "(value:number) → void"
             calls:
-              - core/CameraEngine.setFOV
+              - core/cameraEngine.setFOV
           - name: setState
             signature: "(partialState:object) → void"
             calls:
-              - core/CameraEngine.setState
+              - core/cameraEngine.setState
           - name: getState
             signature: "() → cameraState"
             calls:
-              - core/CameraEngine.getState
+              - core/cameraEngine.getState
 
         mode:
           - name: set

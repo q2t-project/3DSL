@@ -141,18 +141,31 @@ export class KeyboardInput {
 
       const dir = ev.shiftKey ? -1 : 1;
 
-      const currentIndex =
-        uiState && typeof uiState.view_preset_index === "number"
-          ? uiState.view_preset_index
-          : 0;
+      // CameraEngine 側の index を正として取得
+      let currentIndex = 0;
+      if (
+        camera &&
+        typeof camera.getViewPresetIndex === "function"
+      ) {
+        currentIndex = camera.getViewPresetIndex();
+      } else if (
+        uiState &&
+        typeof uiState.view_preset_index === "number"
+      ) {
+        currentIndex = uiState.view_preset_index;
+      }
 
       const nextIndex = stepViewPresetIndex(currentIndex, dir);
 
-      if (uiState) {
-        uiState.view_preset_index = nextIndex;
-      }
-
       applyViewPreset(camera, nextIndex);
+
+      if (uiState) {
+        uiState.view_preset_index =
+          camera &&
+          typeof camera.getViewPresetIndex === "function"
+            ? camera.getViewPresetIndex()
+            : nextIndex;
+      }
       return;
     }
 

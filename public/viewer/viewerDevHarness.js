@@ -6,6 +6,9 @@ import { attachDetailView } from "./ui/detailView.js";
 import { PointerInput } from "./ui/pointerInput.js";
 import { KeyboardInput } from "./ui/keyboardInput.js";
 
+// baseline 起動時のデフォルト 3DSS
+const DEFAULT_MODEL = "../3dss/sample/core_viewer_baseline.3dss.json";
+
 let viewerHub = null;
 let playTimer = null;
 let detailViewHandle = null;
@@ -28,17 +31,8 @@ function attachInputs(hub) {
     keyboardInput.dispose();
   }
 
-  // runtime core から cameraEngine を素直に取る
-  const camEngine =
-    (hub &&
-      hub.core &&
-      (hub.core.cameraEngine || hub.core.camera)) ||
-    null;
-
-  console.log("[viewer-dev] attachInputs: camEngine =", camEngine);
-
-  // PointerInput は (canvas, cameraEngine, hub)
-  pointerInput = new PointerInput(canvas, camEngine, hub);
+  // PointerInput は (canvas, hub)
+  pointerInput = new PointerInput(canvas, hub);
   if (typeof pointerInput.attach === "function") {
     pointerInput.attach();
   }
@@ -63,6 +57,67 @@ const elMetaFile = document.getElementById("meta-file");
 const elMetaModel = document.getElementById("meta-model");
 const elMetaModelLog = document.getElementById("meta-model-log");
 const elHud = document.getElementById("viewer-hud");
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function showFatalError(kind, message) {
+  if (elMetaFile) {
+    elMetaFile.innerHTML = `
+      <h3>File</h3>
+      <div class="error">
+        <strong>${escapeHtml(kind)}</strong><br/>
+        <code>${escapeHtml(message)}</code>
+      </div>
+    `;
+  }
+  if (elMetaModel) {
+    elMetaModel.innerHTML =
+      "<h3>Model</h3><div>(no struct loaded)</div>";
+  }
+  if (elHud) {
+    elHud.dataset.status = "error";     // CSS で赤枠などに使う
+    elHud.textContent = `ERROR: ${kind}`;
+  }
+
+  // エラー時は今回の hub は捨てる（前の hub があれば維持してもいいが、上書きはしない）
+  viewerHub = null;
+}
+
+function classifyBootstrapError(err) {
+  const raw = String(err || "");
+  const code = err && (err.code || err.name);
+  const message =
+    (err && err.message) || (typeof err === "string" ? err : raw);
+
+  // 明示コード優先
+  if (code === "NETWORK_ERROR") {
+    return { kind: "NETWORK_ERROR", message };
+  }
+  if (code === "JSON_ERROR") {
+    return { kind: "JSON_ERROR", message };
+  }
+  if (code === "VALIDATION_ERROR") {
+    return { kind: "VALIDATION_ERROR", message };
+  }
+
+  // メッセージからの簡易判定
+  if (raw.includes("3DSS validation failed")) {
+    return { kind: "VALIDATION_ERROR", message };
+  }
+  if (raw.includes("Unexpected token") || raw.includes("JSON")) {
+    return { kind: "JSON_ERROR", message };
+  }
+  if (raw.includes("Failed to fetch") || raw.includes("NetworkError")) {
+    return { kind: "NETWORK_ERROR", message };
+  }
+
+  return { kind: "UNKNOWN_ERROR", message };
+}
 
 // ------------------------------------------------------------
 // メタパネル / ログ / HUD
@@ -874,17 +929,24 @@ function devLogger(line) {
 async function boot() {
   devLog("[viewer-dev] boot start");
 
+  // 既存 hub があれば stop してから再起動
+  if (viewerHub && typeof viewerHub.stop === "function") {
+    viewerHub.stop();
+    viewerHub = null;
+  }
+
   clearMetaPanels();
 
   const canvasId = "viewer-canvas";
 
-  // ★使うサンプルをここで切り替える
-  //  const jsonUrl = "../3dss/sample/";
+  // ★使うサンプルをここで切り替える（デフォルトは baseline）
+  const jsonUrl = DEFAULT_MODEL;
+  //  const jsonUrl = "../3dss/sample/primitive_and_arrow.3dss.json";
+  //  const jsonUrl = "../3dss/sample/primitive_and_arrow_without_pointsUUID.3dss.json";
   //  const jsonUrl = "../3dss/sample/valid_minimum_L1-P2-A0.3dss.json";
-  const jsonUrl = "../3dss/sample/primitive_and_arrow.3dss.json";
-  //  const jsonUrl = "../3dss/sample/rpref_L1000-P1000-A20.3dss.json";
+  //  const jsonUrl = "../3dss/sample/invalid_B_missing_meta.3dss.json";
   //  const jsonUrl = "../3dss/sample/rpref_L2-P2-A2.3dss.json";
-
+ 
   try {
     viewerHub = await bootstrapViewerFromUrl(canvasId, jsonUrl, {
       devBootLog: true,
@@ -893,6 +955,12 @@ async function boot() {
       logger: devLogger,
     });
     window.hub = viewerHub; // デバッグ用
+
+    // runtime の構築は bootstrapViewer* だけを正入口とし、
+    // レンダーループ開始はホスト側（ここでは dev harness）が hub.start() で制御する。
+    if (viewerHub && typeof viewerHub.start === "function") {
+      viewerHub.start();
+    }
 
     attachInputs(viewerHub);
 
@@ -918,7 +986,6 @@ async function boot() {
     appendModelLog("Viewer boot OK.");
 // viewerDevHarness.js, boot() 内
 
-    appendModelLog("Viewer boot OK.");
     if (elMetaFile && viewerHub.core) {
       const core = viewerHub.core;
 
@@ -954,7 +1021,6 @@ async function boot() {
         `<div>Current frame: ${current}</div>`;
     }
 
-
     showHudMessage("Viewer loaded", {
       duration: 1200,
       level: "info",
@@ -962,23 +1028,26 @@ async function boot() {
   } catch (err) {
     console.error("[viewer-dev] boot failed:", err);
 
-    if (elMetaFile) {
-      elMetaFile.innerHTML =
-        "<h3>File</h3>" + `<div>Source: ${jsonUrl}</div>`;
-    }
-    if (elMetaModel) {
-      elMetaModel.innerHTML =
-        "<h3>Model</h3>" +
-        "<div style='color:#ff8888;'>Load error.</div>" +
-        `<pre style="white-space:pre-wrap;font-size:10px;">${String(
-          err,
-        )}</pre>`;
-    }
+    const { kind, message } = classifyBootstrapError(err);
 
-    showHudMessage("Viewer load error", {
+    // メタペイン＋HUD を一括更新（struct は保持しない）
+    showFatalError(kind, message);
+
+    // トーストも種類だけ軽く出す
+    showHudMessage(`Viewer load error: ${kind}`, {
       duration: 3000,
       level: "error",
     });
+
+    // 念のため入力も無効化
+    if (pointerInput && typeof pointerInput.dispose === "function") {
+      pointerInput.dispose();
+    }
+    if (keyboardInput && typeof keyboardInput.dispose === "function") {
+      keyboardInput.dispose();
+    }
+    pointerInput = null;
+    keyboardInput = null;
 
     return;
   }
@@ -993,7 +1062,7 @@ async function boot() {
   initKeyboardShortcuts();
   initOrbitControls(viewerHub); // hub を渡すように変更
 
-  // ★ レンダーループ開始は bootstrapViewer 側で実行済み
+  // レンダーループ開始は boot() 内の hub.start() で実行済み
 }
 
 window.addEventListener("load", boot);

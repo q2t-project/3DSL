@@ -1,5 +1,47 @@
 // viewer/runtime/bootstrapViewer.js
 
+/**
+ * @typedef {string} ViewerLogLine
+ */
+
+/**
+ * @callback ViewerLogger
+ * @param {ViewerLogLine} line
+ */
+
+/**
+ * @typedef {Object} BootstrapOptions
+ * @property {boolean} [devBootLog]
+ *    dev 起動ログ（BOOT/MODEL/CAMERA/LAYERS/FRAME）を出すかどうか。
+ *    true のときだけ emitDevBootLog が動く。未指定なら false 相当。
+ * @property {string} [devLabel]
+ *    BOOT 行に埋め込むラベル（例: "viewer_dev", "viewer_embed"）。
+ * @property {string} [modelUrl]
+ *    MODEL 行に埋め込む識別子（URL か "inline" 等のラベル）。
+ * @property {ViewerLogger} [logger]
+ *    起動ログの出力先。未指定なら console.log にフォールバックしてもよい。
+ */
+
+/**
+ * NOTE: Public runtime entrypoints
+ *
+ * ▼ Host（Astro / HTML）から使ってええ公開 API は基本この 2 つだけ。
+ *
+ * - bootstrapViewerFromUrl(canvasOrId, url, options?)
+ *     Host から叩くことを前提にした「標準入口」。
+ *     3DSS を fetch → strict validation → bootstrapViewer に渡すまでを内部で完結する。
+ *
+ * - bootstrapViewer(canvasOrId, document3dss, options?)
+ *     すでに strict validation 済みの 3DSS オブジェクトを直接渡すための低レベル入口。
+ *     テストコードやツール用途を想定しており、通常の Astro 埋め込みからは使わない。
+ *
+ * ▼ 禁止事項
+ *   - Core / Renderer / CameraEngine など runtime 配下のモジュールを
+ *     Host / Astro 側から直接 import / new してはならない。
+ *   - 必ず上記 2 関数のどちらかを経由して ViewerHub を取得し、
+ *     レンダーループ開始は Host 側で hub.start() を呼ぶことで制御する。
+ */
+
 import { createRendererContext } from "./renderer/context.js";
 import { createViewerHub } from "./viewerHub.js";
 import { createModeController } from "./core/modeController.js";
@@ -200,7 +242,8 @@ function emitDevBootLog(core, options = {}) {
       typeof options.logger === "function" ? options.logger : console.log;
 
     // 1) BOOT
-    logger(`BOOT  ${label}`);
+    // 仕様: "BOOT <label>"
+    logger(`BOOT ${label}`);
 
     // 2) MODEL
     if (modelPath) {
@@ -212,8 +255,17 @@ function emitDevBootLog(core, options = {}) {
     // 3) CAMERA {"position":[...],"target":[...],"fov":50}
     let camState = null;
 
-    if (core.cameraEngine && typeof core.cameraEngine.getState === "function") {
-      camState = core.cameraEngine.getState();
+    // 仕様イメージ: "起動直後の CameraEngine.getState() 相当"
+    // core.camera があればそこから getState()、なければ cameraEngine → uiState の順にフォールバック
+    const camera =
+      core.camera && typeof core.camera.getState === "function"
+        ? core.camera
+        : core.cameraEngine && typeof core.cameraEngine.getState === "function"
+          ? core.cameraEngine
+          : null;
+
+    if (camera) {
+      camState = camera.getState();
     } else if (core.uiState && core.uiState.cameraState) {
       camState = core.uiState.cameraState;
     }
@@ -267,9 +319,10 @@ function emitDevBootLog(core, options = {}) {
     // uiState.filters.types を優先
     if (uiState.filters && uiState.filters.types) {
       const t = uiState.filters.types;
-      pointsOn = !!t.points;
-      linesOn = !!t.lines;
-      auxOn = !!t.aux;
+      // 仕様: "値が false のときだけ off、それ以外は on"
+      pointsOn = t.points !== false;
+      linesOn  = t.lines  !== false;
+      auxOn    = t.aux    !== false;
     } else if (uiState.visibility_state) {
       // 古い/別フォーマットへのフォールバック
       const v = uiState.visibility_state;
@@ -293,7 +346,8 @@ function emitDevBootLog(core, options = {}) {
      frameId = core.frameController.get();
     }
 
-    logger(`FRAME  frame_id=${frameId}`);
+    // 仕様: "FRAME frame_id=<n>"
+    logger(`FRAME frame_id=${frameId}`);
   } catch (e) {
     // dev 用ログなんで、こけても致命傷にはしない
     console.warn("[bootstrap] emitDevBootLog failed:", e);
@@ -301,8 +355,22 @@ function emitDevBootLog(core, options = {}) {
 }
 
 // ------------------------------------------------------------
-// すでに 3DSS オブジェクトを持っている場合
+// 公開エントリポイント
 // ------------------------------------------------------------
+
+/**
+ * strict validation 済み 3DSS オブジェクトを受け取って viewer を起動する。
+ *
+ * 通常の Host（Astro / HTML）からは `bootstrapViewerFromUrl` を使うこと。
+ * この関数は「すでに validate 済みの 3DSS を渡したい」テスト / ツール用途向けの
+ * 低レベル public API としてのみ利用を許可する。
+ *
+ * @param {string|HTMLCanvasElement} canvasOrId
+ * @param {any} threeDSS strict validation 済み 3DSS ドキュメント
+ * @param {BootstrapOptions} [options]
+ * @returns {import("./viewerHub.js").ViewerHub}
+ */
+
 export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   debugBoot("[bootstrap] bootstrapViewer: start");
   debugBoot("[bootstrap] received 3DSS keys =", Object.keys(document3dss));
@@ -329,30 +397,21 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   }
 
   // ------------------------------------------------------------
-  // シーンの worldBounds / メトリクスから
-  // 「全部がビューに入る」初期カメラを決める
+  // シーンのメトリクス（center / radius）取得
   // ------------------------------------------------------------
-  const sceneBounds =
-    // structIndex 側で worldBounds を持っている場合
-    (structIndex && structIndex.worldBounds) ||
+  const metrics =
+    // structIndex v1: bounds / getSceneBounds()
+    (structIndex && structIndex.bounds) ||
     (structIndex &&
-      typeof structIndex.getWorldBounds === "function" &&
-      structIndex.getWorldBounds()) ||
+      typeof structIndex.getSceneBounds === "function" &&
+      structIndex.getSceneBounds()) ||
     // なければ renderer 側のメトリクスにフォールバック
     (typeof renderer.getSceneMetrics === "function"
       ? renderer.getSceneMetrics()
       : null);
 
   if (DEBUG_BOOTSTRAP) {
-    debugBoot("[bootstrap] sceneBounds =", sceneBounds);
-  }
-
-  // 明示同期
-  if (typeof renderer.syncDocument === "function") {
-    debugBoot("[bootstrap] syncDocument()");
-    renderer.syncDocument(struct, structIndex);
-  } else {
-    console.warn("[bootstrap] renderer.syncDocument missing");
+    debugBoot("[bootstrap] sceneMetrics =", metrics);
   }
 
   // ------------------------------------------------------------
@@ -369,25 +428,6 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   };
 
   const RADIUS_DISTANCE_FACTOR = 2.4;
-
-  // renderer 側のメトリクスを最優先（metrics.center / metrics.radius）
-  let metrics = null;
-  if (typeof renderer.getSceneMetrics === "function") {
-    metrics = renderer.getSceneMetrics();
-  }
-
-  // structIndex 側に worldBounds があればフォールバックとして利用
-  if (!metrics && structIndex) {
-    metrics =
-      structIndex.worldBounds ||
-      (typeof structIndex.getWorldBounds === "function"
-        ? structIndex.getWorldBounds()
-        : null);
-  }
-
-  if (DEBUG_BOOTSTRAP) {
-    debugBoot("[bootstrap] sceneMetrics =", metrics);
-  }
 
  if (metrics) {
     const center =
@@ -461,7 +501,38 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     },
   });
 
-  const cameraEngine = createCameraEngine(uiState.cameraState);
+  // ★ 初期ビューはアイソメ [+X +Y]（iso_ne）に固定
+  // CAMERA_PRESETS: 0=top,1=front,2=right,3=iso_ne,...
+  uiState.view_preset_index = 3;
+
+  // metrics.center / radius を CameraEngine にも渡す
+  const cameraEngine = createCameraEngine(uiState.cameraState, {
+    metrics,
+  });
+
+  // 初期ビュー：view preset index（0〜6）を正規ルートで適用
+  if (
+    uiState &&
+    typeof uiState.view_preset_index === "number" &&
+    typeof cameraEngine.setViewPreset === "function"
+  ) {
+    const presetIndex = uiState.view_preset_index;
+    cameraEngine.setViewPreset(presetIndex);
+
+    // CameraEngine 側 state を uiState.cameraState に同期
+    const camState = cameraEngine.getState();
+    if (camState && uiState.cameraState) {
+      uiState.cameraState.theta = camState.theta;
+      uiState.cameraState.phi = camState.phi;
+      uiState.cameraState.distance = camState.distance;
+      uiState.cameraState.target = {
+        x: camState.target.x,
+        y: camState.target.y,
+        z: camState.target.z,
+      };
+      uiState.cameraState.fov = camState.fov;
+    }
+  }
 
   // micro⇆macro 専用のトランジション
   const cameraTransition = createCameraTransition(cameraEngine, {
@@ -557,16 +628,18 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     frameController.setRecomputeHandler(() => core.recomputeVisibleSet());
   }
 
-  debugBoot("[bootstrap] creating viewerHub");
+ debugBoot("[bootstrap] creating viewerHub");
 
+  // ★ ここで hub を生成
   const hub = createViewerHub({ core, renderer });
 
-  if (typeof hub.start === "function") {
-    debugBoot("[bootstrap] hub.start()");
-    hub.start();
-  } else {
-    console.warn("[bootstrap] hub.start missing");
-  }
+  // ★ ここでは hub.start() は呼ばない（render loop は host 側の責任）
+  // if (typeof hub.start === "function") {
+  //   debugBoot("[bootstrap] hub.start()");
+  //   hub.start();
+  // } else {
+  //   console.warn("[bootstrap] hub.start missing");
+  // }
 
   // dev viewer 起動ログ
   if (options.devBootLog) {
@@ -577,14 +650,41 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   return hub;
 }
 
-// ------------------------------------------------------------
-// URL から読む標準ルート
-// ------------------------------------------------------------
+/**
+ * URL から 3DSS を取得し、strict validation してから bootstrapViewer を呼ぶ。
+ *
+ * Host（Astro / HTML 埋め込み）から viewer runtime を起動するときの
+ * 基本的な公開 API は原則としてこちらだけを使う。
+ *
+ * @param {string|HTMLCanvasElement} canvasOrId
+ * @param {string} url
+ * @param {BootstrapOptions} [options]
+ * @returns {Promise<import("./viewerHub.js").ViewerHub>}
+ */
+
 export async function bootstrapViewerFromUrl(canvasOrId, url, options = {}) {
   debugBoot("[bootstrap] bootstrapViewerFromUrl:", url);
 
-  // まず 3DSS 本体をロード
-  const doc = await loadJSON(url);
+  let doc;
+  try {
+    // まず 3DSS 本体をロード
+    doc = await loadJSON(url);
+  } catch (e) {
+    const err = e instanceof Error ? e : new Error(String(e));
+    if (pointerInput?.dispose) pointerInput.dispose();
+    if (keyboardInput?.dispose) keyboardInput.dispose();
+    pointerInput = null;
+    keyboardInput = null;
+    if (!("kind" in err)) {
+      // 簡易判定：SyntaxError 相当なら JSON_ERROR、それ以外は FETCH_ERROR とみなす
+      if (err.name === "SyntaxError") {
+        err.kind = "JSON_ERROR";
+      } else {
+        err.kind = "FETCH_ERROR";
+      }
+    }
+    throw err;
+  }
 
   // strict full validation（A-4）
   await ensureValidatorInitialized();
@@ -605,7 +705,9 @@ export async function bootstrapViewerFromUrl(canvasOrId, url, options = {}) {
         )
         .join("\n");
 
-    throw new Error(msg);
+    const err = new Error(msg);
+    err.kind = "VALIDATION_ERROR";
+    throw err;
   }
   debugBoot(
     "[bootstrap] document_meta OK:",
@@ -613,7 +715,16 @@ export async function bootstrapViewerFromUrl(canvasOrId, url, options = {}) {
   );
 
   // schema_uri / version の整合チェック（1.0.2 仕様）
-  assertDocumentMetaCompatibility(doc);
+  try {
+    assertDocumentMetaCompatibility(doc);
+  } catch (e) {
+    const err = e instanceof Error ? e : new Error(String(e));
+    if (!("kind" in err)) {
+      // strict validation と同列扱い
+      err.kind = "VALIDATION_ERROR";
+    }
+    throw err;
+  }
 
   const mergedOptions = {
     ...options,

@@ -65,36 +65,117 @@ function normalizePresetIndex(index) {
   return i % n;
 }
 
-export function createCameraEngine(initialState = {}) {
-  // ★ この state だけを真実として使う
-  const state = {
+// ★ metrics.center / radius を使ったデフォルト算出ヘルパ
+function deriveMetricsDefaults(metrics) {
+  if (!metrics || typeof metrics !== "object") {
+    return {
+      target: { x: 0, y: 0, z: 0 },
+      distance: 4, // 従来デフォルト
+    };
+  }
+
+  // center: [x,y,z] or {x,y,z}
+  let cx = 0;
+  let cy = 0;
+  let cz = 0;
+
+  const center = metrics.center;
+  if (Array.isArray(center) && center.length >= 3) {
+    cx = sanitizeScalarCoord(center[0]);
+    cy = sanitizeScalarCoord(center[1]);
+    cz = sanitizeScalarCoord(center[2]);
+  } else if (center && typeof center === "object") {
+    if ("x" in center) cx = sanitizeScalarCoord(center.x);
+    if ("y" in center) cy = sanitizeScalarCoord(center.y);
+    if ("z" in center) cz = sanitizeScalarCoord(center.z);
+  }
+
+  let distance = 4;
+  if (typeof metrics.radius === "number" && Number.isFinite(metrics.radius)) {
+    // ★ 仕様：distance = radius * 2.4（クランプ付き）
+    distance = clamp(metrics.radius * 2.4, MIN_DISTANCE, MAX_DISTANCE);
+  }
+
+  return {
+    target: { x: cx, y: cy, z: cz },
+    distance,
+  };
+}
+
+/**
+ * CameraEngine は runtime 内部専用の実装クラス。
+ *
+ * - 外部アプリや dev harness が直接 new してはならない。
+ * - viewer の起動は必ず bootstrapViewer / bootstrapViewerFromUrl を通すこと。
+ *
+ * new CameraEngine(...) を呼んでよいのは runtime/bootstrapViewer.js だけを想定する。
+ */
+
+export function createCameraEngine(initialState = {}, options = {}) {
+  // ★ metrics: { center, radius } をここで受ける想定
+  const { metrics } = options;
+
+  const metricsDefaults = deriveMetricsDefaults(metrics);
+
+  // ★ 初期 state を一度だけ決定。reset もここに戻す
+  const initial = {
     // theta: Yaw（水平回転）
     theta:
       typeof initialState.theta === "number"
         ? initialState.theta
         : 0,
+
     // phi: Z 軸からの極角（0 ≒ 真上, π/2 ≒ 水平, π ≒ 真下）
     phi: clamp(
       initialState.phi ?? Math.PI / 2,
       EPSILON,
       Math.PI - EPSILON
     ),
+
     distance: clamp(
-      initialState.distance ?? 4,
+      // metrics.radius があれば radius*2.4 をデフォルトにしつつ、
+      // initialState.distance 明示指定があればそっち優先
+      initialState.distance ?? metricsDefaults.distance,
       MIN_DISTANCE,
       MAX_DISTANCE
     ),
+
     target: {
-      x: sanitizeScalarCoord(initialState.target?.x ?? 0),
-      y: sanitizeScalarCoord(initialState.target?.y ?? 0),
-      z: sanitizeScalarCoord(initialState.target?.z ?? 0),
+      x: sanitizeScalarCoord(
+        initialState.target?.x ?? metricsDefaults.target.x
+      ),
+      y: sanitizeScalarCoord(
+        initialState.target?.y ?? metricsDefaults.target.y
+      ),
+      z: sanitizeScalarCoord(
+        initialState.target?.z ?? metricsDefaults.target.z
+      ),
     },
+
     // three.js Camera と同様、fov は「度数法」で扱う想定
     fov:
       typeof initialState.fov === "number"
         ? initialState.fov
         : 50,
   };
+
+  // ★ state は initial のコピー。reset で initial に戻す
+  const state = {
+    theta: initial.theta,
+    phi: initial.phi,
+    distance: initial.distance,
+    target: {
+      x: initial.target.x,
+      y: initial.target.y,
+      z: initial.target.z,
+    },
+    fov: initial.fov,
+  };
+
+  // 現在の view preset index（0〜N-1）
+  // - setViewPreset 経由で更新
+  // - 手動オービット等でプリセット外になったら null のまま
+  let currentPresetIndex = null;
 
   // ★ 自動ぐるり俯瞰用 AutoOrbit 状態
   const autoOrbit = {
@@ -116,7 +197,7 @@ export function createCameraEngine(initialState = {}) {
      *
      * 距離 / ターゲット / FOV はそのまま、theta/phi だけ切り替える。
      */
-      snapToAxis(axis) {
+    snapToAxis(axis) {
       const raw = String(axis || "").toLowerCase();
 
       let key = null;
@@ -209,6 +290,7 @@ export function createCameraEngine(initialState = {}) {
       // 方向はテーブル通りに決め打ち
       state.theta = def.theta;
       state.phi = clamp(def.phi, EPSILON, Math.PI - EPSILON);
+      currentPresetIndex = i;
 
       // ターゲット / 距離 / FOV はオプションで上書き可能
       const { target, distance, fov } = opts;
@@ -236,6 +318,38 @@ export function createCameraEngine(initialState = {}) {
       return state;
     },
 
+    /**
+     * 現在の view preset index を返す。
+     * - 直近の setViewPreset の値を優先
+     * - なければ theta/phi 完全一致でプリセットを探索
+     * - 見つからなければ 0 を返す
+     */
+    getViewPresetIndex() {
+      if (currentPresetIndex != null) {
+        return currentPresetIndex;
+      }
+
+      if (
+        Array.isArray(CAMERA_VIEW_PRESET_SEQUENCE) &&
+        CAMERA_VIEW_PRESET_SEQUENCE.length === CAMERA_VIEW_PRESET_COUNT
+      ) {
+        for (let i = 0; i < CAMERA_VIEW_PRESET_SEQUENCE.length; i++) {
+          const key = CAMERA_VIEW_PRESET_SEQUENCE[i];
+          const def = key && CAMERA_VIEW_DEFS[key];
+          if (!def) continue;
+
+          if (
+            Math.abs(def.theta - state.theta) < 1e-3 &&
+            Math.abs(def.phi - state.phi) < 1e-3
+          ) {
+            currentPresetIndex = i;
+            return i;
+          }
+        }
+      }
+      return 0;
+    },
+
     // --------------------------------------------------------
     // 角度回転（オービット）
     //   - dTheta: 水平回転量（rad）
@@ -256,12 +370,7 @@ export function createCameraEngine(initialState = {}) {
       return state;
     },
 
-
     // Z-up 版パン処理
-    // - 水平方向（dx）は「画面右方向」に相当するベクトル R（Z 軸回りの右）に沿って移動
-    //   R = (-sinθ, cosθ, 0)
-    //   ターゲットを -dx * R だけ動かすことで「カメラが右へ動いた」ように見せる
-    // - 垂直方向（dy）はワールド Z 方向にそのまま乗せる
     pan(dx, dy) {
       const cosTheta = Math.cos(state.theta);
       const sinTheta = Math.sin(state.theta);
@@ -330,9 +439,6 @@ export function createCameraEngine(initialState = {}) {
       };
     },
 
-
-
-
     // ------------------------------------------------------------
     // AutoOrbit（自動ぐるり俯瞰）制御
     // ------------------------------------------------------------
@@ -356,15 +462,6 @@ export function createCameraEngine(initialState = {}) {
 
     /**
      * AutoOrbit 開始
-     *
-     * opts:
-     *  - center   : {x,y,z} or [x,y,z]（なければ現在 target）
-     *  - radius   : number                （なければ現在 distance を流用）
-     *  - isoPhi   : アイソメ用の phi 値（rad）。なければ現状の phi を維持
-     *  - fov      : 視野角（deg）。なければ現状の fov を維持
-     *  - margin   : 画面上の余白係数（デフォルト 1.15）
-     *  - direction: +1（正転） or -1（逆転）
-     *  - speedLevel: 1〜MAX_AUTO_ORBIT_SPEED_LEVEL（ぐるり速度）
      */
     startAutoOrbit(opts = {}) {
       const {
@@ -377,7 +474,7 @@ export function createCameraEngine(initialState = {}) {
         speedLevel = 1,
       } = opts;
 
-      // center 正規化：{x,y,z} / [x,y,z] / 未指定 いずれにも対応
+      // center 正規化
       let cx = state.target.x;
       let cy = state.target.y;
       let cz = state.target.z;
@@ -435,11 +532,6 @@ export function createCameraEngine(initialState = {}) {
 
     /**
      * AutoOrbit 中のパラメータ更新
-     * - 正転／逆転ボタンの押下や速度段階変更から呼ぶ用
-     *
-     * opts:
-     *  - direction : +1 / -1
-     *  - speedLevel: 1〜MAX_AUTO_ORBIT_SPEED_LEVEL
      */
     updateAutoOrbitSettings(opts = {}) {
       if (!autoOrbit.enabled) return state;
@@ -461,8 +553,6 @@ export function createCameraEngine(initialState = {}) {
 
     /**
      * AutoOrbit 停止
-     * - 停止ボタン
-     * - もしくは pointerInput 側のドラッグ開始で直叩き想定
      */
     stopAutoOrbit() {
       autoOrbit.enabled = false;
@@ -470,10 +560,6 @@ export function createCameraEngine(initialState = {}) {
       autoOrbit.angularSpeed = 0;
       return state;
     },
-
-    // TODO: camera lerp（スムーズ遷移）を再導入する場合は、
-    // ここに beginLerp / stepLerp を追加して制御する。
-    // 現状は「即時反映のみ」で運用しているため未実装。
 
     setState(partial) {
       if (!partial || typeof partial !== "object") return state;
@@ -515,20 +601,23 @@ export function createCameraEngine(initialState = {}) {
       return state;
     },
 
+    // ★ reset で initialSnapshot に戻すように変更
     reset() {
-      state.theta = 0;
-      state.phi = clamp(Math.PI / 2, EPSILON, Math.PI - EPSILON);
-      state.distance = 4;
-      state.target.x = 0;
-      state.target.y = 0;
-      state.target.z = 0;
-      state.fov = 50;
+      state.theta = initial.theta;
+      state.phi = initial.phi;
+      state.distance = initial.distance;
+      state.target.x = initial.target.x;
+      state.target.y = initial.target.y;
+      state.target.z = initial.target.z;
+      state.fov = initial.fov;
 
-      // AutoOrbit もリセットしておく
+      // AutoOrbit もリセット
       autoOrbit.enabled = false;
       autoOrbit.direction = 1;
       autoOrbit.speedLevel = 0;
       autoOrbit.angularSpeed = 0;
+
+      currentPresetIndex = null;
 
       return state;
     },

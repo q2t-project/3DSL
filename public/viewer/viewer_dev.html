@@ -51,39 +51,185 @@
 /*
 /* 広告枠
 /*
-     /* 左上 300x250 広告枠（シーン上にオーバーレイ） */
-      #ad-top-left {
-        position: absolute;
-        top: 8px;
-        left: 8px;
-        width: 300px;
-        height: 250px;
-        z-index: 20; /* HUD/gizmo との前後は後で調整 */
+    /* 左上 300x250 広告枠（シーン上にオーバーレイ） */
+    #ad-top-left {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      width: 300px;
+      height: 250px;
+      z-index: 20; /* HUD/gizmo との前後は後で調整 */
 
-        /* プレースホルダ用（本番ではタグに置き換え） */
-        box-sizing: border-box;
-        border: 1px solid rgba(255, 255, 255, 0.25);
-        background: rgba(255, 255, 255, 0.04);
-        font-size: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        pointer-events: none; /* いったん3D操作優先にするなら */
+      /* プレースホルダ用（本番ではタグに置き換え） */
+      box-sizing: border-box;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.04);
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none; /* いったん3D操作優先にするなら */
+    }
+
+    /* 中央の 300x600 スクレイパー枠 */
+    #viewer-ad-rail {
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      /* プレースホルダ用スタイル */
+      border-left: 1px solid #222;
+      border-right: 1px solid #222;
+      background: rgba(255, 255, 255, 0.02);
+      font-size: 12px;
+    }
+
+    /* 右上：自前コンテンツ用 300x250 プロモ枠（シーン上オーバーレイ） */
+    #promo-top-right {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 300px;
+      height: 250px;
+      z-index: 21; /* 左上 AD よりわずかに前面 */
+      pointer-events: none; /* デフォは 3D 操作優先。中身だけクリック可 */
+    }
+
+    #promo-top-right .promo-card {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+
+      /* “枠線で囲った広告” っぽさを薄めたガラス風 */
+      background: radial-gradient(
+          circle at 10% 0%,
+          rgba(255, 255, 255, 0.18),
+          rgba(0, 0, 0, 0.86)
+        );
+      background-color: rgba(0, 0, 0, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow:
+        0 0 16px rgba(0, 0, 0, 0.7),
+        0 0 0 1px rgba(255, 255, 255, 0.04);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+
+      color: #eef3ff;
+      text-decoration: none;
+
+      pointer-events: auto; /* カード自体はクリック可能 */
+      cursor: pointer;
+    }
+
+    #promo-top-right .promo-tag {
+      align-self: flex-start;
+      padding: 1px 8px;
+      border-radius: 999px;
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border: 1px solid rgba(180, 210, 255, 0.7);
+      background: rgba(10, 20, 40, 0.9);
+      color: rgba(210, 230, 255, 0.95);
+    }
+
+    #promo-top-right .promo-title {
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    #promo-top-right .promo-sub {
+      font-size: 10px;
+      opacity: 0.8;
+      line-height: 1.5;
+    }
+
+    #promo-top-right .promo-body {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      justify-content: space-between;
+    }
+
+    /* 流れるテキスト（ライブラリ内別コンテンツへの“ささやき”） */
+    #promo-top-right .promo-ticker-shell {
+      position: relative;
+      overflow: hidden;
+      border-radius: 999px;
+      border: 1px solid rgba(190, 215, 255, 0.4);
+      background: linear-gradient(
+        to right,
+        rgba(200, 225, 255, 0.18),
+        rgba(20, 32, 64, 0.9)
+      );
+      padding: 2px 6px;
+    }
+
+    #promo-top-right .promo-ticker-line {
+      display: inline-block;
+      white-space: nowrap;
+      font-size: 10px;
+      opacity: 0.85;
+      animation: promoTickerScroll 14s linear infinite;
+    }
+
+    #promo-top-right .promo-ticker-line span + span {
+      margin-left: 32px; /* 同じ文言を 2 回並べて切れ目なく流す */
+    }
+
+    @keyframes promoTickerScroll {
+      0% {
+        transform: translateX(0%);
       }
-
-      /* 中央の 300x600 スクレイパー枠 */
-      #viewer-ad-rail {
-        box-sizing: border-box;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        /* プレースホルダ用スタイル */
-        border-left: 1px solid #222;
-        border-right: 1px solid #222;
-        background: rgba(255, 255, 255, 0.02);
-        font-size: 12px;
+      100% {
+        transform: translateX(-50%);
       }
+    }
+
+    #promo-top-right .promo-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 4px;
+      font-size: 10px;
+      opacity: 0.85;
+    }
+
+    #promo-top-right .promo-cta {
+      padding: 3px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(220, 235, 255, 0.9);
+      background: radial-gradient(
+        circle at 30% 0%,
+        rgba(255, 255, 255, 0.85),
+        rgba(180, 210, 255, 0.3)
+      );
+      color: #001020;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      box-shadow: 0 0 8px rgba(180, 220, 255, 0.9);
+    }
+
+    #promo-top-right .promo-cta:hover {
+      box-shadow:
+        0 0 10px rgba(200, 235, 255, 1),
+        0 0 0 1px rgba(220, 240, 255, 0.9);
+    }
+
+    #promo-top-right .promo-meta {
+      font-size: 9px;
+      opacity: 0.7;
+    }
 
     /* =========================================================
     *  右側メタ情報エリア
@@ -233,6 +379,12 @@
       transition:
         opacity 0.25s ease-out,
         transform 0.25s ease-out;
+    }
+
+    #viewer-hud[data-status="error"] {
+      border-color: #f66;
+      color: #fdd;
+      background: #400;
     }
 
     #viewer-hud.hud-visible {
@@ -1026,7 +1178,40 @@
     <div id="viewer-main">
       <!-- 左上 300x250 -->
       <div id="ad-top-left">300×250 AD</div>
+      <!-- 右上 300x250：3DSS Library / 3DSD 自前コンテンツ用プロモ枠 -->
+      <div id="promo-top-right" data-source="3dss-promo">
+        <a class="promo-card" href="#" data-role="promo-link">
+          <div class="promo-tag">3DSL LIBRARY</div>
 
+          <div class="promo-body">
+            <div>
+              <div class="promo-title">
+                往還構造 × 時間の矢<br />
+                3DSD で読む「揺れ」と収束
+              </div>
+              <div class="promo-sub">
+                いま見ている構造と同じパターンを扱った
+                3DSS/3DSD サンプルへジャンプ。
+              </div>
+            </div>
+
+            <div class="promo-ticker-shell">
+              <div class="promo-ticker-line">
+                <span>往還構造 / 分水嶺 / エントロピー × 知識トポス …</span>
+                <span>時間逆行の議論と同型の 3DSD 図解をもっと見る</span>
+              </div>
+            </div>
+
+            <div class="promo-footer">
+              <div class="promo-meta">
+                from 3DSS library<br />
+                filtered as: <span>knowledge-flow</span>
+              </div>
+              <div class="promo-cta">OPEN</div>
+            </div>
+          </div>
+        </a>
+      </div>
       <!-- 3D シーン -->
       <canvas id="viewer-canvas"></canvas>
 

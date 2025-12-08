@@ -132,6 +132,29 @@ export function createUiState(initial = {}) {
     };
   }
 
+  // --- filters 初期化（正準: filters.types.* に寄せる） ---
+  const initialFilters =
+    initial.filters && typeof initial.filters === "object"
+      ? initial.filters
+      : {};
+
+  const initialFilterTypes =
+    initialFilters.types && typeof initialFilters.types === "object"
+      ? initialFilters.types
+      : initialFilters; // 旧 {points,lines,aux} 形式からも復元
+
+  const filters = {
+    types: {
+      points: initialFilterTypes.points ?? true,
+      lines:  initialFilterTypes.lines  ?? true,
+      aux:    initialFilterTypes.aux    ?? true,
+    },
+    // 旧 API 互換用フィールド（既存コードが filters.points などを参照していても壊さない）
+    points: initialFilterTypes.points ?? true,
+    lines:  initialFilterTypes.lines  ?? true,
+    aux:    initialFilterTypes.aux    ?? true,
+  };
+
   const state = {
     frame: {
       current: initial.frame?.current ?? 0,
@@ -151,20 +174,57 @@ export function createUiState(initial = {}) {
         z: initial.cameraState?.target?.z ?? 0,
       },
       fov: initial.cameraState?.fov ?? 50,
-    },
+   },
     view_preset_index: normalizeViewPresetIndex(initial.view_preset_index),
     mode: initial.mode ?? "macro",
-    filters: {
-      lines: initial.filters?.lines ?? true,
-      points: initial.filters?.points ?? true,
-      aux: initial.filters?.aux ?? true,
-    },
-    runtime: {
-      isFramePlaying: initial.runtime?.isFramePlaying ?? false,
-      isCameraAuto: initial.runtime?.isCameraAuto ?? false,
-    },
-    microState: initial.microState ?? null,
+    // filters: v1 正式フォーマットに揃える
+    //  - filters.types.{points,lines,aux}
+    //  - filters.auxModules.{grid,axis,...}
+    //  旧フォーマット filters.{points,lines,aux} へのフォールバックも維持
+    filters: (() => {
+      const raw = initial.filters && typeof initial.filters === "object"
+        ? initial.filters
+        : {};
 
+      const rawTypes =
+        raw.types && typeof raw.types === "object" ? raw.types : raw;
+
+      const types = {
+        points:
+          rawTypes.points ??
+          raw.points ??
+          true,
+        lines:
+          rawTypes.lines ??
+          raw.lines ??
+          true,
+        aux:
+          rawTypes.aux ??
+          raw.aux ??
+          true,
+      };
+
+      const auxModulesRaw =
+        raw.auxModules && typeof raw.auxModules === "object"
+          ? raw.auxModules
+          : {};
+
+      const auxModules = {
+        // v1 ではとりあえずフィールドだけ用意して、意味づけは後のフェーズで
+        grid: auxModulesRaw.grid ?? false,
+        axis: auxModulesRaw.axis ?? false,
+        // 必要になればここに他モジュールを足していく
+      };
+
+      return {
+        types,
+        auxModules,
+        // 旧コード互換: filters.points などを残しておく
+        points: types.points,
+        lines: types.lines,
+        aux: types.aux,
+      };
+    })(),
     // ここに正準 viewerSettings を載せる
     viewerSettings,
 

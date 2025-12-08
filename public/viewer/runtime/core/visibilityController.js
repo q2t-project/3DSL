@@ -5,7 +5,8 @@
 //   - フィルタ変更時に、外から差し込まれた再計算ルート（core.recomputeVisibleSet）を
 //     優先して呼び出せるよう、フックを用意する。
 // - frame.current
-// - filters.{points,lines,aux}
+// - filters.types.{points,lines,aux}  （v1 正式ルート）
+//   + 旧 filters.{points,lines,aux} からのフォールバック
 // - indices.uuidToKind / uuidToFrames / frameIndex
 //
 // ポリシー：
@@ -48,20 +49,39 @@ export function createVisibilityController(uiState, _document, indices) {
     return Number.isFinite(n) ? n : 0;
   }
 
-  function typeEnabled(filters, kind) {
+  // filtersRoot （uiState.filters）から「有効な types テーブル」を取り出す
+  function extractTypes(filtersRoot) {
+    if (!filtersRoot || typeof filtersRoot !== "object") {
+      return {};
+    }
+
+    // 正式：filters.types.{points,lines,aux}
+    if (filtersRoot.types && typeof filtersRoot.types === "object") {
+      return filtersRoot.types;
+    }
+
+    // 旧：filters.{points,lines,aux}
+    return filtersRoot;
+  }
+
+  function typeEnabled(filtersRoot, kind) {
     if (kind !== "points" && kind !== "lines" && kind !== "aux") return true;
-    const enabled = filters[kind];
+
+    const types = extractTypes(filtersRoot);
+    const enabled = types[kind];
+
+    // false のときだけ明示的に OFF、それ以外は ON 扱い
     return enabled !== false;
   }
 
   // frameIndex を使った最適化パス
-  function recomputeWithFrameIndex(frame, filters) {
+  function recomputeWithFrameIndex(frame, filtersRoot) {
     const result = createEmptyVisibleSets();
 
     const tryKind = (kind) => {
       const perKindIndex = frameIndex && frameIndex[kind];
       if (!(perKindIndex instanceof Map)) return;
-      if (!typeEnabled(filters, kind)) return;
+      if (!typeEnabled(filtersRoot, kind)) return;
 
       const set = perKindIndex.get(frame);
       if (!(set instanceof Set)) return;
@@ -82,7 +102,7 @@ export function createVisibilityController(uiState, _document, indices) {
     // frames を持たない要素は「全フレーム共通」扱い
     for (const uuid of uuidsWithoutFrames) {
       const kind = uuidToKind.get(uuid);
-      if (!typeEnabled(filters, kind)) continue;
+      if (!typeEnabled(filtersRoot, kind)) continue;
 
       const dst = result[kind];
       if (dst) dst.add(uuid);
@@ -92,14 +112,14 @@ export function createVisibilityController(uiState, _document, indices) {
   }
 
   // 旧ロジック（uuidToFrames を総なめ）へのフォールバック
-  function recomputeFallback(frame, filters) {
+  function recomputeFallback(frame, filtersRoot) {
     const result = createEmptyVisibleSets();
 
     for (const uuid of allUuids) {
       const kind = uuidToKind.get(uuid);
 
       // 種別フィルタ（points / lines / aux）
-      if (!typeEnabled(filters, kind)) {
+      if (!typeEnabled(filtersRoot, kind)) {
         continue;
       }
 
@@ -120,7 +140,7 @@ export function createVisibilityController(uiState, _document, indices) {
 
   function recompute() {
     const frame = getCurrentFrame();
-    const filters = uiState.filters || {};
+    const filtersRoot = uiState.filters || {};
 
     let subsets;
 
@@ -131,10 +151,10 @@ export function createVisibilityController(uiState, _document, indices) {
       frameIndex.aux instanceof Map
     ) {
       // structIndex.frameIndex が揃っている場合はそっち優先
-      subsets = recomputeWithFrameIndex(frame, filters);
+      subsets = recomputeWithFrameIndex(frame, filtersRoot);
     } else {
       // 無ければ従来どおり uuidToFrames を総なめ
-      subsets = recomputeFallback(frame, filters);
+      subsets = recomputeFallback(frame, filtersRoot);
     }
 
     // union（全部まとめた Set）も作っておくと便利
@@ -193,13 +213,33 @@ export function createVisibilityController(uiState, _document, indices) {
   }
 
   function getFilters() {
-    return { ...(uiState.filters || {}) };
+    const f = uiState.filters || {};
+    return {
+      ...f,
+      types: { ...(f.types || {}) },
+      auxModules: { ...(f.auxModules || {}) },
+    };
   }
 
   function setTypeFilter(kind, enabled) {
     if (kind !== "points" && kind !== "lines" && kind !== "aux") return;
-    if (!uiState.filters) uiState.filters = {};
-    uiState.filters[kind] = !!enabled;
+
+    if (!uiState.filters || typeof uiState.filters !== "object") {
+      uiState.filters = {};
+    }
+    const root = uiState.filters;
+
+    if (!root.types || typeof root.types !== "object") {
+      root.types = {};
+    }
+
+    const flag = !!enabled;
+
+    // 正式ルート
+    root.types[kind] = flag;
+
+    // 旧フィールド互換（filters.points などを参照している古いコードがあっても壊さない）
+    root[kind] = flag;
 
     // A-5:
     //  フィルタ変更 → まず「正規ルート」があればそちらを呼ぶ。

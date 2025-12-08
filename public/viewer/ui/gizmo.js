@@ -1,7 +1,12 @@
 // viewer/ui/gizmo.js
 
 import * as THREE from "../../vendor/three/build/three.module.js";
-import { CAMERA_VIEW_DEFS } from "../runtime/core/cameraViewDefs.js";
+import {
+   CAMERA_VIEW_DEFS,
+   CAMERA_VIEW_ALIASES,
+   CAMERA_VIEW_PRESET_SEQUENCE,
+   CAMERA_VIEW_PRESET_COUNT,
+ } from "../runtime/core/cameraViewDefs.js";
 
 // 軸カラー設定
 //   XY 平面 (Z 軸) = 赤 : existence (上下)
@@ -10,6 +15,82 @@ import { CAMERA_VIEW_DEFS } from "../runtime/core/cameraViewDefs.js";
 const COLOR_AXIS_X = 0x5588ff; // X / YZ plane → blue
 const COLOR_AXIS_Y = 0x55ff55; // Y / ZX plane → green
 const COLOR_AXIS_Z = 0xff5555; // Z / XY plane → red;
+
+// 軸 → view 名ヘルパ（上のほうに置くとスッキリ）
+function axisToViewName(axis) {
+  switch (axis) {
+    case "x":
+      return "x+";
+    case "y":
+      return "y+";
+    case "z":
+      return "z+";
+    default:
+      return null;
+  }
+}
+
+// ------------------------------------------------------------
+// view preset 解決ヘルパ
+// ------------------------------------------------------------
+
+// name ("front", "iso-ne", "x+" など) → 正規 key へ
+function resolvePresetKey(name) {
+  if (!name) return null;
+  const raw = String(name);
+
+  let key = raw;
+  if (
+    CAMERA_VIEW_ALIASES &&
+    Object.prototype.hasOwnProperty.call(CAMERA_VIEW_ALIASES, raw)
+  ) {
+    key = CAMERA_VIEW_ALIASES[raw];
+  }
+
+  if (
+    !CAMERA_VIEW_DEFS ||
+    !Object.prototype.hasOwnProperty.call(CAMERA_VIEW_DEFS, key)
+  ) {
+    return null;
+  }
+
+  return key;
+}
+
+// name → preset index（0〜N-1）
+function resolvePresetIndexByName(name) {
+  const key = resolvePresetKey(name);
+  if (!key) return null;
+
+  if (
+    !Array.isArray(CAMERA_VIEW_PRESET_SEQUENCE) ||
+    !CAMERA_VIEW_PRESET_COUNT
+  ) {
+    return null;
+  }
+
+  const idx = CAMERA_VIEW_PRESET_SEQUENCE.indexOf(key);
+  return idx >= 0 ? idx : null;
+}
+
+// setViewPreset(index) ＋ uiState.view_preset_index 同期
+function applyViewPresetIndex(cam, uiState, index) {
+  if (!cam || typeof cam.setViewPreset !== "function") return;
+  if (index == null) return;
+
+  const i = Number(index);
+  if (!Number.isFinite(i)) return;
+
+  cam.setViewPreset(i);
+
+  if (uiState) {
+    const resolved =
+      typeof cam.getViewPresetIndex === "function"
+        ? cam.getViewPresetIndex()
+        : i;
+    uiState.view_preset_index = resolved;
+  }
+}
 
 // メインカメラ state から「向き」だけをもらって、
 // 原点まわりの小さい「リング型 gizmo」を描画するミニ・ビューポート
@@ -504,46 +585,23 @@ export function attachGizmo(wrapper, hub) {
     if (!hub?.core?.camera) return;
 
     const cam = hub.core.camera;
-    const def = PRESET_DEFS.find((d) => d.id === id);
-    if (!def) return;
+    const uiState = hub.core.uiState;
 
-    // AutoOrbit 中なら先に止める（キーボードと挙動を揃える）
+   const index = resolvePresetIndexByName(id);
+    if (index == null) return;
+
+    // AutoOrbit 中なら先に止める（キーボードと揃える）
     if (typeof cam.stopAutoOrbit === "function") {
       cam.stopAutoOrbit();
-    } else if (hub.core.uiState?.runtime) {
-      hub.core.uiState.runtime.isCameraAuto = false;
+    }
+    if (uiState?.runtime) {
+      uiState.runtime.isCameraAuto = false;
     }
 
-    // kind に応じて呼び分け
-    if (def.kind === "axis") {
-      // 例: id = "z+" → snapToAxis("z")
-      const axis =
-        def.id === "x+" ? "x" :
-        def.id === "y+" ? "y" :
-        def.id === "z+" ? "z" :
-        null;
+    applyViewPresetIndex(cam, uiState, index);
 
-      if (axis && typeof cam.snapToAxis === "function") {
-        cam.snapToAxis(axis);
-      }
-    } else {
-      // iso-ne / iso-nw / iso-sw / iso-se などは view 名で切り替え
-      if (typeof cam.setViewByName === "function") {
-        // id 自体が "iso-ne" など CAMERA_VIEW_DEFS の key なので
-        cam.setViewByName(def.id);
-      } else if (typeof cam.setState === "function") {
-        // 保険のフォールバック（古い実装）
-        const cur =
-          typeof cam.getState === "function" ? cam.getState() : {};
-        cam.setState({
-          ...cur,
-          theta: def.theta,
-          phi: def.phi,
-        });
-      }
-    }
-
-    activePresetId = id;
+    // beams / スケール制御用
+    activePresetId = resolvePresetKey(id);
   }
 
   // ------------------------------------------------------------
@@ -649,7 +707,26 @@ export function attachGizmo(wrapper, hub) {
       camera.updateProjectionMatrix();
     }
 
-    activePresetId = findNearestPreset(theta, phi);
+    // まず CameraEngine 側の preset index を優先
+    let presetKey = null;
+    const cam = hub.core.camera;
+    if (
+      cam &&
+      typeof cam.getViewPresetIndex === "function" &&
+      Array.isArray(CAMERA_VIEW_PRESET_SEQUENCE)
+    ) {
+      const idx = cam.getViewPresetIndex();
+      if (
+        typeof idx === "number" &&
+        idx >= 0 &&
+        idx < CAMERA_VIEW_PRESET_SEQUENCE.length
+      ) {
+        presetKey = CAMERA_VIEW_PRESET_SEQUENCE[idx];
+      }
+    }
+
+    // 取れなかったときだけ角度から最近傍を推定
+    activePresetId = presetKey || findNearestPreset(theta, phi);
 
     // 視点に合わせてプリセットカメラの見た目を更新
     Object.entries(presetGroupsById).forEach(([id, group]) => {
@@ -730,10 +807,20 @@ export function attachGizmo(wrapper, hub) {
 
     // まずリング（軸スナップ）
     const ringHit = raycaster.intersectObjects(clickableRingMeshes, false)[0];
-    if (ringHit && ringHit.object && hub.core.camera.snapToAxis) {
-      const axis = ringHit.object.userData.axis;
-      if (axis) {
-        hub.core.camera.snapToAxis(axis);
+    if (ringHit && ringHit.object && hub.core.camera) {
+      const cam = hub.core.camera;
+
+      const axis = ringHit.object.userData.axis; // "x" / "y" / "z"
+      const uiState = hub.core.uiState;
+
+      const viewName = axisToViewName(axis);
+      const index =
+        viewName != null ? resolvePresetIndexByName(viewName) : null;
+
+      if (index != null && typeof cam.setViewPreset === "function") {
+        applyViewPresetIndex(cam, uiState, index);
+      } else if (axis && typeof cam.snapToAxis === "function") {
+        cam.snapToAxis(axis); // フォールバック
       }
       return;
     }
@@ -881,15 +968,20 @@ export function initGizmoButtons(hub) {
         cam.stopAutoOrbit();
       }
 
-      if (typeof cam.setViewByName === "function") {
-        // ここで front / top / right / iso-ne 等を渡す
+      const uiState = hub.core && hub.core.uiState;
+      const idx = resolvePresetIndexByName(name);
+
+      if (idx != null && typeof cam.setViewPreset === "function") {
+        applyViewPresetIndex(cam, uiState, idx);
+      } else if (typeof cam.setViewByName === "function") {
+        // 古い実装用フォールバック
         cam.setViewByName(name);
       } else if (
         CAMERA_VIEW_DEFS &&
         Object.prototype.hasOwnProperty.call(CAMERA_VIEW_DEFS, name) &&
         typeof cam.setState === "function"
       ) {
-        // 古い実装へのフォールバック
+        // さらに古い実装用の最後の保険
         const def = CAMERA_VIEW_DEFS[name];
         const cur =
           typeof cam.getState === "function" ? cam.getState() : {};
@@ -914,8 +1006,15 @@ export function initGizmoButtons(hub) {
       if (typeof cam.stopAutoOrbit === "function") {
         cam.stopAutoOrbit();
       }
+        const uiState = hub.core && hub.core.uiState;
+        const viewName = axisToViewName(axis);
+        const idx =
+          viewName != null ? resolvePresetIndexByName(viewName) : null;
 
-      if (typeof cam.snapToAxis === "function") {
+        if (idx != null && typeof cam.setViewPreset === "function") {
+          applyViewPresetIndex(cam, uiState, idx);
+        } else if (typeof cam.snapToAxis === "function") {
+          // 古い CameraEngine 実装用に一応残す
         cam.snapToAxis(axis);
       }
     });

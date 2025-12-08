@@ -126,17 +126,18 @@ viewer 実装はおおよそ次のモジュール群に分かれる。
 
 | レイヤ / モジュール | 代表ファイル例 | 役割 |
 |--------------------|----------------|------|
-| Boot               | `runtime/bootstrapViewer.js` | canvas と 3DSS を受け取り runtime を起動し、viewerHub を返す（PointerInput / KeyboardInput の接続もここで行う） |
+| Boot               | `runtime/bootstrapViewer.js` | canvas と 3DSS を受け取り runtime を起動し、`viewerHub` を返す。レンダーループ開始や PointerInput / KeyboardInput の接続は行わず、Host / dev harness 側の責務とする |
 | Hub                | `runtime/viewerHub.js` | Core / Renderer をまとめて外部に公開するファサード。`hub.core.*` API と `hub.start/stop` を束ねる |
-| Core               | `runtime/core/*.js` | 3DSS 構造 state（immutable）と ui_state（viewer 専用 state）の管理。各種 Controller / CameraEngine / PointerInput / KeyboardInput を含む |
+| Core               | `runtime/core/*.js` | 3DSS 構造 state（immutable）と ui_state（viewer 専用 state）の管理。各種 Controller / CameraEngine を含む（PointerInput / KeyboardInput は UI レイヤ `ui/*` に分離） |
 | Renderer           | `runtime/renderer/context.js` + `renderer/microFX/*` | three.js による描画、microFX、selection ハイライト |
-| UI（dev harness）  | `viewerDevHarness.js` `ui/gizmo.js` など | dev 用 HTML / HUD / ボタン類。マウス / キー / ギズモ / タイムライン入力を **hub.core.* / hub.pickObjectAt 経由で** runtime に橋渡しする |
+| UI（dev harness）  | `viewerDevHarness.js` `ui/gizmo.js` `ui/pointerInput.js` `ui/keyboardInput.js` など | dev 用 HTML / HUD / ボタン類。PointerInput / KeyboardInput / gizmo / タイムラインで受けたマウス / キー入力を **`hub.core.*` / `hub.pickObjectAt` 経由で** runtime に橋渡しする |
 | Validator          | `runtime/core/validator.js` | `/schemas/3DSS.schema.json` に対する strict full validation |
 | Utils / Index      | `runtime/core/structIndex.js` など | uuid インデックス構築、frame 範囲検出などの補助機能 |
 | HUD / 視覚補助     | `renderer/microFX/*` | axis / marker / bounds / glow / highlight 等、構造とは無関係な viewer 専用描画 |
 
-※ PointerInput / KeyboardInput はファイル配置としては Core 配下（`runtime/core/*`）に置くが、  
-　責務としては「入力レイヤ」の一部であり、UI からは直接 import せず Boot からだけ生成・接続する。
+PointerInput / KeyboardInput は `ui/pointerInput.js` / `ui/keyboardInput.js` に置き、UI レイヤ（Host / dev harness）の一部とみなす。  
+責務としては「入力レイヤ」の一部であり、**Host / dev harness から `new PointerInput(canvas, hub)` / `new KeyboardInput(window, hub)` で生成・接続する**。  
+`runtime/bootstrapViewer.js` や `runtime/core/*` からは import / new してはならない。
 
 ※ 実ファイル構成は `viewer/runtime/*`・`viewer/ui/*` のスケルトンに準拠する。  
 ※ three.js / AJV といった外部ライブラリは runtime からのみ利用し、UI から直接触らない。
@@ -364,37 +365,47 @@ viewer は次の行為を一切行ってはならない：
 viewer は **完全 read-only の表示装置** であり、  
 viewer 独自情報は ui_state 内部にのみ保持してよい（構造データへの混入禁止）。
 
-
 ## 1.7 起動フロー（viewer_dev.html → viewerDevHarness.js → bootstrapViewer → viewerHub）
 
 ### 1.7.1 エントリ経路の固定
 
-開発用 viewer（viewer_dev）は、次の 1 本の経路で起動する（本番組み込み viewer も同じ runtime を共有する）。
+`viewerDevHarness.js` が `bootstrapViewerFromUrl` を呼び、得られた `viewerHub` に対して  
+`hub.start()` を呼び出し、さらに `PointerInput` / `KeyboardInput` を構築して canvas / window にイベントを接続する。
 
 1. `viewer_dev.html`  
    - dev 用 DOM 骨格（3D canvas・ログ領域・ボタン等）を定義する。
 
 2. `viewerDevHarness.js`  
-   - window.load（または DOMContentLoaded）後に UI 要素をひととおり取得し、  
-     `bootstrapViewerFromUrl` を 1 度だけ呼び出す。
-   - 得られた `viewerHub` をグローバル（`window.hub` 等）に expose して、  
+   - `window.load`（または `DOMContentLoaded`）後に UI 要素をひととおり取得し、  
+     `bootstrapViewerFromUrl(canvasId, jsonUrl, options)` を 1 度だけ呼び出す。
+   - 得られた `viewerHub` をローカル変数およびグローバル（`window.hub` 等）に expose して、  
      dev 用 UI / コンソールから診断できるようにする。
+   - `hub.start()` を呼び出して render loop（`requestAnimationFrame`）を開始する。
+   - `new PointerInput(canvas, hub)` / `new KeyboardInput(window, hub)` を生成し、  
+     `attach()`（あれば）を呼んで canvas / window に pointer / key イベントを接続する。
+   - PointerInput / KeyboardInput / gizmo / タイムラインなどで受けた入力を  
+     `hub.core.*` / `hub.pickObjectAt` にマッピングする。
 
 3. `runtime/bootstrapViewer.js`  
-   - 3DSS の strict validation（FromUrl 経由の場合）
-   - struct の deep-freeze / structIndex 構築
-   - rendererContext / uiState / CameraEngine / 各種 Controller の初期化
-   - PointerInput / KeyboardInput の接続
-   - `createViewerHub({ core, renderer })` を呼び出し、`hub` を返す。
+   - 3DSS の strict validation（`bootstrapViewerFromUrl` 経由の場合）。
+   - struct の deep-freeze / `structIndex` 構築。
+   - `rendererContext` / `uiState` / `CameraEngine` / 各種 Controller の初期化。
+   - `createViewerHub({ core, renderer })` を呼び出し、`hub` を返す。  
+     （ここでは `hub.start()` を呼ばず、レンダーループ制御は Host / dev harness 側の責務とする）
 
 4. `viewerHub`  
    - `hub.core.*` と `hub.pickObjectAt` を通じて、  
      frame / camera / selection / mode / micro / filters / runtime API を公開する。
-   - `hub.start()` / `hub.stop()` で render loop（requestAnimationFrame）を開始・停止する。
+   - `hub.start()` / `hub.stop()` で render loop（`requestAnimationFrame`）を開始・停止する。
 
-この経路以外から Core / Renderer / CameraEngine / PointerInput / KeyboardInput を new / 呼び出しすることは禁止とする。  
-必ず `bootstrapViewer` / `bootstrapViewerFromUrl` を唯一の入口とし、  
-返ってきた `hub` に対して `hub.start()` を呼び出すことでレンダーループを開始する。
+この経路以外から Core / Renderer / CameraEngine を `new` / 直接呼び出しすることは禁止とする。  
+PointerInput / KeyboardInput は **UI レイヤ（viewerDevHarness / 本番 Host）からのみ** `new` してよく、  
+runtime 層（`runtime/*`）から import / `new` してはならない。
+
+必ず `bootstrapViewer` / `bootstrapViewerFromUrl` を runtime の唯一の入口とし、  
+返ってきた `hub` に対して Host 側が `hub.start()` を呼び出すことでレンダーループを開始する。
+
+---
 
 ### 1.7.2 viewerDevHarness.js の責務
 
@@ -403,20 +414,33 @@ viewer 独自情報は ui_state 内部にのみ保持してよい（構造デー
 - 役割：
   - dev 用 HTML（`viewer_dev.html`）に配置された各種 DOM（frame スライダ・filter ボタン・HUD・gizmo 等）を取得する。
   - `bootstrapViewerFromUrl(canvasId, jsonUrl, options)` を 1 回だけ呼び出し、  
-    得られた `viewerHub` を `viewerHub` / `window.hub` に保持する。
-  - `hub.core.frame.*` / `hub.core.filters.*` / `hub.core.mode.*` / `hub.core.selection.*` / `hub.core.camera.*` などを UI イベントに接続する。
+    得られた `viewerHub` をローカル変数および `window.hub` に保持する。
+  - `new PointerInput(canvas, hub)` / `new KeyboardInput(window, hub)` を生成し、  
+    canvas / window に pointer / key イベントを接続する。
+  - `hub.core.frame.*` / `hub.core.filters.*` / `hub.core.mode.*` / `hub.core.selection.*` /  
+    `hub.core.camera.*` などを UI イベント（ボタン / スライダ / gizmo 等）に接続する。
   - dev 用 HUD / メタパネル / ログ表示（BOOT / MODEL / CAMERA / LAYERS / FRAME）を実装する。
+  - `hub.start()` / `hub.stop()` を呼び出し、dev viewer のライフサイクル（起動 / 再起動 / 停止）を管理する。
+  - dev viewer（viewer_dev.html）は、
+  fetch 失敗・JSON パースエラー・strict validation NG の
+  いずれの場合も struct を一切保持せず hub を生成しない。
+  右ペインにはエラー種別（NETWORK_ERROR / JSON_ERROR / VALIDATION_ERROR）
+  とメッセージを表示し、`(no struct loaded)` と明示する。
+
+
 - 制約：
-  - `runtime/core/*` / `runtime/renderer/*` を直接 import しない（唯一の入口は `bootstrapViewer*`）。
+  - `runtime/core/*` / `runtime/renderer/*` を直接 import しない  
+    （runtime への入口は `runtime/bootstrapViewer.js` の `bootstrapViewer*` のみとする）。
   - three.js / AJV / CameraEngine を直接触らない。
-  - 3DSS 構造を変更しない（ui_state の表示だけ行う）。
+  - 3DSS 構造（`core.data` / `structIndex`）を変更しない（ui_state の参照と表示だけ行う）。
+  - PointerInput / KeyboardInput のロジックを上書きせず、入力 → `hub.core.*` / `hub.pickObjectAt` の流れを保つ。
 
 概略フローは次の通り：
 
-```text
+```
 viewer_dev.html      （開発用 DOM 骨格）
   ↓
-viewerDevHarness.js  （dev 用ハーネス）
+viewerDevHarness.js  （dev 用ハーネス：bootstrapViewerFromUrl / hub.start / PointerInput / KeyboardInput）
   ↓
 bootstrapViewerFromUrl(canvas, modelPath, options)
   ↓
@@ -424,6 +448,7 @@ viewerHub（hub）
   ↓
 hub.start()          （レンダーループ開始）
 ```
+
 
 ## 1.8 dev viewer と本番 viewer の関係
 
@@ -485,6 +510,12 @@ hub.start()          （レンダーループ開始）
  - マウント完了後に bootstrapViewerFromUrl または
 事前に fetch + validation 済みの 3DSS を用いた bootstrapViewer を呼ぶ。
  - 得られた hub の core.* API を、自前の UI コンポーネント（タイムライン・レイヤトグルなど）に接続する。
+ - fetch 失敗 / JSON パースエラー / strict validation NG の
+ いずれでも、dev viewer は hub を生成せず canvas を描画しない
+ （部分描画しない）。右ペイン File に `ERROR: <種別>` を表示し、
+ HUD に `ERROR` バッジを出すだけとし、
+ struct（3DSS document）は core に保持しない。
+
 
 - 制約：
  - dev harness と同様、runtime には bootstrapViewer* / hub.core.* でのみアクセスする。
@@ -518,7 +549,7 @@ core_viewer_baseline.3dss.json 読み込み直後のカメラ状態は、
 - 視野角: fov = 50（deg）
 
 初期カメラ state は createUiState の引数 cameraState としてセットされ、
-起動直後の CameraEngine.getState() が常に同じ値になることを保証する。
+起動直後の cameraEngine.getState() が常に同じ値になることを保証する。
 
 この初期値は 3DSS 構造へ書き戻さず、
 あくまで「viewer runtime 内の ui_state」としてのみ保持される。
@@ -544,7 +575,7 @@ viewer runtime は、初期化完了時に options.devBootLog === true の場合
 2. MODEL <modelUrl>
  - <modelUrl> は options.modelUrl があればそれを用い、なければ url（FromUrl の引数）。
 3. CAMERA {...}
- - CameraEngine.getState() 相当の payload を JSON 文字列として出力する。
+ - cameraEngine.getState() 相当の payload を JSON 文字列として出力する。
   - {"position":[x,y,z],"target":[tx,ty,tz],"fov":50} のような形。
 4. LAYERS points=on/off lines=on/off aux=on/off
 5. FRAME frame_id=<number>
@@ -1610,7 +1641,6 @@ viewer は次の行為を行ってはならない：
 
 これらは禁止事項に違反する実装が見つかった場合、  
 仕様上は「viewer バグ」として扱い、修正対象とする。
-```として **透明性・忠実性・非編集性** を最優先する。
 
 本章では、描画規範とカメラ挙動を定義する。
 

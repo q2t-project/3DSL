@@ -11,6 +11,13 @@ function debugHub(...args) {
   console.warn(...args);
 }
 
+/**
+ * viewerHub は runtime と renderer を束ねるハブ。
+ *
+ * - 外部から createViewerHub を直接呼び出さないこと。
+ * - 必ず bootstrapViewer* から生成された hub を使う。
+ */
+
 export function createViewerHub({ core, renderer }) {
   let animationId = null;
   let lastTime = null; // ★ 前フレームの timestamp 記憶
@@ -379,7 +386,7 @@ export function createViewerHub({ core, renderer }) {
             cameraEngine.snapToAxis(axis);
           } else {
             debugHub(
-              "[hub.camera.snapToAxis] CameraEngine.snapToAxis missing",
+              "[hub.camera.snapToAxis] cameraEngine.snapToAxis missing",
               axis
             );
           }
@@ -449,7 +456,7 @@ export function createViewerHub({ core, renderer }) {
           cameraEngine.setViewByName(name);
         } else {
           debugHub(
-            "[hub.camera.setViewByName] CameraEngine.setViewByName missing",
+            "[hub.camera.setViewByName] cameraEngine.setViewByName missing",
             name
           );
         }
@@ -462,7 +469,7 @@ export function createViewerHub({ core, renderer }) {
           cameraEngine.setViewPreset(index, opts || {});
         } else {
           debugHub(
-            "[hub.camera.setViewPreset] CameraEngine.setViewPreset missing",
+            "[hub.camera.setViewPreset] cameraEngine.setViewPreset missing",
             index
           );
         }
@@ -494,7 +501,7 @@ export function createViewerHub({ core, renderer }) {
             }
           } else {
             debugHub(
-              "[hub.camera.startAutoOrbit] CameraEngine.startAutoOrbit missing"
+              "[hub.camera.startAutoOrbit] cameraEngine.startAutoOrbit missing"
             );
           }
         },
@@ -507,7 +514,7 @@ export function createViewerHub({ core, renderer }) {
             cameraEngine.updateAutoOrbitSettings(opts || {});
           } else {
             debugHub(
-              "[hub.camera.updateAutoOrbitSettings] CameraEngine.updateAutoOrbitSettings missing"
+              "[hub.camera.updateAutoOrbitSettings] cameraEngine.updateAutoOrbitSettings missing"
             );
           }
         },
@@ -525,7 +532,7 @@ export function createViewerHub({ core, renderer }) {
             }
           } else {
             debugHub(
-              "[hub.camera.stopAutoOrbit] CameraEngine.stopAutoOrbit missing"
+              "[hub.camera.stopAutoOrbit] cameraEngine.stopAutoOrbit missing"
             );
           }
         },

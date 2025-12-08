@@ -53,10 +53,11 @@ export function createFrameController(uiState, visibilityController) {
     // まず、外部から差し込まれた正規ルートがあればそちらを優先
     if (typeof recomputeHandler === "function") {
       const next = recomputeHandler();
-    // Set が返ってきたときだけ正として採用
-     if (next instanceof Set) {
-       uiState.visibleSet = next;
-     }
+      // A-5: visibleSet は Set でも { points,lines,aux } でも可
+      // undefined 以外が返ってきたらそのまま採用
+      if (typeof next !== "undefined") {
+        uiState.visibleSet = next;
+      }
       return uiState.visibleSet;
     }
 
@@ -67,10 +68,10 @@ export function createFrameController(uiState, visibilityController) {
     ) {
       // visibilityController 側で uiState.visibleSet を更新してくれる想定やけど、
       // 戻り値もそのまま同期しておく（冗長やけど安全側）。
-     const next = visibilityController.recompute();
-     if (next instanceof Set) {
-       uiState.visibleSet = next;
-     }
+      const next = visibilityController.recompute();
+      if (typeof next !== "undefined") {
+        uiState.visibleSet = next;
+      }
     }
     return uiState.visibleSet;
   }
