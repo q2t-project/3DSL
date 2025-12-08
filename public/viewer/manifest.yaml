@@ -571,7 +571,7 @@ runtime_spec:
         - name: createTimeline
           returns: timeline
       calls:
-        - runtime/viewerHub.core.frame.set
+        - runtime/viewerhub.core.frame.setActive
         - runtime/viewerHub.core.frame.step
         - runtime/viewerHub.core.frame.startPlayback
         - runtime/viewerHub.core.frame.stopPlayback
@@ -588,7 +588,7 @@ runtime_spec:
       - "Host が ui/* を初期化し、hub.core.* / hub.pickObjectAt にイベントを接続する"
 
     frame_update:
-      - "UI が hub.core.frame.set/step を呼ぶ"
+      - "UI が hub.core.frame.setActive/step を呼ぶ"
       - "core.frameController が activeFrame を更新し、visibilityController.recompute() で uiState.visibleSet を更新"
       - "次フレームの hub tick で renderer.applyFrame(uiState.visibleSet) が呼ばれる"
 

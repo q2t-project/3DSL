@@ -172,20 +172,24 @@ export class KeyboardInput {
     // -----------------------------
     // Frame 操作（PgUp / PgDn）
     // -----------------------------
-    if (frame && typeof frame.step === "function") {
+    if (
+      frame &&
+      typeof frame.next === "function" &&
+      typeof frame.prev === "function"
+    ) {
       if (code === "PageUp") {
         ev.preventDefault();
-        frame.step(1);
+        frame.next();   // 進む
         return;
       }
 
       if (code === "PageDown") {
         ev.preventDefault();
-        frame.step(-1);
+        frame.prev();   // 戻る
         return;
       }
     }
-
+    
     // -----------------------------
     // Mode 切り替え（Q / Esc）
     //   - W（meso）はいったん画面/UI から外す方針なので

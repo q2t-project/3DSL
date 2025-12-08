@@ -77,22 +77,33 @@ export function createFrameController(uiState, visibilityController) {
   }
 
   // ------------------------------------------------------------
-  // 公開 API
+  // 公開 API（新名に統一）
   // ------------------------------------------------------------
-  function set(n) {
+
+  // index を直接指定
+  function setActive(n) {
     const next = clampFrame(n);
     uiState.frame.current = next;
     recomputeVisible();
     return next;
   }
 
-  function get() {
+  function getActive() {
     return uiState.frame.current;
   }
 
-  function step(delta) {
+  // 相対移動ヘルパ（外には出さない）
+  function stepFrame(delta) {
     if (!Number.isFinite(delta)) delta = 0;
-    return set(uiState.frame.current + delta);
+    return setActive(uiState.frame.current + delta);
+  }
+
+  function next() {
+    return stepFrame(+1);
+  }
+
+  function prev() {
+    return stepFrame(-1);
   }
 
   function getRange() {
@@ -123,10 +134,11 @@ export function createFrameController(uiState, visibilityController) {
   }
 
   return {
-    set,
-    get,
-    step,
-    range: getRange,
+    setActive,
+    getActive,
+    next,
+    prev,
+    getRange,
     startPlayback,
     stopPlayback,
     setRecomputeHandler,

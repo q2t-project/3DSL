@@ -28,6 +28,78 @@ export function createViewerHub({ core, renderer }) {
   const frameController = core.frameController;
   const visibilityController = core.visibilityController;
 
+  // ------- frameController 互換ラッパ -------
+
+  function fcGetRange() {
+    if (!frameController) return { min: 0, max: 0 };
+
+    if (typeof frameController.getRange === "function") {
+      return frameController.getRange();
+    }
+    if (typeof frameController.range === "function") {
+      return frameController.range();
+    }
+    return { min: 0, max: 0 };
+  }
+
+  function fcGetActive() {
+    if (!frameController) return 0;
+
+    if (typeof frameController.getActive === "function") {
+      return frameController.getActive();
+    }
+    if (typeof frameController.get === "function") {
+      return frameController.get();
+    }
+    return 0;
+  }
+
+  function fcSetActive(n) {
+    if (!frameController) return;
+
+    if (typeof frameController.setActive === "function") {
+      return frameController.setActive(n);
+    }
+    if (typeof frameController.set === "function") {
+      return frameController.set(n);
+    }
+  }
+
+  function fcStep(delta) {
+    if (!frameController) return;
+
+    if (typeof frameController.step === "function") {
+      return frameController.step(delta);
+    }
+
+    // step が無い場合は setActive + range で代用
+    const range = fcGetRange();
+    const cur = fcGetActive();
+    const next = cur + (delta || 0);
+    const clamped = Math.max(range.min, Math.min(range.max, next));
+    return fcSetActive(clamped);
+  }
+
+  function fcStartPlayback() {
+    if (!frameController) return;
+    if (typeof frameController.startPlayback === "function") {
+      return frameController.startPlayback();
+    }
+    if (typeof frameController.play === "function") {
+      return frameController.play();
+    }
+  }
+
+  function fcStopPlayback() {
+    if (!frameController) return;
+    if (typeof frameController.stopPlayback === "function") {
+      return frameController.stopPlayback();
+    }
+    if (typeof frameController.stop === "function") {
+      return frameController.stop();
+    }
+  }
+
   // --- viewer 設定（いまはワールド座標軸の ON/OFF だけ） ---
   const viewerSettingsState = {
     worldAxesVisible: false,
@@ -261,40 +333,63 @@ export function createViewerHub({ core, renderer }) {
 
     core: {
       frame: {
-        set: (n) => frameController?.set?.(n),
-        get: () => {
-          return frameController?.get?.();
+        // 単一フレーム指定
+        setActive(n) {
+          fcSetActive(n);
         },
-        step: (d) => {
-          return frameController?.step?.(d);
-        },
-        range: () => {
-          return frameController?.range?.();
-        },
-        startPlayback: () => {
-          const result = frameController?.startPlayback?.();
 
-         // フレーム再生との排他:
-         // 再生開始時点で AutoOrbit が動いてたら必ず止める
-         if (
-           hub &&
-           hub.core &&
-           hub.core.camera &&
-           typeof hub.core.camera.stopAutoOrbit === "function"
-         ) {
-           hub.core.camera.stopAutoOrbit();
-         }
+        // 現在フレーム
+        getActive() {
+          return fcGetActive();
+        },
 
-          // 7.11 / 6.8.3: 再生開始時は必ず macro に戻し、micro 系を全リセット
+        // range {min, max}
+        getRange() {
+          return fcGetRange();
+        },
+
+        // 仕様上の API
+        step(delta) {
+          fcStep(delta || 0);
+        },
+
+        // dev harness 用ショートカット
+        next() {
+          fcStep(+1);
+        },
+
+        prev() {
+          fcStep(-1);
+        },
+
+        startPlayback() {
+          const result = fcStartPlayback();
+
+          // AutoOrbit と排他
+          if (
+            hub &&
+            hub.core &&
+            hub.core.camera &&
+            typeof hub.core.camera.stopAutoOrbit === "function"
+          ) {
+            hub.core.camera.stopAutoOrbit();
+          }
+
           if (core.uiState) {
-            // mode は可能なら modeController 経由で macro へ
-            if (modeController && typeof modeController.set === "function") {
+            // 再生中フラグ
+            if (!core.uiState.runtime) core.uiState.runtime = {};
+            core.uiState.runtime.isFramePlaying = true;
+
+            // 再生開始時は macro に戻して micro 系リセット
+            if (
+              modeController &&
+              typeof modeController.set === "function"
+            ) {
               modeController.set("macro");
             } else {
               core.uiState.mode = "macro";
             }
 
-            // microFocus / focus をクリア（フィールドがあれば）
             if (core.uiState.microFocus) {
               core.uiState.microFocus = { uuid: null, kind: null };
             }
@@ -303,22 +398,30 @@ export function createViewerHub({ core, renderer }) {
             }
           }
 
-          // microFX を即座に完全 OFF（次フレーム待ちにしない）
+          // microFX を強制クリア
           if (typeof renderer.applyMicroFX === "function") {
             const camStateNow =
               cameraEngine && typeof cameraEngine.getState === "function"
                 ? cameraEngine.getState()
                 : undefined;
-            const visibleSetNow = core.uiState && core.uiState.visibleSet;
+            const visibleSetNow =
+              core.uiState && core.uiState.visibleSet;
             renderer.applyMicroFX(null, camStateNow, visibleSetNow);
           }
 
           return result;
         },
-        stopPlayback: () => {
-          return frameController?.stopPlayback?.();
-        },
+
+      stopPlayback() {
+        const result = fcStopPlayback();
+
+        if (core.uiState) {
+          if (!core.uiState.runtime) core.uiState.runtime = {};
+          core.uiState.runtime.isFramePlaying = false;
+        }
+        return result;
       },
+    },
 
       selection: {
         // uuid（と任意の kind）指定で selection を更新

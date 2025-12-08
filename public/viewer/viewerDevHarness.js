@@ -7,7 +7,7 @@ import { PointerInput } from "./ui/pointerInput.js";
 import { KeyboardInput } from "./ui/keyboardInput.js";
 
 // baseline 起動時のデフォルト 3DSS
-const DEFAULT_MODEL = "../3dss/sample/core_viewer_baseline.3dss.json";
+const DEFAULT_MODEL = "/3dss/sample/core_viewer_baseline.3dss.json";
 
 let viewerHub = null;
 let playTimer = null;
@@ -345,8 +345,8 @@ function initFrameControls() {
   const btnHome = document.getElementById("btn-home");
   const btnStepForward = document.getElementById("btn-step-forward");
 
-  const range = frameAPI.range();
-  const current = frameAPI.get();
+  const range = frameAPI.getRange();
+  const current = frameAPI.getActive();
   const hasMultipleFrames = range.max > range.min;
   const ZERO_FRAME = 0;
 
@@ -355,7 +355,7 @@ function initFrameControls() {
     // 単一フレームのときは何も出さない
     if (!hasMultipleFrames) return;
 
-    const cur = frameAPI.get();
+    const cur = frameAPI.getActive();
     let msg = "";
 
     if (kind === "play-start") {
@@ -432,7 +432,7 @@ function initFrameControls() {
   }
 
   function updateLabelFromState() {
-    const f = frameAPI.get();
+    const f = frameAPI.getActive();
     if (slider) slider.value = f;
     if (label) label.textContent = String(f);
   }
@@ -456,7 +456,7 @@ function initFrameControls() {
     slider.addEventListener("input", (ev) => {
       const v = Number(ev.target.value);
       if (!Number.isFinite(v)) return;
-      frameAPI.set(v);
+      frameAPI.setActive(v);
       updateLabelFromState();
       // 手動でスライダをいじったら「ゲージ」モード寄りに戻す
       setFrameUiMode("gauge");
@@ -470,7 +470,7 @@ function initFrameControls() {
 
   if (btnStepBack) {
     btnStepBack.addEventListener("click", () => {
-      frameAPI.step(-1);
+      frameAPI.prev();
       updateLabelFromState();
       setFrameUiMode("gauge");
     });
@@ -478,7 +478,7 @@ function initFrameControls() {
 
   if (btnStepForward) {
     btnStepForward.addEventListener("click", () => {
-      frameAPI.step(1);
+      frameAPI.next();
       updateLabelFromState();
       setFrameUiMode("gauge");
       showFrameToast("jump");
@@ -487,7 +487,7 @@ function initFrameControls() {
 
   if (btnHome) {
     btnHome.addEventListener("click", () => {
-      frameAPI.set(range.min);
+      frameAPI.setActive(range.min);
       updateLabelFromState();
       setFrameUiMode("gauge");
       showFrameToast("jump");
@@ -496,7 +496,7 @@ function initFrameControls() {
 
   if (btnRew) {
     btnRew.addEventListener("click", () => {
-      frameAPI.set(range.min);
+      frameAPI.setActive(range.min);
       updateLabelFromState();
       setFrameUiMode("gauge");
       showFrameToast("jump");
@@ -505,7 +505,7 @@ function initFrameControls() {
 
   if (btnFF) {
     btnFF.addEventListener("click", () => {
-      frameAPI.set(range.max);
+      frameAPI.setActive(range.max);
       updateLabelFromState();
       setFrameUiMode("gauge");
       showFrameToast("jump");
@@ -515,31 +515,43 @@ function initFrameControls() {
   if (btnPlay) {
     btnPlay.addEventListener("click", () => {
       if (!hasMultipleFrames) {
-        // 単一フレームでは実質なにも起こさない（ボタンは disabled のはずだが保険）
         return;
       }
+
+      // 停止側
       if (playTimer) {
         clearInterval(playTimer);
         playTimer = null;
         btnPlay.textContent = "Play";
-        // 再生終了 → ゲージモードに戻す
+
+        // ★ 再生停止フラグ
+        if (typeof frameAPI.stopPlayback === "function") {
+          frameAPI.stopPlayback();
+        }
+
         setFrameUiMode("gauge");
         showFrameToast("play-stop");
         return;
       }
+
+      // 開始側
       btnPlay.textContent = "Stop";
 
-      // 再生開始 → 動画バー（タイムライン）モードへ
+      // ★ 再生開始フラグ
+      if (typeof frameAPI.startPlayback === "function") {
+        frameAPI.startPlayback();
+      }
+
       setFrameUiMode("timeline");
       showFrameToast("play-start");
 
       playTimer = setInterval(() => {
-        const r = frameAPI.range();
-        const cur = frameAPI.get();
+        const r = frameAPI.getRange();
+        const cur = frameAPI.getActive();
         if (cur >= r.max) {
-          frameAPI.set(r.min);
+          frameAPI.setActive(r.min);
         } else {
-          frameAPI.step(1);
+          frameAPI.next();
         }
         updateLabelFromState();
       }, 600);
@@ -547,9 +559,9 @@ function initFrameControls() {
   }
 
   // 他経路（キーボード等）からの変更を拾って UI を同期
-  let lastFrame = frameAPI.get();
+  let lastFrame = frameAPI.getActive();
   function frameUiLoop() {
-    const f = frameAPI.get();
+    const f = frameAPI.getActive();
     if (f !== lastFrame) {
       lastFrame = f;
       if (slider) slider.value = f;
@@ -739,7 +751,11 @@ function initOrbitControls(hub) {
 
   const camera = hub.core.camera;
   const uiState = hub.core.uiState || {};
-  const runtime = uiState.runtime || {};
+
+  if (!uiState.runtime) {
+    uiState.runtime = {};
+  }
+  const runtime = uiState.runtime;
 
   const elSlot = document.getElementById("auto-orbit-slot");
   const elPill = document.getElementById("auto-orbit-pill");
@@ -939,8 +955,9 @@ async function boot() {
 
   const canvasId = "viewer-canvas";
 
-  // ★使うサンプルをここで切り替える（デフォルトは baseline）
-  const jsonUrl = DEFAULT_MODEL;
+  const params = new URLSearchParams(window.location.search);
+  const urlParam = params.get("model");
+  const jsonUrl = urlParam || DEFAULT_MODEL;
   //  const jsonUrl = "../3dss/sample/primitive_and_arrow.3dss.json";
   //  const jsonUrl = "../3dss/sample/primitive_and_arrow_without_pointsUUID.3dss.json";
   //  const jsonUrl = "../3dss/sample/valid_minimum_L1-P2-A0.3dss.json";
@@ -998,8 +1015,8 @@ async function boot() {
       let current = 0;
 
       // range
-      if (frameAPI && typeof frameAPI.range === "function") {
-        const r = frameAPI.range();
+      if (frameAPI && typeof frameAPI.getRange === "function") {
+        const r = frameAPI.getRange();
         if (r && typeof r.min === "number" && typeof r.max === "number") {
           range = r;
         }
@@ -1008,8 +1025,8 @@ async function boot() {
       }
 
       // current
-      if (frameAPI && typeof frameAPI.get === "function") {
-        current = frameAPI.get();
+      if (frameAPI && typeof frameAPI.getRange === "function") {
+        current = frameAPI.getActive();
       } else if (core.uiState && core.uiState.frame && typeof core.uiState.frame.current === "number") {
         current = core.uiState.frame.current;
       }

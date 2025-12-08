@@ -1,6 +1,6 @@
 目的：
 3DSL Viewer の runtime API を、仕様書（3DSD-viewer.md）および runtime_spec（YAML）に完全に揃える。
-特に viewer/runtime/viewerHub.js が公開する hub.core.* を 唯一の公開ランタイム API として正規化し、
+特に public/viewer/runtime/viewerHub.js が公開する hub.core.* を 唯一の公開ランタイム API として正規化し、
 core/controller/UI 各層の依存方向を仕様どおりに整理する。
 
 0. 参照すべき仕様
@@ -17,7 +17,7 @@ runtime_spec（YAML）
 
 ファイル名は runtime_spec.yaml もしくはそれに類するもの
 
-中に version: "2.0" と 3DSL Viewer Runtime Manifest – holy API spec for 3DSL Viewer が書かれている YAML
+中に version: "2.1" と 3DSL Viewer Runtime Manifest – holy API spec for 3DSL Viewer が書かれている YAML
 
 これら 2 つの仕様を「ソース・オブ・トゥルース」として扱うこと。
 実装側がズレていれば、仕様に合わせてコードを修正する。
@@ -27,29 +27,29 @@ runtime_spec（YAML）
 
 以下に限定すること：
 
-viewer/runtime/bootstrapViewer.js
+public/viewer/runtime/bootstrapViewer.js
 
-viewer/runtime/viewerHub.js
+public/viewer/runtime/viewerHub.js
 
-viewer/runtime/core/cameraEngine.js
+public/viewer/runtime/core/cameraEngine.js
 
-viewer/runtime/core/frameController.js
+public/viewer/runtime/core/frameController.js
 
-viewer/runtime/core/selectionController.js
+public/viewer/runtime/core/selectionController.js
 
-viewer/runtime/core/modeController.js
+public/viewer/runtime/core/modeController.js
 
-viewer/runtime/core/microController.js（必要な範囲）
+public/viewer/runtime/core/microController.js（必要な範囲）
 
-viewer/runtime/core/visibilityController.js
+public/viewer/runtime/core/visibilityController.js
 
-viewer/runtime/core/uiState.js（必要な範囲）
+public/viewer/runtime/core/uiState.js（必要な範囲）
 
-viewer/runtime/core/structIndex.js（必要な範囲）
+public/viewer/runtime/core/structIndex.js（必要な範囲）
 
-viewer/runtime/renderer/context.js（インターフェースが必要な範囲のみ）
+public/viewer/runtime/renderer/context.js（インターフェースが必要な範囲のみ）
 
-viewer/runtime/ui/*.js
+public/viewer/runtime/ui/*.js
 
 例：gizmo.js, keyboardInput.js, pointerInput.js, picker.js, timeline.js 等
 
@@ -85,18 +85,17 @@ core.* の形は以下のようなツリー構造になっていること：
 hub = {
   core: {
     data,       // struct（3DSS, read-only）
-    ui_state,   // uiState, read-only
+    uiState,   // uiState, read-only
 
     frame:    { setActive, getActive, getRange, next, prev,
                 startPlayback, stopPlayback },
     camera:   { rotate, pan, zoom, reset, snapToAxis,
                 setState, getState, setFOV },
     selection:{ select, clear, get },
-    mode:     { setMode, getMode, canEnter, exit, focus },
+    mode:     { set, get, canEnter, exit, focus },
     micro:    { enter, exit, isActive },
     filters:  { setTypeEnabled, get },
-    runtime:  { startFramePlayback, stopFramePlayback,
-                isFramePlaying, isCameraAuto },
+    runtime:  { isFramePlaying, isCameraAuto },
 
     // 必要なら補助: recomputeVisibleSet, setFrame, stepFrame, canEnterMicro
   },
@@ -109,7 +108,7 @@ hub = {
 
 UI 層
 
-viewer/runtime/ui/*.js は、
+public/viewer/runtime/ui/*.js は、
 必ず hub.core.* / hub.pickObjectAt のみを呼び出す。
 
 core/controller/renderer を UI が直接 import したり参照したりしてはいけない。
@@ -124,7 +123,7 @@ viewerHub からそれらのメソッドに 1:1 で橋渡しされる。
 3. 具体的な修正タスク
 3.1 viewerHub の core の形を仕様に合わせる
 
-対象：viewer/runtime/viewerHub.js
+対象：public/viewer/runtime/viewerHub.js
 
 createViewerHub({ core, renderer }) の戻り値を、必ず以下の形にする：
 
@@ -134,12 +133,12 @@ export function createViewerHub({ core, renderer }) {
   const hub = {
     core: {
       data: core.data,
-      ui_state: core.ui_state,
+      uiState: core.uiState,
 
       frame: {
-        setActive: core.frameController.set,     // 例
-        getActive: core.frameController.get,
-        getRange: core.frameController.range,
+        setActive: core.frameController.setActive,     // 例
+        getActive: core.frameController.getActive,
+        getRange: core.frameController.getRange,
         next: core.frameController.next,
         prev: core.frameController.prev,
         startPlayback: core.frameController.startPlayback,
@@ -171,11 +170,11 @@ export function createViewerHub({ core, renderer }) {
         focus: core.modeController.focus,
       },
 
-      micro: {
-        enter: (uuid) => core.modeController.set('micro', uuid),
-        exit: core.modeController.exit,
-        isActive: () => core.ui_state.mode === 'micro',
-      },
+    micro: {
+      enter: (uuid) => core.modeController.set('micro', uuid),
+      exit: () => core.modeController.set('macro'),
+      isActive: () => core.uiState.mode === 'micro',
+    },
 
       filters: {
         setTypeEnabled: core.visibilityController.setTypeFilter,
@@ -185,14 +184,14 @@ export function createViewerHub({ core, renderer }) {
       runtime: {
         startFramePlayback: core.frameController.startPlayback,
         stopFramePlayback: core.frameController.stopPlayback,
-        isFramePlaying: () => core.ui_state.runtime.isFramePlaying,
-        isCameraAuto: () => core.ui_state.runtime.isCameraAuto,
+        isFramePlaying: () => core.uiState.runtime.isFramePlaying,
+        isCameraAuto: () => core.uiState.runtime.isCameraAuto,
       },
 
       // 補助系 API（必要に応じて）
       recomputeVisibleSet: core.visibilityController.recompute,
-      setFrame: core.frameController.set,
-      stepFrame: core.frameController.step,
+      setFrame: core.frameController.setActive,
+      nextFrame: core.frameController.next,prevFrame: core.frameController.prev,
       canEnterMicro: core.modeController.canEnter,
     },
 
@@ -216,16 +215,16 @@ export function createViewerHub({ core, renderer }) {
 
 viewerHub の先頭付近に、runtime_spec と同期した API 一覧コメントを追加する：
 
-// Runtime public API (synced with specs/3DSD-viewer.md §6.8.2 and runtime_spec v2.0)
+// Runtime public API (synced with specs/3DSD-viewer.md §6.8.2 and runtime_spec v2.1)
 // hub.core = {
-//   data, ui_state,
+//   data, uiState,
 //   frame: { setActive, getActive, getRange, next, prev, startPlayback, stopPlayback },
 //   camera: { rotate, pan, zoom, reset, snapToAxis, setState, getState, setFOV },
 //   selection: { select, clear, get },
 //   mode: { setMode, getMode, canEnter, exit, focus },
 //   micro: { enter, exit, isActive },
 //   filters: { setTypeEnabled, get },
-//   runtime: { startFramePlayback, stopFramePlayback, isFramePlaying, isCameraAuto },
+//   runtime: { isFramePlaying, isCameraAuto },
 //   // ...
 // }
 
@@ -233,17 +232,17 @@ viewerHub の先頭付近に、runtime_spec と同期した API 一覧コメン�
 
 対象：
 
-viewer/runtime/core/frameController.js
+public/viewer/runtime/core/frameController.js
 
-viewer/runtime/core/selectionController.js
+public/viewer/runtime/core/selectionController.js
 
-viewer/runtime/core/modeController.js
+public/viewer/runtime/core/modeController.js
 
-viewer/runtime/core/microController.js（必要な範囲）
+public/viewer/runtime/core/microController.js（必要な範囲）
 
-viewer/runtime/core/visibilityController.js
+public/viewer/runtime/core/visibilityController.js
 
-viewer/runtime/core/cameraEngine.js
+public/viewer/runtime/core/cameraEngine.js
 
 やること：
 
@@ -253,17 +252,17 @@ viewer/runtime/core/cameraEngine.js
 
 frameController:
 
-set(frameIndex:number)
+setActive(frameIndex:number)
 
-get(): number
+getActive(): number
 
-step(delta:number)
+next(): number        // or void, 実装どおりに
 
-range(): {min:number,max:number}
+prev(): number
 
-next() / prev()（存在しなければ追加で構わない）
+getRange(): {min:number,max:number}
 
-startPlayback(onStep?)
+startPlayback()
 
 stopPlayback()
 
@@ -273,13 +272,13 @@ select(uuid:string)
 
 clear()
 
-get(): {kind:string|null, uuid:string|null}
+getActive(): {kind:string|null, uuid:string|null}
 
 modeController:
 
-set(mode:'macro'|'meso'|'micro', uuid?)
+setActive(mode:'macro'|'meso'|'micro', uuid?)
 
-get()
+getActive()
 
 canEnter(uuid:string): boolean
 
@@ -323,7 +322,7 @@ uiState の所有権は core にある前提で、各 controller から uiState 
 
 3.3 bootstrapViewer が「hub」を返すように統一
 
-対象：viewer/runtime/bootstrapViewer.js
+対象：public/viewer/runtime/bootstrapViewer.js
 
 既存の実装を確認し、bootstrapViewer(canvasOrId, document3dss, options?) が次のような流れになっているか確認、足りなければ補う：
 
@@ -388,7 +387,7 @@ canvas 座標 → NDC → hub.pickObjectAt(x,y) → hub.core.selection.select(uu
 
 timeline.js
 
-スライダー・再生ボタン → hub.core.frame.setActive/step/startPlayback/stopPlayback
+スライダー・再生ボタン → hub.core.frame.setActive/next/prev/startPlayback/stopPlayback
 
 UI 層は core/controller/renderer のファイルを直接 import してはいけない。
 あくまで Host から渡された hub を介して runtime と対話する構造に統一する。
@@ -398,7 +397,7 @@ UI 層は core/controller/renderer のファイルを直接 import してはい�
 三次元構造（struct, 3DSS）は 絶対に変更しない。
 どの修正でも JSON に書き戻したり、構造を補完・修復するコードを追加してはならない。
 
-ui_state および viewer_settings も 外部ファイルへの保存コードは追加禁止。
+uiState および viewer_settings も 外部ファイルへの保存コードは追加禁止。
 セッション内のメモリ状態だけで完結させる。
 
 既存のログ（[viewer-dev] ... 等）は可能なら維持するが、不要な console.log / debugger が残っていれば削除してよい。
@@ -413,10 +412,10 @@ ui_state および viewer_settings も 外部ファイルへの保存コード�
 
 例：
 
-diff --git a/viewer/runtime/viewerHub.js b/viewer/runtime/viewerHub.js
+diff --git a/public/viewer/runtime/viewerHub.js b/public/viewer/runtime/viewerHub.js
 index abcdef0..1234567 100644
---- a/viewer/runtime/viewerHub.js
-+++ b/viewer/runtime/viewerHub.js
+--- a/public/viewer/runtime/viewerHub.js
++++ b/public/viewer/runtime/viewerHub.js
 @@ -1,10 +1,20 @@
  // 既存コード...
 

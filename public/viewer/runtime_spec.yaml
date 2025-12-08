@@ -86,7 +86,7 @@ runtime_spec:
         - runtime/core/uiState.createUiState
         - runtime/core/structIndex.buildUUIDIndex
         - runtime/core/structIndex.detectFrameRange
-        - runtime/core/cameraEngine.CameraEngine (constructor)
+        - runtime/core/cameraEngine.createCameraEngine   # ← 修正
         - runtime/core/frameController.createFrameController
         - runtime/core/selectionController.createSelectionController
         - runtime/core/microController.createMicroController
@@ -119,37 +119,55 @@ runtime_spec:
       exports:
         - name: createViewerHub
           signature: "({ core, renderer }) → hub"
-        - name: hub
-          children:
-            - core
-            - start
-            - stop
-            - pickObjectAt
+        - name: ViewerHub
+          fields:
+            - name: start
+              signature: "() → void"
+            - name: stop
+              signature: "() → void"
+            - name: pickObjectAt
+              signature: "(ndcX:number, ndcY:number) → {uuid:string, distance:number, point:[number,number,number]} | null"
+            - name: viewerSettings               # ← 追加
+              signature: "ViewerSettingsAPI"
+            - name: core
+              signature: "ViewerCoreAPI"
       hub_shape:
         core:
           props:
-            - name: data
-              description: "struct（3DSS document）。deep-freeze 済み、read-only。"
             - name: uiState
-              description: "uiState オブジェクトそのもの。更新は core.* / controller 経由のみ許可。"
+              description: "uiState オブジェクトそのもの（所有権は core）。"
             - name: frame
-              description: "frameController への公開ラッパ (setActive/getActive/next/prev/getRange)。"
+              description: "frameController への公開ラッパ（setActive/getActive/step/next/prev/getRange/startPlayback/stopPlayback）。"
             - name: camera
-              description: "CameraEngine への公開ラッパ (rotate/pan/zoom/reset/snapToAxis/…）。"
+              description: "CameraEngine への公開ラッパ（rotate/pan/zoom/reset/snapToAxis/focusOn/…）。"
             - name: mode
-              description: "modeController への公開ラッパ。"
+              description: "modeController への公開ラッパ（set/get/canEnter/exit/focus）。"
+            - name: micro
+              description: "micro mode の enter/exit/isActive だけをまとめた薄いラッパ。"
             - name: selection
-              description: "selectionController への公開ラッパ。"
+              description: "selectionController への公開ラッパ（select/clear/get）。"
             - name: filters
-              description: "visibilityController の filters ラッパ。"
-            - name: visibilityController
-              description: "visibleSet 再計算の唯一の正規ルート。"
-            - name: microController
-              description: "microState 計算用 controller。"
-            - name: frameController
-              description: "frame 用 controller 本体（互換用）。"
-            - name: cameraEngine
-              description: "CameraEngine 本体（互換用）。"
+              description: "visibilityController の filters ラッパ（setTypeEnabled/get）。"
+            - name: runtime
+              description: "uiState.runtime.isFramePlaying / isCameraAuto の読み出し専用ラッパ。"
+            - name: recomputeVisibleSet
+              description: "frame / filters 変更後に visibleSet + microState を再計算する唯一の正規ルート。"
+            - name: structIndex
+              description: "uuid → item 情報などの read-only インデックス（detailView 用等）。"
+        viewerSettings_api:
+          methods:
+            - name: setWorldAxesVisible
+              signature: "(visible:boolean) → void"
+            - name: toggleWorldAxes
+              signature: "() → void"
+            - name: getWorldAxesVisible
+              signature: "() → boolean"
+            - name: onWorldAxesChanged
+              signature: "(listener:(visible:boolean) => void) → void"
+            - name: setLineWidthMode
+              signature: "(mode:'auto'|'fixed'|'adaptive') → void"
+            - name: setMicroFXProfile
+              signature: "(profile:'weak'|'normal'|'strong') → void"
       calls:
         - "core/frameController.*"
         - "core/selectionController.*"
@@ -190,24 +208,37 @@ runtime_spec:
             calls:
               - core/frameController.getActive
 
+          - name: step
+            signature: "(delta:number) → void"
+            calls:
+              - core/frameController.step
+
           - name: next
             signature: "() → void"
-            calls:
-              - core/frameController.step(+1)
+            impl_note: "step(+1) の薄いラッパ"
 
           - name: prev
             signature: "() → void"
-            calls:
-              - core/frameController.step(-1)
+            impl_note: "step(-1) の薄いラッパ"
 
           - name: getRange
             signature: "() → {min:number,max:number} | null"
             calls:
               - core/frameController.getRange
 
+          - name: startPlayback
+            signature: "() → void"
+            calls:
+              - core/frameController.startPlayback
+
+          - name: stopPlayback
+            signature: "() → void"
+            calls:
+              - core/frameController.stopPlayback
+
         selection:
           - name: select
-            signature: "(payload:{uuid:string,kind:'points'|'lines'|'aux'}) → void"
+            signature: "(uuid:string, kind?:'points'|'lines'|'aux') → {uuid:string}|null"
             calls:
               - core/selectionController.select
 
@@ -217,19 +248,9 @@ runtime_spec:
               - core/selectionController.clear
 
           - name: get
-            signature: "() → {kind:'points'|'lines'|'aux'|null, uuid:string|null}"
+            signature: "() → {uuid:string}|null"
             calls:
               - core/selectionController.get
-
-          - name: setHover
-            signature: "(payload:{uuid:string|null,kind:'points'|'lines'|'aux'|null}) → void"
-            calls:
-              - core/selectionController.setHover
-
-          - name: getHover
-            signature: "() → {kind:'points'|'lines'|'aux'|null, uuid:string|null}"
-            calls:
-              - core/selectionController.getHover
 
         camera:
           - name: rotate
@@ -257,10 +278,27 @@ runtime_spec:
             calls:
               - core/cameraEngine.snapToAxis
 
+          - name: focusOn
+            signature: "(target:[number,number,number] | uuid:string, opts?) → cameraState"
+            calls:
+              - core/cameraEngine.computeFocusState
+              - core/cameraEngine.setState
+              - core/modeController.focus
+
           - name: setFOV
             signature: "(value:number) → void"
             calls:
               - core/cameraEngine.setFOV
+
+          - name: setViewByName
+            signature: "(name:string) → void"
+            calls:
+              - core/cameraEngine.setViewByName
+
+          - name: setViewPreset
+            signature: "(index:number, opts?) → void"
+            calls:
+              - core/cameraEngine.setViewPreset
 
           - name: setState
             signature: "(partialState:object) → void"
@@ -272,21 +310,61 @@ runtime_spec:
             calls:
               - core/cameraEngine.getState
 
-        mode:
-          - name: setMode
-            signature: "(mode:'macro'|'meso'|'micro', uuid?:string) → 'macro'|'meso'|'micro'"
+          - name: startAutoOrbit
+            signature: "(opts?) → void"
             calls:
-              - core/modeController.setMode
+              - core/cameraEngine.startAutoOrbit
 
-          - name: getMode
-            signature: "() → 'macro'|'meso'|'micro'"
+          - name: updateAutoOrbitSettings
+            signature: "(opts?) → void"
             calls:
-              - core/modeController.getMode
+              - core/cameraEngine.updateAutoOrbitSettings
 
-          - name: exit
+          - name: stopAutoOrbit
             signature: "() → void"
             calls:
+              - core/cameraEngine.stopAutoOrbit
+
+        mode:
+          - name: set
+            signature: "(mode:'macro'|'meso'|'micro', uuid?:string) → 'macro'|'meso'|'micro'"
+            calls:
+              - core/modeController.set
+
+          - name: get
+            signature: "() → 'macro'|'meso'|'micro'"
+            calls:
+              - core/modeController.get
+
+          - name: canEnter
+            signature: "(uuid:string) → boolean"
+            calls:
+              - core/modeController.canEnter
+
+          - name: exit
+            signature: "() → 'macro'|'meso'|'micro'"
+            calls:
               - core/modeController.exit
+
+          - name: focus
+            signature: "(uuid:string) → 'macro'|'meso'|'micro'"
+            calls:
+              - core/modeController.focus
+
+        micro:
+          - name: enter
+            signature: "(uuid:string) → 'micro'"
+            calls:
+              - core/modeController.set('micro', uuid)
+
+          - name: exit
+            signature: "() → 'macro'"
+            calls:
+              - core/modeController.set('macro')
+
+          - name: isActive
+            signature: "() → boolean"
+            impl_note: "uiState.mode === 'micro' を見るだけ（core 所有）"
 
         micro:
           - name: canEnter
@@ -312,36 +390,21 @@ runtime_spec:
           - name: setTypeEnabled
             signature: "(kind:'points'|'lines'|'aux', enabled:boolean) → void"
             calls:
-              - core/visibilityController.setTypeEnabled
-
-          - name: setAuxModuleEnabled
-            signature: "(module:string, enabled:boolean) → void"
-            calls:
-              - core/visibilityController.setAuxModuleEnabled
+              - core/visibilityController.setTypeFilter
 
           - name: get
             signature: "() → FiltersState"
             calls:
-              - core/visibilityController.get
+              - core/visibilityController.getFilters
 
         runtime:
-          # 再生制御については現状 dev harness 側実装としつつ、
-          # API 名だけは runtime 側に予約しておく。
-          - name: startFramePlayback
-            signature: "() → void"
-            impl_note: "uiState.runtime.isFramePlaying = true にし、必要なら内部タイマーを開始する。v1 では dev harness 側実装でもよい。"
-
-          - name: stopFramePlayback
-            signature: "() → void"
-            impl_note: "uiState.runtime.isFramePlaying = false にし、内部タイマーを止める。"
-
           - name: isFramePlaying
             signature: "() → boolean"
-            impl_note: "uiState.runtime.isFramePlaying を返す。"
+            impl_note: "uiState.runtime.isFramePlaying を返す。core.frame.startPlayback/stopPlayback 側でフラグを更新。"
 
           - name: isCameraAuto
             signature: "() → boolean"
-            impl_note: "uiState.runtime.isCameraAuto を返す（将来の自動カメラ用）。"
+            impl_note: "uiState.runtime.isCameraAuto を返す（AutoOrbit 中 true）。"
 
     # =========================
     # 2.3 core
@@ -351,18 +414,26 @@ runtime_spec:
       responsibility:
         - "cameraState を内部に保持し、renderer に渡すための状態を作る"
       exports:
-        - name: CameraEngine
-          type: class
-          methods:
-            - rotate(dTheta:number, dPhi:number)
-            - pan(dx:number, dy:number)
-            - zoom(delta:number)
-            - reset()
-            - snapToAxis(axis:'x'|'y'|'z')
-            - setState(partialState:object)
-            - getState(): cameraState
-            - setFOV(value:number)
-      calls: []
+        - name: createCameraEngine
+          returns: cameraEngine
+      cameraEngine:
+        methods:
+          - rotate(dTheta:number, dPhi:number)
+          - pan(dx:number, dy:number)
+          - zoom(delta:number)
+          - reset()
+          - snapToAxis(axis:'x'|'y'|'z')
+          - setState(partialState:object)
+          - getState(): cameraState
+          - setFOV(value:number)
+          - update(dtSeconds:number)
+          - setViewByName(name:string)
+          - setViewPreset(index:number, opts?)
+          - getViewPresetIndex(): number
+          - computeFocusState(target:[number,number,number], opts?): cameraState
+          - startAutoOrbit(opts?)
+          - updateAutoOrbitSettings(opts?)
+          - stopAutoOrbit()
       called_by:
         - "runtime/viewerHub.js（core.camera.* 経由）"
         - "core/modeController.js（フォーカス遷移時に参照する場合があれば）"
@@ -582,7 +653,7 @@ runtime_spec:
           - "target ベクトルに対して camera.lookAt(target)"
           - "fov が変わった場合は camera.fov 更新 ＋ updateProjectionMatrix()"
         applySelection:
-          - "selectionState（{kind,uuid}）を受け取り、選択中要素の軽いハイライトを適用してもよい（必須ではない）"
+          - "selectionState（{kind,uuid}）を受け取り、選択中要素の軽いハイライトを適用してもよい "
         setHighlight:
           - "指定 uuid の要素を強調する selection ハイライトを適用する（7.12 節）。"
         clearAllHighlights:
@@ -646,7 +717,7 @@ runtime_spec:
         - name: createTimeline
           returns: timeline
       calls:
-        - runtime/viewerHub.core.frame.setActive
+        - runtime/viewerhub.core.frame.setActive
         - runtime/viewerHub.core.frame.next
         - runtime/viewerHub.core.frame.prev
         - runtime/viewerHub.core.frame.getRange
@@ -671,7 +742,7 @@ runtime_spec:
         - "hub.core.camera.zoom"
         - "hub.pickObjectAt"
         - "hub.core.selection.select"
-        - "hub.core.mode.setMode"
+        - "hub.core.mode.set"   # ← setMode → set
       called_by:
         - "viewerDevHarness.js"
         - "本番 Host の UI 初期化コード（必要な場合）"
@@ -682,7 +753,7 @@ runtime_spec:
     - name: ui/keyboardInput.js
       layer: ui
       responsibility:
-        - "window の keydown を 1 箇所に集約し、hub.core.camera / hub.core.frame / hub.core.mode / hub.core.selection だけを叩く"
+        - "window の keydown を 1 箇所に集約し、hub.core.camera / hub.core.frame / hub.core.mode / hub.core.selection / hub.viewerSettings だけを叩く"
       exports:
         - name: KeyboardInput
           type: class
@@ -690,30 +761,29 @@ runtime_spec:
           methods:
             - dispose()
       calls:
-        - "hub.core.frame.next"
-        - "hub.core.frame.prev"
-        - "hub.core.frame.getRange"
-        - "hub.core.mode.setMode"
-        - "hub.core.mode.getMode"
+        - "hub.viewerSettings.toggleWorldAxes"
+        - "hub.core.frame.step"
+        - "hub.core.frame.getRange（将来の UI 用に予約）"
+        - "hub.core.mode.set"
+        - "hub.core.mode.get"
         - "hub.core.selection.get"
         - "hub.core.camera.rotate"
         - "hub.core.camera.zoom"
         - "hub.core.camera.reset"
+        - "hub.core.camera.setViewPreset"
       keymap:
-        - "PageUp:   frame.next()"
-        - "PageDown: frame.prev()"
-        - "Q / q:    selection.get().uuid があれば mode.setMode('micro', uuid)"
-        - "W / w:    （v1 では UI から meso へは入らないため予約）"
-        - "Esc:      mode.setMode('macro')"
+        - "C / c: viewerSettings.toggleWorldAxes()"
+        - "Backslash / IntlYen / IntlRo / '\\' / '¥': view preset index を ±1 巡回（Shift で逆方向）"
+        - "PageUp:   frame.step(+1)"
+        - "PageDown: frame.step(-1)"
+        - "Q / q:    selection.get().uuid があれば mode.set('micro', uuid)"
+        - "Esc:      mode.set('macro')"
         - "Home:     camera.reset()"
         - "+ / NumpadAdd:      camera.zoom(-0.1)"
         - "- / NumpadSubtract: camera.zoom(+0.1)"
         - "ArrowLeft/Right/Up/Down: camera.rotate(±Δθ,±Δφ)（Shift で倍速）"
-      called_by:
-        - "viewerDevHarness.js"
-        - "本番 Host の UI 初期化コード（必要な場合）"
       constraints:
-        - "INPUT / TEXTAREA / contentEditable にフォーカスがある場合はキーを無視する"
+        - "INPUT / TEXTAREA にフォーカスがある場合はキーを無視する"
         - "runtime/core からは KeyboardInput を import してはならない（UI 専用）"
 
   # =========================================================
@@ -726,12 +796,12 @@ runtime_spec:
       - "bootstrapViewerFromUrl が JSON load → AJV validate → deepFreeze(document) を行い、strict validation 済み 3DSS を bootstrapViewer に渡す"
       - "bootstrapViewer が uiState / indices / rendererContext / viewerHub を生成する"
       - "options.devBootLog === true かつ options.logger がある場合、起動診断ログ（BOOT/MODEL/CAMERA/LAYERS/FRAME）を logger に 1 回ずつ送る"
-      - "Host / dev harness が PointerInput(canvas, hub) / KeyboardInput(window, hub) を構築し、入力イベントを hub.core.* / hub.pickObjectAt に集約する"
+      - "Host / dev harness が PointerInput(canvas, hub) / KeyboardInput(window, hub) を構築し、入力イベントを hub.core.* / hub.pickObjectAt / hub.viewerSettings に集約する"
       - "Host / dev harness が gizmo / timeline / HUD 等の ui/* を初期化し、hub.core.* / hub.pickObjectAt にイベントを接続する"
       - "Host / dev harness が hub.start() を 1 回だけ呼び、render loop を開始する"
 
     frame_update:
-      - "UI（slider / ボタン / KeyboardInput の PgUp/PgDn）が hub.core.frame.setActive / next / prev を呼ぶ"
+      - "UI（slider / ボタン / KeyboardInput の PgUp/PgDn）が hub.core.frame.setActive / step を呼ぶ"
       - "core.frameController が activeFrame を更新し、visibilityController.recompute() で uiState.visibleSet を更新"
       - "必要に応じて microController.refresh() が呼ばれ、uiState.microState を再計算する"
       - "次フレームの hub tick で renderer.applyFrame(uiState.visibleSet) および renderer.applyMicroFX(uiState.microState) が呼ばれる"
@@ -739,9 +809,9 @@ runtime_spec:
     selection_update:
       - "PointerInput / ui picker が canvas 座標から NDC 座標を計算し、hub.pickObjectAt(ndcX, ndcY) を呼ぶ"
       - "viewerHub が renderer.pickObjectAt を呼び、{uuid,...} を返す"
-      - "selector が hub.core.selection.select({uuid,kind}) を呼ぶ"
+      - "selector が hub.core.selection.select(uuid, kind?) を呼ぶ"
       - "selectionController が uiState.selection を更新"
-      - "modeController が必要なら micro/meso へ遷移し、microController.compute() → uiState.microState を更新"
+      - "modeController が必要なら micro へ遷移し、microController.compute() → uiState.microState を更新"
       - "次フレームの hub tick で renderer.applyMicroFX(uiState.microState) が呼ばれる"
 
     render_loop:

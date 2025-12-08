@@ -341,9 +341,9 @@ function emitDevBootLog(core, options = {}) {
       frameId = uiState.frame.current;
     } else if (
       core.frameController &&
-      typeof core.frameController.get === "function"
+      typeof core.frameController.getActive === "function"
     ) {
-     frameId = core.frameController.get();
+      frameId = core.frameController.getActive();
     }
 
     // 仕様: "FRAME frame_id=<n>"
@@ -670,11 +670,7 @@ export async function bootstrapViewerFromUrl(canvasOrId, url, options = {}) {
     // まず 3DSS 本体をロード
     doc = await loadJSON(url);
   } catch (e) {
-    const err = e instanceof Error ? e : new Error(String(e));
-    if (pointerInput?.dispose) pointerInput.dispose();
-    if (keyboardInput?.dispose) keyboardInput.dispose();
-    pointerInput = null;
-    keyboardInput = null;
+      const err = e instanceof Error ? e : new Error(String(e));
     if (!("kind" in err)) {
       // 簡易判定：SyntaxError 相当なら JSON_ERROR、それ以外は FETCH_ERROR とみなす
       if (err.name === "SyntaxError") {

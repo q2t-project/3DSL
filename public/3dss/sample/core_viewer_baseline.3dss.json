@@ -8,7 +8,7 @@
       "m:demo",
       "x:core"
     ],
-    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.2",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json",
     "generator": "https://q2t-project.github.io/3dsl/tools/generate-core-viewer-baseline",
     "reference": "3DSL core viewer baseline sample scene (compact baseline)",
     "coordinate_system": "Z+up/freeXY",
@@ -128,8 +128,7 @@
         "visible": true,
         "frames": [
           0,
-          1,
-          2
+          1
         ]
       },
       "meta": {
@@ -250,7 +249,6 @@
         "visible": true,
         "frames": [
           0,
-          1,
           2
         ]
       },
@@ -371,7 +369,6 @@
         },
         "visible": true,
         "frames": [
-          0,
           1,
           2
         ]
@@ -407,7 +404,11 @@
         "arrow": {
           "primitive": "none"
         },
-        "visible": true
+        "visible": true,
+        "frames": [
+          1,
+          2
+        ]
       },
       "meta": {
         "uuid": "c9a8c816-7005-4707-a257-b3485222440e",

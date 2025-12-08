@@ -1,8 +1,10 @@
 // runtime/core/validator.js
 
-// Ajv の import パスは環境に合わせて調整してな。
-// - Astro / bundler 環境 → `import Ajv from "ajv";` で OK
+// Ajv の import パスは環境に合わせて調整して。
+// - CDN / <script> 直読み環境   → window.Ajv として提供されている前提
+// - モジュールバンドラ環境（Vite / Webpack 等） → `import Ajv from "ajv";` で OK
 // - 生ブラウザで使う場合 → vendor 下に ESM を置いて相対パス import など
+
 import Ajv from "../../../vendor/ajv/dist/ajv.bundle.js";
 
 let ajv = null;

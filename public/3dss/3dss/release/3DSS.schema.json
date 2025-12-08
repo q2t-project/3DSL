@@ -1,6 +1,6 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema", 
-    "$id": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.2",
+    "$id": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json",
     "title": "3DSS Schema v1.0.2",
     "type": "object",
     "properties": {
