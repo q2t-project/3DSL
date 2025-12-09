@@ -14,7 +14,9 @@
         sans-serif;
     }
 
-    #promo-top-right .promo-card {
+
+    /* カード本体 */
+    .promo-card {
       position: relative;
       width: 100%;
       height: 100%;
@@ -24,7 +26,7 @@
       flex-direction: column;
       gap: 6px;
 
-      /* “枠線で囲った広告” っぽさを薄めたガラス風 */
+      /* ガラスっぽい背景 */
       background: radial-gradient(
           circle at 10% 0%,
           rgba(255, 255, 255, 0.18),
@@ -40,12 +42,34 @@
 
       color: #eef3ff;
       text-decoration: none;
-
-      pointer-events: auto; /* カード自体はクリック可能 */
       cursor: pointer;
+      pointer-events: auto;
     }
 
-    #promo-top-right .promo-tag {
+    /* タイトル／サブテキスト */
+    .promo-title {
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    .promo-sub {
+      font-size: 10px;
+      opacity: 0.8;
+      line-height: 1.5;
+    }
+
+    /* 本文ブロック（必要なら使う用） */
+    .promo-body {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      justify-content: space-between;
+    }
+
+    /* タグ（今のマークアップで使わなくても残しておくなら） */
+    .promo-tag {
       align-self: flex-start;
       padding: 1px 8px;
       border-radius: 999px;
@@ -57,28 +81,8 @@
       color: rgba(210, 230, 255, 0.95);
     }
 
-    #promo-top-right .promo-title {
-      font-size: 13px;
-      font-weight: 600;
-      line-height: 1.4;
-    }
-
-    #promo-top-right .promo-sub {
-      font-size: 10px;
-      opacity: 0.8;
-      line-height: 1.5;
-    }
-
-    #promo-top-right .promo-body {
-      flex: 1 1 auto;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      justify-content: space-between;
-    }
-
-    /* 流れるテキスト（ライブラリ内別コンテンツへの“ささやき”） */
-    #promo-top-right .promo-ticker-shell {
+    /* 流れるテキスト（ティッカー） */
+    .promo-ticker-shell {
       position: relative;
       overflow: hidden;
       border-radius: 999px;
@@ -91,7 +95,7 @@
       padding: 2px 6px;
     }
 
-    #promo-top-right .promo-ticker-line {
+    .promo-ticker-line {
       display: inline-block;
       white-space: nowrap;
       font-size: 10px;
@@ -99,8 +103,8 @@
       animation: promoTickerScroll 14s linear infinite;
     }
 
-    #promo-top-right .promo-ticker-line span + span {
-      margin-left: 32px; /* 同じ文言を 2 回並べて切れ目なく流す */
+    .promo-ticker-line span + span {
+      margin-left: 32px;
     }
 
     @keyframes promoTickerScroll {
@@ -112,7 +116,8 @@
       }
     }
 
-    #promo-top-right .promo-footer {
+    /* フッター＋ボタン */
+    .promo-footer {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -121,7 +126,12 @@
       opacity: 0.85;
     }
 
-    #promo-top-right .promo-cta {
+    .promo-meta {
+      font-size: 9px;
+      opacity: 0.7;
+    }
+
+    .promo-cta {
       padding: 3px 10px;
       border-radius: 999px;
       border: 1px solid rgba(220, 235, 255, 0.9);
@@ -138,15 +148,10 @@
       box-shadow: 0 0 8px rgba(180, 220, 255, 0.9);
     }
 
-    #promo-top-right .promo-cta:hover {
+    .promo-cta:hover {
       box-shadow:
         0 0 10px rgba(200, 235, 255, 1),
         0 0 0 1px rgba(220, 240, 255, 0.9);
-    }
-
-    #promo-top-right .promo-meta {
-      font-size: 9px;
-      opacity: 0.7;
     }
 
     /* =========================================================

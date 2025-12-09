@@ -1079,11 +1079,6 @@ async function boot() {
   initKeyboardShortcuts();
   initOrbitControls(viewerHub); // hub を渡すように変更
 
-// 開発用の一時コード：ログ大量追加テスト
-for (let i = 0; i < 40; i++) {
-  appendModelLog(`[dummy] test log line ${i}`);
-}
-
   // レンダーループ開始は boot() 内の hub.start() で実行済み
 }
 
