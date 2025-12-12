@@ -544,51 +544,6 @@ function initViewerSettingsControls(hub) {
       });
     });
   }
-
-  // microFX profile
-  if (elMicroProfile) {
-    const currentProfile =
-      vs.fx &&
-      vs.fx.micro &&
-      typeof vs.fx.micro.profile === "string"
-        ? vs.fx.micro.profile
-        : "normal";
-
-    elMicroProfile.value = currentProfile;
-
-    elMicroProfile.addEventListener("change", () => {
-      const profile = elMicroProfile.value;
-
-      if (!uiState.viewerSettings) uiState.viewerSettings = {};
-
-      let fx = uiState.viewerSettings.fx;
-      if (!fx) {
-        fx = {};
-        uiState.viewerSettings.fx = fx;
-      }
-
-      let micro = fx.micro;
-      if (!micro) {
-        micro = {};
-        fx.micro = micro;
-      }
-
-      micro.profile = profile;
-
-      if (
-        hub.viewerSettings &&
-        typeof hub.viewerSettings.setMicroFXProfile === "function"
-      ) {
-        hub.viewerSettings.setMicroFXProfile(profile);
-      }
-
-      devLog("[viewer-dev settings] microFX profile =", profile);
-      showHudMessage(`micro FX: ${profile}`, {
-        duration: 700,
-        level: "info",
-      });
-    });
-  }
 }
 
 // ------------------------------------------------------------

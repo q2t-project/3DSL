@@ -7,7 +7,9 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
-    "validate:3dss": "ajv validate -c ajv-formats -s ../schemas/3DSS.schema.json -d \"public/3dss/sample/**/*.3dss.json\" --spec=draft2020",
+    "validate:3dss:baseline": "ajv validate -c ajv-formats -s ../schemas/3DSS.schema.json -d \"public/3dss/sample/core_viewer_baseline.3dss.json\" --spec=draft2020",
+    "check:invariants": "node scripts/check-invariants.mjs",
+    "check:phase0": "npm run validate:3dss:baseline && npm run check:invariants",
     "astro": "astro"
   },
   "dependencies": {
@@ -17,6 +19,7 @@
   },
   "devDependencies": {
     "ajv": "^8.17.1",
+    "ajv-cli": "^5.0.0",
     "ajv-formats": "^3.0.1"
   }
 }
