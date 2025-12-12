@@ -1,5 +1,6 @@
 ---
-import "../styles/global.css"; 
+import "../styles/global.css";
+
 const title = "3DSL Viewer – Astro Host";
 ---
 
@@ -7,430 +8,512 @@ const title = "3DSL Viewer – Astro Host";
   <head>
     <meta charset="utf-8" />
     <title>{title}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="/viewer/viewer.css" />
   </head>
+
   <body class="bg-black text-neutral-200 overflow-hidden">
-  <div
-    id="viewer-layout"
-    class="grid [grid-template-columns:minmax(0,1fr)_300px_300px] h-screen"
-  >
-  
-  <!-- 左：3D ビュー＋オーバーレイ全部 -->
-  <div
-    id="viewer-main"
-    class="relative bg-black overflow-hidden touch-none"
-  >
-
-      <!-- 左上 ad 300x250 -->
-      <div
-        id="ad-top-left"
-        class="
-          absolute top-2 left-2
-          w-[300px] h-[250px]
-          z-20
-          flex items-center justify-center
-          text-[12px]
-          border border-white/25
-          bg-white/5
-          pointer-events-none
-        "
+    <div
+      id="viewer-layout"
+      class="viewer-layout grid [grid-template-columns:minmax(0,1fr)_300px_300px] h-screen"
+    >
+      <!-- =========================================================
+           左カラム：3D ビュー本体 + 全オーバーレイ
+           ====================================================== -->
+      <main
+        id="viewer-main"
+        class="viewer-main relative bg-black overflow-hidden touch-none"
       >
-        300×250 AD
-      </div>
+        <!-- 3D シーン -->
+        <canvas
+          id="viewer-canvas"
+          class="viewer-canvas w-full h-full block touch-none"
+        ></canvas>
 
-      <!-- 右上 300x250：3DSS Library / 3DSD 自前コンテンツ用プロモ枠 -->
-      <div
-        id="promo-top-right"
-        data-source="3dss-promo"
-        class="absolute top-2 right-2 w-[300px] h-[250px] z-30 pointer-events-none"
-      >
-        <a class="promo-card" href="#" data-role="promo-link">
-          <div class="promo-title">
-            往還構造 × 時間の矢<br />
-            3DSD で読む「揺れ」と収束
-          </div>
+        <!-- =======================================================
+             上段オーバーレイ：広告 / プロモ / HUD
+             ==================================================== -->
+        <!-- 左上 AD 300×250 -->
+        <section
+          id="ad-top-left"
+          class="ad-slot ad-slot--top-left absolute top-2 left-2 w-[300px] h-[250px] z-20
+                 flex items-center justify-center text-[12px]
+                 border border-white/25 bg-white/5 pointer-events-none"
+          aria-label="Ad slot top-left"
+        >
+          300×250 AD
+        </section>
 
-          <div class="promo-sub">
-            いま見ている構造と同じパターンを扱った
-            3DSS/3DSD サンプルへジャンプ。
-          </div>
-
+        <div id="promo-ticker-bar">
           <div class="promo-ticker-shell">
             <div class="promo-ticker-line">
               <span>往還構造 / 分水嶺 / エントロピー × 知識トポス …</span>
               <span>時間逆行の議論と同型の 3DSD 図解をもっと見る</span>
             </div>
           </div>
+        </div>
 
-          <div class="promo-footer">
-            <div class="promo-meta">
-              from 3DSS library<br />
-              filtered as: <span>knowledge-flow</span>
+        <!-- HUD: 一時メッセージ用トースト -->
+        <div
+          id="viewer-hud"
+          class="viewer-hud hud-hidden absolute left-1/2 top-12 max-w-[60%]
+                 -translate-x-1/2 -translate-y-2 transform origin-top
+                 px-4 py-2 rounded-full text-xs leading-relaxed
+                 text-neutral-100 pointer-events-none opacity-0
+                 transition-transform transition-opacity duration-200 ease-out"
+        ></div>
+
+
+        <!-- =======================================================
+            document caption（シーンビューポート右上）
+            ==================================================== -->
+        <section id="doc-caption" class="doc-caption-card">
+          <div id="doc-caption-title" class="doc-caption-title"></div>
+          <div id="doc-caption-body"  class="doc-caption-body"></div>
+        </section>
+
+        <!-- =======================================================
+             下段オーバーレイ：frame / viewer settings / gizmo / camera
+             ==================================================== -->
+
+        <!-- 左下：フレーム操作 + viewer settings -->
+        <section
+          id="viewer-toolbar"
+          class="viewer-toolbar absolute left-3 bottom-3 text-xs text-neutral-100 pointer-events-auto"
+        >
+          <!-- フレーム操作パネル -->
+          <div
+            id="frame-panel"
+            class="frame-panel frame-block flex flex-col gap-2 px-3 py-2"
+          >
+            <!-- ⑥ filter 縦３連 -->
+            <div
+              id="frame-filters"
+              class="frame-filters flex flex-col gap-1"
+            >
+              <button
+                type="button"
+                id="filter-lines"
+                data-filter="lines"
+                class="filter-toggle filter-on"
+              >
+                <span class="filter-icon filter-icon-on">
+                  <img
+                    src="/assets/icons/visibility-on.svg"
+                    alt=""
+                    class="filter-icon-img"
+                  />
+                </span>
+                <span class="filter-icon filter-icon-off">
+                  <img
+                    src="/assets/icons/visibility-off.svg"
+                    alt=""
+                    class="filter-icon-img"
+                  />
+                </span>
+                <span class="filter-label">lines</span>
+              </button>
+
+              <button
+                type="button"
+                id="filter-points"
+                data-filter="points"
+                class="filter-toggle filter-on"
+              >
+                <span class="filter-icon filter-icon-on">
+                  <img
+                    src="/assets/icons/visibility-on.svg"
+                    alt=""
+                    class="filter-icon-img"
+                  />
+                </span>
+                <span class="filter-icon filter-icon-off">
+                  <img
+                    src="/assets/icons/visibility-off.svg"
+                    alt=""
+                    class="filter-icon-img"
+                  />
+                </span>
+                <span class="filter-label">points</span>
+              </button>
+
+              <button
+                type="button"
+                id="filter-aux"
+                data-filter="aux"
+                class="filter-toggle filter-on"
+              >
+                <span class="filter-icon filter-icon-on">
+                  <img
+                    src="/assets/icons/visibility-on.svg"
+                    alt=""
+                    class="filter-icon-img"
+                  />
+                </span>
+                <span class="filter-icon filter-icon-off">
+                  <img
+                    src="/assets/icons/visibility-off.svg"
+                    alt=""
+                    class="filter-icon-img"
+                  />
+                </span>
+                <span class="filter-label">aux</span>
+              </button>
             </div>
-            <div class="promo-cta">OPEN</div>
-          </div>
-        </a>
-      </div>
 
-      <!-- 3D シーン -->
-      <canvas
-        id="viewer-canvas"
-        class="w-full h-full block touch-none"
-      ></canvas>
+            <!-- ⑤ 再生ボタン 横５連 -->
+            <div
+              id="frame-controls"
+              class="frame-controls row-continuous flex gap-1 items-center mt-1"
+            >
+              <button
+                id="btn-rew"
+                type="button"
+                class="frame-btn frame-btn-edge px-3.2 py-0.4 border border-white/20
+                       bg-white/40 text-[10px] text-neutral-100 hover:bg-white/20"
+                title="最初のフレームへ（min までジャンプ）"
+              >
+                <img
+                  src="/assets/icons/frame-first.svg"
+                  alt=""
+                  class="frame-icon-img"
+                />
+              </button>
 
-      <!-- HUD: 一時メッセージ用トースト -->
-     <div
-      id="viewer-hud"
-      class="
-        hud-hidden             <!-- JS が付け替える状態クラス -->
-        absolute left-1/2 top-4
-        max-w-[60%]
-        -translate-x-1/2 -translate-y-2
-        transform origin-top
-        px-4 py-2
-        rounded-full
-        text-xs leading-relaxed text-neutral-100
-        pointer-events-none
-        opacity-0
-        transition-transform transition-opacity duration-200 ease-out
-      "
-      ></div>
+              <button
+                id="btn-step-back"
+                type="button"
+                class="frame-btn frame-btn-step px-3.2 py-0.4 border border-white/20
+                       bg-white/60 text-[10px] text-neutral-100 hover:bg-white/20"
+                title="1 フレーム戻る (PgDn)"
+              >
+                <img
+                  src="/assets/icons/frame-prev.svg"
+                  alt=""
+                  class="frame-icon-img"
+                />
+              </button>
 
-      <!-- 下部ツールバー -->
-      <div
-        id="viewer-toolbar"
-        class="absolute left-3 bottom-3 inline-flex items-start gap-3 px-3 py-2 rounded-md bg-black/70 text-xs text-neutral-100"
-      >
-        <div class="frame-block flex flex-col gap-1">
-          <div class="frame-main flex flex-col gap-1 min-w-[220px]">
-            <div class="frame-top-row flex items-start gap-2">
-              <div class="filter-column flex flex-col gap-1 mt-0">
-                <button
-                  id="filter-lines"
-                  class="filter-toggle filter-on inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-white/10 bg-white/5 text-[11px] text-neutral-100"
-                  type="button"
-                  title="toggle lines"
-                >
-                  <span class="icon text-[13px]">👁</span>
-                  <span class="label">lines</span>
-                </button>
+              <button
+                id="btn-play"
+                type="button"
+                class="frame-btn frame-btn-play px-4 py-0.4 border border-white/20
+                       bg-white/80 text-[10px] text-neutral-100 hover:bg-white/20"
+                title="連続再生 / 一時停止 (Space)"
+              >
+                <span class="frame-play-icon">
+                  <img
+                    src="/assets/icons/frame-play.svg"
+                    alt=""
+                    class="frame-icon-img"
+                  />
+                </span>
+                <span class="frame-pause-icon">
+                  <img
+                    src="/assets/icons/frame-pause.svg"
+                    alt=""
+                    class="frame-icon-img"
+                  />
+                </span>
+              </button>
 
-                <button
-                  id="filter-points"
-                  class="filter-toggle filter-on inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-white/10 bg-white/5 text-[11px] text-neutral-100"
-                  type="button"
-                  title="toggle points"
-                >
-                  <span class="icon text-[13px]">👁</span>
-                  <span class="label">points</span>
-                </button>
+              <button
+                id="btn-step-forward"
+                type="button"
+                class="frame-btn frame-btn-step px-3.2 py-0.4 border border-white/20
+                       bg-white/60 text-[10px] text-neutral-100 hover:bg-white/20"
+                title="1 フレーム進む (PgUp)"
+              >
+                <img
+                  src="/assets/icons/frame-next.svg"
+                  alt=""
+                  class="frame-icon-img"
+                />
+              </button>
 
-                <button
-                  id="filter-aux"
-                  class="filter-toggle filter-on inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-white/10 bg-white/5 text-[11px] text-neutral-100"
-                  type="button"
-                  title="toggle aux"
-                >
-                  <span class="icon text-[13px]">👁</span>
-                  <span class="label">aux</span>
-                </button>
+              <button
+                id="btn-ff"
+                type="button"
+                class="frame-btn frame-btn-edge px-3.2 py-0.4 border border-white/20
+                       bg-white/40 text-[10px] text-neutral-100 hover:bg-white/20"
+                title="最後のフレームへ（max までジャンプ）"
+              >
+                <img
+                  src="/assets/icons/frame-last.svg"
+                  alt=""
+                  class="frame-icon-img"
+                />
+              </button>
+            </div>
+
+            <!-- ④ + ①〜③ フレームバー＋ラベル -->
+            <div
+              id="frame-slider-wrapper"
+              class="frame-slider-wrapper relative mt-1"
+            >
+              <div
+                id="frame-label-current"
+                class="frame-label-current"
+              >
+                0
               </div>
 
-              <div class="frame-header-main flex flex-col gap-1 flex-1">
-                <div class="frame-label">
-                  Frame: <span id="frame-slider-label">0</span>
-                </div>
+              <input
+                id="frame-slider"
+                class="frame-slider"
+                type="range"
+                min="0"
+                max="0"
+                step="1"
+                value="0"
+              />
+
+              <div class="frame-labels">
+                <span
+                  id="frame-label-min"
+                  class="frame-label frame-label-min"
+                >
+                  0
+                </span>
+
+                <span
+                  id="frame-label-zero"
+                  class="frame-label frame-label-zero"
+                >
+                  0
+                </span>
 
                 <div
-                  id="frame-controls"
-                  class="mode-flip flex flex-col gap-1"
-                >
-                  <div class="row row-continuous flex gap-1">
-                    <button
-                      id="btn-rew"
-                      class="px-2 py-0.5 rounded border border-white/20 bg-white/5 text-[11px] text-neutral-100 hover:bg-white/20"
-                      title="逆送り（最小までジャンプ）"
-                    >
-                      ⏮
-                    </button>
-                    <button
-                      id="btn-play"
-                      class="px-2 py-0.5 rounded border border-white/20 bg-white/5 text-[11px] text-neutral-100 hover:bg-white/20"
-                      title="再生 / 一時停止 (Space)"
-                    >
-                      Play
-                    </button>
-                    <button
-                      id="btn-ff"
-                      class="px-2 py-0.5 rounded border border-white/20 bg-white/5 text-[11px] text-neutral-100 hover:bg-white/20"
-                      title="先送り（最大までジャンプ）"
-                    >
-                      ⏭
-                    </button>
-                  </div>
-                  <div class="row row-flip flex gap-1">
-                    <button
-                      id="btn-step-back"
-                      class="px-2 py-0.5 rounded border border-white/20 bg-white/5 text-[11px] text-neutral-100 hover:bg-white/20"
-                      title="1 フレーム戻る (PgDn)"
-                    >
-                      ◀
-                    </button>
-                    <button
-                      id="btn-home"
-                      class="px-2 py-0.5 rounded border border-white/20 bg-white/5 text-[11px] text-neutral-100 hover:bg-white/20"
-                      title="ホームフレーム (0)"
-                    >
-                      ●
-                    </button>
-                    <button
-                      id="btn-step-forward"
-                      class="px-2 py-0.5 rounded border border-white/20 bg-white/5 text-[11px] text-neutral-100 hover:bg-white/20"
-                      title="1 フレーム進む (PgUp)"
-                    >
-                      ▶
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+                  id="frame-zero-line"
+                  class="frame-zero-line"
+                ></div>
 
-            <input
-              id="frame-slider"
-              type="range"
-              min="0"
-              max="0"
-              value="0"
-              step="1"
-            />
-             <!-- viewerSettings: line width / microFX profile -->
-            <div class="viewer-settings-block mt-1 flex flex-wrap gap-2 items-center">
-              <div class="viewer-settings-row flex items-center gap-1">
-                <span class="viewer-settings-label opacity-80 text-[10px] whitespace-nowrap">
-                  line width
-                </span>
-                <select
-                  id="vs-linewidth-mode"
-                  class="text-[10px] px-2 py-0.5 rounded border border-white/25 bg-black/80 text-neutral-100"
+                <span
+                  id="frame-label-max"
+                  class="frame-label frame-label-max"
                 >
-                  <option value="auto">auto</option>
-                  <option value="fixed">fixed</option>
-                  <option value="adaptive">adaptive</option>
-                </select>
-              </div>
-
-              <div class="viewer-settings-row flex items-center gap-1">
-                <span class="viewer-settings-label opacity-80 text-[10px] whitespace-nowrap">
-                  micro FX
+                  0
                 </span>
-                <select
-                  id="vs-micro-profile"
-                  class="text-[10px] px-2 py-0.5 rounded border border-white/25 bg-black/80 text-neutral-100"
-                >
-                  <option value="weak">weak</option>
-                  <option value="normal" selected>normal</option>
-                  <option value="strong">strong</option>
-                </select>
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </section>
 
-      <!-- カメラモード表示（右上寄り） -->
-      <div
-        id="camera-panel"
-        class="absolute right-3 bottom-[286px] flex items-end pointer-events-none"
-      >
-        <div id="mode-stack" class="relative flex flex-col pb-0">
-          <div class="mode-pills-block flex flex-col gap-1">
-            <div
-              id="mode-label-macro"
-              class="
-                mode-pill mode-pill-active
-                inline-flex items-center justify-center
-                min-w-[60px] px-1.5 py-0.5
-                rounded-full border border-white/25
-                bg-transparent
-                text-[9px] tracking-[0.06em] uppercase
-                opacity-50
-                transition-opacity transition-colors duration-150
-              "
-            >
-              MACRO
-            </div>
-
-            <div
-              id="mode-label-micro"
-              class="
-                mode-pill
-                inline-flex items-center justify-center
-                min-w-[60px] px-1.5 py-0.5
-                rounded-full border border-white/25
-                bg-transparent
-                text-[9px] tracking-[0.06em] uppercase
-                opacity-50
-                transition-opacity transition-colors duration-150
-              "
-            >
-              MICRO
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Gizmo 本体（右下） -->
-      <div
-        id="gizmo-wrapper"
-        class="absolute right-3 bottom-16 w-[210px] h-[210px] pointer-events-auto z-20"
-      >
-        <!-- X/Y/Z ボタン行（右下） -->
-        <div
-          class="gizmo-axis-row absolute right-1 bottom-1 flex gap-1 z-30"
-        ></div>
-
-        <!-- Gizmo 用サブキャンバス枠 -->
-        <div
-          id="gizmo-slot"
-          class="absolute inset-0 rounded-lg border border-white/30 bg-black/50 shadow-lg overflow-hidden"
-        ></div>
-      </div>
-
-      <!-- 座標軸トグル + autoOrbit + preset view（右下横並び） -->
-      <div
-        id="camera-bottom-row"
-        class="absolute right-4 bottom-4 flex items-center gap-2 z-25 pointer-events-auto"
-      >
-        <!-- coord. トグル -->
-        <div class="world-axes-toggle flex items-center gap-1 text-xs text-neutral-200">
-          <button
-            id="world-axes-toggle"
-            type="button"
-            aria-pressed="false"
-            data-visible="false"
-            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-[11px] text-neutral-100 border border-white/15"
-          >
-            <span class="icon text-[14px]" data-icon="on">👁</span>
-            <span class="icon text-[14px]" data-icon="off">👁‍🗨</span>
-          </button>
-          <span class="world-axes-label opacity-80">coord.</span>
-        </div>
-
-        <!-- autoOrbit -->
-        <div
-          id="auto-orbit-slot"
-          class="auto-orbit-slot relative flex-none w-[130px] h-6"
+        <!-- 右下：Gizmo 本体 -->
+        <section
+          id="gizmo-wrapper"
+          class="gizmo-wrapper absolute right-3 bottom-3 w-[210px] h-[210px]
+                 pointer-events-auto z-20"
         >
-          <button
-            id="auto-orbit-pill"
-            type="button"
-            class="keycap auto-orbit-pill absolute inset-0 inline-flex items-center justify-center text-[10px] px-2"
-            title="Auto orbit"
+          <!-- three.js 用の枠（JS がキャンバスを差し込む） -->
+          <div
+            id="gizmo-slot"
+            class="gizmo-slot absolute inset-0 rounded-2xl border border-white/20
+                   bg-black/60 shadow-lg overflow-hidden"
+          ></div>
+
+          <!-- モード表示（右上テキスト） -->
+          <div
+            id="gizmo-mode-indicator"
+            class="gizmo-mode-indicator absolute right-2 top-2
+                   text-[11px] text-neutral-100 pointer-events-none"
           >
-            autoOrbit
-          </button>
+            <span
+              id="gizmo-mode-label"
+              class="tracking-[0.12em] lowercase"
+            >
+              macro
+            </span>
+          </div>
+
+          <!-- 下辺オーバーレイ：
+               左 = world-axis トグル
+               中央 = gizmo-axis-row（JS がボタンを突っ込む）
+               右 = preset view -->
+          <div
+            class="gizmo-bottom-row absolute left-1 right-1 bottom-1
+                   flex items-center justify-between gap-1 z-30"
+          >
+            <!-- coord. トグル（world-axis） -->
+            <div
+              class="world-axes-toggle flex items-center gap-1 text-xs text-neutral-200"
+            >
+              <button
+                id="world-axes-toggle"
+                type="button"
+                aria-pressed="false"
+                data-visible="false"
+                class="world-axes-pill inline-flex items-center gap-1 px-1 py-0.5
+                       rounded-full bg-white/5 text-[11px] text-neutral-100
+                       border border-white/15"
+              >
+                <!-- on: 軸あり -->
+                <span class="coordinate-icon" data-icon="on">
+                  <img
+                    src="/assets/icons/coordinate-on.svg"
+                    alt=""
+                    class="coordinate-icon-img"
+                  />
+                </span>
+                <!-- off: 軸なし -->
+                <span class="coordinate-icon" data-icon="off">
+                  <img
+                    src="/assets/icons/coordinate-off.svg"
+                    alt=""
+                    class="coordinate-icon-img"
+                  />
+                </span>
+              </button>
+            </div>
+
+            <!-- 軸ボタン（JS がここに配置） -->
+            <div class="gizmo-axis-row flex gap-1"></div>
+
+            <!-- preset view ボタン（右下） -->
+            <button
+              id="gizmo-presets-toggle"
+              class="keycap gizmo-presets-toggle flex flex-col items-stretch px-1 py-0.5 text-[10px]"
+              type="button"
+              title="Preset views"
+            >
+              <span class="w-full text-left leading-tight text-[11px]">
+                preset
+              </span>
+              <span class="w-full text-right leading-tight text-[11px]">
+                view
+              </span>
+            </button>
+          </div>
+        </section>
+
+        <!-- Gizmo 左：autoOrbit -->
+        <section
+          id="camera-bottom-row"
+          class="camera-bottom-row absolute right-[230px] bottom-3 z-25 pointer-events-auto"
+        >
+          <div id="auto-orbit-slot" class="auto-orbit-slot">
+            <div class="auto-orbit-pill">
+              <!-- 左：CW（Z+ から見て時計回り） -->
+              <button
+                type="button"
+                class="auto-orbit-btn auto-orbit-btn-dir"
+                data-dir="cw"
+              >
+                <span class="auto-orbit-icon auto-orbit-icon-cw">
+                  <img
+                    src="/assets/icons/360-cw.svg"
+                    alt=""
+                    class="auto-orbit-icon-img"
+                  />
+                </span>
+              </button>
+
+              <!-- 中央：autoOrbit（2 段組） -->
+              <button
+                type="button"
+                id="auto-orbit-toggle"
+                class="auto-orbit-btn auto-orbit-center"
+              >
+                <span class="auto-orbit-text-top">auto</span>
+                <span class="auto-orbit-text-bottom">Orbit</span>
+              </button>
+
+              <!-- 右：CCW（Z+ から見て反時計回り） -->
+              <button
+                type="button"
+                class="auto-orbit-btn auto-orbit-btn-dir"
+                data-dir="ccw"
+              >
+                <span class="auto-orbit-icon auto-orbit-icon-ccw">
+                  <img
+                    src="/assets/icons/360-ccw.svg"
+                    alt=""
+                    class="auto-orbit-icon-img"
+                  />
+                </span>
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- =========================================================
+           中央カラム：300×600 AD レール
+           ====================================================== -->
+      <aside
+        id="viewer-ad-rail"
+        class="viewer-ad-rail flex items-center justify-center border-x border-neutral-800
+               bg-white/5 text-xs"
+      >
+        300×600 AD
+      </aside>
+
+      <!-- =========================================================
+           右カラム：メタ情報エリア
+           ====================================================== -->
+      <aside
+        id="viewer-meta"
+        class="viewer-meta bg-neutral-900 border-l border-neutral-700 p-3 text-sm
+               flex flex-col min-h-0"
+      >
+        <!-- ロゴ -->
+        <header
+          id="meta-header"
+          class="meta-header border-b border-white/10 px-3
+                 h-16 flex items-center justify-start"
+        >
+          <a
+            id="meta-logo-link"
+            href="/viewer/"
+            class="block w-full"
+          >
+            <img
+              id="meta-logo"
+              src="../assets/logo/3DSD-viewer.svg"
+              alt="3DSD-viewer"
+              style="display:block;height:80px;width:auto;"
+              class="invert"
+            />
+          </a>
+        </header>
+
+        <!-- File 情報 -->
+        <section
+          id="meta-file"
+          class="meta-file basis-[20%] shrink overflow-y-auto"
+        >
+          <h3
+            class="text-[11px] font-semibold tracking-[0.03em]
+                   uppercase opacity-90 mb-1"
+          >
+            File
+          </h3>
+          <div class="text-xs text-neutral-300">(no file yet)</div>
+        </section>
+
+        <!-- Model 情報 + detail -->
+        <section
+          id="meta-model"
+          class="meta-model flex-1 min-h-0 px-2 pt-2 pb-3 overflow-y-auto"
+        >
+          <h3
+            class="text-[11px] font-semibold tracking-[0.03em]
+                   uppercase opacity-90 mb-1"
+          >
+            Model
+          </h3>
 
           <div
-            id="auto-orbit-controls"
-            class="auto-orbit-controls absolute inset-0 inline-flex items-center justify-center gap-1"
+            id="meta-model-log"
+            class="meta-log text-xs leading-snug text-neutral-300 space-y-1"
           >
-            <button
-              type="button"
-              class="keycap auto-orbit-btn min-w-[26px] px-1 py-0 text-[11px]"
-              data-role="rev"
-              title="Reverse orbit / faster reverse"
-            >
-              ⟲
-            </button>
-            <button
-              type="button"
-              class="keycap auto-orbit-btn min-w-[26px] px-1 py-0 text-[11px]"
-              data-role="stop"
-              title="Stop auto orbit"
-            >
-              ■
-            </button>
-            <button
-              type="button"
-              class="keycap auto-orbit-btn min-w-[26px] px-1 py-0 text-[11px]"
-              data-role="fwd"
-              title="Forward orbit / faster"
-            >
-              ⟳
-            </button>
+            (logs will appear here)
           </div>
-        </div>
 
-        <!-- preset view -->
-        <button
-          id="gizmo-presets-toggle"
-          class="keycap text-[10px] px-2 py-0.5"
-          type="button"
-          title="Preset views"
-        >
-          preset view
-        </button>
-      </div>
+          <div id="viewer-detail"></div>
+        </section>
+      </aside>
     </div>
-
-    <!-- 中央：300x600 -->
-    <aside
-      id="viewer-ad-rail"
-      class="flex items-center justify-center border-x border-neutral-800 bg-white/5 text-xs"
-    >
-      300×600 AD
-    </aside>
-
-    <!-- 右：メタ情報エリア -->
-    <aside
-      id="viewer-meta"
-      class="bg-neutral-900 border-l border-neutral-700 p-3 text-sm flex flex-col min-h-0"
-    >
-      <div
-        id="meta-header"
-        class="flex items-end justify-start border-b border-white/10 px-2 py-2"
-      >
-        <a id="meta-logo-link" href="/viewer/">
-          <img
-            id="meta-logo"
-            src="../assets/logo/3DSD-viewer.svg"
-            alt="3DSD-viewer"
-            class="block max-w-full h-auto invert"
-          />
-        </a>
-      </div>
-
-      <div
-        id="meta-file"
-        class="basis-[30%] shrink px-2 pt-2 pb-3 border-b border-white/10 overflow-y-auto"
-      >
-        <h3
-          class="text-[11px] font-semibold tracking-[0.03em] uppercase opacity-90 mb-1"
-        >
-          File
-        </h3>
-        <div class="text-xs text-neutral-300">(no file yet)</div>
-      </div>
-
-      <div
-        id="meta-model"
-        class="flex-1 min-h-0 px-2 pt-2 pb-3 overflow-y-auto"
-      >
-        <h3
-          class="text-[11px] font-semibold tracking-[0.03em] uppercase opacity-90 mb-1"
-        >
-          Model
-        </h3>
-        <div
-          id="meta-model-log"
-          class="meta-log text-xs leading-snug text-neutral-300 space-y-1"
-        >
-          (logs will appear here)
-        </div>
-        <div id="viewer-detail"></div>
-      </div>
-    </aside>
-  </div>
 
     <script type="module" src="/viewer/viewerDevHarness.js"></script>
   </body>

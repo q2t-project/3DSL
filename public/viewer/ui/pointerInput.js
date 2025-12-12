@@ -78,23 +78,30 @@ export class PointerInput {
     canvas.removeEventListener("contextmenu", this.onContextMenu);
   }
 
+// viewer/ui/pointerInput.js
+
   // AutoOrbit 停止
   stopAutoCamera() {
-    const camera = this.hub?.core?.camera;
-    if (camera && typeof camera.stopAutoOrbit === "function") {
-      camera.stopAutoOrbit();
-      // runtime フラグも一応落としておく
-      const runtime = this.hub?.core?.uiState?.runtime;
-      if (runtime) runtime.isCameraAuto = false;
+    const hub = this.hub;
+
+    // ① dev harness 経由の AutoOrbit UI があれば、それを正とする
+    if (hub && hub.autoOrbit && typeof hub.autoOrbit.stop === "function") {
+      hub.autoOrbit.stop();   // ← ボタン背景・HUD も含めて「正式停止」
       return;
     }
 
-    // フォールバック：旧実装互換（cameraEngine 直駆動など）
-    const runtime = this.hub?.core?.uiState?.runtime;
+    // ② フォールバック：UI が無い環境用に camera 直たたき
+    const camera = hub?.core?.camera || hub?.core?.cameraEngine;
+    if (camera && typeof camera.stopAutoOrbit === "function") {
+      camera.stopAutoOrbit();
+    }
+
+    const runtime = hub?.core?.uiState?.runtime;
     if (runtime) {
       runtime.isCameraAuto = false;
     }
   }
+
 
   // camera のメソッドを安全に叩くヘルパ
   dispatch(method, ...args) {

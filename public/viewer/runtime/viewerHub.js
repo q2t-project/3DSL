@@ -102,9 +102,40 @@ export function createViewerHub({ core, renderer }) {
 
   // --- viewer 設定（いまはワールド座標軸の ON/OFF だけ） ---
   const viewerSettingsState = {
+    // ワールド座標軸
     worldAxesVisible: false,
     worldAxesListeners: [],
+
+    // 線幅モード
+    lineWidthMode: "auto",
+    lineWidthModeListeners: [],
+
+    // microFX プロファイル
+    microFXProfile: "normal",
+    microFXProfileListeners: [],
   };
+
+  // uiState 側に既存設定があれば初期値として取り込む
+  if (core && core.uiState && core.uiState.viewerSettings) {
+    const vs = core.uiState.viewerSettings;
+
+    if (
+      vs.render &&
+      typeof vs.render.lineWidthMode === "string" &&
+      vs.render.lineWidthMode.length > 0
+    ) {
+      viewerSettingsState.lineWidthMode = vs.render.lineWidthMode;
+    }
+
+    if (
+      vs.fx &&
+      vs.fx.micro &&
+      typeof vs.fx.micro.profile === "string" &&
+      vs.fx.micro.profile.length > 0
+    ) {
+      viewerSettingsState.microFXProfile = vs.fx.micro.profile;
+    }
+  }
 
   const viewerSettings = {
     // --------------------------------------------------------
@@ -165,10 +196,11 @@ export function createViewerHub({ core, renderer }) {
       const ui = core.uiState;
       if (!ui.viewerSettings) ui.viewerSettings = {};
       const render =
-        ui.viewerSettings.render ||
-        (ui.viewerSettings.render = {});
+        ui.viewerSettings.render || (ui.viewerSettings.render = {});
 
+      // runtime 側 state
       render.lineWidthMode = mode;
+      viewerSettingsState.lineWidthMode = mode;
 
       // renderer 側に専用 API があれば渡す（無ければ state だけ保持）
       if (
@@ -178,7 +210,29 @@ export function createViewerHub({ core, renderer }) {
         renderer.setLineWidthMode(mode);
       }
 
+      // listener 通知
+      viewerSettingsState.lineWidthModeListeners.forEach((fn) => {
+        try {
+          fn(mode);
+        } catch (e) {
+          debugHub(
+            "[hub.viewerSettings] lineWidthMode listener error",
+            e,
+          );
+        }
+      });
+
       debugHub("[hub.viewerSettings] lineWidthMode =", mode);
+    },
+
+    getLineWidthMode() {
+      return viewerSettingsState.lineWidthMode;
+    },
+
+    onLineWidthModeChanged(listener) {
+      if (typeof listener === "function") {
+        viewerSettingsState.lineWidthModeListeners.push(listener);
+      }
     },
 
     // --------------------------------------------------------
@@ -187,35 +241,45 @@ export function createViewerHub({ core, renderer }) {
     setMicroFXProfile(profile) {
       if (!core || !core.uiState) return;
 
-      if (
-        profile !== "weak" &&
-        profile !== "normal" &&
-        profile !== "strong"
-      ) {
-        debugHub(
-          "[hub.viewerSettings.setMicroFXProfile] invalid profile",
-          profile
-        );
+      if (profile !== "weak" && profile !== "normal" && profile !== "strong") {
+        debugHub("[hub.viewerSettings.setMicroFXProfile] invalid profile", profile);
         return;
       }
 
       const ui = core.uiState;
       if (!ui.viewerSettings) ui.viewerSettings = {};
-      const fx =
-        ui.viewerSettings.fx || (ui.viewerSettings.fx = {});
+      const fx = ui.viewerSettings.fx || (ui.viewerSettings.fx = {});
       const micro = fx.micro || (fx.micro = {});
 
+      // runtime 側 state
       micro.profile = profile;
+      viewerSettingsState.microFXProfile = profile;
 
-      // renderer 側に専用 API があれば渡す（無ければ state だけ保持）
-      if (
-        renderer &&
-        typeof renderer.setMicroFXProfile === "function"
-      ) {
+      // renderer 側へ伝える API があれば呼ぶ（無ければ state だけ持つ）
+      if (renderer && typeof renderer.setMicroFXProfile === "function") {
         renderer.setMicroFXProfile(profile);
       }
 
-      debugHub("[hub.viewerSettings] microFX.profile =", profile);
+      // listener 通知
+      viewerSettingsState.microFXProfileListeners.forEach((fn) => {
+        try {
+          fn(profile);
+        } catch (e) {
+          debugHub("[hub.viewerSettings] microFXProfile listener error", e);
+        }
+      });
+
+      debugHub("[hub.viewerSettings] microFXProfile =", profile);
+    },
+
+    getLineWidthMode() {
+      return viewerSettingsState.lineWidthMode;
+    },
+
+    onLineWidthModeChanged(listener) {
+      if (typeof listener === "function") {
+        viewerSettingsState.lineWidthModeListeners.push(listener);
+      }
     },
   };
 
@@ -338,17 +402,19 @@ export function createViewerHub({ core, renderer }) {
           fcSetActive(n);
         },
 
-        // 現在フレーム
+        // 現在アクティブな frame 番号
+        // → フレームスライダの現在値表示用
         getActive() {
           return fcGetActive();
         },
 
-        // range {min, max}
+        // 有効な frame 範囲 { min, max }
+        // → スライダ下の min / max / 0 ラベル計算用
         getRange() {
           return fcGetRange();
         },
 
-        // 仕様上の API
+        // 仕様上の API（相対移動）
         step(delta) {
           fcStep(delta || 0);
         },
@@ -734,8 +800,36 @@ export function createViewerHub({ core, renderer }) {
         }
         return core.uiState?.visibleSet ?? null;
       },
+      // ---- read-only state / struct ----
       uiState: core.uiState,
       structIndex: core.indices || core.structIndex || null,
+
+   // 3DSS 本体（deepFreeze 済み）への read-only 入口
+      data: core.data || null,
+
+      // document_meta / scene_meta への read-only 入口（snake / camel 両方）
+      document_meta:
+        core.document_meta ||
+        (core.data && core.data.document_meta) ||
+        null,
+      documentMeta:
+        core.documentMeta ||
+        (core.data && core.data.document_meta) ||
+        null,
+
+      scene_meta:
+        core.scene_meta ||
+        (core.document_meta && core.document_meta.scene_meta) ||
+        null,
+
+      sceneMeta: core.sceneMeta || null,
+
+      // viewer 用のタイトル／概要（runtime/bootstrap 側で正規化済み）
+      // 互換性のため、documentCaption が無ければ sceneMeta をそのまま流す
+      documentCaption:
+        core.documentCaption ||
+        core.sceneMeta ||
+        null,
     },
   };
 

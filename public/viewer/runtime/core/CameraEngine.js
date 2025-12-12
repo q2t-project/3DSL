@@ -463,71 +463,62 @@ export function createCameraEngine(initialState = {}, options = {}) {
     /**
      * AutoOrbit 開始
      */
-    startAutoOrbit(opts = {}) {
-      const {
-        center,
-        radius,
-        isoPhi,
-        fov,
-        margin = 1.15,
-        direction = 1,
-        speedLevel = 1,
-      } = opts;
+  startAutoOrbit(opts = {}) {
+    const {
+      center,
+      radius,
+      isoPhi,
+      fov,
+      direction = 1,
+      speedLevel = 1,
+    } = opts;
 
-      // center 正規化
-      let cx = state.target.x;
-      let cy = state.target.y;
-      let cz = state.target.z;
+    // center 正規化
+    let cx = state.target.x;
+    let cy = state.target.y;
+    let cz = state.target.z;
 
-      if (Array.isArray(center) && center.length === 3) {
-        cx = sanitizeScalarCoord(center[0]);
-        cy = sanitizeScalarCoord(center[1]);
-        cz = sanitizeScalarCoord(center[2]);
-      } else if (center && typeof center === "object") {
-        if ("x" in center) cx = sanitizeScalarCoord(center.x);
-        if ("y" in center) cy = sanitizeScalarCoord(center.y);
-        if ("z" in center) cz = sanitizeScalarCoord(center.z);
-      }
+    if (Array.isArray(center) && center.length === 3) {
+      cx = sanitizeScalarCoord(center[0]);
+      cy = sanitizeScalarCoord(center[1]);
+      cz = sanitizeScalarCoord(center[2]);
+    } else if (center && typeof center === "object") {
+      if ("x" in center) cx = sanitizeScalarCoord(center.x);
+      if ("y" in center) cy = sanitizeScalarCoord(center.y);
+      if ("z" in center) cz = sanitizeScalarCoord(center.z);
+    }
 
-      let R = typeof radius === "number" ? radius : state.distance;
-      if (!Number.isFinite(R) || R <= 0) R = state.distance;
-      R = Math.max(R, MIN_DISTANCE);
+    // ★ 距離は基本「いまの距離」を保つ。
+    // radius が明示指定されたときだけ、その値を距離として採用。
+    let nextDistance = state.distance;
+    if (typeof radius === "number" && Number.isFinite(radius) && radius > 0) {
+      nextDistance = clamp(radius, MIN_DISTANCE, MAX_DISTANCE);
+    }
 
-      const nextPhi =
-        typeof isoPhi === "number"
-          ? clamp(isoPhi, EPSILON, Math.PI - EPSILON)
-          : state.phi;
+    const nextPhi =
+      typeof isoPhi === "number"
+        ? clamp(isoPhi, EPSILON, Math.PI - EPSILON)
+        : state.phi;
 
-      const nextFov =
-        typeof fov === "number" ? fov : state.fov;
+    const nextFov =
+      typeof fov === "number" ? fov : state.fov;
 
-      // fov[deg] → rad 変換
-      const fovRad = (nextFov * Math.PI) / 180;
-      const half = fovRad * 0.5 || (25 * Math.PI) / 180;
+    // カメラ state 更新
+    state.target.x = cx;
+    state.target.y = cy;
+    state.target.z = cz;
+    state.phi = nextPhi;
+    state.distance = nextDistance;
+    state.fov = nextFov;
 
-      // 縦 FOV 基準で「バウンディング球が収まる距離」を計算
-      const safeMargin =
-        typeof margin === "number" && margin > 0 ? margin : 1.15;
-      let desiredDistance =
-        (R * safeMargin) / Math.sin(half || (25 * Math.PI) / 180);
-      desiredDistance = clamp(desiredDistance, MIN_DISTANCE, MAX_DISTANCE);
+    // AutoOrbit 設定
+    autoOrbit.enabled = true;
+    autoOrbit.direction = direction >= 0 ? 1 : -1;
+    autoOrbit.speedLevel = clampAutoOrbitSpeedLevel(speedLevel);
+    autoOrbit.angularSpeed =
+      AUTO_ORBIT_SPEED_TABLE[autoOrbit.speedLevel];
 
-      // カメラ state 更新
-      state.target.x = cx;
-      state.target.y = cy;
-      state.target.z = cz;
-      state.phi = nextPhi;
-      state.distance = desiredDistance;
-      state.fov = nextFov;
-
-      // AutoOrbit 設定
-      autoOrbit.enabled = true;
-      autoOrbit.direction = direction >= 0 ? 1 : -1;
-      autoOrbit.speedLevel = clampAutoOrbitSpeedLevel(speedLevel);
-      autoOrbit.angularSpeed =
-        AUTO_ORBIT_SPEED_TABLE[autoOrbit.speedLevel];
-
-      return state;
+    return state;
     },
 
     /**

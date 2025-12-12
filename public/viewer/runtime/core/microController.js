@@ -104,9 +104,14 @@ function resolveEndpointPosition(end, indices) {
   // 参照（ref）優先
   const ref = typeof end.ref === "string" ? end.ref : null;
   if (ref) {
-    const posMap = indices.pointPosition;
-    if (posMap instanceof Map) {
-      const p = posMap.get(ref);
+    const pointPos = indices.pointPosition;
+    if (pointPos instanceof Map) {
+      const p = pointPos.get(ref);
+      if (p) return p;
+    }
+    const auxPos = indices.auxPosition;
+    if (auxPos instanceof Map) {
+      const p = auxPos.get(ref);
       if (p) return p;
     }
 
@@ -381,6 +386,11 @@ function buildBaseMicroState(selection, indices) {
 // - modeController / viewerHub から直接呼び出しても OK
 // - いまのところ cameraState は使っていない（将来の拡張用に残す）
 export function computeMicroState(selection, _cameraState, indices) {
+  if (!selection || !selection.uuid) {
+    // micro OFF なので何もしない（ログも出さない）
+    return null;
+  }
+  
   const effectiveIndices =
     indices && indices.uuidToKind instanceof Map ? indices : null;
 
@@ -394,6 +404,7 @@ export function computeMicroState(selection, _cameraState, indices) {
 
   if (!base || !base.kind || !effectiveIndices) {
     console.warn("[micro] base invalid", {
+      selection,
       base,
       hasIndices: !!effectiveIndices,
     });

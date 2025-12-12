@@ -63,20 +63,33 @@ export class KeyboardInput {
   }
 
   // AutoOrbit が走っていたら止める共通ヘルパ
+// viewer/ui/keyboardInput.js
+
+  // AutoOrbit が走っていたら止める共通ヘルパ
   stopAutoCamera() {
     const hub = this.hub;
-    if (!hub || !hub.core) return;
+    if (!hub) return;
 
-    const camera = hub.core.camera || hub.core.cameraEngine;
-    if (camera && typeof camera.stopAutoOrbit === "function") {
-      camera.stopAutoOrbit();
+    // ① dev harness の AutoOrbit UI があればそっちを優先
+    if (hub.autoOrbit && typeof hub.autoOrbit.stop === "function") {
+      hub.autoOrbit.stop();
+      return;
     }
 
-    const runtime = hub.core.uiState && hub.core.uiState.runtime;
-    if (runtime) {
-      runtime.isCameraAuto = false;
+    // ② フォールバック：UI 不在時は camera 直たたき
+    if (hub.core) {
+      const camera = hub.core.camera || hub.core.cameraEngine;
+      if (camera && typeof camera.stopAutoOrbit === "function") {
+        camera.stopAutoOrbit();
+      }
+
+      const runtime = hub.core.uiState && hub.core.uiState.runtime;
+      if (runtime) {
+        runtime.isCameraAuto = false;
+      }
     }
   }
+
 
   onKeyDown(ev) {
     const key = ev.key;

@@ -5,16 +5,12 @@
     "document_uuid": "00000000-0000-0000-0000-000000000000",
     "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json",
     "author": "qoboqobo",
-    "version": "1.1.0",
+    "version": "1.0.0",
     "tags": [
       "s:sample",
       "m:time-arrow",
       "x:debug"
-    ],
-    "coordinate_system": "Z+up/freeXY",
-    "units": "non_si:px",
-    "i18n": "ja",
-    "updated_at": "2025-12-12T00:00:00Z"
+    ]
   },
   "points": [
     {
@@ -27,16 +23,11 @@
           -24,
           -8.0
         ],
-        "visible": true,
-        "marker": {
-          "primitive": "none",
-          "text": {
-            "content": "test",
-            "size": 64,
-            "plane": "billboard",
-            "align": "center&middle"
-          }
-        }
+        "text": {
+          "content": "test",
+          "size": 64
+        },
+        "visible": true
       },
       "meta": {
         "uuid": "181e63f9-7966-4a0d-96ad-e1569442b8a5",
@@ -65,12 +56,6 @@
           ],
           "common": {
             "color": "#66ff66"
-          },
-          "text": {
-            "content": "P02",
-            "size": 64,
-            "plane": "zx",
-            "align": "center&middle"
           }
         },
         "visible": true
@@ -99,12 +84,6 @@
           "height": 8.0,
           "common": {
             "color": "#6666ff"
-          },
-          "text": {
-            "content": "P03",
-            "size": 32,
-            "plane": "xy",
-            "align": "center&middle"
           }
         },
         "visible": true
@@ -136,12 +115,6 @@
           "height": 7.0,
           "common": {
             "color": "#ffcc66"
-          },
-          "text": {
-            "content": "P04",
-            "size": 64,
-            "plane": "yz",
-            "align": "center&middle"
           }
         },
         "visible": true,
@@ -174,12 +147,6 @@
           "radius": 4.0,
           "common": {
             "color": "#66ccff"
-          },
-          "text": {
-            "content": "P05",
-            "size": 10,
-            "plane": "billboard",
-            "align": "center&middle"
           }
         },
         "visible": true
@@ -211,12 +178,6 @@
           ],
           "common": {
             "color": "#ff66cc"
-          },
-          "text": {
-            "content": "P06",
-            "size": 10,
-            "plane": "billboard",
-            "align": "center&middle"
           }
         },
         "visible": true
@@ -245,12 +206,6 @@
           "height": 8.0,
           "common": {
             "color": "#ff6666"
-          },
-          "text": {
-            "content": "P07",
-            "size": 10,
-            "plane": "billboard",
-            "align": "center&middle"
           }
         },
         "visible": true
@@ -282,12 +237,6 @@
           "height": 7.0,
           "common": {
             "color": "#66ff66"
-          },
-          "text": {
-            "content": "P08",
-            "size": 10,
-            "plane": "billboard",
-            "align": "center&middle"
           }
         },
         "visible": true,
@@ -319,12 +268,6 @@
           "radius": 4.0,
           "common": {
             "color": "#6666ff"
-          },
-          "text": {
-            "content": "P09",
-            "size": 10,
-            "plane": "billboard",
-            "align": "center&middle"
           }
         },
         "visible": true
@@ -356,12 +299,6 @@
           ],
           "common": {
             "color": "#ffcc66"
-          },
-          "text": {
-            "content": "P10",
-            "size": 10,
-            "plane": "billboard",
-            "align": "center&middle"
           }
         },
         "visible": true
@@ -390,12 +327,6 @@
           "height": 8.0,
           "common": {
             "color": "#66ccff"
-          },
-          "text": {
-            "content": "P11",
-            "size": 10,
-            "plane": "billboard",
-            "align": "center&middle"
           }
         },
         "visible": true
@@ -427,12 +358,6 @@
           "height": 7.0,
           "common": {
             "color": "#ff66cc"
-          },
-          "text": {
-            "content": "P12",
-            "size": 10,
-            "plane": "billboard",
-            "align": "center&middle"
           }
         },
         "visible": true,

@@ -110,6 +110,144 @@ function parseMajorFromSemver(v) {
   const m = v.trim().match(/^(\d+)\./);
   return m ? Number(m[1]) || null : null;
 }
+// ------------------------------------------------------------
+// 多言語テキスト helper（これはそのまま残す）
+// ------------------------------------------------------------
+function pickLocalizedText(raw, langCode) {
+  const norm = (s) => {
+    if (typeof s !== "string") return null;
+    const t = s.trim();
+    return t.length > 0 ? t : null;
+  };
+
+  if (raw == null) return null;
+
+  if (typeof raw === "string") {
+    return norm(raw);
+  }
+
+  if (typeof raw === "object") {
+    const primaryLang =
+      langCode === "en" || langCode === "ja" ? langCode : "ja";
+
+    const primary = norm(raw[primaryLang]);
+    if (primary) return primary;
+
+    const fallbackLang = primaryLang === "ja" ? "en" : "ja";
+    const fallback = norm(raw[fallbackLang]);
+    if (fallback) return fallback;
+  }
+
+  return null;
+}
+
+function resolveI18n(value, lang = "ja") {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object") {
+    return value[lang] || value.ja || value.en || "";
+  }
+  return "";
+}
+
+// ------------------------------------------------------------
+// document_meta / scene_meta → documentCaption(title/body) 正規化
+//   - 新: document_meta.document_title / document_summary
+//   - 旧: document_meta.scene_title / scene_body
+//   - さらにルート直下の scene_meta.* も全部 fallback として見る
+// ------------------------------------------------------------
+function deriveDocumentCaptionForViewer(struct) {
+  if (!struct || typeof struct !== "object") return null;
+
+  const documentMeta =
+    struct.document_meta && typeof struct.document_meta === "object"
+      ? struct.document_meta
+      : null;
+
+  // 旧フォーマット互換用：ルート直下の scene_meta
+  const sceneMetaRoot =
+    struct.scene_meta && typeof struct.scene_meta === "object"
+      ? struct.scene_meta
+      : null;
+
+  // さらに古い「document_meta.scene」みたいなものも一応見る
+  const nestedScene =
+    documentMeta &&
+    documentMeta.scene &&
+    typeof documentMeta.scene === "object"
+      ? documentMeta.scene
+      : null;
+
+  // ---------------- i18n: 言語コード決定 ----------------
+  let langCode = "ja";
+  const i18nSource =
+    (documentMeta && documentMeta.i18n) ||
+    (sceneMetaRoot && sceneMetaRoot.i18n) ||
+    null;
+
+  if (typeof i18nSource === "string") {
+    langCode = i18nSource === "en" || i18nSource === "ja" ? i18nSource : "ja";
+  } else if (
+    i18nSource &&
+    typeof i18nSource.default_language === "string"
+  ) {
+    langCode = i18nSource.default_language;
+  }
+
+  // 候補フィールドを順に試すヘルパ
+  const tryFields = (pairs) => {
+    for (const [obj, key] of pairs) {
+      if (!obj || !key) continue;
+      const v = obj[key];
+      const t = pickLocalizedText(v, langCode);
+      if (t) return t;
+    }
+    return null;
+  };
+
+  const title =
+    tryFields([
+      // 新
+      [documentMeta, "document_title"],
+      // 旧 document_meta.*
+      [documentMeta, "scene_title"],
+      [documentMeta, "title"],
+      // ルート scene_meta.*
+      [sceneMetaRoot, "scene_title"],
+      [sceneMetaRoot, "title"],
+      // さらに古い document_meta.scene.*
+      [nestedScene, "scene_title"],
+      [nestedScene, "title"],
+      // おまけ
+      [struct, "document_title"],
+      [struct, "title"],
+    ]) || null;
+
+  const body =
+    tryFields([
+      // 新
+      [documentMeta, "document_summary"],
+      [documentMeta, "document_subtitle"],
+      // 旧 document_meta.*
+      [documentMeta, "scene_body"],
+      [documentMeta, "summary"],
+      // ルート scene_meta.*
+      [sceneMetaRoot, "scene_summary"],
+      [sceneMetaRoot, "summary"],
+      [sceneMetaRoot, "body"],
+      [sceneMetaRoot, "text"],
+      // さらに古い document_meta.scene.*
+      [nestedScene, "scene_summary"],
+      [nestedScene, "summary"],
+      [nestedScene, "body"],
+      [nestedScene, "text"],
+      // おまけ
+      [struct, "document_summary"],
+      [struct, "summary"],
+    ]) || "";
+
+  if (!title && !body) return null;
+  return { title, body };
+}
 
 // ------------------------------------------------------------
 // validator 初期化（1 回だけ）
@@ -213,11 +351,25 @@ function assertDocumentMetaCompatibility(doc) {
   const schemaId = info.id || null;
   const schemaMajor = info.major;
 
-  // viewer 仕様：schema_uri の一致（2.2.1, 6.3）
+  // viewer 側では schema_uri の「ベース URL」だけ見る。
+  // - schema 側: $id = "…/3DSS.schema.json"
+  // - ドキュメント側: "…/3DSS.schema.json#v1.0.3" などを許容
+  function normalizeSchemaBase(u) {
+    if (typeof u !== "string") return null;
+    let s = u.trim();
+    if (!s) return null;
+    const hashIndex = s.indexOf("#");
+    if (hashIndex >= 0) s = s.slice(0, hashIndex);
+    if (s.endsWith("/")) s = s.slice(0, -1);
+    return s;
+  }
+
   if (schemaId) {
-    if (schemaUri !== schemaId) {
+    const expectedBase = normalizeSchemaBase(schemaId);
+    const actualBase   = normalizeSchemaBase(schemaUri);
+    if (expectedBase && actualBase && expectedBase !== actualBase) {
       throw new Error(
-        `Unsupported schema_uri: expected "${schemaId}" but got "${schemaUri}"`
+        `Unsupported schema_uri: expected base "${expectedBase}" but got "${schemaUri}"`
       );
     }
   }
@@ -377,6 +529,30 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
 
   // 3DSS 構造データはここで immutable 化して以降は絶対に書き換えない
   const struct = deepFreeze(document3dss);
+
+  // 3DSS 本体から document_meta / scene_meta を抜き出し、
+  // viewer 用に title/body を正規化した documentCaption も作る
+  const documentMeta =
+    struct &&
+    typeof struct === "object" &&
+    struct.document_meta &&
+    typeof struct.document_meta === "object"
+      ? struct.document_meta
+      : null;
+
+  // 旧フォーマット互換用の raw scene_meta（v1 ではルート直下にある想定）
+  const scene_meta =
+    struct &&
+    typeof struct === "object" &&
+    struct.scene_meta &&
+    typeof struct.scene_meta === "object"
+      ? struct.scene_meta
+      : null;
+
+  const documentCaption = deriveDocumentCaptionForViewer(struct);
+
+  // 互換 alias（当面 core.sceneMeta でも取れるようにする）
+  const sceneMeta = documentCaption;
 
   const canvasEl = resolveCanvas(canvasOrId);
   debugBoot("[bootstrap] canvas resolved =", canvasEl);
@@ -576,7 +752,15 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   const core = {
     // 仕様上の struct 本体（3DSS 生データ）：immutable
     data: struct,
-    structIndex,          // ★ ここで初めて structIndex を載せる
+    structIndex, // ★ ここで初めて structIndex を載せる
+
+    // 3DSS の document_meta + viewer 用キャプション
+    document_meta: documentMeta,   // raw document_meta
+    documentMeta,                  // camel alias
+    scene_meta,                    // raw scene_meta (旧フォーマット互換用)
+    documentCaption,               // viewer 用 { title, body }
+    // 互換 alias（現行 Host は core.sceneMeta から読んでいるため）
+    sceneMeta,
 
     uiState,
     cameraEngine,
@@ -642,7 +826,15 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   // }
 
   // dev viewer 起動ログ
-  if (options.devBootLog) {
+  //
+  // - options.devBootLog === true なら必ず出す
+  // - devBootLog が未指定で logger だけ渡されている場合も、
+  //   「dev 用起動ログを出す」前提で true 相当として扱う
+  const wantDevBootLog =
+    options.devBootLog ||
+    (typeof options.logger === "function" && options.devBootLog !== false);
+
+  if (wantDevBootLog) {
     emitDevBootLog(core, options);
   }
 

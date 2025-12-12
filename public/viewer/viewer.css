@@ -1,546 +1,791 @@
-    * {
-      box-sizing: border-box;
-    }
-
-    html,
-    body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-    }
-
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-        sans-serif;
-    }
-
-
-    /* カード本体 */
-    .promo-card {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      border-radius: 12px;
-      padding: 10px 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-
-      /* ガラスっぽい背景 */
-      background: radial-gradient(
-          circle at 10% 0%,
-          rgba(255, 255, 255, 0.18),
-          rgba(0, 0, 0, 0.86)
-        );
-      background-color: rgba(0, 0, 0, 0.55);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow:
-        0 0 16px rgba(0, 0, 0, 0.7),
-        0 0 0 1px rgba(255, 255, 255, 0.04);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-
-      color: #eef3ff;
-      text-decoration: none;
-      cursor: pointer;
-      pointer-events: auto;
-    }
-
-    /* タイトル／サブテキスト */
-    .promo-title {
-      font-size: 13px;
-      font-weight: 600;
-      line-height: 1.4;
-    }
-
-    .promo-sub {
-      font-size: 10px;
-      opacity: 0.8;
-      line-height: 1.5;
-    }
-
-    /* 本文ブロック（必要なら使う用） */
-    .promo-body {
-      flex: 1 1 auto;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      justify-content: space-between;
-    }
-
-    /* タグ（今のマークアップで使わなくても残しておくなら） */
-    .promo-tag {
-      align-self: flex-start;
-      padding: 1px 8px;
-      border-radius: 999px;
-      font-size: 9px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      border: 1px solid rgba(180, 210, 255, 0.7);
-      background: rgba(10, 20, 40, 0.9);
-      color: rgba(210, 230, 255, 0.95);
-    }
-
-    /* 流れるテキスト（ティッカー） */
-    .promo-ticker-shell {
-      position: relative;
-      overflow: hidden;
-      border-radius: 999px;
-      border: 1px solid rgba(190, 215, 255, 0.4);
-      background: linear-gradient(
-        to right,
-        rgba(200, 225, 255, 0.18),
-        rgba(20, 32, 64, 0.9)
-      );
-      padding: 2px 6px;
-    }
-
-    .promo-ticker-line {
-      display: inline-block;
-      white-space: nowrap;
-      font-size: 10px;
-      opacity: 0.85;
-      animation: promoTickerScroll 14s linear infinite;
-    }
-
-    .promo-ticker-line span + span {
-      margin-left: 32px;
-    }
-
-    @keyframes promoTickerScroll {
-      0% {
-        transform: translateX(0%);
-      }
-      100% {
-        transform: translateX(-50%);
-      }
-    }
-
-    /* フッター＋ボタン */
-    .promo-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-top: 4px;
-      font-size: 10px;
-      opacity: 0.85;
-    }
-
-    .promo-meta {
-      font-size: 9px;
-      opacity: 0.7;
-    }
-
-    .promo-cta {
-      padding: 3px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(220, 235, 255, 0.9);
-      background: radial-gradient(
-        circle at 30% 0%,
-        rgba(255, 255, 255, 0.85),
-        rgba(180, 210, 255, 0.3)
-      );
-      color: #001020;
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      box-shadow: 0 0 8px rgba(180, 220, 255, 0.9);
-    }
-
-    .promo-cta:hover {
-      box-shadow:
-        0 0 10px rgba(200, 235, 255, 1),
-        0 0 0 1px rgba(220, 240, 255, 0.9);
-    }
-
-    /* =========================================================
-    *  右側メタ情報エリア
-    * ======================================================= */
-
-    /* viewer_dev.css 等 */
-
-    .detail-panel {
-      font-size: 11px;
-      line-height: 1.4;
-      color: #ddd;
-    }
-
-    .detail-header {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      margin-bottom: 4px;
-      border-bottom: 1px solid #444;
-      padding-bottom: 4px;
-    }
-
-    .detail-kind {
-      font-weight: 600;
-      opacity: 0.7;
-    }
-
-    .detail-name {
-      font-weight: 600;
-    }
-
-    .detail-body {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .detail-section {
-      margin-bottom: 4px;
-    }
-
-    .detail-summary .detail-row {
-      display: grid;
-      grid-template-columns: minmax(0, 90px) minmax(0, 1fr);
-      gap: 2px 6px;
-      margin-bottom: 2px;
-    }
-
-    .detail-key {
-      opacity: 0.7;
-      white-space: nowrap;
-    }
-
-    .detail-value {
-      word-break: break-all;
-    }
-
-    .detail-json {
-      background: #050505;
-      border: 1px solid #333;
-      padding: 4px;
-      max-height: 260px;
-      overflow: auto;
-      font-family: "SF Mono", Menlo, Consolas, monospace;
-      font-size: 10px;
-    }
-
-    #viewer-meta pre {
-      margin: 4px 0 0 0;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-        "Liberation Mono", "Courier New", monospace;
-      font-size: 10px;
-    }
-
-    /* =========================================================
-    *  HUD（トースト）
-    * ======================================================= */
-    #viewer-hud {
-      /* ベースの背景色だけ CSS 側で持つ（クラスで上書きも可） */
-      background: rgba(0, 0, 0, 0.85);
-    }
-
-    #viewer-hud[data-status="error"] {
-      border-color: #f66;
-      color: #fdd;
-      background: #400;
-    }
-
-    /* HUD トースト：状態クラスだけプレーン CSS で制御 */
-    #viewer-hud.hud-visible {
-      opacity: 1;
-      --tw-translate-y: 0;        /* Tailwind の transform 用変数を上書き */
-    }
-
-    #viewer-hud.hud-hidden {
-      opacity: 0;
-      --tw-translate-y: -0.5rem;  /* = translate-y-2 相当（少し上へ引っ込める） */
-    }
-
-    /* 色だけ状態ごとに切り替え（JS から .hud-info / .hud-warn / .hud-error を付ける想定） */
-    #viewer-hud.hud-info {
-      background: rgba(0, 0, 0, 0.85);
-    }
-
-    #viewer-hud.hud-warn {
-      background: rgba(190, 140, 32, 0.9);
-    }
-
-    #viewer-hud.hud-error {
-      background: rgba(180, 32, 32, 0.9);
-    }
-
-    /* エラー時だけ枠＆文字色強めにしたいなら（必要なら） */
-    #viewer-hud[data-status="error"] {
-      border-color: #f66;
-      color: #fdd;
-    }
-
-    /* =========================================================
-    *  下部ツールバー（frame / 再生 / filter）
-    * ======================================================= */
-    #viewer-toolbar {
-      pointer-events: auto;
-    }
-
-    /* 複数フレームなし → 全体をうっすらグレーアウト（JS から .frame-single が付く想定） */
-    .frame-block.frame-single {
-      opacity: 0.35;
-    }
-
-    /* =========================================================
-    *  filter トグル（左上縦積み）Tailwind ベース。状態だけ CSS で持つ
-    * ======================================================= */
-    .filter-toggle.filter-off {
-      opacity: 0.3;
-    }
-
-    /* =========================================================
-    *  frame ボタン群（右上）
-    * ======================================================= */
-    #frame-controls .row-continuous,
-    #frame-controls .row-flip {
-      opacity: 0.4;
-      transition: opacity 0.15s ease-out;
-    }
-
-    #frame-controls.mode-continuous .row-continuous,
-    #frame-controls.mode-flip .row-flip {
-      opacity: 1;
-    }
-
-    /* =========================================================
-    *  frame スライダ（ゼロ基準ゲージ / タイムライン）
-    * ======================================================= */
-
-    #frame-slider {
-      width: 8vw;
-      min-width: 160px;
-      max-width: 260px;
-
-      --frame-zero-frac: 0.5;        /* 0 がレンジ内のどこか（0.0〜1.0） */
-      --frame-track-height: 4px;
-      --frame-zero-width: 2px;
-
-      -webkit-appearance: none;
-      appearance: none;
-      height: var(--frame-track-height);
-      border-radius: 999px;
-      background: transparent;
-    }
-
-    /* WebKit */
-    #frame-slider::-webkit-slider-runnable-track {
-      height: var(--frame-track-height);
-      border-radius: 999px;
-      background: #444;
-    }
-
-    #frame-slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #ffffff;
-      border: 1px solid rgba(0, 0, 0, 0.6);
-      margin-top: calc(-0.5 * var(--frame-track-height));
-      box-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
-      cursor: pointer;
-    }
-
-    /* Firefox */
-    #frame-slider::-moz-range-track {
-      height: var(--frame-track-height);
-      border-radius: 999px;
-      background: #444;
-    }
-
-    #frame-slider::-moz-range-thumb {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #ffffff;
-      border: 1px solid rgba(0, 0, 0, 0.6);
-      box-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
-      cursor: pointer;
-    }
-
-    /* gauge モード：中央 0 の基準線を強調 */
-    #frame-slider.frame-mode-gauge::-webkit-slider-runnable-track {
-      background:
-        linear-gradient(#ffffff, #ffffff) no-repeat,
-        linear-gradient(#444444, #444444);
-      background-size:
-        var(--frame-zero-width) 100%,
-        100% 100%;
-      background-position:
-        calc(var(--frame-zero-frac) * 100%) 0,
-        0 0;
-    }
-
-    #frame-slider.frame-mode-gauge::-moz-range-track {
-      background:
-        linear-gradient(#ffffff, #ffffff) no-repeat,
-        linear-gradient(#444444, #444444);
-      background-size:
-        var(--frame-zero-width) 100%,
-        100% 100%;
-      background-position:
-        calc(var(--frame-zero-frac) * 100%) 0,
-        0 0;
-    }
-
-    /* timeline モード：左→右の動画バー風 */
-    #frame-slider.frame-mode-timeline::-webkit-slider-runnable-track {
-      background: linear-gradient(
-        to right,
-        rgba(255, 255, 255, 0.55),
-        rgba(255, 255, 255, 0.12)
-      );
-    }
-
-    #frame-slider.frame-mode-timeline::-moz-range-track {
-      background: linear-gradient(
-        to right,
-        rgba(255, 255, 255, 0.55),
-        rgba(255, 255, 255, 0.12)
-      );
-    }
-
-    /* =========================================================
-    *  共通ボタンスタイル
-    * ======================================================= */
-    .keycap {
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      background: rgba(0, 0, 0, 0.8);
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-        "Liberation Mono", "Courier New", monospace;
-    }
-
-    .keycap:hover {
-      background: rgba(255, 255, 255, 0.18);
-    }
-
-    /* =========================================================
-    *  カメラモード表示（右下）
-    * ======================================================= */
-    /* mode-pill の「active の見た目」だけ残す */
-    .mode-pill-active {
-      background: rgba(255, 255, 255, 0.85);
-      color: #000000;
-      opacity: 1;
-    }
-
-    /* =========================================================
-    *  Gizmo 本体
-    * ======================================================= */
-    /* HOME ボタン（左上） */
-    #gizmo-home {
-      position: absolute;
-      left: 4px;
-      top: 4px;
-      padding: 1px 8px;
-      font-size: 9px;
-      line-height: 1.4;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      background: rgba(0, 0, 0, 0.8);
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-      cursor: pointer;
-    }
-
-    #gizmo-home:hover {
-      background: rgba(255, 255, 255, 0.18);
-    }
-
-    .gizmo-axis {
-      width: 22px;
-      height: 22px;
-      font-size: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      background: rgba(0, 0, 0, 0.8);
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-      cursor: pointer;
-    }
-
-    .gizmo-axis:hover {
-      background: rgba(255, 255, 255, 0.18);
-    }
-
-    /* Gizmo サブキャンバスの中身だけ CSS で維持 */
-    #gizmo-slot canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-
-    #gizmo-slot svg {
-      pointer-events: none;
-    }
-
-    #gizmo-wrapper button,
-    #gizmo-wrapper .keycap,
-    #gizmo-wrapper .gizmo-axis {
-      pointer-events: auto;
-      position: relative;
-      z-index: 30;
-    }
-
-    /* preset view トグル（右下 row 内の pill） */
-    #gizmo-presets-toggle {
-      padding: 2px 10px;
-      font-size: 10px;
-      line-height: 1.4;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      background: rgba(0, 0, 0, 0.8);
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-      cursor: pointer;
-    }
-
-    #gizmo-presets-toggle:hover {
-      background: rgba(255, 255, 255, 0.18);
-    }
-
-    /* =========================================================
-    *  座標軸トグル + AutoOrbit + preset view（右下一列）
-    * ======================================================= */
-
-    /* coord. トグル：見た目は Tailwind。visible 状態だけ CSS で制御 */
-    #world-axes-toggle[data-visible="true"] {
-      background: rgba(255, 255, 255, 0.12);
-    }
-
-    #world-axes-toggle[data-visible="true"] [data-icon="off"],
-    #world-axes-toggle[data-visible="false"] [data-icon="on"] {
-      display: none;
-    }
-
-    /* AutoOrbit：位置・サイズ・フォント等は Tailwind。mode による表示切替だけ CSS */
-
-    .auto-orbit-slot[data-mode="collapsed"] .auto-orbit-controls {
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .auto-orbit-slot[data-mode="collapsed"] .auto-orbit-pill {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .auto-orbit-slot[data-mode="expanded"] .auto-orbit-controls {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .auto-orbit-slot[data-mode="expanded"] .auto-orbit-pill {
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .auto-orbit-pill,
-    .auto-orbit-controls {
-      transition: opacity 0.15s ease-out;
-    }
+/* =========================================================
+ *  Global base
+ * ======================================================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+/* メタエリア全体：等幅＋ちょい端末っぽい色味に */
+#viewer-meta {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 11px;
+  color: #d6ffe0;
+}
+
+/* FILE ブロック：カード化＋高さは内容に合わせる */
+#meta-file {
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 255, 140, 0.45);
+
+  /* 変な min-height があっても潰す */
+  min-height: 0;
+}
+
+/* File ラベルを “ゾーン名” として強調 */
+#meta-file h3 {
+  margin: 0 0 4px 0;
+  padding-bottom: 2px;
+  font-size: 18px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+
+  color: #ffe480; /* 黄系で見出し感 */
+  border-bottom: 1px solid rgba(255, 232, 128, 0.4);
+}
+
+/* 中の各行 */
+#meta-file > div {
+  line-height: 1.3;
+}
+
+/* MODEL パネル全体：等幅系フォントでログ感を出す */
+#meta-model {
+  font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+/* 見出し "MODEL" 自体もちょっとラベルっぽく */
+#meta-model h3 {
+  margin: 0 0 4px 0;
+  padding-bottom: 2px;
+  font-size: 18px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #ffe480;
+  border-bottom: 1px solid rgba(255, 232, 128, 0.3);
+}
+
+/* ログ 1 レコード */
+.model-log-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.model-log-row--stacked {
+  flex-direction: column;
+}
+
+/* ラベルピル */
+.model-log-label {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid #3dee7b;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+/* ラベル種別ごとの色を変えたかったらここで微調整 */
+.model-log-label--boot   { border-color: #3dee7b; }
+.model-log-label--model  { border-color: #3db7ee; }
+.model-log-label--camera { border-color: #ee8a3d; }
+.model-log-label--layers { border-color: #eedd3d; }
+.model-log-label--frame  { border-color: #d13dee; }
+
+/* 本文 */
+.model-log-text {
+  line-height: 1.4;
+}
+
+/* MODEL のフルパス：横に長くなりがちなので省略記号付き */
+.model-log-mono {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.model-log-placeholder {
+  opacity: 0.5;
+}
+
+/* =========================================================
+ *  Promo card（右上）
+ * ======================================================= */
+ #promo-ticker-bar {
+   position: absolute;
+   top: 4px;                    /* HUD より上に寄せる */
+   left: 48%;
+   transform: translateX(-50%);
+   width: min(440px, 80vw);
+   z-index: 40;                 /* HUD より前面＝外側 */
+}
+
+.promo-ticker-shell {
+  overflow: hidden;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0.85),
+    rgba(0, 40, 0, 0.85)
+  );
+  font-size: 11px;
+  color: #f0fff0;
+}
+
+.promo-ticker-line {
+  display: inline-flex;
+  gap: 48px;
+  padding: 4px 16px;
+  white-space: nowrap;
+  animation: promo-ticker-marquee 24s linear infinite;
+}
+
+@keyframes promo-ticker-marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); } /* span の並べ方で調整 */
+}
+
+
+/* =========================================================
+ *  右側メタ情報エリア（detail パネル）
+ * ======================================================= */
+
+.detail-panel {
+  font-size: 12px;
+  line-height: 1.2;
+  color: #ddd;
+}
+
+.detail-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid #444;
+  padding-bottom: 44px;
+}
+
+.detail-kind {
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+.detail-name {
+  font-weight: 600;
+}
+
+.detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-section {
+  margin-bottom: 4px;
+}
+
+.detail-summary .detail-row {
+  display: grid;
+  grid-template-columns: minmax(0, 90px) minmax(0, 1fr);
+  gap: 2px 6px;
+  margin-bottom: 2px;
+}
+
+.detail-key {
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
+.detail-value {
+  word-break: break-all;
+}
+
+.detail-json {
+  background: #050505;
+  border: 1px solid #333;
+  padding: 4px;
+  max-height: 260px;
+  overflow: auto;
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10px;
+}
+
+/* =========================================================
+ *  Document caption（3D ビュー右上オーバーレイ）
+ * ======================================================= */
+
+.doc-caption-card {
+  position: absolute;
+  top: 1.75rem;     /* ticker のちょい下ぐらい。必要なら微調整 */
+  right: 1.75rem;
+  pointer-events: none;
+  color: rgb(229 229 229); /* text-neutral-200 相当 */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  text-align: right;
+  max-width: 22rem;
+  z-index: 35;      /* 3D より前, promo-ticker(40) より下 */
+}
+
+.doc-caption-title {
+  font-size: 1.0rem;
+  font-weight: 600;
+  line-height: 1.3;
+  padding-bottom: 0.2rem;
+  margin-bottom: 0.2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.55);
+  text-shadow:
+    0 0 10px rgba(0, 0, 0, 0.9),
+    0 0 20px rgba(0, 0, 0, 0.7);
+}
+
+.doc-caption-body {
+  display: block;
+  max-width: 16em;       /* 全角 16 文字ぶんぐらいの幅を想定 */
+  white-space: normal;   /* 折り返し許可 */
+  word-break: break-all; /* 日本語でも途中で折って OK */
+  font-size: 0.8rem;
+  line-height: 1.5;
+  opacity: 0.9;
+  margin-left: auto;
+  text-shadow:
+    0 0 8px rgba(0, 0, 0, 0.8),
+    0 0 18px rgba(0, 0, 0, 0.6);
+}
+
+/* 教科書チックな明朝系フォントだけ doc-caption に適用 */
+#doc-caption-title,
+#doc-caption-body {
+  font-family:
+    "Yu Mincho",
+    "游明朝",
+    "BIZ UDMincho Medium",
+    "Hiragino Mincho ProN",
+    "Noto Serif JP",
+    "MS Mincho",
+    serif;
+  letter-spacing: 0.04em;
+}
+
+/* 使うなら隠しクラスも doc-caption に寄せる */
+.doc-caption-hidden {
+  display: none;
+}
+
+/* =========================================================
+ *  HUD（トースト）
+ * ======================================================= */
+
+#viewer-hud {
+  /* ベース背景（状態クラスで上書き可） */
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 30;
+}
+
+#viewer-hud.hud-visible {
+  opacity: 1;
+  --tw-translate-y: 0; /* Tailwind transform の Y を 0 に */
+}
+
+#viewer-hud.hud-hidden {
+  opacity: 0;
+  --tw-translate-y: -0.5rem; /* translate-y-2 相当 */
+}
+
+/* 色だけ状態ごとに切り替え */
+#viewer-hud.hud-info {
+  background: rgba(0, 0, 0, 0.85);
+}
+
+#viewer-hud.hud-warn {
+  background: rgba(190, 140, 32, 0.9);
+}
+
+#viewer-hud.hud-error {
+  background: rgba(180, 32, 32, 0.9);
+}
+
+/* data-status="error" が付いた時の枠・文字色強調 */
+#viewer-hud[data-status="error"] {
+  border-color: #f66;
+  color: #fdd;
+}
+
+/* =========================================================
+ *  下部ツールバー（frame + viewer settings）
+ * ======================================================= */
+
+/* 全体クリック可に */
+#viewer-toolbar {
+  pointer-events: auto;
+}
+
+/* 「単一フレーム」のとき少しグレーアウト */
+.frame-block.frame-single {
+  opacity: 0.35;
+}
+
+/* filter 3 連トグル */
+.filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #f5f5f5;
+}
+
+/* SVG は黒なので、反転して白＋少し明るめにする */
+.filter-icon-img {
+  width: 20px;
+  height: 20px;
+  display: block;
+  filter: invert(1) brightness(1.4);
+}
+
+/* デフォルトは「on アイコンだけ表示」 */
+.filter-icon-off {
+  display: none;
+}
+
+.filter-toggle.filter-off .filter-icon-on {
+  display: none;
+}
+
+.filter-toggle.filter-off .filter-icon-off {
+  display: inline-flex;
+}
+
+/* off 状態だけ少し暗く */
+.filter-toggle.filter-off {
+  opacity: 0.4;
+}
+
+/* 再生ボタン内のアイコン共通 */
+.frame-play-icon,
+.frame-pause-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 初期状態：play だけ表示、pause は隠す */
+#btn-play .frame-play-icon {
+  display: inline-flex;
+}
+#btn-play .frame-pause-icon {
+  display: none;
+}
+
+/* 再生中：.is-playing が付いたら逆転 */
+#btn-play.is-playing .frame-play-icon {
+  display: none;
+}
+#btn-play.is-playing .frame-pause-icon {
+  display: inline-flex;
+}
+
+/* フレーム操作行のフェード（continuous モードだけ濃く） */
+.frame-controls {
+  opacity: 0.4;
+  transition: opacity 0.15s ease-out;
+}
+
+.frame-controls.mode-continuous {
+  opacity: 1;
+}
+
+/* =========================================
+ *  Frame スライダ（長さ固定版）
+ * ======================================= */
+
+.frame-slider-wrapper {
+  position: relative;
+  display: inline-block;       /* ← これが肝。wrapper 幅 = slider 幅 に揃える */
+  --frame-zero-frac: 0.5;      /* 0 ラベル位置（0.0〜1.0） */
+  --frame-value-frac: 0;       /* 現在値ラベル位置（0.0〜1.0） */
+}
+
+.frame-slider {
+  width: 260px;                /* ← バーの長さを固定 */
+  --frame-track-height: 12px;
+
+  -webkit-appearance: none;
+  appearance: none;
+  height: var(--frame-track-height);
+  border-radius: 999px;
+  background: transparent;
+}
+
+/* WebKit トラック */
+.frame-slider::-webkit-slider-runnable-track {
+  height: var(--frame-track-height);
+  border-radius: 999px;
+  background: #444;
+}
+
+/* WebKit サム（thumb）は透明にして、上からラベルをかぶせる */
+.frame-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  margin-top: calc(-0.5 * var(--frame-track-height));
+  box-shadow: none;
+  cursor: pointer;
+}
+
+/* Firefox トラック */
+.frame-slider::-moz-range-track {
+  height: var(--frame-track-height);
+  border-radius: 999px;
+  background: #444;
+}
+
+/* Firefox サム */
+.frame-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+/* 現在 frameNo 丸ラベル：値と連動して左右に動く */
+.frame-label-current {
+  position: absolute;
+  top: -2px; /* トラック中心にかぶるよう微調整 */
+  left: calc(var(--frame-value-frac) * 100%);
+  transform: translateX(-50%);
+  min-width: 22px;
+  height: 22px;
+  padding: 0 4px;
+  border-radius: 999px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 12px;
+  font-weight: 900;
+  background: #ffffff;
+  color: #000000;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* min / 0 / max ラベルと 0 縦線（バーの下） */
+.frame-labels {
+  position: relative;
+  margin-top: 8px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.frame-label {
+  position: absolute;
+  white-space: nowrap;
+}
+
+/* min：左端 */
+.frame-label-min {
+  left: 0;
+  transform: translateX(0);
+}
+
+/* max：右端 */
+.frame-label-max {
+  right: 0;
+  transform: translateX(0);
+}
+
+/* 0：JS が表示制御＆位置更新（0〜1 の frac） */
+.frame-label-zero {
+  left: calc(var(--frame-zero-frac) * 100%);
+  transform: translateX(-50%);
+}
+
+/* 0 の縦線目盛り */
+#frame-zero-line {
+  position: absolute;
+  top: -24px;
+  bottom: -2px;
+  width: 2px;
+  left: calc(var(--frame-zero-frac) * 100%);
+  transform: translateX(-50%);
+  background: #0000ff;
+  opacity: 0.5;
+}
+
+/* gauge / timeline モードのトラック見た目 */
+.frame-slider.frame-mode-gauge::-webkit-slider-runnable-track {
+  background: #444;
+}
+.frame-slider.frame-mode-gauge::-moz-range-track {
+  background: #444;
+}
+
+.frame-slider.frame-mode-timeline::-webkit-slider-runnable-track {
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.55),
+    rgba(255, 255, 255, 0.12)
+  );
+}
+.frame-slider.frame-mode-timeline::-moz-range-track {
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.55),
+    rgba(255, 255, 255, 0.12)
+  );
+}
+
+
+/* =========================================================
+ *  共通ボタン（keycap）
+ * ======================================================= */
+
+.keycap {
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.8);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+}
+
+.keycap:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* カメラモードの pill が active のとき */
+.mode-pill-active {
+  background: rgba(255, 255, 255, 0.85);
+  color: #000000;
+  opacity: 1;
+}
+
+/* =========================================================
+ *  Gizmo 本体（右下）
+ * ======================================================= */
+
+/* HOME ボタン（左上） */
+#gizmo-home {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  padding: 1px 8px;
+  font-size: 9px;
+  line-height: 1.4;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.8);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+}
+
+#gizmo-home:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* 軸ボタン（X/Y/Z） */
+.gizmo-axis {
+  width: 22px;
+  height: 22px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.8);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+}
+
+.gizmo-axis:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* Gizmo サブキャンバス */
+#gizmo-slot canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#gizmo-slot svg {
+  pointer-events: none;
+}
+
+/* Gizmo 内のボタン類は pointer-events 有効に */
+#gizmo-wrapper button,
+#gizmo-wrapper .keycap,
+#gizmo-wrapper .gizmo-axis {
+  pointer-events: auto;
+  position: relative;
+  z-index: 30;
+}
+
+/* モード表示（右上テキスト） */
+#gizmo-wrapper .gizmo-mode-indicator {
+  font-size: 11px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+#gizmo-mode-label {
+  text-transform: lowercase;
+  letter-spacing: 0.12em;
+  font-weight: 500;
+}
+
+/* preset view トグル（右下 row 内の pill） */
+#gizmo-presets-toggle {
+  padding: 2px 10px;
+  font-size: 10px;
+  line-height: 1.4;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.8);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+}
+
+#gizmo-presets-toggle:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* coord. アイコン共通（world-axis） */
+.coordinate-icon-img {
+  width: 20px;
+  height: 20px;
+  display: block;
+  filter: invert(1) brightness(1.4); /* 黒SVG → 明るい白 */
+}
+
+/* world-axis pill 自体を少し大きめに */
+#world-axes-toggle {
+  padding-inline: 0.5rem; /* px-2 相当 */
+  padding-block: 0.25rem; /* py-1 相当 */
+  font-size: 12px;
+}
+
+/* world-axis 中のアイコンだけ 1.2 倍 (20→24) */
+#world-axes-toggle .coordinate-icon-img {
+  width: 24px;
+  height: 24px;
+}
+
+/* data-visible に応じて on/off 切り替え */
+#world-axes-toggle [data-icon] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#world-axes-toggle[data-visible="true"] [data-icon="off"],
+#world-axes-toggle[data-visible="false"] [data-icon="on"] {
+  display: none;
+}
+
+/* =========================================================
+ *  AutoOrbit（右下：CW / auto / CCW）
+ * ======================================================= */
+
+/* 本体コンテナ */
+.auto-orbit-slot {
+  width: 100px;
+  height: 30px;
+}
+
+.auto-orbit-pill {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: stretch;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.7);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+/* ボタン共通 */
+.auto-orbit-btn {
+  border: none;
+  background: transparent;
+  color: #fdfdfd;
+  padding: 0;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.auto-orbit-btn:focus {
+  outline: none;
+}
+
+/* 左右の矢印ボタン */
+.auto-orbit-btn-dir {
+  width: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: transparent;
+}
+
+/* 回転中：選択されている向きだけ薄いピンク */
+.auto-orbit-btn-dir.is-running {
+  background: rgba(255, 182, 210, 0.32);
+}
+
+/* 倍速時：そのボタンだけ濃いピンク */
+.auto-orbit-btn-dir.is-running.is-fast {
+  background: rgba(255, 105, 180, 0.65);
+}
+
+/* AutoOrbit アイコン（SVG img 用） */
+.auto-orbit-icon-img {
+  width: 24px;
+  height: 24px;
+  display: block;
+  filter: invert(1) brightness(1.4);
+}
+
+/* 中央の autoOrbit ボタン */
+.auto-orbit-center {
+  flex: 0 0 auto;
+  min-width: 36px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 6px;
+  font-size: 10px;
+}
+
+.auto-orbit-text-top {
+  font-size: 10px;
+  line-height: 1.05;
+  text-align: left;
+}
+
+.auto-orbit-text-bottom {
+  font-size: 10px;
+  line-height: 1.05;
+  text-align: right;
+}
