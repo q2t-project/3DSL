@@ -1,32 +1,31 @@
-// tools/check-invariants.mjs
+// scripts/check-invariants.mjs
 // Node >= 18
 
 import fs from "node:fs";
 import path from "node:path";
 
 const ROOT = process.cwd();
+const VIEWER_ROOT = path.join(ROOT, "public", "viewer");
 
+if (!fs.existsSync(VIEWER_ROOT)) {
+  console.error(`Invariant check FAILED: viewer root not found: ${VIEWER_ROOT}`);
+  process.exit(1);
+}
+
+// viewer 配下だけを対象にする（Phase0）
 const SCAN_ROOTS = [
   "runtime/core",
   "runtime/renderer",
   "runtime",
   "ui",
-].map((p) => path.join(ROOT, p));
+].map((p) => path.join(VIEWER_ROOT, p));
 
+// 禁止依存（viewer runtime の層ルール）
 const LAYER_RULES = [
-  // core -> renderer / viewerHub / ui 禁止
   { from: "runtime/core", forbid: ["runtime/renderer", "runtime/viewerHub", "ui"] },
-
-  // renderer -> core / viewerHub / ui 禁止
   { from: "runtime/renderer", forbid: ["runtime/core", "runtime/viewerHub", "ui"] },
-
-  // viewerHub -> ui 禁止
   { from: "runtime/viewerHub", forbid: ["ui"] },
-
-  // bootstrap(entry扱い) -> ui 禁止
   { from: "runtime/bootstrap", forbid: ["ui"] },
-
-  // ui -> renderer 禁止（pick等は hub 経由に寄せる）
   { from: "ui", forbid: ["runtime/renderer"] },
 ];
 
@@ -45,32 +44,24 @@ function walk(dir, out = []) {
   return out;
 }
 
-function rel(p) {
-  return path.relative(ROOT, p).replaceAll("\\", "/");
+function relFromViewer(absPath) {
+  return path.relative(VIEWER_ROOT, absPath).replaceAll("\\", "/");
 }
 
-function layerOf(fileRel) {
-  if (fileRel.startsWith("runtime/core/")) return "runtime/core";
-  if (fileRel.startsWith("runtime/renderer/")) return "runtime/renderer";
-
-  // viewerHub の実体に合わせて必要なら調整
-  if (fileRel === "runtime/viewerHub.js" || fileRel.startsWith("runtime/viewerHub/")) return "runtime/viewerHub";
-
-  if (fileRel.startsWith("ui/")) return "ui";
-
-  // bootstrapViewer*.js を entry 扱い
-  if (fileRel.startsWith("runtime/bootstrapViewer")) return "runtime/bootstrap";
-
+function layerOf(viewerRel) {
+  if (viewerRel.startsWith("runtime/core/")) return "runtime/core";
+  if (viewerRel.startsWith("runtime/renderer/")) return "runtime/renderer";
+  if (viewerRel === "runtime/viewerHub.js") return "runtime/viewerHub";
+  if (viewerRel === "runtime/bootstrapViewer.js") return "runtime/bootstrap";
+  if (viewerRel.startsWith("ui/")) return "ui";
   return null;
 }
 
 function extractSpecifiers(src) {
   const specs = new Set();
-
   const reImport = /\bimport\s+(?:[\s\S]*?\s+from\s+)?["']([^"']+)["']/g;
   const reDyn = /\bimport\(\s*["']([^"']+)["']\s*\)/g;
   const reReq = /\brequire\(\s*["']([^"']+)["']\s*\)/g;
-
   for (const re of [reImport, reDyn, reReq]) {
     let m;
     while ((m = re.exec(src))) specs.add(m[1]);
@@ -79,10 +70,10 @@ function extractSpecifiers(src) {
 }
 
 function resolveImport(fromFileAbs, spec) {
-  // bare specifier は無視（three など）
+  // bare specifier（"three" 等）は無視
   if (!spec.startsWith(".") && !spec.startsWith("/")) return null;
 
-  // "/xxx" は project root 相対の可能性もあるが Phase0 では無視
+  // "/..." は public ルート相対の可能性があるけど、Phase0 は対象外にする
   if (spec.startsWith("/")) return null;
 
   const base = path.dirname(fromFileAbs);
@@ -99,25 +90,33 @@ const violations = [];
 const files = [];
 for (const r of SCAN_ROOTS) walk(r, files);
 
-for (const fileAbs of files) {
-  const fileRel = rel(fileAbs);
-  const layer = layerOf(fileRel);
-  if (!layer) continue;
+console.log(`[invariants] scan roots:`);
+for (const r of SCAN_ROOTS) console.log(`- ${r}`);
+console.log(`[invariants] scanned files: ${files.length}`);
+if (files.length === 0) {
+  console.error("Invariant check FAILED: scanned files = 0 (path mismatch?)");
+  process.exit(1);
+}
 
-  const src = fs.readFileSync(fileAbs, "utf8");
-  const specs = extractSpecifiers(src);
+for (const fileAbs of files) {
+  const viewerRel = relFromViewer(fileAbs);
+  const layer = layerOf(viewerRel);
+  if (!layer) continue;
 
   const rules = LAYER_RULES.find((x) => x.from === layer);
   if (!rules) continue;
+
+  const src = fs.readFileSync(fileAbs, "utf8");
+  const specs = extractSpecifiers(src);
 
   for (const spec of specs) {
     const targetAbs = resolveImport(fileAbs, spec);
     if (!targetAbs) continue;
 
     for (const forbidRel of rules.forbid) {
-      const forbidAbs = path.join(ROOT, forbidRel);
+      const forbidAbs = path.join(VIEWER_ROOT, forbidRel);
       if (startsWithDir(targetAbs, forbidAbs)) {
-        violations.push({ file: fileRel, spec, forbid: forbidRel });
+        violations.push({ file: viewerRel, spec, forbid: forbidRel });
       }
     }
   }
