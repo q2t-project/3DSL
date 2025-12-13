@@ -1,8 +1,0 @@
-{
-  "document_meta": {
-    "document_uuid": "not-a-uuid",
-    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.0",
-    "author": "uuid-check@example.com",
-    "version": "1.0.0"
-  }
-}

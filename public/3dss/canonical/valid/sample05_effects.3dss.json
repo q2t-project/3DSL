@@ -1,0 +1,46 @@
+{
+  "document_meta": {
+    "document_title": "canonical: line effects",
+    "document_summary": "pulse / flow / glow effects gate.",
+    "document_uuid": "55555555-5555-4555-8555-555555555555",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json",
+    "author": "canonical",
+    "version": "1.1.0",
+    "tags": ["s:canonical", "m:effects"],
+    "coordinate_system": "Z+up/freeXY",
+    "units": "non_si:px",
+    "i18n": "ja",
+    "updated_at": "2025-12-13T00:00:00Z"
+  },
+  "points": [
+    { "signification": { "name": "S" }, "appearance": { "position": [-12, 0, 0], "visible": true, "marker": { "primitive": "sphere", "radius": 2.0 } }, "meta": { "uuid": "55555555-5555-4555-8555-555555555501", "tags": ["s:node"] } },
+    { "signification": { "name": "T" }, "appearance": { "position": [12, 0, 0], "visible": true, "marker": { "primitive": "sphere", "radius": 2.0 } }, "meta": { "uuid": "55555555-5555-4555-8555-555555555502", "tags": ["s:node"] } }
+  ],
+  "lines": [
+    {
+      "signification": { "relation": { "dynamic": "flow" }, "sense": "a_to_b" },
+      "appearance": {
+        "end_a": { "ref": "55555555-5555-4555-8555-555555555501" },
+        "end_b": { "ref": "55555555-5555-4555-8555-555555555502" },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#66ff66",
+        "opacity": 0.8,
+        "arrow": { "primitive": "line", "length": 3.0, "thickness": 0.6 },
+        "visible": true,
+        "effect": {
+          "effect_type": "flow",
+          "amplitude": 1,
+          "speed": 1,
+          "duration": 1,
+          "loop": true,
+          "phase": 0,
+          "easing": "linear",
+          "width": 1.0
+        }
+      },
+      "meta": { "uuid": "55555555-5555-4555-8555-555555555503", "tags": ["s:edge"] }
+    }
+  ],
+  "aux": []
+}

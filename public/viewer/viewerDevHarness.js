@@ -7,7 +7,7 @@ import { PointerInput } from "./ui/pointerInput.js";
 import { KeyboardInput } from "./ui/keyboardInput.js";
 
 // baseline 起動時のデフォルト 3DSS
-const DEFAULT_MODEL = "/3dss/sample/core_viewer_baseline.3dss.json";
+const DEFAULT_MODEL = "/3dss/canonical/valid/sample02_mixed_basic.3dss.json";
 
 let viewerHub = null;
 let playTimer = null;

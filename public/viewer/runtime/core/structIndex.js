@@ -145,6 +145,8 @@ function addToMultiMap(map, key, value) {
 export function buildUUIDIndex(doc) {
   const uuidToKind = new Map();
   const uuidToItem = new Map();
+  const byUuid = new Map();
+
   const pointPosition = new Map();
   const lineEndpoints = new Map();
   const auxPosition = new Map();
@@ -154,6 +156,14 @@ export function buildUUIDIndex(doc) {
     points: new Map(),
     lines: new Map(),
     aux: new Map(),
+  };
+
+  // ★ frames 未指定（= 全フレーム共通）を高速に足せるようにする
+  const uuidsWithoutFrames = new Set(); // union
+  const uuidsWithoutFramesByKind = {
+    points: new Set(),
+    lines: new Set(),
+    aux: new Set(),
   };
 
   const adjacency = {
@@ -307,10 +317,11 @@ export function buildUUIDIndex(doc) {
         if (!node || typeof node !== "object") continue;
 
         const uuid = node?.meta?.uuid;
-        if (!uuid) continue;
+        if (typeof uuid !== "string" || !uuid) continue;
 
         uuidToKind.set(uuid, "points");
         uuidToItem.set(uuid, { kind: "points", item: node });
+        byUuid.set(uuid, node);
 
         const pos = sanitizeVec3(node?.appearance?.position);
         if (pos) {
@@ -322,6 +333,9 @@ export function buildUUIDIndex(doc) {
         if (framesSet) {
           uuidToFrames.set(uuid, framesSet);
           addFramesToFrameIndex(frameIndex.points, uuid, framesSet);
+        } else {
+          uuidsWithoutFrames.add(uuid);
+          uuidsWithoutFramesByKind.points.add(uuid);
         }
       }
     }
@@ -332,10 +346,11 @@ export function buildUUIDIndex(doc) {
         if (!node || typeof node !== "object") continue;
 
         const uuid = node?.meta?.uuid;
-        if (!uuid) continue;
+        if (typeof uuid !== "string" || !uuid) continue;
 
         uuidToKind.set(uuid, "aux");
         uuidToItem.set(uuid, { kind: "aux", item: node });
+        byUuid.set(uuid, node);
 
         const pos = sanitizeVec3(node?.appearance?.position);
         if (pos) {
@@ -347,6 +362,9 @@ export function buildUUIDIndex(doc) {
         if (framesSet) {
           uuidToFrames.set(uuid, framesSet);
           addFramesToFrameIndex(frameIndex.aux, uuid, framesSet);
+        } else {
+          uuidsWithoutFrames.add(uuid);
+          uuidsWithoutFramesByKind.aux.add(uuid);
         }
       }
     }
@@ -357,10 +375,11 @@ export function buildUUIDIndex(doc) {
         if (!node || typeof node !== "object") continue;
 
         const uuid = node?.meta?.uuid;
-        if (!uuid) continue;
+        if (typeof uuid !== "string" || !uuid) continue;
 
         uuidToKind.set(uuid, "lines");
         uuidToItem.set(uuid, { kind: "lines", item: node });
+        byUuid.set(uuid, node);
 
         const endA = node?.appearance?.end_a ?? null;
         const endB = node?.appearance?.end_b ?? null;
@@ -370,6 +389,9 @@ export function buildUUIDIndex(doc) {
         if (framesSet) {
           uuidToFrames.set(uuid, framesSet);
           addFramesToFrameIndex(frameIndex.lines, uuid, framesSet);
+        } else {
+          uuidsWithoutFrames.add(uuid);
+          uuidsWithoutFramesByKind.lines.add(uuid);
         }
 
         // adjacency: points ↔ lines
@@ -451,10 +473,13 @@ export function buildUUIDIndex(doc) {
   return {
     uuidToKind,
     uuidToItem,
+    byUuid,
     pointPosition,
     lineEndpoints,
     auxPosition,
     frameIndex,
+    uuidsWithoutFrames,
+    uuidsWithoutFramesByKind,
     adjacency,
     uuidToFrames,
     bounds,
@@ -463,6 +488,13 @@ export function buildUUIDIndex(doc) {
     worldBounds: bounds,
     getWorldBounds: getSceneBounds,
     lineProfile, // ★ ここで export
+    getKind(uuid) {
+      const k = uuidToKind.get(uuid);
+      return k === "points" || k === "lines" || k === "aux" ? k : null;
+    },
+    getItem(uuid) {
+      return byUuid.get(uuid) || null;
+    },
   };
 }
 

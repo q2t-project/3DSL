@@ -6,12 +6,21 @@ import path from "node:path";
 
 const ROOT = process.cwd();
 
-const SCAN_ROOTS = [
-  "runtime/core",
-  "runtime/renderer",
-  "runtime",
-  "ui",
-].map((p) => path.join(ROOT, p));
+const CANDIDATES = [
+  // 新レイアウト（いまの tree）
+  path.join(ROOT, "public", "viewer", "runtime", "core"),
+  path.join(ROOT, "public", "viewer", "runtime", "renderer"),
+  path.join(ROOT, "public", "viewer", "runtime"),
+  path.join(ROOT, "public", "viewer", "ui"),
+
+  // 旧レイアウト（残ってたら拾う）
+  path.join(ROOT, "runtime", "core"),
+  path.join(ROOT, "runtime", "renderer"),
+  path.join(ROOT, "runtime"),
+ path.join(ROOT, "ui"),
+];
+
+const SCAN_ROOTS = CANDIDATES.filter((p) => fs.existsSync(p));
 
 const LAYER_RULES = [
   { from: "runtime/core",     forbid: ["runtime/renderer", "runtime/viewerHub", "ui"] },
@@ -77,6 +86,14 @@ function startsWithDir(absFile, absDir) {
 const violations = [];
 const files = [];
 for (const r of SCAN_ROOTS) walk(r, files);
+
+console.log(`[invariants] scan roots:`);
+for (const r of SCAN_ROOTS) console.log(`- ${r}`);
+console.log(`[invariants] scanned files: ${files.length}`);
+if (files.length === 0) {
+  console.error("Invariant check FAILED: scanned files = 0 (path mismatch?)");
+  process.exit(1);
+}
 
 for (const fileAbs of files) {
   const fileRel = rel(fileAbs);

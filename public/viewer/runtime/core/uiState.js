@@ -1,18 +1,79 @@
 // viewer/runtime/core/uiState.js
 
+const DEFAULT_VIEW_PRESET_INDEX = 3; // iso_ne（方針がこれならここも合わせる）
+
 // ビュー・プリセット index 正規化（0〜6 に丸める）
 function normalizeViewPresetIndex(v) {
   const N = 7;
-  if (v == null) return 0; // デフォルトは 0 = 西
+  if (v == null) return DEFAULT_VIEW_PRESET_INDEX;
 
   let i = Number(v);
-  if (!Number.isFinite(i)) return 0;
+  if (!Number.isFinite(i)) return DEFAULT_VIEW_PRESET_INDEX;
   i = Math.floor(i);
 
   if (i < 0) {
     return ((i % N) + N) % N; // 負数にも対応した mod
   }
   return i % N;
+}
+
+function num(v, fallback) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function int(v, fallback) {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.floor(n) : fallback;
+}
+
+function bool(v, fallback) {
+  return typeof v === "boolean" ? v : fallback;
+}
+
+function clampFov(v, fallback = 50) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(179, Math.max(1, n));
+}
+
+function normalizeFrame(frameInit) {
+  const min0 = int(frameInit?.range?.min, 0);
+  const max0 = int(frameInit?.range?.max, min0);
+  const min = Math.min(min0, max0);
+  const max = Math.max(min0, max0);
+  let current = int(frameInit?.current, min);
+  if (current < min) current = min;
+  if (current > max) current = max;
+  return { current, range: { min, max } };
+}
+
+function normalizeLineWidthMode(v) {
+  return v === "auto" || v === "fixed" || v === "adaptive" ? v : "auto";
+}
+
+function normalizeInfoDisplay(v) {
+  // enum は仕様に合わせて調整
+  return v === "select" || v === "hover" || v === "off" ? v : "select";
+}
+
+function normalizeMicroProfile(v) {
+  return v === "weak" || v === "normal" || v === "strong" ? v : "normal";
+}
+
+function normalizeMode(v) {
+  return v === "macro" || v === "meso" || v === "micro" ? v : "macro";
+}
+
+function normalizeSelection(selInit) {
+  if (!selInit || typeof selInit !== "object") return { uuid: null, kind: null };
+  const uuid = typeof selInit.uuid === "string" && selInit.uuid ? selInit.uuid : null;
+  const kind =
+    selInit.kind === "lines" || selInit.kind === "points" || selInit.kind === "aux"
+      ? selInit.kind
+      : null;
+  if (!uuid) return { uuid: null, kind: null };
+  return { uuid, kind }; // kind は後で structIndex で確定させる（Phase2）
 }
 
 export function createUiState(initial = {}) {
@@ -49,35 +110,37 @@ export function createUiState(initial = {}) {
     ...initialViewerSettings,
 
     // 情報パネルの基本モード（5.2）
-    infoDisplay: initialViewerSettings.infoDisplay ?? "select",
+    infoDisplay: normalizeInfoDisplay(initialViewerSettings.infoDisplay),
 
     // 描画まわり（lineWidthMode など）
     render: {
       ...initialRender,
-      lineWidthMode: initialRender.lineWidthMode ?? "auto", // "auto" | "fixed" | "adaptive"
-      minLineWidth: initialRender.minLineWidth ?? 1.0,      // px
-      fixedLineWidth: initialRender.fixedLineWidth ?? 2.0,  // px
+      lineWidthMode: normalizeLineWidthMode(initialRender.lineWidthMode), // "auto" | "fixed" | "adaptive"
+      minLineWidth: Math.max(0, num(initialRender.minLineWidth, 1.0)),
+      fixedLineWidth: Math.max(0, num(initialRender.fixedLineWidth, 2.0)),
       shadow: {
         ...(initialRender.shadow || {}),
-        enabled: initialRender.shadow?.enabled ?? false,
-        intensityScale: initialRender.shadow?.intensityScale ?? 1.0,
+        enabled: bool(initialRender.shadow?.enabled, false),
+        intensityScale: Math.max(0, num(initialRender.shadow?.intensityScale, 1.0)),
       },
     },
 
     // カメラ設定（5.2）
     camera: {
       ...initialCameraSettings,
-      fov:
-        initialCameraSettings.fov ??
-        initial.cameraState?.fov ??
-        50,
-      near: initialCameraSettings.near ?? 0.1,
-      far: initialCameraSettings.far ?? 1000,
-      // キーボード操作ステップ（ざっくりデフォルト値。仕様に合わせて後で微調整可）
-      keyboardStepYaw: initialCameraSettings.keyboardStepYaw ?? 0.1,   // rad
-      keyboardStepPitch: initialCameraSettings.keyboardStepPitch ?? 0.1, // rad
-      panStep: initialCameraSettings.panStep ?? 0.25,
-      zoomStep: initialCameraSettings.zoomStep ?? 0.2,
+      fov: clampFov(initialCameraSettings.fov ?? initial.cameraState?.fov, 50),
+      // near を一回だけ正規化して使い回す
+      // （far >= near + eps を保証）
+      // eslint-disable-next-line no-shadow
+      ...( (() => {
+        const near = Math.max(1e-6, num(initialCameraSettings.near, 0.1));
+        const far  = Math.max(near + 1e-3, num(initialCameraSettings.far, 1000));
+        return { near, far };
+      })() ),
+      keyboardStepYaw: num(initialCameraSettings.keyboardStepYaw, 0.1),
+      keyboardStepPitch: num(initialCameraSettings.keyboardStepPitch, 0.1),
+      panStep: num(initialCameraSettings.panStep, 0.25),
+      zoomStep: num(initialCameraSettings.zoomStep, 0.2),
     },
 
     // エフェクト系（既存の microFX 初期化を 5.2 の fx.micro に寄せる）
@@ -86,150 +149,78 @@ export function createUiState(initial = {}) {
       micro: {
         ...initialMicro,
         // microFX 全体の ON/OFF フラグ（デフォルト true）
-        enabled:
-          initialMicro.enabled !== undefined ? !!initialMicro.enabled : true,
-        profile: initialMicro.profile ?? "normal", // "weak" | "normal" | "strong"
+        enabled: bool(initialMicro.enabled, true),
+        profile: normalizeMicroProfile(initialMicro.profile),
         radius: {
           ...(initialMicro.radius || {}),
-          inner_ratio: initialMicro.radius?.inner_ratio ?? 0.1,
-          outer_ratio: initialMicro.radius?.outer_ratio ?? 0.4,
+          inner_ratio: Math.max(0, num(initialMicro.radius?.inner_ratio, 0.1)),
+          outer_ratio: Math.max(0, num(initialMicro.radius?.outer_ratio, 0.4)),
         },
         fade: {
           ...(initialMicro.fade || {}),
-          min_opacity: initialMicro.fade?.min_opacity ?? 0.05,
-          hop_boost: initialMicro.fade?.hop_boost ?? 0.6,
-          far_factor: initialMicro.fade?.far_factor ?? 0.2,
+          min_opacity: Math.max(0, num(initialMicro.fade?.min_opacity, 0.05)),
+          hop_boost: Math.max(0, num(initialMicro.fade?.hop_boost, 0.6)),
+          far_factor: Math.max(0, num(initialMicro.fade?.far_factor, 0.2)),
         },
       },
 
       // 将来用フラグ（v1 では基本 false スタート）
-      meso: initialFx.meso !== undefined ? !!initialFx.meso : false,
-      modeTransitions:
-        initialFx.modeTransitions !== undefined
-          ? !!initialFx.modeTransitions
-          : false,
-      depthOfField:
-        initialFx.depthOfField !== undefined
-          ? !!initialFx.depthOfField
-          : false,
-      glow: initialFx.glow !== undefined ? !!initialFx.glow : false,
-      flow: initialFx.flow !== undefined ? !!initialFx.flow : false,
+      meso: bool(initialFx.meso, false),
+      modeTransitions: bool(initialFx.modeTransitions, false),
+      depthOfField: bool(initialFx.depthOfField, false),
+      glow: bool(initialFx.glow, false),
+      flow: bool(initialFx.flow, false),
     },
   };
 
-  // --- selection 初期化（以下、既存ロジックはそのまま） ---
-  let selection = null;
-  const selInit = initial.selection;
-  if (selInit && typeof selInit === "object") {
-    selection = {
-      uuid: selInit.uuid ?? null,
-      kind:
-        selInit.kind === "lines" ||
-        selInit.kind === "points" ||
-        selInit.kind === "aux"
-          ? selInit.kind
-          : null,
-    };
-  }
-
-  // --- filters 初期化（正準: filters.types.* に寄せる） ---
-  const initialFilters =
-    initial.filters && typeof initial.filters === "object"
-      ? initial.filters
-      : {};
-
-  const initialFilterTypes =
-    initialFilters.types && typeof initialFilters.types === "object"
-      ? initialFilters.types
-      : initialFilters; // 旧 {points,lines,aux} 形式からも復元
-
-  const filters = {
-    types: {
-      points: initialFilterTypes.points ?? true,
-      lines:  initialFilterTypes.lines  ?? true,
-      aux:    initialFilterTypes.aux    ?? true,
-    },
-    // 旧 API 互換用フィールド（既存コードが filters.points などを参照していても壊さない）
-    points: initialFilterTypes.points ?? true,
-    lines:  initialFilterTypes.lines  ?? true,
-    aux:    initialFilterTypes.aux    ?? true,
-  };
+  // --- selection 初期化（正準形） ---
+  const selection = normalizeSelection(initial.selection);
+  const frame = normalizeFrame(initial.frame);
 
   const state = {
-    frame: {
-      current: initial.frame?.current ?? 0,
-      range: {
-        min: initial.frame?.range?.min ?? 0,
-        max: initial.frame?.range?.max ?? 0,
-      },
-    },
-    selection,
+    frame,
+    // frame 再生UIが uiState を見るなら、最初から形を固定
+    // （もしくは controller 内部状態に逃がす）
+    // playback: { fps, accumulator } を uiState に置く設計ならここで作る
+    // 例:
+    // frame: { ...frame, playback: { fps: 6, accumulator: 0 } },
+    selection, // 常に {uuid,kind}
     cameraState: {
-      theta: initial.cameraState?.theta ?? 0,
-      phi: initial.cameraState?.phi ?? 0,
-      distance: initial.cameraState?.distance ?? 10,
+    theta: num(initial.cameraState?.theta, 0),
+    phi: num(initial.cameraState?.phi, 1),
+    distance: num(initial.cameraState?.distance, 10),
       target: {
-        x: initial.cameraState?.target?.x ?? 0,
-        y: initial.cameraState?.target?.y ?? 0,
-        z: initial.cameraState?.target?.z ?? 0,
+        x: num(initial.cameraState?.target?.x, 0),
+        y: num(initial.cameraState?.target?.y, 0),
+        z: num(initial.cameraState?.target?.z, 0),
       },
-      fov: initial.cameraState?.fov ?? 50,
+      // A案：viewerSettings.camera.fov が正
+      fov: clampFov(viewerSettings.camera?.fov, 50),
    },
     view_preset_index: normalizeViewPresetIndex(initial.view_preset_index),
-    mode: initial.mode ?? "macro",
-    // filters: v1 正式フォーマットに揃える
-    //  - filters.types.{points,lines,aux}
-    //  - filters.auxModules.{grid,axis,...}
-    //  旧フォーマット filters.{points,lines,aux} へのフォールバックも維持
-    filters: (() => {
-      const raw = initial.filters && typeof initial.filters === "object"
-        ? initial.filters
-        : {};
+    mode: normalizeMode(initial.mode),
 
-      const rawTypes =
-        raw.types && typeof raw.types === "object" ? raw.types : raw;
+    // runtime-only（UIは参照するが、保存対象ではない）
+    runtime: {
+      isFramePlaying: bool(initial.runtime?.isFramePlaying, false),
+      isCameraAuto: bool(initial.runtime?.isCameraAuto, false),
+    },
 
-      const types = {
-        points:
-          rawTypes.points ??
-          raw.points ??
-          true,
-        lines:
-          rawTypes.lines ??
-          raw.lines ??
-          true,
-        aux:
-          rawTypes.aux ??
-          raw.aux ??
-          true,
-      };
+    // filters は “types” を正準にして、常に存在させる
+    filters: {
+      types: {
+        points: bool(initial.filters?.types?.points, true),
+        lines:  bool(initial.filters?.types?.lines, true),
+        aux:    bool(initial.filters?.types?.aux, true),
+      },
+    },
 
-      const auxModulesRaw =
-        raw.auxModules && typeof raw.auxModules === "object"
-          ? raw.auxModules
-          : {};
-
-      const auxModules = {
-        // v1 ではとりあえずフィールドだけ用意して、意味づけは後のフェーズで
-        grid: auxModulesRaw.grid ?? false,
-        axis: auxModulesRaw.axis ?? false,
-        // 必要になればここに他モジュールを足していく
-      };
-
-      return {
-        types,
-        auxModules,
-        // 旧コード互換: filters.points などを残しておく
-        points: types.points,
-        lines: types.lines,
-        aux: types.aux,
-      };
-    })(),
     // ここに正準 viewerSettings を載せる
     viewerSettings,
 
-    visibleSet:
-      initial.visibleSet === undefined ? null : initial.visibleSet,
+    // 方針: derived は recomputeVisibleSet のみ。uiState では基本 null 固定が安全。
+    visibleSet: null,
+    microState: null,
   };
 
   return state;

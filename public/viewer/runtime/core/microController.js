@@ -437,28 +437,12 @@ export function createMicroController(uiState, indices) {
     uuidToKindSize: baseIndices?.uuidToKind?.size,
   });
 
-  const state = {
-    microState: uiState.microState ?? null,
-  };
-
-  function set(microState) {
-    state.microState = microState;
-    uiState.microState = microState;
-    return microState;
-  }
-
-  function clear() {
-    state.microState = null;
-    uiState.microState = null;
-    return null;
-  }
-
   function get() {
-    return state.microState;
+    return uiState.microState ?? null;
   }
 
   // 旧来の compute:
-  // いまは computeMicroState(...) を呼んで結果を uiState に流し込むだけ
+  // Phase2: compute は “計算だけ”（uiState には書かない）
   function compute(selection, cameraState, _indices) {
     const effectiveIndices =
       _indices && _indices.uuidToKind instanceof Map ? _indices : baseIndices;
@@ -479,26 +463,48 @@ export function createMicroController(uiState, indices) {
 
     debugMicro("[micro] compute() result", { microState });
 
-    if (!microState) {
-      return null; // 失敗時は clear せず、前回値を保持
+    return microState || null;
+  }
+
+  // Phase2: refresh は “副作用だけ” の唯一ルート
+  // - uiState.microState は recomputeVisibleSet が確定させる
+  // - ここでは microFX / overlay / HUD などを「今の状態に同期」するだけ
+  function refresh(deps = {}) {
+    const mode = uiState?.mode || "macro";
+    const ms = uiState?.microState ?? null;
+
+    const apply = typeof deps.apply === "function" ? deps.apply : null;
+    const clearFx = typeof deps.clear === "function" ? deps.clear : null;
+
+    // micro 以外 or microState 無し → 副作用はクリア
+    if (mode !== "micro" || !ms) {
+      if (clearFx) clearFx();
+      return null;
     }
 
-    return set(microState);
+    if (apply) apply(ms);
+    return ms;
+  }
+
+  // Phase2: clear は「uiState を触らず」副作用だけ消す（互換）
+  function clear(deps = {}) {
+    const clearFx = typeof deps.clear === "function" ? deps.clear : null;
+    if (clearFx) clearFx();
+    return null;
   }
 
   const controller = {
     compute,
     clear,
     get,
+    refresh,
   };
 
-  // 旧 API: controller.microState で直接アクセス
+  // Phase2: 直書き禁止（getter のみにする）
   Object.defineProperty(controller, "microState", {
-    get() {
-      return state.microState;
-    },
-    set(v) {
-      set(v);
+    get() { return uiState.microState ?? null; },
+    set() {
+      console.warn("[micro] microState is derived; update via recomputeVisibleSet()");
     },
     enumerable: false,
     configurable: true,

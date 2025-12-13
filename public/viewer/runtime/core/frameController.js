@@ -1,5 +1,5 @@
 // viewer/runtime/core/frameController.js
-
+//
 // uiState.frame と visibilityController をつないで
 // - 現在フレームの保持
 // - フレーム移動時に visibleSet を再計算
@@ -7,31 +7,33 @@
 // A-5 対応：後から core.recomputeVisibleSet を差し込めるフックを用意する。
 
 export function createFrameController(uiState, visibilityController) {
-  if (!uiState.frame) {
-    uiState.frame = { current: 0, range: { min: 0, max: 0 } };
+  if (!uiState?.frame || typeof uiState.frame !== "object") {
+    throw new Error("frameController: uiState.frame missing (contract)");
+  }
+  if (!uiState?.runtime || typeof uiState.runtime !== "object") {
+    throw new Error("frameController: uiState.runtime missing (contract)");
   }
 
   // A-5: visibleSet 再計算の正規ルート（後から差し替え可能なハンドラ）
   // ここに core.recomputeVisibleSet を注入できるようにしておく。
   let recomputeHandler = null;
 
-  const range = uiState.frame.range || { min: 0, max: 0 };
-  // fallback オブジェクトを使った場合は、ちゃんと uiState 側にも反映しておく
-  if (!uiState.frame.range) {
-    uiState.frame.range = range;
-  }
+  const range = uiState.frame.range;
+  if (!range || typeof range !== "object") throw new Error("frameController: frame.range missing");
 
-  // range の妥当化
-  if (typeof range.min !== "number") range.min = 0;
-  if (typeof range.max !== "number") range.max = range.min;
+  // 妥当化は createUiState 側で終わってる前提（ここでは assert のみ）
 
-  // min > max になっていた場合は揃えておく
-  if (range.max < range.min) {
-    range.max = range.min;
-  }
+  // ------------------------------------------------------------
+  // playback state（Phase2: updatePlayback 導入）
+  // ------------------------------------------------------------
+  // fps は「1秒あたり何フレーム進めるか」の目安。
+  // dev harness 側が setInterval でも、renderLoop(dt) でも両対応できる。
+  const playback = uiState.frame.playback;
+  if (!playback || typeof playback !== "object") throw new Error("frameController: frame.playback missing");
 
-  if (typeof uiState.frame.current !== "number") {
-    uiState.frame.current = range.min;
+  if (!Number.isFinite(playback.fps) || playback.fps <= 0) playback.fps = 6;
+  if (!Number.isFinite(playback.accumulator) || playback.accumulator < 0) {
+    playback.accumulator = 0;
   }
 
   // ------------------------------------------------------------
@@ -40,59 +42,48 @@ export function createFrameController(uiState, visibilityController) {
   function clampFrame(n) {
     if (!Number.isFinite(n)) return uiState.frame.current;
 
-    // frames は schema 上 integer (-9999〜9999) 前提なので
-    // UI から誤って小数が来ても最寄り整数に寄せる
-    n = Math.round(n);
+    // frames は schema 上 integer 前提なので丸める
+    n = Math.trunc(n);
 
-    if (n < range.min) return range.min;
-    if (n > range.max) return range.max;
+    const r = (uiState.frame && uiState.frame.range) || range;
+    if (n < r.min) return r.min;
+    if (n > r.max) return r.max;
     return n;
   }
 
-  function recomputeVisible() {
-    // まず、外部から差し込まれた正規ルートがあればそちらを優先
+  function recomputeVisible(reason = "frame") {
+    // 正規ルートがあればそれを優先
     if (typeof recomputeHandler === "function") {
-      const next = recomputeHandler();
-      // A-5: visibleSet は Set でも { points,lines,aux } でも可
-      // undefined 以外が返ってきたらそのまま採用
-      if (typeof next !== "undefined") {
-        uiState.visibleSet = next;
-      }
-      return uiState.visibleSet;
+      // recomputeVisibleSet 側が uiState.visibleSet を確定する前提
+      const out = recomputeHandler({ reason });
+      return typeof out !== "undefined" ? out : uiState.visibleSet;
     }
 
-    // フォールバック：従来どおり visibilityController に直接委譲
-    if (
-      visibilityController &&
-      typeof visibilityController.recompute === "function"
-    ) {
-      // visibilityController 側で uiState.visibleSet を更新してくれる想定やけど、
-      // 戻り値もそのまま同期しておく（冗長やけど安全側）。
-      const next = visibilityController.recompute();
-      if (typeof next !== "undefined") {
-        uiState.visibleSet = next;
-      }
-    }
+    // Phase2 方針：ここでは計算しない（正規ルート未注入なら現状維持）
     return uiState.visibleSet;
+  }
+
+  function setActiveInternal(n, reason) {
+    const next = clampFrame(n);
+    const cur = uiState.frame.current;
+    if (next === cur) return cur;
+    uiState.frame.current = next;
+    recomputeVisible(reason || "frame");
+    return next;
   }
 
   // ------------------------------------------------------------
   // 公開 API（新名に統一）
   // ------------------------------------------------------------
 
-  // index を直接指定
   function setActive(n) {
-    const next = clampFrame(n);
-    uiState.frame.current = next;
-    recomputeVisible();
-    return next;
+    return setActiveInternal(n, "frame");
   }
 
   function getActive() {
     return uiState.frame.current;
   }
 
-  // 相対移動ヘルパ（外には出さない）
   function stepFrame(delta) {
     if (!Number.isFinite(delta)) delta = 0;
     return setActive(uiState.frame.current + delta);
@@ -107,30 +98,67 @@ export function createFrameController(uiState, visibilityController) {
   }
 
   function getRange() {
-    return { min: range.min, max: range.max };
+    const r = (uiState.frame && uiState.frame.range) || range;
+    return { min: r.min, max: r.max };
   }
 
-  function startPlayback() {
-    if (!uiState.runtime) uiState.runtime = {};
+  function startPlayback(opts = {}) {
     uiState.runtime.isFramePlaying = true;
-    // 実際のタイマー再生は dev HTML 側（setInterval）でやってるので、
-    // ここではフラグだけ立てておく。
+
+    // fps 指定が来たら反映（任意）
+    if (opts && Number.isFinite(opts.fps) && opts.fps > 0) {
+      playback.fps = opts.fps;
+    }
+
+    // 開始時は積算をリセット（意図せず飛ばないように）
+    playback.accumulator = 0;
   }
 
   function stopPlayback() {
-    if (!uiState.runtime) uiState.runtime = {};
     uiState.runtime.isFramePlaying = false;
+
+    // 停止時も積算リセット
+    playback.accumulator = 0;
   }
 
-  // A-5: core 側から「正規の再計算ルート」を注入するためのフック。
-  // 例: frameController.setRecomputeHandler(() => core.recomputeVisibleSet());
-  function setRecomputeHandler(fn) {
-    if (typeof fn === "function") {
-      recomputeHandler = fn;
-    } else {
-      // 無効な値が来たら外しておく（安全側）
-      recomputeHandler = null;
+  // ★ Phase2 推奨 → 必須へ：dt(sec) で再生を進める
+  // - isFramePlaying=false なら何もしない
+  // - range.max に到達したら止める（安全側）
+  function updatePlayback(dt) {
+    if (!uiState.runtime?.isFramePlaying) return uiState.frame.current;
+    if (!Number.isFinite(dt) || dt <= 0) return uiState.frame.current;
+
+    const fps = Number.isFinite(playback.fps) && playback.fps > 0 ? playback.fps : 6;
+
+    playback.accumulator += dt * fps;
+
+    const steps = Math.floor(playback.accumulator);
+    if (steps <= 0) return uiState.frame.current;
+
+    playback.accumulator -= steps;
+
+    const before = uiState.frame.current;
+    const after = clampFrame(before + steps);
+
+    // 進めない（=上限）なら停止
+    if (after === before) {
+      stopPlayback();
+      return before;
     }
+
+    setActiveInternal(after, "playback");
+
+    // 上限に当たったら止める（loop仕様は Phase2後半で決める）
+    const r = (uiState.frame && uiState.frame.range) || range;
+    if (uiState.frame.current >= r.max) {
+      stopPlayback();
+    }
+    return uiState.frame.current;
+  }
+
+  // A-5: core 側から「正規の再計算ルート」を注入するフック。
+  function setRecomputeHandler(fn) {
+    recomputeHandler = typeof fn === "function" ? fn : null;
   }
 
   return {
@@ -141,6 +169,7 @@ export function createFrameController(uiState, visibilityController) {
     getRange,
     startPlayback,
     stopPlayback,
+    updatePlayback, // ★ 追加
     setRecomputeHandler,
   };
 }

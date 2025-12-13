@@ -18,11 +18,21 @@ export function createModeController(
   visibilityController,
   indices
 ) {
+  // A-5: 正規の再計算ルート（core.recomputeVisibleSet を後から注入）
+  let recomputeHandler = null;
+
   // macro ビューのカメラ状態を保持しておいて、micro から戻るときに lerp で戻す
   let lastMacroCameraState =
     cameraEngine && typeof cameraEngine.getState === "function"
       ? cameraEngine.getState()
       : null;
+
+  function recompute(reason = "mode") {
+    if (typeof recomputeHandler === "function") {
+      return recomputeHandler({ reason });
+    }
+    return uiState.visibleSet;
+  }
 
   function isVisible(uuid) {
     if (
@@ -31,9 +41,7 @@ export function createModeController(
     ) {
       return visibilityController.isVisible(uuid);
     }
-    if (uiState && uiState.visibleSet instanceof Set) {
-      return uiState.visibleSet.has(uuid);
-    }
+    // Phase2: visibleSet の型が揺れても安全側（未設定は true）
     return true;
   }
 
@@ -82,14 +90,14 @@ function enterMacro() {
 
   uiState.mode = "macro";
 
-  // microState は必ず microController 経由でクリア
-  if (microController && typeof microController.clear === "function") {
-    microController.clear();
-  } else {
-    // ここで uiState.microState を直書きしない
-    console.warn(
-      "[mode] microController.clear() missing; microState may be stale"
-    );
+  // Phase2: microState は normalizeMicro に任せる（ここで確定しない）
+  recompute("mode");
+
+  // micro の副作用（オーバレイ等）は refresh に寄せる
+  if (microController && typeof microController.refresh === "function") {
+    try { microController.refresh(); } catch (e) {
+      console.warn("[mode] microController.refresh() failed:", e);
+    }
   }
 
   // いまの selection を使って macro 用ハイライトを再適用
@@ -163,47 +171,33 @@ function set(mode, uuid) {
       selectionController &&
       typeof selectionController.select === "function"
     ) {
-      selectionController.select(targetUuid);
+      const sel = selectionController.select(targetUuid);
+      if (!sel || !sel.uuid) {
+        // sanitize で弾かれたら入れない
+        return enterMacro();
+      }
+    }
+    // Phase2: ここで visible/selection/micro を “確定” させる
+    recompute("mode");
+
+    // micro の副作用は refresh へ
+    if (microController && typeof microController.refresh === "function") {
+      try { microController.refresh(); } catch (e) {
+        console.warn("[mode] microController.refresh() failed:", e);
+      }
     }
 
-    // ---- micro 侵入処理 ----
+    // micro 侵入時のカメラ preset（recompute 後の uiState.microState を使う）
     if (mode === "micro") {
-      const selection = selectionController?.get?.();
+      const microState = uiState.microState;
+      const hasFocusPos = Array.isArray(microState?.focusPosition);
 
-      debugMode("[mode] before micro compute", {
-        selection,
-        indicesKind:
-          indices?.uuidToKind instanceof Map
-            ? indices.uuidToKind.get(selection?.uuid)
-            : "(no uuidToKind)",
-      });
-
-      const microState = microController?.compute?.(
-        selection,
-        uiState.cameraState,
-        indices
-      );
-
-      debugMode("[mode] after micro compute", { microState });
-
-      // microState 自体が取れなかったら micro には入れない
-      if (!microState) {
-        console.warn("[mode] micro compute failed, stay macro", {
-          targetUuid,
-        });
+      // microState が作れないなら macro へ戻す（安全側）
+      if (!microState || microState.focusUuid == null) {
+        console.warn("[mode] microState missing after recompute, fallback macro", { targetUuid });
         return enterMacro();
       }
 
-      const hasFocusPos = Array.isArray(microState.focusPosition);
-
-      debugMode("[mode] enter micro", {
-        focusUuid: microState.focusUuid,
-        kind: microState.kind,
-        focusPosition: microState.focusPosition,
-      });
-
-      // micro 侵入時のカメラ lerp
-      // focusPosition が無い場合は mode だけ micro にしてカメラは動かさない
       if (
         hasFocusPos &&
         cameraTransition &&
@@ -214,25 +208,11 @@ function set(mode, uuid) {
         try {
           const camState = cameraEngine.getState();
           const preset = computeMicroCameraPreset(camState, microState);
-          if (preset) {
-            cameraTransition.start(preset);
-          }
+          if (preset) cameraTransition.start(preset);
         } catch (e) {
           console.warn("[mode] cameraTransition.start(micro) failed:", e);
         }
       }
-    } else {
-      // ---- meso ----
-      if (microController && typeof microController.clear === "function") {
-        microController.clear();
-      } else {
-        // microState をここで直接触らない
-        console.warn(
-          "[mode] microController.clear() missing in meso; microState may be stale"
-        );
-      }
-
-      debugMode("[mode] enter meso", { targetUuid });
     }
   }
 
@@ -260,5 +240,9 @@ function set(mode, uuid) {
     canEnter,
     exit,
     focus,
+    // A-5: core.recomputeVisibleSet を注入
+    setRecomputeHandler(fn) {
+      recomputeHandler = typeof fn === "function" ? fn : null;
+    },
   };
 }

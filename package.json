@@ -7,9 +7,15 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
-    "validate:3dss:baseline": "ajv validate -c ajv-formats -s ../schemas/3DSS.schema.json -d \"public/3dss/sample/core_viewer_baseline.3dss.json\" --spec=draft2020",
+    "validate:3dss:baseline": "npx ajv validate -c ajv-formats -s ../schemas/3DSS.schema.json -d \"public/3dss/sample/core_viewer_baseline.3dss.json\" --spec=draft2020",
     "check:invariants": "node scripts/check-invariants.mjs",
-    "check:phase0": "npm run validate:3dss:baseline && npm run check:invariants",
+    "check:phase0": "npm run validate:3dss:baseline && npm run validate:3dss:samples && npm run check:invariants",
+    "validate:3dss:samples": "node scripts/validate-3dss-samples.mjs",
+    "check:phase1": "npm run check:phase0 && npm run check:phase1:contract",
+    "check:phase1:contract": "node scripts/check-hub-contract.mjs",
+    "check:phase2:core-contract": "node scripts/check-phase2-core-contract.mjs",
+    "check:phase2:contract": "node scripts/check-phase2-contract.mjs",
+    "check:phase2": "npm run check:phase0 && npm run check:phase2:contract && npm run check:phase2:core-contract",
     "astro": "astro"
   },
   "dependencies": {

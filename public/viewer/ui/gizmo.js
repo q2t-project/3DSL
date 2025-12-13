@@ -5,7 +5,6 @@ import {
    CAMERA_VIEW_DEFS,
    CAMERA_VIEW_ALIASES,
    CAMERA_VIEW_PRESET_SEQUENCE,
-   CAMERA_VIEW_PRESET_COUNT,
  } from "../runtime/core/cameraViewDefs.js";
 
 // 軸カラー設定
@@ -15,6 +14,9 @@ import {
 const COLOR_AXIS_X = 0x5588ff; // X / YZ plane → blue
 const COLOR_AXIS_Y = 0x55ff55; // Y / ZX plane → green
 const COLOR_AXIS_Z = 0xff5555; // Z / XY plane → red;
+
+const KEY_VIEW = Symbol.for("3dsl:gizmoViewHandler");
+const KEY_AXIS = Symbol.for("3dsl:gizmoAxisHandler");
 
 // 軸 → view 名ヘルパ（上のほうに置くとスッキリ）
 function axisToViewName(axis) {
@@ -64,13 +66,18 @@ function resolvePresetIndexByName(name) {
 
   if (
     !Array.isArray(CAMERA_VIEW_PRESET_SEQUENCE) ||
-    !CAMERA_VIEW_PRESET_COUNT
+    CAMERA_VIEW_PRESET_SEQUENCE.length === 0
   ) {
     return null;
   }
 
   const idx = CAMERA_VIEW_PRESET_SEQUENCE.indexOf(key);
   return idx >= 0 ? idx : null;
+}
+
+function stopAuto(cam, hub) {
+  if (cam && typeof cam.stopAutoOrbit === "function") cam.stopAutoOrbit();
+  if (hub?.core?.uiState?.runtime) hub.core.uiState.runtime.isCameraAuto = false;
 }
 
 // setViewPreset(index) ＋ uiState.view_preset_index 同期
@@ -96,6 +103,12 @@ function applyViewPresetIndex(cam, uiState, index) {
 // 原点まわりの小さい「リング型 gizmo」を描画するミニ・ビューポート
 export function attachGizmo(wrapper, hub) {
   if (!wrapper) return null;
+
+  // 既存の gizmo があれば先に dispose（呼び出し側のミスも吸収）
+  if (wrapper.__gizmoHandle && typeof wrapper.__gizmoHandle.dispose === "function") {
+    wrapper.__gizmoHandle.dispose();
+  }
+  wrapper.__gizmoHandle = null;
 
   // 二重 attach 対策で一回中身クリアしとく
   wrapper.innerHTML = "";
@@ -144,9 +157,9 @@ export function attachGizmo(wrapper, hub) {
 
   const clickableRingMeshes = [];
   const clickablePresetMeshes = [];
-  const presetBeams = []; // アイソメ4方だけ登録する
-  const presetGroupsById = Object.create(null);
-  let activePresetId = null;
+  const presetBeams = []; // { key, mesh }
+  const presetGroupsByKey = Object.create(null);
+  let activePresetKey = null;
 
   // ------------------------------------------------------------
   // 7 ビュー定義: 3 軸 (+X,+Y,+Z) + アイソメ 4 方
@@ -166,10 +179,12 @@ export function attachGizmo(wrapper, hub) {
     { id: "iso-se", label: "ISO SE", kind: "iso", uiPos: "se" },
   ];
 
-  const PRESET_DEFS = RAW_PRESET_DEFS.map((def) => {
-    const view = CAMERA_VIEW_DEFS[def.id];
+ const PRESET_DEFS = RAW_PRESET_DEFS.map((def) => {
+   const key = resolvePresetKey(def.id) || def.id;
+   const view = CAMERA_VIEW_DEFS[key];
     return {
       ...def,
+      key,
       theta: view ? view.theta : 0,
       phi: view ? view.phi : Math.PI / 2,
     };
@@ -486,14 +501,14 @@ export function attachGizmo(wrapper, hub) {
       beam.position.set(0, 0, beamCenterZ);
 
       group.add(beam);
-      presetBeams.push({ id: def.id, mesh: beam });
+      presetBeams.push({ key: def.key, mesh: beam });
     }
 
-    group.userData.presetId = def.id;
+    group.userData.presetKey = def.key;
     gyroGroup.add(group);
 
     clickablePresetMeshes.push(group);
-    presetGroupsById[def.id] = group;
+    presetGroupsByKey[def.key] = group;
   }
 
   PRESET_DEFS.forEach(createPresetCamera);
@@ -571,7 +586,7 @@ export function attachGizmo(wrapper, hub) {
       const score = dTheta * dTheta + dPhi * dPhi;
       if (score < bestScore) {
         bestScore = score;
-        bestId = def.id;
+        bestId = def.key;
       }
     });
 
@@ -587,32 +602,29 @@ export function attachGizmo(wrapper, hub) {
     const cam = hub.core.camera;
     const uiState = hub.core.uiState;
 
-   const index = resolvePresetIndexByName(id);
-    if (index == null) return;
+    const key = resolvePresetKey(id) || id;
+    const index = Array.isArray(CAMERA_VIEW_PRESET_SEQUENCE)
+      ? CAMERA_VIEW_PRESET_SEQUENCE.indexOf(key)
+      : -1;
+    if (index < 0) return;
 
-    // AutoOrbit 中なら先に止める（キーボードと揃える）
-    if (typeof cam.stopAutoOrbit === "function") {
-      cam.stopAutoOrbit();
-    }
-    if (uiState?.runtime) {
-      uiState.runtime.isCameraAuto = false;
-    }
+    stopAuto(cam, hub);
 
     applyViewPresetIndex(cam, uiState, index);
 
     // beams / スケール制御用
-    activePresetId = resolvePresetKey(id);
+    activePresetKey = key;
   }
 
   // ------------------------------------------------------------
   // アクティブビューに応じたビーム演出（アイソメだけ点滅）
   // ------------------------------------------------------------
   function updatePresetBeams(timeSec) {
-    presetBeams.forEach(({ id, mesh }) => {
+    presetBeams.forEach(({ key, mesh }) => {
       const mat = mesh.material;
       if (!mat) return;
 
-      if (!presetsVisible || !activePresetId || id !== activePresetId) {
+      if (!presetsVisible || !activePresetKey || key !== activePresetKey) {
         mat.opacity = 0.0;
         return;
       }
@@ -626,6 +638,9 @@ export function attachGizmo(wrapper, hub) {
   // ------------------------------------------------------------
   // サイズ調整（wrapper の大きさに追従）
   // ------------------------------------------------------------
+  let lastDisplaySize = 0;
+  let lastDpr = 0;
+
   function resizeIfNeeded() {
     const rect = wrapper.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
@@ -636,27 +651,19 @@ export function attachGizmo(wrapper, hub) {
       Math.min(rect.width, rect.height)
     );
 
+    const displaySize = Math.round(logicalSize);
     const dpr = window.devicePixelRatio || 1;
 
-    // CSS 上の表示サイズ（px）
-    const displaySize = Math.round(logicalSize);
-
-    // 実ピクセルは DPR でスケール
-    const renderSize = Math.round(logicalSize * dpr);
-
-    // 既に同じなら何もしない
-    if (canvas.width === renderSize && canvas.height === renderSize) return;
+    if (displaySize === lastDisplaySize && dpr === lastDpr) return;
+    lastDisplaySize = displaySize;
+    lastDpr = dpr;
 
     // DOM（見た目）は displaySize の正方形に固定
     canvas.style.width = `${displaySize}px`;
     canvas.style.height = `${displaySize}px`;
 
-    // 描画バッファは DPR 倍の正方形
-    canvas.width = renderSize;
-    canvas.height = renderSize;
-
     renderer.setPixelRatio(dpr);
-    renderer.setSize(renderSize, renderSize, false);
+    renderer.setSize(displaySize, displaySize, false);
 
     camera.aspect = 1;
     camera.updateProjectionMatrix();
@@ -726,12 +733,12 @@ export function attachGizmo(wrapper, hub) {
     }
 
     // 取れなかったときだけ角度から最近傍を推定
-    activePresetId = presetKey || findNearestPreset(theta, phi);
+    activePresetKey = presetKey || findNearestPreset(theta, phi);
 
     // 視点に合わせてプリセットカメラの見た目を更新
-    Object.entries(presetGroupsById).forEach(([id, group]) => {
+    Object.entries(presetGroupsByKey).forEach(([key, group]) => {
       if (!group) return;
-      const s = id === activePresetId ? 1.1 : 1.0;
+      const s = key === activePresetKey ? 1.1 : 1.0;
       group.scale.set(s, s, s);
     });
   }
@@ -751,9 +758,8 @@ export function attachGizmo(wrapper, hub) {
 
     // gizmo ドラッグ開始 = 手動操作 → AutoOrbit 停止
     const cam = hub.core.camera;
-    if (cam && typeof cam.stopAutoOrbit === "function") {
-      cam.stopAutoOrbit();
-    }
+
+    stopAuto(cam, hub);
 
     isDragging = true;
     lastX = ev.clientX;
@@ -794,9 +800,8 @@ export function attachGizmo(wrapper, hub) {
     if (!hub || !hub.core || !hub.core.camera) return;
 
     const cam = hub.core.camera;
-    if (cam && typeof cam.stopAutoOrbit === "function") {
-      cam.stopAutoOrbit();
-    }
+
+    stopAuto(cam, hub);
 
     const rect = canvas.getBoundingClientRect();
     const x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
@@ -807,8 +812,7 @@ export function attachGizmo(wrapper, hub) {
 
     // まずリング（軸スナップ）
     const ringHit = raycaster.intersectObjects(clickableRingMeshes, false)[0];
-    if (ringHit && ringHit.object && hub.core.camera) {
-      const cam = hub.core.camera;
+    if (ringHit && ringHit.object) {
 
       const axis = ringHit.object.userData.axis; // "x" / "y" / "z"
       const uiState = hub.core.uiState;
@@ -831,12 +835,11 @@ export function attachGizmo(wrapper, hub) {
         clickablePresetMeshes,
         true
       )[0];
-      if (presetHit && presetHit.object && presetHit.object.parent) {
-        const g = presetHit.object.parent;
-        const id = g.userData.presetId;
-        if (id) {
-          applyPresetById(id);
-        }
+      if (presetHit && presetHit.object) {
+        let g = presetHit.object;
+        while (g && !g.userData?.presetKey) g = g.parent;
+        const key = g?.userData?.presetKey;
+        if (key) applyPresetById(key);
       }
     }
   }
@@ -893,6 +896,11 @@ export function attachGizmo(wrapper, hub) {
     if (isDisposed) return;
     isDisposed = true;
 
+    // wrapper に残ってる参照も落とす（直叩き dispose 対策）
+    if (wrapper.__gizmoHandle && wrapper.__gizmoHandle.dispose === dispose) {
+      wrapper.__gizmoHandle = null;
+    }
+
     // rAF 停止
     if (rafId !== null) {
       cancelAnimationFrame(rafId);
@@ -917,11 +925,12 @@ export function attachGizmo(wrapper, hub) {
         obj.geometry.dispose();
       }
       if (obj.material) {
-        if (Array.isArray(obj.material)) {
-          obj.material.forEach((m) => m && m.dispose && m.dispose());
-        } else if (typeof obj.material.dispose === "function") {
-          obj.material.dispose();
-        }
+        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        mats.forEach((m) => {
+          if (!m) return;
+          if (m.map && typeof m.map.dispose === "function") m.map.dispose();
+          if (typeof m.dispose === "function") m.dispose();
+        });
       }
     });
 
@@ -936,7 +945,9 @@ export function attachGizmo(wrapper, hub) {
     wrapper.innerHTML = ""; // 念のため
   }
 
-  return { dispose };                  // ★ ハンドル返却
+  const handle = { dispose };
+  wrapper.__gizmoHandle = handle;
+  return handle;
 }
 
 // ------------------------------------------------------------
@@ -961,12 +972,12 @@ export function initGizmoButtons(hub) {
     const name = btn.dataset.viewPreset;
     if (!name) return;
 
-    btn.addEventListener("click", (ev) => {
+    if (btn[KEY_VIEW]) btn.removeEventListener("click", btn[KEY_VIEW]);
+
+    const handler = (ev) => {
       ev.preventDefault();
 
-      if (typeof cam.stopAutoOrbit === "function") {
-        cam.stopAutoOrbit();
-      }
+      stopAuto(cam, hub);
 
       const uiState = hub.core && hub.core.uiState;
       const idx = resolvePresetIndexByName(name);
@@ -991,7 +1002,9 @@ export function initGizmoButtons(hub) {
           phi: def.phi,
         });
       }
-    });
+    };
+    btn[KEY_VIEW] = handler;
+    btn.addEventListener("click", handler);
   });
 
   // 例: <button data-axis-snap="z">Z</button>
@@ -1000,23 +1013,25 @@ export function initGizmoButtons(hub) {
     const axis = btn.dataset.axisSnap; // "x" / "y" / "z"
     if (!axis) return;
 
-    btn.addEventListener("click", (ev) => {
+    if (btn[KEY_AXIS]) btn.removeEventListener("click", btn[KEY_AXIS]);
+
+    const handler = (ev) => {
       ev.preventDefault();
 
-      if (typeof cam.stopAutoOrbit === "function") {
-        cam.stopAutoOrbit();
-      }
-        const uiState = hub.core && hub.core.uiState;
-        const viewName = axisToViewName(axis);
-        const idx =
-          viewName != null ? resolvePresetIndexByName(viewName) : null;
+      stopAuto(cam, hub);
 
-        if (idx != null && typeof cam.setViewPreset === "function") {
-          applyViewPresetIndex(cam, uiState, idx);
-        } else if (typeof cam.snapToAxis === "function") {
-          // 古い CameraEngine 実装用に一応残す
+      const uiState = hub.core && hub.core.uiState;
+      const viewName = axisToViewName(axis);
+      const idx = viewName != null ? resolvePresetIndexByName(viewName) : null;
+
+      if (idx != null && typeof cam.setViewPreset === "function") {
+        applyViewPresetIndex(cam, uiState, idx);
+      } else if (typeof cam.snapToAxis === "function") {
+        // 古い CameraEngine 実装用に一応残す
         cam.snapToAxis(axis);
       }
-    });
+    };
+    btn[KEY_AXIS] = handler;
+    btn.addEventListener("click", handler);
   });
 }

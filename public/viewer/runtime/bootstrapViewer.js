@@ -53,6 +53,8 @@ import { createUiState } from "./core/uiState.js";
 import { buildUUIDIndex, detectFrameRange } from "./core/structIndex.js";
 import { createVisibilityController } from "./core/visibilityController.js";
 import { createFrameController } from "./core/frameController.js"; 
+import { createViewerSettingsController } from "./core/viewerSettingsController.js";
+import { createRecomputeVisibleSet } from "./core/recomputeVisibleSet.js";
 import { deepFreeze } from "./core/deepFreeze.js";
 import { init as initValidator, validate3DSS, getErrors } from "./core/validator.js";
 
@@ -262,7 +264,7 @@ function ensureValidatorInitialized() {
 
   if (!validatorInitPromise) {
     // public/3dss/3dss/release/3DSS.schema.json
-    const schemaUrl = "../../3dss/3dss/release/3DSS.schema.json";
+    const schemaUrl = "/3dss/3dss/release/3DSS.schema.json";
 
 validatorInitPromise = fetch(schemaUrl)
       .then((res) => {
@@ -677,6 +679,12 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     },
   });
 
+  // ★ viewerSettings の正規ルート（renderer には触らない）
+  const viewerSettingsController = createViewerSettingsController(uiState, {
+    lineWidthMode: "auto",
+    microFXProfile: "normal",
+  });
+
   // ★ 初期ビューはアイソメ [+X +Y]（iso_ne）に固定
   // CAMERA_PRESETS: 0=top,1=front,2=right,3=iso_ne,...
   uiState.view_preset_index = 3;
@@ -706,7 +714,7 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
         y: camState.target.y,
         z: camState.target.z,
       };
-      uiState.cameraState.fov = camState.fov;
+      // fov は viewerSettings.camera.fov が正（A案）
     }
   }
 
@@ -749,6 +757,18 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     structIndex,
   );
 
+  // Phase2: 唯一の更新ルート（A+C 適用）
+  const recomputeVisibleSet = createRecomputeVisibleSet({
+    uiState,
+    structIndex,
+    getModel: () => struct,
+    visibilityController,
+    frameController,
+    microController,
+    selectionController,
+    dropSelectionIfHidden: true,
+  });
+
   const core = {
     // 仕様上の struct 本体（3DSS 生データ）：immutable
     data: struct,
@@ -763,6 +783,7 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     sceneMeta,
 
     uiState,
+    viewerSettingsController,
     cameraEngine,
     cameraTransition,
     selectionController,
@@ -771,48 +792,22 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     visibilityController,
     microController,
     // ... 省略 ...
-    recomputeVisibleSet() {
-      let visible = null;
-
-      if (
-        visibilityController &&
-        typeof visibilityController.recompute === "function"
-      ) {
-        visible = visibilityController.recompute();
-      } else if (uiState && uiState.visibleSet) {
-        visible = uiState.visibleSet;
-      }
-
-      if (microController && typeof microController.refresh === "function") {
-        microController.refresh();
-      }
-
-      return visible;
-    },
+    recomputeVisibleSet,
   };
 
-  // ★ visibility 側からも必ず正規ルートを叩く
-  if (
-    visibilityController &&
-    typeof visibilityController.setRecomputeHandler === "function"
-  ) {
-    visibilityController.setRecomputeHandler(() => core.recomputeVisibleSet());
+  // ★ visibility / frame からは core 経由じゃなくてもええ（未初期化参照を避ける）
+  if (visibilityController?.setRecomputeHandler) {
+    visibilityController.setRecomputeHandler((...args) => recomputeVisibleSet(...args));
+  }
+
+  if (frameController?.setRecomputeHandler) {
+    frameController.setRecomputeHandler((...args) => recomputeVisibleSet(...args));
   }
 
   // 起動直後の visibleSet / microFX 同期（A-5）
-  if (typeof core.recomputeVisibleSet === "function") {
-    core.recomputeVisibleSet();
-  }
+  recomputeVisibleSet?.();
 
-
-  if (
-    frameController &&
-    typeof frameController.setRecomputeHandler === "function"
-  ) {
-    frameController.setRecomputeHandler(() => core.recomputeVisibleSet());
-  }
-
- debugBoot("[bootstrap] creating viewerHub");
+  debugBoot("[bootstrap] creating viewerHub");
 
   // ★ ここで hub を生成
   const hub = createViewerHub({ core, renderer });

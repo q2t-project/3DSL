@@ -1,0 +1,94 @@
+{
+  "document_meta": {
+    "document_title": "canonical: mixed basic",
+    "document_summary": "Points + straight line + grid/axis.",
+    "document_uuid": "22222222-2222-4222-8222-222222222222",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json",
+    "author": "canonical",
+    "version": "1.1.0",
+    "tags": ["s:canonical", "m:mixed"],
+    "coordinate_system": "Z+up/freeXY",
+    "units": "non_si:px",
+    "i18n": "ja",
+    "updated_at": "2025-12-13T00:00:00Z"
+  },
+  "points": [
+    {
+      "signification": { "name": "A" },
+      "appearance": {
+        "position": [-16, 0, 0],
+        "visible": true,
+        "marker": { "primitive": "box", "size": [4, 4, 4], "common": { "color": "#66ff66" } }
+      },
+      "meta": { "uuid": "22222222-2222-4222-8222-222222222201", "tags": ["s:node"] }
+    },
+    {
+      "signification": { "name": "B" },
+      "appearance": {
+        "position": [16, 0, 0],
+        "visible": true,
+        "marker": {
+          "primitive": "cone",
+          "radius": 2.0,
+          "height": 5.0,
+          "common": { "color": "#6666ff" },
+          "text": { "content": "B", "size": 14, "plane": "billboard", "align": "center&middle" }
+        }
+      },
+      "meta": { "uuid": "22222222-2222-4222-8222-222222222202", "tags": ["s:node"] }
+    }
+  ],
+  "lines": [
+    {
+      "signification": { "relation": { "structural": "association" }, "sense": "a_to_b" },
+      "appearance": {
+        "end_a": { "ref": "22222222-2222-4222-8222-222222222201" },
+        "end_b": { "ref": "22222222-2222-4222-8222-222222222202" },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#ff6666",
+        "opacity": 0.7,
+        "arrow": { "primitive": "line", "length": 3.0, "thickness": 0.6 },
+        "visible": true
+      },
+      "meta": { "uuid": "22222222-2222-4222-8222-222222222203", "tags": ["s:edge"] }
+    }
+  ],
+  "aux": [
+    {
+      "appearance": {
+        "position": [0, 0, 0],
+        "orientation": [0, 0, 0],
+        "opacity": 0.4,
+        "module": {
+          "grid": {
+            "grid_type": "cartesian",
+            "subdivisions": 8,
+            "major_step": 16,
+            "minor_step": 4,
+            "color_major": "#555555",
+            "color_minor": "#333333"
+          }
+        },
+        "visible": true
+      },
+      "meta": { "uuid": "22222222-2222-4222-8222-222222222204", "tags": ["s:aux", "m:grid"] }
+    },
+    {
+      "appearance": {
+        "position": [0, 0, 0],
+        "orientation": [0, 0, 0],
+        "opacity": 1.0,
+        "module": {
+          "axis": {
+            "length": 64,
+            "labels": true,
+            "arrow": { "primitive": "cone", "radius": 1.5, "height": 5.0 }
+          }
+        },
+        "visible": true
+      },
+      "meta": { "uuid": "22222222-2222-4222-8222-222222222205", "tags": ["s:aux", "m:axis"] }
+    }
+  ]
+}

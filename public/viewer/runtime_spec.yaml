@@ -48,9 +48,14 @@ runtime_spec:
       - "core 内の相互参照は import で結ばない。bootstrapViewer を composition root として DI で渡す。"
       - "hub は { core, renderer } を DI で受け取り、core/* や renderer/* を import しない。"
       - "core の各モジュールは 'factory + injected deps' で完結させる。createXxx は必要依存（関数/参照/値）を **すべて引数オブジェクトで受け取る**。"
+      - "calls 記法は仕様の規範であり、実装はこれに従う（曖昧さを残さない）。"
       - "禁止: core/* が他の core/* を import して呼ぶ。例外として JSDoc の型参照 **のみ** は許容する（例: /** @typedef {import('./x.js').Foo} Foo */）。※ ESM の実行時 import（import {Foo} from ...）は例外に含めない。"
-      - "calls 記法は仕様の規範であり、Codex 実装もこれに従う（曖昧さを残さない）。"
       - "helper（local helper）は **同一ファイル内に閉じる純関数** とし、他モジュールから import してはならない。"
+    contract_gates:
+      - "scripts/check-invariants.mjs: 依存方向（forbidden imports）を強制"
+      - "scripts/check-phase2-contract.mjs: bootstrapViewer 公開面の整合"
+      - "scripts/check-phase2-core-contract.mjs: core 公開面（controller群/recomputeVisibleSet）の整合"
+      - "grep-based single-writer check（推奨）: uiState.visibleSet / uiState.runtime.isFramePlaying の書き込み箇所を固定"
     calls_notation:
       - "calls: 'IMPORT:' は当該モジュールが import して直接呼ぶことを意味する（entry など）。"
       - "calls: 'DI:' は注入された依存（関数/参照/値）へのアクセスを意味する（呼び出し/参照の両方）。import を意味しない。"
@@ -79,12 +84,14 @@ runtime_spec:
 
   ownership:
     uiState:        "core"
-    viewerSettings: "core"              # uiState.viewerSettings のこと（明示）
-    visibleSet:     "core"
+    visibleSet:     "core (single-writer: core/recomputeVisibleSet only)"
+    isFramePlaying: "core (single-writer: core/frameController only)"
     microState:     "core"
     cameraState:    "core"
     document_3dss:  "core (immutable)"
     three_objects:  "renderer"
+    viewerSettings:
+      canonical: "core (uiState.viewerSettings.render / uiState.viewerSettings.fx)"
 
   # =========================================================
   # 2. モジュール一覧
@@ -396,6 +403,8 @@ runtime_spec:
         - "3DSS document を直接変更してはならない"
         - "hub.core.uiState は参照専用として公開する。UI/Host は uiState を直接 mutate してはならない（更新は必ず hub.core.* API 経由）。"
         - "viewerSettings は core(uiState.viewerSettings) が canonical。hub/viewerSettings API は core.viewerSettingsController に委譲し、renderer へ直接触れてはならない（反映は render loop の renderer.applyViewerSettings に一本化）。"
+        - "hub は uiState.visibleSet / uiState.runtime.isFramePlaying を直接書き換えない（single-writer 遵守）"
+        - "frame/selection/filter/mode の結果確定は core.* を呼ぶことで達成する"
 
       core_api:
         structIndex:
@@ -808,6 +817,8 @@ runtime_spec:
         - "  - frameRange !== null のとき: activeFrame = frameRange.min（最初のフレームから開始）"
         - "startPlayback/stopPlayback で uiState.runtime.isFramePlaying を更新する"
         - "startPlayback は modeController.set('macro') を必ず呼ぶ"
+      constraints:
+        - "uiState.runtime.isFramePlaying を直接代入してよいのは frameController のみ（single-writer）"
       exports:
         - name: createFrameController
           returns: frameController
@@ -835,18 +846,11 @@ runtime_spec:
           - updatePlayback(dtSeconds:number): void
 
       playback_policy:
-
-        - "startPlayback():"
-        - "  - frameRange === null のとき no-op（isFramePlaying は true にしない）"
-        - "  - frameRange !== null のとき uiState.runtime.isFramePlaying = true"
-
-        - "updatePlayback(dtSeconds):"
-        - "  - isFramePlaying===false のとき no-op"
-        - "  - frameRange===null のとき no-op（安全策）"
-        - "  - 内部 accumulator に dtSeconds を加算し、tickStepSeconds（例: 1/30）以上なら frame を +1 進める"
-        - "  - 進行は setActive(next) を通す（= recomputeVisibleSet の正規ルートを維持）"
-        - "  - 終端到達（activeFrame===max で次へ進めない）時は stopPlayback() を呼ぶ（loop は採用しない。必要なら将来 opts で追加）"
-
+        - "startPlayback(): uiState.runtime.isFramePlaying = true; accumulator をリセット"
+        - "stopPlayback(): uiState.runtime.isFramePlaying = false; accumulator をリセット"
+        - "updatePlayback(dtSeconds): isFramePlaying===false なら no-op。dt を積算して必要ステップだけ frame を進め、上限到達で stopPlayback()"
+        - "frame を進める経路は setActive/内部 setActive を通し、結果として recomputeVisibleSet の正規ルートが維持される"
+ 
       internal_state:
 
         - "playbackAccumulatorSeconds: number  # frameController 内部にのみ保持（uiState には保持しない）"
@@ -871,7 +875,7 @@ runtime_spec:
       called_by:
         - "runtime/viewerHub.js（core.frame.* 経由）"
       state:
-        - "activeFrame と frameRange を uiState.frame に保持する"
+        - "activeFrame と frameRange を uiState.frame に保持する（current:number|null, range:{min,max}|null）。"
 
     - name: runtime/core/selectionController.js
       layer: core
@@ -900,9 +904,8 @@ runtime_spec:
           - "runtime/viewerHub.js（core.selection.*）"
           - "core/modeController.js"
         state:
-          - "uiState.selection = {kind, uuid} を更新する"
-          - "uiState.hover = {kind, uuid} を更新する（hover 機能を採用する場合）"
-          - "selection.kind === null ⇔ selection.uuid === null (hover も同じ)"
+          - "uiState.selection を更新する（SelectionState|null）。null は未選択。"
+          - "uiState.hover を更新する（HoverState|null）。null は hover 無し（hover 機能採用時）。"
 
     - name: runtime/core/modeController.js
       layer: core
@@ -942,6 +945,7 @@ runtime_spec:
           - "micro は visibleSet 内の要素にだけ適用される"
           - "canEnter は isFramePlaying / isCameraAuto / visibilityController.isVisible(uuid) をチェックする（frame 条件は visibleSet に反映済み）"
           - "isFramePlaying / isCameraAuto は core 所有の uiState.runtime を参照して判定する"
+          - "set('micro', uuid) は内部で必ず canEnter(uuid) を評価し、満たさない場合は **no-op**（状態変更なし）で現在の mode を返す（例外禁止）"
           - "mode が 'macro' に遷移した場合は uiState.microState を必ず null にする（microFX off を保証）"
           - "set('micro') で uuid が未指定の場合は selection.uuid を用いる。selection が null の場合は no-op で現状 mode を返す。"
         state:
@@ -1005,7 +1009,7 @@ runtime_spec:
 
       visibilityController:
         methods:
-          - recompute(): Set<string> # uuid（計算のみ。uiState.visibleSet は更新しない）
+          - recompute(): VisibleSet
           - isVisible(uuid:string): boolean
           - get(): FiltersState
           - setTypeEnabled(kind:'points'|'lines'|'aux', enabled:boolean)
@@ -1013,7 +1017,7 @@ runtime_spec:
       method_notes:
         - "setTypeEnabled/setAuxModuleEnabled は filters の状態更新のみ行う"
         - "visibleSet 再計算と selection/micro 後処理は caller が core.recomputeVisibleSet() を呼んで保証する（循環依存回避）"
-        - "isVisible(uuid) は recompute せず、現在の uiState.visibleSet の membership を返す（visibleSet が正）。"
+        - "isVisible(uuid) は uiState.visibleSet の points/lines/aux の membership を見る（visibleSet が null の場合は false）"
       calls: []
       called_by:
         - "runtime/viewerHub.js（core.filters.*）"
@@ -1033,21 +1037,34 @@ runtime_spec:
           signature: "() → uiState"
       fields:
         - "frame: {current:number|null, range:{min:number,max:number}|null}"
-        - "selection: {kind:'points'|'lines'|'aux'|null, uuid:string|null}"
-        - "hover: {kind:'points'|'lines'|'aux'|null, uuid:string|null}"
-        - "cameraState: {theta,phi,distance,target:[number,number,number],position:[number,number,number],up:[number,number,number],fov,near,far}"
-        - "mode: 'macro'|'micro'"
-        - "filters: {points:boolean,lines:boolean,aux:boolean,auxModules?:Record<string,boolean>}"
         - "runtime: {isFramePlaying:boolean, isCameraAuto:boolean}"
-        - "visibleSet: Set<string> # uuid"
-        - "microState: MicroFXPayload | null"
-        - "viewerSettings: {worldAxesVisible:boolean,lineWidthMode:'auto'|'fixed'|'adaptive',microFXProfile:'weak'|'normal'|'strong'}"
+        - "filters: {points:boolean, lines:boolean, aux:boolean, auxModules:Record<string,boolean>}"
+        - "visibleSet: VisibleSet | null"
+        - "mode: 'macro'|'micro'"
+        - "selection: SelectionState | null"
+        - "hover: HoverState | null"
+        - "microState: MicroState | null"
+        - "cameraState: CameraState"
+        - "viewerSettings: {worldAxesVisible:boolean, lineWidthMode:'auto'|'fixed'|'adaptive', microFXProfile:'weak'|'normal'|'strong'}"
+      types:
+          VisibleSet:
+            - "frame:number|null"
+            - "points:Set<string>"
+            - "lines:Set<string>"
+            - "aux:Set<string>"
+          SelectionState:
+            - "uuid:string"
+            - "kind:'points'|'lines'|'aux'"
+          HoverState:
+            - "uuid:string"
+            - "kind:'points'|'lines'|'aux'"
       defaults:
         - "filters: { points:true, lines:true, aux:true, auxModules:{grid:true, axis:true, plate:true, shell:true, hud:true, extension:true} }"
-        - "visibleSet: new Set()  # 空で開始（初期化後に recomputeVisibleSet() で埋まる）"
+        - "frame: { current:null, range:null }"
+        - "visibleSet: null  # 初期化後に core.recomputeVisibleSet() で確定"
         - "mode: 'macro'"
-        - "selection: {kind:null, uuid:null}"
-        - "hover: {kind:null, uuid:null}"
+        - "selection: null"
+        - "hover: null"
         - "runtime: {isFramePlaying:false, isCameraAuto:false}"
         - "viewerSettings: {worldAxesVisible:true, lineWidthMode:'auto', microFXProfile:'normal'}"
 
@@ -1095,8 +1112,8 @@ runtime_spec:
           source: "bootstrapViewer (createModeController result)"
       calls:
         - "DI: visibilityController.recompute"
-        - "CALL: nextVisibleSet = visibilityController.recompute()"
-        - "CALL: uiState.visibleSet = nextVisibleSet"
+        - "CALL: canonicalVisibleSet = visibilityController.recompute()"
+        - "CALL: uiState.visibleSet = canonicalVisibleSet  # single-writer"
         - "DI: selectionController.get"
         - "CALL: sel = selectionController.get()"
         - "DI: visibilityController.isVisible"
@@ -1123,11 +1140,11 @@ runtime_spec:
           methods:
             - syncDocument(document, indices)
             - getSceneMetrics(): {center:[number,number,number], radius:number} | null
-            - applyFrame(visibleSet)
+            - applyFrame(visibleSet:VisibleSet|null)
             - updateCamera(cameraState)
             - applyViewerSettings(viewerSettings)
             - applyMicroFX(microState)
-            - applySelection(selectionState)
+            - applySelection(selectionState:SelectionState|null)
             - pickObjectAt(ndcX:number, ndcY:number): {uuid:string, kind:'points'|'lines'|'aux', distance:number, point:[number,number,number]} | null
             - render()
             - resize(width:number, height:number)
@@ -1171,7 +1188,8 @@ runtime_spec:
           - "Map / 配列 / cache を clear"
           - "lastMicroState = null"
         applyFrame:
-          - "visibleSet: Set<string> # uuid を受け取り、各オブジェクトの obj.visible を更新"
+          - "visibleSet（VisibleSet|null）を受け取り、points/lines/aux の membership に従って各オブジェクトの obj.visible を更新する"
+          - "visibleSet===null の場合は安全側で全非表示（または no-op）にしてよいが、推奨は全非表示（初回 recompute 前のチラつき防止）"
         applyViewerSettings:
           - "viewerSettings.worldAxesVisible に従い、world axes 表示（HUD/scene どちらでも可）を on/off"
           - "viewerSettings.lineWidthMode を renderer 内部の line 描画設定に反映（実装詳細は任意）"
@@ -1186,7 +1204,7 @@ runtime_spec:
           - "near/far/fov が変わった場合は camera.near/far/fov 更新 ＋ updateProjectionMatrix()"
           - "規範: updateCamera は camera.aspect を更新してはならない（aspect は resize の責務）。"
         applySelection:
-          - "selectionState（{kind,uuid}）を受け取り、**macro 用**の軽い selection ハイライトを適用してよい（uuid===null なら selection をクリアする）"
+          - "selectionState（SelectionState|null）を受け取り、**macro 用**の軽い selection ハイライトを適用してよい（null なら selection をクリアする）"
           - "優先順位: **microFX > selection（macro） > baseStyle**"
           - "防御的規範: lastMicroState != null の間は no-op（microFX 優先）。※ mode 判定や uiState 参照は renderer で行わない（呼び出し条件は hub が担保）"
         pickObjectAt:
