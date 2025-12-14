@@ -1,4 +1,6 @@
 // runtime/viewerHub.js
+// NOTE: viewerHub loop uses requestAnimationFrame.
+// In Node (no rAF), start() becomes a no-op for the render loop (contract for hub-noop test).
 
 // ------------------------------------------------------------
 // logging
@@ -20,7 +22,8 @@ function debugHub(...args) {
 
 export function createViewerHub({ core, renderer }) {
   let animationId = null;
-  let lastTime = null; // ★ 前フレームの timestamp 記憶
+  let lastTime = null;
+  let running = false; 
   let disposed = false;
 
   const modeController = core.modeController || core.mode;
@@ -31,6 +34,13 @@ export function createViewerHub({ core, renderer }) {
 
   const settingsController = core.viewerSettingsController || null;
   const _unsubs = [];
+
+  const hasRAF = typeof globalThis?.requestAnimationFrame === "function";
+  const raf = hasRAF ? globalThis.requestAnimationFrame.bind(globalThis) : null;
+  const caf =
+    typeof globalThis?.cancelAnimationFrame === "function"
+      ? globalThis.cancelAnimationFrame.bind(globalThis)
+      : null;
 
   // Phase2: viewerSettingsController → cameraEngine/uiState/renderer への bridge
   if (settingsController && renderer) {
@@ -304,8 +314,45 @@ export function createViewerHub({ core, renderer }) {
     return () => off.forEach((fn) => fn && fn());
   }
 
+  function isPickVisible(hit) {
+    if (!hit) return false;
+    if (!visibilityController || typeof visibilityController.isVisible !== "function") return false;
+
+    // まず object そのまま渡す（対応してたら最短）
+    try {
+      const r0 = visibilityController.isVisible(hit);
+      if (typeof r0 === "boolean") return r0;
+    } catch (_e) {}
+
+    const uuid =
+      hit.uuid ?? hit.id ?? hit.ref_uuid ?? hit.target_uuid ??
+      hit?.object?.userData?.uuid ?? hit?.object?.uuid ?? null;
+
+    const kind =
+      hit.kind ?? hit.type ??
+      hit?.object?.userData?.kind ?? hit?.object?.userData?.type ?? null;
+
+    if (!uuid) return false;
+
+    // (uuid, kind)
+    try {
+      const r1 = visibilityController.isVisible(uuid, kind);
+      if (typeof r1 === "boolean") return r1;
+    } catch (_e) {}
+
+    // (kind, uuid) も一応
+    try {
+      const r2 = visibilityController.isVisible(kind, uuid);
+      if (typeof r2 === "boolean") return r2;
+    } catch (_e) {}
+
+    // 判定できん＝安全側で弾く
+    return false;
+  }
+
   const renderFrame = (timestamp) => {
-    if (disposed) {
+    // 0: guard
+    if (disposed || !running) {
       animationId = null;
       return;
     }
@@ -365,7 +412,7 @@ export function createViewerHub({ core, renderer }) {
     const uiViewerSettings = ui.viewerSettings || {};
     const fx = (uiViewerSettings.fx && uiViewerSettings.fx.micro) || {};
 
-    const microState = ui.microState || null;
+    const microState = ui.mode === "micro" ? (ui.microState || null) : null;
     const visibleSet = ui.visibleSet;
     const selectionForHighlight =
       ui.mode === "macro" && ui.selection && ui.selection.uuid ? ui.selection : null;
@@ -376,52 +423,56 @@ export function createViewerHub({ core, renderer }) {
     renderer?.applyMicroFX?.(microState, camState, visibleSet);
     renderer?.render?.(core);
 
-    animationId = window.requestAnimationFrame(renderFrame);
+    if (!disposed && running && raf) animationId = raf(renderFrame);
+    else animationId = null;
   };
-
+  
   function assertAlive() {
-    if (!disposed) return true;
-    console.warn("[viewerHub] called after dispose");
-    return false;
+    return !disposed;
   }
 
   const hub = {
     start() {
       if (disposed) return;
-      // invariant: start() は必ず commitVisibleSet -> RAF の順で呼ぶ（lastCommittedFrame を確定させる）
-      if (animationId !== null) return;
+      if (running) return;
+
       if (typeof core.recomputeVisibleSet !== "function") {
-        console.warn("[viewerHub] cannot start: core.recomputeVisibleSet is missing (Phase2 contract broken)");
+        console.warn("[viewerHub] cannot start: core.recomputeVisibleSet missing");
         return;
       }
-      lastTime = null; // ★ 起動時にリセット
+
+      running = true;
+      lastTime = null;
+
       if (core.uiState && !core.uiState.runtime) core.uiState.runtime = {};
       commitVisibleSet("hub.start");
-      animationId = requestAnimationFrame(renderFrame);
+
+      if (raf) animationId = raf(renderFrame);
+      else animationId = null; // Node では loop しない（hub-noop 対策）
     },
-    stop() { // stop = dispose
+
+    stop() {
       if (disposed) return;
-      disposed = true;
+      if (!running) return;
+
+      running = false;
+
       if (animationId !== null) {
-        cancelAnimationFrame(animationId);
+        if (caf) caf(animationId);
         animationId = null;
       }
+
+      lastTime = null;
+    },
+
+    dispose() {
+      if (disposed) return;
+
+      this.stop();
+
+      disposed = true;
       lastCommittedFrame = null;
-      lastTime = null; // ★ 停止時もリセット
-      if (core.uiState && core.uiState.runtime) {
-        core.uiState.runtime.isCameraAuto = false;
-       // isFramePlaying の所有者は frameController（Phase2-E）
-       if (frameController && typeof frameController.stopPlayback === "function") {
-         frameController.stopPlayback();
-       } else {
-         // 互換フォールバック（frameController が無い場合だけ）
-          // isFramePlaying の所有者は frameController（Phase2-E）
-          if (frameController && typeof frameController.stopPlayback === "function") {
-            frameController.stopPlayback();
-          }
-        }
-      }
-      // hub が止まったら settings の同期も解除（リーク防止）
+
       while (_unsubs.length) {
         try {
           const off = _unsubs.pop();
@@ -431,21 +482,33 @@ export function createViewerHub({ core, renderer }) {
 
       viewerSettingsState.worldAxesListeners.length = 0;
 
-      // optional: renderer/core が dispose API 持ってたら呼ぶ
-      try { if (renderer && typeof renderer.dispose === "function") renderer.dispose(); } catch (_e) {}
-      try { if (core && typeof core.dispose === "function") core.dispose(); } catch (_e) {}
-      if (settingsController && typeof settingsController.dispose === "function") {
-        try { settingsController.dispose(); } catch (_e) {}
-      }
+      try { renderer?.dispose?.(); } catch (_e) {}
+      try { core?.dispose?.(); } catch (_e) {}
+      try { settingsController?.dispose?.(); } catch (_e) {}
     },
-    dispose() { return this.stop(); },
+
 
     pickObjectAt(ndcX, ndcY) {
       if (!assertAlive()) return null;
-      if (typeof renderer.pickObjectAt === "function") {
-        return renderer.pickObjectAt(ndcX, ndcY);
-      }
-      return null;
+      if (typeof renderer?.pickObjectAt !== "function") return null;
+
+      const hit = renderer.pickObjectAt(ndcX, ndcY);
+      if (!hit) return null;
+
+      return isPickVisible(hit) ? hit : null;
+    },
+
+    resize(w, h, dpr) {
+      if (!assertAlive()) return;
+
+      renderer?.resize?.(w, h, dpr);
+
+      const st =
+        (cameraEngine && typeof cameraEngine.getState === "function"
+          ? cameraEngine.getState()
+          : core.uiState?.cameraState) ?? null;
+
+      if (st) renderer?.updateCamera?.(st);
     },
 
     viewerSettings,
@@ -898,6 +961,7 @@ export function createViewerHub({ core, renderer }) {
         core.documentCaption ||
         core.sceneMeta ||
         null,
+
     },
   };
 

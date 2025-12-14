@@ -18,6 +18,9 @@
     "check:phase2": "npm run check:phase0 && npm run check:phase2:contract && npm run check:phase2:core-contract",
     "check:phase3:bootstrap-contract": "node scripts/check-phase3-bootstrap-contract.mjs",
     "check:phase3": "npm run check:phase2 && npm run check:phase3:bootstrap-contract",
+    "check:phase4:hub-contract": "node scripts/check-phase4-hub-contract.mjs",
+    "check:phase4:hub-noop": "node scripts/check-phase4-hub-noop.mjs",
+    "check:phase4": "npm run check:phase3 && npm run check:phase4:hub-contract && npm run check:phase4:hub-noop",
     "astro": "astro"
   },
   "dependencies": {
