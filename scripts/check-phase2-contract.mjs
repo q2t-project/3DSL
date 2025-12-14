@@ -33,8 +33,8 @@ function main() {
   const codeOnly = stripComments(src);
 
   const required = [
-    /export\s+function\s+bootstrapViewer\s*\(/,
-    /export\s+async\s+function\s+bootstrapViewerFromUrl\s*\(/,
+    /export\s+(async\s+)?function\s+bootstrapViewer\s*\(/,
+    /export\s+(async\s+)?function\s+bootstrapViewerFromUrl\s*\(/,
   ];
   for (const re of required) {
     if (!re.test(src)) fail(`missing public entrypoint: ${re}`);

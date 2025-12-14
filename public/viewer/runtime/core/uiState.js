@@ -48,6 +48,15 @@ function normalizeFrame(frameInit) {
   return { current, range: { min, max } };
 }
 
+function normalizePlayback(pbInit) {
+  const fps = num(pbInit?.fps, 6);
+  const accumulator = num(pbInit?.accumulator, 0);
+  return {
+    fps: Number.isFinite(fps) && fps > 0 ? fps : 6,
+    accumulator: Number.isFinite(accumulator) && accumulator >= 0 ? accumulator : 0,
+  };
+}
+
 function normalizeLineWidthMode(v) {
   return v === "auto" || v === "fixed" || v === "adaptive" ? v : "auto";
 }
@@ -175,7 +184,9 @@ export function createUiState(initial = {}) {
 
   // --- selection 初期化（正準形） ---
   const selection = normalizeSelection(initial.selection);
-  const frame = normalizeFrame(initial.frame);
+  const baseFrame = normalizeFrame(initial.frame);
+  const playback = normalizePlayback(initial.frame?.playback);
+  const frame = { ...baseFrame, playback };
 
   const state = {
     frame,

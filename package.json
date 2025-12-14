@@ -16,6 +16,8 @@
     "check:phase2:core-contract": "node scripts/check-phase2-core-contract.mjs",
     "check:phase2:contract": "node scripts/check-phase2-contract.mjs",
     "check:phase2": "npm run check:phase0 && npm run check:phase2:contract && npm run check:phase2:core-contract",
+    "check:phase3:bootstrap-contract": "node scripts/check-phase3-bootstrap-contract.mjs",
+    "check:phase3": "npm run check:phase2 && npm run check:phase3:bootstrap-contract",
     "astro": "astro"
   },
   "dependencies": {

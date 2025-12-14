@@ -20,7 +20,13 @@
  *    MODEL 行に埋め込む識別子（URL か "inline" 等のラベル）。
  * @property {ViewerLogger} [logger]
  *    起動ログの出力先。未指定なら console.log にフォールバックしてもよい。
+ * 
+ * @property {boolean} [strictValidate]
+ *   default: true（AJV + meta compatibility を実行）
+ * @property {boolean} [validateRefIntegrity]
+ *   default: false（重いので任意。trueならref整合も落とす）
  */
+
 
 /**
  * NOTE: Public runtime entrypoints
@@ -67,7 +73,6 @@ function debugBoot(...args) {
   if (!DEBUG_BOOTSTRAP) return;
   console.log(...args);
 }
-
 
 // ------------------------------------------------------------
 // schema / version 情報
@@ -392,25 +397,12 @@ function emitDevBootLog(core, options = {}) {
   try {
     const label = options.devLabel || "viewer_dev";
     const modelPath = options.modelUrl || "";
-    const logger =
-      typeof options.logger === "function" ? options.logger : console.log;
+    const logger = typeof options.logger === "function" ? options.logger : console.log;
 
-    // 1) BOOT
-    // 仕様: "BOOT <label>"
     logger(`BOOT ${label}`);
+    logger(modelPath ? `MODEL ${modelPath}` : "MODEL (unknown)");
 
-    // 2) MODEL
-    if (modelPath) {
-      logger(`MODEL ${modelPath}`);
-    } else {
-      logger("MODEL (unknown)");
-    }
-
-    // 3) CAMERA {"position":[...],"target":[...],"fov":50}
-    let camState = null;
-
-    // 仕様イメージ: "起動直後の CameraEngine.getState() 相当"
-    // core.camera があればそこから getState()、なければ cameraEngine → uiState の順にフォールバック
+    // CAMERA
     const camera =
       core.camera && typeof core.camera.getState === "function"
         ? core.camera
@@ -418,94 +410,188 @@ function emitDevBootLog(core, options = {}) {
           ? core.cameraEngine
           : null;
 
-    if (camera) {
-      camState = camera.getState();
-    } else if (core.uiState && core.uiState.cameraState) {
-      camState = core.uiState.cameraState;
-    }
+    const camState = camera ? camera.getState() : core.uiState?.cameraState || null;
 
     const toVec3Array = (v) => {
       if (!v) return [0, 0, 0];
-      if (Array.isArray(v)) {
-        const [x = 0, y = 0, z = 0] = v;
-        return [Number(x) || 0, Number(y) || 0, Number(z) || 0];
-      }
-      if (typeof v === "object") {
-        const x = Number(v.x) || 0;
-        const y = Number(v.y) || 0;
-        const z = Number(v.z) || 0;
-        return [x, y, z];
-      }
+      if (Array.isArray(v)) return [Number(v[0]) || 0, Number(v[1]) || 0, Number(v[2]) || 0];
+      if (typeof v === "object") return [Number(v.x) || 0, Number(v.y) || 0, Number(v.z) || 0];
       return [0, 0, 0];
     };
 
-    let camPayload = { position: [0, 0, 0], target: [0, 0, 0], fov: 50 };
+    // 追加：position が無い場合のフォールバック
+    const derivePosFromOrbit = (st) => {
+      const theta = Number(st?.theta);
+      const phi = Number(st?.phi);
+      const dist = Number(st?.distance);
+      const t0 = st?.target || st?.lookAt || null;
 
-    if (camState) {
-      const pos =
-        camState.position || camState.eye || camState.cameraPosition || null;
-      const tgt = camState.target || camState.lookAt || null;
-      const fov =
-        camState.fov != null
-          ? Number(camState.fov) || 50
-          : core.uiState &&
-            core.uiState.cameraState &&
-            core.uiState.cameraState.fov != null
-          ? Number(core.uiState.cameraState.fov) || 50
-          : 50;
+      if (!Number.isFinite(theta) || !Number.isFinite(phi) || !Number.isFinite(dist)) return null;
 
-      camPayload = {
-        position: toVec3Array(pos),
-        target: toVec3Array(tgt),
-        fov,
-      };
-    }
+      const tx = Array.isArray(t0) ? (Number(t0[0]) || 0) : (Number(t0?.x) || 0);
+      const ty = Array.isArray(t0) ? (Number(t0[1]) || 0) : (Number(t0?.y) || 0);
+      const tz = Array.isArray(t0) ? (Number(t0[2]) || 0) : (Number(t0?.z) || 0);
 
-    logger("CAMERA " + JSON.stringify(camPayload));
+      const sinPhi = Math.sin(phi);
+      const cosPhi = Math.cos(phi);
+      const sinTheta = Math.sin(theta);
+      const cosTheta = Math.cos(theta);
 
-    // 4) LAYERS points/lines/aux
-    let pointsOn = true;
-    let linesOn = true;
-    let auxOn = true;
+      return [
+        tx + dist * sinPhi * sinTheta,
+        ty + dist * cosPhi,
+        tz + dist * sinPhi * cosTheta,
+      ];
+    };
 
-    const uiState = core.uiState || {};
 
-    // uiState.filters.types を優先
-    if (uiState.filters && uiState.filters.types) {
-      const t = uiState.filters.types;
-      // 仕様: "値が false のときだけ off、それ以外は on"
-      pointsOn = t.points !== false;
-      linesOn  = t.lines  !== false;
-      auxOn    = t.aux    !== false;
-    } else if (uiState.visibility_state) {
-      // 古い/別フォーマットへのフォールバック
-      const v = uiState.visibility_state;
-      if (typeof v.points === "boolean") pointsOn = v.points;
-      if (typeof v.lines === "boolean") linesOn = v.lines;
-      if (typeof v.aux === "boolean") auxOn = v.aux;
-    }
+    const posRaw = camState?.position || camState?.eye || camState?.cameraPosition || null;
+    const tgtRaw = camState?.target || camState?.lookAt || null;
 
-    logger(
-      `LAYERS points=${pointsOn ? "on" : "off"} lines=${linesOn ? "on" : "off"} aux=${auxOn ? "on" : "off"}`
-    );
+    const posForLog = posRaw ?? (camState ? derivePosFromOrbit(camState) : null);
+    const fov = Number(camState?.fov ?? core.uiState?.cameraState?.fov ?? 50) || 50;
 
-    // 5) FRAME  frame_id=...
-    let frameId = 0;
-    if (uiState.frame && typeof uiState.frame.current === "number") {
-      frameId = uiState.frame.current;
-    } else if (
-      core.frameController &&
-      typeof core.frameController.getActive === "function"
-    ) {
-      frameId = core.frameController.getActive();
-    }
+    logger("CAMERA " + JSON.stringify({
+      position: toVec3Array(posForLog),
+      target: toVec3Array(tgtRaw),
+      fov
+    }));
 
-    // 仕様: "FRAME frame_id=<n>"
+    // LAYERS
+    const t = core.uiState?.filters?.types || {};
+    const pointsOn = t.points !== false;
+    const linesOn  = t.lines  !== false;
+    const auxOn    = t.aux    !== false;
+    logger(`LAYERS points=${pointsOn ? "on" : "off"} lines=${linesOn ? "on" : "off"} aux=${auxOn ? "on" : "off"}`);
+
+    // FRAME
+    const frameId =
+      typeof core.uiState?.frame?.current === "number"
+        ? core.uiState.frame.current
+        : core.frameController?.getActive?.() ?? 0;
+
     logger(`FRAME frame_id=${frameId}`);
   } catch (e) {
-    // dev 用ログなんで、こけても致命傷にはしない
     console.warn("[bootstrap] emitDevBootLog failed:", e);
   }
+}
+
+function applyInitialCameraFromMetrics(uiState, cameraEngine, metrics, fovFallback = 50) {
+  const st = uiState.cameraState;
+  st.target = st.target || { x: 0, y: 0, z: 0 };
+
+  st.theta = 0;
+  st.phi = 1;
+  st.distance = 4;
+  st.fov = Number.isFinite(fovFallback) ? fovFallback : (st.fov ?? 50);
+
+  const RADIUS_DISTANCE_FACTOR = 2.4;
+
+  if (metrics) {
+    const c = metrics.center || metrics.centre || null;
+    const s = metrics.size || metrics.extents || null;
+
+    const cx = Array.isArray(c) ? (Number(c[0]) || 0) : (Number(c?.x) || 0);
+    const cy = Array.isArray(c) ? (Number(c[1]) || 0) : (Number(c?.y) || 0);
+    const cz = Array.isArray(c) ? (Number(c[2]) || 0) : (Number(c?.z) || 0);
+
+    st.target = { x: cx, y: cy, z: cz };
+
+    let radius = Number.isFinite(metrics.radius) ? Number(metrics.radius) : null;
+    if ((!radius || radius <= 0) && s) {
+      const sx = Array.isArray(s) ? (Number(s[0]) || 0) : (Number(s?.x) || 0);
+      const sy = Array.isArray(s) ? (Number(s[1]) || 0) : (Number(s?.y) || 0);
+      const sz = Array.isArray(s) ? (Number(s[2]) || 0) : (Number(s?.z) || 0);
+      radius = Math.max(sx, sy, sz) * 0.5;
+    }
+    if (Number.isFinite(radius) && radius > 0) st.distance = radius * RADIUS_DISTANCE_FACTOR;
+  }
+
+  if (cameraEngine?.setState) cameraEngine.setState(st);
+}
+
+function validateRefIntegrityMinimal(struct) {
+  const errors = [];
+
+  const points = Array.isArray(struct?.points) ? struct.points : [];
+  const lines  = Array.isArray(struct?.lines)  ? struct.lines  : [];
+  const aux    = Array.isArray(struct?.aux)    ? struct.aux    : [];
+
+// --- uuid set（重複＆存在チェック用）---
+
+const seen = new Map(); // uuid -> first path
+const pointUuid = new Set();
+
+const addUuid = (u, path) => {
+  if (typeof u !== "string" || !u.trim()) {
+    errors.push({ path, msg: "uuid is missing/empty" });
+    return;
+  }
+  const key = u.trim();
+  const prev = seen.get(key);
+  if (prev) {
+    errors.push({ path, msg: `duplicate uuid: ${key} (first: ${prev})` });
+    return;
+  }
+  seen.set(key, path);
+};
+
+  points.forEach((p, i) => {
+    const u = p?.uuid;
+    addUuid(u, `points[${i}].uuid`);
+    if (typeof u === "string" && u.trim()) pointUuid.add(u.trim());
+  });
+
+  lines.forEach((l, i) => addUuid(l?.uuid, `lines[${i}].uuid`));
+  aux.forEach((a, i) => addUuid(a?.uuid, `aux[${i}].uuid`));
+
+  // --- line endpoint ref ---
+  const extractRefUuid = (v) => {
+    if (typeof v === "string") return v.trim() || null;
+    if (v && typeof v === "object") {
+      const cand =
+        v.uuid ??
+        v.point_uuid ??
+        v.ref_uuid ??
+        v.id ??
+        v.target_uuid ??
+        v.a_uuid ?? v.b_uuid ??
+        v.end_a_uuid ?? v.end_b_uuid ??
+        v.from_uuid ?? v.to_uuid ??
+        v.start_uuid ?? v.end_uuid ??
+        null;
+      return typeof cand === "string" ? (cand.trim() || null) : null;
+    }
+    return null;
+  };
+
+  const pickEndpoint = (line, keys) => {
+    for (const k of keys) {
+      if (line && Object.prototype.hasOwnProperty.call(line, k)) return line[k];
+    }
+    return undefined;
+  };
+
+  const END_A_KEYS = ["end_a", "end_a_uuid", "a", "a_uuid", "from", "source", "start", "start_uuid"];
+  const END_B_KEYS = ["end_b", "end_b_uuid", "b", "b_uuid", "to", "target", "end", "end_uuid"];
+
+  lines.forEach((line, i) => {
+    const aRaw = pickEndpoint(line, END_A_KEYS);
+    const bRaw = pickEndpoint(line, END_B_KEYS);
+
+    const aUuid = extractRefUuid(aRaw);
+    const bUuid = extractRefUuid(bRaw);
+
+    // 端点が uuid として解釈できる場合だけ「存在チェック」する（座標直書き等はスルー）
+    if (aUuid && !pointUuid.has(aUuid)) {
+      errors.push({ path: `lines[${i}]`, msg: `missing endpoint A point uuid: ${aUuid}` });
+    }
+    if (bUuid && !pointUuid.has(bUuid)) {
+      errors.push({ path: `lines[${i}]`, msg: `missing endpoint B point uuid: ${bUuid}` });
+    }
+  });
+
+  return errors;
 }
 
 // ------------------------------------------------------------
@@ -522,228 +608,87 @@ function emitDevBootLog(core, options = {}) {
  * @param {string|HTMLCanvasElement} canvasOrId
  * @param {any} threeDSS strict validation 済み 3DSS ドキュメント
  * @param {BootstrapOptions} [options]
- * @returns {import("./viewerHub.js").ViewerHub}
+ * @returns {Promise<import("./viewerHub.js").ViewerHub>}
  */
 
-export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
+export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   debugBoot("[bootstrap] bootstrapViewer: start");
-  debugBoot("[bootstrap] received 3DSS keys =", Object.keys(document3dss));
+  debugBoot("[bootstrap] received 3DSS keys =", Object.keys(document3dss || {}));
 
-  // 3DSS 構造データはここで immutable 化して以降は絶対に書き換えない
+  const strictValidate = options.strictValidate !== false;
+  const validateRefIntegrity = options.validateRefIntegrity === true;
+
+  if (strictValidate) {
+    await ensureValidatorInitialized();
+
+    const isValid = validate3DSS(document3dss);
+    if (!isValid) {
+      const errors = getErrors() || [];
+      const msg =
+        "3DSS validation failed:\n" +
+        errors.map((e) => `${e.instancePath || ""} ${e.message || e.keyword || "validation error"}`).join("\n");
+      const err = new Error(msg);
+      err.kind = "VALIDATION_ERROR";
+      throw err;
+    }
+
+    assertDocumentMetaCompatibility(document3dss);
+  }
+
+  // 1) freeze
   const struct = deepFreeze(document3dss);
 
-  // 3DSS 本体から document_meta / scene_meta を抜き出し、
-  // viewer 用に title/body を正規化した documentCaption も作る
-  const documentMeta =
-    struct &&
-    typeof struct === "object" &&
-    struct.document_meta &&
-    typeof struct.document_meta === "object"
-      ? struct.document_meta
-      : null;
-
-  // 旧フォーマット互換用の raw scene_meta（v1 ではルート直下にある想定）
-  const scene_meta =
-    struct &&
-    typeof struct === "object" &&
-    struct.scene_meta &&
-    typeof struct.scene_meta === "object"
-      ? struct.scene_meta
-      : null;
-
+  // meta/caption
+  const documentMeta = struct?.document_meta && typeof struct.document_meta === "object" ? struct.document_meta : null;
+  const scene_meta   = struct?.scene_meta   && typeof struct.scene_meta   === "object" ? struct.scene_meta   : null;
   const documentCaption = deriveDocumentCaptionForViewer(struct);
-
-  // 互換 alias（当面 core.sceneMeta でも取れるようにする）
   const sceneMeta = documentCaption;
 
+  if (validateRefIntegrity) {
+    const refErrors = validateRefIntegrityMinimal(struct);
+    if (refErrors.length) {
+      const msg =
+        "3DSS ref integrity failed:\n" +
+        refErrors.map((e) => `${e.path} ${e.msg}`).join("\n");
+      const err = new Error(msg);
+      err.kind = "REF_INTEGRITY_ERROR";
+      err.details = refErrors;
+      throw err;
+    }
+  }
+
+  // 2) canvas + renderer(context only)
   const canvasEl = resolveCanvas(canvasOrId);
-  debugBoot("[bootstrap] canvas resolved =", canvasEl);
-
-  // ★ 3DSS から structIndex を構築
-  const structIndex = buildUUIDIndex(struct);
-
-  debugBoot("[bootstrap] createRendererContext");
   const renderer = createRendererContext(canvasEl);
 
-  // 明示同期
-  if (typeof renderer.syncDocument === "function") {
-    debugBoot("[bootstrap] syncDocument()");
-    // ★ 第2引数に structIndex を渡す
-    renderer.syncDocument(struct, structIndex);
-  } else {
-    console.warn("[bootstrap] renderer.syncDocument missing");
-  }
-
-  // ------------------------------------------------------------
-  // シーンのメトリクス（center / radius）取得
-  // ------------------------------------------------------------
-  const metrics =
-    // structIndex v1: bounds / getSceneBounds()
-    (structIndex && structIndex.bounds) ||
-    (structIndex &&
-      typeof structIndex.getSceneBounds === "function" &&
-      structIndex.getSceneBounds()) ||
-    // なければ renderer 側のメトリクスにフォールバック
-    (typeof renderer.getSceneMetrics === "function"
-      ? renderer.getSceneMetrics()
-      : null);
-
-  if (DEBUG_BOOTSTRAP) {
-    debugBoot("[bootstrap] sceneMetrics =", metrics);
-  }
-
-  // ------------------------------------------------------------
-  // シーンの worldBounds / メトリクスから
-  // 「全部がビューに入る」初期カメラを決める（1.8.2 準拠）
-  // ------------------------------------------------------------
-  const initialCameraState = {
-    theta: 0,
-    // 仕様 1.8.2: phi ≒ 1 rad（やや俯瞰）
-    phi: 1,
-    distance: 4,
-    target: { x: 0, y: 0, z: 0 },
-    fov: 50,
-  };
-
-  const RADIUS_DISTANCE_FACTOR = 2.4;
-
- if (metrics) {
-    const center =
-      metrics.center ||
-      metrics.centre ||
-      metrics.mid ||
-      null;
-    const size = metrics.size || metrics.extents || null;
-
-    let cx = 0;
-    let cy = 0;
-    let cz = 0;
-
-    if (center) {
-      if (Array.isArray(center)) {
-        const [x = 0, y = 0, z = 0] = center;
-        cx = Number(x) || 0;
-        cy = Number(y) || 0;
-        cz = Number(z) || 0;
-      } else if (typeof center === "object") {
-        cx = center.x != null ? Number(center.x) || 0 : 0;
-        cy = center.y != null ? Number(center.y) || 0 : 0;
-        cz = center.z != null ? Number(center.z) || 0 : 0;
-      }
-    }
-
-    // radius 優先、なければ size から最大半径を推定
-    let radius =
-      typeof metrics.radius === "number"
-        ? Number(metrics.radius)
-        : null;
-
-    if ((radius == null || !Number.isFinite(radius) || radius <= 0) && size) {
-      let sx = 0;
-      let sy = 0;
-      let sz = 0;
-
-      if (Array.isArray(size)) {
-        const [wx = 0, wy = 0, wz = 0] = size;
-        sx = Number(wx) || 0;
-        sy = Number(wy) || 0;
-        sz = Number(wz) || 0;
-      } else if (typeof size === "object") {
-        sx = size.x != null ? Number(size.x) || 0 : 0;
-        sy = size.y != null ? Number(size.y) || 0 : 0;
-        sz = size.z != null ? Number(size.z) || 0 : 0;
-      }
-
-      radius = Math.max(sx, sy, sz) * 0.5;
-    }
-
-    initialCameraState.target = { x: cx, y: cy, z: cz };
-
-    if (Number.isFinite(radius) && radius > 0) {
-      initialCameraState.distance = radius * RADIUS_DISTANCE_FACTOR;
-    }
-    // radius が取れないときは distance=4 のまま
-  }
-
+  // 3) index/range
+  const structIndex = buildUUIDIndex(struct);
   const frameRange = detectFrameRange(struct);
 
+  // 4) controllers
   const uiState = createUiState({
-    cameraState: initialCameraState,
-    frame: {
-      current: frameRange.min,
-      range: frameRange,
-    },
-    runtime: {
-      isFramePlaying: false,
-      isCameraAuto: false,
-    },
+    view_preset_index: 3, // iso_ne
+    frame: { current: frameRange.min, range: frameRange },
+    runtime: { isFramePlaying: false, isCameraAuto: false },
+    cameraState: { theta: 0, phi: 1, distance: 4, target: { x: 0, y: 0, z: 0 }, fov: 50 },
   });
 
-  // ★ viewerSettings の正規ルート（renderer には触らない）
   const viewerSettingsController = createViewerSettingsController(uiState, {
     lineWidthMode: "auto",
     microFXProfile: "normal",
+    fov: options?.viewerSettings?.camera?.fov,
   });
 
-  // ★ 初期ビューはアイソメ [+X +Y]（iso_ne）に固定
-  // CAMERA_PRESETS: 0=top,1=front,2=right,3=iso_ne,...
-  uiState.view_preset_index = 3;
+  const cameraEngine = createCameraEngine(uiState.cameraState, { metrics: null });
+  const cameraTransition = createCameraTransition(cameraEngine, { durationMs: 220 });
 
-  // metrics.center / radius を CameraEngine にも渡す
-  const cameraEngine = createCameraEngine(uiState.cameraState, {
-    metrics,
-  });
-
-  // 初期ビュー：view preset index（0〜6）を正規ルートで適用
-  if (
-    uiState &&
-    typeof uiState.view_preset_index === "number" &&
-    typeof cameraEngine.setViewPreset === "function"
-  ) {
-    const presetIndex = uiState.view_preset_index;
-    cameraEngine.setViewPreset(presetIndex);
-
-    // CameraEngine 側 state を uiState.cameraState に同期
-    const camState = cameraEngine.getState();
-    if (camState && uiState.cameraState) {
-      uiState.cameraState.theta = camState.theta;
-      uiState.cameraState.phi = camState.phi;
-      uiState.cameraState.distance = camState.distance;
-      uiState.cameraState.target = {
-        x: camState.target.x,
-        y: camState.target.y,
-        z: camState.target.z,
-      };
-      // fov は viewerSettings.camera.fov が正（A案）
-    }
-  }
-
-  // micro⇆macro 専用のトランジション
-  const cameraTransition = createCameraTransition(cameraEngine, {
-    durationMs: 220,
-  });
-
-  // selection の唯一の正規ルート
   const selectionController = createSelectionController(uiState, structIndex, {
-    setHighlight:
-      typeof renderer.setHighlight === "function"
-        ? (payload) => renderer.setHighlight(payload)
-        : undefined,
-    clearAllHighlights:
-      typeof renderer.clearAllHighlights === "function"
-        ? () => renderer.clearAllHighlights()
-        : undefined,
+    setHighlight: typeof renderer.setHighlight === "function" ? (p) => renderer.setHighlight(p) : undefined,
+    clearAllHighlights: typeof renderer.clearAllHighlights === "function" ? () => renderer.clearAllHighlights() : undefined,
   });
 
-  const visibilityController = createVisibilityController(
-    uiState,
-    struct,
-    structIndex,
-  );
-
+  const visibilityController = createVisibilityController(uiState, struct, structIndex);
   const frameController = createFrameController(uiState, visibilityController);
-
-  // microState 計算は専用モジュールへ委譲
   const microController = createMicroController(uiState, structIndex);
 
   const modeController = createModeController(
@@ -754,10 +699,40 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     microController,
     frameController,
     visibilityController,
-    structIndex,
+    structIndex
   );
 
-  // Phase2: 唯一の更新ルート（A+C 適用）
+  // 5) renderer.syncDocument
+  if (typeof renderer.syncDocument === "function") {
+    renderer.syncDocument(struct, structIndex);
+  }
+
+  // 6) metrics → initial camera
+  const metrics =
+    structIndex?.bounds ||
+    (typeof structIndex?.getSceneBounds === "function" ? structIndex.getSceneBounds() : null) ||
+    (typeof renderer.getSceneMetrics === "function" ? renderer.getSceneMetrics() : null);
+
+  applyInitialCameraFromMetrics(uiState, cameraEngine, metrics, viewerSettingsController.getFov?.());
+
+  // iso preset は「角度だけ」採用して target/distance は metrics を優先
+  if (typeof cameraEngine.setViewPreset === "function") {
+    const keepTarget = uiState.cameraState.target;
+    const keepDist = uiState.cameraState.distance;
+
+    cameraEngine.setViewPreset(uiState.view_preset_index);
+
+    const cam = cameraEngine.getState?.();
+    if (cam) {
+      uiState.cameraState.theta = cam.theta;
+      uiState.cameraState.phi = cam.phi;
+      uiState.cameraState.target = keepTarget;
+      uiState.cameraState.distance = keepDist;
+      cameraEngine.setState?.(uiState.cameraState);
+    }
+  }
+
+  // 7) recomputeVisibleSet → hub
   const recomputeVisibleSet = createRecomputeVisibleSet({
     uiState,
     structIndex,
@@ -769,17 +744,19 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     dropSelectionIfHidden: true,
   });
 
-  const core = {
-    // 仕様上の struct 本体（3DSS 生データ）：immutable
-    data: struct,
-    structIndex, // ★ ここで初めて structIndex を載せる
+  visibilityController?.setRecomputeHandler?.((...args) => recomputeVisibleSet(...args));
+  frameController?.setRecomputeHandler?.((...args) => recomputeVisibleSet(...args));
 
-    // 3DSS の document_meta + viewer 用キャプション
-    document_meta: documentMeta,   // raw document_meta
-    documentMeta,                  // camel alias
-    scene_meta,                    // raw scene_meta (旧フォーマット互換用)
-    documentCaption,               // viewer 用 { title, body }
-    // 互換 alias（現行 Host は core.sceneMeta から読んでいるため）
+  recomputeVisibleSet?.();
+
+  const core = {
+    data: struct,
+    structIndex,
+
+    document_meta: documentMeta,
+    documentMeta,
+    scene_meta,
+    documentCaption,
     sceneMeta,
 
     uiState,
@@ -791,49 +768,13 @@ export function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     frameController,
     visibilityController,
     microController,
-    // ... 省略 ...
     recomputeVisibleSet,
   };
 
-  // ★ visibility / frame からは core 経由じゃなくてもええ（未初期化参照を避ける）
-  if (visibilityController?.setRecomputeHandler) {
-    visibilityController.setRecomputeHandler((...args) => recomputeVisibleSet(...args));
-  }
-
-  if (frameController?.setRecomputeHandler) {
-    frameController.setRecomputeHandler((...args) => recomputeVisibleSet(...args));
-  }
-
-  // 起動直後の visibleSet / microFX 同期（A-5）
-  recomputeVisibleSet?.();
-
-  debugBoot("[bootstrap] creating viewerHub");
-
-  // ★ ここで hub を生成
   const hub = createViewerHub({ core, renderer });
+  const wantDevBootLog = options.devBootLog === true;
+  if (wantDevBootLog) emitDevBootLog(core, options);
 
-  // ★ ここでは hub.start() は呼ばない（render loop は host 側の責任）
-  // if (typeof hub.start === "function") {
-  //   debugBoot("[bootstrap] hub.start()");
-  //   hub.start();
-  // } else {
-  //   console.warn("[bootstrap] hub.start missing");
-  // }
-
-  // dev viewer 起動ログ
-  //
-  // - options.devBootLog === true なら必ず出す
-  // - devBootLog が未指定で logger だけ渡されている場合も、
-  //   「dev 用起動ログを出す」前提で true 相当として扱う
-  const wantDevBootLog =
-    options.devBootLog ||
-    (typeof options.logger === "function" && options.devBootLog !== false);
-
-  if (wantDevBootLog) {
-    emitDevBootLog(core, options);
-  }
-
-  debugBoot("[bootstrap] bootstrapViewer COMPLETE");
   return hub;
 }
 
@@ -854,65 +795,15 @@ export async function bootstrapViewerFromUrl(canvasOrId, url, options = {}) {
 
   let doc;
   try {
-    // まず 3DSS 本体をロード
     doc = await loadJSON(url);
-  } catch (e) {
-      const err = e instanceof Error ? e : new Error(String(e));
-    if (!("kind" in err)) {
-      // 簡易判定：SyntaxError 相当なら JSON_ERROR、それ以外は FETCH_ERROR とみなす
-      if (err.name === "SyntaxError") {
-        err.kind = "JSON_ERROR";
-      } else {
-        err.kind = "FETCH_ERROR";
-      }
-    }
-    throw err;
-  }
-
-  // strict full validation（A-4）
-  await ensureValidatorInitialized();
-
-  const isValid = validate3DSS(doc);
-  if (!isValid) {
-    const errors = getErrors() || [];
-    console.error("[bootstrap] 3DSS validation failed", errors);
-
-    const msg =
-      "3DSS validation failed:\n" +
-      errors
-        .map(
-          (e) =>
-            `${e.instancePath || ""} ${
-              e.message || e.keyword || "validation error"
-            }`
-        )
-        .join("\n");
-
-    const err = new Error(msg);
-    err.kind = "VALIDATION_ERROR";
-    throw err;
-  }
-  debugBoot(
-    "[bootstrap] document_meta OK:",
-    doc && doc.document_meta ? doc.document_meta : "(no document_meta?)"
-  );
-
-  // schema_uri / version の整合チェック（1.0.2 仕様）
-  try {
-    assertDocumentMetaCompatibility(doc);
   } catch (e) {
     const err = e instanceof Error ? e : new Error(String(e));
     if (!("kind" in err)) {
-      // strict validation と同列扱い
-      err.kind = "VALIDATION_ERROR";
+      err.kind = err.name === "SyntaxError" ? "JSON_ERROR" : "FETCH_ERROR";
     }
     throw err;
   }
 
-  const mergedOptions = {
-    ...options,
-    modelUrl: options.modelUrl || url,
-  };
-
-  return bootstrapViewer(canvasOrId, doc, mergedOptions);
+  const mergedOptions = { ...options, modelUrl: options.modelUrl || url };
+  return await bootstrapViewer(canvasOrId, doc, mergedOptions);
 }
