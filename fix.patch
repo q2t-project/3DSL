@@ -1,0 +1,104 @@
+diff --git a/public/viewer/runtime/renderer/context.js b/public/viewer/runtime/renderer/context.js
+--- a/public/viewer/runtime/renderer/context.js
++++ b/public/viewer/runtime/renderer/context.js
+@@ -1220,9 +1220,39 @@
+       // worldAxes レイヤに sceneRadius を通知
+       if (worldAxes && typeof worldAxes.updateMetrics === "function") {
+         worldAxes.updateMetrics({ radius: sceneRadius });
+       }
+     }
++
++    // ============================================================
++    // Phase5: lineFX の更新は render() の最後に置くと selection/micro を上書きしうる。
++    // updateCamera() は毎フレーム呼ばれるので、そこで “フレーム開始” を刻み、
++    // applyMicroFX / applySelectionHighlight / clearSelectionHighlight で必要時に 1回だけ tick する。
++    // ============================================================
++    let _lineFxLastMs = nowMs();
++    let _lineFxFrameMs = 0;
++    let _lineFxSteppedThisFrame = false;
++
++    function beginLineFxFrame() {
++      _lineFxFrameMs = nowMs();
++      _lineFxSteppedThisFrame = false;
++    }
++
++    function stepLineFxBeforeStyle() {
++      if (_lineFxSteppedThisFrame) return;
++      const now = (_lineFxFrameMs > 0) ? _lineFxFrameMs : nowMs();
++      const dtSec = Math.min(0.05, Math.max(0, (now - _lineFxLastMs) / 1000));
++      _lineFxLastMs = now;
++      if (dtSec > 0) updateLineFx(dtSec);
++      _lineFxSteppedThisFrame = true;
++    }
+ 
+     return {
+@@ -1450,7 +1480,8 @@
+         camera.updateProjectionMatrix();
+ 
+         // Phase5 規範: updateCamera は aspect を触らない（resize 専任）
++        beginLineFxFrame();
+ 
+         debugRenderer("[renderer] updateCamera out", {
+           pos: camera.position.toArray(),
+           up: camera.up.toArray(),
+         });
+@@ -1474,6 +1505,9 @@
+       applyMicroFX: (microState, cameraState, visibleSet) => {
+         // Phase5 規範: 必ず baseStyle から開始（残留防止）
+         resetAllToBaseStyle();
++
++        // lineFX は baseStyle の上に乗せる（micro/selection の “前” に 1回だけ）
++        stepLineFxBeforeStyle();
+ 
+         // 契約B（normalizeMicro が常に object を返す）でも、
+         // 「microFX 有効」は focusUuid の有無で判定する。
+         const focusUuid =
+@@ -1526,7 +1560,10 @@
+       // selection highlight を消す（hub 側の一本道規範用）
+       clearSelectionHighlight: () => {
++        // meso など selection を走らせへんフレームでも lineFX は更新したい
++        stepLineFxBeforeStyle();
+         clearSelectionHighlightImpl(scene);
+       },
+ 
+       applySelectionHighlight: (selection, cameraState, visibleSet) => {
++        stepLineFxBeforeStyle();
+         // Phase5 規範: microFX “有効中（focusUuidあり）” は selection no-op（防御）
+         if (lastMicroFocusUuid != null) {
+           clearSelectionHighlightImpl(scene);
+           return;
+         }
+@@ -1580,6 +1617,15 @@
+         }
+         if (!node) return null;
+         if (!isVisibleInTree(node)) return null;
++        // three.js は visible=false を拾うケースがあるので、実効可視（親チェーン含む）も弾く
++        {
++          let p = hit0.object;
++          while (p) {
++            if (p.visible === false) return null;
++            p = p.parent;
++          }
++        }
+         return {
+           uuid: node.userData.uuid,
+           kind: node.userData.kind ?? null,
+           distance: hit0.distance,
+           point: hit0.point.clone(),
+         };
+       },
+ 
+       render: () => {
+-        const now = nowMs();
+-        const dtSec = Math.min(0.05, Math.max(0, (now - lastT) / 1000));
+-        lastT = now;
+         debugRenderer("[renderer] render", {
+           children: scene.children.length,
+           camPos: camera.position.toArray(),
+         });
+ 
+-        // flow / pulse / glow エフェクト更新
+-        updateLineFx(dtSec);
+-
+         renderer.render(scene, camera);
+       },

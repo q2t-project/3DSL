@@ -18,6 +18,7 @@
 export const DEBUG_MICROFX = true;
 
 export const microFXConfig = {
+  enabled: true,
   // フォーカスマーカー（plane）の見た目
   marker: {
     // world 座標系での一辺長さ（unitless）

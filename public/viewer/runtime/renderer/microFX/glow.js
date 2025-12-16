@@ -14,7 +14,7 @@ let glowTexture = null;
 
 // 中心が最も明るく、外側へ向かって透明になるラジアルグラデのテクスチャ
 function getGlowTexture() {
-  if (glowTexture) return glowTexture;
+  if (typeof document === "undefined") return null;
 
   const size = 256;
   const canvas = document.createElement("canvas");
@@ -63,6 +63,7 @@ export function ensureGlow(scene) {
     const material = new THREE.SpriteMaterial({
       map: tex,
       color: new THREE.Color("#00ffff"),
+      side: THREE.DoubleSide,
       transparent: true,
       opacity: 1.0,
       blending: THREE.AdditiveBlending,
@@ -129,9 +130,9 @@ export function updateGlow(target, position, camera, intensity = 1) {
   const maxScale = Number.isFinite(cfg.maxScale) ? cfg.maxScale : 3.0;
 
   // ★ オフセット方向を「点 → カメラ」にする
-  const toCameraDir = new THREE.Vector3()
-    .subVectors(camera.position, target.position)
-    .normalize();
+  const toCameraDir = new THREE.Vector3().subVectors(camera.position, target.position);
+  if (toCameraDir.lengthSq() > 1e-12) toCameraDir.normalize();
+  else toCameraDir.set(0, 0, 1);
 
   const offset = dist * offsetFactor;
   target.position.addScaledVector(toCameraDir, offset);

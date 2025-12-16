@@ -1,10 +1,15 @@
 // viewer/runtime/core/viewerSettingsController.js
 // Phase2: viewerSettings の正規ルート（描画層には触らない）
 
-const ALLOWED_LINE_WIDTH = new Set(["auto", "fixed", "adaptive"]);
 const ALLOWED_MICROFX = new Set(["weak", "normal", "strong"]);
 const FOV_MIN = 1;
 const FOV_MAX = 179;
+
+function normalizeMicroFXProfile(v) {
+  if (typeof v !== "string") return null;
+  const p = v.trim().toLowerCase();
+  return ALLOWED_MICROFX.has(p) ? p : null;
+}
 
 // 無効なら null、有効なら [1..179] にクランプした数値
 function parseFov(v) {
@@ -39,27 +44,13 @@ export function createViewerSettingsController(uiState, defaults = {}) {
   if (!micro || typeof micro !== "object") throw new Error("viewerSettings.fx.micro missing");
   if (!camera || typeof camera !== "object") throw new Error("viewerSettings.camera missing");
 
-  // 初期値（defaults → uiState 既存 → fallback）
-  let lineWidthMode =
-    (typeof defaults.lineWidthMode === "string" &&
-      ALLOWED_LINE_WIDTH.has(defaults.lineWidthMode) &&
-      defaults.lineWidthMode) ||
-    (typeof render.lineWidthMode === "string" &&
-      ALLOWED_LINE_WIDTH.has(render.lineWidthMode) &&
-      render.lineWidthMode) ||
-    "auto";
-
+  // microFX profile（defaults → uiState 既存 → fallback）
   let microFXProfile =
-    (typeof defaults.microFXProfile === "string" &&
-      ALLOWED_MICROFX.has(defaults.microFXProfile) &&
-      defaults.microFXProfile) ||
-    (typeof micro.profile === "string" &&
-      ALLOWED_MICROFX.has(micro.profile) &&
-      micro.profile) ||
+    normalizeMicroFXProfile(defaults?.microFXProfile) ??
+    normalizeMicroFXProfile(micro.profile) ??
     "normal";
 
   // uiState に正規化して書き戻し（“正”の形を固定）
-  render.lineWidthMode = lineWidthMode;
   micro.profile = microFXProfile;
 
   // fov（A案: viewerSettings.camera.fov が正）
@@ -74,47 +65,20 @@ export function createViewerSettingsController(uiState, defaults = {}) {
     uiState.cameraState.fov = fov; // mirror
   }
 
-  const lwListeners = new Set();
   const microListeners = new Set();
   const fovListeners = new Set();
 
-  function setLineWidthMode(mode) {
-    if (disposed) return lineWidthMode;
-    if (typeof mode !== "string") return lineWidthMode;
-    if (mode === lineWidthMode) return lineWidthMode;
-    if (!ALLOWED_LINE_WIDTH.has(mode)) {
-      console.warn("[viewerSettingsController] invalid lineWidthMode:", mode);
-      return lineWidthMode;
-    }
-    lineWidthMode = mode;
-    render.lineWidthMode = mode;
-    lwListeners.forEach((fn) => safeCall(fn, mode));
-    return lineWidthMode;
-  }
-
-  function getLineWidthMode() {
-    return lineWidthMode;
-  }
-
-  function onLineWidthModeChanged(listener) {
-    if (disposed) return () => {};
-    if (typeof listener !== "function") return () => {};
-    lwListeners.add(listener);
-    safeCall(listener, lineWidthMode);
-    return () => lwListeners.delete(listener);
-  }
-
   function setMicroFXProfile(profile) {
     if (disposed) return microFXProfile;
-    if (typeof profile !== "string") return microFXProfile;
-    if (profile === microFXProfile) return microFXProfile;
-    if (!ALLOWED_MICROFX.has(profile)) {
+    const next = normalizeMicroFXProfile(profile);
+    if (!next) {
       console.warn("[viewerSettingsController] invalid microFXProfile:", profile);
       return microFXProfile;
     }
-    microFXProfile = profile;
-    micro.profile = profile;
-    microListeners.forEach((fn) => safeCall(fn, profile));
+    if (next === microFXProfile) return microFXProfile;
+    microFXProfile = next;
+    micro.profile = next;
+    microListeners.forEach((fn) => safeCall(fn, next));
     return microFXProfile;
   }
 
@@ -159,9 +123,6 @@ export function createViewerSettingsController(uiState, defaults = {}) {
   }
 
   return {
-    setLineWidthMode,
-    getLineWidthMode,
-    onLineWidthModeChanged,
     setMicroFXProfile,
     getMicroFXProfile,
     onMicroFXProfileChanged,
@@ -171,7 +132,6 @@ export function createViewerSettingsController(uiState, defaults = {}) {
     dispose() {
       if (disposed) return;
       disposed = true;
-      lwListeners.clear();
       microListeners.clear();
       fovListeners.clear();
     },

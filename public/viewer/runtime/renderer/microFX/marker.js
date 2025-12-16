@@ -96,6 +96,8 @@ export function updateMarker(target, position, intensity = 1) {
 export function removeMarker(scene) {
   if (marker) {
     scene.remove(marker);
+    marker.geometry?.dispose?.();
+    marker.material?.dispose?.();
     marker = null;
   }
 }

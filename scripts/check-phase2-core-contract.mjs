@@ -111,15 +111,22 @@ function main() {
       name: "viewerSettingsController",
       file: "viewerSettingsController.js",
       required: [
-        /setLineWidthMode\s*\(/,
-        /getLineWidthMode\s*\(/,
-        /onLineWidthModeChanged\s*\(/,
+        /setMicroFXProfile\s*\(/,
+        /getMicroFXProfile\s*\(/,
+        /onMicroFXProfileChanged\s*\(/,
+        /setFov\s*\(/,
+        /getFov\s*\(/,
+        /onFovChanged\s*\(/,
       ],
       // renderer に触らん（雑検出＋import検出）
       forbid: [
         /\brenderer\b/,
         /\bapplyMicroFX\b/,
         /from\s+["'][^"']*\/renderer\//,
+        new RegExp("\\b" + "line" + "Width" + "Mode" + "\\b"),
+        new RegExp("\\b" + "set" + "Line" + "Width" + "Mode" + "\\s*\\("),
+        new RegExp("\\b" + "get" + "Line" + "Width" + "Mode" + "\\s*\\("),
+        new RegExp("\\b" + "on" + "Line" + "Width" + "Mode" + "Changed" + "\\s*\\("),
       ],
     },
     {

@@ -4,7 +4,6 @@
 /** @typedef {'macro'|'meso'|'micro'} UIMode */
 /** @typedef {'points'|'lines'|'aux'} ElementKind */
 
-/** @typedef {'auto'|'fixed'|'adaptive'} LineWidthMode */
 /** @typedef {'weak'|'normal'|'strong'} MicroFXProfile */
 
 /**
@@ -49,7 +48,7 @@
  * @property {{isFramePlaying?:boolean, isCameraAuto?:boolean}} runtime
  * @property {{ types: Record<ElementKind, boolean> }} filters
  * @property {{
- *   render?: { lineWidthMode?: LineWidthMode },
+ *   render?: { },
  *   fx?: { micro?: { enabled?: boolean, profile?: MicroFXProfile } }
  * }} viewerSettings
  * @property {VisibleSet|null} visibleSet

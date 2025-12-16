@@ -32,6 +32,14 @@ export function normalizeSelection(selection, ctx = {}) {
   const { uuid, kind } = coerceSelection(selection);
   if (!isValidUuid(uuid)) return pack(null, null);
 
+  // 旧互換: visibleSet が Set<uuid> の場合（全種共通）
+  if (visibleSet instanceof Set) {
+    if (!visibleSet.has(uuid)) return pack(null, null);
+    // kind は尊重、ダメなら structIndex 推定
+    if (ALLOWED_KIND.has(kind)) return pack(uuid, kind);
+    return pack(uuid, inferKindFromStructIndex(uuid, structIndex));
+  }
+
   // visibleSet があるなら「見えてるか」を最優先
   if (visibleSet && typeof visibleSet === "object") {
     const hits = kindsInVisibleSet(uuid, visibleSet);

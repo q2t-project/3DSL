@@ -105,7 +105,8 @@ function extractSchemaInfo(schemaJson) {
   if (version) {
     const m2 = version.match(/^(\d+)\./);
     if (m2) {
-      major = Number(m2[1]) || null;
+      const n = Number(m2[1]);
+      major = Number.isFinite(n) ? n : null;
     }
   }
 
@@ -115,7 +116,9 @@ function extractSchemaInfo(schemaJson) {
 function parseMajorFromSemver(v) {
   if (typeof v !== "string") return null;
   const m = v.trim().match(/^(\d+)\./);
-  return m ? Number(m[1]) || null : null;
+  if (!m) return null;
+  const n = Number(m[1]);
+  return Number.isFinite(n) ? n : null;
 }
 // ------------------------------------------------------------
 // 多言語テキスト helper（これはそのまま残す）
@@ -271,7 +274,7 @@ function ensureValidatorInitialized() {
     // public/3dss/3dss/release/3DSS.schema.json
     const schemaUrl = "/3dss/3dss/release/3DSS.schema.json";
 
-validatorInitPromise = fetch(schemaUrl)
+    validatorInitPromise = fetch(schemaUrl)
       .then((res) => {
         if (!res.ok) {
           throw new Error(
@@ -288,6 +291,12 @@ validatorInitPromise = fetch(schemaUrl)
         }
         validatorInitialized = true;
       });
+    // 失敗した promise を保持すると永遠に復旧できんので、失敗時は破棄して次回リトライ可能にする
+    validatorInitPromise = validatorInitPromise.catch((e) => {
+      validatorInitialized = false;
+      validatorInitPromise = null;
+      throw e;
+    });
   }
 
   return validatorInitPromise;
@@ -437,10 +446,11 @@ function emitDevBootLog(core, options = {}) {
       const sinTheta = Math.sin(theta);
       const cosTheta = Math.cos(theta);
 
+      // renderer.updateCamera() と同じ Z-up マッピング
       return [
-        tx + dist * sinPhi * sinTheta,
-        ty + dist * cosPhi,
-        tz + dist * sinPhi * cosTheta,
+        tx + dist * sinPhi * Math.cos(theta),
+        ty + dist * sinPhi * Math.sin(theta),
+        tz + dist * cosPhi,
       ];
     };
 
@@ -519,36 +529,48 @@ function validateRefIntegrityMinimal(struct) {
 
 // --- uuid set（重複＆存在チェック用）---
 
-const seen = new Map(); // uuid -> first path
-const pointUuid = new Set();
+  const seen = new Map(); // uuid -> first path
+  const nodeUuid = new Set(); // points + aux（renderer は aux 参照も許容してるので広めに）
 
-const addUuid = (u, path) => {
-  if (typeof u !== "string" || !u.trim()) {
-    errors.push({ path, msg: "uuid is missing/empty" });
-    return;
-  }
-  const key = u.trim();
-  const prev = seen.get(key);
-  if (prev) {
-    errors.push({ path, msg: `duplicate uuid: ${key} (first: ${prev})` });
-    return;
-  }
-  seen.set(key, path);
-};
+  const addUuid = (u, path) => {
+    if (typeof u !== "string" || !u.trim()) {
+      errors.push({ path, msg: "uuid is missing/empty" });
+      return;
+    }
+    const key = u.trim();
+    const prev = seen.get(key);
+    if (prev) {
+      errors.push({ path, msg: `duplicate uuid: ${key} (first: ${prev})` });
+      return;
+    }
+    seen.set(key, path);
+  };
 
   points.forEach((p, i) => {
     const u = p?.uuid;
     addUuid(u, `points[${i}].uuid`);
-    if (typeof u === "string" && u.trim()) pointUuid.add(u.trim());
+    if (typeof u === "string" && u.trim()) nodeUuid.add(u.trim());
   });
 
   lines.forEach((l, i) => addUuid(l?.uuid, `lines[${i}].uuid`));
-  aux.forEach((a, i) => addUuid(a?.uuid, `aux[${i}].uuid`));
+  aux.forEach((a, i) => {
+    const u = a?.uuid ?? a?.meta?.uuid ?? null;
+    addUuid(u, `aux[${i}].uuid`);
+    if (typeof u === "string" && u.trim()) nodeUuid.add(u.trim());
+  });
 
   // --- line endpoint ref ---
   const extractRefUuid = (v) => {
     if (typeof v === "string") return v.trim() || null;
     if (v && typeof v === "object") {
+      // 3DSS v1.x: end_a/end_b の {ref:"uuid"} をまず拾う
+      if (typeof v.ref === "string") return v.ref.trim() || null;
+      // まれに {ref:{uuid:"..."}} みたいな形も救う
+      if (v.ref && typeof v.ref === "object") {
+        const ru =
+          v.ref.uuid ?? v.ref.point_uuid ?? v.ref.ref_uuid ?? v.ref.id ?? null;
+        if (typeof ru === "string") return ru.trim() || null;
+      }
       const cand =
         v.uuid ??
         v.point_uuid ??
@@ -566,14 +588,23 @@ const addUuid = (u, path) => {
   };
 
   const pickEndpoint = (line, keys) => {
+    if (!line) return undefined;
+    // 新: appearance.end_a / appearance.end_b
     for (const k of keys) {
-      if (line && Object.prototype.hasOwnProperty.call(line, k)) return line[k];
+      if (line?.appearance && Object.prototype.hasOwnProperty.call(line.appearance, k)) {
+        return line.appearance[k];
+      }
+    }
+    // 旧: 直下 end_a / end_b 等
+    for (const k of keys) {
+      if (Object.prototype.hasOwnProperty.call(line, k)) return line[k];
     }
     return undefined;
   };
 
-  const END_A_KEYS = ["end_a", "end_a_uuid", "a", "a_uuid", "from", "source", "start", "start_uuid"];
-  const END_B_KEYS = ["end_b", "end_b_uuid", "b", "b_uuid", "to", "target", "end", "end_uuid"];
+  // appearance 直下を優先で拾う（renderer と同じ感覚）
+  const END_A_KEYS = ["end_a", "a", "from", "source", "start", "end_a_uuid", "a_uuid", "start_uuid"];
+  const END_B_KEYS = ["end_b", "b", "to", "target", "end", "end_b_uuid", "b_uuid", "end_uuid"];
 
   lines.forEach((line, i) => {
     const aRaw = pickEndpoint(line, END_A_KEYS);
@@ -583,10 +614,10 @@ const addUuid = (u, path) => {
     const bUuid = extractRefUuid(bRaw);
 
     // 端点が uuid として解釈できる場合だけ「存在チェック」する（座標直書き等はスルー）
-    if (aUuid && !pointUuid.has(aUuid)) {
+    if (aUuid && !nodeUuid.has(aUuid)) {
       errors.push({ path: `lines[${i}]`, msg: `missing endpoint A point uuid: ${aUuid}` });
     }
-    if (bUuid && !pointUuid.has(bUuid)) {
+    if (bUuid && !nodeUuid.has(bUuid)) {
       errors.push({ path: `lines[${i}]`, msg: `missing endpoint B point uuid: ${bUuid}` });
     }
   });
@@ -639,10 +670,9 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   const struct = deepFreeze(document3dss);
 
   // meta/caption
-  const documentMeta = struct?.document_meta && typeof struct.document_meta === "object" ? struct.document_meta : null;
-  const scene_meta   = struct?.scene_meta   && typeof struct.scene_meta   === "object" ? struct.scene_meta   : null;
   const documentCaption = deriveDocumentCaptionForViewer(struct);
-  const sceneMeta = documentCaption;
+  const sceneMeta = documentCaption; // compat: UI が sceneMeta を caption として読むケース用
+ 
 
   if (validateRefIntegrity) {
     const refErrors = validateRefIntegrityMinimal(struct);
@@ -659,7 +689,16 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
 
   // 2) canvas + renderer(context only)
   const canvasEl = resolveCanvas(canvasOrId);
-  const renderer = createRendererContext(canvasEl);
+  let renderer = null;
+  let hub = null;
+
+  try {
+    // 既存ctxが同canvasで残ってても context.js 側で dispose される（WeakMap）
+    renderer = createRendererContext(
+      canvasEl,
+      options.viewerSettings ?? {}, // render.webgl を拾えるように
+      { label: options.devLabel || "viewer" }
+    );
 
   // 3) index/range
   const structIndex = buildUUIDIndex(struct);
@@ -668,13 +707,14 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   // 4) controllers
   const uiState = createUiState({
     view_preset_index: 3, // iso_ne
+    mode: "macro",
     frame: { current: frameRange.min, range: frameRange },
     runtime: { isFramePlaying: false, isCameraAuto: false },
     cameraState: { theta: 0, phi: 1, distance: 4, target: { x: 0, y: 0, z: 0 }, fov: 50 },
   });
 
+  // 方針: 線幅は当面 1px 固定（three.js の LineBasic/Dashed は基本 1px 前提）
   const viewerSettingsController = createViewerSettingsController(uiState, {
-    lineWidthMode: "auto",
     microFXProfile: "normal",
     fov: options?.viewerSettings?.camera?.fov,
   });
@@ -682,10 +722,7 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   const cameraEngine = createCameraEngine(uiState.cameraState, { metrics: null });
   const cameraTransition = createCameraTransition(cameraEngine, { durationMs: 220 });
 
-  const selectionController = createSelectionController(uiState, structIndex, {
-    setHighlight: typeof renderer.setHighlight === "function" ? (p) => renderer.setHighlight(p) : undefined,
-    clearAllHighlights: typeof renderer.clearAllHighlights === "function" ? () => renderer.clearAllHighlights() : undefined,
-  });
+  const selectionController = createSelectionController(uiState, structIndex);
 
   const visibilityController = createVisibilityController(uiState, struct, structIndex);
   const frameController = createFrameController(uiState, visibilityController);
@@ -719,6 +756,7 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   if (typeof cameraEngine.setViewPreset === "function") {
     const keepTarget = uiState.cameraState.target;
     const keepDist = uiState.cameraState.distance;
+    const keepFov = uiState.cameraState.fov;
 
     cameraEngine.setViewPreset(uiState.view_preset_index);
 
@@ -728,6 +766,7 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
       uiState.cameraState.phi = cam.phi;
       uiState.cameraState.target = keepTarget;
       uiState.cameraState.distance = keepDist;
+      uiState.cameraState.fov = keepFov;
       cameraEngine.setState?.(uiState.cameraState);
     }
   }
@@ -746,16 +785,35 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
 
   visibilityController?.setRecomputeHandler?.((...args) => recomputeVisibleSet(...args));
   frameController?.setRecomputeHandler?.((...args) => recomputeVisibleSet(...args));
+  modeController?.setRecomputeHandler?.((...args) => recomputeVisibleSet(...args));
 
-  recomputeVisibleSet?.();
+  recomputeVisibleSet?.("bootstrap.init");
+
+  console.log("[boot] visibleSet sizes", {
+    points: uiState.visibleSet?.points?.size ?? null,
+    lines:  uiState.visibleSet?.lines?.size ?? null,
+    aux:    uiState.visibleSet?.aux?.size ?? null,
+  });
 
   const core = {
-    data: struct,
-    structIndex,
+    // 将来の差し替えで stale を踏まんために “data から引く” 形に寄せる
+    _data: struct,
+    _structIndex: structIndex,
 
-    document_meta: documentMeta,
-    documentMeta,
-    scene_meta,
+    get data() { return this._data; },
+    set data(v) { this._data = v; }, // 内部用途（差し替え時）
+
+    get structIndex() { return this._structIndex; },
+    set structIndex(v) { this._structIndex = v; }, // 内部用途（差し替え時）
+
+    // 互換 alias
+    get indices() { return this._structIndex; },
+
+    get document_meta() { return this._data?.document_meta ?? null; },
+    get documentMeta() { return this._data?.document_meta ?? null; },
+    get scene_meta() { return this._data?.scene_meta ?? null; },
+
+    // viewer caption（正規化済み）
     documentCaption,
     sceneMeta,
 
@@ -771,11 +829,94 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     recomputeVisibleSet,
   };
 
+  // ----------------------------
+  // UI 互換 API（PointerInput / HUD が期待する口）
+  // ----------------------------
+  core.camera = cameraEngine;
+
+  core.selection = {
+    set: (sel) => {
+      if (selectionController?.set) return selectionController.set(sel);
+      if (selectionController?.setSelection) return selectionController.setSelection(sel);
+      if (selectionController?.select) return selectionController.select(sel);
+    },
+    clear: () => {
+      if (selectionController?.clear) return selectionController.clear();
+      if (selectionController?.set) return selectionController.set(null);
+      if (selectionController?.setSelection) return selectionController.setSelection(null);
+    },
+  };
+
+  core.mode = {
+    set: (mode, focusUuid, kind) => {
+      const m = (mode === "micro" || mode === "macro" || mode === "meso") ? mode : "macro";
+
+      // まず modeController の正式 API を試す
+      if (typeof modeController?.set === "function") modeController.set(m, focusUuid, kind);
+      else if (typeof modeController?.setMode === "function") modeController.setMode(m, focusUuid, kind);
+      else {
+        // 最低限フォールバック（古い実装救済）
+        if (m === "micro") {
+          if (typeof modeController?.enterMicro === "function") modeController.enterMicro(focusUuid, kind);
+        } else {
+          if (typeof modeController?.exitMicro === "function") modeController.exitMicro();
+        }
+      }
+
+      // UI 表示が uiState.mode 依存でも追従するよう保険
+      core.uiState.mode = m;
+
+      // microState の生成が modeController 側で起きない実装の保険
+      if (m === "micro" && focusUuid) {
+        if (typeof microController?.enter === "function") microController.enter(focusUuid);
+        else if (typeof microController?.setFocusUuid === "function") microController.setFocusUuid(focusUuid);
+        else if (typeof microController?.setFocus === "function") microController.setFocus(focusUuid);
+        else {
+          core.uiState.microState = core.uiState.microState || { focusUuid: null, relatedUuids: [] };
+          core.uiState.microState.focusUuid = focusUuid;
+        }
+      }
+      if (m !== "micro") {
+        if (typeof microController?.exit === "function") microController.exit();
+        else if (typeof microController?.clear === "function") microController.clear();
+        else core.uiState.microState = null;
+      }
+
+      // 描画更新
+      recomputeVisibleSet?.("ui.mode");
+    },
+
+    setCameraAuto: (v) => {
+      if (typeof modeController?.setCameraAuto === "function") modeController.setCameraAuto(!!v);
+      else core.uiState.runtime.isCameraAuto = !!v;
+      recomputeVisibleSet?.("ui.cameraAuto");
+    },
+  };
+
+  // pick の正規ルート：ここだけ叩けばええ
+  core.handlePick = (hit) => {
+    const h = hit && typeof hit.uuid === "string" ? hit : null;
+    if (h) {
+      core.selection.set({ uuid: h.uuid, kind: h.kind ?? null });
+      core.mode.set("micro", h.uuid, h.kind ?? null);
+    } else {
+      core.selection.clear();
+      core.mode.set("macro");
+    }
+    recomputeVisibleSet?.("ui.pick");
+  };
+
   const hub = createViewerHub({ core, renderer });
   const wantDevBootLog = options.devBootLog === true;
   if (wantDevBootLog) emitDevBootLog(core, options);
 
-  return hub;
+    return hub;
+  } catch (e) {
+    // ★boot 途中失敗でも WebGL を残さん（blocked 回避）
+    try { hub?.dispose?.(); } catch (_e) {}
+    try { renderer?.dispose?.(); } catch (_e) {}
+    throw e;
+  }
 }
 
 /**

@@ -164,12 +164,24 @@ export function updateAxes(target, localAxes, camera, intensity = 1) {
 
   if (xDir && yDir && zDir) {
     const matrix = new THREE.Matrix4();
-    matrix.makeBasis(
-      new THREE.Vector3(...xDir),
-      new THREE.Vector3(...yDir),
-      new THREE.Vector3(...zDir)
-    );
-    target.quaternion.setFromRotationMatrix(matrix);
+    const vx = new THREE.Vector3(...xDir);
+    const vy = new THREE.Vector3(...yDir);
+    const eps = 1e-9;
+    if (vx.lengthSq() < eps || vy.lengthSq() < eps) {
+      target.quaternion.copy(camera.quaternion);
+    } else {
+      vx.normalize();
+      vy.normalize();
+      // vy を vx に直交化
+      vy.addScaledVector(vx, -vx.dot(vy)).normalize();
+      const vz = new THREE.Vector3().crossVectors(vx, vy);
+      if (vz.lengthSq() < eps) target.quaternion.copy(camera.quaternion);
+      else {
+        vz.normalize();
+        matrix.makeBasis(vx, vy, vz);
+        target.quaternion.setFromRotationMatrix(matrix);
+      }
+    }
   } else {
     // fallback: カメラ方向に揃える（HUD 軸っぽく見せる）
     target.quaternion.copy(camera.quaternion);

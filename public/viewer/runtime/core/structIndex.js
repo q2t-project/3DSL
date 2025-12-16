@@ -91,19 +91,15 @@ function normalizeFrames(raw) {
   if (raw === undefined || raw === null) return null;
 
   const values = Array.isArray(raw) ? raw : [raw];
-
   const set = new Set();
+
   for (const v of values) {
     const n = Number(v);
-    if (Number.isInteger(n) && n >= -9999 && n <= 9999) {
-      set.add(n);
-    }
+    if (Number.isInteger(n) && n >= -9999 && n <= 9999) set.add(n);
   }
   return set.size > 0 ? set : null;
 }
 
-// [x, y, z] 形式の配列をざっくり数値化する。
-// 条件を満たさなければ null を返す。
 function sanitizeVec3(raw) {
   if (!Array.isArray(raw) || raw.length < 3) return null;
 
@@ -114,7 +110,6 @@ function sanitizeVec3(raw) {
   if (!Number.isFinite(nx) || !Number.isFinite(ny) || !Number.isFinite(nz)) {
     return null;
   }
-
   return [nx, ny, nz];
 }
 
@@ -141,7 +136,6 @@ function addToMultiMap(map, key, value) {
   set.add(value);
 }
 
-// 3DSS から structIndex を構築するメイン関数。
 export function buildUUIDIndex(doc) {
   const uuidToKind = new Map();
   const uuidToItem = new Map();
@@ -158,6 +152,22 @@ export function buildUUIDIndex(doc) {
     aux: new Map(),
   };
 
+
+  // ★ frameIndex の全フレーム union（kind別）
+  // computeVisibleSet(activeFrame=null) の高速化用
+  const allFrameIndexUuidsByKind = {
+    points: new Set(),
+    lines: new Set(),
+    aux: new Set(),
+  };
+
+  // ★ kind を知ってる側から呼ぶラッパ（union も同時に積む）
+  function indexFrames(kind, uuid, framesSet) {
+    if (!framesSet || !(framesSet instanceof Set)) return;
+    addFramesToFrameIndex(frameIndex[kind], uuid, framesSet);
+    allFrameIndexUuidsByKind[kind].add(uuid);
+  }
+
   // ★ frames 未指定（= 全フレーム共通）を高速に足せるようにする
   const uuidsWithoutFrames = new Set(); // union
   const uuidsWithoutFramesByKind = {
@@ -170,26 +180,16 @@ export function buildUUIDIndex(doc) {
     pointToLines: new Map(),
     lineToPoints: new Map(),
   };
-
-  // ★ lines 用の意味プロファイル
   const lineProfile = new Map();
 
-  // ★ バウンディング用の min/max
-  let minX = Infinity;
-  let minY = Infinity;
-  let minZ = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
-  let maxZ = -Infinity;
+  // bounds 用
+  let minX = Infinity, minY = Infinity, minZ = Infinity;
+  let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
 
   function expandBounds(pos) {
     if (!pos || pos.length < 3) return;
-    const x = pos[0];
-    const y = pos[1];
-    const z = pos[2];
-    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) {
-      return;
-    }
+    const x = pos[0], y = pos[1], z = pos[2];
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) return;
     if (x < minX) minX = x;
     if (y < minY) minY = y;
     if (z < minZ) minZ = z;
@@ -310,6 +310,8 @@ export function buildUUIDIndex(doc) {
   // ------------------------------------------------------------
   // 本体スキャン
   // ------------------------------------------------------------
+ // ----（lines normalize ヘルパ群はそのまま）----
+
   if (doc && typeof doc === "object") {
     // ---- points ----
     if (Array.isArray(doc.points)) {
@@ -329,10 +331,10 @@ export function buildUUIDIndex(doc) {
           expandBounds(pos);
         }
 
-        const framesSet = normalizeFrames(node?.appearance?.frames);
+        const framesSet = normalizeFrames(node?.appearance?.frames ?? node?.frames);
         if (framesSet) {
           uuidToFrames.set(uuid, framesSet);
-          addFramesToFrameIndex(frameIndex.points, uuid, framesSet);
+          indexFrames("points", uuid, framesSet);
         } else {
           uuidsWithoutFrames.add(uuid);
           uuidsWithoutFramesByKind.points.add(uuid);
@@ -358,10 +360,10 @@ export function buildUUIDIndex(doc) {
           expandBounds(pos);
         }
 
-        const framesSet = normalizeFrames(node?.appearance?.frames);
+        const framesSet = normalizeFrames(node?.appearance?.frames ?? node?.frames);
         if (framesSet) {
           uuidToFrames.set(uuid, framesSet);
-          addFramesToFrameIndex(frameIndex.aux, uuid, framesSet);
+          indexFrames("aux", uuid, framesSet);
         } else {
           uuidsWithoutFrames.add(uuid);
           uuidsWithoutFramesByKind.aux.add(uuid);
@@ -385,31 +387,27 @@ export function buildUUIDIndex(doc) {
         const endB = node?.appearance?.end_b ?? null;
         lineEndpoints.set(uuid, { endA, endB });
 
-        const framesSet = normalizeFrames(node?.appearance?.frames);
+        const framesSet = normalizeFrames(node?.appearance?.frames ?? node?.frames);
         if (framesSet) {
           uuidToFrames.set(uuid, framesSet);
-          addFramesToFrameIndex(frameIndex.lines, uuid, framesSet);
+          indexFrames("lines", uuid, framesSet);
         } else {
           uuidsWithoutFrames.add(uuid);
           uuidsWithoutFramesByKind.lines.add(uuid);
         }
 
-        // adjacency: points ↔ lines
         const refA = endA && typeof endA.ref === "string" ? endA.ref : null;
         const refB = endB && typeof endB.ref === "string" ? endB.ref : null;
 
         if (refA) addToMultiMap(adjacency.pointToLines, refA, uuid);
-        if (refB && refB !== refA) {
-          addToMultiMap(adjacency.pointToLines, refB, uuid);
-        }
-
+        if (refB && refB !== refA) addToMultiMap(adjacency.pointToLines, refB, uuid);
         adjacency.lineToPoints.set(uuid, [refA, refB]);
 
-        // lines の end_x.coord もバウンディングに含める（あれば）
         const coordA = endA && sanitizeVec3(endA.coord);
         if (coordA) expandBounds(coordA);
         const coordB = endB && sanitizeVec3(endB.coord);
         if (coordB) expandBounds(coordB);
+
 
         // ★ lineProfile 構築
         const sig = node.signification || {};
@@ -470,7 +468,7 @@ export function buildUUIDIndex(doc) {
     return bounds;
   }
 
-  return {
+return {
     uuidToKind,
     uuidToItem,
     byUuid,
@@ -478,16 +476,16 @@ export function buildUUIDIndex(doc) {
     lineEndpoints,
     auxPosition,
     frameIndex,
+    allFrameIndexUuidsByKind, // ★ 追加
     uuidsWithoutFrames,
     uuidsWithoutFramesByKind,
     adjacency,
     uuidToFrames,
     bounds,
     getSceneBounds,
-    // 旧コード互換用 alias（bootstrapViewer が worldBounds / getWorldBounds を見る）
     worldBounds: bounds,
     getWorldBounds: getSceneBounds,
-    lineProfile, // ★ ここで export
+    lineProfile,
     getKind(uuid) {
       const k = uuidToKind.get(uuid);
       return k === "points" || k === "lines" || k === "aux" ? k : null;
@@ -497,7 +495,6 @@ export function buildUUIDIndex(doc) {
     },
   };
 }
-
 
 // appearance.frames 全体をスキャンして [min,max] を返す。
 // 何も無ければ {0,0}。
@@ -515,7 +512,7 @@ export function detectFrameRange(doc) {
     for (const node of arr) {
       if (!node || typeof node !== "object") continue;
 
-      const framesSet = normalizeFrames(node?.appearance?.frames);
+      const framesSet = normalizeFrames(node?.appearance?.frames ?? node?.frames);
       if (!framesSet) continue;
 
       for (const frame of framesSet) {

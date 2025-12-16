@@ -73,6 +73,7 @@ export function ensureBounds(scene) {
     const mesh = new THREE.Mesh(boxGeom, boxMat);
     mesh.renderOrder = 10;
     boundsGroup.add(mesh);
+    boundsGroup.userData.mesh = mesh;
 
     // 外枠 Wireframe
     const wireGeom = new THREE.EdgesGeometry(boxGeom);
@@ -87,6 +88,7 @@ export function ensureBounds(scene) {
     const wire = new THREE.LineSegments(wireGeom, wireMat);
     wire.renderOrder = 11;
     boundsGroup.add(wire);
+    boundsGroup.userData.wire = wire;
 
     // Corner handles
     const handles = createHandlesGroup();
@@ -125,25 +127,28 @@ function updateHandles(group, size, intensity = 1) {
   const handlesGroup = group.userData?.handlesGroup;
   if (!handlesGroup) return;
 
-  // size は unitless world 空間での edge 長
   const magnitudes = size.map((v) => Math.abs(v));
   const minSize = Math.max(Math.min(...magnitudes), 0.0);
-
-  // AABB が小さくてもある程度は見えるように最低サイズを確保
-  const baseScale = minSize > 0 ? minSize * 0.18 : 0.18;
+  const h = microFXConfig?.bounds?.handle || { minBase: 0.2, maxBase: 1.0, scaleFactor: 0.05 };
+  const base = clamp(minSize, h.minBase, h.maxBase) * h.scaleFactor;
 
   let s = Number.isFinite(intensity) ? intensity : 1;
   s = clamp(s, 0, 1);
 
-  const handleScale = baseScale * s;
+  const handleScale = base * s;
 
-  handlesGroup.children.forEach((handle) => {
+  // 位置を「スケール済み box」のコーナーへ
+  const corners = [
+    [-0.5,-0.5,-0.5],[0.5,-0.5,-0.5],[-0.5,0.5,-0.5],[0.5,0.5,-0.5],
+    [-0.5,-0.5, 0.5],[0.5,-0.5, 0.5],[-0.5,0.5, 0.5],[0.5,0.5, 0.5],
+  ];
+  handlesGroup.children.forEach((handle, i) => {
+    const c = corners[i] || [0,0,0];
+    handle.position.set(c[0]*size[0], c[1]*size[1], c[2]*size[2]);
     handle.scale.setScalar(handleScale);
-    if (handle.material && "opacity" in handle.material) {
-      handle.material.opacity = s;
-      handle.material.transparent = true;
-    }
+    if (handle.material && "opacity" in handle.material) handle.material.opacity = s;
   });
+
 }
 
 /* -------------------------------------------------------
@@ -183,14 +188,17 @@ export function updateBounds(group, localBounds, intensity = 1) {
   });
 
   group.position.set(center[0], center[1], center[2]);
-  group.scale.set(size[0], size[1], size[2]);
+  const boxMesh  = group.userData.mesh;
+  const wireSegs = group.userData.wire;
+  boxMesh?.scale.set(size[0], size[1], size[2]);
+  wireSegs?.scale.set(size[0], size[1], size[2]);
 
   // handles のスケールは “描画中の box の最小寸法（unitless）× intensity”
   updateHandles(group, size, s);
 
   // Box / Wire の opacity も intensity に合わせてフェード
-  const box = group.children[0];
-  const wire = group.children[1];
+  const box  = boxMesh  ?? group.children[0];
+  const wire = wireSegs ?? group.children[1];
 
   if (box && box.material && "opacity" in box.material) {
     const baseOpacity = 0.15;
@@ -212,7 +220,7 @@ export function updateBounds(group, localBounds, intensity = 1) {
  * ----------------------------------------------------- */
 export function setOutlineMode(enabled) {
   if (!boundsGroup) return;
-  const wire = boundsGroup.children[1];
+  const wire = boundsGroup.userData?.wire ?? boundsGroup.children[1];
   if (!wire?.material) return;
 
   wire.material.color.copy(enabled ? outlineWireColor : baseWireColor);

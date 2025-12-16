@@ -32,7 +32,7 @@ function extractVersionFromId(id) {
   if (typeof id !== "string") {
     return { base: null, version: null, major: null };
   }
-  const m = id.match(/^(.*)#v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?)$/);
+  const m = id.match(/^(.*)#v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?(?:\+[0-9A-Za-z.]+)?)$/);
   if (!m) {
     return { base: id, version: null, major: null };
   }
@@ -57,11 +57,15 @@ export function init(schemaJson) {
     strictSchema: true,
     strictTypes: true,
 
+    allowUnionTypes: true,
+
     // ★ A-4 要件：「viewer が勝手に直さない」
     removeAdditional: false,
     useDefaults: false,
     coerceTypes: false,
   });
+
+  if (typeof addFormats === "function") addFormats(ajv);
 
   validateFn = ajv.compile(schemaJson);
   lastErrors = null;
@@ -75,6 +79,8 @@ export function init(schemaJson) {
   schemaInfo.version = fromId.version || null;
   schemaInfo.major = fromId.major;
 }
+
+const ENFORCE_DOC_VERSION_MAJOR = false;
 
 function checkVersionAndSchemaUri(doc) {
   const errors = [];
@@ -128,8 +134,8 @@ function checkVersionAndSchemaUri(doc) {
     }
   }
 
-  // --- document_meta.version の major も $id と一致させる ---
-  if (schemaInfo.major != null) {
+  // --- document_meta.version を schema major で縛るか（任意） ---
+  if (ENFORCE_DOC_VERSION_MAJOR && schemaInfo.major != null) {
     if (typeof dm.version !== "string") {
       errors.push({
         instancePath: "/document_meta/version",

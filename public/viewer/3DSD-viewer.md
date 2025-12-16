@@ -70,6 +70,8 @@ viewer は閲覧専用アプリであり、以下は仕様外：
 - annotation / comment / report などの編集系機能
 - modeler の内部動作
 - スキーマの定義・変換
+- 線幅変更・太線表示・lineWidthMode 等の導入（v1: MUST NOT）
+- Line2（線描画バックエンド切替／共存／移行機構を含む）（v1: MUST NOT）
 
 内部 API でも update / remove / patch 等の語彙は使用禁止。
 
@@ -91,6 +93,11 @@ viewer は閲覧専用アプリであり、以下は仕様外：
    JSON に混入させない。
 
 5. **外部通信の扱い（スキーマ取得禁止）**
+
+6. 線描画の固定（v1: C）
+   lines の線幅は 常に 1px 相当固定。
+   線幅による強調は行わず、強調は 色・不透明度・発光・overlay に限定する。
+   Line2／lineWidthMode／太線レンダラ等の導入は v1 では禁止（MUST NOT）。
 
 - viewer runtime は **スキーマ取得** や外部リソースの自動取得を行わない（`three.js` や schema は vendor/local を参照）。
 - `.3dss.json` の取得（ローカル/リモート/埋め込み）は **Host（Astro/HTML 側）責務** とする。
@@ -118,14 +125,16 @@ viewer は次のレイヤに分割する：
   - hub → ui
   - ui → renderer（pick も含め **必ず hub 経由**）
   - entry → ui（UI は Host 側責務）
-
+  - renderer → 代替線描画バックエンド（Line2 等）への切替・分岐を持つこと（v1: MUST NOT）
 
 ## 0.7 依存注入（DI）と composition root
 
 - **composition root は entry（bootstrap）** とする。
-- core 内のモジュール同士は **import で結ばない**。必要な依存は `createXxx({ ...deps })` で **引数注入**する。
-- hub は `{ core, renderer }` を DI で受け取り、`core/*` や `renderer/*` を import しない。
-- helper は **同一ファイル内に閉じる純関数**のみ許可（別モジュール化して import するのは禁止）。
+- composition root は entry（bootstrap）。
+- controller / engine 同士の依存は **原則 DI（createXxx({deps})）**で渡す（循環 import を作らない）。
+- core は `runtime/core/shared/*`（types/constants/pure utils）への import は許可する。
+  ただし shared は **副作用なし**・**下位層参照なし**（renderer/hub/ui を参照しない）を条件とする。
+- hub は `{ core, renderer }` を DI で受け取り、`runtime/core/*` や `runtime/renderer/*` を直 import しない。
 
 
 ## 0.8 ライフサイクル規約（start/stop/dispose）
@@ -145,7 +154,7 @@ viewer は次のレイヤに分割する：
   - `uiState.visibleSet` は **core.recomputeVisibleSet() のみ**が更新してよい。
   - `uiState.runtime.isFramePlaying` は **core.frameController のみ**が更新してよい。
 - renderer は three.js オブジェクトと描画キャッシュのみを所有し、core state は受け取って反映するだけ。
-
+- v1（C:厳密）：線幅・線描画方式に関する状態（例：lineWidthMode、Line2 切替フラグ等）を uiState に持たない（MUST NOT）。
 
 ---
 
@@ -175,7 +184,9 @@ viewer の内部構造は、次の **5レイヤ** と **2種類のエントリ�
 - `bootstrapViewer(canvasOrId, document3dss, options?)`
 - `bootstrapViewerFromUrl(canvasOrId, url, options?)`
 
-どちらも `viewerHub` を返し、外部操作は **`hub.core.*` と `hub.pickObjectAt`（および `hub.viewerSettings.*`）に限定**する。
+どちらも `viewerHub` を返し、外部操作は hub.core.* と hub.pickObjectAt に限定する。
+viewerSettings は hub.core.viewerSettings.*（uiState の閲覧補助設定）としてのみ提供してよい。
+v1（C:厳密）：viewerSettings に 線幅・lineWidthMode・Line2 切替を含めてはならない（MUST NOT）。
 
 
 ## 1.1 モジュール構成
@@ -239,7 +250,8 @@ Core は「構造 state」と「UI state (uiState)」の 2 系列だけを扱う
     - `mode`（macro / micro）
      ※ meso は将来拡張の予約語とし、本仕様（現行実装範囲）では扱わない。
     - `microState`（microFX の入力）
-    - `viewerSettings`（lineWidth や microFX 設定など）
+    - `viewerSettings`（worldAxesVisible / microFX（enabled, profile） 等の閲覧補助`のみ）
+     ※ v1（C:厳密）：線幅・lineWidthMode・Line2 切替は含めない（MUST NOT）
     - `visibleSet`（現在描画対象となっている uuid 集合）
 
 構造 state と uiState の詳細は第 2 章・第 5 章にて定義する。  
@@ -283,12 +295,14 @@ HUD / microFX は Renderer の一部として扱い、
     - structIndex（uuid インデックス / frame 範囲）の構築
     - uiState の初期化
     - controller 群 / cameraEngine / cameraController / viewerSettingsController の初期化（core 内相互依存は import で結ばず DI で渡す）
-    - rendererContext 初期化 → `syncDocument(document, indices)` → `getSceneMetrics()`
+      - viewerSettings を扱う場合は microFX / worldAxesVisible のみを対象にする
+      - v1（C:厳密）：lineWidth / lineWidthMode / Line2 切替に関する controller や API を作らない（MUST NOT）
     - `metrics` から初期カメラ state を決定し、**`cameraEngine.setState(initialState)`** で確定する（metrics が null の場合は fallback 規範）
     - `core.recomputeVisibleSet()` を 1 回呼んで初期 visibleSet を確定する
     - `createViewerHub({ core, renderer })` を呼び、hub を生成して返す
     - **レンダーループ開始は行わない**（`hub.start()` は Host / dev harness の責務）
     - `options.devBootLog === true` の場合、起動ログ（BOOT / MODEL / CAMERA / LAYERS / FRAME）を 1 回ずつ出力する
+    - lines 描画は 単一パイプライン（Line2 等の分岐なし）で構築する（v1: MUST NOT）
 
   - options：
     - `devBootLog?: boolean`
@@ -358,7 +372,9 @@ Core は three.js を直接は知らず、Renderer に対して「状態」を�
   - `pickObjectAt(ndcX, ndcY)` によるオブジェクト選択（raycasting）
 
 Renderer は構造 state を変更せず、描画属性（マテリアル・visible・renderOrder 等）のみを操作する。
-
+v1（C:厳密）：lines の線幅は 常に 1px 相当固定。
+線幅変更 API（例：setLineWidthMode / setLineWidth）や Line2 切替分岐を 持たない（MUST NOT）。
+強調は 色・不透明度・発光・overlay で行う。
 
 ### 1.4.5 UI / dev harness
 
@@ -419,6 +435,8 @@ viewer は次の行為を一切行ってはならない：
 7. extension の意味解釈・生成・補完（構造変更に相当）
 8. normalize / 推測 / 補完 / prune / reorder 等の生成処理
 9. 未来スキーマ項目の推測・解釈（semantic inference）
+10. 線幅変更（lineWidth / lineWidthMode）・太線表示・線幅による強調（v1: MUST NOT）
+11. Line2 の導入／共存／切替／移行コードの保持（v1: MUST NOT）
 
 viewer は **完全 read-only の表示装置** であり、  
 viewer 独自情報は uiState 内部にのみ保持してよい（構造データへの混入禁止）。
@@ -624,6 +642,7 @@ baseline 起動直後の frame / layer 状態は次のとおり固定する。
  - filters.types.lines = true
  - filters.types.aux = true
  - つまり、再生やフィルタ操作を行う前は「全レイヤ ON」の状態から始まる。
+ - lines 表示は v1（C）として 1px 相当固定（線幅設定は存在しない）
 
 ### 1.9.4 起動ログ（BOOT / MODEL / CAMERA / LAYERS / FRAME）
 
@@ -664,6 +683,7 @@ FRAME  frame_id=0
 同じビルド + 同じ baseline ファイルに対して
 これらのログ内容が毎回一致することをもって「起動条件が固定されている」とみなす。
 
+v1（C:厳密）：線幅・lineWidthMode・Line2 に関する状態は存在しないため、ログ出力もしない。
 
 ---
 
@@ -730,6 +750,8 @@ AJV は少なくとも次を満たす：
 
 つまり、入力 JSON を書き換える方向のオプションは一切使わない。
 
+useDefaults=false の方針により、viewer は **見た目都合の既定値注入（線幅など）**を行わない。
+
 
 ### 2.2.2 バージョンおよび schema_uri の扱い
 
@@ -749,7 +771,7 @@ Core 内部で保持する state は「構造データ」と「UI state」に完
 ```
 {
   // immutable（deep-freeze 済み）
-  document_3dss: {
+  document3dss: {
     document_meta,
     points: [],
     lines: [],
@@ -771,22 +793,26 @@ Core 内部で保持する state は「構造データ」と「UI state」に完
       isCameraAuto: boolean,
     },
 
-    mode: "macro" | "micro",
+    mode: "macro" | "micro" | "meso",
 
     selection: { kind:"points"|"lines"|"aux"|null, uuid:string|null },
     hover:     { kind:"points"|"lines"|"aux"|null, uuid:string|null },
 
     filters: {
-      points: boolean,
-      lines: boolean,
-      aux: boolean,
+      types: { points: boolean, lines: boolean, aux: boolean },
       auxModules: { grid:boolean, axis:boolean, plate:boolean, shell:boolean, hud:boolean, extension:boolean },
     },
 
+    // viewerSettings は「閲覧補助」だけに限定（v1: C）
     viewerSettings: {
       worldAxesVisible: boolean,
-      lineWidthMode: "auto"|"fixed"|"adaptive",
-      microFXProfile: "weak"|"normal"|"strong",
+      microFX: {
+        enabled: boolean,
+        profile: "weak"|"normal"|"strong",
+      },
+
+      // v1（C:厳密）：
+      // lineWidth / lineWidthMode / Line2 切替など「線幅・線描画方式」へ影響する設定は持たない（MUST NOT）
     },
 
     visibleSet: {
@@ -803,12 +829,15 @@ Core 内部で保持する state は「構造データ」と「UI state」に完
       fov: number,
       near: number,
       far: number,
-      // 必要なら distance なども追加（ただし renderer へ渡すのは上の確定値）
+      theta?: number,
+      phi?: number,
+      distance?: number,
     },
 
-    microState: object | null, // MicroFXPayload
+    microState: MicroFXPayload | null,
   },
 }
+
 ```
 
 特徴：
@@ -844,18 +873,23 @@ viewer は構造データに対して次を一切行わない：
 - three.js のオブジェクト（`THREE.Object3D`）に元 JSON を直接ぶら下げるなど、  
   構造データへの書き込み経路が生じる設計は禁止とする。
 
+- v1（C:厳密）：viewer は 線幅変更の経路を一切持たない。
+ runtime state / uiState / renderer のいずれにも「lineWidthMode」「Line2」等の切替スイッチを設けてはならない（MUST NOT）。
+
 ### 2.4.2 表示制御のための解釈は許可される
 
 表示制御のための **「解釈」** は許可される。例：
 
 - `frame.current` に応じた要素の表示・非表示
-- `appearance.*` の描画方式反映（色・太さ・透明度など）
+- `appearance.*` の描画方式反映（色・透明度など）
 - `marker.shape` に応じた geometry 生成
 - `aux.module` の種類に応じた表示（grid / axis / label など）
 
 これらは **表示ロジック** であり、構造データの変更ではない。  
 viewer は `appearance.visible` などを参照しても、値を書き換えたり上書きしたりしない。
 
+- v1（C:厳密）：lines の線幅は 常に 1px 相当固定で扱う。
+ 3DSS 側に線幅に類する表現が将来追加されても、viewer v1 は 解釈して反映しない（保持はするが描画は 1px）。
 
 ## 2.5 frame / frames の扱い
 
@@ -940,6 +974,10 @@ viewer は構造データに対して、次を行わない：
    - JSON の key 順序変更
    - 冗長情報の削除
    - 別フォーマットへの変換
+9. 線幅・線描画方式の補正/切替
+   - viewer 側で lineWidth / lineWidthMode を導入しない（MUST NOT）
+   - Line2 等の「線描画バックエンド切替」を持たない（MUST NOT）
+   - 強調は色・不透明度・発光・overlay のみで行う（線幅は常に 1px 相当）
 
 viewer は構造データを  
 **“手つかずのまま扱うこと”** が厳密に仕様として義務づけられる。
@@ -1072,6 +1110,10 @@ dev 用 HUD / ログパネル / 詳細なメタ情報表示は、
 - UI イベント → camera/frame/selection/mode への反映は  
   **すべて PointerInput / KeyboardInput → hub.core.* 経由** とする。
 
+  v1（C:厳密）では「線幅」をUIの語彙に入れない。
+lineWidth / lineWidthMode / stroke / 太線化などの設定UI・ショートカット・内部状態トグルは MUST NOT。
+強調（selection / microFX）は 色・不透明度・発光・overlay のみで表現する（線幅は常に 1px 相当固定）。
+
 ### 3.2.2 HUD（トースト / mode ピル / focus ラベル）
 
 dev viewer では、メインビュー上に次の HUD を重ねる：
@@ -1136,7 +1178,7 @@ HUD は dev viewer 専用の補助 UI とし、
   - viewer_dev ハーネスでは `logger: devLogger` を渡し、  
     `devLogger` が `appendModelLog` を通じて Model パネルへ追記する。
 
-devBootLog の詳細仕様は 1.8 節を正とする。
+devBootLog の詳細仕様は 6.2 節を正とする。
 
 
 ## 3.4 表示コントロールパネル
@@ -1144,6 +1186,7 @@ devBootLog の詳細仕様は 1.8 節を正とする。
 表示コントロールパネルは、viewer の **状態を外側から操作する唯一の UI 集約** である。  
 ただし本番 viewer では、配置や見た目はホストに任せ、  
 API 呼び出し（hub.core.*）だけを仕様として固定する。
+特に lineWidth / lineWidthMode（およびそれに類する名称）のコントロールは 存在してはならない（MUST NOT）。
 
 ### 3.4.1 Frame コントロール
 
@@ -1196,6 +1239,9 @@ points / lines / aux の表示切替 UI を持つ。
 - `hub.core.filters.get()`  
   → 現在の `FiltersState` を返す。
 
+#filter-lines は 「3DSS の lines 要素の表示/非表示」だけを意味する。
+Line2 への切替、太線化、線幅モード切替などの“描画方式の切替”をこのUIに載せるのは禁止（MUST NOT）。
+
 ### 3.4.3 Mode / Focus 操作（macro / micro + meso optional）
 
 - mode ピル（HUD）
@@ -1227,6 +1273,8 @@ mode と microFX の詳細ルールは 6.8 節・runtime_spec を正とし、
 - PointerInput / KeyboardInput は Host / dev harness 側で `new` し、canvas / window にイベントを接続する。
 - runtime 層（runtime/*）から PointerInput / KeyboardInput を import / new することは禁止する。
 - 入力イベントは必ず `hub.core.*` / `hub.pickObjectAt` にマッピングし、CameraEngine や three.js を直接触らない。
+- 入力操作で描画スタイル（線幅など）を変更してはならない（MUST NOT）。
+- 入力は camera / frame / selection / mode / filter のみを対象にする。
 
 
 ### 3.5.1 PointerInput（マウス / タッチ）
@@ -1309,6 +1357,7 @@ dev viewer では、これに加えてハーネス側で次を追加してよい
   - 再生ボタン（`#btn-play`）の click を代理発火し、frame 再生をトグルする。
   - これは **viewer_dev 専用ショートカット** とし、runtime 本体仕様には含めない。
 
+v1（C:厳密）：[ ] や数字キー等を使った 線幅変更／レンダリング方式切替（Line2等） のショートカットは追加してはならない（MUST NOT）。
 
 ## 3.6 dev viewer 固有の拡張
 
@@ -1327,6 +1376,8 @@ viewer_dev（開発用 harness）は、本番 viewer に含めない補助機能
 ただし、将来 host アプリで再利用したい場合に備え、  
 名前・責務は本章の定義から大きく外れないようにする。
 
+viewer_dev であっても、Line2 切替・線幅モード切替・lineWidthMode のデバッグトグルは提供しない（MUST NOT）。
+v1 の診断はログと状態（frame/filter/mode/selection/camera）の可視化に限定する。
 
 ---
 
@@ -1371,6 +1422,10 @@ viewer の描画レイヤ構造は次の通りとする：
 - three.js Object3D 群
   - Renderer 層が所有
   - Core / UI / hub は Object3D を直接触らない（UUID 等で参照するのみ）
+- v1（C:厳密）線幅・Line2 の禁止
+  - renderer は Line2（fat line / LineGeometry / LineMaterial 等）を使用してはならない（MUST NOT）。
+  - WebGL の linewidth や lineWidthMode のような可変線幅概念を 導入・公開・反映してはならない（MUST NOT）。
+  - v1 の line 表現は 常に 1px 相当固定（環境差は許容、ただし「変えようとする」実装は禁止）。
 
 ### 4.1.2 frame → visibleSet → renderer の流れ（正規ルート）
 
@@ -1403,7 +1458,7 @@ points は「空間上の代表点」として描画する。
   - color / opacity は appearance.* の値をそのまま反映する。
 - 追加表現（optional）：
   - microFX による glow / marker の上乗せ
-  - selection によるハイライト（色／太さ／発光）
+  - selection によるハイライト（色／発光／opacity／overlay）
 
 points に関して viewer は **位置の補間や丸めを行わない**。  
 position ベクトルは 3DSS JSON の値をそのまま world 座標として用いる。
@@ -1427,12 +1482,11 @@ lines は「points 同士の接続（ベクトル）」として描画する。
   - `effect: none | flow | glow | pulse` は **描画限定の視覚効果** として扱う。
   - `none` は追加の視覚効果なしを意味する。
 
-lineWidth について：
-
-- WebGL 実装により 1px 以下や固定幅になる環境が存在する。
-- viewer は内部に `line_width_mode: auto | fixed | adaptive` の概念を持ってよいが、
-  - v1 実装では **auto 固定** とし、
-  - 他モードは「将来拡張候補」として本仕様に残すに留める。
+- lineWidth / Line2 について（v1 C:厳密）
+  - v1 の viewer は 線幅変更を扱わない（MUST NOT）。線は 常に 1px 相当固定として描画する。
+  - lineWidthMode（または line_width_mode 等の類似概念）を 仕様上の概念として採用しない。UI / runtime API にも出さない。
+  - 実装は Line2 を使わず、three.js 標準の line 系（例：THREE.Line / THREE.LineSegments + LineBasicMaterial 相当）で完結させる。
+  - 強調表現（selection / microFX）は color / opacity / emissive / overlay に限定し、線幅での強調は禁止（MUST NOT）。
 
 ### 4.2.3 Aux
 
@@ -1498,6 +1552,8 @@ renderer 内の `microFX/*` モジュールとして実装される。
   - 3DSS document は決して変更しない。
   - baseStyle（元の色・不透明度）は必ず保持し、microFX OFF で完全復元できる。
   - 座標系は 3DSS と同じ「unitless な world 座標系」とし、px などの画素単位を持ち込まない。
+  - v1（C:厳密）では 線幅を状態として持ち込まない（px 依存の線幅制御・距離連動の太さ変更をしない）。
+  - microFX / selection の結果として 線幅が変化してはならない（MUST NOT）（1px 固定のまま）。
 
 ### 4.4.2 microFX モジュールの役割
 
@@ -1516,6 +1572,8 @@ renderer 内の `microFX/*` モジュールとして実装される。
 - `highlight`：
   - `microState.relatedUuids` に含まれる要素群を「なぞる」オーバーレイを描画し、
   - 構造的関係（近傍／経路など）を強調する。
+  - focus / related を「なぞる」overlay を描画して関係を強調する。
+  - v1（C:厳密）：強調は 色・不透明度・発光・点滅等で行い、線幅変更は禁止（MUST NOT）。
 
 microState の詳細な形は 7.11 節および `runtime_spec` の MicroFXPayload を正とする。  
 本章では「renderer が何をしてよいか／してはならないか」だけを定義する。
@@ -1550,6 +1608,7 @@ cameraState は Core 層が持ち、renderer は毎フレームそれを受け�
 - `Z+` を絶対上方向とする（grid / axis もこれに従う）。
 
 cameraState の公開形（hub.core.camera.getState / 起動ログ）は次を正とする：
+カメラ距離・FOV 等に応じて 線幅が変化するような描画最適化は禁止（MUST NOT）（v1 は 1px 固定）。
 
 ```ts
 cameraState = {
@@ -1695,6 +1754,7 @@ viewer は閲覧専用であり、次を目標とする：
 
 といった最適化は許容されるが、  
 元の構造データが「こうなっている」と誤解されるような描画は避ける。
+ただし v1（C:厳密）：パフォーマンス目的であっても Line2 導入や可変線幅化は禁止（MUST NOT）。
 
 
 ## 4.8 描画禁止事項（viewer）
@@ -1721,6 +1781,11 @@ viewer は次の行為を行ってはならない：
    - テキストレポート生成やコメントは UI 層で行い、描画規範を崩さない。
 10. 曲線・座標の「自動修正」
     - 例：直線で定義されているものを spline でスムージングする、など。
+11. Line2／可変線幅の導入
+    - 例：Line2（fat line）で太線を実現する、lineWidthMode を設ける、距離に応じて線幅を変える、など。
+    - v1（C:厳密）では MUST NOT。
+（※ もし「番号も増やすな」なら、10 の中にサブ項目で吸収してもええ）
+
 
 これらは禁止事項に違反する実装が見つかった場合、  
 仕様上は「viewer バグ」として扱い、修正対象とする。
@@ -1756,6 +1821,11 @@ uiState の目的は次の 2 点：
 
 uiState の詳細構造は 2.3 節および `runtime_spec` の `uiState` 定義を正とする。
 
+#### v1（C:厳密）線幅・line2撤退の扱い
+ - v1 の viewer は 線幅変更を扱わない（MUST NOT）。描画線幅は 常に 1px 相当固定。
+ - lineWidthMode やそれに類する概念（可変線幅 / 太線 / Line2 系）を uiState の正規フィールドとして持たない。
+ - 実装に内部フィールドが存在しても、renderer に反映してはならない（MUST NOT）（= 常に fixed 1px）。
+ - よって UI イベントとして「線幅変更」「lineWidthMode 切替」を定義しない。
 
 ## 5.2 イベントソースと正規ルート
 
@@ -1794,6 +1864,9 @@ three.js Scene に反映
 - renderer 層が uiState や 3DSS を書き換えてはならない
 - visibleSet / microState を controller 側でバラバラに再計算してはならない
  （再計算は必ず core.recomputeVisibleSet() に集約する）
+- 線幅に関する UI イベント／API を追加してはならない（MUST NOT）
+ - hub.core.viewerSettings.setLineWidthMode(...) 等、線幅変更を意図する入口を v1 では公開しない。
+ - devHarness 側も線幅 UI（トグル／スライダ等）を持たない。
 
 ## 5.3 Frame 系イベント
 
@@ -1807,18 +1880,14 @@ three.js Scene に反映
 
 例：frame スライダ操作（dev viewer）
 
-1. `#frame-slider` の `input` イベント発火
-2. viewerDevHarness 内の `initFrameControls` が `frameAPI.set(v)` を呼ぶ
-   - `frameAPI` は `viewerHub.core.frame` のラッパ
-3. `core/frameController.set(v)` が呼ばれる
-4. `uiState.frame.current` を更新し、必要ならクランプ
-5. `frameController` は `uiState.frame.current` を更新し、必要ならクランプする
-6. **必ず** `core.recomputeVisibleSet()` を呼び、
-   - `uiState.visibleSet` を更新
-   - selection / mode / microState の整合を崩さない
-7. hub の次フレーム tick で
-   - `renderer.applyFrame(uiState.visibleSet)`
-   - `renderer.render()`
+1. #frame-slider の input イベント発火
+2. viewerDevHarness 内の initFrameControls が frameAPI.set(v) を呼ぶ
+ （frameAPI は viewerHub.core.frame のラッパ）
+3. core/frameController.set(v) が呼ばれる
+4. frameController は uiState.frame.current を更新し、必要ならクランプする
+5. 必ず core.recomputeVisibleSet() を呼ぶ（派生状態の正規更新）
+6. hub の次フレーム tick で renderer.applyFrame(uiState.visibleSet) が走る
+7. renderer.render()
 
 KeyboardInput（PageUp / PageDown）も同様に：
 
@@ -1891,7 +1960,8 @@ v1 実装では PointerInput が `hub.pickObjectAt` を使って選択を行う�
    - `renderer.applySelection(uiState.selection)`
    - `renderer.applyMicroFX(uiState.microState)`
    - `renderer.render()`
-
+ ※ v1（C:厳密）では、selection による強調は color/opacity/overlay のみで行い、
+ 線幅で強調してはならない（MUST NOT）。
 
 ### 5.5.3 禁止事項（Selection）
 
@@ -1932,6 +2002,7 @@ v1 実装では PointerInput が `hub.pickObjectAt` を使って選択を行う�
   （対象決定は core 側：`recomputeVisibleSet()` に集約）
 - UI 層が `uiState.microState` を直接書き換えるのは禁止
 - modeController を経由せず microController を直接叩くのは禁止
+- なお v1（C:厳密）では、カメラ操作に伴って 線幅が変化するような挙動（距離で太さを変える等）を導入してはならない（MUST NOT）。
 
 
 ## 5.7 Camera 系イベント
@@ -2026,6 +2097,7 @@ UI と hub のブリッジであり、runtime そのものではない。
 - UI 接続：
   - frame スライダ / ボタン → `hub.core.frame.*`
   - filter ボタン → `hub.core.filters.*`
+  - v1（C:厳密）：線幅 UI / lineWidthMode UI は実装しない（ハーネスからも触れない）
   - mode HUD / focus トグル → `hub.core.mode.*` / `hub.core.selection.get()`
   - gizmo → `hub.core.camera.reset / snapToAxis`
   - Keyboard shortcuts（Space → Play）など、  
@@ -2063,6 +2135,10 @@ viewer は派生状態（visibleSet / microState）を複数箇所で計算し�
    （例：micro なのに selection=null の状態を作らない）
 4. microState は mode に従って更新/解除される  
    （macro では必ず null、micro では必ず再計算）
+
+  追加保証（v1 C:厳密）：core.recomputeVisibleSet() は 
+  線幅や lineWidthMode を一切変更・解釈しない。
+  描画線幅は常に fixed 1px とする。
 
 これにより、「状態の二重管理」「再計算漏れ」「mode と selection の矛盾」を仕様上禁止する。
 
@@ -2150,15 +2226,16 @@ FRAME  frame_id=<number>
   - JSON ロード元の URL（`modelUrl`）を出す。  
     未設定の場合は `"MODEL (unknown)"` とする。
 - CAMERA
-  - `cameraEngine.getState()` などから cameraState を取得し、
-    - position: `[x,y,z]`（存在しない場合は `[0,0,0]`）
-    - target: `[x,y,z]`（存在しない場合は `[0,0,0]`）
-    - fov: number（存在しない場合は `50`）
-  - を JSON 文字列として埋め込む。
+  - hub.core.camera.get()（または同等の public getter）から cameraState を取得し、
+  - position: [x,y,z]
+  - target: [x,y,z]
+  - fov: number
+  を JSON 文字列として埋め込む。
+  取得不能な場合は "CAMERA (unknown)" とし、推測デフォルト値で埋めない。
 - LAYERS
   - `uiState.filters.types.{points,lines,aux}` を優先し、
 - FRAME
-  - `uiState.frame.current` または `frameController.get()` の値を出す。
+  - `hub.core.frame.get()`（または同等の public getter）を出す。
 
 ### 6.2.3 出力先とオプション
 
@@ -2208,9 +2285,14 @@ viewer_dev ハーネスでは通常：
   - KeyboardInput の keydown イベント
 - MICROFX (`DEBUG_MICROFX`)
   - microFX 適用前後の state 変化（focusUuid / relatedUuids / localBounds 等）
+- RENDER (DEBUG_RENDER)
+  - renderer の capability と方針を出す（例：lineWidth サポート有無、antialias、dashed 可否など）
+  - Line2（three.js examples の fat line）を使用しないこと（撤退方針）を明示ログ化してよい
+  - 例：[render] lineWidth=native|none policy=line1px / [render] Line2=disabled
+  - renderer の方針を出す（例：[render] linewidth=fixed(1px) lineWidthMode=disabled(v1)）
+  - v1 において lineWidthMode が **無効（MUST NOT 反映）**であることを明示してよい
 
-これらは **デフォルト OFF** とし、  
-開発時にのみ true にして使う。
+これらは **デフォルト OFF** とし、 開発時にのみ true にして使う。
 
 禁止事項：
 
@@ -2262,6 +2344,12 @@ dev viewer では：
 ただし、カメラや frame 操作が完全に不能になるような致命的エラーは、  
 ユーザ UI にも簡易なエラー表示（トースト等）を出してよい。
 
+- "microFX / highlight / selection highlight で例外が発生した場合、viewer はクラッシュさせず、
+ その機能を **当該セッション中は無効化（fail-closed）**して baseStyle に復帰してよい。
+ その際、console.error と DEBUG_MICROFX（有効時）へ原因を記録する。
+
+- 太線表現や lineWidth に関する不整合は 描画品質の低下として扱い、機能停止や無限ループを引き起こしてはならない。
+
 
 ## 6.5 runtime API と外部連携（public surface）
 
@@ -2294,6 +2382,10 @@ viewer の外部公開面（public surface）は次の 2 つで構成される�
 - 3DSS document の書き換え
 - exporter / 保存 / 3DSS への書き戻し
 - viewer 内部の three.js / Object3D への直接アクセス
+- 線幅変更の禁止（v1）
+ - v1 の viewer は、points/lines の描画線幅を変更してはならない（MUST NOT）。
+ - lineWidthMode（およびそれに類する UI 設定・API・内部フラグ）を 描画結果へ反映してはならない（MUST NOT）。
+ - renderer.setLineWidthMode(...) のような API は v1 では提供してはならない（MUST NOT）。存在する場合でも 必ず no-op とし、描画線幅は固定（1px 相当）とする。
 
 ### 6.5.1 API レイヤリング
 
@@ -2306,7 +2398,7 @@ viewer の外部公開面（public surface）は次の 2 つで構成される�
 - core / renderer（完全内部）
   - 外部から直接触らない。
 
-ホストアプリは **必ず viewerCore 経由** で viewer を操作する。  
+ホストアプリは **bootstrapViewer* 直呼び または viewerCore 経由**のどちらかで viewer を操作する。  
 hub / core / renderer を直 import してはならない。
 
 ### 6.5.2 許可される操作
@@ -2402,8 +2494,8 @@ viewer は read-only のまま保つ。
 
 ## 6.8 microFX 運用ルール（詳細）
 
-本節は、4.4 節で述べた microFX の補足として、  
-runtime_spec / 7.11 節の MicroFXPayload を踏まえた運用ルールを示す。
+本節は microFX の 状態管理・解除復元・禁止事項・診断を定義する。
+microFX の payload 形式・適用条件・overlays 構成・アルゴリズム仕様は 第 7.11 節を正とする。
 
 ### 6.8.1 microState（MicroFXPayload）の前提
 
@@ -2442,6 +2534,12 @@ ON/OFF は core の責務であり、renderer は `microState === null` かど�
 - microFX の解除／復元は **常に完全可逆**であること（baseStyle の保持が必須）
 - 解除が必要なタイミング（例：macro 戻り / selection の null 化）は
   `core.recomputeVisibleSet()` が保証する
+- v1 では Line2 を用いた太線 overlay を採用しない（撤退）。
+- microFX の強調は opacity / color / glow / marker / bounds 等で行い、線幅変更は 保証しない。
+ 実装が lineWidth を触る場合でも、結果はプラットフォーム依存であり、視認性は overlay（glow等）で担保する。
+-  v1 では 線幅変更を一切行わない（MUST NOT）。microFX の強調は **opacity / color / glow / marker / bounds / highlight（1px相当）**の範囲で行う。
+- lineWidthMode を含む設定値は、microFX の適用・解除いずれの局面でも 描画線幅へ反映してはならない（MUST NOT）。
+- microFX の解除／復元は常に完全可逆であること（baseStyle の保持が必須）。ただし baseStyle の線幅は 固定であり、復元対象に「線幅」は含めない（変更しないため）。
 
 ### 6.8.5 renderer 内部での禁止事項
 
@@ -2481,10 +2579,14 @@ viewer は 3DSS に対して、つねに次の原則を守る。
  viewer が利用しなくても破棄・正規化しない、という意味である。
  スキーマ外項目は strict validation により読込拒否する。
 
-
 4. **拡張の余地は UI／描画補助のみに限定する**
    - microFX・HUD・gizmo など、純粋に描画レイヤに閉じた機能のみ追加可能。
    - 構造データに影響する拡張（保存・編集・マイグレーション等）は全て禁止。
+
+5. viewerSettings の setter は自分の担当フィールド以外を書き換えない
+   - 例：setMicroFXProfile(...) は viewerSettings.microFX（または profile 配下）以外に副作用を持ってはならない。
+   - viewerSettings.render.* 等、他系統の設定を同時に変更する実装は禁止（MUST NOT）。
+   - 変更通知（listeners）がある場合、対応する系統にのみ通知する（MUST）。
 
 
 ## 7.2 スキーマの将来拡張への対応
@@ -2649,6 +2751,11 @@ viewer に対して、次のような拡張を追加してはならない。
    - 仕様変更を理由に viewer 側が自動変換を行い、  
      新しい .3dss.json を書き出すことは行わない。
 
+5. 契約チェック（contract）を更新時に必ず通す
+  - 公開 API（hub/core/renderer 境界）のシグネチャと、
+   副作用禁止（read-only / 正規ルート）を自動チェックできるテストを用意し、
+   仕様更新時は必ず通す。
+
 
 ## 7.9 拡張・互換性に関する禁止事項（統合）
 
@@ -2782,15 +2889,18 @@ type MicroFXPayload = {
 
 - `core.microController` は selection / structIndex / cameraState をもとに  
   毎フレームではなく、必要なときだけ `MicroFXPayload | null` を更新する。
+  本仕様内の状態参照は uiState.* 表記に統一し、ui_state / micro_state 等の別名は用いない。
 - `uiState.microState` にこの payload が保持され、viewerHub → renderer に伝達される。
 
 ### 7.11.2 適用条件（mode・ランタイム状態）
 
-microFX は次の条件をすべて満たすときのみ有効となる。
+MicroFX ハイライトは uiState.mode === "micro" のときにのみ描画する。
+uiState.microState が null の場合、または uiState.microState.focusUuid が falsy の場合は描画しない。
+uiState.microState.relatedUuids は任意であり、存在する場合は focus に準ずる強度で追加描画してよい
 
 1. `uiState.mode === "micro"`  
    - mode の定義・遷移条件は第 4.6 節（カメラモード）を参照。
-2. `uiState.viewerSettings.fx.micro.enabled === true`
+2. `uiState.viewerSettings.microFX.enabled === true`
 3. `uiState.runtime.isFramePlaying === false`
 4. `uiState.runtime.isCameraAuto === false`（将来の自動カメラ用フラグ）
 
@@ -2822,8 +2932,11 @@ v1 では次のモジュールを想定する。
 - いずれも struct（3DSS）には一切触れず、three.js の Object3D 追加・削除と  
   material（color / opacity / transparent 等）の変更のみで実装する。
 - macro モードでは microFX-overlays は常に無効（7.11.7 参照）。
+- overlay は scene 切替 / モデル切替 / mode 切替のいずれでも残留してはならない（MUST）。
+- overlay の生成・更新・削除は ensure*/update*/remove* の規約で行い、同一 uuid に対して二重生成しない（MUST）。
+- highlight は元オブジェクトの transform に追従し、旧 focus の残骸が1フレームでも残らないこと（MUST）。
+- v1 では overlay / baseStyle のいずれに対しても 線幅変更は行わない（MUST NOT）。highlight は 1px 相当の表現として扱う。
 
-v1 では **highlight を必須** とし、その他のモジュールは optional とする。
 
 ### 7.11.4 距離フェードと接続強調
 
@@ -2845,7 +2958,8 @@ microFX-core は、フォーカス原点との距離と接続関係に基づき
    - フォーカスが line の場合：
      - その line の端点 point を 1hop point とする。
      - これらとつながる line を 1hop line とする。
-   - 1hop 要素は距離フェードに加えて、加点（明るさ増し・太さ増しなど）で強調してよい。
+   - 1hop 要素は距離フェードに加えて、加点（明るさ増し・色変化・glow 等）で強調してよい。
+    **線幅（太さ）による強調は v1 では禁止（MUST NOT）**とする。
 
 具体的な係数やカーブは `renderer/microFX/config.js` に集約し、  
 数値チューニングはそのファイルのみを変更すればよい設計とする。
@@ -2871,6 +2985,7 @@ renderer 側の microFX 関連 API は次のような最小インタフェース
     - 対象要素の material をフェード係数に応じて変更。
 - renderer は microState のフィールドを **読み取るだけ** でよい。  
   struct に書き戻すことや、microState を mutate することは禁止。
+- renderer は microState（payload）を 変更してはならない（MUST NOT）。読み取り専用とする。
 
 ### 7.11.7 mode・他機能との相互作用
 
@@ -2915,7 +3030,7 @@ selection ハイライトは、**macro モード時に「現在選択中の 1 �
 selection ハイライトは、次の条件をすべて満たすときにのみ描画される。
 
 1. `uiState.mode === "macro"`
-2. `uiState.selection` が `{kind, uuid}` で、`uuid` が非 null
+2. uiState.selection は { kind: "points"|"lines"|"aux", uuid: string } | null とし、uuid が非 null のときのみ有効とする。
 3. `uuid` が `visibleSet` に含まれている
 
 この条件を満たさない場合、renderer は selection ハイライト用オーバーレイを解除し、  
@@ -2938,12 +3053,17 @@ baseStyle（構造に基づくデフォルト）のみを表示する。
     - `renderer.applyMicroFX(uiState.microState)`
     - `renderer.updateCamera(uiState.cameraState)`
     - `renderer.render()`
+  - uiState.selection.uuid が visibleSet に含まれない場合、renderer はハイライトを描画してはならない（MUST NOT）。
+  - さらに core は core.recomputeVisibleSet() において、可視外になった selection を null に正規化してよい（ポリシーとして明示）。
+  （※ここは “してよい” にして、実装ポリシーの自由度も残せる）
 
 - renderer
   - `applySelection({kind, uuid} | null)` を受けて
     macro モード用の軽い強調（上書き）を行う。
   - `visibleSet` に含まれない uuid にはハイライトを描画しない。
   - 解除時は baseStyle に完全復元できること（可逆）を保証する。
+  - v1 の selection ハイライトは 線幅を変更してはならない（MUST NOT）。強調は色・opacity・overlay 等で行う。 
+
 
 ### 7.12.4 microFX / mode 遷移との関係
 
@@ -2968,3 +3088,6 @@ baseStyle（構造に基づくデフォルト）のみを表示する。
 - microFX は 7.11 のとおり、micro モードにおける詳細な局所読解のための  
   視覚補助であり、両者は競合せず補完し合うように設計する。
 - どちらの機構も 3DSS 構造は一切変更せず、描画属性と overlay にのみ作用する。
+ v1 における selection ハイライトは optional（MAY）とする。
+ 未実装の場合、選択中要素の提示は HUD / インスペクタ等のテキスト表示で代替してよい。
+ 未実装でも applySelection(...) は no-op で成立し、描画が破綻しないこと（MUST）。

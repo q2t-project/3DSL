@@ -12,15 +12,22 @@ function getKind(structIndex, uuid) {
     return VALID_KIND.has(k) ? k : null;
   }
 
-  const hit =
-    (structIndex.byUuid instanceof Map && structIndex.byUuid.get(uuid)) ||
-    (structIndex.byUuid && typeof structIndex.byUuid === "object" && structIndex.byUuid[uuid]) ||
-    (structIndex.uuidToItem instanceof Map && structIndex.uuidToItem.get(uuid)) ||
-    (structIndex.uuidToItem && typeof structIndex.uuidToItem === "object" && structIndex.uuidToItem[uuid]) ||
-    null;
-
-  const k = hit?.kind || hit?.type || null;
-  return VALID_KIND.has(k) ? k : null;
+  // まず kind を持ってる索引を優先（byUuid は node 本体なので kind を持たない）
+  if (structIndex.uuidToKind instanceof Map) {
+    const k = structIndex.uuidToKind.get(uuid);
+    return VALID_KIND.has(k) ? k : null;
+  }
+  if (structIndex.uuidToItem instanceof Map) {
+    const hit = structIndex.uuidToItem.get(uuid);
+    const k = hit?.kind || null;
+    return VALID_KIND.has(k) ? k : null;
+  }
+  if (structIndex.uuidToItem && typeof structIndex.uuidToItem === "object") {
+    const hit = structIndex.uuidToItem[uuid] || null;
+    const k = hit?.kind || null;
+    return VALID_KIND.has(k) ? k : null;
+  }
+  return null;
 }
 
 export function createVisibilityController(uiState, a = null, b = null, c = null) {
@@ -43,15 +50,21 @@ export function createVisibilityController(uiState, a = null, b = null, c = null
   }
 
   function assertFilters() {
-    const f = uiState.filters;
-    if (!f || typeof f !== "object") throw new Error("visibilityController: uiState.filters missing");
-    const t = f.types;
-    if (!t || typeof t !== "object") throw new Error("visibilityController: uiState.filters.types missing");
-    if (typeof t.points !== "boolean" || typeof t.lines !== "boolean" || typeof t.aux !== "boolean") {
-      throw new Error("visibilityController: filters.types flags missing");
-    }
-    const m = f.auxModules;
-    if (!m || typeof m !== "object") throw new Error("visibilityController: filters.auxModules missing");
+    // “正準化／更新” が役割やから、無ければ作って形を固定する
+    let f = uiState.filters;
+    if (!f || typeof f !== "object") f = uiState.filters = {};
+
+    let t = f.types;
+    if (!t || typeof t !== "object") t = f.types = {};
+    if (typeof t.points !== "boolean") t.points = true;
+    if (typeof t.lines  !== "boolean") t.lines  = true;
+    if (typeof t.aux    !== "boolean") t.aux    = true;
+
+    let m = f.auxModules;
+    if (!m || typeof m !== "object") m = f.auxModules = {};
+    if (typeof m.grid !== "boolean") m.grid = false;
+    if (typeof m.axis !== "boolean") m.axis = false;
+
     return f;
   }
 
@@ -103,6 +116,10 @@ export function createVisibilityController(uiState, a = null, b = null, c = null
       if (vs.all instanceof Set) {
         return vs.all.has(uuid);
       }
+      // ★ kind が取れない互換ケース（structIndex 渡し忘れ等）救済
+      if (vs.points instanceof Set && vs.points.has(uuid)) return true;
+      if (vs.lines  instanceof Set && vs.lines.has(uuid))  return true;
+      if (vs.aux    instanceof Set && vs.aux.has(uuid))    return true;
 
       // visibleSet があるのに情報不足 → strict 側で false
       return false;

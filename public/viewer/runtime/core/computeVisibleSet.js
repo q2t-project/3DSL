@@ -1,14 +1,20 @@
 // viewer/runtime/core/computeVisibleSet.js
-//
-// Phase2: visibleSet computation (pure)
-//
-// フレーム可視判定（isVisibleOnFrame 系）はここに集約する。
-// ＝ frame/frames/frameRange 系の解釈は computeVisibleSet だけが責務。
 
 const VALID_KINDS = new Set(["points", "lines", "aux"]);
 
 function asBool(v, dflt) {
   return typeof v === "boolean" ? v : dflt;
+}
+
+function toFiniteNumber(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function normalizeFrameIndex(activeFrame) {
+  if (activeFrame == null) return null;
+  const n = toFiniteNumber(activeFrame);
+  return n == null ? null : Math.trunc(n);
 }
 
 function getItem(structIndex, uuid) {
@@ -17,16 +23,12 @@ function getItem(structIndex, uuid) {
   if (typeof structIndex.getItem === "function") {
     return structIndex.getItem(uuid);
   }
-
-  // Map 版
   if (structIndex.byUuid instanceof Map) {
     return structIndex.byUuid.get(uuid) || null;
   }
   if (structIndex.uuidToItem instanceof Map) {
     return structIndex.uuidToItem.get(uuid)?.item || null;
   }
-
-  // Object 版（旧互換）
   return (
     structIndex.byUuid?.[uuid] ||
     structIndex.uuidToItem?.[uuid]?.item ||
@@ -35,12 +37,9 @@ function getItem(structIndex, uuid) {
   );
 }
 
-// ------------------------------------------------------------
-// isVisibleOnFrame 系（ここに移管）
-// ------------------------------------------------------------
+// ---------------- isVisibleOnFrame ----------------
 
 function isVisibleFlag(el) {
-  // v1.1.0: visible:false を非表示扱い（true/undefined は表示）
   const v = el?.appearance?.visible ?? el?.visible;
   return v !== false;
 }
@@ -53,14 +52,10 @@ function isVisibleOnFrame(el, activeFrame) {
   if (!Number.isFinite(frame)) return true;
 
   const app = el.appearance || {};
-
-  // frames（配列 or 単一値）
   const framesRaw = app.frames ?? el.frames;
 
-  // frames: array
   if (Array.isArray(framesRaw)) {
-    if (framesRaw.length === 0) return true; // 空配列は「指定無し」扱い
-
+    if (framesRaw.length === 0) return true;
     let hasValid = false;
     for (const v of framesRaw) {
       const n = Number(v);
@@ -68,21 +63,20 @@ function isVisibleOnFrame(el, activeFrame) {
       hasValid = true;
       if (n === frame) return true;
     }
-    return hasValid ? false : true; // 全部無効値なら指定無し扱い
+    return hasValid ? false : true;
   }
 
-  // frames: single value
   if (framesRaw !== undefined && framesRaw !== null) {
     const n = Number(framesRaw);
     if (Number.isFinite(n)) return n === frame;
-    // 無効値は指定無し扱い
   }
 
-  // frame: number
   const single = app.frame ?? el.frame;
-  if (typeof single === "number") return single === frame;
+  if (single !== undefined && single !== null) {
+    const n = Number(single);
+    if (Number.isFinite(n)) return n === frame;
+  }
 
-  // frame_range / frameRange: {min,max} / {start,end}
   const fr =
     app.frame_range ||
     app.frameRange ||
@@ -91,43 +85,31 @@ function isVisibleOnFrame(el, activeFrame) {
     null;
 
   if (fr && typeof fr === "object") {
-    const min = fr.min ?? fr.start ?? null;
-    const max = fr.max ?? fr.end ?? null;
-
-    const a = typeof min === "number" ? min : -Infinity;
-    const b = typeof max === "number" ? max : Infinity;
-
-    if (Number.isFinite(a) || Number.isFinite(b)) {
-      return frame >= a && frame <= b;
-    }
+    const minRaw = fr.min ?? fr.start ?? null;
+    const maxRaw = fr.max ?? fr.end ?? null;
+    const aNum = toFiniteNumber(minRaw);
+    const bNum = toFiniteNumber(maxRaw);
+    const a = aNum == null ? -Infinity : aNum;
+    const b = bNum == null ? Infinity : bNum;
+    if (aNum != null || bNum != null) return frame >= a && frame <= b;
   }
 
-  // frame_start / frame_end
   const a0 = app.frame_start ?? el.frame_start;
   const b0 = app.frame_end ?? el.frame_end;
 
-  if (typeof a0 === "number" || typeof b0 === "number") {
-    const a = typeof a0 === "number" ? a0 : -Infinity;
-    const b = typeof b0 === "number" ? b0 : Infinity;
+  const aNum = toFiniteNumber(a0);
+  const bNum = toFiniteNumber(b0);
+  if (aNum != null || bNum != null) {
+    const a = aNum == null ? -Infinity : aNum;
+    const b = bNum == null ? Infinity : bNum;
     return frame >= a && frame <= b;
   }
 
-  return true; // 指定無しは全フレーム表示
+  return true;
 }
 
-// ------------------------------------------------------------
-// computeVisibleSet (pure)
-// ------------------------------------------------------------
+// ---------------- computeVisibleSet ----------------
 
-/**
- * 純関数: visibleSet を計算する（frameIndex 最適化内蔵）
- *
- * return:
- *   {
- *     points:Set<string>, lines:Set<string>, aux:Set<string>, all:Set<string>,
- *     auxModules:{ grid:boolean, axis:boolean }
- *   }
- */
 export function computeVisibleSet({ model, structIndex, activeFrame, filters }) {
   const types = (filters && (filters.types || filters)) || {};
   const allowPoints = asBool(types.points ?? filters?.points, true);
@@ -146,12 +128,11 @@ export function computeVisibleSet({ model, structIndex, activeFrame, filters }) 
   };
 
   const si = structIndex;
-
-  // 最適化パス: frameIndex + uuidsWithoutFramesByKind + item取得手段 が揃ってる時
   const fi = si?.frameIndex;
   const wof = si?.uuidsWithoutFramesByKind;
 
-  const canFast =
+  // --- fast base: frameIndex + wof + getItem 手段 ---
+  const canFastBase =
     fi?.points instanceof Map &&
     fi?.lines instanceof Map &&
     fi?.aux instanceof Map &&
@@ -162,10 +143,23 @@ export function computeVisibleSet({ model, structIndex, activeFrame, filters }) 
       si?.byUuid instanceof Map ||
       si?.uuidToItem instanceof Map);
 
-  const n = Number(activeFrame);
-  const frame = Number.isFinite(n) ? Math.trunc(n) : 0;
+  // --- full fast: allFrameIndexUuidsByKind が 3種揃ってる ---
+  const afi = si?.allFrameIndexUuidsByKind;
+  const hasAllFrameUnion =
+    afi?.points instanceof Set &&
+    afi?.lines instanceof Set &&
+    afi?.aux instanceof Set;
 
-  if (canFast) {
+  const canFastFull = canFastBase && hasAllFrameUnion;
+  const canFastCompat = canFastBase && !hasAllFrameUnion;
+
+  const frame = normalizeFrameIndex(activeFrame);
+  const hasFrame = frame != null;
+
+  // ------------------------------------------------------------
+  // 完全高速パス（union 構築なし）
+  // ------------------------------------------------------------
+  if (canFastFull) {
     const fillKind = (kind, allow) => {
       if (!allow) return;
       if (!VALID_KINDS.has(kind)) return;
@@ -173,15 +167,26 @@ export function computeVisibleSet({ model, structIndex, activeFrame, filters }) 
       const dst = out[kind];
 
       // frames 指定あり（frameIndex）
-      const fromFrame = fi[kind].get(frame);
-      if (fromFrame instanceof Set) {
-        for (const uuid of fromFrame) {
+      if (!hasFrame) {
+        // ★ structIndex 側で作った union をそのまま使う
+        for (const uuid of afi[kind]) {
           const node = getItem(si, uuid);
           if (!node) continue;
           if (!isVisibleFlag(node)) continue;
-          if (!isVisibleOnFrame(node, frame)) continue; // range系混在の安全弁
           dst.add(uuid);
           out.all.add(uuid);
+        }
+      } else {
+        const fromFrame = fi[kind].get(frame);
+        if (fromFrame instanceof Set) {
+          for (const uuid of fromFrame) {
+            const node = getItem(si, uuid);
+            if (!node) continue;
+            if (!isVisibleFlag(node)) continue;
+            if (!isVisibleOnFrame(node, frame)) continue;
+            dst.add(uuid);
+            out.all.add(uuid);
+          }
         }
       }
 
@@ -190,7 +195,7 @@ export function computeVisibleSet({ model, structIndex, activeFrame, filters }) 
         const node = getItem(si, uuid);
         if (!node) continue;
         if (!isVisibleFlag(node)) continue;
-        if (!isVisibleOnFrame(node, frame)) continue;
+        if (hasFrame && !isVisibleOnFrame(node, frame)) continue;
         dst.add(uuid);
         out.all.add(uuid);
       }
@@ -199,11 +204,70 @@ export function computeVisibleSet({ model, structIndex, activeFrame, filters }) 
     fillKind("points", allowPoints);
     fillKind("lines", allowLines);
     fillKind("aux", allowAux);
-
     return out;
   }
 
-  // フォールバック: model 配列スキャン
+  // ------------------------------------------------------------
+  // 互換フォールバック（union を毎回構築）
+  // ------------------------------------------------------------
+  if (canFastCompat) {
+    const buildUnionFromFrameIndex = (m) => {
+      const u = new Set();
+      for (const set of m.values()) {
+        if (!(set instanceof Set)) continue;
+        for (const uuid of set) u.add(uuid);
+      }
+      return u;
+    };
+
+    const fillKind = (kind, allow) => {
+      if (!allow) return;
+      if (!VALID_KINDS.has(kind)) return;
+
+      const dst = out[kind];
+
+      if (!hasFrame) {
+        const src = buildUnionFromFrameIndex(fi[kind]);
+        for (const uuid of src) {
+          const node = getItem(si, uuid);
+          if (!node) continue;
+          if (!isVisibleFlag(node)) continue;
+          dst.add(uuid);
+          out.all.add(uuid);
+        }
+      } else {
+        const fromFrame = fi[kind].get(frame);
+        if (fromFrame instanceof Set) {
+          for (const uuid of fromFrame) {
+            const node = getItem(si, uuid);
+            if (!node) continue;
+            if (!isVisibleFlag(node)) continue;
+            if (!isVisibleOnFrame(node, frame)) continue;
+            dst.add(uuid);
+            out.all.add(uuid);
+          }
+        }
+      }
+
+      for (const uuid of wof[kind]) {
+        const node = getItem(si, uuid);
+        if (!node) continue;
+        if (!isVisibleFlag(node)) continue;
+        if (hasFrame && !isVisibleOnFrame(node, frame)) continue;
+        dst.add(uuid);
+        out.all.add(uuid);
+      }
+    };
+
+    fillKind("points", allowPoints);
+    fillKind("lines", allowLines);
+    fillKind("aux", allowAux);
+    return out;
+  }
+
+  // ------------------------------------------------------------
+  // 最終フォールバック: model 配列スキャン
+  // ------------------------------------------------------------
   const getUuid = (node) => {
     const u = node?.meta?.uuid ?? node?.uuid;
     return typeof u === "string" && u ? u : null;

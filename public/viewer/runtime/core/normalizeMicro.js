@@ -41,7 +41,7 @@ export function normalizeMicro(microState, ctx = {}) {
 
   // micro 以外は強制クリア（契約固定）
   if (mode !== "micro") {
-    return { ...m, focusUuid: null, relatedUuids: [] };
+    return { ...m, focusUuid: null, kind: null, relatedUuids: [] };
   }
 
   const selUuid = selection && typeof selection === "object" ? selection.uuid : null;
@@ -51,15 +51,15 @@ export function normalizeMicro(microState, ctx = {}) {
     typeof m.focusUuid === "string" && m.focusUuid ? m.focusUuid : selUuid;
 
   if (typeof focusUuid !== "string" || !focusUuid) {
-    return { ...m, focusUuid: null, relatedUuids: [] };
+    return { ...m, focusUuid: null, kind: null, relatedUuids: [] };
   }
 
   // focus の存在/可視整合
   const focusKind = inferKind(focusUuid, visibleSet, structIndex);
-  if (!focusKind) return { ...m, focusUuid: null, relatedUuids: [] };
+  if (!focusKind) return { ...m, focusUuid: null, kind: null, relatedUuids: [] };
 
   if (visibleSet && !hasIn(visibleSet[focusKind], focusUuid)) {
-    return { ...m, focusUuid: null, relatedUuids: [] };
+    return { ...m, focusUuid: null, kind: null, relatedUuids: [] };
   }
 
   // related は存在＆可視のみにフィルタ、重複除去、focus 自身は除外、上限
@@ -83,7 +83,7 @@ export function normalizeMicro(microState, ctx = {}) {
     uniq.push(u);
   }
 
-  return { ...m, focusUuid, relatedUuids: uniq };
+  return { ...m, focusUuid, kind: focusKind, relatedUuids: uniq };
 }
 
 // ------------------------------------------------------------

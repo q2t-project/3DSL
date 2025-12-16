@@ -8,14 +8,12 @@ function debugSel(...args) {
 
 const VALID_KIND = new Set(["points", "lines", "aux"]);
 
-export function createSelectionController(uiState, structIndex, highlightApi = {}) {
+export function createSelectionController(uiState, structIndex) {
   const uuidToKind =
     structIndex && structIndex.uuidToKind instanceof Map ? structIndex.uuidToKind : null;
 
   const uuidToItem =
     structIndex && structIndex.uuidToItem instanceof Map ? structIndex.uuidToItem : null;
-
-  const { setHighlight, clearAllHighlights, onChanged } = highlightApi || {};
 
   function resolveKind(uuid, explicitKind) {
     if (VALID_KIND.has(explicitKind)) return explicitKind;
@@ -69,12 +67,6 @@ export function createSelectionController(uiState, structIndex, highlightApi = {
   function clear() {
     debugSel("[selection] clear()");
     uiState.selection = null;
-
-    if (typeof clearAllHighlights === "function") {
-      clearAllHighlights();
-    }
-    if (typeof onChanged === "function") onChanged("selection");
-    return null;
   }
 
   function select(uuid, kind) {
@@ -92,20 +84,6 @@ export function createSelectionController(uiState, structIndex, highlightApi = {
     uiState.selection = clean;
     debugSel("[selection] select", uiState.selection);
 
-    // --- ハイライト反映（A-7：macro 限定） ---
-    if (typeof setHighlight === "function" || typeof clearAllHighlights === "function") {
-      if (uiState.mode === "macro") {
-        if (typeof setHighlight === "function") {
-          // kind も渡しておく（renderer 側での解決を安定させる）
-          setHighlight({ uuid: clean.uuid, kind: clean.kind, level: 1 });
-        }
-      } else if (typeof clearAllHighlights === "function") {
-        clearAllHighlights();
-      }
-    }
-
-    // NOTE: ここで recomputeVisibleSet を叩く（唯一ルート）
-    if (typeof onChanged === "function") onChanged("selection");
     return uiState.selection;
   }
 

@@ -26,6 +26,8 @@ export function buildFrameIndexContractA(model, structIndex = {}) {
   };
 
   // 既存を作り直すなら一旦クリア（増分更新したいならここは調整）
+  structIndex.byUuid.clear();
+  structIndex.uuidToKind.clear();
   for (const k of KINDS) {
     structIndex.frameIndex[k].clear();
     structIndex.uuidsWithoutFramesByKind[k].clear();
@@ -40,7 +42,7 @@ export function buildFrameIndexContractA(model, structIndex = {}) {
 
       structIndex.byUuid.set(uuid, node);
       structIndex.uuidToKind.set(uuid, kind);
-
+ 
       const spec = classifyFrameSpec(node);
 
       if (spec.mode === "indexed") {
@@ -145,5 +147,6 @@ function classifyFrameSpec(node) {
 function toIntOrNull(v) {
   const n = Number(v);
   if (!Number.isFinite(n)) return null;
-  return Math.trunc(n);
+  if (!Number.isInteger(n)) return null;
+  return n;
 }

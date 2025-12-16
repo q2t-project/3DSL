@@ -26,16 +26,19 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
+function toFiniteNumber(v, fallback = 0) {
+  if (v == null) return fallback;         // ★ null/undefined は fallback
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 function clampAutoOrbitSpeedLevel(level) {
-  let n = Number(level);
-  if (!Number.isFinite(n)) n = 1;
-  n = Math.floor(n);
+  let n = Math.floor(toFiniteNumber(level, 1));
   return clamp(n, 1, MAX_AUTO_ORBIT_SPEED_LEVEL);
 }
 
 function sanitizeScalarCoord(v) {
-  let n = Number(v);
-  if (!Number.isFinite(n)) n = 0;
+  let n = toFiniteNumber(v, 0);
   return clamp(n, -MAX_COORD, MAX_COORD);
 }
 
@@ -44,11 +47,7 @@ function sanitizePosition(positionVec3) {
     return [0, 0, 0];
   }
 
-  return positionVec3.map((v) => {
-    let n = Number(v);
-    if (!Number.isFinite(n)) n = 0;
-    return clamp(n, -MAX_COORD, MAX_COORD);
-  });
+  return positionVec3.map((v) => sanitizeScalarCoord(v));
 }
 
 function normalizePresetIndex(index) {
@@ -79,7 +78,7 @@ function deriveMetricsDefaults(metrics) {
   let cy = 0;
   let cz = 0;
 
-  const center = metrics.center;
+  const center = metrics.center ?? metrics.centre ?? null;
   if (Array.isArray(center) && center.length >= 3) {
     cx = sanitizeScalarCoord(center[0]);
     cy = sanitizeScalarCoord(center[1]);
@@ -91,9 +90,10 @@ function deriveMetricsDefaults(metrics) {
   }
 
   let distance = 4;
-  if (typeof metrics.radius === "number" && Number.isFinite(metrics.radius)) {
+  const r = toFiniteNumber(metrics.radius, null);
+  if (r != null && r > 0) {
     // ★ 仕様：distance = radius * 2.4（クランプ付き）
-    distance = clamp(metrics.radius * 2.4, MIN_DISTANCE, MAX_DISTANCE);
+    distance = clamp(r * 2.4, MIN_DISTANCE, MAX_DISTANCE);
   }
 
   return {
@@ -120,14 +120,11 @@ export function createCameraEngine(initialState = {}, options = {}) {
   // ★ 初期 state を一度だけ決定。reset もここに戻す
   const initial = {
     // theta: Yaw（水平回転）
-    theta:
-      typeof initialState.theta === "number"
-        ? initialState.theta
-        : 0,
+    theta: toFiniteNumber(initialState.theta, 0),
 
     // phi: Z 軸からの極角（0 ≒ 真上, π/2 ≒ 水平, π ≒ 真下）
     phi: clamp(
-      initialState.phi ?? Math.PI / 2,
+      toFiniteNumber(initialState.phi, Math.PI / 2),
       EPSILON,
       Math.PI - EPSILON
     ),
@@ -135,7 +132,7 @@ export function createCameraEngine(initialState = {}, options = {}) {
     distance: clamp(
       // metrics.radius があれば radius*2.4 をデフォルトにしつつ、
       // initialState.distance 明示指定があればそっち優先
-      initialState.distance ?? metricsDefaults.distance,
+      toFiniteNumber(initialState.distance, metricsDefaults.distance),
       MIN_DISTANCE,
       MAX_DISTANCE
     ),
@@ -154,9 +151,7 @@ export function createCameraEngine(initialState = {}, options = {}) {
 
     // three.js Camera と同様、fov は「度数法」で扱う想定
     fov:
-      typeof initialState.fov === "number"
-        ? initialState.fov
-        : 50,
+      toFiniteNumber(initialState.fov, 50),
   };
 
   // ★ state は initial のコピー。reset で initial に戻す
@@ -176,6 +171,11 @@ export function createCameraEngine(initialState = {}, options = {}) {
   // - setViewPreset 経由で更新
   // - 手動オービット等でプリセット外になったら null のまま
   let currentPresetIndex = null;
+
+  // 角度が変わったら preset キャッシュは破綻するので必ず落とす
+  function invalidatePresetIndex() {
+    currentPresetIndex = null;
+  }
 
   // ★ 自動ぐるり俯瞰用 AutoOrbit 状態
   const autoOrbit = {
@@ -241,6 +241,9 @@ export function createCameraEngine(initialState = {}, options = {}) {
 
       state.theta = def.theta;
       state.phi = clamp(def.phi, EPSILON, Math.PI - EPSILON);
+      // snap は preset/alias 由来やけど、ここでは一旦キャッシュを落として
+      // getViewPresetIndex() 側の一致探索に任せる
+      invalidatePresetIndex();
       return state;
     },
 
@@ -272,6 +275,7 @@ export function createCameraEngine(initialState = {}, options = {}) {
 
       state.theta = def.theta;
       state.phi = clamp(def.phi, EPSILON, Math.PI - EPSILON);
+      invalidatePresetIndex();
       return state;
     },
 
@@ -308,12 +312,9 @@ export function createCameraEngine(initialState = {}, options = {}) {
         }
       }
 
-      if (typeof distance === "number") {
-        state.distance = clamp(distance, MIN_DISTANCE, MAX_DISTANCE);
-      }
-      if (typeof fov === "number") {
-        state.fov = fov;
-      }
+      const d = toFiniteNumber(distance, null);
+      if (d != null) state.distance = clamp(d, MIN_DISTANCE, MAX_DISTANCE);
+      state.fov = toFiniteNumber(fov, state.fov);
 
       return state;
     },
@@ -356,10 +357,8 @@ export function createCameraEngine(initialState = {}, options = {}) {
     //   - dPhi  : 垂直回転量（rad）
     // --------------------------------------------------------
     rotate(dTheta, dPhi) {
-      let dth = Number(dTheta);
-      let dph = Number(dPhi);
-      if (!Number.isFinite(dth)) dth = 0;
-      if (!Number.isFinite(dph)) dph = 0;
+      let dth = toFiniteNumber(dTheta, 0);
+      let dph = toFiniteNumber(dPhi, 0);
 
       state.theta += dth;
       state.phi = clamp(
@@ -367,38 +366,31 @@ export function createCameraEngine(initialState = {}, options = {}) {
         EPSILON,
         Math.PI - EPSILON
       );
+      invalidatePresetIndex();
       return state;
     },
 
-    // Z-up 版パン処理
     pan(dx, dy) {
+      const ndx = toFiniteNumber(dx, 0);
+      const ndy = toFiniteNumber(dy, 0);
+
       const cosTheta = Math.cos(state.theta);
       const sinTheta = Math.sin(state.theta);
 
-      // カメラから見た「右」ベクトル（Z-up）
       const rightX = -sinTheta;
       const rightY =  cosTheta;
 
-      // カメラ移動と逆向きにターゲットを動かす
-      state.target.x = sanitizeScalarCoord(
-        state.target.x + -dx * rightX
-      );
-      state.target.y = sanitizeScalarCoord(
-        state.target.y + -dx * rightY
-      );
-      state.target.z = sanitizeScalarCoord(
-        state.target.z + dy
-      );
+      state.target.x = sanitizeScalarCoord(state.target.x + -ndx * rightX);
+      state.target.y = sanitizeScalarCoord(state.target.y + -ndx * rightY);
+      state.target.z = sanitizeScalarCoord(state.target.z +  ndy);
       return state;
     },
 
+
     zoom(delta) {
-      const factor = 1 + delta;
-      state.distance = clamp(
-        state.distance * factor,
-        MIN_DISTANCE,
-        MAX_DISTANCE
-      );
+      const d = toFiniteNumber(delta, 0);
+      const factor = Math.max(1 + d, 1e-6);   // ★ 0以下禁止
+      state.distance = clamp(state.distance * factor, MIN_DISTANCE, MAX_DISTANCE);
       return state;
     },
 
@@ -448,13 +440,14 @@ export function createCameraEngine(initialState = {}, options = {}) {
      * - AutoOrbit 中なら theta を dt ベースで進める
      */
     update(dt) {
-      const d = Number(dt);
-      if (!Number.isFinite(d) || d <= 0) return state;
+      const d = toFiniteNumber(dt, 0);
+      if (d <= 0) return state;
 
       if (autoOrbit.enabled && autoOrbit.angularSpeed > 0) {
         const deltaAngle =
           autoOrbit.direction * autoOrbit.angularSpeed * d;
         state.theta += deltaAngle;
+        invalidatePresetIndex();
       }
 
       return state;
@@ -463,15 +456,15 @@ export function createCameraEngine(initialState = {}, options = {}) {
     /**
      * AutoOrbit 開始
      */
-  startAutoOrbit(opts = {}) {
-    const {
-      center,
-      radius,
-      isoPhi,
-      fov,
-      direction = 1,
-      speedLevel = 1,
-    } = opts;
+    startAutoOrbit(opts = {}) {
+      const {
+        center,
+        radius,
+        isoPhi,
+        fov,
+        direction = 1,
+        speedLevel = 1,
+      } = opts;
 
     // center 正規化
     let cx = state.target.x;
@@ -491,17 +484,17 @@ export function createCameraEngine(initialState = {}, options = {}) {
     // ★ 距離は基本「いまの距離」を保つ。
     // radius が明示指定されたときだけ、その値を距離として採用。
     let nextDistance = state.distance;
-    if (typeof radius === "number" && Number.isFinite(radius) && radius > 0) {
-      nextDistance = clamp(radius, MIN_DISTANCE, MAX_DISTANCE);
+    const r = toFiniteNumber(radius, null);
+    if (r != null && r > 0) {
+      nextDistance = clamp(r, MIN_DISTANCE, MAX_DISTANCE);
     }
 
-    const nextPhi =
-      typeof isoPhi === "number"
-        ? clamp(isoPhi, EPSILON, Math.PI - EPSILON)
-        : state.phi;
-
-    const nextFov =
-      typeof fov === "number" ? fov : state.fov;
+      const nextPhi = clamp(
+        toFiniteNumber(isoPhi, state.phi),
+        EPSILON,
+        Math.PI - EPSILON
+      );
+      const nextFov = toFiniteNumber(fov, state.fov);
 
     // カメラ state 更新
     state.target.x = cx;
@@ -518,7 +511,9 @@ export function createCameraEngine(initialState = {}, options = {}) {
     autoOrbit.angularSpeed =
       AUTO_ORBIT_SPEED_TABLE[autoOrbit.speedLevel];
 
-    return state;
+      invalidatePresetIndex();
+
+      return state;
     },
 
     /**
@@ -555,17 +550,23 @@ export function createCameraEngine(initialState = {}, options = {}) {
     setState(partial) {
       if (!partial || typeof partial !== "object") return state;
 
-      if ("theta" in partial) state.theta = partial.theta;
+      let angleTouched = false;
+
+      if ("theta" in partial) {
+        state.theta = toFiniteNumber(partial.theta, state.theta);
+        angleTouched = true;
+      }
       if ("phi" in partial) {
         state.phi = clamp(
-          partial.phi,
+          toFiniteNumber(partial.phi, state.phi),
           EPSILON,
           Math.PI - EPSILON
         );
+        angleTouched = true;
       }
       if ("distance" in partial) {
         state.distance = clamp(
-          partial.distance,
+          toFiniteNumber(partial.distance, state.distance),
           MIN_DISTANCE,
           MAX_DISTANCE
         );
@@ -583,7 +584,9 @@ export function createCameraEngine(initialState = {}, options = {}) {
         }
       }
 
-      if ("fov" in partial) state.fov = partial.fov;
+      if ("fov" in partial) state.fov = toFiniteNumber(partial.fov, state.fov);
+
+      if (angleTouched) invalidatePresetIndex();
 
       return state;
     },

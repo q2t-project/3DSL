@@ -1,10 +1,10 @@
 // viewer/runtime/core/uiState.js
 
+const VIEW_PRESET_COUNT = 7;
 const DEFAULT_VIEW_PRESET_INDEX = 3; // iso_ne（方針がこれならここも合わせる）
 
 // ビュー・プリセット index 正規化（0〜6 に丸める）
 function normalizeViewPresetIndex(v) {
-  const N = 7;
   if (v == null) return DEFAULT_VIEW_PRESET_INDEX;
 
   let i = Number(v);
@@ -12,17 +12,19 @@ function normalizeViewPresetIndex(v) {
   i = Math.floor(i);
 
   if (i < 0) {
-    return ((i % N) + N) % N; // 負数にも対応した mod
+    return ((i % VIEW_PRESET_COUNT) + VIEW_PRESET_COUNT) % VIEW_PRESET_COUNT; // 負数にも対応した mod
   }
-  return i % N;
+  return i % VIEW_PRESET_COUNT;
 }
 
 function num(v, fallback) {
+  if (v == null) return fallback; // ★ null/undefined は fallback
   const n = Number(v);
   return Number.isFinite(n) ? n : fallback;
 }
 
 function int(v, fallback) {
+  if (v == null) return fallback; // ★ null/undefined は fallback
   const n = Number(v);
   return Number.isFinite(n) ? Math.floor(n) : fallback;
 }
@@ -32,6 +34,7 @@ function bool(v, fallback) {
 }
 
 function clampFov(v, fallback = 50) {
+  if (v == null) return fallback; // ★ null/undefined は fallback
   const n = Number(v);
   if (!Number.isFinite(n)) return fallback;
   return Math.min(179, Math.max(1, n));
@@ -57,10 +60,6 @@ function normalizePlayback(pbInit) {
   };
 }
 
-function normalizeLineWidthMode(v) {
-  return v === "auto" || v === "fixed" || v === "adaptive" ? v : "auto";
-}
-
 function normalizeInfoDisplay(v) {
   // enum は仕様に合わせて調整
   return v === "select" || v === "hover" || v === "off" ? v : "select";
@@ -74,7 +73,10 @@ function normalizeMode(v) {
   return v === "macro" || v === "meso" || v === "micro" ? v : "macro";
 }
 
-function normalizeSelection(selInit) {
+// 注意：
+// - recomputeVisibleSet は ./normalizeSelection.js を使う
+// - ここは「初期値の形を整えるだけ」専用（同名を避ける）
+function normalizeSelectionInit(selInit) {
   if (!selInit || typeof selInit !== "object") return { uuid: null, kind: null };
   const uuid = typeof selInit.uuid === "string" && selInit.uuid ? selInit.uuid : null;
   const kind =
@@ -85,60 +87,112 @@ function normalizeSelection(selInit) {
   return { uuid, kind }; // kind は後で structIndex で確定させる（Phase2）
 }
 
+function asObject(v) {
+  return v && typeof v === "object" ? v : {};
+}
+
 export function createUiState(initial = {}) {
+  // 参照元を先に固定（?. の連打を減らす）
+  const initialCameraState = asObject(initial.cameraState);
+  const initialRuntime = asObject(initial.runtime);
+  const initialFilters = asObject(initial.filters);
+  const initialFrame = asObject(initial.frame);
+
   // --- viewerSettings 初期化（microFX + render/camera まで含める） ---
-  const initialViewerSettings =
-    initial.viewerSettings && typeof initial.viewerSettings === "object"
-      ? initial.viewerSettings
-      : {};
+  const initialViewerSettings = asObject(initial.viewerSettings);
 
-  const initialRender =
-    initialViewerSettings.render &&
-    typeof initialViewerSettings.render === "object"
-      ? initialViewerSettings.render
-      : {};
+  const initialRender = asObject(initialViewerSettings.render);
 
-  const initialCameraSettings =
-    initialViewerSettings.camera &&
-    typeof initialViewerSettings.camera === "object"
-      ? initialViewerSettings.camera
-      : {};
+  const initialCameraSettings = asObject(initialViewerSettings.camera);
 
-  const initialFx =
-    initialViewerSettings.fx && typeof initialViewerSettings.fx === "object"
-      ? initialViewerSettings.fx
-      : {};
+  const initialFx = asObject(initialViewerSettings.fx);
 
-  const initialMicro =
-    initialFx.micro && typeof initialFx.micro === "object"
-      ? initialFx.micro
-      : {};
+  const initialMicro = asObject(initialFx.micro);
+
+  // --- micro settings を先に作って legacy key を掃除 ---
+  const rawMicroProfile =
+    initialMicro.profile ??
+    initialMicro.microFXProfile ??
+    initialMicro.microFxProfile ??
+    initialMicro.micro_fx_profile ??
+    initialFx.microFXProfile ??
+    initialFx.microFxProfile ??
+    initialFx.micro_fx_profile ??           // ← 追加
+    initialViewerSettings.microFXProfile ??
+    initialViewerSettings.microFxProfile ??
+    initialViewerSettings.micro_fx_profile ?? // ← 追加
+    null;
+
+  // legacy keys を分離して残さへん（delete 連打をやめる）
+  // eslint-disable-next-line no-unused-vars
+  const {
+    microFXProfile: _m1,
+    microFxProfile: _m2,
+    micro_fx_profile: _m3,
+    ...microRest
+  } = initialMicro;
+
+  const microSettings = {
+    ...microRest,
+    enabled: bool(microRest.enabled, true),
+    profile: normalizeMicroProfile(rawMicroProfile),
+    radius: {
+      ...(microRest.radius || {}),
+      inner_ratio: Math.max(0, num(microRest.radius?.inner_ratio, 0.1)),
+      outer_ratio: Math.max(0, num(microRest.radius?.outer_ratio, 0.4)),
+     },
+    fade: {
+      ...(microRest.fade || {}),
+      min_opacity: Math.max(0, num(microRest.fade?.min_opacity, 0.05)),
+      hop_boost: Math.max(0, num(microRest.fade?.hop_boost, 0.6)),
+      far_factor: Math.max(0, num(microRest.fade?.far_factor, 0.2)),
+    },
+  };
+  // eslint-disable-next-line no-unused-vars
+  const { microFXProfile: _fx1, microFxProfile: _fx2, micro_fx_profile: _fx3, ...fxRest } = initialFx;
+
+  const fxSettings = {
+    ...fxRest,
+    micro: microSettings,
+    meso: bool(initialFx.meso, false),
+    modeTransitions: bool(initialFx.modeTransitions, false),
+    depthOfField: bool(initialFx.depthOfField, false),
+    glow: bool(initialFx.glow, false),
+    flow: bool(initialFx.flow, false),
+  };
+
+  // --- render settings を先に作って legacy key を掃除 ---
+  const renderSettings = {
+    ...initialRender,
+    minLineWidth: Math.max(0, num(initialRender.minLineWidth, 1.0)),
+    fixedLineWidth: Math.max(0, num(initialRender.fixedLineWidth, 2.0)),
+    shadow: {
+      ...(initialRender.shadow || {}),
+      enabled: bool(initialRender.shadow?.enabled, false),
+      intensityScale: Math.max(0, num(initialRender.shadow?.intensityScale, 1.0)),
+    },
+  };
+
+  // eslint-disable-next-line no-unused-vars
+  const {
+    micro_fx_profile: _vs1, microFXProfile: _vs2, microFxProfile: _vs3,
+    ...viewerSettingsRest
+  } = initialViewerSettings;
 
   const viewerSettings = {
     // もともとの任意項目は生かしたまま上書きしていく
-    ...initialViewerSettings,
+    ...viewerSettingsRest,
 
     // 情報パネルの基本モード（5.2）
     infoDisplay: normalizeInfoDisplay(initialViewerSettings.infoDisplay),
 
-    // 描画まわり（lineWidthMode など）
-    render: {
-      ...initialRender,
-      lineWidthMode: normalizeLineWidthMode(initialRender.lineWidthMode), // "auto" | "fixed" | "adaptive"
-      minLineWidth: Math.max(0, num(initialRender.minLineWidth, 1.0)),
-      fixedLineWidth: Math.max(0, num(initialRender.fixedLineWidth, 2.0)),
-      shadow: {
-        ...(initialRender.shadow || {}),
-        enabled: bool(initialRender.shadow?.enabled, false),
-        intensityScale: Math.max(0, num(initialRender.shadow?.intensityScale, 1.0)),
-      },
-    },
+    // 描画まわり
+    render: renderSettings,
 
     // カメラ設定（5.2）
     camera: {
       ...initialCameraSettings,
-      fov: clampFov(initialCameraSettings.fov ?? initial.cameraState?.fov, 50),
-      // near を一回だけ正規化して使い回す
+      fov: clampFov(initialCameraSettings.fov ?? initialCameraState.fov, 50),      // near を一回だけ正規化して使い回す
       // （far >= near + eps を保証）
       // eslint-disable-next-line no-shadow
       ...( (() => {
@@ -153,39 +207,13 @@ export function createUiState(initial = {}) {
     },
 
     // エフェクト系（既存の microFX 初期化を 5.2 の fx.micro に寄せる）
-    fx: {
-      ...initialFx,
-      micro: {
-        ...initialMicro,
-        // microFX 全体の ON/OFF フラグ（デフォルト true）
-        enabled: bool(initialMicro.enabled, true),
-        profile: normalizeMicroProfile(initialMicro.profile),
-        radius: {
-          ...(initialMicro.radius || {}),
-          inner_ratio: Math.max(0, num(initialMicro.radius?.inner_ratio, 0.1)),
-          outer_ratio: Math.max(0, num(initialMicro.radius?.outer_ratio, 0.4)),
-        },
-        fade: {
-          ...(initialMicro.fade || {}),
-          min_opacity: Math.max(0, num(initialMicro.fade?.min_opacity, 0.05)),
-          hop_boost: Math.max(0, num(initialMicro.fade?.hop_boost, 0.6)),
-          far_factor: Math.max(0, num(initialMicro.fade?.far_factor, 0.2)),
-        },
-      },
-
-      // 将来用フラグ（v1 では基本 false スタート）
-      meso: bool(initialFx.meso, false),
-      modeTransitions: bool(initialFx.modeTransitions, false),
-      depthOfField: bool(initialFx.depthOfField, false),
-      glow: bool(initialFx.glow, false),
-      flow: bool(initialFx.flow, false),
-    },
+    fx: fxSettings,
   };
 
   // --- selection 初期化（正準形） ---
-  const selection = normalizeSelection(initial.selection);
-  const baseFrame = normalizeFrame(initial.frame);
-  const playback = normalizePlayback(initial.frame?.playback);
+  const selection = normalizeSelectionInit(initial.selection);
+  const baseFrame = normalizeFrame(initialFrame);
+  const playback = normalizePlayback(initialFrame.playback);
   const frame = { ...baseFrame, playback };
 
   const state = {
@@ -197,37 +225,45 @@ export function createUiState(initial = {}) {
     // frame: { ...frame, playback: { fps: 6, accumulator: 0 } },
     selection, // 常に {uuid,kind}
     cameraState: {
-    theta: num(initial.cameraState?.theta, 0),
-    phi: num(initial.cameraState?.phi, 1),
-    distance: num(initial.cameraState?.distance, 10),
+      // ★ 未指定は null にして、cameraEngine 側の metrics デフォルトを殺さない
+      theta: num(initialCameraState.theta, null),
+      phi: num(initialCameraState.phi, null),
+      distance: num(initialCameraState.distance, null),
       target: {
-        x: num(initial.cameraState?.target?.x, 0),
-        y: num(initial.cameraState?.target?.y, 0),
-        z: num(initial.cameraState?.target?.z, 0),
+        x: num(initialCameraState.target?.x, null),
+        y: num(initialCameraState.target?.y, null),
+        z: num(initialCameraState.target?.z, null),
       },
       // A案：viewerSettings.camera.fov が正
-      fov: clampFov(viewerSettings.camera?.fov, 50),
-   },
+      fov: viewerSettings.camera?.fov ?? 50,
+    },
     view_preset_index: normalizeViewPresetIndex(initial.view_preset_index),
     mode: normalizeMode(initial.mode),
 
     // runtime-only（UIは参照するが、保存対象ではない）
     runtime: {
-      isFramePlaying: bool(initial.runtime?.isFramePlaying, false),
-      isCameraAuto: bool(initial.runtime?.isCameraAuto, false),
+      isFramePlaying: bool(initialRuntime.isFramePlaying, false),
+      isCameraAuto: bool(initialRuntime.isCameraAuto, false),
     },
 
     // filters は “types” を正準にして、常に存在させる
     filters: {
       types: {
-        points: bool(initial.filters?.types?.points, true),
-        lines:  bool(initial.filters?.types?.lines, true),
-        aux:    bool(initial.filters?.types?.aux, true),
+        // ★ legacy: filters.points / filters.lines / filters.aux も拾う
+        points: bool(initialFilters.types?.points ?? initialFilters.points, true),
+        lines:  bool(initialFilters.types?.lines  ?? initialFilters.lines,  true),
+        aux:    bool(initialFilters.types?.aux    ?? initialFilters.aux,    true),
+      },
+      auxModules: {
+        grid: bool(initialFilters.auxModules?.grid, false),
+        axis: bool(initialFilters.auxModules?.axis, false),
       },
     },
 
     // ここに正準 viewerSettings を載せる
     viewerSettings,
+
+
 
     // 方針: derived は recomputeVisibleSet のみ。uiState では基本 null 固定が安全。
     visibleSet: null,

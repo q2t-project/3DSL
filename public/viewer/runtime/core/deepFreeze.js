@@ -32,8 +32,6 @@ function freezeRec(value, seen) {
   if (seen.has(value)) return value;
   seen.add(value);
 
-  if (Object.isFrozen(value)) return value;
-
   if (Array.isArray(value)) {
     for (let i = 0; i < value.length; i += 1) {
       freezeRec(value[i], seen);

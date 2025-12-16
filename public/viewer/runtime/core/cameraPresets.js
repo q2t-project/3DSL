@@ -127,7 +127,22 @@ export function applyCameraPreset(camera, name) {
     typeof camera.snapToAxis === "function" &&
     typeof preset.axis === "string"
   ) {
+    // 距離 / target / fov を維持したいので、前後で getState/setState できるなら補強する
+    const canState =
+      typeof camera.getState === "function" && typeof camera.setState === "function";
+    const before = canState ? (camera.getState() || {}) : null;
+
     camera.snapToAxis(preset.axis);
+
+    if (before && canState) {
+      const after = camera.getState() || {};
+      camera.setState({
+        ...after,
+        distance: before.distance,
+        target: before.target,
+        fov: before.fov,
+      });
+    }
     return preset.name;
   }
 

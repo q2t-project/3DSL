@@ -12,6 +12,82 @@ const DEFAULT_MODEL = "/3dss/canonical/valid/sample02_mixed_basic.3dss.json";
 let viewerHub = null;
 let playTimer = null;
 let detailViewHandle = null;
+let stopFrameUiLoop = null;
+let stopModeHudLoop = null;
+let stopUiBindings = null;
+
+function disposeCurrentViewer() {
+  const hub = viewerHub;
+  viewerHub = null;
+  if (!hub) return;
+  try {
+    // まず専用disposeがあればそれが正
+    if (typeof hub.dispose === "function") {
+      hub.dispose();
+      return;
+    }
+    // 次点：rendererContext を持ってるならそれを殺す
+    if (hub.rendererContext?.dispose) hub.rendererContext.dispose();
+    // 次点：renderer
+    if (hub.renderer?.dispose) hub.renderer.dispose();
+  } catch (_e) {}
+}
+
+// Vite HMR: モジュール差し替え前に必ず掃除
+if (import.meta?.hot) {
+  import.meta.hot.dispose(() => {
+    disposeCurrentViewer();
+  });
+}
+
+function stopTimer() {
+  if (playTimer) {
+    clearInterval(playTimer);
+    playTimer = null;
+  }
+}
+
+function disposeDetailView() {
+  if (detailViewHandle && typeof detailViewHandle.dispose === "function") {
+    detailViewHandle.dispose();
+  }
+  detailViewHandle = null;
+}
+
+ function stopLoops() {
+   if (typeof stopFrameUiLoop === "function") stopFrameUiLoop();
+   if (typeof stopModeHudLoop === "function") stopModeHudLoop();
+   if (typeof stopUiBindings === "function") stopUiBindings();
+   stopFrameUiLoop = null;
+   stopModeHudLoop = null;
+   stopUiBindings = null;
+ }
+
+function cleanupHarness() {
+  stopTimer();
+  stopLoops();
+  disposeInputs();
+  disposeDetailView();
+  if (viewerHub && typeof viewerHub.stop === "function") {
+    viewerHub.stop();
+  }
+  viewerHub = null;
+}
+
+function startRafLoop(fn) {
+  let alive = true;
+  let rafId = 0;
+  const loop = () => {
+    if (!alive) return;
+    try { fn(); } catch (e) { console.warn("[viewer-dev] raf loop error:", e); }
+    rafId = requestAnimationFrame(loop);
+  };
+  rafId = requestAnimationFrame(loop);
+  return () => {
+    alive = false;
+    if (rafId) cancelAnimationFrame(rafId);
+  };
+}
 
 // 入力デバイス
 let pointerInput = null;
@@ -37,8 +113,12 @@ function cacheDomElements() {
   elMetaModelLog = document.getElementById("meta-model-log");
   elHud = document.getElementById("viewer-hud");
   // 新: doc-caption-* / 旧: scene-meta-* の両方をフォロー
-  elDocCaptionTitle = document.getElementById("doc-caption-title");
-  elDocCaptionBody  = document.getElementById("doc-caption-body");
+  elDocCaptionTitle =
+    document.getElementById("doc-caption-title") ||
+    document.getElementById("scene-meta-title");
+  elDocCaptionBody =
+    document.getElementById("doc-caption-body") ||
+    document.getElementById("scene-meta-body");
 }
 
 // ------------------------------------------------------------------
@@ -242,14 +322,17 @@ function attachInputs(hub) {
   });
 
   // デバッグ用
-  window.pointerInput = pointerInput;
-  window.keyboardInput = keyboardInput;
+  if (DEBUG_DEV_HARNESS) {
+    window.pointerInput = pointerInput;
+    window.keyboardInput = keyboardInput;
+  }
 }
 
 // ------------------------------------------------------------
 // エラー表示 / メタパネル初期化
 // ------------------------------------------------------------
 function showFatalError(kind, message) {
+  cleanupHarness();
   if (elMetaFile) {
     elMetaFile.innerHTML = `
       <h3>File</h3>
@@ -428,122 +511,78 @@ function initFilterControls(hub) {
     syncFilterUI();
   }
 
-  if (btnLines) {
-    btnLines.addEventListener("click", () => toggleFilter("lines", btnLines));
-  }
-  if (btnPoints) {
-    btnPoints.addEventListener("click", () => toggleFilter("points", btnPoints));
-  }
-  if (btnAux) {
-    btnAux.addEventListener("click", () => toggleFilter("aux", btnAux));
-  }
+  const disposers = [];
+  const on = (el, type, fn) => {
+    if (!el) return;
+    el.addEventListener(type, fn);
+    disposers.push(() => el.removeEventListener(type, fn));
+  };
+
+  on(btnLines,  "click", () => toggleFilter("lines",  btnLines));
+  on(btnPoints, "click", () => toggleFilter("points", btnPoints));
+  on(btnAux,    "click", () => toggleFilter("aux",    btnAux));
 
   syncFilterUI();
+  return () => disposers.splice(0).forEach((d) => d());
 }
 
 // ------------------------------------------------------------
-// viewerSettings コントロール（lineWidthMode / microFX profile）
+// viewerSettings コントロール（microFX profile のみ）
 // ------------------------------------------------------------
 function initViewerSettingsControls(hub) {
-  const core = getCore(hub);
-  if (!core || !core.uiState) return;
-
-  const uiState = core.uiState;
-  const uiVs = uiState.viewerSettings || {};
   const vs = hub && hub.viewerSettings ? hub.viewerSettings : null;
- 
+  if (!vs) return;
 
   const elLineMode = document.getElementById("vs-linewidth-mode");
   const elMicroProfile = document.getElementById("vs-micro-profile");
 
-  // lineWidthMode
-  if (elLineMode && vs && typeof vs.setLineWidthMode === "function") {
-    let currentMode = "auto";
+  const disposers = [];
+  const on = (el, type, fn) => {
+    if (!el) return;
+    el.addEventListener(type, fn);
+    disposers.push(() => el.removeEventListener(type, fn));
+  };
 
-    // 1) viewerSettings.getLineWidthMode があればそっち優先
-    if (typeof vs.getLineWidthMode === "function") {
-      try {
-        const v = vs.getLineWidthMode();
-        if (typeof v === "string" && v.length > 0) currentMode = v;
-      } catch (_e) {
-        /* noop */
-      }
-    } else if (
-      // 2) 互換用に uiState.viewerSettings も見る
-      uiVs.render &&
-      typeof uiVs.render.lineWidthMode === "string" &&
-      uiVs.render.lineWidthMode.length > 0
-    ) {
-      currentMode = uiVs.render.lineWidthMode;
-    }
-
-    elLineMode.value = currentMode;
-
-    // runtime → UI 同期
-    if (typeof vs.onLineWidthModeChanged === "function") {
-      vs.onLineWidthModeChanged((mode) => {
-        if (!elLineMode) return;
-        elLineMode.value = mode;
-      });
-    }
-
-    // UI → runtime
-    elLineMode.addEventListener("change", () => {
-      const mode = elLineMode.value;
-      vs.setLineWidthMode(mode);
-
-      devLog("[viewer-dev settings] lineWidthMode =", mode);
-      showHudMessage(`Line width: ${mode}`, {
-        duration: 700,
-        level: "info",
-      });
-    });
+  if (elLineMode) {
+    // 既存 option と整合する値に倒しておく（表示用）
+    if (!elLineMode.value) elLineMode.value = "auto";
+    elLineMode.disabled = true;
+    elLineMode.title = "Line width is fixed to 1px in this build.";
   }
 
   // microFX profile
-  if (elMicroProfile && vs && typeof vs.setMicroFXProfile === "function") {
+  if (elMicroProfile && typeof vs.setMicroFXProfile === "function") {
     let currentProfile = "normal";
-
-    // 1) viewerSettings.getMicroFXProfile があればそっち優先
     if (typeof vs.getMicroFXProfile === "function") {
-      try {
-        const v = vs.getMicroFXProfile();
-        if (typeof v === "string" && v.length > 0) currentProfile = v;
-      } catch (_e) {
-        /* noop */
-      }
-    } else if (
-      // 2) 互換用に uiState.viewerSettings も見る
-      uiVs.fx &&
-      uiVs.fx.micro &&
-      typeof uiVs.fx.micro.profile === "string" &&
-      uiVs.fx.micro.profile.length > 0
-    ) {
-      currentProfile = uiVs.fx.micro.profile;
+      try { currentProfile = vs.getMicroFXProfile() || "normal"; } catch (_e) {}
     }
-
     elMicroProfile.value = currentProfile;
 
     // runtime → UI 同期
     if (typeof vs.onMicroFXProfileChanged === "function") {
-      vs.onMicroFXProfileChanged((profile) => {
+      const cb = (profile) => {
         if (!elMicroProfile) return;
-        elMicroProfile.value = profile;
-      });
+        elMicroProfile.value = profile || "normal";
+      };
+      const off = vs.onMicroFXProfileChanged(cb);
+      if (typeof off === "function") disposers.push(off);
     }
 
     // UI → runtime
-    elMicroProfile.addEventListener("change", () => {
+    const onChange = () => {
       const profile = elMicroProfile.value;
       vs.setMicroFXProfile(profile);
-
       devLog("[viewer-dev settings] microFX profile =", profile);
       showHudMessage(`micro FX: ${profile}`, {
         duration: 700,
         level: "info",
       });
-    });
+    };
+    on(elMicroProfile, "change", onChange);
   }
+  return () => disposers.splice(0).forEach((d) => {
+    try { d(); } catch (e) { console.warn("[viewer-dev] dispose viewerSettings failed:", e); }
+  });
 }
 
 // ------------------------------------------------------------
@@ -556,8 +595,14 @@ function initFrameControls(hub) {
   const frameAPI = core.frame;
 
   const slider = document.getElementById("frame-slider");
-  const sliderWrapper = document.getElementById("frame-slider-wrapper");
-  const labelCurrent = document.getElementById("frame-label-current");
+  const sliderWrapper =
+    document.getElementById("frame-slider-wrapper") ||
+    document.querySelector(".frame-main") ||
+    null;
+  const labelCurrent =
+    document.getElementById("frame-label-current") ||
+    document.getElementById("frame-slider-label") ||
+    null;
   const labelMin = document.getElementById("frame-label-min");
   const labelMax = document.getElementById("frame-label-max");
   const labelZero = document.getElementById("frame-label-zero");
@@ -574,6 +619,7 @@ function initFrameControls(hub) {
   const btnFF = document.getElementById("btn-ff");
   const btnStepBack = document.getElementById("btn-step-back");
   const btnStepForward = document.getElementById("btn-step-forward");
+  const btnHome = document.getElementById("btn-home");
 
   const range = frameAPI.getRange();
   const current = frameAPI.getActive();
@@ -583,6 +629,15 @@ function initFrameControls(hub) {
   // min/max ラベル初期値
   if (labelMin) labelMin.textContent = String(range.min);
   if (labelMax) labelMax.textContent = String(range.max);
+
+  if (btnHome) {
+    btnHome.addEventListener("click", () => {
+      frameAPI.setActive(0);
+      updateLabelFromState();
+      setFrameUiMode("gauge");
+      showFrameToast("jump");
+    });
+  }
 
   // フレーム操作用 HUD
   function showFrameToast(kind) {
@@ -817,15 +872,13 @@ function initFrameControls(hub) {
 
   // 他経路（キーボード等）からの変更を拾って UI を同期
   let lastFrame = frameAPI.getActive();
-  function frameUiLoop() {
+  return startRafLoop(() => {
     const f = frameAPI.getActive();
     if (f !== lastFrame) {
       lastFrame = f;
       updateLabelFromState();
     }
-    requestAnimationFrame(frameUiLoop);
-  }
-  requestAnimationFrame(frameUiLoop);
+  });
 }
 
 // ------------------------------------------------------------
@@ -838,26 +891,18 @@ function initModeHudLoop(hub) {
   const elModeText = document.getElementById("gizmo-mode-label");
   let lastMode = null;
 
-  function loop() {
+  return startRafLoop(() => {
     const currentCore = getCore(hub);
-    if (!currentCore) {
-      requestAnimationFrame(loop);
-      return;
-    }
+    if (!currentCore) return;
 
     const modeAPI =
       (currentCore.mode && typeof currentCore.mode.get === "function" && currentCore.mode) ||
       (currentCore.modeController &&
         typeof currentCore.modeController.get === "function" &&
         currentCore.modeController);
-
-    if (!modeAPI) {
-      requestAnimationFrame(loop);
-      return;
-    }
+    if (!modeAPI) return;
 
     const mode = modeAPI.get();
-
     if (mode !== lastMode) {
       lastMode = mode;
 
@@ -868,17 +913,10 @@ function initModeHudLoop(hub) {
       let msg = "";
       if (mode === "macro") msg = "MACRO MODE";
       else if (mode === "micro") msg = "MICRO MODE";
-      if (msg) {
-        showHudMessage(msg, { duration: 800, level: "info" });
-      }
+      if (msg) showHudMessage(msg, { duration: 800, level: "info" });
     }
-
-    requestAnimationFrame(loop);
-  }
-
-  requestAnimationFrame(loop);
+  });
 }
-
 // ------------------------------------------------------------
 // ギズモボタン（HOME / 軸スナップ）
 // ------------------------------------------------------------
@@ -897,11 +935,18 @@ function initGizmoButtons(hub) {
 
   const camera = core.camera;
 
+  const disposers = [];
+  const on = (el, type, fn) => {
+    if (!el) return;
+    el.addEventListener(type, fn);
+    disposers.push(() => el.removeEventListener(type, fn));
+  };
+
   // HOME ボタン
   const btnHomeCam = document.getElementById("gizmo-home");
   if (btnHomeCam) {
     devLog("[viewer-dev gizmo] HOME button found", btnHomeCam);
-    btnHomeCam.addEventListener("click", () => {
+    const onHome = () => {
       devLog("[viewer-dev gizmo] HOME clicked");
       if (typeof camera.stopAutoOrbit === "function") {
         camera.stopAutoOrbit();
@@ -910,7 +955,8 @@ function initGizmoButtons(hub) {
         camera.reset();
       }
       showHudMessage("Camera: HOME", { duration: 800, level: "info" });
-    });
+    };
+    on(btnHomeCam, "click", onHome);
   }
 
   // X/Y/Z 軸ボタン
@@ -927,7 +973,7 @@ function initGizmoButtons(hub) {
     const axis = btn.dataset.gizmoAxis; // "x" | "y" | "z"
     devLog("[viewer-dev gizmo] axis button wired", axis, btn);
 
-    btn.addEventListener("click", () => {
+    const onAxis = () => {
       devLog("[viewer-dev gizmo] axis clicked", axis);
       if (!axis) return;
 
@@ -941,8 +987,10 @@ function initGizmoButtons(hub) {
         duration: 800,
         level: "info",
       });
-    });
+    };
+    on(btn, "click", onAxis);
   });
+  return () => disposers.splice(0).forEach((d) => d());
 }
 
 // ------------------------------------------------------------
@@ -961,6 +1009,13 @@ function initWorldAxesToggle(hub) {
     );
     return;
   }
+
+  const disposers = [];
+  const on = (el, type, fn) => {
+    if (!el) return;
+    el.addEventListener(type, fn);
+    disposers.push(() => el.removeEventListener(type, fn));
+  };
 
   function updateUI(visible) {
     const v = !!visible;
@@ -981,13 +1036,15 @@ function initWorldAxesToggle(hub) {
 
   // runtime → UI 方向は onWorldAxesChanged で同期
   if (typeof vs.onWorldAxesChanged === "function") {
-    vs.onWorldAxesChanged((visible) => {
+    const cb = (visible) => {
       updateUI(visible);
-    });
+    };
+    const off = vs.onWorldAxesChanged(cb);
+    if (typeof off === "function") disposers.push(off);
   }
 
   // UI → runtime 方向はトグルだけ叩く
-  btn.addEventListener("click", (ev) => {
+  const onClick = (ev) => {
     ev.preventDefault();
     vs.toggleWorldAxes();
 
@@ -997,174 +1054,91 @@ function initWorldAxesToggle(hub) {
         updateUI(vs.getWorldAxesVisible());
       }
     }
-  });
+  };
+  on(btn, "click", onClick);
+
+  return () => disposers.splice(0).forEach((d) => d());
 }
 
 // ------------------------------------------------------------
 // ぐるり俯瞰（AutoOrbit）コントロール（CW / autoOrbit / CCW）
 // ------------------------------------------------------------
 function initOrbitControls(hub) {
-  const core = getCore(hub);
-  if (!core || !core.camera) {
-    console.warn("[viewer-dev orbit] hub/core.camera not ready");
-    return;
-  }
+  const cam = hub?.core?.camera;
+  const runtime = hub?.core?.runtime;
+  if (!cam) return;
 
-  const camera = core.camera;
-  const uiState = core.uiState || {};
-  if (!uiState.runtime) uiState.runtime = {};
-  const runtime = uiState.runtime;
+  const pill =
+    document.getElementById("auto-orbit-pill") ||
+    document.getElementById("auto-orbit-toggle"); // 互換（古いDOM用）
 
-  const slot = document.getElementById("auto-orbit-slot");
-  if (!slot) {
-    console.warn("[viewer-dev orbit] #auto-orbit-slot not found");
-    return;
-  }
+  // 新DOM（rev/stop/fwd）
+  const btnRev = document.querySelector('.auto-orbit-btn[data-role="rev"]');
+  const btnStop = document.querySelector('.auto-orbit-btn[data-role="stop"]');
+  const btnFwd = document.querySelector('.auto-orbit-btn[data-role="fwd"]');
 
-  const btnCW = slot.querySelector('.auto-orbit-btn-dir[data-dir="cw"]');
-  const btnCCW = slot.querySelector('.auto-orbit-btn-dir[data-dir="ccw"]');
-  const btnToggle = document.getElementById("auto-orbit-toggle");
+  // 旧DOM（cw/ccw）
+  const btnCW = document.querySelector('.auto-orbit-btn-dir[data-dir="cw"]');
+  const btnCCW = document.querySelector('.auto-orbit-btn-dir[data-dir="ccw"]');
 
-  if (!btnCW || !btnCCW || !btnToggle) {
-    console.warn("[viewer-dev orbit] auto-orbit buttons not found", {
-      btnCW,
-      btnCCW,
-      btnToggle,
-    });
-    return;
-  }
+  // 方向は既存JSの慣習に合わせて "cw"/"ccw" を維持（rev=ccw, fwd=cw）
+  let lastDir = "cw";
 
-  // 状態：回転中か・向き(cw/ccw)・速度(1/2)
-  let running = false;
-  let direction = "ccw"; // デフォルト：Z+ から見て反時計回り
-  let speed = 1;         // 1:標準, 2:倍速
-  const MAX_SPEED = 2;
+  const disposers = [];
+  const on = (el, type, fn) => {
+    if (!el) return;
+    el.addEventListener(type, fn);
+    disposers.push(() => el.removeEventListener(type, fn));
+  };
 
-  function updateUI() {
-    [btnCW, btnCCW].forEach((btn) => {
-      btn.classList.remove("is-running", "is-fast");
-    });
+  const isRunning = () =>
+    typeof runtime?.isCameraAuto === "function" ? !!runtime.isCameraAuto() : false; // specにもある
 
-    if (!running) return;
+  const setPillState = () => {
+    if (!pill) return;
+    const on = isRunning();
+    pill.classList.toggle("is-on", on);
+    pill.dataset.state = on ? "on" : "off";
+  };
 
-    const activeBtn = direction === "cw" ? btnCW : btnCCW;
-    activeBtn.classList.add("is-running");
-    if (speed === 2) {
-      activeBtn.classList.add("is-fast");
-    }
-  }
+  const start = (dir) => {
+    if (dir) lastDir = dir;
+    // startAutoOrbit は macro 強制＋isCameraAuto更新が規範
+    if (typeof cam.startAutoOrbit === "function") cam.startAutoOrbit({ dir: lastDir });
+    else if (typeof cam.updateAutoOrbitSettings === "function")
+      cam.updateAutoOrbitSettings({ dir: lastDir });
+    setPillState();
+  };
 
-  function applyOrbit() {
-    if (!running) {
-      if (typeof camera.stopAutoOrbit === "function") {
-        camera.stopAutoOrbit();
-      }
-      runtime.isCameraAuto = false;
-      return;
-    }
+  const stop = () => {
+    if (typeof cam.stopAutoOrbit === "function") cam.stopAutoOrbit();
+    setPillState();
+  };
 
-    const dirSign = direction === "cw" ? -1 : 1;
-    const opts = {
-      direction: dirSign,
-      speedLevel: speed,
+  const toggle = () => (isRunning() ? stop() : start(lastDir));
+
+  // pill クリックでトグル
+  if (pill) {
+     const onPill = (e) => {
+      e.preventDefault();
+      toggle();
     };
-
-    if (!runtime.isCameraAuto) {
-      if (typeof camera.startAutoOrbit === "function") {
-        camera.startAutoOrbit(opts);
-        runtime.isCameraAuto = true;
-      }
-    } else if (typeof camera.updateAutoOrbitSettings === "function") {
-      camera.updateAutoOrbitSettings(opts);
-    }
+    on(pill, "click", onPill);
   }
 
-  function showOrbitStatusToast(kind) {
-    const dirLabel = direction === "cw" ? "CW" : "CCW";
-    const speedLabel = `x${speed}`;
+  // 新DOM wiring
+  on(btnRev,  "click", (e) => { e.preventDefault(); start("ccw"); });
+  on(btnFwd,  "click", (e) => { e.preventDefault(); start("cw"); });
+  on(btnStop, "click", (e) => { e.preventDefault(); stop(); });
 
-    if (kind === "start") {
-      showHudMessage(`AutoOrbit: start (${dirLabel} ${speedLabel})`, {
-        duration: 900,
-        level: "info",
-      });
-    } else if (kind === "speed") {
-      showHudMessage(`AutoOrbit: speed ${dirLabel} ${speedLabel}`, {
-        duration: 800,
-        level: "info",
-      });
-    } else if (kind === "stop") {
-      showHudMessage("AutoOrbit: stop", {
-        duration: 900,
-        level: "info",
-      });
-    }
-  }
+  // 旧DOM wiring（残ってても動くように）
+  on(btnCW,  "click", (e) => { e.preventDefault(); start("cw"); });
+  on(btnCCW, "click", (e) => { e.preventDefault(); start("ccw"); });
 
-  function start(dir, initialSpeed = 1) {
-    running = true;
-    direction = dir;
-    speed = initialSpeed;
-    updateUI();
-    applyOrbit();
-    showOrbitStatusToast("start");
-  }
+  // 初期同期
+  setPillState();
 
-  function stop() {
-    if (!running) return;
-    running = false;
-    updateUI();
-    applyOrbit();
-    showOrbitStatusToast("stop");
-  }
-
-  // 左：CW
-  btnCW.addEventListener("click", () => {
-    if (!running) {
-      start("cw", 1);
-      return;
-    }
-
-    if (direction === "cw") {
-      speed = speed === 1 ? MAX_SPEED : 1;
-      updateUI();
-      applyOrbit();
-      showOrbitStatusToast("speed");
-    } else {
-      start("cw", 1);
-    }
-  });
-
-  // 右：CCW
-  btnCCW.addEventListener("click", () => {
-    if (!running) {
-      start("ccw", 1);
-      return;
-    }
-
-    if (direction === "ccw") {
-      speed = speed === 1 ? MAX_SPEED : 1;
-      updateUI();
-      applyOrbit();
-      showOrbitStatusToast("speed");
-    } else {
-      start("ccw", 1);
-    }
-  });
-
-  // 中央：autoOrbit（トグル）
-  btnToggle.addEventListener("click", () => {
-    if (!running) {
-      start("ccw", 1);
-    } else {
-      stop();
-    }
-  });
-
-  // 他から止めたいとき用（HOME ボタンなど）
-  hub.autoOrbit = { stop };
-
-  updateUI();
+  return () => disposers.splice(0).forEach((d) => d());
 }
 
 // ------------------------------------------------------------
@@ -1201,6 +1175,15 @@ function devLogger(line) {
 // boot: viewer_dev.html → viewerDevHarness → bootstrapViewerFromUrl
 // ------------------------------------------------------------
 async function boot() {
+  // ★二重boot/HMRで前のが残ると地獄になる
+  if (viewerHub) {
+    try { viewerHub.stop?.(); } catch (_e) {}
+    try { viewerHub.dispose?.(); } catch (_e) {}
+    viewerHub = null;
+  }
+
+  // ★再bootの前に必ず掃除（これが無いと WebGL context が積み上がる）
+  disposeCurrentViewer();
   cacheDomElements();
   devLog("[viewer-dev] boot start", {
     canvas: !!elCanvas,
@@ -1209,12 +1192,7 @@ async function boot() {
     docCaptionBody: !!elDocCaptionBody,
   });
 
-  // 既存 hub があれば stop してから再起動
-  if (viewerHub && typeof viewerHub.stop === "function") {
-    viewerHub.stop();
-    viewerHub = null;
-  }
-  disposeInputs();
+  cleanupHarness();
   clearMetaPanels();
 
   const canvasId = "viewer-canvas";
@@ -1233,6 +1211,16 @@ async function boot() {
       logger: devLogger,
     });
     window.hub = viewerHub; // デバッグ用
+  
+  // ★これが無いと描画ループ始まらん
+  try { viewerHub.start?.(); } catch (e) { console.warn("[viewer-dev] hub.start failed", e); }
+
+  // devtools から触れるように（デバッグ用）
+  globalThis.__hub = hub;
+  globalThis.__core = hub.core;
+  globalThis.__ui = hub.core?.uiState;
+  globalThis.__cam = hub.core?.cameraEngine;
+  globalThis.__tr = hub.core?.cameraTransition;
 
    // ドキュメントキャプション更新（hub → core.documentCaption）
    updateDocumentCaptionPanel(viewerHub);
@@ -1322,21 +1310,47 @@ async function boot() {
       level: "error",
     });
 
-    disposeInputs();
     return;
   }
 
   // --- viewerHub が生きている前提で各 UI を接続 ---
-  initFrameControls(viewerHub);
-  initFilterControls(viewerHub);
-  initViewerSettingsControls(viewerHub);
-  initModeHudLoop(viewerHub);
-  initGizmoButtons(viewerHub);
-  initWorldAxesToggle(viewerHub);
+  stopFrameUiLoop = initFrameControls(viewerHub) || null;
+  stopModeHudLoop = initModeHudLoop(viewerHub) || null;
   initKeyboardShortcuts();
-  initOrbitControls(viewerHub);
   // Pointer / Keyboard 入力（マウスドラッグ orbit / 矢印キー / click→micro）
+  stopUiBindings = wireUiBindings(viewerHub) || null;
   attachInputs(viewerHub);
+}
+// ついで：コンソールから叩けるデバッグ窓口
+globalThis.__viewerDev = globalThis.__viewerDev || {};
+globalThis.__viewerDev.dispose = disposeCurrentViewer;
+
+globalThis.__viewerDev.bootLoopTest = async function bootLoopTest(iter = 20, pauseMs = 50) {
+  for (let i = 0; i < iter; i++) {
+    console.log("[viewer-dev] bootLoopTest", i + 1, "/", iter);
+    await boot();
+    await new Promise((r) => setTimeout(r, pauseMs));
+    disposeCurrentViewer();
+    await new Promise((r) => setTimeout(r, pauseMs));
+  }
+  console.log("[viewer-dev] bootLoopTest done");
+};
+
+function wireUiBindings(hub) {
+  const disposers = [];
+  const push = (d) => { if (typeof d === "function") disposers.push(d); };
+
+  push(initFilterControls(hub));
+  push(initViewerSettingsControls(hub));
+  push(initGizmoButtons(hub));
+  push(initWorldAxesToggle(hub));
+  push(initOrbitControls(hub));
+
+  return () => {
+    for (const off of disposers.splice(0)) {
+      try { off(); } catch (e) { console.warn("[viewer-dev] dispose UI failed:", e); }
+    }
+  };
 }
 
 window.addEventListener("load", boot);

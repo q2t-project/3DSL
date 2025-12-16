@@ -65,15 +65,39 @@ function sanitizeVec3(raw) {
   return [x, y, z];
 }
 
-// structIndex.uuidToItem から 3DSS ノード本体を取ってくる
+// indices から 3DSS ノード本体を取ってくる（形の揺れに強く）
 function getItemByUuid(indices, uuid) {
-  if (!indices) return null;
-  const map = indices.uuidToItem;
-  if (!(map instanceof Map)) return null;
+  if (!indices || !uuid) return null;
 
-  const rec = map.get(uuid);
-  if (!rec || !rec.item) return null;
-  return rec.item;
+  // 1) Contract A / 互換 API
+  if (typeof indices.getItem === "function") {
+    try {
+      return indices.getItem(uuid) || null;
+    } catch (_e) {}
+  }
+
+  // 2) Contract A: byUuid: Map<uuid,node>
+  const byUuid = indices.byUuid;
+  if (byUuid && typeof byUuid.get === "function") {
+    try {
+      return byUuid.get(uuid) || null;
+    } catch (_e) {}
+  }
+
+  // 3) 旧: uuidToItem: Map<uuid,{item,...}> / object
+  const map = indices.uuidToItem;
+  if (map && typeof map.get === "function") {
+    try {
+      const rec = map.get(uuid);
+      return (rec && (rec.item ?? rec)) || null;
+    } catch (_e) {}
+  }
+  if (map && typeof map === "object") {
+    const rec = map[uuid];
+    return (rec && (rec.item ?? rec)) || null;
+  }
+
+  return null;
 }
 
 // 3DSS ノードから position を抜き出して Vec3 に正規化
@@ -107,12 +131,14 @@ function resolveEndpointPosition(end, indices) {
     const pointPos = indices.pointPosition;
     if (pointPos instanceof Map) {
       const p = pointPos.get(ref);
-      if (p) return p;
+      const v = sanitizeVec3(p) || (p && typeof p.x === "number" ? [p.x, p.y, p.z] : null);
+      if (v) return v;
     }
     const auxPos = indices.auxPosition;
     if (auxPos instanceof Map) {
       const p = auxPos.get(ref);
-      if (p) return p;
+      const v = sanitizeVec3(p) || (p && typeof p.x === "number" ? [p.x, p.y, p.z] : null);
+      if (v) return v;
     }
 
     const pointItem = getItemByUuid(indices, ref);
@@ -186,11 +212,33 @@ function resolveKind(uuid, explicitKind, indices) {
 
   if (!indices) return null;
 
-  const map = indices.uuidToKind;
-  if (!(map instanceof Map)) return null;
+  // 関数 API があれば最優先
+  if (typeof indices.getKind === "function") {
+    try {
+      const k = indices.getKind(uuid);
+      return (k === "points" || k === "lines" || k === "aux") ? k : null;
+    } catch (_e) {}
+  }
+  if (typeof indices.kindOf === "function") {
+    try {
+      const k = indices.kindOf(uuid);
+      return (k === "points" || k === "lines" || k === "aux") ? k : null;
+    } catch (_e) {}
+  }
 
-  const k = map.get(uuid);
-  if (k === "points" || k === "lines" || k === "aux") return k;
+  const map = indices.uuidToKind;
+  if (!map) return null;
+
+  if (typeof map.get === "function") {
+    try {
+      const k = map.get(uuid);
+      return (k === "points" || k === "lines" || k === "aux") ? k : null;
+    } catch (_e) {}
+  }
+  if (typeof map === "object") {
+    const k = map[uuid];
+    return (k === "points" || k === "lines" || k === "aux") ? k : null;
+  }
 
   return null;
 }
@@ -207,7 +255,8 @@ function computePointMicroState(base, indices) {
 
   // 1) structIndex で事前計算されている座標（あれば）
   if (posMap instanceof Map) {
-    pos = posMap.get(base.focusUuid) || null;
+    const raw = posMap.get(base.focusUuid) || null;
+    pos = sanitizeVec3(raw) || (raw && typeof raw.x === "number" ? [raw.x, raw.y, raw.z] : null);
   }
 
   // 2) まだ無ければ 3DSS ノード側から拾う
@@ -386,13 +435,9 @@ function buildBaseMicroState(selection, indices) {
 // - modeController / viewerHub から直接呼び出しても OK
 // - いまのところ cameraState は使っていない（将来の拡張用に残す）
 export function computeMicroState(selection, _cameraState, indices) {
-  if (!selection || !selection.uuid) {
-    // micro OFF なので何もしない（ログも出さない）
-    return null;
-  }
-  
-  const effectiveIndices =
-    indices && indices.uuidToKind instanceof Map ? indices : null;
+  if (!selection || !selection.uuid) return null;
+
+  const effectiveIndices = indices || null;
 
   const base = buildBaseMicroState(selection, effectiveIndices);
 
@@ -402,13 +447,16 @@ export function computeMicroState(selection, _cameraState, indices) {
     hasIndices: !!effectiveIndices,
   });
 
-  if (!base || !base.kind || !effectiveIndices) {
-    console.warn("[micro] base invalid", {
-      selection,
-      base,
-      hasIndices: !!effectiveIndices,
-    });
-    return null;
+  if (!base) return null;
+
+  // kind/indices が弱い場合でも、最低限「focusUuid は維持」して返す（microFX/選択連動のため）
+  if (!base.kind || !effectiveIndices) {
+    return {
+      ...base,
+      relatedUuids: [base.focusUuid],
+      focusPosition: null,
+      localBounds: null,
+    };
   }
 
   if (base.kind === "points") {
@@ -431,6 +479,10 @@ export function computeMicroState(selection, _cameraState, indices) {
 export function createMicroController(uiState, indices) {
   const baseIndices = indices || null;
 
+  // Phase2: micro の副作用ハンドラ（renderer/hub 側から注入）
+  // refresh()/clear() は基本ここだけを見る
+  let effectHandlers = { apply: null, clear: null };
+
   debugMicro("[micro] createMicroController", {
     hasIndices: !!baseIndices,
     hasUuidToKind: baseIndices?.uuidToKind instanceof Map,
@@ -444,8 +496,7 @@ export function createMicroController(uiState, indices) {
   // 旧来の compute:
   // Phase2: compute は “計算だけ”（uiState には書かない）
   function compute(selection, cameraState, _indices) {
-    const effectiveIndices =
-      _indices && _indices.uuidToKind instanceof Map ? _indices : baseIndices;
+    const effectiveIndices = _indices || baseIndices;
 
     debugMicro("[micro] compute()", {
       selection,
@@ -466,15 +517,23 @@ export function createMicroController(uiState, indices) {
     return microState || null;
   }
 
-  // Phase2: refresh は “副作用だけ” の唯一ルート
-  // - uiState.microState は recomputeVisibleSet が確定させる
-  // - ここでは microFX / overlay / HUD などを「今の状態に同期」するだけ
-  function refresh(deps = {}) {
+  // Phase2: refresh は “副作用だけ”
+  // - uiState.microState は recomputeVisibleSet が確定
+  // - ここは「今の状態に同期」するだけ
+  // 互換: refresh({apply,clear}) でも refresh("reason") でも動く
+  function refresh(arg = undefined) {
+    const deps = (arg && typeof arg === "object") ? arg : null;
     const mode = uiState?.mode || "macro";
     const ms = uiState?.microState ?? null;
 
-    const apply = typeof deps.apply === "function" ? deps.apply : null;
-    const clearFx = typeof deps.clear === "function" ? deps.clear : null;
+    const apply =
+      (deps && typeof deps.apply === "function") ? deps.apply :
+      (typeof effectHandlers.apply === "function") ? effectHandlers.apply :
+      null;
+    const clearFx =
+      (deps && typeof deps.clear === "function") ? deps.clear :
+      (typeof effectHandlers.clear === "function") ? effectHandlers.clear :
+      null;
 
     // micro 以外 or microState 無し → 副作用はクリア
     if (mode !== "micro" || !ms) {
@@ -487,8 +546,12 @@ export function createMicroController(uiState, indices) {
   }
 
   // Phase2: clear は「uiState を触らず」副作用だけ消す（互換）
-  function clear(deps = {}) {
-    const clearFx = typeof deps.clear === "function" ? deps.clear : null;
+  function clear(arg = undefined) {
+    const deps = (arg && typeof arg === "object") ? arg : null;
+    const clearFx =
+      (deps && typeof deps.clear === "function") ? deps.clear :
+      (typeof effectHandlers.clear === "function") ? effectHandlers.clear :
+      null;
     if (clearFx) clearFx();
     return null;
   }
@@ -498,6 +561,13 @@ export function createMicroController(uiState, indices) {
     clear,
     get,
     refresh,
+    // Phase2: 副作用ハンドラを外から注入（renderer/hub 側で握る）
+    setEffectHandlers(h = {}) {
+      effectHandlers = {
+        apply: (typeof h.apply === "function") ? h.apply : effectHandlers.apply,
+        clear: (typeof h.clear === "function") ? h.clear : effectHandlers.clear,
+      };
+    },
   };
 
   // Phase2: 直書き禁止（getter のみにする）

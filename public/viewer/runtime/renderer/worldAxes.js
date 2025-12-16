@@ -20,7 +20,30 @@ export function createWorldAxesLayer(scene) {
   let visible = false;
   let sceneRadius = 1;
 
+  function disposeMaterial(m) {
+    if (!m) return;
+    // LineBasicMaterial は基本 texture 無いけど安全側
+    for (const k of ["map","alphaMap","aoMap","lightMap","emissiveMap","roughnessMap","metalnessMap","normalMap","envMap"]) {
+      const t = m[k];
+      if (t && typeof t.dispose === "function") t.dispose();
+    }
+    if (typeof m.dispose === "function") m.dispose();
+  }
+
+  function disposeGroupChildren() {
+    group.traverse((obj) => {
+      if (obj.geometry && typeof obj.geometry.dispose === "function") {
+        obj.geometry.dispose();
+      }
+      const mat = obj.material;
+      if (Array.isArray(mat)) mat.forEach(disposeMaterial);
+      else disposeMaterial(mat);
+    });
+  }
+
   function rebuildLines() {
+    // ★ 前回生成分を確実に破棄してから clear
+    disposeGroupChildren();
     group.clear();
 
     // シーン半径ベースで「ほぼ無限長」に見える程度に伸ばす
@@ -111,10 +134,19 @@ export function createWorldAxesLayer(scene) {
     setVisible(!visible);
   }
 
+  function dispose() {
+    // 子を破棄 → scene から外す → group を空に
+    disposeGroupChildren();
+    group.clear();
+    if (group.parent) group.parent.remove(group);
+    else scene.remove(group);
+  }
+
   return {
     group,
     updateMetrics,
     setVisible,
     toggle,
+    dispose,
   };
 }

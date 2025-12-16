@@ -476,7 +476,12 @@ const title = "3DSL Viewer – Astro Host";
             />
           </a>
         </header>
-
+              <select id="vs-linewidth-mode">
+      <option value="auto">auto</option>
+      <option value="thin">thin</option>
+      <option value="normal">normal</option>
+      <option value="thick">thick</option>
+    </select>
         <!-- File 情報 -->
         <section
           id="meta-file"
@@ -511,10 +516,10 @@ const title = "3DSL Viewer – Astro Host";
           </div>
 
           <div id="viewer-detail"></div>
+
         </section>
       </aside>
     </div>
-
     <script type="module" src="/viewer/viewerDevHarness.js"></script>
   </body>
 </html>

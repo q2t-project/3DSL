@@ -44,8 +44,9 @@ export class KeyboardInput {
     this.target = target || window;
     this.hub = hub;
 
-    this.onKeyDown = this.onKeyDown.bind(this);
-    this.target.addEventListener("keydown", this.onKeyDown);
+    this._disposers = [];
+    this._attached = false;
+    this._onKeyDown = this.onKeyDown.bind(this);
 
     if (DEBUG_KEYBOARD) {
       console.log("[keyboard] KeyboardInput constructed", {
@@ -53,19 +54,33 @@ export class KeyboardInput {
         hasHub: !!this.hub,
       });
     }
+
+    // 互換：従来どおり「生成したら効く」
+    this.attach(); // attach() は冪等にしとく
+  }
+
+  attach() {
+    if (this._attached) return;
+    const t = this.target;
+    if (!t || typeof t.addEventListener !== "function") return;
+    const on = (type, fn, opts) => {
+      t.addEventListener(type, fn, opts);
+      this._disposers.push(() => t.removeEventListener(type, fn, opts));
+    };
+
+    on("keydown", this._onKeyDown);
+    this._attached = true;
   }
 
   dispose() {
-    if (!this.target) return;
-    this.target.removeEventListener("keydown", this.onKeyDown);
+    for (const off of this._disposers.splice(0)) {
+      try { off(); } catch (_e) {}
+    }
+    this._attached = false;
     this.target = null;
     this.hub = null;
   }
 
-  // AutoOrbit が走っていたら止める共通ヘルパ
-// viewer/ui/keyboardInput.js
-
-  // AutoOrbit が走っていたら止める共通ヘルパ
   stopAutoCamera() {
     const hub = this.hub;
     if (!hub) return;
@@ -77,19 +92,19 @@ export class KeyboardInput {
     }
 
     // ② フォールバック：UI 不在時は camera 直たたき
-    if (hub.core) {
-      const camera = hub.core.camera || hub.core.cameraEngine;
-      if (camera && typeof camera.stopAutoOrbit === "function") {
-        camera.stopAutoOrbit();
-      }
-
-      const runtime = hub.core.uiState && hub.core.uiState.runtime;
-      if (runtime) {
-        runtime.isCameraAuto = false;
-      }
+    const camera = hub?.core?.camera || hub?.core?.cameraEngine;
+    if (camera && typeof camera.stopAutoOrbit === "function") {
+      camera.stopAutoOrbit();
     }
   }
 
+  _isTypingTarget(ev) {
+    const el = ev?.target;
+    const tag = (el && el.tagName) || "";
+    if (tag === "INPUT" || tag === "TEXTAREA") return true;
+    if (el && el.isContentEditable) return true;
+    return false;
+  }
 
   onKeyDown(ev) {
     const key = ev.key;
@@ -105,14 +120,12 @@ export class KeyboardInput {
     if (!hub || !hub.core) return;
 
     // 入力欄にフォーカス乗ってるときはスキップ
-    const tag = (ev.target && ev.target.tagName) || "";
-    if (tag === "INPUT" || tag === "TEXTAREA") return;
+    if (this._isTypingTarget(ev)) return;
 
     const core = hub.core;
     const frame = core.frame;
     const mode = core.mode;
     const camera = core.camera || core.cameraEngine;
-    const selection = core.selection;
     const uiState = core.uiState;
 
     // --- ワールド軸の表示トグル（C キー） ----------------
@@ -172,10 +185,10 @@ export class KeyboardInput {
 
       applyViewPreset(camera, nextIndex);
 
-      if (uiState) {
+      // uiState 同期は「必要なら」残す（camera 側が管理してるなら不要）
+      if (uiState && typeof uiState === "object") {
         uiState.view_preset_index =
-          camera &&
-          typeof camera.getViewPresetIndex === "function"
+          camera && typeof camera.getViewPresetIndex === "function"
             ? camera.getViewPresetIndex()
             : nextIndex;
       }

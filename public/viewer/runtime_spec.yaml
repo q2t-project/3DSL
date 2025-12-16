@@ -86,7 +86,7 @@ runtime_spec:
     uiState:        "core"
     visibleSet:     "core (single-writer: core/recomputeVisibleSet only)"
     isFramePlaying: "core (single-writer: core/frameController only)"
-    microState:     "core"
+    microState:     "core (single-writer: core/microController.refresh only)"
     cameraState:    "core"
     document_3dss:  "core (immutable)"
     three_objects:  "renderer"
@@ -222,7 +222,8 @@ runtime_spec:
         - "CALL: document = await res.json()"
         - "CALL: options2 = normalizeBootstrapOptionsForFromUrl(options)  # local helper (strictValidate default=true)"
 
-        - "CALL: # normalizeBootstrapOptionsForFromUrl の既定: { strictValidate:true, validateRefIntegrity:false, devBootLog:false }"
+        - "CALL: # normalizeBootstrapOptionsForFromUrl の既定: { strictValidate:true, validateRefIntegrity:true, devBootLog:false }"
+        - "CALL: # 注記: strictValidate=true の場合、validateRefIntegrity は必ず実行される（呼び出し条件により担保）"
 
         - "CALL: hub = bootstrapViewer(canvasOrId, document, options2)"
 
@@ -335,21 +336,6 @@ runtime_spec:
               calls:
                 - "DI: core.viewerSettingsController.onWorldAxesChanged"
                 - "CALL: core.viewerSettingsController.onWorldAxesChanged(listener)"
-            - name: setLineWidthMode
-              signature: "(mode:'auto'|'fixed'|'adaptive') → void"
-              calls:
-                - "DI: core.viewerSettingsController.setLineWidthMode"
-                - "CALL: core.viewerSettingsController.setLineWidthMode(mode)"
-            - name: getLineWidthMode
-              signature: "() → 'auto'|'fixed'|'adaptive'"
-              calls:
-                - "DI: core.viewerSettingsController.getLineWidthMode"
-                - "CALL: core.viewerSettingsController.getLineWidthMode()"
-            - name: onLineWidthModeChanged
-              signature: "(listener:(mode:'auto'|'fixed'|'adaptive') => void) → () => void"
-              calls:
-                - "DI: core.viewerSettingsController.onLineWidthModeChanged"
-                - "CALL: core.viewerSettingsController.onLineWidthModeChanged(listener)"
             - name: setMicroFXProfile
               signature: "(profile:'weak'|'normal'|'strong') → void"
               calls:
@@ -398,6 +384,8 @@ runtime_spec:
         - "frame/mode/micro/selection の判定ロジックを hub に書いてはならない。必ず core.* に委譲する"
         - "hub は引数の正規化（例: uuid vs vec の解決）すら原則 core 側へ寄せる（cameraController 等）"
         - "例外: UI 安全性の不変条件（不可視は pick できない等）の境界強制は hub 側で行ってよい"
+        - "許可: ライフサイクル制御（start/stop/dispose/resize）、render loop の呼び出し順序規範、境界強制（不可視pick排除等）"
+        - "禁止: mode/selection/frame の意味論（どの条件でどう遷移するか等）の判断ロジック"
         - "three.js のオブジェクトや material を直接触ってはならない"
         - "core/* や renderer/* を import してはならない（{ core, renderer } を DI で受け取って呼ぶ）"
         - "3DSS document を直接変更してはならない"
@@ -716,23 +704,20 @@ runtime_spec:
           - toggleWorldAxes()
           - getWorldAxesVisible(): boolean
           - onWorldAxesChanged(listener:(visible:boolean)=>void): () => void
-          - setLineWidthMode(mode:'auto'|'fixed'|'adaptive')
-          - getLineWidthMode(): 'auto'|'fixed'|'adaptive'
-          - onLineWidthModeChanged(listener:(mode:'auto'|'fixed'|'adaptive')=>void): () => void
           - setMicroFXProfile(profile:'weak'|'normal'|'strong')
           - getMicroFXProfile(): 'weak'|'normal'|'strong'
           - onMicroFXProfileChanged(listener:(profile:'weak'|'normal'|'strong')=>void): () => void
       defaults:
         - "worldAxesVisible: true"
-        - "lineWidthMode: 'auto'"
         - "microFXProfile: 'normal'"
       state:
         - "uiState.viewerSettings を canonical とする"
         - "listeners は runtime-only（uiState には保持しない）"
         - "onXChanged は unsubscribe 関数を返す（同一 listener の二重登録を防ぐのは実装任意。ただし解除できることは必須）。"
       constraints:
-        - "viewerSettingsController は renderer に直接アクセスしてはならない（setLineWidthMode 等で renderer.setXxx を呼ばない）。反映は hub の render loop が renderer.applyViewerSettings(uiState.viewerSettings) で行う。"
-        - "setMicroFXProfile(profile) は uiState.viewerSettings.microFXProfile のみ更新する。lineWidthMode 等の別設定を書き換えるのは禁止。renderer.setXxx を呼ぶのも禁止（反映は hub render loop の applyViewerSettings に一本化）。"
+       - "viewerSettingsController は renderer に直接アクセスしてはならない（renderer.setXxx を呼ばない）。反映は hub の render loop が renderer.applyViewerSettings(uiState.viewerSettings) で行う。"
+       - "setMicroFXProfile(profile) は uiState.viewerSettings.fx.micro.profile のみ更新する（他の設定を書き換えない）。renderer.setXxx を呼ぶのも禁止（反映は hub render loop の applyViewerSettings に一本化）。"
+       - "注意: microFXProfile は render 系（例: fixedLineWidth/minLineWidth 等）と無関係。混同して別フィールドを書き換えるのは禁止。"
 
     - name: runtime/core/cameraEngine.js
       layer: core
@@ -772,7 +757,6 @@ runtime_spec:
           - stopAutoOrbit()
       called_by:
         - "runtime/viewerHub.js（core.camera.* 経由）"
-        - "core/modeController.js（フォーカス遷移時に参照する場合があれば）"
       state:
         - "uiState.cameraState を canonical とし、cameraEngine はそれを更新/参照する（内部に別コピーは持たない）"
         - "three.js の Camera インスタンスは renderer が保持し、この state を反映するだけ"
@@ -1045,7 +1029,7 @@ runtime_spec:
         - "hover: HoverState | null"
         - "microState: MicroState | null"
         - "cameraState: CameraState"
-        - "viewerSettings: {worldAxesVisible:boolean, lineWidthMode:'auto'|'fixed'|'adaptive', microFXProfile:'weak'|'normal'|'strong'}"
+        - "viewerSettings: {worldAxesVisible:boolean, infoDisplay:'select'|'hover'|'off', render:{minLineWidth:number,fixedLineWidth:number,shadow:{enabled:boolean,intensityScale:number}}, camera:{fov:number,near:number,far:number,keyboardStepYaw:number,keyboardStepPitch:number,panStep:number,zoomStep:number}, fx:{micro:{enabled:boolean,profile:'weak'|'normal'|'strong',radius:{inner_ratio:number,outer_ratio:number},fade:{min_opacity:number,hop_boost:number,far_factor:number}}, meso:boolean, modeTransitions:boolean, depthOfField:boolean, glow:boolean, flow:boolean}}"
       types:
           VisibleSet:
             - "frame:number|null"
@@ -1066,7 +1050,8 @@ runtime_spec:
         - "selection: null"
         - "hover: null"
         - "runtime: {isFramePlaying:false, isCameraAuto:false}"
-        - "viewerSettings: {worldAxesVisible:true, lineWidthMode:'auto', microFXProfile:'normal'}"
+        - "viewerSettings: {worldAxesVisible:true, infoDisplay:'select', render:{minLineWidth:1.0,fixedLineWidth:2.0,shadow:{enabled:false,intensityScale:1.0}}, camera:{fov:50,near:0.1,far:1000,keyboardStepYaw:0.1,keyboardStepPitch:0.1,panStep:0.25,zoomStep:0.2}, fx:{micro:{enabled:true,profile:'normal',radius:{inner_ratio:0.1,outer_ratio:0.4},fade:{min_opacity:0.05,hop_boost:0.6,far_factor:0.2}}, meso:false, modeTransitions:false, depthOfField:false, glow:false, flow:false}}"
+
 
     - name: runtime/core/structIndex.js
       layer: core
@@ -1094,7 +1079,6 @@ runtime_spec:
         - "selection が不可視になった場合の不変条件を保証:"
         - "  - selectionController.clear() を呼ぶ（推奨：保持しない）"
         - "selection が不可視になった場合、modeController.set('macro') で micro を確実に抜ける"
-        - "  - microState を null にする"
         - "selection が可視で mode が micro の場合は microController.refresh() で microState を再計算"
       exports:
         - name: createRecomputeVisibleSet
@@ -1117,13 +1101,15 @@ runtime_spec:
         - "DI: selectionController.get"
         - "CALL: sel = selectionController.get()"
         - "DI: visibilityController.isVisible"
-        - "CALL: if (sel && !visibilityController.isVisible(sel.uuid)) { selectionController.clear(); modeController.set('macro'); uiState.microState = null; return; }"
+        - "CALL: if (sel && !visibilityController.isVisible(sel.uuid)) { selectionController.clear(); modeController.set('macro'); return; }"
         - "DI: selectionController.clear  # selection が不可視なら"
         - "DI: modeController.set         # selection 不可視なら 'macro' 強制"
         - "DI: microController.refresh    # selection 可視かつ mode==='micro' のとき"
         - "CALL: if (uiState.mode === 'micro') microController.refresh()"
       notes:
         - "recomputeVisibleSet() は bootstrapViewer で生成され、他 core モジュールへ DI で配布される（import 参照しない）。"
+      constraints:
+        - "uiState.microState へ直接代入してよいのは microController.refresh() のみ（single-writer）。"
 
     # =========================
     # 2.4 renderer
@@ -1160,7 +1146,7 @@ runtime_spec:
         - "auxObjects: Map<string,THREE.Object3D>   # key=uuid"
         - "baseStyle: Map<string,{color:THREE.Color,opacity:number, renderOrder:number}>  # color は clone を保存"
         - "raycaster: THREE.Raycaster"
-        - "viewerSettingsCache: {worldAxesVisible:boolean,lineWidthMode:'auto'|'fixed'|'adaptive',microFXProfile:'weak'|'normal'|'strong'}"
+        - "viewerSettingsCache: {worldAxesVisible:boolean,microProfile:'weak'|'normal'|'strong'}"
         - "pickTargets: THREE.Object3D[]  # uuid を持つ対象だけ入れる"
         - "lastMicroState: MicroFXPayload | null"
       lifecycle:
@@ -1192,8 +1178,8 @@ runtime_spec:
           - "visibleSet===null の場合は安全側で全非表示（または no-op）にしてよいが、推奨は全非表示（初回 recompute 前のチラつき防止）"
         applyViewerSettings:
           - "viewerSettings.worldAxesVisible に従い、world axes 表示（HUD/scene どちらでも可）を on/off"
-          - "viewerSettings.lineWidthMode を renderer 内部の line 描画設定に反映（実装詳細は任意）"
-          - "viewerSettings.microFXProfile を renderer 内部に保持し、applyMicroFX の強度/閾値に反映（applyMicroFX の signature は変えない）"
+          - "viewerSettings.render / viewerSettings.fx のうち、renderer が必要とする範囲を内部キャッシュに保持し、applyMicroFX 等の強度/閾値に反映してよい（applyMicroFX の signature は変えない）"
+          - "micro profile は viewerSettings.fx.micro.profile を参照する"
         applyMicroFX:
           - "microState が null の場合: baseStyle に従って color/opacity/renderOrder をフルリセット"
           - "microState が MicroFXPayload の場合: **必ず baseStyle から開始して**（= 前段 selection 等の残りを消してから） focus/connection/distance 等に応じて opacity/color を変更する"
@@ -1510,7 +1496,7 @@ runtime_spec:
       - "  1) dtSeconds を算出（推奨: clamp。例: 0〜0.1）"
       - "  2) DI: core.frameController.updatePlayback(dtSeconds)（isFramePlaying のときのみ。frame は setActive 経由で進行させる）"
       - "  3) DI: core.cameraEngine.update(dtSeconds)（AutoOrbit/補間など）"
-      - "  4) if (uiState.mode === 'micro') DI: core.microController.refresh() else uiState.microState = null"
+      - "  4) DI: core.microController.refresh()  # refresh() が mode!=='micro' のとき uiState.microState=null を保証する"
       - "  5) renderer.updateCamera(core.cameraEngine.getState())"
       - "  6) renderer.applyFrame(uiState.visibleSet)"
       - "  7) renderer.applyViewerSettings(uiState.viewerSettings)"

@@ -82,19 +82,23 @@ function stopAuto(cam, hub) {
 
 // setViewPreset(index) ＋ uiState.view_preset_index 同期
 function applyViewPresetIndex(cam, uiState, index) {
-  if (!cam || typeof cam.setViewPreset !== "function") return;
-  if (index == null) return;
+  // ① dev harness 側の AutoOrbit UI があればそれを正にする
+  if (hub?.autoOrbit && typeof hub.autoOrbit.stop === "function") {
+    hub.autoOrbit.stop();
+    return;
+  }
+  // ② フォールバック
+  if (cam && typeof cam.stopAutoOrbit === "function") cam.stopAutoOrbit();
 
   const i = Number(index);
   if (!Number.isFinite(i)) return;
 
   cam.setViewPreset(i);
 
-  if (uiState) {
+  // uiState 直書きは必要なら残す（camera 側が管理してるならここは不要）
+  if (uiState && typeof uiState === "object") {
     const resolved =
-      typeof cam.getViewPresetIndex === "function"
-        ? cam.getViewPresetIndex()
-        : i;
+      typeof cam.getViewPresetIndex === "function" ? cam.getViewPresetIndex() : i;
     uiState.view_preset_index = resolved;
   }
 }
@@ -123,6 +127,13 @@ export function attachGizmo(wrapper, hub) {
     alpha: true,
     antialias: true,
   });
+
+  const disposers = [];
+  const on = (el, type, fn, opts) => {
+    if (!el) return;
+    el.addEventListener(type, fn, opts);
+    disposers.push(() => el.removeEventListener(type, fn, opts));
+  };
 
   // ★ dispose 用フラグと rAF ハンドル
   let isDisposed = false;
@@ -562,7 +573,7 @@ export function attachGizmo(wrapper, hub) {
   }
 
   if (presetToggleBtn) {
-    presetToggleBtn.addEventListener("click", handlePresetToggle);
+    on(presetToggleBtn, "click", handlePresetToggle);
   }
 
   updatePresetVisibility();
@@ -863,11 +874,11 @@ export function attachGizmo(wrapper, hub) {
     ev.preventDefault();
   }
 
-  canvas.addEventListener("pointerdown", handlePointerDown);
-  canvas.addEventListener("pointermove", handlePointerMove);
-  canvas.addEventListener("pointerup", handlePointerUp);
-  canvas.addEventListener("pointercancel", handlePointerUp);
-  canvas.addEventListener("pointerleave", handlePointerUp);
+  on(canvas, "pointerdown", handlePointerDown);
+  on(canvas, "pointermove", handlePointerMove);
+  on(canvas, "pointerup", handlePointerUp);
+  on(canvas, "pointercancel", handlePointerUp);
+  on(canvas, "pointerleave", handlePointerUp);
 
   // ------------------------------------------------------------
   // ループ: サイズ調整 → カメラ同期 → レンダ
@@ -907,15 +918,9 @@ export function attachGizmo(wrapper, hub) {
       rafId = null;
     }
 
-    // イベントリスナ解除
-    canvas.removeEventListener("pointerdown", handlePointerDown);
-    canvas.removeEventListener("pointermove", handlePointerMove);
-    canvas.removeEventListener("pointerup", handlePointerUp);
-    canvas.removeEventListener("pointercancel", handlePointerUp);
-    canvas.removeEventListener("pointerleave", handlePointerUp);
-
-    if (presetToggleBtn) {
-      presetToggleBtn.removeEventListener("click", handlePresetToggle);
+  // イベントリスナ解除（まとめて）
+    for (const off of disposers.splice(0)) {
+      try { off(); } catch (_e) {}
     }
 
     // three.js リソース破棄
@@ -965,6 +970,13 @@ export function initGizmoButtons(hub) {
   console.log("[viewer-dev gizmo] initGizmoButtons start", cam);
 
   const root = document;
+  const disposers = [];
+  const push = (fn) => { if (typeof fn === "function") disposers.push(fn); };
+  const on = (el, type, fn) => {
+    if (!el) return;
+    el.addEventListener(type, fn);
+    push(() => el.removeEventListener(type, fn));
+  };
 
   // 例: <button data-view-preset="front">FRONT</button>
   const viewButtons = root.querySelectorAll("[data-view-preset]");
@@ -1004,7 +1016,8 @@ export function initGizmoButtons(hub) {
       }
     };
     btn[KEY_VIEW] = handler;
-    btn.addEventListener("click", handler);
+    on(btn, "click", handler);
+    push(() => { if (btn[KEY_VIEW] === handler) btn[KEY_VIEW] = null; });
   });
 
   // 例: <button data-axis-snap="z">Z</button>
@@ -1032,6 +1045,13 @@ export function initGizmoButtons(hub) {
       }
     };
     btn[KEY_AXIS] = handler;
-    btn.addEventListener("click", handler);
+    on(btn, "click", handler);
+    push(() => { if (btn[KEY_AXIS] === handler) btn[KEY_AXIS] = null; });
   });
+
+  return () => {
+    for (const off of disposers.splice(0)) {
+      try { off(); } catch (_e) {}
+    }
+  };
 }

@@ -212,13 +212,7 @@ export function applyHighlight(
 for (const uuid of uniqIds) {
   // 7.11.5: visibleSet に含まれない要素は処理しない
   // Set 以外が来ても絶対に落ちないようにガード
-  if (
-    visibleSet &&
-    typeof visibleSet.has === "function" &&
-    !visibleSet.has(uuid)
-  ) {
-    continue;
-  }
+if (isVisible && !isVisible(uuid)) continue;
 
   // getObjectByUuid は indexMaps を閉じ込めた関数を期待している
     const src = getObjectByUuid(uuid);
@@ -294,13 +288,9 @@ for (const uuid of uniqIds) {
     // opacity がゼロに落ちたら生成しても見えへんので、そのまま続行
     let clone;
     if (src.isLine) {
-      // 対応ブラウザではちょっと太く見えるかも（効かなくても害はない）
-      const focusWidth =
-        typeof lineCfg.focusWidth === "number" ? lineCfg.focusWidth : 4;
-      const relatedWidth =
-        typeof lineCfg.relatedWidth === "number" ? lineCfg.relatedWidth : 2;
-      material.linewidth = isFocus ? focusWidth : relatedWidth;
-      clone = new THREE.Line(src.geometry, material);
+      clone = src.isLineSegments
+        ? new THREE.LineSegments(src.geometry, material)
+        : new THREE.Line(src.geometry, material);
     } else {
       clone = new THREE.Mesh(src.geometry, material);
     }

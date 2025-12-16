@@ -11,7 +11,7 @@ import {
   setOutlineMode,
   setHandlesVisible,
 } from "./bounds.js";
-import { DEBUG_MICROFX, microFXConfig } from "./config.js";
+import { microFXConfig } from "./config.js";
 
 // ------------------------------------------------------------
 // intensity 管理（0..1）
@@ -43,7 +43,7 @@ function stepIntensity(now) {
       ? cfg.durationMs
       : 1;
 
-  const dt = now - lastUpdateTime;
+  const dt = Math.max(0, now - lastUpdateTime);
   lastUpdateTime = now;
 
   const delta = dt / duration;
@@ -71,6 +71,8 @@ function resetAllFX(scene) {
   removeMarker(scene);
   removeGlow(scene);
   removeAxes(scene);
+  setOutlineMode(false);
+  setHandlesVisible(false);
   removeBounds(scene);
   clearHighlight(scene);
 }
@@ -120,11 +122,15 @@ function sanitizeLocalAxes(localAxes) {
   const sanitizedOrigin = sanitizeVector3(origin);
   if (!sanitizedOrigin) return null;
 
+  const fallback = (v, d) => (v && (Math.abs(v[0])+Math.abs(v[1])+Math.abs(v[2]) > 1e-9)) ? v : d;
+  const x = fallback(sanitizeVector3(localAxes?.xDir), [1,0,0]);
+  const y = fallback(sanitizeVector3(localAxes?.yDir), [0,1,0]);
+  const z = fallback(sanitizeVector3(localAxes?.zDir), [0,0,1]);
   const sanitizedAxes = {
     origin: sanitizedOrigin,
-    xDir: sanitizeVector3(localAxes?.xDir),
-    yDir: sanitizeVector3(localAxes?.yDir),
-    zDir: sanitizeVector3(localAxes?.zDir),
+    xDir: x,
+    yDir: y,
+    zDir: z,
   };
 
   const rawScale =
@@ -141,9 +147,11 @@ function sanitizeLocalBounds(localBounds) {
   if (!localBounds) return null;
 
   const center = sanitizeVector3(localBounds.center);
-  const size = sanitizeVector3(localBounds.size);
+  const rawSize = sanitizeVector3(localBounds.size);
 
-  if (!center || !size) return null;
+  if (!center || !rawSize) return null;
+
+  const size = rawSize.map((v) => Math.abs(v));
 
   const minSize = Math.min(...size.map((v) => Math.abs(v)));
   if (!(minSize > 0)) return null;
@@ -167,20 +175,19 @@ function sanitizeLocalBounds(localBounds) {
 export function applyMicroFX(
   scene,
   microState,
-  cameraState,
+  _cameraState,
   indexMaps,
   visibleSet
 ) {
   const camera = indexMaps?.camera || null;
 
-// ★ グローバル OFF モード
-// NOTE: DEBUG_MICROFX=false の間は、microState が来ていても microFX 全体を封印する。
-//       viewerSettings.fx.micro.enabled 等とは別レイヤの「開発フェーズ用マスタースイッチ」。
-if (!DEBUG_MICROFX) {
-  resetIntensity();
-  resetAllFX(scene);
-  return;
-}
+  // ★ マスター ON/OFF（DEBUG とは分離しとく方が安全）
+  const masterEnabled = microFXConfig?.enabled !== false;
+  if (!masterEnabled) {
+    resetIntensity();
+    resetAllFX(scene);
+    return;
+  }
 
   // microState の有無から targetIntensity を決定
   if (microState) {
@@ -190,9 +197,13 @@ if (!DEBUG_MICROFX) {
     targetIntensity = 0;
   }
 
-  const intensity = stepIntensity(performance.now());
+  const now =
+    (globalThis.performance && typeof globalThis.performance.now === "function")
+      ? globalThis.performance.now()
+      : Date.now();
+  const intensity = stepIntensity(now);
 
-  // microState もなく intensity も 0 なら完全 OFF
+// microState もなく intensity も 0 なら完全 OFF
   if (!lastMicroState || intensity <= 0) {
     if (!microState) {
       lastMicroState = null;
@@ -203,9 +214,7 @@ if (!DEBUG_MICROFX) {
 
   // ここから先は「lastMicroState」をソースとする
   const {
-    focusUuid,
     focusPosition,
-    relatedUuids,
     localAxes,
     localBounds,
     isHover,
@@ -246,6 +255,8 @@ if (!DEBUG_MICROFX) {
     setOutlineMode(!!isHover);
     setHandlesVisible(true);
   } else {
+    setOutlineMode(false);
+    setHandlesVisible(false);
     removeBounds(scene);
   }
 
