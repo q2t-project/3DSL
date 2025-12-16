@@ -28,6 +28,11 @@ function debugRenderer(...args) {
   console.log(...args);
 }
 
+
+function warnRenderer(...args) {
+  if (!DEBUG_RENDERER) return;
+  console.warn(...args);
+}
 /**
  * createRendererContext は viewer runtime の内部 API。
  *
@@ -389,7 +394,7 @@ function readPointPos(p) {
 
   ctx.syncDocument = (struct, structIndex) => {
 
-    console.log("[renderer] syncDocument input", {
+    debugRenderer("[renderer] syncDocument input", {
       hasRootPoints: Array.isArray(struct?.points),
       rootPointsLen: struct?.points?.length ?? null,
       hasRootLines: Array.isArray(struct?.lines),
@@ -433,7 +438,7 @@ function readPointPos(p) {
       if (!u) continue;
       const pos = readPointPos(p);
       if (pos) pointPosByUuid.set(u, pos);
-      else console.warn("[renderer] point pos missing", u, p);
+      else warnRenderer("[renderer] point pos missing", u, p);
     }
 
     function resolvePointPos(uuid) {
@@ -458,7 +463,7 @@ function readPointPos(p) {
     // points: small spheres (最小実装)
     for (const p of pts) {
       if (pts.length) {
-        console.log("[renderer] point[0] uuid candidates", {
+        debugRenderer("[renderer] point[0] uuid candidates", {
           uuid: pts[0]?.uuid,
           meta_uuid: pts[0]?.meta?.uuid,
           id: pts[0]?.id,
@@ -468,7 +473,7 @@ function readPointPos(p) {
       const uuid = pickUuid(p);
       if (!uuid) continue;
       const pos = resolvePointPos(uuid);
-      if (!pos) { console.warn("[renderer] skip point (no pos)", uuid, p); continue; }
+      if (!pos) { warnRenderer("[renderer] skip point (no pos)", uuid, p); continue; }
 
       const col = readColor(p?.appearance?.color ?? p?.color, 0xffffff);
       const op = readOpacity(p?.appearance?.opacity ?? p?.opacity, 1);
@@ -489,7 +494,7 @@ function readPointPos(p) {
     // lines: LineSegments(2pts)
     for (const line of lns) {
       if (lns.length) {
-        console.log("[renderer] line[0] shape", {
+        debugRenderer("[renderer] line[0] shape", {
           pickedUuid: pickUuid(lns[0]),
           keys: Object.keys(lns[0] || {}),
           appearanceKeys: Object.keys(lns[0]?.appearance || {}),
@@ -503,11 +508,11 @@ function readPointPos(p) {
       if (!uuid) continue;
       const aRaw = pickLineEndpoint(line, END_A_KEYS);
       const bRaw = pickLineEndpoint(line, END_B_KEYS);
-      console.log("[renderer] line endpoints raw", aRaw, bRaw);
+      debugRenderer("[renderer] line endpoints raw", aRaw, bRaw);
       const a = resolveEndpoint(structIndex, aRaw, resolvePointPos);
       const b = resolveEndpoint(structIndex, bRaw, resolvePointPos);
       if (!a || !b) {
-        console.warn("[renderer] skip line (endpoint unresolved)", uuid, { aRaw, bRaw, a, b });
+        warnRenderer("[renderer] skip line (endpoint unresolved)", uuid, { aRaw, bRaw, a, b });
         continue;
       }
       const col = readColor(line?.appearance?.color ?? line?.color, 0xffffff);
@@ -531,7 +536,7 @@ function readPointPos(p) {
       if (!uuid) continue;
 
       const tag = collectStringsShallow(a).join(" ").toLowerCase();
-      console.log("[renderer] aux tag haystack", tag);
+      debugRenderer("[renderer] aux tag haystack", tag);
 
       let obj = null;
       if (tag.includes("grid")) {
@@ -556,7 +561,7 @@ function readPointPos(p) {
       maps.aux.set(uuid, obj);
     }
 
-    console.log("[renderer] syncDocument built", {
+    debugRenderer("[renderer] syncDocument built", {
       points: maps.points.size,
       lines: maps.lines.size,
       aux: maps.aux.size,
