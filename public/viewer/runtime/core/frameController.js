@@ -31,10 +31,15 @@ export function createFrameController(uiState, visibilityController) {
   const playback = uiState.frame.playback;
   if (!playback || typeof playback !== "object") throw new Error("frameController: frame.playback missing");
 
-  if (!Number.isFinite(playback.fps) || playback.fps <= 0) playback.fps = 6;
+  const FIXED_FPS = 1;
+  // fps は常に固定（外部から変更させない）
+  playback.fps = FIXED_FPS;
+
   if (!Number.isFinite(playback.accumulator) || playback.accumulator < 0) {
     playback.accumulator = 0;
   }
+  // ループは viewer では必須寄り。明示 false できるようにする
+  if (typeof playback.loop !== "boolean") playback.loop = true;
 
   // ------------------------------------------------------------
   // 内部ユーティリティ
@@ -104,13 +109,9 @@ export function createFrameController(uiState, visibilityController) {
 
   function startPlayback(opts = {}) {
     uiState.runtime.isFramePlaying = true;
-
-    // fps 指定が来たら反映（任意）
-    if (opts && Number.isFinite(opts.fps) && opts.fps > 0) {
-      playback.fps = opts.fps;
-    }
-
-    // 開始時は積算をリセット（意図せず飛ばないように）
+    // fps は固定
+    playback.fps = FIXED_FPS;
+    if (opts && typeof opts.loop === "boolean") playback.loop = opts.loop;
     playback.accumulator = 0;
   }
 
@@ -128,30 +129,34 @@ export function createFrameController(uiState, visibilityController) {
     if (!uiState.runtime?.isFramePlaying) return uiState.frame.current;
     if (!Number.isFinite(dt) || dt <= 0) return uiState.frame.current;
 
-    const fps = Number.isFinite(playback.fps) && playback.fps > 0 ? playback.fps : 6;
+    const fps = FIXED_FPS;
+    const loop = playback.loop === true;
 
     playback.accumulator += dt * fps;
+    if (playback.accumulator < 1) return uiState.frame.current;
+    // スライド再生：追いつき再生せず、次の保持時間を作り直す
+    playback.accumulator = 0;
 
-    const steps = Math.floor(playback.accumulator);
-    if (steps <= 0) return uiState.frame.current;
+  const before = uiState.frame.current;
+  const after = clampFrame(before + 1);
 
-    playback.accumulator -= steps;
-
-    const before = uiState.frame.current;
-    const after = clampFrame(before + steps);
-
-    // 進めない（=上限）なら停止
+  // 進めない（=上限）なら停止
     if (after === before) {
+      if (loop) {
+        const r = (uiState.frame && uiState.frame.range) || range;
+        setActiveInternal(r.min, "playback.loop");
+        return uiState.frame.current;
+      }
       stopPlayback();
       return before;
     }
 
     setActiveInternal(after, "playback");
 
-    // 上限に当たったら止める（loop仕様は Phase2後半で決める）
-    const r = (uiState.frame && uiState.frame.range) || range;
-    if (uiState.frame.current >= r.max) {
-      stopPlayback();
+    // loop=false のときだけ従来どおり止める
+    if (!loop) {
+      const r = (uiState.frame && uiState.frame.range) || range;
+      if (uiState.frame.current >= r.max) stopPlayback();
     }
     return uiState.frame.current;
   }
@@ -169,7 +174,7 @@ export function createFrameController(uiState, visibilityController) {
     getRange,
     startPlayback,
     stopPlayback,
-    updatePlayback, // ★ 追加
+    updatePlayback,
     setRecomputeHandler,
   };
 }

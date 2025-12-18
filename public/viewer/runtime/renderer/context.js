@@ -1,10 +1,12 @@
 // viewer/runtime/renderer/context.js
 
 import * as THREE from "../../../vendor/three/build/three.module.js";
-import { applyMicroFX as applyMicroFXImpl } from "./microFX/index.js";
+import { applyMicroFX as applyMicroFXImpl, clearMicroFX as clearMicroFXImpl } from "./microFX/index.js";
+import { microFXConfig } from "./microFX/config.js";
 import { buildPointLabelIndex } from "../utils/labelIndex.js";
 import { createLabelRuntime } from "./labels/labelRuntime.js";
 import { createWorldAxesLayer } from "./worldAxes.js";
+import { createLineEffectsRuntime } from "./effects/lineEffects.js";
 import {
   getUuid,
   getPointPosition,
@@ -16,6 +18,14 @@ import {
   updateSelectionHighlight as updateSelectionHighlightImpl,
   clearSelectionHighlight as clearSelectionHighlightImpl,
 } from "./selectionHighlight.js";
+import {
+  END_A_KEYS as END_A_KEYS_COMPAT,
+  END_B_KEYS as END_B_KEYS_COMPAT,
+  pickLineEndpoint as pickLineEndpointCompat,
+  collectStringsShallow as collectStringsShallowCompat,
+  readPointPos as readPointPosCompat,
+  pickUuidCompat,
+} from "./adapters/compat.js";
 
 // ------------------------------------------------------------
 // logging
@@ -29,10 +39,12 @@ function debugRenderer(...args) {
 }
 
 
+
 function warnRenderer(...args) {
   if (!DEBUG_RENDERER) return;
   console.warn(...args);
 }
+
 /**
  * createRendererContext は viewer runtime の内部 API。
  *
@@ -77,13 +89,13 @@ function attachContextEvents(canvas, ctx, label = "viewer") {
   const onLost = (e) => {
     // preventDefault しないと restore されへん
     try { e.preventDefault(); } catch (_e) {}
-    console.warn(`[${label}] webglcontextlost`, e);
+    warnRenderer(`[${label}] webglcontextlost`, e);
   };
   const onRestored = (e) => {
-    console.warn(`[${label}] webglcontextrestored`, e);
+    warnRenderer(`[${label}] webglcontextrestored`, e);
   };
   const onCreationError = (e) => {
-    console.warn(`[${label}] webglcontextcreationerror`, e);
+    warnRenderer(`[${label}] webglcontextcreationerror`, e);
   };
 
   canvas.addEventListener("webglcontextlost", onLost, { passive: false });
@@ -105,6 +117,7 @@ export function disposeRendererContext(target) {
 
   const canvas = ctx.canvas;
   try { ctx._offEvents?.(); } catch (_e) {}
+  try { ctx._cleanup?.(); } catch (_e) {}
 
   const r = ctx.renderer;
    if (r) {
@@ -143,6 +156,36 @@ function readOpacity(v, fallback = 1) {
   return Math.max(0, Math.min(1, n));
 }
 
+function readCenter(v, fallback = [0, 0, 0]) {
+  return readVec3(v, fallback);
+}
+
+function computeSceneMetricsFromPositions(posList) {
+  if (!posList || !posList.length) return null;
+  let minX = +Infinity, minY = +Infinity, minZ = +Infinity;
+  let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+  for (const p of posList) {
+    const x = Number(p[0]) || 0, y = Number(p[1]) || 0, z = Number(p[2]) || 0;
+    if (x < minX) minX = x; if (y < minY) minY = y; if (z < minZ) minZ = z;
+    if (x > maxX) maxX = x; if (y > maxY) maxY = y; if (z > maxZ) maxZ = z;
+  }
+  if (!Number.isFinite(minX) || !Number.isFinite(maxX)) return null;
+  const cx = (minX + maxX) / 2;
+  const cy = (minY + maxY) / 2;
+  const cz = (minZ + maxZ) / 2;
+  let r2 = 0;
+  for (const p of posList) {
+    const dx = (Number(p[0]) || 0) - cx;
+    const dy = (Number(p[1]) || 0) - cy;
+    const dz = (Number(p[2]) || 0) - cz;
+    const d2 = dx * dx + dy * dy + dz * dz;
+    if (d2 > r2) r2 = d2;
+  }
+  const radius = Math.sqrt(r2);
+  return { center: [cx, cy, cz], radius: Number.isFinite(radius) ? radius : 0 };
+}
+
+
 let _lastForceLossAt = 0;
 function maybeForceContextLoss(renderer, enabled) {
   if (!enabled) return;
@@ -176,7 +219,9 @@ function maybeForceContextLoss(renderer, enabled) {
     renderer: null,
     gl: null,
     _disposed: false,
-    _forceLoss: !!opts.forceContextLoss, // ★デフォルトfalse
+    _forceLoss: !!opts.forceContextLoss,
+
+    _cleanup: null,
     dispose() { disposeRendererContext(ctx); },
   };
 
@@ -200,6 +245,108 @@ function maybeForceContextLoss(renderer, enabled) {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(50, 1, 0.01, 100000);
   camera.up.set(0, 0, 1); // Z-up
+  // worldAxes helper は ctx に保持（未宣言参照・再宣言事故を防ぐ）
+  ctx._worldAxesHelper = ctx._worldAxesHelper || null;
+  // sceneMetricsCache は下の minimal runtime セクションで 1 回だけ宣言する（重複防止）
+
+  function readCenter(v, fallback = [0, 0, 0]) {
+    return readVec3(v, fallback);
+  }
+
+  // picking
+  const _raycaster = new THREE.Raycaster();
+  const _ndc = new THREE.Vector2();
+  // 線/点の当たり判定を少し太めに（必要なら後で調整）
+  _raycaster.params.Line = _raycaster.params.Line || {};
+  _raycaster.params.Points = _raycaster.params.Points || {};
+  _raycaster.params.Line.threshold = 0.15;
+  _raycaster.params.Points.threshold = 0.15;
+
+  function isObjectVisible(obj) {
+    let o = obj;
+    while (o) {
+      if (o.visible === false) return false;
+      o = o.parent || null;
+    }
+    return true;
+  }
+
+  const raycaster = new THREE.Raycaster();
+  // 線が拾えん問題の保険（必要なら後で viewerSettings から調整してもええ）
+  try { raycaster.params.Line.threshold = 0.5; } catch (_e) {}
+  const pickTargets = [];
+  let _pickTargetSet = new WeakSet();
+
+  // ------------------------------------------------------------
+  // scene metrics（center/radius）fallback
+  // - worldAxes/microFX/selection みたいな補助描画は含めたくないので
+  //   groups.{points,lines,aux} だけを見る
+  // ------------------------------------------------------------
+  function computeSceneMetricsFromGroups() {
+    const box = new THREE.Box3();
+    let hasAny = false;
+
+    for (const k of ["points", "lines", "aux"]) {
+      const g = groups?.[k];
+      if (!g) continue;
+      try { g.updateWorldMatrix(true, true); } catch (_e) {}
+      const b = new THREE.Box3().setFromObject(g);
+      if (b.isEmpty()) continue;
+      if (!hasAny) { box.copy(b); hasAny = true; }
+      else box.union(b);
+    }
+
+    if (!hasAny || box.isEmpty()) return null;
+    const sphere = new THREE.Sphere();
+    box.getBoundingSphere(sphere);
+    const r = Number(sphere.radius);
+    if (!Number.isFinite(r) || r <= 0) return null;
+    const c = sphere.center;
+    return { center: [c.x, c.y, c.z], radius: r };
+  }
+
+  let sceneMetricsCache = null;
+
+  // viewerSettings 適用用のローカル状態（未定義参照を防ぐ）
+  let _lastViewerSettingsKey = "";
+  // world axes helper は ctx に保持
+  if (ctx._worldAxesHelper === undefined) ctx._worldAxesHelper = null;
+
+  function ensureWorldAxesHelper() {
+    let h = ctx._worldAxesHelper;
+    if (h && h.parent === scene) return h;
+    // 古いのが残ってたら remove
+    if (h && h.parent) {
+      try { h.parent.remove(h); } catch (_e) {}
+    }
+    h = new THREE.AxesHelper(1);
+    h.name = "worldAxes";
+    h.renderOrder = 9999;
+    h.frustumCulled = false;
+    h.visible = false;
+    // 常に手前に出す
+    try {
+      h.traverse((o) => {
+        if (o.material) {
+          o.material.depthTest = false;
+          o.material.depthWrite = false;
+          o.material.transparent = true;
+        }
+      });
+    } catch (_e) {}
+    scene.add(h);
+    ctx._worldAxesHelper = h;
+    return h;
+  }
+
+  function updateWorldAxesScaleFromMetrics() {
+    const h = ctx._worldAxesHelper;
+    if (!h) return;
+    const r = Number(sceneMetricsCache?.radius);
+    const s =
+      Number.isFinite(r) && r > 0 ? Math.max(0.6, Math.min(r * 0.25, 50)) : 1.0;
+    h.scale.setScalar(s);
+  }
 
   const groups = {
     points: new THREE.Group(),
@@ -213,29 +360,112 @@ function maybeForceContextLoss(renderer, enabled) {
     aux: new Map(),
   };
 
+  // lineEffects: baseStyle と runtime（flow/glow/pulse/selection 用）
+  const baseStyleLines = new Map(); // uuid -> { color: THREE.Color, opacity: number }
+  let lineEffectsRuntime = null;
+  let _suppressLineEffects = false;
+
+  // selectionHighlight に渡す bundles（labels は今は未接続なら null のままでOK）
+  const bundles = { points: maps.points, lines: maps.lines, aux: maps.aux, labels: null };
+  // microFX 中は selection を無効化（microFX > selection、fade-out 中も抑止）
+  let _microWasActive = false;
+  let _suppressSelectionUntil = 0; // performance.now() 基準
+  function _isSelectionSuppressed() {
+    const now = (globalThis.performance?.now?.() ?? Date.now());
+    return now < _suppressSelectionUntil;
+  }
+  function _suppressSelectionOn() {
+    _microWasActive = true;
+    _suppressSelectionUntil = Number.POSITIVE_INFINITY;
+  }
+  function _suppressSelectionOff() {
+    const now = (globalThis.performance?.now?.() ?? Date.now());
+    const tr = microFXConfig?.transition || {};
+    const enabled = tr.enabled !== undefined ? !!tr.enabled : true;
+    const dur = enabled ? Number(tr.durationMs) : 0;
+    const ms = Number.isFinite(dur) && dur > 0 ? dur : 0;
+    _suppressSelectionUntil = now + ms; // fade-out 中も selection 出さん
+    _microWasActive = false;
+  }
+
   function clearGroup(kind) {
     const g = groups[kind];
     if (!g) return;
     while (g.children.length) {
-      const o = g.children.pop();
+      const o = g.children[g.children.length - 1];
+      g.remove(o);
       try { o.geometry?.dispose?.(); } catch (_e) {}
       try { o.material?.dispose?.(); } catch (_e) {}
     }
     maps[kind].clear();
   }
 
+  function clearPickTargets() {
+    pickTargets.length = 0;
+    _pickTargetSet = new WeakSet();
+  }
+
+  // ------------------------------------------------------------
+  // scene metrics（center/radius）算出（points/lines/aux の実体から）
+  // - worldAxes / microFX / selection など「表示補助」は除外したいので
+  //   groups.{points,lines,aux} のみを見る
+  // ------------------------------------------------------------
+  function computeSceneMetricsFromGroups() {
+    const box = new THREE.Box3();
+    let hasAny = false;
+
+    const keys = ["points", "lines", "aux"];
+    for (const k of keys) {
+      const g = groups && groups[k];
+      if (!g) continue;
+      try { g.updateWorldMatrix(true, true); } catch (_e) {}
+
+      const b = new THREE.Box3().setFromObject(g);
+      if (b.isEmpty()) continue;
+      if (!hasAny) {
+        box.copy(b);
+        hasAny = true;
+      } else {
+        box.union(b);
+      }
+    }
+
+    if (!hasAny || box.isEmpty()) return null;
+
+    const sphere = new THREE.Sphere();
+    box.getBoundingSphere(sphere);
+
+    const r = Number(sphere.radius);
+    if (!Number.isFinite(r) || r <= 0) return null;
+    const c = sphere.center;
+    return { center: [c.x, c.y, c.z], radius: r };
+  }
+
+  function addPickTarget(obj) {
+    if (!obj) return;
+    if (_pickTargetSet.has(obj)) return;
+    _pickTargetSet.add(obj);
+    pickTargets.push(obj);
+  }
+
   function resolvePointPosByUuid(structIndex, uuid) {
     if (!uuid || !structIndex) return null;
     const item = structIndex.uuidToItem?.get?.(uuid) ?? null;
     const p = item?.item ?? item?.point ?? item?.data ?? item ?? null;
-    return readPointPos(p);
+    return readPointPosCompat(p, readVec3);
   }
 
-function resolveEndpoint(structIndex, ep, resolvePointPos) {
+  function resolveEndpoint(structIndex, ep, resolvePointPos) {
   if (typeof ep === "string") {
     const u = ep.trim();
     if (!u) return null;
     return (resolvePointPos ? resolvePointPos(u) : resolvePointPosByUuid(structIndex, u)) ?? null;
+  }
+
+  // v1.1.0: endpoint は { ref | coord } を取り得る（coord は直座標）
+  if (ep && typeof ep === "object" && ep.coord != null) {
+    const c = readVec3(ep.coord, null);
+    if (c) return c;
   }
 
   if (Array.isArray(ep) || (ep && typeof ep === "object" && ("x" in ep || "y" in ep || "z" in ep))) {
@@ -243,6 +473,11 @@ function resolveEndpoint(structIndex, ep, resolvePointPos) {
   }
 
   if (ep && typeof ep === "object") {
+    // { coord: [x,y,z] } / { coord: {x,y,z} } を優先で拾う
+    if (ep.coord != null) {
+      const v = readVec3(ep.coord, null);
+      if (v) return v;
+    }
     if (typeof ep.ref === "string") {
       const u = ep.ref.trim();
       return (resolvePointPos ? resolvePointPos(u) : resolvePointPosByUuid(structIndex, u)) ?? null;
@@ -277,122 +512,13 @@ function resolveEndpoint(structIndex, ep, resolvePointPos) {
     }
   }
 
+  // NOTE: “形揺れ吸収” は adapters/compat.js に隔離。context.js では再定義しない。
+
   return null;
-}
-
-
-function pickUuid(obj) {
-  const raw =
-    obj?.uuid ??
-    obj?.meta?.uuid ??
-    obj?.meta_uuid ??
-    obj?.id ??
-    obj?.meta?.id ??
-    obj?.ref_uuid ??
-    obj?.meta?.ref_uuid ??
-    null;
-
-  if (typeof raw === "string") {
-    const t = raw.trim();
-    return t ? t : null;
-  }
-  if (raw != null) {
-    const t = String(raw).trim();
-    return t ? t : null;
-  }
-  return null;
-}
-
-const END_A_KEYS = [
-  "end_a","endA","a","from","source","src","start",
-  "point_a","pointA","p0","pA",
-  "end_a_uuid","a_uuid","start_uuid","from_uuid","src_uuid"
-];
-const END_B_KEYS = [
-  "end_b","endB","b","to","target","dst","end",
-  "point_b","pointB","p1","pB",
-  "end_b_uuid","b_uuid","end_uuid","to_uuid","dst_uuid"
-];
-
-function pickLineEndpoint(line, keys) {
-  if (!line) return undefined;
-
-  // appearance 優先
-  for (const k of keys) {
-    if (line.appearance && Object.prototype.hasOwnProperty.call(line.appearance, k)) return line.appearance[k];
-  }
-
-  // appearance.endpoints が [a,b] みたいな配列のパターン救済
-  const aepsAny = line.appearance?.endpoints;
-  if (Array.isArray(aepsAny) && aepsAny.length >= 2) {
-    // 呼び出し側が A/B どっちの keys を渡してるかで 0/1 を分ける
-    const wantsA = keys === END_A_KEYS;
-    return wantsA ? aepsAny[0] : aepsAny[1];
-  }
-
-  // appearance.endpoints 配下
-  const aeps =
-    (line.appearance?.endpoints && typeof line.appearance.endpoints === "object")
-      ? line.appearance.endpoints
-      : null;
-  if (aeps) {
-    for (const k of keys) {
-      if (Object.prototype.hasOwnProperty.call(aeps, k)) return aeps[k];
-    }
-    // よくある a/b
-    if (keys === END_A_KEYS && Object.prototype.hasOwnProperty.call(aeps, "a")) return aeps.a;
-    if (keys === END_B_KEYS && Object.prototype.hasOwnProperty.call(aeps, "b")) return aeps.b;
-    if (keys === END_A_KEYS && Object.prototype.hasOwnProperty.call(aeps, "from")) return aeps.from;
-    if (keys === END_B_KEYS && Object.prototype.hasOwnProperty.call(aeps, "to")) return aeps.to;
-  }
-
-  // geometry / endpoints 配下も見る
-  const geo = line.geometry && typeof line.geometry === "object" ? line.geometry : null;
-  const eps = line.endpoints && typeof line.endpoints === "object" ? line.endpoints : null;
-  for (const k of keys) {
-    if (geo && Object.prototype.hasOwnProperty.call(geo, k)) return geo[k];
-    if (eps && Object.prototype.hasOwnProperty.call(eps, k)) return eps[k];
-  }
-
-  // top-level
-  for (const k of keys) {
-    if (Object.prototype.hasOwnProperty.call(line, k)) return line[k];
-  }
-
-  return undefined;
-}
-
-function collectStringsShallow(obj, max = 64) {
-  const out = [];
-  const stack = [obj];
-  while (stack.length && out.length < max) {
-    const v = stack.pop();
-    if (typeof v === "string") { out.push(v); continue; }
-    if (!v || typeof v !== "object") continue;
-    if (Array.isArray(v)) { for (const it of v) stack.push(it); continue; }
-    for (const k of Object.keys(v)) stack.push(v[k]);
-  }
-  return out;
-}
-
-function readPointPos(p) {
-  return readVec3(
-    // top-level
-    p?.position ?? p?.pos ?? p?.xyz ?? p?.point ??
-    // geometry
-    p?.geometry?.position ?? p?.geometry?.pos ?? p?.geometry?.xyz ?? p?.geometry?.point ??
-    // appearance（ここに座標が入ってる個体も救う）
-    p?.appearance?.position ?? p?.appearance?.pos ?? p?.appearance?.xyz ?? p?.appearance?.point ??
-    // signification（今回ログ的にここが怪しい）
-    p?.signification?.position ?? p?.signification?.pos ?? p?.signification?.xyz ?? p?.signification?.point ??
-    // meta fallback
-    p?.meta?.position ?? p?.meta?.pos ?? p?.meta?.xyz ?? p?.meta?.point ??
-    null,
-    null
-  );
 }
 
   ctx.syncDocument = (struct, structIndex) => {
+    if (ctx._disposed) return;
 
     debugRenderer("[renderer] syncDocument input", {
       hasRootPoints: Array.isArray(struct?.points),
@@ -410,13 +536,28 @@ function readPointPos(p) {
     clearGroup("lines");
     clearGroup("aux");
 
+    // metrics は毎回作り直し
+    sceneMetricsCache = null;
+
+    // rebuild 前に selection を一旦クリア（selectionGroup が module-global で残り得る）
+    try { clearSelectionHighlightImpl(scene); } catch (_e) {}
+    try { clearMicroFXImpl(scene); } catch (_e) {}
+    _microWasActive = false;
+    _suppressSelectionUntil = 0;
+    _suppressLineEffects = false;
+
+    baseStyleLines.clear();
+    lineEffectsRuntime = null;
+
+    clearPickTargets();
+
     const frames = Array.isArray(struct?.frames) ? struct.frames : [];
 
     function collect(key) {
       const out = [];
       const seen = new Set();
       const push = (it) => {
-        const u = pickUuid(it);
+        const u = pickUuidCompat(it);
         if (!u || seen.has(u)) return;
         seen.add(u);
         out.push(it);
@@ -434,11 +575,27 @@ function readPointPos(p) {
 
     const pointPosByUuid = new Map();
     for (const p of pts) {
-      const u = pickUuid(p);
+      const u = pickUuidCompat(p);
       if (!u) continue;
-      const pos = readPointPos(p);
+      const pos = readPointPosCompat(p, readVec3);
       if (pos) pointPosByUuid.set(u, pos);
       else warnRenderer("[renderer] point pos missing", u, p);
+    }
+
+    // ---- metrics（初期カメラ用）----
+    // まず structIndex.bounds を信用、無ければ点群から計算
+    try {
+      const b = structIndex?.bounds ?? structIndex?.getSceneBounds?.() ?? null;
+      const r = Number(b?.radius);
+      const c = b?.center ?? b?.centroid ?? null;
+      if (Number.isFinite(r) && r > 0) {
+        // NOTE: sceneMetricsCache は syncDocument の末尾で確定する（重複防止）
+      }
+    } catch (_e) {}
+    if (!sceneMetricsCache) {
+      const posList = Array.from(pointPosByUuid.values());
+      const m = computeSceneMetricsFromPositions(posList);
+      // NOTE: sceneMetricsCache は syncDocument の末尾で確定する（重複防止）
     }
 
     function resolvePointPos(uuid) {
@@ -449,7 +606,7 @@ function readPointPos(p) {
       // structIndex fallback（形揺れ吸収）
       const hit = structIndex?.uuidToItem?.get?.(uuid) ?? null;
       const p = hit?.item ?? hit?.point ?? hit?.data ?? hit?.value ?? hit ?? null;
-      return readPointPos(p);
+      return readPointPosCompat(p, readVec3);
     }
 
     // ---- scale（点が小さすぎて見えん問題を避ける）----
@@ -461,16 +618,16 @@ function readPointPos(p) {
     } catch (_e) {}
     
     // points: small spheres (最小実装)
+    if (pts.length) {
+      debugRenderer("[renderer] point[0] uuid candidates", {
+        uuid: pts[0]?.uuid,
+        meta_uuid: pts[0]?.meta?.uuid,
+        id: pts[0]?.id,
+        picked: pickUuidCompat(pts[0]),
+      });
+    }
     for (const p of pts) {
-      if (pts.length) {
-        debugRenderer("[renderer] point[0] uuid candidates", {
-          uuid: pts[0]?.uuid,
-          meta_uuid: pts[0]?.meta?.uuid,
-          id: pts[0]?.id,
-          picked: pickUuid(pts[0]),
-        });
-      }
-      const uuid = pickUuid(p);
+      const uuid = pickUuidCompat(p);
       if (!uuid) continue;
       const pos = resolvePointPos(uuid);
       if (!pos) { warnRenderer("[renderer] skip point (no pos)", uuid, p); continue; }
@@ -489,25 +646,27 @@ function readPointPos(p) {
       mesh.userData.kind = "points";
       groups.points.add(mesh);
       maps.points.set(uuid, mesh);
+      addPickTarget(mesh);
     }
 
+
     // lines: LineSegments(2pts)
+    if (lns.length) {
+      debugRenderer("[renderer] line[0] shape", {
+        pickedUuid: pickUuidCompat(lns[0]),
+        keys: Object.keys(lns[0] || {}),
+        appearanceKeys: Object.keys(lns[0]?.appearance || {}),
+        geometryKeys: Object.keys(lns[0]?.geometry || {}),
+        endpointsKeys: Object.keys(lns[0]?.endpoints || {}),
+        aRaw: pickLineEndpointCompat(lns[0], END_A_KEYS_COMPAT),
+        bRaw: pickLineEndpointCompat(lns[0], END_B_KEYS_COMPAT),
+      });
+    }
     for (const line of lns) {
-      if (lns.length) {
-        debugRenderer("[renderer] line[0] shape", {
-          pickedUuid: pickUuid(lns[0]),
-          keys: Object.keys(lns[0] || {}),
-          appearanceKeys: Object.keys(lns[0]?.appearance || {}),
-          geometryKeys: Object.keys(lns[0]?.geometry || {}),
-          endpointsKeys: Object.keys(lns[0]?.endpoints || {}),
-          aRaw: pickLineEndpoint(lns[0], END_A_KEYS),
-          bRaw: pickLineEndpoint(lns[0], END_B_KEYS),
-        });
-      }
-      const uuid = pickUuid(line);
+      const uuid = pickUuidCompat(line);
       if (!uuid) continue;
-      const aRaw = pickLineEndpoint(line, END_A_KEYS);
-      const bRaw = pickLineEndpoint(line, END_B_KEYS);
+      const aRaw = pickLineEndpointCompat(line, END_A_KEYS_COMPAT);
+      const bRaw = pickLineEndpointCompat(line, END_B_KEYS_COMPAT);
       debugRenderer("[renderer] line endpoints raw", aRaw, bRaw);
       const a = resolveEndpoint(structIndex, aRaw, resolvePointPos);
       const b = resolveEndpoint(structIndex, bRaw, resolvePointPos);
@@ -526,16 +685,35 @@ function readPointPos(p) {
       const seg = new THREE.LineSegments(geo, mat);
       seg.userData.uuid = uuid;
       seg.userData.kind = "lines";
-      groups.lines.add(seg);
-      maps.lines.set(uuid, seg);
-   }
+      // uuid->object / pick
+      try { maps.lines.set(uuid, seg); } catch (_e) {}
+      try { addPickTarget(seg); } catch (_e) {}
+
+      // lineEffects が base に戻すためのスナップショット（1回だけ記録）
+      try {
+        baseStyleLines.set(uuid, {
+          color: mat.color ? mat.color.clone() : new THREE.Color(0xffffff),
+          opacity: typeof mat.opacity === "number" ? mat.opacity : 1,
+        });
+      } catch (_e) {}
+    }
+
+    // lines が揃った後で runtime を作る（毎フレーム updateLineEffects で反映）
+    try {
+      lineEffectsRuntime = createLineEffectsRuntime({
+        lineObjects: maps.lines,
+        baseStyle: baseStyleLines,
+      });
+    } catch (_e) {
+      lineEffectsRuntime = null;
+    }
 
     // aux: struct.aux から作る（grid/axis）
     for (const a of axs) {
-      const uuid = pickUuid(a);
+      const uuid = pickUuidCompat(a);
       if (!uuid) continue;
 
-      const tag = collectStringsShallow(a).join(" ").toLowerCase();
+      const tag = collectStringsShallowCompat(a).join(" ").toLowerCase();
       debugRenderer("[renderer] aux tag haystack", tag);
 
       let obj = null;
@@ -559,6 +737,13 @@ function readPointPos(p) {
       obj.userData.kind = "aux";
       groups.aux.add(obj);
       maps.aux.set(uuid, obj);
+      addPickTarget(obj);
+    }
+
+    // 明示 metrics が入ってない / 壊れてる場合だけ fallback 算出
+    if (!sceneMetricsCache || !Number.isFinite(Number(sceneMetricsCache.radius)) || Number(sceneMetricsCache.radius) <= 0) {
+      const m2 = computeSceneMetricsFromGroups();
+      if (m2) sceneMetricsCache = m2;
     }
 
     debugRenderer("[renderer] syncDocument built", {
@@ -566,13 +751,84 @@ function readPointPos(p) {
       lines: maps.lines.size,
       aux: maps.aux.size,
     });
+
+    // ------------------------------------------------------------
+    // scene metrics（center/radius）
+    //   1) structIndex.bounds の radius/center を最優先
+    //   2) 無ければ points+lines から算出（aux は除外）
+    // ------------------------------------------------------------
+    try {
+      const b = structIndex?.bounds ?? structIndex?.getSceneBounds?.() ?? null;
+      const r = Number(b?.radius);
+      if (Number.isFinite(r) && r > 0) {
+        const cRaw =
+          b?.center ?? b?.centroid ?? b?.origin ??
+          b?.box?.center ?? null;
+        sceneMetricsCache = { center: readCenter(cRaw, [0, 0, 0]), radius: r };
+      }
+    } catch (_e) {}
+
+    if (!sceneMetricsCache) {
+      try {
+        const box = new THREE.Box3().makeEmpty();
+        const tmp = new THREE.Box3();
+        let any = false;
+
+        tmp.setFromObject(groups.points);
+        if (!tmp.isEmpty()) { box.union(tmp); any = true; }
+
+        tmp.setFromObject(groups.lines);
+        if (!tmp.isEmpty()) { box.union(tmp); any = true; }
+
+        if (any && !box.isEmpty()) {
+          const sph = new THREE.Sphere();
+          box.getBoundingSphere(sph);
+          const rr = Number(sph.radius);
+          if (Number.isFinite(rr) && rr > 0) {
+            sceneMetricsCache = {
+              center: [sph.center.x, sph.center.y, sph.center.z],
+              radius: rr,
+            };
+          }
+        }
+      } catch (_e) {}
+    }
+  };
+
+  ctx.getSceneMetrics = () => {
+    if (ctx._disposed) return null;
+    let m = sceneMetricsCache;
+    // cache が無い/壊れてるなら、その場で 1 回算出して cache する
+    if (
+      !m ||
+      !Array.isArray(m.center) || m.center.length < 3 ||
+      !Number.isFinite(Number(m.radius)) || Number(m.radius) <= 0
+    ) {
+      const m2 = computeSceneMetricsFromGroups();
+      if (m2) {
+        sceneMetricsCache = m2;
+        m = m2;
+      } else {
+        return null;
+      }
+    }
+
+    const c = m.center;
+    const r = Number(m.radius);
+
+    return {
+      center: [Number(c[0]) || 0, Number(c[1]) || 0, Number(c[2]) || 0],
+      radius: r,
+    };
   };
 
   ctx.applyFrame = (visibleSet) => {
+    if (ctx._disposed) return;
     const vs = visibleSet && typeof visibleSet === "object" ? visibleSet : null;
     for (const kind of ["points", "lines", "aux"]) {
       const set = vs?.[kind];
-     const hasSet = set instanceof Set;
+      // Set-like（ReadonlySet / custom Set）も許可
+      const hasSet = !!set && typeof set.has === "function";
       for (const [uuid, obj] of maps[kind]) {
         obj.visible = hasSet ? set.has(uuid) : false; // kindのSet無し => 全OFF（契約どおり）
       }
@@ -581,6 +837,7 @@ function readPointPos(p) {
   };
 
   ctx.updateCamera = (camState) => {
+    if (ctx._disposed) return;
     const st = camState || {};
     const fov = Number(st.fov);
     if (Number.isFinite(fov)) camera.fov = fov;
@@ -609,6 +866,7 @@ function readPointPos(p) {
   };
 
   ctx.resize = (w, h, dpr = 1) => {
+    if (ctx._disposed) return;
     const cw = Math.max(1, Math.floor(Number(w) || canvas.clientWidth || canvas.width || 1));
     const ch = Math.max(1, Math.floor(Number(h) || canvas.clientHeight || canvas.height || 1));
     const pr = Math.max(1, Math.min(4, Number(dpr) || 1));
@@ -619,18 +877,210 @@ function readPointPos(p) {
   };
 
   ctx.render = (_core) => {
+    if (ctx._disposed) return;
+
+    // microFX 有効中/フェード中は lineEffects が baseStyle に戻して上書きしてまうので止める
+    if (!_suppressLineEffects) {
+      try { lineEffectsRuntime?.updateLineEffects?.(); } catch (_e) {}
+    }
+
     renderer.render(scene, camera);
   };
 
-  // micro/selection/viewerSettings は最小は no-op（真っ黒回避が先）
-  ctx.applyMicroFX = () => {};
-  ctx.applySelectionHighlight = () => {};
-  ctx.clearSelectionHighlight = () => {};
-  ctx.applyViewerSettings = () => {};
+  // micro/selection/viewerSettings
+  ctx.applyMicroFX = (microState, camState, visibleSet) => {
+    if (ctx._disposed) return;
+
+    // entering/leaving 判定は“更新前”の _microWasActive で見る
+    const entering = !!microState && !_microWasActive;
+    const leaving  = !microState && _microWasActive;
+
+    // microFX が有効な間 + fade-out 中は selection を抑止
+    if (entering) {
+      _suppressSelectionOn();
+      // micro 侵入時だけ selection を即消す（毎フレーム消すのはムダ）
+      try { ctx.clearSelectionHighlight?.(); } catch (_e) {}
+    } else if (leaving) {
+      _suppressSelectionOff();
+    }
+
+    const suppressed = _isSelectionSuppressed();
+    // microFX 有効中＋fade-out 中は、lineEffects が上書きせんよう止める
+    _suppressLineEffects = !!microState || suppressed;
+
+    const indexMaps = {
+      points: maps.points,
+      lines: maps.lines,
+      aux: maps.aux,
+      labels: null,
+      camera,
+    };
+    try {
+      applyMicroFXImpl(scene, microState || null, camState || null, indexMaps, visibleSet || null);
+    } catch (_e) {}
+
+    // fade-out 終了後に microFX の残骸を確実に掃除（microFX 実装が clear しない場合の安全弁）
+    if (!microState && !suppressed) {
+      try { clearMicroFXImpl(scene); } catch (_e) {}
+    }
+  };
+
+  function _hasIn(setLike, uuid) {
+    if (!setLike || !uuid) return false;
+    try {
+      return typeof setLike.has === "function" ? !!setLike.has(uuid) : false;
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  function _isSelectionVisible(sel, visibleSet) {
+    const uuid = sel && sel.uuid;
+    if (!uuid) return false;
+    if (!visibleSet) return false;
+
+    // legacy: visibleSet が Set そのもの
+    if (visibleSet instanceof Set) return visibleSet.has(uuid);
+    if (typeof visibleSet.has === "function") return !!visibleSet.has(uuid);
+
+    if (typeof visibleSet === "object") {
+      const kind = sel && sel.kind; // 'points'|'lines'|'aux' 想定
+      if (kind && _hasIn(visibleSet[kind], uuid)) return true;
+      return (
+        _hasIn(visibleSet.points, uuid) ||
+        _hasIn(visibleSet.lines, uuid) ||
+        _hasIn(visibleSet.aux, uuid)
+      );
+    }
+    return false;
+  }
+
+  // selectionHighlight（bbox枠） + lineEffects selection（線の明度ブースト等）
+  ctx.applySelectionHighlight = (selectionState, _camState, visibleSet) => {
+    if (_isSelectionSuppressed()) {
+      // microFX 優先：selection は出さない（線効果も含めて解除）
+      try { ctx.clearSelectionHighlight?.(); } catch (_e) {}
+      return;
+    }
+    const sel = _isSelectionVisible(selectionState, visibleSet) ? (selectionState || null) : null;
+    try { lineEffectsRuntime?.applySelection?.(sel); } catch (_e) {}
+    try { updateSelectionHighlightImpl(scene, bundles, sel); } catch (_e) {}
+  };
+
+   ctx.clearSelectionHighlight = () => {
+     if (ctx._disposed) return;
+     try { lineEffectsRuntime?.applySelection?.(null); } catch (_e) {}
+     try { clearSelectionHighlightImpl(scene); } catch (_e) {}
+   };
+
+  ctx.applyViewerSettings = (viewerSettings) => {
+    if (ctx._disposed) return;
+
+    const vs = viewerSettings && typeof viewerSettings === "object" ? viewerSettings : {};
+
+    // 命名ゆれ吸収（必要なら増やしてええ）
+    const worldAxesVisible = !!(vs.worldAxesVisible ?? vs.worldAxes ?? vs.showWorldAxes);
+    const lineWidthMode = typeof vs.lineWidthMode === "string" ? vs.lineWidthMode : "";
+    const microFXProfile = typeof vs.microFXProfile === "string" ? vs.microFXProfile : "";
+
+    const key = `${worldAxesVisible}|${lineWidthMode}|${microFXProfile}`;
+    if (key !== _lastViewerSettingsKey) {
+      _lastViewerSettingsKey = key;
+
+      // world axes on/off（生成は必要時のみ）
+      if (!worldAxesVisible) {
+        if (ctx._worldAxesHelper) ctx._worldAxesHelper.visible = false;
+      } else {
+        ensureWorldAxesHelper().visible = true;
+        updateWorldAxesScaleFromMetrics();
+      }
+    } else {
+      // key 変わってなくても、metrics 変化後に追随したいので visible 時だけ更新
+      if (worldAxesVisible) {
+        ensureWorldAxesHelper().visible = true;
+        updateWorldAxesScaleFromMetrics();
+      }
+    }
+  };
+
+  // spec 名（applySelection）とのズレ吸収：まずは alias（中身は後で戻す）
+  ctx.applySelection = (selectionState, camState, visibleSet) =>
+    ctx.applySelectionHighlight(selectionState, camState, visibleSet);
+  ctx.pickObjectAt = (ndcX, ndcY) => {
+    if (ctx._disposed) return null;
+    const x = Number(ndcX);
+    const y = Number(ndcY);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+
+    try {
+      // matrix が古いと当たらんことある
+      try { camera.updateMatrixWorld(true); } catch (_e) {}
+      try { scene.updateMatrixWorld(true); } catch (_e) {}
+
+      raycaster.setFromCamera({ x, y }, camera);
+      const targets = (pickTargets && pickTargets.length)
+        ? pickTargets
+        : [groups.points, groups.lines, groups.aux].filter(Boolean);
+      if (!targets.length) return null;
+
+      const hits = raycaster.intersectObjects(targets, true);
+      if (!hits || !hits.length) return null;
+
+      const inferKindFromAncestors = (obj) => {
+        let cur = obj;
+        while (cur) {
+          const k = cur.userData?.kind;
+          if (k === "points" || k === "lines" || k === "aux") return k;
+          if (cur === groups.points) return "points";
+          if (cur === groups.lines) return "lines";
+          if (cur === groups.aux) return "aux";
+          cur = cur.parent ?? null;
+        }
+        return null;
+      };
+
+      for (const hit of hits) {
+        let o = hit?.object ?? null;
+          while (o && !o.userData?.uuid) o = o.parent ?? null;
+          if (!o) continue;
+          if (!isObjectVisible(o)) continue;
+            const uuid = o.userData.uuid;
+            let kind = o.userData.kind;
+          if (kind !== "points" && kind !== "lines" && kind !== "aux") {
+            kind = inferKindFromAncestors(o);
+          }
+        if (typeof uuid !== "string" || !uuid.trim()) continue;
+        if (kind !== "points" && kind !== "lines" && kind !== "aux") continue;
+        const p = hit?.point;
+        const point = (p && typeof p.x === "number")
+          ? [p.x, p.y, p.z]
+          : [0, 0, 0];
+        const dist = Number(hit?.distance);
+        return {
+          uuid: uuid.trim(),
+          kind,
+          distance: Number.isFinite(dist) ? dist : 0,
+          point,
+        };
+      }
+    } catch (_e) {}
+    return null;
+  };
 
   // 初期サイズだけ合わせとく（0サイズ事故も防ぐ）
   try { ctx.resize(canvas.clientWidth, canvas.clientHeight, globalThis.devicePixelRatio || 1); } catch (_e) {}
 
+  // dispose 時の後始末（module-global group が旧 scene に残るのを防ぐ）
+  ctx._cleanup = () => {
+    try { clearSelectionHighlightImpl(scene); } catch (_e) {}
+    try { clearMicroFXImpl(scene); } catch (_e) {}
+  };
+
   _canvasContexts.set(canvas, ctx);
   return ctx;
 }
+
+// public/viewer/runtime/renderer/adapters/compat.js
+//
+// renderer/context.js 本体に「形揺れ吸収」を持ち込まないための隔離層。
+// three.js 依存を避けるため、vec3変換は readVec3 を注入で受け取る。

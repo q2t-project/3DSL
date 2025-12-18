@@ -209,16 +209,9 @@ export function applyHighlight(
   const lineCfg     = hlCfg.line || {};
   const lineGlowEnabled = lineGlowCfg.enabled !== false;
 
-for (const uuid of uniqIds) {
-  // 7.11.5: visibleSet に含まれない要素は処理しない
-  // Set 以外が来ても絶対に落ちないようにガード
-  if (
-    visibleSet &&
-    typeof visibleSet.has === "function" &&
-    !visibleSet.has(uuid)
-  ) {
-    continue;
-  }
+  for (const uuid of uniqIds) {
+    // 7.11.5: visibleSet に含まれない要素は処理しない（新旧どっちも対応）
+    if (typeof isVisible === "function" && !isVisible(uuid)) continue;
 
   // getObjectByUuid は indexMaps を閉じ込めた関数を期待している
     const src = getObjectByUuid(uuid);

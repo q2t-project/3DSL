@@ -43,6 +43,7 @@ export class KeyboardInput {
   constructor(target, hub) {
     this.target = target || window;
     this.hub = hub;
+    this.viewPresetIndex = 0;
 
     this.onKeyDown = this.onKeyDown.bind(this);
     this.target.addEventListener("keydown", this.onKeyDown);
@@ -76,17 +77,8 @@ export class KeyboardInput {
       return;
     }
 
-    // ② フォールバック：UI 不在時は camera 直たたき
-    if (hub.core) {
-      const camera = hub.core.camera || hub.core.cameraEngine;
-      if (camera && typeof camera.stopAutoOrbit === "function") {
-        camera.stopAutoOrbit();
-      }
-
-      const runtime = hub.core.uiState && hub.core.uiState.runtime;
-      if (runtime) {
-        runtime.isCameraAuto = false;
-      }
+    if (hub.core && hub.core.camera && typeof hub.core.camera.stopAutoOrbit === "function") {
+      hub.core.camera.stopAutoOrbit();
     }
   }
 
@@ -111,9 +103,8 @@ export class KeyboardInput {
     const core = hub.core;
     const frame = core.frame;
     const mode = core.mode;
-    const camera = core.camera || core.cameraEngine;
+    const camera = core.camera;
     const selection = core.selection;
-    const uiState = core.uiState;
 
     // --- ワールド軸の表示トグル（C キー） ----------------
     if (
@@ -137,7 +128,7 @@ export class KeyboardInput {
     // - 単押し   → 順方向
     // - Shift+押 → 逆方向
     //
-    // uiState.view_preset_index を ±1 して camera.setViewPreset(index)
+    // view preset index を ±1 して camera.setViewPreset(index)
     // -----------------------------
     const isViewCycleKey =
       code === "Backslash" ||
@@ -156,29 +147,18 @@ export class KeyboardInput {
 
       // CameraEngine 側の index を正として取得
       let currentIndex = 0;
-      if (
-        camera &&
-        typeof camera.getViewPresetIndex === "function"
-      ) {
+      if (camera && typeof camera.getViewPresetIndex === "function") {
         currentIndex = camera.getViewPresetIndex();
-      } else if (
-        uiState &&
-        typeof uiState.view_preset_index === "number"
-      ) {
-        currentIndex = uiState.view_preset_index;
       }
-
       const nextIndex = stepViewPresetIndex(currentIndex, dir);
 
       applyViewPreset(camera, nextIndex);
 
-      if (uiState) {
-        uiState.view_preset_index =
-          camera &&
-          typeof camera.getViewPresetIndex === "function"
-            ? camera.getViewPresetIndex()
-            : nextIndex;
-      }
+      // UI側の巡回状態を更新
+      this.viewPresetIndex =
+        camera && typeof camera.getViewPresetIndex === "function"
+          ? camera.getViewPresetIndex()
+          : nextIndex;
       return;
     }
 

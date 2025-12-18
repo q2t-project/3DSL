@@ -177,42 +177,14 @@ export class PointerInput {
     }
   }
 
-  onPointerUp(event) {
-    if (this.isPointerDown) {
-      try {
-        this.canvas.releasePointerCapture(event.pointerId);
-      } catch (_e) {
-        // 既に release 済み・未 capture 等は無視
-      }
+  onPointerUp(e) {
+    try {
+      // pick → hub.set/mode.set など
+    } finally {
+      // drag/orbit状態、pointer capture、フラグを必ず解除
+      this._dragging = false;
+      this._activePointerId = null;
     }
-
-    if (this.clickPending) {
-      const rect = this.canvas.getBoundingClientRect();
-      const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      const y = -(((event.clientY - rect.top) / rect.height) * 2 - 1);
-
-      const hit = this.hub?.pickObjectAt?.(x, y);
-
-      if (hit?.uuid) {
-        // 何かに当たった → micro へフォーカス
-        this.stopAutoCamera();
-
-        // spec どおり selection.set / mode.set を呼ぶ
-        this.hub?.core?.selection?.set?.({
-          uuid: hit.uuid,
-          kind: hit.kind || null,
-        });
-        this.hub?.core?.mode?.set?.("micro", hit.uuid);
-      } else {
-        // 何も当たらへんかったら selection / micro をクリアして macro に戻す
-        this.hub?.core?.selection?.clear?.();
-        this.hub?.core?.mode?.set?.("macro");
-      }
-    }
-
-    this.isPointerDown = false;
-    this.activeMode = null;
-    this.clickPending = false;
   }
 
   onWheel(event) {

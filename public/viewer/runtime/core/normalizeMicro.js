@@ -1,194 +1,217 @@
 // viewer/runtime/core/normalizeMicro.js
-// Phase2: microState normalization (pure)
+//
+// 役割：uiState.microState を mode / selection / visibleSet に整合させる。
+// ポイント：microState が無い場合でも、micro モード + selection があるなら
+//           最低限の microState を生成して “microState missing” を防ぐ。
+// 禁止：ここで visibleSet を計算しない（それは recomputeVisibleSet の仕事）。
 
-const ALLOWED_KIND = new Set(["points", "lines", "aux"]);
+const KIND_SET = new Set(["points", "lines", "aux"]);
 
-/**
- * @typedef {'points'|'lines'|'aux'} ElementKind
- * @typedef {{uuid: string|null, kind: ElementKind|null}|null} SelectionState
- */
-
-/**
- * microState を正規化する（pure）
- *
- * B適用（契約固定）:
- * - 戻り値は常に object（null 返さない）
- * - focusUuid は string|null
- * - relatedUuids は 常に配列（string[]）
- * - mode!=="micro" のときは focusUuid を必ず null、relatedUuids は [] に落とす
- * - 可視集合(visibleSet) があるなら、focus/related は visible のみ残す
- * - 重複除去 / focus 自身除外 / 上限 maxRelated
- *
- * @param {any} microState
- * @param {object} [ctx]
- * @param {string} [ctx.mode]                      // "micro" 以外なら focus を落とす
- * @param {SelectionState} [ctx.selection]         // fallback focus source
- * @param {any} [ctx.structIndex]                  // kind 推定用（形いろいろ許容）
- * @param {any} [ctx.visibleSet]                   // {points:Set, lines:Set, aux:Set} 想定
- * @param {number} [ctx.maxRelated=256]
- * @returns {object}                               // 入力 microState をベースに focus/related を整形した object
- */
-export function normalizeMicro(microState, ctx = {}) {
-  const {
-    mode = "macro",
-    selection = { uuid: null, kind: null },
-    structIndex,
-    visibleSet,
-    maxRelated = 256,
-  } = ctx;
-
-  const m = microState && typeof microState === "object" ? microState : {};
-
-  // micro 以外は強制クリア（契約固定）
-  if (mode !== "micro") {
-    return { ...m, focusUuid: null, relatedUuids: [] };
+function readVec3(v, fallback = null) {
+  if (Array.isArray(v) && v.length >= 3) {
+    return [Number(v[0]) || 0, Number(v[1]) || 0, Number(v[2]) || 0];
   }
-
-  const selUuid = selection && typeof selection === "object" ? selection.uuid : null;
-
-  // focus は microState を優先、無ければ selection
-  let focusUuid =
-    typeof m.focusUuid === "string" && m.focusUuid ? m.focusUuid : selUuid;
-
-  if (typeof focusUuid !== "string" || !focusUuid) {
-    return { ...m, focusUuid: null, relatedUuids: [] };
+  if (v && typeof v === "object") {
+    if ("x" in v || "y" in v || "z" in v) {
+      return [Number(v.x) || 0, Number(v.y) || 0, Number(v.z) || 0];
+    }
   }
-
-  // focus の存在/可視整合
-  const focusKind = inferKind(focusUuid, visibleSet, structIndex);
-  if (!focusKind) return { ...m, focusUuid: null, relatedUuids: [] };
-
-  if (visibleSet && !hasIn(visibleSet[focusKind], focusUuid)) {
-    return { ...m, focusUuid: null, relatedUuids: [] };
-  }
-
-  // related は存在＆可視のみにフィルタ、重複除去、focus 自身は除外、上限
-  const src = Array.isArray(m.relatedUuids) ? m.relatedUuids : [];
-  const uniq = [];
-  const seen = new Set([focusUuid]);
-
-  const cap = Number.isFinite(maxRelated) ? Math.max(0, Math.trunc(maxRelated)) : 256;
-
-  for (const u of src) {
-    if (uniq.length >= cap) break;
-    if (typeof u !== "string" || !u) continue;
-    if (seen.has(u)) continue;
-
-    const k = inferKind(u, visibleSet, structIndex);
-    if (!k) continue;
-
-    if (visibleSet && !hasIn(visibleSet[k], u)) continue;
-
-    seen.add(u);
-    uniq.push(u);
-  }
-
-  return { ...m, focusUuid, relatedUuids: uniq };
+  return fallback;
 }
 
-// ------------------------------------------------------------
-// helpers (pure)
-// ------------------------------------------------------------
-
-function inferKind(uuid, visibleSet, structIndex) {
-  // 1) visibleSet から推定できるなら最優先（ロード済み＆表示中が真実）
-  const k1 = inferKindFromVisibleSet(uuid, visibleSet);
-  if (k1) return k1;
-
-  // 2) structIndex から推定
-  const k2 = inferKindFromStructIndex(uuid, structIndex);
-  return k2;
-}
-
-function inferKindFromVisibleSet(uuid, visibleSet) {
-  if (!visibleSet || typeof visibleSet !== "object") return null;
-
-  // points/lines/aux の順で見つけたやつを返す（基本一意のはず）
-  if (hasIn(visibleSet.points, uuid)) return "points";
-  if (hasIn(visibleSet.lines, uuid)) return "lines";
-  if (hasIn(visibleSet.aux, uuid)) return "aux";
-  return null;
-}
-
-function inferKindFromStructIndex(uuid, structIndex) {
-  if (!structIndex) return null;
-
-  // 関数 API
-  if (typeof structIndex.getKind === "function") {
-    const k = safeCall(structIndex.getKind, structIndex, uuid);
-    return ALLOWED_KIND.has(k) ? k : null;
-  }
-  if (typeof structIndex.kindOf === "function") {
-    const k = safeCall(structIndex.kindOf, structIndex, uuid);
-    return ALLOWED_KIND.has(k) ? k : null;
-  }
-
-  // uuid→kind (Map / object)
-  const u2k = structIndex.uuidToKind;
-  if (u2k) {
-    if (typeof u2k.get === "function") {
-      const k = safeCall(u2k.get, u2k, uuid);
-      return ALLOWED_KIND.has(k) ? k : null;
-    }
-    if (typeof u2k === "object") {
-      const k = u2k[uuid];
-      return ALLOWED_KIND.has(k) ? k : null;
-    }
-  }
-
-  // uuid→item record から拾う（Map / object）
-  const u2i = structIndex.uuidToItem;
-  if (u2i) {
-    if (typeof u2i.get === "function") {
-      const rec = safeCall(u2i.get, u2i, uuid);
-      const k = rec?.kind ?? rec?.type ?? rec?.item?.kind ?? null;
-      return ALLOWED_KIND.has(k) ? k : null;
-    }
-    if (typeof u2i === "object") {
-      const rec = u2i[uuid];
-      const k = rec?.kind ?? rec?.type ?? rec?.item?.kind ?? null;
-      return ALLOWED_KIND.has(k) ? k : null;
-    }
-  }
-
-  // よくある保持形（Map / object どっちでも）
-  if (hasIn(structIndex.pointsByUuid, uuid)) return "points";
-  if (hasIn(structIndex.linesByUuid, uuid)) return "lines";
-  if (hasIn(structIndex.auxByUuid, uuid)) return "aux";
-
-  if (structIndex.points && hasIn(structIndex.points.byUuid, uuid)) return "points";
-  if (structIndex.lines && hasIn(structIndex.lines.byUuid, uuid)) return "lines";
-  if (structIndex.aux && hasIn(structIndex.aux.byUuid, uuid)) return "aux";
-
-  if (hasIn(structIndex.points, uuid)) return "points";
-  if (hasIn(structIndex.lines, uuid)) return "lines";
-  if (hasIn(structIndex.aux, uuid)) return "aux";
-
-  return null;
-}
-
-function hasIn(container, key) {
-  if (!container) return false;
-
-  if (typeof container.has === "function") {
-    try {
-      return !!container.has(key);
-    } catch (_e) {
-      return false;
-    }
-  }
-
-  if (typeof container === "object") {
-    return Object.prototype.hasOwnProperty.call(container, key);
-  }
-
+function hasIn(setLike, uuid) {
+  if (!setLike || !uuid) return false;
+  try {
+    if (setLike instanceof Set) return setLike.has(uuid);
+    if (typeof setLike.has === "function") return !!setLike.has(uuid);
+  } catch (_e) {}
   return false;
 }
 
-function safeCall(fn, thisArg, arg) {
+function isVisibleUuid(uuid, visibleSet) {
+  if (!visibleSet || !uuid) return true; // visibleSet 未設定時は安全側で true
+
+  // legacy: visibleSet が Set の場合
+  if (visibleSet instanceof Set) return visibleSet.has(uuid);
+  if (typeof visibleSet.has === "function") return !!visibleSet.has(uuid);
+  if (typeof visibleSet === "object") {
+    return (
+      hasIn(visibleSet.points, uuid) ||
+      hasIn(visibleSet.lines, uuid) ||
+      hasIn(visibleSet.aux, uuid)
+    );
+  }
+  return true;
+}
+
+function inferKind(uuid, visibleSet, structIndex) {
+  if (!uuid) return null;
+
+  if (visibleSet && typeof visibleSet === "object") {
+    if (hasIn(visibleSet.points, uuid)) return "points";
+    if (hasIn(visibleSet.lines, uuid)) return "lines";
+    if (hasIn(visibleSet.aux, uuid)) return "aux";
+  }
+
+  const u2i = structIndex?.uuidToItem;
+  if (u2i && typeof u2i.get === "function") {
+    try {
+      const rec = u2i.get(uuid);
+      const k = rec?.kind ?? rec?.type ?? rec?.item?.kind ?? null;
+      return KIND_SET.has(k) ? k : null;
+    } catch (_e) {}
+  }
+  return null;
+}
+
+function getItemByUuid(structIndex, uuid) {
+  const u2i = structIndex?.uuidToItem;
+  if (!u2i || typeof u2i.get !== "function") return null;
   try {
-    return fn.call(thisArg, arg);
+    const rec = u2i.get(uuid);
+    return rec?.item ?? rec?.data ?? rec?.value ?? rec ?? null;
   } catch (_e) {
     return null;
   }
+}
+
+function readPointPosFromItem(p) {
+  return readVec3(
+    p?.appearance?.position ??
+      p?.position ??
+      p?.pos ??
+      p?.xyz ??
+      null,
+    null
+  );
+}
+
+function readEndpointPos(ep, structIndex) {
+  if (!ep) return null;
+  // 直座標優先
+  const direct =
+    readVec3(ep?.coord ?? ep?.position ?? ep?.pos ?? ep?.xyz ?? null, null);
+  if (direct) return direct;
+
+  // ref/uuid 経由
+  const ref =
+    (typeof ep?.ref === "string" && ep.ref) ||
+    (typeof ep?.uuid === "string" && ep.uuid) ||
+    (typeof ep?.id === "string" && ep.id) ||
+    null;
+  if (!ref) return null;
+ const p = getItemByUuid(structIndex, ref);
+  return readPointPosFromItem(p);
+}
+
+function readLineMidpointFromItem(line, structIndex) {
+  if (!line) return null;
+  const a =
+    line?.end_a ??
+    line?.endA ??
+    line?.a ??
+    line?.start ??
+    line?.from ??
+    null;
+  const b =
+    line?.end_b ??
+    line?.endB ??
+    line?.b ??
+    line?.end ??
+   line?.to ??
+    null;
+  const pa = readEndpointPos(a, structIndex);
+  const pb = readEndpointPos(b, structIndex);
+  if (!pa || !pb) return null;
+  return [(pa[0] + pb[0]) / 2, (pa[1] + pb[1]) / 2, (pa[2] + pb[2]) / 2];
+}
+
+function computeFallbackLocalBounds(center, structIndex) {
+  if (!center) return null;
+  const r =
+    Number(structIndex?.sceneRadius) ||
+    Number(structIndex?.metrics?.radius) ||
+    10;
+  const s = Math.max(0.25, r * 0.05);
+  return { center, size: [s, s, s] };
+}
+
+export function normalizeMicro(microState, ctx = {}) {
+  const mode = ctx?.mode;
+  if (mode !== "micro") return null;
+
+  const selection =
+    ctx?.selection && typeof ctx.selection === "object" ? ctx.selection : null;
+  const selUuid =
+    typeof selection?.uuid === "string" ? selection.uuid.trim() : "";
+
+  const m = microState && typeof microState === "object" ? microState : {};
+
+  const focusUuidRaw =
+    typeof m.focusUuid === "string" && m.focusUuid ? m.focusUuid : selUuid;
+  const focusUuid = typeof focusUuidRaw === "string" ? focusUuidRaw.trim() : "";
+  if (!focusUuid) return null;
+
+  const visibleSet = ctx?.visibleSet ?? null;
+  if (!isVisibleUuid(focusUuid, visibleSet)) return null;
+
+  const structIndex = ctx?.structIndex ?? null;
+
+  // microState が無い場合でも生成して返す（ここが今回の詰まり解消ポイント）
+  const out =
+    microState && typeof microState === "object" ? { ...microState } : {};
+
+  out.focusUuid = focusUuid;
+
+  // kind（任意だが、あると downstream が楽）
+  const k0 = selection?.kind;
+  const focusKind = KIND_SET.has(k0) ? k0 : inferKind(focusUuid, visibleSet, structIndex);
+  if (focusKind) out.focusKind = focusKind;
+
+  // relatedUuids を整形（重複除去 + visibleSet filter）
+  const relRaw = Array.isArray(out.relatedUuids)
+    ? out.relatedUuids
+    : Array.isArray(out.related)
+      ? out.related
+      : [];
+
+  const rel = [];
+  const seen = new Set([focusUuid]);
+  for (const u0 of relRaw) {
+    if (typeof u0 !== "string") continue;
+    const u = u0.trim();
+    if (!u) continue;
+    if (seen.has(u)) continue;
+    if (!isVisibleUuid(u, visibleSet)) continue;
+    seen.add(u);
+    rel.push(u);
+  }
+  out.relatedUuids = [focusUuid, ...rel];
+
+  // focusPosition を補完
+  let pos = readVec3(out.focusPosition, null);
+  if (!pos) {
+    const item = getItemByUuid(structIndex, focusUuid);
+    pos = readPointPosFromItem(item);
+  }
+  // line の場合は midpoint を試す
+  if (!pos && focusKind === "lines") {
+    const item = getItemByUuid(structIndex, focusUuid);
+    pos = readLineMidpointFromItem(item, structIndex);
+  }
+  if (pos) out.focusPosition = pos;
+
+  // localBounds を補完（最低限 camera preset が動くよう size を入れる）
+  const lb = out.localBounds;
+  const hasSize =
+    lb &&
+    typeof lb === "object" &&
+    Array.isArray(lb.size) &&
+    lb.size.length >= 3;
+  if (!hasSize) {
+    const b = computeFallbackLocalBounds(pos, structIndex);
+    if (b) out.localBounds = b;
+  }
+
+  return out;
 }

@@ -76,27 +76,30 @@ function resolvePresetIndexByName(name) {
 }
 
 function stopAuto(cam, hub) {
+  // 正規ルート：hub.core.camera.stopAutoOrbit
+  if (hub?.core?.camera && typeof hub.core.camera.stopAutoOrbit === "function") {
+    hub.core.camera.stopAutoOrbit();
+    return;
+  }
+  // フォールバック（古い直cam）
   if (cam && typeof cam.stopAutoOrbit === "function") cam.stopAutoOrbit();
-  if (hub?.core?.uiState?.runtime) hub.core.uiState.runtime.isCameraAuto = false;
 }
 
-// setViewPreset(index) ＋ uiState.view_preset_index 同期
-function applyViewPresetIndex(cam, uiState, index) {
+// setViewPreset(index)
+function applyViewPresetIndex(cam, hub, index) {
   if (!cam || typeof cam.setViewPreset !== "function") return;
   if (index == null) return;
 
   const i = Number(index);
   if (!Number.isFinite(i)) return;
 
-  cam.setViewPreset(i);
-
-  if (uiState) {
-    const resolved =
-      typeof cam.getViewPresetIndex === "function"
-        ? cam.getViewPresetIndex()
-        : i;
-    uiState.view_preset_index = resolved;
+  // hub 経由を優先
+  if (hub?.core?.camera && typeof hub.core.camera.setViewPreset === "function") {
+    hub.core.camera.setViewPreset(i);
+    return;
   }
+  // 最後の保険
+  cam.setViewPreset(i);
 }
 
 // メインカメラ state から「向き」だけをもらって、
@@ -600,7 +603,6 @@ export function attachGizmo(wrapper, hub) {
     if (!hub?.core?.camera) return;
 
     const cam = hub.core.camera;
-    const uiState = hub.core.uiState;
 
     const key = resolvePresetKey(id) || id;
     const index = Array.isArray(CAMERA_VIEW_PRESET_SEQUENCE)
@@ -610,7 +612,7 @@ export function attachGizmo(wrapper, hub) {
 
     stopAuto(cam, hub);
 
-    applyViewPresetIndex(cam, uiState, index);
+    applyViewPresetIndex(cam, hub, index);
 
     // beams / スケール制御用
     activePresetKey = key;
@@ -815,14 +817,13 @@ export function attachGizmo(wrapper, hub) {
     if (ringHit && ringHit.object) {
 
       const axis = ringHit.object.userData.axis; // "x" / "y" / "z"
-      const uiState = hub.core.uiState;
 
       const viewName = axisToViewName(axis);
       const index =
         viewName != null ? resolvePresetIndexByName(viewName) : null;
 
       if (index != null && typeof cam.setViewPreset === "function") {
-        applyViewPresetIndex(cam, uiState, index);
+        applyViewPresetIndex(cam, hub, index);
       } else if (axis && typeof cam.snapToAxis === "function") {
         cam.snapToAxis(axis); // フォールバック
       }
@@ -979,11 +980,10 @@ export function initGizmoButtons(hub) {
 
       stopAuto(cam, hub);
 
-      const uiState = hub.core && hub.core.uiState;
       const idx = resolvePresetIndexByName(name);
 
       if (idx != null && typeof cam.setViewPreset === "function") {
-        applyViewPresetIndex(cam, uiState, idx);
+        applyViewPresetIndex(cam, hub, idx);
       } else if (typeof cam.setViewByName === "function") {
         // 古い実装用フォールバック
         cam.setViewByName(name);
@@ -1020,12 +1020,11 @@ export function initGizmoButtons(hub) {
 
       stopAuto(cam, hub);
 
-      const uiState = hub.core && hub.core.uiState;
       const viewName = axisToViewName(axis);
       const idx = viewName != null ? resolvePresetIndexByName(viewName) : null;
 
       if (idx != null && typeof cam.setViewPreset === "function") {
-        applyViewPresetIndex(cam, uiState, idx);
+        applyViewPresetIndex(cam, hub, idx);
       } else if (typeof cam.snapToAxis === "function") {
         // 古い CameraEngine 実装用に一応残す
         cam.snapToAxis(axis);

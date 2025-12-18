@@ -18,6 +18,7 @@
       "appearance": {
         "position": [-16, 0, 0],
         "visible": true,
+        "frames": [0],
         "marker": { "primitive": "box", "size": [4, 4, 4], "common": { "color": "#66ff66" } }
       },
       "meta": { "uuid": "22222222-2222-4222-8222-222222222201", "tags": ["s:node"] }
@@ -27,6 +28,7 @@
       "appearance": {
         "position": [16, 0, 0],
         "visible": true,
+        "frames": [0, 2],
         "marker": {
           "primitive": "cone",
           "radius": 2.0,
@@ -49,7 +51,8 @@
         "color": "#ff6666",
         "opacity": 0.7,
         "arrow": { "primitive": "line", "length": 3.0, "thickness": 0.6 },
-        "visible": true
+        "visible": true,
+        "frames": [0, 1]
       },
       "meta": { "uuid": "22222222-2222-4222-8222-222222222203", "tags": ["s:edge"] }
     }

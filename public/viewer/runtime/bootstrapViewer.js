@@ -685,6 +685,9 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   const selectionController = createSelectionController(uiState, structIndex, {
     setHighlight: typeof renderer.setHighlight === "function" ? (p) => renderer.setHighlight(p) : undefined,
     clearAllHighlights: typeof renderer.clearAllHighlights === "function" ? () => renderer.clearAllHighlights() : undefined,
+    onChanged: (_reason) => {
+    uiState._dirtyVisibleSet = true;
+    },
   });
 
   const visibilityController = createVisibilityController(uiState, struct, structIndex);
@@ -744,6 +747,30 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     dropSelectionIfHidden: true,
   });
 
+
+
+  // ------------------------------------------------------------------
+  // Phase2: recompute handler injection（これが無いと mode/micro が絶対に動かん）
+  // ------------------------------------------------------------------
+  try { modeController?.setRecomputeHandler?.(recomputeVisibleSet); } catch (_e) {}
+  try { frameController?.setRecomputeHandler?.(recomputeVisibleSet); } catch (_e) {}
+  try { visibilityController?.setRecomputeHandler?.(recomputeVisibleSet); } catch (_e) {}
+
+  // ------------------------------------------------------------------
+  // DEBUG: uiState の同一性チェック用（複数 uiState 混在したら一発でバレる）
+  // ------------------------------------------------------------------
+  try {
+    if (uiState && typeof uiState === "object") {
+      if (!uiState.__dbgId) {
+        Object.defineProperty(uiState, "__dbgId", {
+          value: `ui@${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+          configurable: true,
+        });
+      }
+      console.log("[boot] uiState.__dbgId =", uiState.__dbgId);
+    }
+  } catch (_e) {}
+
   visibilityController?.setRecomputeHandler?.((...args) => recomputeVisibleSet(...args));
   frameController?.setRecomputeHandler?.((...args) => recomputeVisibleSet(...args));
 
@@ -770,6 +797,18 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     microController,
     recomputeVisibleSet,
   };
+
+  if (!core.frameController && core.frame) {
+    core.frameController = core.frame; // 互換alias（最終的にはframeController本体に寄せる）
+  }
+
+  core.runtime = core.runtime || {};
+  if (typeof core.runtime.isFramePlaying !== "function") {
+    core.runtime.isFramePlaying = () => !!core.uiState?.runtime?.isFramePlaying;
+  }
+  if (typeof core.runtime.isCameraAuto !== "function") {
+    core.runtime.isCameraAuto = () => !!core.uiState?.runtime?.isCameraAuto;
+  }  
 
   const hub = createViewerHub({ core, renderer });
   const wantDevBootLog = options.devBootLog === true;

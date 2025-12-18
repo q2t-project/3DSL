@@ -5,13 +5,17 @@ import { attachGizmo } from "./ui/gizmo.js";
 import { attachDetailView } from "./ui/detailView.js";
 import { PointerInput } from "./ui/pointerInput.js";
 import { KeyboardInput } from "./ui/keyboardInput.js";
+import { createPicker } from "./ui/picker.js";
+import { createTimeline } from "./ui/timeline.js";
 
 // baseline 起動時のデフォルト 3DSS
 const DEFAULT_MODEL = "/3dss/canonical/valid/sample02_mixed_basic.3dss.json";
+// const DEFAULT_MODEL = "/3dss/sample/glb_lefthand_righthand.3dss.json";
 
 let viewerHub = null;
-let playTimer = null;
 let detailViewHandle = null;
+let picker = null;
+let timeline = null;
 
 // 入力デバイス
 let pointerInput = null;
@@ -201,15 +205,21 @@ function getCore(hub = viewerHub) {
   return hub && hub.core ? hub.core : null;
 }
 
-function disposeInputs() {
-  if (pointerInput && typeof pointerInput.dispose === "function") {
-    pointerInput.dispose();
-  }
-  if (keyboardInput && typeof keyboardInput.dispose === "function") {
-    keyboardInput.dispose();
-  }
+function disposeInputDevices() {
+
+  if (picker && typeof picker.detach === "function") picker.detach();
+  picker = null;
+
+  if (pointerInput && typeof pointerInput.dispose === "function") pointerInput.dispose();
+  if (keyboardInput && typeof keyboardInput.dispose === "function") keyboardInput.dispose();
+
   pointerInput = null;
   keyboardInput = null;
+}
+
+function disposeTimeline() {
+  if (timeline && typeof timeline.detach === "function") timeline.detach();
+  timeline = null;
 }
 
 // ------------------------------------------------------------
@@ -222,29 +232,29 @@ function attachInputs(hub) {
     return;
   }
 
-  disposeInputs();
+  disposeInputDevices();
 
-  // PointerInput は (canvas, hub)
   pointerInput = new PointerInput(elCanvas, hub);
-  if (typeof pointerInput.attach === "function") {
-    pointerInput.attach();
-  }
+  pointerInput.attach?.();
 
-  // KeyboardInput は (window, hub)
   keyboardInput = new KeyboardInput(window, hub);
-  if (typeof keyboardInput.attach === "function") {
-    keyboardInput.attach();
-  }
+  keyboardInput.attach?.();
 
-  devLog("[viewer-dev] Pointer/Keyboard attached", {
+  // ★ここが本命：クリック選択ルート
+  picker = createPicker(hub, { debug: false });
+  picker.attach(elCanvas);
+
+  devLog("[viewer-dev] Pointer/Keyboard/Picker attached", {
     pointerInput,
     keyboardInput,
+    picker,
   });
 
-  // デバッグ用
   window.pointerInput = pointerInput;
   window.keyboardInput = keyboardInput;
+  window.picker = picker;
 }
+
 
 // ------------------------------------------------------------
 // エラー表示 / メタパネル初期化
@@ -544,288 +554,6 @@ function initViewerSettingsControls(hub) {
       });
     });
   }
-}
-
-// ------------------------------------------------------------
-// frame コントロール
-// ------------------------------------------------------------
-function initFrameControls(hub) {
-  const core = getCore(hub);
-  if (!core || !core.frame) return;
-
-  const frameAPI = core.frame;
-
-  const slider = document.getElementById("frame-slider");
-  const sliderWrapper = document.getElementById("frame-slider-wrapper");
-  const labelCurrent = document.getElementById("frame-label-current");
-  const labelMin = document.getElementById("frame-label-min");
-  const labelMax = document.getElementById("frame-label-max");
-  const labelZero = document.getElementById("frame-label-zero");
-  const zeroLine = document.getElementById("frame-zero-line");
-
-  const frameBlock = document.querySelector(".frame-block");
-  const frameControls = document.getElementById("frame-controls");
-
-  // "gauge" = パラパラ用ゲージ, "timeline" = 連続再生バー
-  let frameUiMode = "gauge";
-
-  const btnRew = document.getElementById("btn-rew");
-  const btnPlay = document.getElementById("btn-play");
-  const btnFF = document.getElementById("btn-ff");
-  const btnStepBack = document.getElementById("btn-step-back");
-  const btnStepForward = document.getElementById("btn-step-forward");
-
-  const range = frameAPI.getRange();
-  const current = frameAPI.getActive();
-  const hasMultipleFrames = range.max > range.min;
-  const ZERO_FRAME = 0;
-
-  // min/max ラベル初期値
-  if (labelMin) labelMin.textContent = String(range.min);
-  if (labelMax) labelMax.textContent = String(range.max);
-
-  // フレーム操作用 HUD
-  function showFrameToast(kind) {
-    if (!hasMultipleFrames) return;
-
-    const cur = frameAPI.getActive();
-    let msg = "";
-
-    if (kind === "play-start") {
-      msg = `Frame: play [${range.min} … ${range.max}]`;
-    } else if (kind === "play-stop") {
-      msg = `Frame: stop (frame ${cur})`;
-    } else if (kind === "jump") {
-      msg = `Frame: ${cur}`;
-    }
-
-    if (msg) {
-      showHudMessage(msg, { duration: 800, level: "info" });
-    }
-  }
-
-  // 0 ラベル＋縦線の位置・表示/非表示
-  function updateZeroMarker() {
-    if (!sliderWrapper) return;
-
-    const span = range.max - range.min;
-    const zeroInRange = ZERO_FRAME >= range.min && ZERO_FRAME <= range.max;
-
-    if (!Number.isFinite(span) || span <= 0 || !zeroInRange) {
-      sliderWrapper.style.setProperty("--frame-zero-frac", "0.5");
-      if (labelZero) labelZero.style.display = "none";
-      if (zeroLine) zeroLine.style.display = "none";
-      return;
-    }
-
-    const zeroIsMin = ZERO_FRAME === range.min;
-    const zeroIsMax = ZERO_FRAME === range.max;
-    const hideZero = zeroIsMin || zeroIsMax;
-
-    if (hideZero) {
-      if (labelZero) labelZero.style.display = "none";
-      if (zeroLine) zeroLine.style.display = "none";
-    } else {
-      const frac = (ZERO_FRAME - range.min) / span;
-      const clamped = Math.max(0, Math.min(1, frac));
-      sliderWrapper.style.setProperty("--frame-zero-frac", String(clamped));
-      if (labelZero) {
-        labelZero.style.display = "";
-        labelZero.textContent = "0";
-      }
-      if (zeroLine) {
-        zeroLine.style.display = "";
-      }
-    }
-  }
-
-  // 現在値ラベル（丸）と slider value の同期
-  function updateLabelFromState() {
-    const f = frameAPI.getActive();
-
-    if (slider) slider.value = f;
-    if (labelCurrent) labelCurrent.textContent = String(f);
-
-    if (sliderWrapper) {
-      const span = range.max - range.min;
-      if (!Number.isFinite(span) || span <= 0) {
-        sliderWrapper.style.setProperty("--frame-value-frac", "0");
-      } else {
-        let frac = (f - range.min) / span;
-        frac = Math.max(0, Math.min(1, frac));
-        sliderWrapper.style.setProperty("--frame-value-frac", String(frac));
-      }
-    }
-  }
-
-  // 単一フレームのときは「見えるけど触れない」状態にする
-  function updateFrameEnabledState() {
-    if (!frameBlock) return;
-
-    frameBlock.classList.toggle("frame-single", !hasMultipleFrames);
-
-    const controls = [
-      slider,
-      btnRew,
-      btnPlay,
-      btnFF,
-      btnStepBack,
-      btnStepForward,
-    ];
-    controls.forEach((el) => {
-      if (!el) return;
-      el.disabled = !hasMultipleFrames;
-    });
-  }
-
-  // フレーム UI モードを CSS に反映
-  function setFrameUiMode(mode) {
-    if (!hasMultipleFrames) {
-      mode = "gauge";
-    }
-    frameUiMode = mode;
-    if (frameControls) {
-      frameControls.classList.toggle(
-        "mode-continuous",
-        mode === "timeline",
-      );
-    }
-    if (slider) {
-      slider.classList.toggle(
-        "frame-mode-timeline",
-        mode === "timeline",
-      );
-      slider.classList.toggle(
-        "frame-mode-gauge",
-        mode === "gauge",
-      );
-    }
-  }
-
-  // Play ボタンの見た目を制御（アイコン入れ替え用）
-  function setPlayButtonState(isPlaying) {
-    if (!btnPlay) return;
-    btnPlay.classList.toggle("is-playing", !!isPlaying);
-  }
-
-  // 初期セットアップ
-  if (slider) {
-    slider.min = range.min;
-    slider.max = range.max;
-    slider.step = 1;
-    slider.value = current;
-  }
-  updateFrameEnabledState();
-  setFrameUiMode("gauge");
-  updateZeroMarker();
-  updateLabelFromState();
-  setPlayButtonState(false);
-
-  // イベントハンドラ
-  if (slider) {
-    slider.addEventListener("input", (ev) => {
-      const v = Number(ev.target.value);
-      if (!Number.isFinite(v)) return;
-      frameAPI.setActive(v);
-      updateLabelFromState();
-      setFrameUiMode("gauge");
-    });
-
-    slider.addEventListener("change", () => {
-      showFrameToast("jump");
-    });
-  }
-
-  if (btnStepBack) {
-    btnStepBack.addEventListener("click", () => {
-      frameAPI.prev();
-      updateLabelFromState();
-      setFrameUiMode("gauge");
-      showFrameToast("jump");
-    });
-  }
-
-  if (btnStepForward) {
-    btnStepForward.addEventListener("click", () => {
-      frameAPI.next();
-      updateLabelFromState();
-      setFrameUiMode("gauge");
-      showFrameToast("jump");
-    });
-  }
-
-  if (btnRew) {
-    btnRew.addEventListener("click", () => {
-      frameAPI.setActive(range.min);
-      updateLabelFromState();
-      setFrameUiMode("gauge");
-      showFrameToast("jump");
-    });
-  }
-
-  if (btnFF) {
-    btnFF.addEventListener("click", () => {
-      frameAPI.setActive(range.max);
-      updateLabelFromState();
-      setFrameUiMode("gauge");
-      showFrameToast("jump");
-    });
-  }
-
-  if (btnPlay) {
-    btnPlay.addEventListener("click", () => {
-      if (!hasMultipleFrames) return;
-
-      // 停止側
-      if (playTimer) {
-        clearInterval(playTimer);
-        playTimer = null;
-
-        setPlayButtonState(false);
-
-        if (typeof frameAPI.stopPlayback === "function") {
-          frameAPI.stopPlayback();
-        }
-
-        setFrameUiMode("gauge");
-        showFrameToast("play-stop");
-        return;
-      }
-
-      // 開始側
-      setPlayButtonState(true);
-
-      if (typeof frameAPI.startPlayback === "function") {
-        frameAPI.startPlayback();
-      }
-
-      setFrameUiMode("timeline");
-      showFrameToast("play-start");
-
-      playTimer = setInterval(() => {
-        const r = frameAPI.getRange();
-        const cur = frameAPI.getActive();
-        if (cur >= r.max) {
-          frameAPI.setActive(r.min);
-        } else {
-          frameAPI.next();
-        }
-        updateLabelFromState();
-      }, 600);
-    });
-  }
-
-  // 他経路（キーボード等）からの変更を拾って UI を同期
-  let lastFrame = frameAPI.getActive();
-  function frameUiLoop() {
-    const f = frameAPI.getActive();
-    if (f !== lastFrame) {
-      lastFrame = f;
-      updateLabelFromState();
-    }
-    requestAnimationFrame(frameUiLoop);
-  }
-  requestAnimationFrame(frameUiLoop);
 }
 
 // ------------------------------------------------------------
@@ -1167,34 +895,6 @@ function initOrbitControls(hub) {
   updateUI();
 }
 
-// ------------------------------------------------------------
-// キーボードショートカット（Space → Play）
-// ------------------------------------------------------------
-let keyboardShortcutsInitialized = false;
-function initKeyboardShortcuts() {
-  if (keyboardShortcutsInitialized) return;
-  keyboardShortcutsInitialized = true;
-
-  window.addEventListener("keydown", (ev) => {
-    if (!viewerHub || !getCore()) return;
-
-    const tag = (ev.target && ev.target.tagName) || "";
-    if (tag === "INPUT" || tag === "TEXTAREA") return;
-
-    // Space → 再生トグル
-    if (ev.code === "Space") {
-      ev.preventDefault();
-      const btnPlay = document.getElementById("btn-play");
-      if (btnPlay) btnPlay.click();
-    }
-  });
-}
-
-// dev 用 logger（bootstrap に渡す）
-function devLogger(line) {
-  devLog(line);
-  appendModelLog(line);
-}
 
 
 // ------------------------------------------------------------
@@ -1214,7 +914,8 @@ async function boot() {
     viewerHub.stop();
     viewerHub = null;
   }
-  disposeInputs();
+  disposeTimeline();
+  disposeInputDevices();
   clearMetaPanels();
 
   const canvasId = "viewer-canvas";
@@ -1230,7 +931,6 @@ async function boot() {
       devBootLog: true,
       devLabel: "viewer_dev",
       modelUrl: jsonUrl,
-      logger: devLogger,
     });
     window.hub = viewerHub; // デバッグ用
 
@@ -1322,18 +1022,20 @@ async function boot() {
       level: "error",
     });
 
-    disposeInputs();
+    disposeTimeline();
+    disposeInputDevices();
     return;
   }
 
   // --- viewerHub が生きている前提で各 UI を接続 ---
-  initFrameControls(viewerHub);
+  timeline = createTimeline(viewerHub, { onToast: showHudMessage, debug: false });
+  timeline.attach(document);
+  window.timeline = timeline; // デバッグ用に置いとくと便利
   initFilterControls(viewerHub);
   initViewerSettingsControls(viewerHub);
   initModeHudLoop(viewerHub);
   initGizmoButtons(viewerHub);
   initWorldAxesToggle(viewerHub);
-  initKeyboardShortcuts();
   initOrbitControls(viewerHub);
   // Pointer / Keyboard 入力（マウスドラッグ orbit / 矢印キー / click→micro）
   attachInputs(viewerHub);

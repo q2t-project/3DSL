@@ -16,9 +16,46 @@ function debugHub(...args) {
 /**
  * viewerHub は runtime と renderer を束ねるハブ。
  *
- * - 外部から createViewerHub を直接呼び出さないこと。
+ * - 外部から createViewerHub を直接呼び出さないこと。s
  * - 必ず bootstrapViewer* から生成された hub を使う。
  */
+
+  // --- pick debug（必要なときだけ true）
+  const DEBUG_PICK = true;
+
+  function _has(setLike, uuid) {
+    if (!setLike || !uuid) return false;
+    try {
+      return typeof setLike.has === "function" ? !!setLike.has(uuid) : false;
+    } catch (_e) {
+      return false;
+    }
+  }
+
+// NOTE: fcStartPlayback は createViewerHub 内にだけ置く（frameController のスコープを保証）
+
+
+  // visibleSet の形揺れ吸収:
+  // - Set<string>
+  // - {points:SetLike, lines:SetLike, aux:SetLike}
+  // - SetLike(has)
+  function _isHitVisible(uiVisibleSet, hit) {
+    const uuid = hit?.uuid;
+    const kind = hit?.kind;
+    if (!uuid) return true;
+    if (!uiVisibleSet) return true; // 無いなら落とさん（初期化順/互換の安全弁）
+
+    if (uiVisibleSet instanceof Set) return uiVisibleSet.has(uuid);
+    if (typeof uiVisibleSet.has === "function") return !!uiVisibleSet.has(uuid);
+
+    if (typeof uiVisibleSet === "object") {
+      if (kind === "points" || kind === "lines" || kind === "aux") {
+        return _has(uiVisibleSet[kind], uuid) || _has(uiVisibleSet.points, uuid) || _has(uiVisibleSet.lines, uuid) || _has(uiVisibleSet.aux, uuid);
+      }
+      return _has(uiVisibleSet.points, uuid) || _has(uiVisibleSet.lines, uuid) || _has(uiVisibleSet.aux, uuid);
+    }
+    return true;
+  }
 
 export function createViewerHub({ core, renderer }) {
   let animationId = null;
@@ -29,7 +66,7 @@ export function createViewerHub({ core, renderer }) {
   const modeController = core.modeController || core.mode;
   const cameraEngine = core.cameraEngine;
 
-  const frameController = core.frameController;
+  const frameController = core.frameController || core.frame;
   const visibilityController = core.visibilityController;
 
   const settingsController = core.viewerSettingsController || null;
@@ -100,13 +137,12 @@ export function createViewerHub({ core, renderer }) {
     return fcSetActive(clamped);
   }
 
-  function fcStartPlayback() {
-    if (!frameController) return;
+  function fcStartPlayback(opts) {
     if (typeof frameController.startPlayback === "function") {
-      return frameController.startPlayback();
+      return frameController.startPlayback(opts);
     }
     if (typeof frameController.play === "function") {
-      return frameController.play();
+      return frameController.play(opts);
     }
   }
 
@@ -250,20 +286,70 @@ export function createViewerHub({ core, renderer }) {
   // ------------------------------------------------------------
   function recomputeVisibleSet(reason) {
     if (typeof core.recomputeVisibleSet === "function") {
-      return core.recomputeVisibleSet(reason);
+      const payload =
+        typeof reason === "string" ? { reason } :
+        (reason && typeof reason === "object") ? reason :
+        { reason: "unknown" };
+      return core.recomputeVisibleSet(payload);
     }
     console.warn("[viewerHub] core.recomputeVisibleSet is missing (Phase2 contract broken)");
     return core.uiState?.visibleSet ?? null;
   }
 
-  let lastCommittedFrame = null;
+  // viewerHub.js 内
+  let _committing = false;
 
-  function commitVisibleSet(_reason) {
-    const v = recomputeVisibleSet(_reason);
-    // frame.current は frameController / recomputeVisibleSet 側で確定済み、hub は追従するだけ
-    lastCommittedFrame = fcGetActive();
-    return v;
-  } 
+  function commit(reason, mutator) {
+    const ui = core.uiState;
+    if (!ui) throw new Error("[hub] uiState missing");
+
+    // mutator が何回 state を触っても、最後に1回だけrecomputeする
+    ui._dirtyVisibleSet = true;
+
+    try {
+      mutator(ui);
+    } finally {
+      // 例外が起きても、入力の後始末やdirtyは残る（次フレで回収できる）
+    }
+
+    // re-entrancy防止（commit中にcommit呼ばれても1回に畳む）
+    if (_committing) return;
+
+    _committing = true;
+    try {
+      return commitVisibleSet(reason);
+    } finally {
+      _committing = false;
+    }
+  }
+
+  let _inCommit = false;
+
+  function commitVisibleSet(reason) {
+    const uiState = core.uiState;
+    if (!uiState) return null;
+
+    if (_inCommit) return uiState.visibleSet;
+    if (!uiState._dirtyVisibleSet) return uiState.visibleSet;
+
+    _inCommit = true;
+    try {
+      uiState._dirtyVisibleSet = false;
+      const vs = recomputeVisibleSet(reason);
+      // ... renderer 反映など
+      return vs;
+    } finally {
+      _inCommit = false;
+    }
+  }
+
+  // 「必ず」正規ルートを踏ませたい場面用（外部API/フレーム/フィルタ等）
+  function forceCommitVisibleSet(reason) {
+    const uiState = core.uiState;
+    if (!uiState) return null;
+    uiState._dirtyVisibleSet = true;
+    return commitVisibleSet(reason);
+  }
 
   function attachViewerSettingsBridge(core, renderer) {
     const off = [];
@@ -316,13 +402,6 @@ export function createViewerHub({ core, renderer }) {
 
   function isPickVisible(hit) {
     if (!hit) return false;
-    if (!visibilityController || typeof visibilityController.isVisible !== "function") return false;
-
-    // まず object そのまま渡す（対応してたら最短）
-    try {
-      const r0 = visibilityController.isVisible(hit);
-      if (typeof r0 === "boolean") return r0;
-    } catch (_e) {}
 
     const uuid =
       hit.uuid ?? hit.id ?? hit.ref_uuid ?? hit.target_uuid ??
@@ -332,23 +411,31 @@ export function createViewerHub({ core, renderer }) {
       hit.kind ?? hit.type ??
       hit?.object?.userData?.kind ?? hit?.object?.userData?.type ?? null;
 
-    if (!uuid) return false;
+    // 1) visibilityController があれば最優先（ここが正）
+    if (visibilityController && typeof visibilityController.isVisible === "function") {
+      if (uuid) {
+        // 形ゆれ吸収：isVisible(uuid, kind) / isVisible(uuid) / isVisible(kind, uuid)
+        try { const r = visibilityController.isVisible(uuid, kind); if (typeof r === "boolean") return r; } catch {}
+        try { const r = visibilityController.isVisible(uuid); if (typeof r === "boolean") return r; } catch {}
+        try { const r = visibilityController.isVisible(kind, uuid); if (typeof r === "boolean") return r; } catch {}
+      }
+      // hit 直渡し実装も吸収
+      try { const r = visibilityController.isVisible(hit); if (typeof r === "boolean") return r; } catch {}
+      // boolean が取れんかったら visibleSet fallback へ
+    }
 
-    // (uuid, kind)
-    try {
-      const r1 = visibilityController.isVisible(uuid, kind);
-      if (typeof r1 === "boolean") return r1;
-    } catch (_e) {}
-
-    // (kind, uuid) も一応
-    try {
-      const r2 = visibilityController.isVisible(kind, uuid);
-      if (typeof r2 === "boolean") return r2;
-    } catch (_e) {}
-
-    // 判定できん＝安全側で弾く
-    return false;
+    // 2) fallback: uiState.visibleSet で弾く（形揺れは _isHitVisible が吸収）
+    const visibleSet = core?.uiState?.visibleSet ?? null;
+    return _isHitVisible(visibleSet, { uuid, kind });
   }
+
+
+
+
+  const hubState = {
+    committing: false,
+    lastCommittedFrame: null,
+  };
 
   const renderFrame = (timestamp) => {
     // 0: guard
@@ -380,7 +467,7 @@ export function createViewerHub({ core, renderer }) {
         const nowPlaying = !!core.uiState?.runtime?.isFramePlaying;
         const curAfter = fcGetActive();
         // フレームが動かずに「再生だけ止まった」場合は、ここで1回だけ正規ルートを踏む
-        if (wasPlaying && !nowPlaying && curAfter === lastCommittedFrame) {
+        if (wasPlaying && !nowPlaying && curAfter === hubState.lastCommittedFrame) {
           commitVisibleSet("playback.autoStop");
         }
       }
@@ -395,32 +482,46 @@ export function createViewerHub({ core, renderer }) {
       }
     }
 
+    const curFrame = fcGetActive();
+
+    // boot 直後は未確定なので初期化
+    if (hubState.lastCommittedFrame == null) {
+      hubState.lastCommittedFrame = curFrame;
+    }
+
+    if (curFrame !== hubState.lastCommittedFrame) {
+      core.uiState._dirtyVisibleSet = true;
+      commitVisibleSet("frame.changed");
+    }
+
     debugHub("[hub] frame", debugFrameCount++, {
       cam: camState,
       visibleSet: core.uiState && core.uiState.visibleSet,
       selection: core.uiState && core.uiState.selection,
     });
 
-    const curFrame = fcGetActive();
-    if (curFrame !== lastCommittedFrame) {
-      commitVisibleSet("frame.changed");
-    }
-
     // --- microFX 有効条件 / OFF 条件（7.11 準拠） -----------------
     const ui = core.uiState || {};
-    const runtime = ui.runtime || {};
     const uiViewerSettings = ui.viewerSettings || {};
-    const fx = (uiViewerSettings.fx && uiViewerSettings.fx.micro) || {};
 
     const microState = ui.mode === "micro" ? (ui.microState || null) : null;
     const visibleSet = ui.visibleSet;
     const selectionForHighlight =
-      ui.mode === "macro" && ui.selection && ui.selection.uuid ? ui.selection : null;
+      ui.mode === "macro" &&
+      ui.microState == null &&
+      ui.selection && ui.selection.uuid
+        ? ui.selection
+        : null;
 
     renderer?.updateCamera?.(camState);
     renderer?.applyFrame?.(visibleSet);
-    renderer?.applySelectionHighlight?.(selectionForHighlight, camState, visibleSet);
+    renderer?.applyViewerSettings?.(uiViewerSettings);
     renderer?.applyMicroFX?.(microState, camState, visibleSet);
+    if (renderer && typeof renderer.applySelection === "function") {
+      renderer.applySelection(selectionForHighlight, camState, visibleSet);
+    } else {
+      renderer?.applySelectionHighlight?.(selectionForHighlight, camState, visibleSet);
+    }
     renderer?.render?.(core);
 
     if (!disposed && running && raf) animationId = raf(renderFrame);
@@ -432,6 +533,9 @@ export function createViewerHub({ core, renderer }) {
   }
 
   const hub = {
+    // debug / introspection（外部UIは基本触らん想定）
+    frameController,
+
     start() {
       if (disposed) return;
       if (running) return;
@@ -445,7 +549,7 @@ export function createViewerHub({ core, renderer }) {
       lastTime = null;
 
       if (core.uiState && !core.uiState.runtime) core.uiState.runtime = {};
-      commitVisibleSet("hub.start");
+      forceCommitVisibleSet("hub.start");
 
       if (raf) animationId = raf(renderFrame);
       else animationId = null; // Node では loop しない（hub-noop 対策）
@@ -471,8 +575,7 @@ export function createViewerHub({ core, renderer }) {
       this.stop();
 
       disposed = true;
-      lastCommittedFrame = null;
-
+      hubState.lastCommittedFrame = null;
       while (_unsubs.length) {
         try {
           const off = _unsubs.pop();
@@ -493,8 +596,21 @@ export function createViewerHub({ core, renderer }) {
       if (typeof renderer?.pickObjectAt !== "function") return null;
 
       const hit = renderer.pickObjectAt(ndcX, ndcY);
-      if (!hit) return null;
+      if (!hit) {
+        if (DEBUG_PICK) console.debug("[pick] no hit", { ndcX, ndcY });
+        return null;
+      }
 
+      if (DEBUG_PICK) {
+        const visibleSet = core?.uiState?.visibleSet;
+        const ok = isPickVisible(hit);
+        console.debug("[pick] hit", {
+          ndcX, ndcY, hit, ok,
+          visibleSetType: visibleSet?.constructor?.name || typeof visibleSet,
+        });
+      }
+
+      // contract が要求してる形：必ず isPickVisible(hit) 経由で return
       return isPickVisible(hit) ? hit : null;
     },
 
@@ -519,7 +635,7 @@ export function createViewerHub({ core, renderer }) {
         setActive(n) {
           if (!assertAlive()) return null;
           fcSetActive(n);
-          return commitVisibleSet("frame.setActive");
+          return forceCommitVisibleSet("frame.setActive");
         },
 
         // 現在アクティブな frame 番号
@@ -538,25 +654,25 @@ export function createViewerHub({ core, renderer }) {
         step(delta) {
           if (!assertAlive()) return null;
           fcStep(delta || 0);
-          return commitVisibleSet("frame.step");
+          return forceCommitVisibleSet("frame.step");
         },
 
         // dev harness 用ショートカット
         next() {
           if (!assertAlive()) return null;
           fcStep(+1);
-          return commitVisibleSet("frame.next");
+          return forceCommitVisibleSet("frame.next");
         },
 
         prev() {
           if (!assertAlive()) return null;
           fcStep(-1);
-          return commitVisibleSet("frame.prev");
+          return forceCommitVisibleSet("frame.prev");
         },
 
-        startPlayback() {
+        startPlayback(opts) {
           if (!assertAlive()) return null;
-          const result = fcStartPlayback();
+          const result = fcStartPlayback(opts);
 
           // AutoOrbit と排他
           if (
@@ -571,6 +687,11 @@ export function createViewerHub({ core, renderer }) {
           if (core.uiState) {
             // 再生開始時は macro に戻して micro 系リセット
             if (
+              modeController &&
+              typeof modeController.exit === "function"
+            ) {
+              modeController.exit();
+            } else if (
               modeController &&
               typeof modeController.set === "function"
             ) {
@@ -587,7 +708,7 @@ export function createViewerHub({ core, renderer }) {
             }
           }
 
-          commitVisibleSet("frame.startPlayback");
+          forceCommitVisibleSet("frame.startPlayback");
           return result;
         },
 
@@ -595,7 +716,7 @@ export function createViewerHub({ core, renderer }) {
         if (!assertAlive()) return null;
         const result = fcStopPlayback();
 
-        commitVisibleSet("frame.stopPlayback");
+        forceCommitVisibleSet("frame.stopPlayback");
         return result;
       },
     },
@@ -610,7 +731,7 @@ export function createViewerHub({ core, renderer }) {
           }
 
           core.selectionController.select(uuid, kind);
-          commitVisibleSet("selection.select");
+          forceCommitVisibleSet("selection.select");
           const committed = core.uiState?.selection;
           return committed && committed.uuid ? { uuid: committed.uuid } : null;
         },
@@ -622,7 +743,7 @@ export function createViewerHub({ core, renderer }) {
             return null;
           }
           core.selectionController.clear();
-          commitVisibleSet("selection.clear");
+          forceCommitVisibleSet("selection.clear");
           return null;
         },
         // 外向き API は { uuid } | null に固定
@@ -742,12 +863,34 @@ export function createViewerHub({ core, renderer }) {
         }
       },
 
+      // index 取得（UIは uiState 直参照禁止なので、ここを正規ルートにする）
+      getViewPresetIndex: () => {
+        if (!assertAlive()) return 0;
+        if (cameraEngine && typeof cameraEngine.getViewPresetIndex === "function") {
+          return cameraEngine.getViewPresetIndex();
+        }
+        const v = core && core.uiState ? core.uiState.view_preset_index : undefined;
+        return typeof v === "number" ? v : 0;
+      },
+
       // index ベース（キーボード循環用ラッパ）
       setViewPreset: (index, opts) => {
         if (!assertAlive()) return;
         if (!cameraEngine) return;
         if (typeof cameraEngine.setViewPreset === "function") {
-          cameraEngine.setViewPreset(index, opts || {});
+          const n = Math.floor(Number(index));
+          if (!Number.isFinite(n)) return;
+
+          cameraEngine.setViewPreset(n, opts || {});
+
+          // hub側で canonical(uiState) を同期（UIに書かせない）
+          const resolved =
+            typeof cameraEngine.getViewPresetIndex === "function"
+              ? cameraEngine.getViewPresetIndex()
+              : n;
+          if (core?.uiState) core.uiState.view_preset_index = resolved;
+
+          commitVisibleSet("camera.setViewPreset");
         } else {
           debugHub(
             "[hub.camera.setViewPreset] cameraEngine.setViewPreset missing",
@@ -826,10 +969,10 @@ export function createViewerHub({ core, renderer }) {
       },
 
       mode: {
-        set: (mode, uuid) => {
+        set: (mode, uuid, kind) => {
           if (!assertAlive()) return null;
           debugHub("[hub.mode] set", mode, uuid);
-          const nextMode = modeController.set(mode, uuid);
+          const nextMode = modeController.set(mode, uuid, kind);
           commitVisibleSet("mode.set");
           return nextMode;
         },
@@ -851,27 +994,30 @@ export function createViewerHub({ core, renderer }) {
           return r;
         },
 
-        focus: (uuid) => {
+        focus: (uuid, kind) => {
           if (!assertAlive()) return null;
-          debugHub("[hub.mode] focus", uuid);
-          const nextMode = modeController.focus(uuid);
+          debugHub("[hub.mode] focus", uuid, kind);
+          const nextMode = modeController.focus(uuid, kind);
           commitVisibleSet("mode.focus");
           return nextMode;
         },
       },
 
       micro: {
-        enter: (uuid) => {
+        enter: (uuid, kind) => {
           if (!assertAlive()) return null;
           // micro mode に強制遷移
-          const r = modeController.set("micro", uuid);
+          const r = modeController.set("micro", uuid, kind);
           commitVisibleSet("micro.enter");
           return r;
         },
         exit: () => {
           if (!assertAlive()) return null;
           // macro に戻す
-          const r = modeController.set("macro");
+          const r =
+            modeController && typeof modeController.exit === "function"
+              ? modeController.exit()
+              : modeController.set("macro");
           commitVisibleSet("micro.exit");
           return r;
         },
@@ -901,7 +1047,7 @@ export function createViewerHub({ core, renderer }) {
             core.uiState.filters[kind] = on;
           }
 
-          return commitVisibleSet("filters.setTypeEnabled");
+          return forceCommitVisibleSet("filters.setTypeEnabled");
         },
         get() {
           if (
@@ -929,7 +1075,7 @@ export function createViewerHub({ core, renderer }) {
        */
       recomputeVisibleSet: () => {
         if (!assertAlive()) return null;
-        return commitVisibleSet("hub.core.recomputeVisibleSet");
+        return forceCommitVisibleSet("hub.core.recomputeVisibleSet");
       },
       // ---- read-only state / struct ----
       uiState: core.uiState,
@@ -964,6 +1110,14 @@ export function createViewerHub({ core, renderer }) {
 
     },
   };
+  // DBG_EXPOSE_INTERNALS (dev only)
+  hub.__dbg = hub.__dbg || {};
+  hub.__dbg.frameController = frameController;
+  if (hub.core && typeof hub.core === "object") {
+    hub.core.frameController = frameController;
+    hub.core.__dbg = hub.__dbg;
+  }
+
 
   return hub;
 }

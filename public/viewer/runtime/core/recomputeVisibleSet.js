@@ -1,12 +1,8 @@
 // viewer/runtime/core/recomputeVisibleSet.js
 //
-// Phase2: “唯一の更新ルート”
-//
-// - visibleSet を再計算
-// - selection を正規化（hidden drop はオプション）
-// - microState を mode/selection/visible に整合
-//
-// ここ以外では uiState.visibleSet / uiState.selection / uiState.microState を確定させへん。
+// Phase2: “唯一の確定ルート”
+// - uiState.visibleSet / uiState.selection / uiState.microState / uiState.mode を整合させて確定
+// - ここでは controller の副作用を呼ばない（循環を断つ）
 
 import { computeVisibleSet } from "./computeVisibleSet.js";
 import { normalizeSelection } from "./normalizeSelection.js";
@@ -15,6 +11,9 @@ import { normalizeMicro } from "./normalizeMicro.js";
 const VALID_MODE = new Set(["macro", "meso", "micro"]);
 const VALID_KIND = ["points", "lines", "aux"];
 
+const TRACE_RECOMPUTE = true;
+let _recomputeSeq = 0;
+
 function toSet(x) {
   if (x instanceof Set) return x;
   if (Array.isArray(x)) return new Set(x);
@@ -22,7 +21,7 @@ function toSet(x) {
 }
 
 function normalizeVisibleSetShape(raw, frame) {
-  // 旧互換: Set<uuid> が来たら「全種同一セット」とみなす
+  // 旧互換: Set<uuid> が来たら「全種同一セット」扱い
   if (raw instanceof Set) {
     return Object.freeze({ frame, points: raw, lines: raw, aux: raw });
   }
@@ -32,14 +31,24 @@ function normalizeVisibleSetShape(raw, frame) {
   return Object.freeze(out);
 }
 
-function ensureFiltersCanonical(uiState) {
-  if (!uiState || typeof uiState !== "object") return {};
+function _hasIn(setLike, uuid) {
+  try { return !!setLike?.has?.(uuid); } catch (_e) { return false; }
+}
+function _isVisibleUuid(uuid, vs) {
+  if (!uuid || !vs) return false;
+  if (vs instanceof Set) return vs.has(uuid);
+  if (typeof vs?.has === "function") return !!vs.has(uuid);
+  if (typeof vs === "object") {
+    return _hasIn(vs.points, uuid) || _hasIn(vs.lines, uuid) || _hasIn(vs.aux, uuid);
+  }
+  return false;
+}
 
-  const filters = uiState.filters;
-  if (!filters || typeof filters !== "object") {
+function ensureFiltersCanonical(uiState) {
+  const root = uiState.filters;
+  if (!root || typeof root !== "object") {
     throw new Error("recomputeVisibleSet: uiState.filters missing (contract)");
   }
-  const root = uiState.filters;
 
   if (!root.types || typeof root.types !== "object") root.types = {};
   const t = root.types;
@@ -58,11 +67,10 @@ function ensureFiltersCanonical(uiState) {
 }
 
 function ensureFrameCanonical(uiState) {
-  const frame = uiState.frame;
-  if (!frame || typeof frame !== "object") {
+  const f = uiState.frame;
+  if (!f || typeof f !== "object") {
     throw new Error("recomputeVisibleSet: uiState.frame missing (contract)");
   }
-  const f = uiState.frame;
 
   if (!f.range || typeof f.range !== "object") f.range = {};
   let min = Number.isFinite(Number(f.range.min)) ? Math.trunc(Number(f.range.min)) : 0;
@@ -85,15 +93,10 @@ function getMode(uiState) {
   return VALID_MODE.has(m) ? m : "macro";
 }
 
-/**
- * uiState を整合させて書き戻す「唯一のルート」を作る
- */
 export function createRecomputeVisibleSet({
   uiState,
   structIndex,
   getModel, // optional: () => model
-  selectionController, // ★追加：highlight/clear を正規ルートで
-  microController,     // ★任意：refresh したい場合
   dropSelectionIfHidden = true,
 } = {}) {
   if (!uiState || typeof uiState !== "object") {
@@ -101,82 +104,109 @@ export function createRecomputeVisibleSet({
   }
 
   return function recomputeVisibleSet(arg = undefined) {
-    // ★呼び出し互換：
-    // - recomputeVisibleSet()
-    // - recomputeVisibleSet("filters")
-    // - recomputeVisibleSet({ model, reason })
-    let model = null;
-    if (arg && typeof arg === "object") {
-      model = arg.model ?? null;
-    }
+    const seq = ++_recomputeSeq;
 
     const filters = ensureFiltersCanonical(uiState);
     const activeFrame = ensureFrameCanonical(uiState);
-    const mode = getMode(uiState);
 
-    const m =
-      (typeof getModel === "function" ? getModel() : undefined) ??
-      model ??
+    const requestedMode = getMode(uiState);
+
+    const model =
+      (typeof getModel === "function" ? getModel() : null) ??
+      (arg && typeof arg === "object" ? (arg.model ?? null) : null) ??
       uiState.model ??
       null;
 
-    const visibleSet = computeVisibleSet({
-      model: m,
+    // 1) visibleSet 確定
+    const rawVS = computeVisibleSet({
+      model,
       structIndex,
       activeFrame,
       filters,
     });
-    const canonicalVisibleSet = normalizeVisibleSetShape(visibleSet, activeFrame);
+    const visibleSet = normalizeVisibleSetShape(rawVS, activeFrame);
+    uiState.visibleSet = visibleSet;
 
-    // selection（hidden drop）
-    let normSel = normalizeSelection(uiState.selection, { visibleSet: canonicalVisibleSet, structIndex });
+    // 2) selection 正規化（hidden drop）
+    let normSel = normalizeSelection(uiState.selection, { visibleSet, structIndex });
     if (!dropSelectionIfHidden && normSel === null) {
       normSel = normalizeSelection(uiState.selection, { structIndex });
     }
+    uiState.selection = normSel ? { uuid: normSel.uuid, kind: normSel.kind ?? null } : null;
 
-    // ここだけが uiState の整合を “確定” させる
-    uiState.visibleSet = canonicalVisibleSet;
+    if (uiState.mode === "micro") {
+      const selUuid = uiState.selection?.uuid ?? null;
 
-    // ★selection は controller があれば必ず通す（highlight / clear の副作用ルート固定）
-    if (selectionController && typeof selectionController.select === "function" && typeof selectionController.clear === "function") {
-      if (normSel === null) {
-        selectionController.clear();
+      // microにいるのに selection 無い → macroへ（既にやってるならOK）
+      if (!selUuid) {
+        uiState.mode = "macro";
+        uiState.microState = null;
       } else {
-        selectionController.select(normSel.uuid, normSel.kind ?? undefined);
+        const curFocus = uiState.microState?.focusUuid ?? null;
+
+        // ★ここが肝：selection が変わったら microState を作り直す（最低でも focusUuid を更新）
+        if (curFocus !== selUuid) {
+          uiState.microState = {
+            focusUuid: selUuid,
+            relatedUuids: [],
+            focusPosition: null,
+            localBounds: null,
+          };
+        }
       }
     } else {
-      if (normSel === null) {
-        uiState.selection = null;
-      } else {
-        uiState.selection = { uuid: normSel.uuid, kind: ("kind" in normSel ? normSel.kind : null) };
-      }
+      uiState.microState = null;
     }
 
-    const selForMicro = uiState.selection;
 
-    // --- micro 無効条件（一本化）------------------------------
+    // 3) microState / mode 整合
     const runtime = (uiState.runtime && typeof uiState.runtime === "object") ? uiState.runtime : {};
     const fxMicro = uiState.viewerSettings?.fx?.micro || {};
     const microEnabled = fxMicro.enabled !== undefined ? !!fxMicro.enabled : true;
     const microBlocked = !microEnabled || !!runtime.isFramePlaying || !!runtime.isCameraAuto;
 
-    if (microBlocked) {
-      uiState.microState = null;
+    let mode = requestedMode;
+
+    // micro は “条件満たさな無理” をここで確定させる
+    if (mode === "micro") {
+      const selUuid = uiState.selection?.uuid ? String(uiState.selection.uuid).trim() : "";
+      if (microBlocked || !selUuid || !_isVisibleUuid(selUuid, visibleSet)) {
+        mode = "macro";
+        uiState.microState = null;
+      } else {
+        let normMicro = normalizeMicro(uiState.microState, {
+          mode,
+          selection: uiState.selection,
+          structIndex,
+          visibleSet,
+        });
+        if (!normMicro) {
+          normMicro = {
+            focusUuid: selUuid,
+            relatedUuids: [],
+            focusPosition: null,
+            localBounds: null,
+          };
+        }
+        uiState.microState = normMicro;
+      }
     } else {
-      const normMicro = normalizeMicro(uiState.microState, {
-        mode,
-        selection: selForMicro,
-        structIndex,
-        visibleSet: canonicalVisibleSet,
+      uiState.microState = null;
+    }
+
+    uiState.mode = mode;
+
+    if (TRACE_RECOMPUTE) {
+      const selUuid = uiState.selection?.uuid ? String(uiState.selection.uuid) : null;
+      console.log(`[recomputeVisibleSet #${seq}] end`, {
+        ui: uiState?.__dbgId,
+        mode: uiState.mode,
+        sel: selUuid,
+        micro: uiState.microState?.focusUuid ?? null,
+        frame: activeFrame,
       });
-      uiState.microState = normMicro;
     }
 
-    // 任意：microController が副作用持つならここで 1 回だけ
-    if (microController && typeof microController.refresh === "function") {
-      microController.refresh("recompute");
-    }
-
-    return visibleSet;
+    return uiState.visibleSet;
   };
 }

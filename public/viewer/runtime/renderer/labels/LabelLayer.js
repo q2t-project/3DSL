@@ -2,6 +2,10 @@
 import * as THREE from "../../../../vendor/three/build/three.module.js";
 import { createTextSprite } from "./textSprite.js";
 
+function hasIn(setLike, uuid) {
+  return !!setLike && typeof setLike.has === "function" && setLike.has(uuid);
+}
+
 /**
  * labelIndex の想定形:
  *   Map<string, {
@@ -80,7 +84,7 @@ export class labelabelLayer {
   }
 
   setVisibleSet(visibleSet) {
-    this.visibleSet = visibleSet || new Set();
+    this.visibleSet = visibleSet || null;
   }
 
   setCameraState(cameraState) {
@@ -98,7 +102,13 @@ export class labelabelLayer {
     const baseScale = camDistance * 0.04; // 距離に応じた基準サイズ
 
     for (const [uuid, { sprite, entry }] of this.labels.entries()) {
-      const visible = this.visibleSet.has(uuid);
+      const vs = this.visibleSet;
+      const visible =
+        (vs && typeof vs.has === "function")
+          ? vs.has(uuid) // 旧: Set<uuid>
+          : (vs && typeof vs === "object")
+            ? (hasIn(vs.points, uuid) || hasIn(vs.lines, uuid) || hasIn(vs.aux, uuid)) // 新: {points,lines,aux}
+            : false;
       sprite.visible = visible;
       if (!visible) continue;
 

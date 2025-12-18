@@ -67,6 +67,14 @@ function resetIntensity() {
   lastMicroState = null;
 }
 
+// ------------------------------------------------------------
+// 外部から明示的に microFX を完全停止（HMR / dispose 用）
+// ------------------------------------------------------------
+export function clearMicroFX(scene) {
+  resetIntensity();
+  resetAllFX(scene);
+}
+
 function resetAllFX(scene) {
   removeMarker(scene);
   removeGlow(scene);

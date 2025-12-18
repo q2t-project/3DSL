@@ -39,7 +39,6 @@ export function createSelectionController(uiState, structIndex, highlightApi = {
     if (uuidToKind && uuidToKind.has(uuid)) return true;
     if (uuidToItem && uuidToItem.has(uuid)) return true;
 
-    // フォールバック（実装差の保険）
     const byUuid = structIndex && structIndex.byUuid;
     if (byUuid instanceof Map) return byUuid.has(uuid);
     if (byUuid && typeof byUuid === "object") return uuid in byUuid;
@@ -59,44 +58,34 @@ export function createSelectionController(uiState, structIndex, highlightApi = {
     const u = uuid.trim();
     if (!u) return null;
 
-    // Phase2: index 不整合は容赦なく弾く（null整合優先）
     if (!existsUuid(u)) return null;
 
     const k = resolveKind(u, kind);
-    return { uuid: u, kind: k }; // kind は null でも持つ
+    return { uuid: u, kind: k };
   }
 
   function clear() {
     debugSel("[selection] clear()");
     uiState.selection = null;
 
-    if (typeof clearAllHighlights === "function") {
-      clearAllHighlights();
-    }
+    if (typeof clearAllHighlights === "function") clearAllHighlights();
     if (typeof onChanged === "function") onChanged("selection");
     return null;
   }
 
   function select(uuid, kind) {
-    if (!uuid) {
-      debugSel("[selection] clear via select(null)");
-      return clear();
-    }
+    if (!uuid) return clear();
 
     const clean = sanitize(uuid, kind);
-    if (!clean) {
-      debugSel("[selection] sanitize failed -> clear", { uuid, kind });
-      return clear();
-    }
+    if (!clean) return clear();
 
     uiState.selection = clean;
     debugSel("[selection] select", uiState.selection);
 
-    // --- ハイライト反映（A-7：macro 限定） ---
+    // ハイライト（macro 限定）
     if (typeof setHighlight === "function" || typeof clearAllHighlights === "function") {
       if (uiState.mode === "macro") {
         if (typeof setHighlight === "function") {
-          // kind も渡しておく（renderer 側での解決を安定させる）
           setHighlight({ uuid: clean.uuid, kind: clean.kind, level: 1 });
         }
       } else if (typeof clearAllHighlights === "function") {
@@ -104,7 +93,6 @@ export function createSelectionController(uiState, structIndex, highlightApi = {
       }
     }
 
-    // NOTE: ここで recomputeVisibleSet を叩く（唯一ルート）
     if (typeof onChanged === "function") onChanged("selection");
     return uiState.selection;
   }
@@ -113,23 +101,31 @@ export function createSelectionController(uiState, structIndex, highlightApi = {
     return uiState.selection ? uiState.selection : null;
   }
 
-  const controller = {
-    select,
-    clear,
-    get,
-    sanitize,
-  };
+  // selection 値は変えず、ハイライトだけ同期（onChanged も呼ばん）
+  function refreshHighlight() {
+    if (typeof setHighlight !== "function" && typeof clearAllHighlights !== "function") return;
+
+    const cur = uiState.selection;
+    if (uiState.mode === "macro" && cur && cur.uuid) {
+      if (typeof setHighlight === "function") {
+        const k = resolveKind(cur.uuid, cur.kind) ?? cur.kind ?? null;
+        setHighlight({ uuid: cur.uuid, kind: k, level: 1 });
+      }
+      return;
+    }
+
+    if (typeof clearAllHighlights === "function") clearAllHighlights();
+  }
+
+  const controller = { select, clear, get, sanitize, refreshHighlight };
 
   Object.defineProperty(controller, "selection", {
     get() {
       return uiState.selection ? uiState.selection : null;
     },
     set(v) {
-      if (!v || !v.uuid) {
-        clear();
-      } else {
-        select(v.uuid, VALID_KIND.has(v.kind) ? v.kind : undefined);
-      }
+      if (!v || !v.uuid) clear();
+      else select(v.uuid, VALID_KIND.has(v.kind) ? v.kind : undefined);
     },
     enumerable: false,
     configurable: true,

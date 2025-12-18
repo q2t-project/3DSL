@@ -1,0 +1,430 @@
+// public/viewer/ui/timeline.js
+// Frame UI の正規実装：DOM 配線 + 再生トグル + UI 同期
+
+export function createTimeline(hub, opts = {}) {
+  const DEBUG = !!opts.debug;
+  const onToast =
+    (typeof opts.onToast === "function" && opts.onToast) ||
+    (typeof opts.toast === "function" && opts.toast) ||
+    null;
+
+  let doc = null;
+
+  // DOM
+  let slider = null;
+  let sliderWrapper = null;
+  let frameBlock = null;
+  let frameControls = null;
+
+  let labelCurrent = null; // 新: frame-label-current / 旧: frame-slider-label
+  let labelMin = null;
+  let labelMax = null;
+  let labelZero = null;
+  let zeroLine = null;
+
+  let btnRew = null;
+  let btnPlay = null;
+  let btnFF = null;
+  let btnStepBack = null;
+  let btnStepForward = null;
+
+  // loop state
+  let rafId = 0;
+  let lastFrame = null;
+
+  // button handlers（detach で外すために参照保持）
+  let onClickStepBack = null;
+  let onClickStepForward = null;
+  let onClickRew = null;
+  let onClickFF = null;
+
+  function log(...a) {
+    if (DEBUG) console.log("[timeline]", ...a);
+  }
+
+  function getCore() {
+    return hub && hub.core ? hub.core : null;
+  }
+
+  function getFrameAPI() {
+    const core = getCore();
+
+    // 正規：core.frame → core.frameController（UIは core 以外へ降りない）
+    return core?.frame || core?.frameController || null;
+  }
+
+  function readRange(frameAPI) {
+    if (frameAPI && typeof frameAPI.getRange === "function") {
+      const r = frameAPI.getRange();
+      if (r && Number.isFinite(r.min) && Number.isFinite(r.max)) return r;
+    }
+
+    return { min: 0, max: 0 };
+  }
+
+  function getActive(frameAPI, range) {
+    if (frameAPI && typeof frameAPI.getActive === "function") {
+      const n = frameAPI.getActive();
+      if (Number.isFinite(n)) return n;
+    }
+    return range.min;
+  }
+
+  function setActive(frameAPI, n) {
+    if (!Number.isFinite(n)) return;
+    if (frameAPI && typeof frameAPI.setActive === "function") {
+      frameAPI.setActive(n);
+      return;
+    }
+    if (frameAPI && typeof frameAPI.set === "function") {
+      frameAPI.set(n);
+      return;
+    }
+    console.warn("[timeline] setActive: no frameAPI.setActive/set available");
+  }
+
+  function step(frameAPI, delta) {
+    const range = readRange(frameAPI);
+    const cur = getActive(frameAPI, range);
+    setActive(frameAPI, cur + delta);
+  }
+
+  function isPlaying() {
+    const core = getCore();
+    const rt = core?.runtime;
+    if (rt && typeof rt.isFramePlaying === "function") return !!rt.isFramePlaying();
+    return false; // contract 無いなら UIは「止まってる扱い」で寄せる
+  }
+
+  function startPlayback(frameAPI) {
+    const fps = FIXED_FPS;
+
+    if (frameAPI && typeof frameAPI.startPlayback === "function") {
+      frameAPI.startPlayback({ fps, loop: true });
+    } else {
+      console.warn("[timeline] startPlayback: frameAPI.startPlayback missing (contract broken)");
+      return;
+    }
+
+    setPlayButtonState(true);
+    setFrameUiMode("timeline");
+    toast(`Frame: play [${readRange(frameAPI).min} … ${readRange(frameAPI).max}]`, { duration: 800 });
+  }
+
+  function stopPlayback(frameAPI) {
+    if (frameAPI && typeof frameAPI.stopPlayback === "function") {
+      frameAPI.stopPlayback();
+    } else {
+      console.warn("[timeline] stopPlayback: frameAPI.stopPlayback missing (contract broken)");
+    }
+
+    setPlayButtonState(false);
+    setFrameUiMode("gauge");
+    toast(`Frame: stop (frame ${getActive(frameAPI, readRange(frameAPI))})`, { duration: 800 });
+  }
+
+  function togglePlayback() {
+    const frameAPI = getFrameAPI();
+    const range = readRange(frameAPI);
+    const hasMultiple = range.max > range.min;
+    if (!hasMultiple) return;
+
+    if (isPlaying()) stopPlayback(frameAPI);
+    else startPlayback(frameAPI);
+  }
+
+  const FIXED_FPS = 1;
+
+  function setPlayButtonState(playing) {
+    if (!btnPlay) return;
+    btnPlay.classList.toggle("is-playing", !!playing);
+  }
+
+  function setFrameUiMode(mode) {
+    if (frameControls) {
+      frameControls.classList.toggle("mode-continuous", mode === "timeline");
+    }
+    if (slider) {
+      slider.classList.toggle("frame-mode-timeline", mode === "timeline");
+      slider.classList.toggle("frame-mode-gauge", mode !== "timeline");
+    }
+  }
+
+  function toast(text, opt) {
+    if (!onToast || !text) return;
+    onToast(text, { level: "info", duration: 700, ...(opt || {}) });
+  }
+
+  function updateZeroMarker(range) {
+    if (!sliderWrapper) return;
+
+    const ZERO_FRAME = 0;
+    const span = range.max - range.min;
+    const zeroInRange = ZERO_FRAME >= range.min && ZERO_FRAME <= range.max;
+
+    if (!Number.isFinite(span) || span <= 0 || !zeroInRange) {
+      sliderWrapper.style.setProperty("--frame-zero-frac", "0.5");
+      if (labelZero) labelZero.style.display = "none";
+      if (zeroLine) zeroLine.style.display = "none";
+      return;
+    }
+
+    const zeroIsMin = ZERO_FRAME === range.min;
+    const zeroIsMax = ZERO_FRAME === range.max;
+    const hideZero = zeroIsMin || zeroIsMax;
+
+    if (hideZero) {
+      if (labelZero) labelZero.style.display = "none";
+      if (zeroLine) zeroLine.style.display = "none";
+    } else {
+      const frac = (ZERO_FRAME - range.min) / span;
+      const clamped = Math.max(0, Math.min(1, frac));
+      sliderWrapper.style.setProperty("--frame-zero-frac", String(clamped));
+      if (labelZero) {
+        labelZero.style.display = "";
+        labelZero.textContent = "0";
+      }
+      if (zeroLine) zeroLine.style.display = "";
+    }
+  }
+
+  function syncEnabledState(range) {
+    const hasMultiple = range.max > range.min;
+
+    if (frameBlock) frameBlock.classList.toggle("frame-single", !hasMultiple);
+
+    const controls = [slider, btnRew, btnPlay, btnFF, btnStepBack, btnStepForward];
+    controls.forEach((el) => {
+      if (!el) return;
+      el.disabled = !hasMultiple;
+    });
+
+    // range を slider に反映
+    if (slider) {
+      slider.min = range.min;
+      slider.max = range.max;
+      slider.step = 1;
+    }
+  }
+
+  function syncValueUI(frameAPI, range) {
+    const f = getActive(frameAPI, range);
+
+    if (slider) slider.value = String(f);
+    if (labelCurrent) labelCurrent.textContent = String(f);
+
+    // CSS 変数（丸ラベル位置用）
+    if (sliderWrapper) {
+      const span = range.max - range.min;
+      if (!Number.isFinite(span) || span <= 0) {
+        sliderWrapper.style.setProperty("--frame-value-frac", "0");
+      } else {
+        let frac = (f - range.min) / span;
+        frac = Math.max(0, Math.min(1, frac));
+        sliderWrapper.style.setProperty("--frame-value-frac", String(frac));
+      }
+    }
+  }
+
+  // -------------------------
+  // イベントハンドラ
+  // -------------------------
+  function onSliderInput(ev) {
+    const frameAPI = getFrameAPI();
+    const range = readRange(frameAPI);
+
+    const v = Number(ev?.target?.value);
+    if (!Number.isFinite(v)) return;
+
+    // 手で動かしたら再生は止める
+    if (isPlaying()) stopPlayback(frameAPI);
+
+    setActive(frameAPI, v);
+    setFrameUiMode("gauge");
+    syncValueUI(frameAPI, range);
+  }
+
+  function onSliderChange() {
+    const frameAPI = getFrameAPI();
+    toast(`Frame: ${getActive(frameAPI, readRange(frameAPI))}`, { duration: 800 });
+  }
+
+  function onKeyDown(ev) {
+    // 入力欄は無視
+    const tag = (ev.target && ev.target.tagName) || "";
+    if (tag === "INPUT" || tag === "TEXTAREA") return;
+
+    if (ev.code === "Space") {
+      ev.preventDefault();
+      togglePlayback();
+    }
+  }
+
+  // -------------------------
+  // RAF loop
+  // -------------------------
+  function loop() {
+    if (!doc) return;
+
+    const frameAPI = getFrameAPI();
+    const range = readRange(frameAPI);
+
+    // UI 同期（frame 変化時だけ）
+    const curFrame = getActive(frameAPI, range);
+    if (curFrame !== lastFrame) {
+      lastFrame = curFrame;
+      syncValueUI(frameAPI, range);
+    }
+
+    rafId = requestAnimationFrame(loop);
+  }
+
+  // -------------------------
+  // attach / detach
+  // -------------------------
+  function attach(_doc = document) {
+    detach();
+    doc = _doc;
+
+    // DOM: 新UI / 旧UI両対応
+    slider = doc.getElementById("frame-slider");
+    sliderWrapper = doc.getElementById("frame-slider-wrapper");
+    frameBlock = doc.querySelector(".frame-block");
+    frameControls = doc.getElementById("frame-controls");
+
+    labelCurrent =
+      doc.getElementById("frame-label-current") ||
+      doc.getElementById("frame-slider-label") ||
+      null;
+
+    labelMin = doc.getElementById("frame-label-min");
+    labelMax = doc.getElementById("frame-label-max");
+    labelZero = doc.getElementById("frame-label-zero");
+    zeroLine = doc.getElementById("frame-zero-line");
+
+    btnRew = doc.getElementById("btn-rew");
+    btnPlay = doc.getElementById("btn-play");
+    btnFF = doc.getElementById("btn-ff");
+    btnStepBack = doc.getElementById("btn-step-back");
+    btnStepForward = doc.getElementById("btn-step-forward");
+
+    const frameAPI = getFrameAPI();
+    const range = readRange(frameAPI);
+
+    // range ラベル
+    if (labelMin) labelMin.textContent = String(range.min);
+    if (labelMax) labelMax.textContent = String(range.max);
+
+    syncEnabledState(range);
+    updateZeroMarker(range);
+    syncValueUI(frameAPI, range);
+
+    // すでに再生状態ならボタン見た目を合わせる
+    setPlayButtonState(isPlaying());
+    setFrameUiMode(isPlaying() ? "timeline" : "gauge");
+
+    // listeners
+    if (slider) {
+      slider.addEventListener("input", onSliderInput);
+      slider.addEventListener("change", onSliderChange);
+    }
+
+    onClickStepBack = () => {
+      const f = getFrameAPI();
+      const r = readRange(f);
+      step(f, -1);
+      syncValueUI(f, r);
+      setFrameUiMode("gauge");
+      toast(`Frame: ${getActive(f, r)}`, { duration: 800 });
+    };
+    onClickStepForward = () => {
+      const f = getFrameAPI();
+      const r = readRange(f);
+      step(f, +1);
+      syncValueUI(f, r);
+      setFrameUiMode("gauge");
+      toast(`Frame: ${getActive(f, r)}`, { duration: 800 });
+    };
+    onClickRew = () => {
+      const f = getFrameAPI();
+      const r = readRange(f);
+      setActive(f, r.min);
+      syncValueUI(f, r);
+      setFrameUiMode("gauge");
+      toast(`Frame: ${getActive(f, r)}`, { duration: 800 });
+    };
+    onClickFF = () => {
+      const f = getFrameAPI();
+      const r = readRange(f);
+      setActive(f, r.max);
+      syncValueUI(f, r);
+      setFrameUiMode("gauge");
+      toast(`Frame: ${getActive(f, r)}`, { duration: 800 });
+    };
+
+    if (btnStepBack) btnStepBack.addEventListener("click", onClickStepBack);
+    if (btnStepForward) btnStepForward.addEventListener("click", onClickStepForward);
+    if (btnRew) btnRew.addEventListener("click", onClickRew);
+    if (btnFF) btnFF.addEventListener("click", onClickFF);
+
+    if (btnPlay) btnPlay.addEventListener("click", togglePlayback);
+
+    window.addEventListener("keydown", onKeyDown);
+
+    // RAF start
+    lastFrame = null;
+    rafId = requestAnimationFrame(loop);
+
+    log("attached", { range });
+  }
+
+  function detach() {
+    if (!doc) return;
+
+    // 先に RAF 停止
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = 0;
+    lastFrame = null;
+
+    // listeners 제거
+    if (slider) {
+      slider.removeEventListener("input", onSliderInput);
+      slider.removeEventListener("change", onSliderChange);
+    }
+    if (btnPlay) btnPlay.removeEventListener("click", togglePlayback);
+
+    if (btnStepBack && onClickStepBack) btnStepBack.removeEventListener("click", onClickStepBack);
+    if (btnStepForward && onClickStepForward) btnStepForward.removeEventListener("click", onClickStepForward);
+    if (btnRew && onClickRew) btnRew.removeEventListener("click", onClickRew);
+    if (btnFF && onClickFF) btnFF.removeEventListener("click", onClickFF);
+
+    window.removeEventListener("keydown", onKeyDown);
+
+    onClickStepBack = null;
+    onClickStepForward = null;
+    onClickRew = null;
+    onClickFF = null;
+
+    // DOM refs clear
+    doc = null;
+
+    slider = null;
+    sliderWrapper = null;
+    frameBlock = null;
+    frameControls = null;
+
+    labelCurrent = null;
+    labelMin = null;
+    labelMax = null;
+    labelZero = null;
+    zeroLine = null;
+
+    btnRew = null;
+    btnPlay = null;
+    btnFF = null;
+    btnStepBack = null;
+    btnStepForward = null;
+  }
+
+  return { attach, detach };
+}
