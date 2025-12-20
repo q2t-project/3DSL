@@ -20,6 +20,8 @@ export class PointerInput {
     this.lastX = 0;
     this.lastY = 0;
     this.clickPending = false;
+    this._activePointerId = null;
+    this._dragging = false;
 
     // UI から見える統一 camera API（hub.core.camera）だけ触る
     this.camera = this._resolveCamera();
@@ -56,6 +58,7 @@ export class PointerInput {
         pan:    (...args) => ce.pan    && ce.pan(...args),
         zoom:   (...args) => ce.zoom   && ce.zoom(...args),
         reset:  (...args) => ce.reset  && ce.reset(...args),
+        stopAutoOrbit: (...args) => ce.stopAutoOrbit && ce.stopAutoOrbit(...args),
         getState: (...args) =>
           ce.getState ? ce.getState(...args) : null,
       };
@@ -78,30 +81,13 @@ export class PointerInput {
     canvas.removeEventListener("contextmenu", this.onContextMenu);
   }
 
-// viewer/ui/pointerInput.js
-
-  // AutoOrbit 停止
+  // AutoOrbit 停止（UI層は core.camera だけ叩く。runtime 直書き禁止）
   stopAutoCamera() {
-    const hub = this.hub;
-
-    // ① dev harness 経由の AutoOrbit UI があれば、それを正とする
-    if (hub && hub.autoOrbit && typeof hub.autoOrbit.stop === "function") {
-      hub.autoOrbit.stop();   // ← ボタン背景・HUD も含めて「正式停止」
-      return;
-    }
-
-    // ② フォールバック：UI が無い環境用に camera 直たたき
-    const camera = hub?.core?.camera || hub?.core?.cameraEngine;
-    if (camera && typeof camera.stopAutoOrbit === "function") {
-      camera.stopAutoOrbit();
-    }
-
-    const runtime = hub?.core?.uiState?.runtime;
-    if (runtime) {
-      runtime.isCameraAuto = false;
+    const cam = this.camera || this._resolveCamera();
+    if (cam && typeof cam.stopAutoOrbit === "function") {
+      cam.stopAutoOrbit();
     }
   }
-
 
   // camera のメソッドを安全に叩くヘルパ
   dispatch(method, ...args) {
@@ -143,6 +129,8 @@ export class PointerInput {
     this.activeMode = this.determineMode(event);
     this.lastX = event.clientX;
     this.lastY = event.clientY;
+    this._activePointerId = event.pointerId;
+    this._dragging = false;
 
     // 左ボタンクリックなら「クリック候補」にしとく
     this.clickPending = event.button === 0;
@@ -150,6 +138,7 @@ export class PointerInput {
 
   onPointerMove(event) {
     if (!this.isPointerDown) return;
+    if (this._activePointerId != null && event.pointerId !== this._activePointerId) return;
 
     const dx = event.clientX - this.lastX;
     const dy = event.clientY - this.lastY;
@@ -159,6 +148,7 @@ export class PointerInput {
     // 一定以上動いたら「クリック」ではなくドラッグ扱い
     if (Math.hypot(dx, dy) > 2) {
       this.clickPending = false;
+      this._dragging = true;
 
       // 手動ドラッグが始まったら自動カメラを停止
       this.stopAutoCamera();
@@ -182,8 +172,12 @@ export class PointerInput {
       // pick → hub.set/mode.set など
     } finally {
       // drag/orbit状態、pointer capture、フラグを必ず解除
+      this.isPointerDown = false;
+      this.activeMode = null;
       this._dragging = false;
       this._activePointerId = null;
+      this.clickPending = false;
+      try { this.canvas?.releasePointerCapture?.(e.pointerId); } catch (_e2) {}
     }
   }
 

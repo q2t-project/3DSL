@@ -9,6 +9,8 @@ export function createTimeline(hub, opts = {}) {
     null;
 
   let doc = null;
+  let win = null;
+  let getEl = null; // (roleName) => element
 
   // DOM
   let slider = null;
@@ -264,7 +266,7 @@ export function createTimeline(hub, opts = {}) {
   // RAF loop
   // -------------------------
   function loop() {
-    if (!doc) return;
+    if (!doc || !win) return;
 
     const frameAPI = getFrameAPI();
     const range = readRange(frameAPI);
@@ -276,37 +278,40 @@ export function createTimeline(hub, opts = {}) {
       syncValueUI(frameAPI, range);
     }
 
-    rafId = requestAnimationFrame(loop);
+    rafId = win.requestAnimationFrame(loop);
   }
 
   // -------------------------
   // attach / detach
   // -------------------------
-  function attach(_doc = document) {
+  function attach(ctx = {}) {
     detach();
-    doc = _doc;
+    doc = ctx.doc || document;
+    win = ctx.win || doc.defaultView || window;
+    getEl = (typeof ctx.el === "function") ? ctx.el : null;
+    if (!getEl) {
+      console.warn("[timeline] attach: role resolver (ctx.el) missing; timeline disabled");
+      return;
+    }
+    const el = (roleName) => getEl(roleName);
 
     // DOM: 新UI / 旧UI両対応
-    slider = doc.getElementById("frame-slider");
-    sliderWrapper = doc.getElementById("frame-slider-wrapper");
-    frameBlock = doc.querySelector(".frame-block");
-    frameControls = doc.getElementById("frame-controls");
+    slider = el("frameSlider");
+    sliderWrapper = el("frameSliderWrapper");
+    frameBlock = el("frameBlock");
+    frameControls = el("frameControls");
 
-    labelCurrent =
-      doc.getElementById("frame-label-current") ||
-      doc.getElementById("frame-slider-label") ||
-      null;
+    labelCurrent = el("frameLabelCurrent");
+    labelMin = el("frameLabelMin");
+    labelMax = el("frameLabelMax");
+    labelZero = el("frameLabelZero");
+    zeroLine = el("frameZeroLine");
 
-    labelMin = doc.getElementById("frame-label-min");
-    labelMax = doc.getElementById("frame-label-max");
-    labelZero = doc.getElementById("frame-label-zero");
-    zeroLine = doc.getElementById("frame-zero-line");
-
-    btnRew = doc.getElementById("btn-rew");
-    btnPlay = doc.getElementById("btn-play");
-    btnFF = doc.getElementById("btn-ff");
-    btnStepBack = doc.getElementById("btn-step-back");
-    btnStepForward = doc.getElementById("btn-step-forward");
+    btnRew = el("btnRew");
+    btnPlay = el("btnPlay");
+    btnFF = el("btnFf");
+    btnStepBack = el("btnStepBack");
+    btnStepForward = el("btnStepForward");
 
     const frameAPI = getFrameAPI();
     const range = readRange(frameAPI);
@@ -369,11 +374,11 @@ export function createTimeline(hub, opts = {}) {
 
     if (btnPlay) btnPlay.addEventListener("click", togglePlayback);
 
-    window.addEventListener("keydown", onKeyDown);
+    win.addEventListener("keydown", onKeyDown);
 
     // RAF start
     lastFrame = null;
-    rafId = requestAnimationFrame(loop);
+    rafId = win.requestAnimationFrame(loop);
 
     log("attached", { range });
   }
@@ -382,7 +387,7 @@ export function createTimeline(hub, opts = {}) {
     if (!doc) return;
 
     // 先に RAF 停止
-    if (rafId) cancelAnimationFrame(rafId);
+    if (rafId && win) win.cancelAnimationFrame(rafId);
     rafId = 0;
     lastFrame = null;
 
@@ -398,7 +403,7 @@ export function createTimeline(hub, opts = {}) {
     if (btnRew && onClickRew) btnRew.removeEventListener("click", onClickRew);
     if (btnFF && onClickFF) btnFF.removeEventListener("click", onClickFF);
 
-    window.removeEventListener("keydown", onKeyDown);
+    if (win) win.removeEventListener("keydown", onKeyDown);
 
     onClickStepBack = null;
     onClickStepForward = null;
@@ -407,6 +412,8 @@ export function createTimeline(hub, opts = {}) {
 
     // DOM refs clear
     doc = null;
+    win = null;
+    getEl = null;
 
     slider = null;
     sliderWrapper = null;

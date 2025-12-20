@@ -52,17 +52,23 @@ function debugMicro(...args) {
 debugMicro("[micro] microController loaded v2");
 
 function sanitizeVec3(raw) {
-  if (!Array.isArray(raw) || raw.length < 3) return null;
-
-  const x = Number(raw[0]);
-  const y = Number(raw[1]);
-  const z = Number(raw[2]);
-
-  if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) {
-    return null;
+  if (Array.isArray(raw) && raw.length >= 3) {
+    const x = Number(raw[0]);
+    const y = Number(raw[1]);
+    const z = Number(raw[2]);
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) return null;
+    return [x, y, z];
   }
 
-  return [x, y, z];
+  if (raw && typeof raw === "object") {
+    const x = Number(raw.x);
+    const y = Number(raw.y);
+    const z = Number(raw.z);
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) return null;
+    return [x, y, z];
+  }
+ 
+  return null;
 }
 
 // structIndex.uuidToItem から 3DSS ノード本体を取ってくる
@@ -72,28 +78,35 @@ function getItemByUuid(indices, uuid) {
   if (!(map instanceof Map)) return null;
 
   const rec = map.get(uuid);
-  if (!rec || !rec.item) return null;
-  return rec.item;
+  if (!rec) return null;
+  const node = rec.item ?? rec.point ?? rec.data ?? rec.value ?? rec;
+  return (node && typeof node === "object") ? node : null;
 }
 
 // 3DSS ノードから position を抜き出して Vec3 に正規化
-function getNodePositionFromItem(node) {
-  if (!node || typeof node !== "object") return null;
+ function getNodePositionFromItem(node) {
+   if (!node || typeof node !== "object") return null;
 
-  // appearance.position 優先
-  if (Array.isArray(node?.appearance?.position)) {
-    const v = sanitizeVec3(node.appearance.position);
+  // geometry.position（現行データがここに居るなら拾う）
+  if (node.geometry && node.geometry.position != null) {
+    const v = sanitizeVec3(node.geometry.position);
     if (v) return v;
   }
 
-  // 古いフィールド用のフォールバック（あれば）
-  if (Array.isArray(node.position)) {
-    const v = sanitizeVec3(node.position);
-    if (v) return v;
-  }
-
-  return null;
-}
+   // appearance.position 優先
+   if (Array.isArray(node?.appearance?.position)) {
+     const v = sanitizeVec3(node.appearance.position);
+     if (v) return v;
+   }
+ 
+   // 古いフィールド用のフォールバック（あれば）
+   if (Array.isArray(node.position)) {
+     const v = sanitizeVec3(node.position);
+     if (v) return v;
+   }
+ 
+   return null;
+ }
 
 // line の end_a / end_b から 3D 座標を解決
 // - end.ref があれば pointPosition / uuidToItem 経由で解決
@@ -107,12 +120,14 @@ function resolveEndpointPosition(end, indices) {
     const pointPos = indices.pointPosition;
     if (pointPos instanceof Map) {
       const p = pointPos.get(ref);
-      if (p) return p;
+      const v = sanitizeVec3(p);
+      if (v) return v;
     }
     const auxPos = indices.auxPosition;
     if (auxPos instanceof Map) {
       const p = auxPos.get(ref);
-      if (p) return p;
+      const v = sanitizeVec3(p);
+      if (v) return v;
     }
 
     const pointItem = getItemByUuid(indices, ref);
@@ -207,7 +222,7 @@ function computePointMicroState(base, indices) {
 
   // 1) structIndex で事前計算されている座標（あれば）
   if (posMap instanceof Map) {
-    pos = posMap.get(base.focusUuid) || null;
+    pos = sanitizeVec3(posMap.get(base.focusUuid)) || null;
   }
 
   // 2) まだ無ければ 3DSS ノード側から拾う
@@ -391,8 +406,8 @@ export function computeMicroState(selection, _cameraState, indices) {
     return null;
   }
   
-  const effectiveIndices =
-    indices && indices.uuidToKind instanceof Map ? indices : null;
+  // uuidToKind が無くても selection.kind があれば成立させる
+  const effectiveIndices = indices || null;
 
   const base = buildBaseMicroState(selection, effectiveIndices);
 
@@ -444,8 +459,7 @@ export function createMicroController(uiState, indices) {
   // 旧来の compute:
   // Phase2: compute は “計算だけ”（uiState には書かない）
   function compute(selection, cameraState, _indices) {
-    const effectiveIndices =
-      _indices && _indices.uuidToKind instanceof Map ? _indices : baseIndices;
+    const effectiveIndices = _indices || baseIndices;
 
     debugMicro("[micro] compute()", {
       selection,

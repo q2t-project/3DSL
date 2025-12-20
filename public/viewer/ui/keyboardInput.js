@@ -68,18 +68,8 @@ export class KeyboardInput {
 
   // AutoOrbit が走っていたら止める共通ヘルパ
   stopAutoCamera() {
-    const hub = this.hub;
-    if (!hub) return;
-
-    // ① dev harness の AutoOrbit UI があればそっちを優先
-    if (hub.autoOrbit && typeof hub.autoOrbit.stop === "function") {
-      hub.autoOrbit.stop();
-      return;
-    }
-
-    if (hub.core && hub.core.camera && typeof hub.core.camera.stopAutoOrbit === "function") {
-      hub.core.camera.stopAutoOrbit();
-    }
+    const cam = this.hub?.core?.camera || null;
+    cam?.stopAutoOrbit?.();
   }
 
 
@@ -96,15 +86,21 @@ export class KeyboardInput {
     const hub = this.hub;
     if (!hub || !hub.core) return;
 
-    // 入力欄にフォーカス乗ってるときはスキップ
+    // 入力欄/編集要素にフォーカス乗ってるときはスキップ
     const tag = (ev.target && ev.target.tagName) || "";
     if (tag === "INPUT" || tag === "TEXTAREA") return;
+    if (ev.target?.isContentEditable) return;
 
     const core = hub.core;
-    const frame = core.frame;
-    const mode = core.mode;
-    const camera = core.camera;
-    const selection = core.selection;
+    const camera = core.camera || null;
+    const frame =
+      (core.frame && typeof core.frame.next === "function" && core.frame) ||
+      (core.frameController && typeof core.frameController.next === "function" && core.frameController) ||
+      null;
+    const mode =
+      (core.mode && typeof core.mode.set === "function" && core.mode) ||
+      (core.modeController && typeof core.modeController.set === "function" && core.modeController) ||
+      null;
 
     // --- ワールド軸の表示トグル（C キー） ----------------
     if (

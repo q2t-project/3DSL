@@ -246,6 +246,7 @@ export function attachDetailView(container, hub) {
   }
 
   let disposed = false;
+  let rafId = 0;
   let lastUuid = null;
 
   function loop() {
@@ -280,16 +281,24 @@ export function attachDetailView(container, hub) {
       }
     }
 
-    requestAnimationFrame(loop);
+    rafId = requestAnimationFrame(loop);
   }
 
-  requestAnimationFrame(loop);
+  rafId = requestAnimationFrame(loop);
 
   console.log("[detailView] attached");
 
+  function detach() {
+    if (disposed) return;
+    disposed = true;
+    if (rafId) {
+      try { cancelAnimationFrame(rafId); } catch (_e) {}
+      rafId = 0;
+    }
+  }
+
   return {
-    dispose() {
-      disposed = true;
-    },
+    detach,
+    dispose: detach, // alias
   };
 }

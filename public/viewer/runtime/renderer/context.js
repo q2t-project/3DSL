@@ -142,6 +142,11 @@ function readVec3(v, fallback = [0, 0, 0]) {
   return fallback;
 }
 
+// scene bounds などの center を vec3 に正規化
+function readCenter(v, fallback = [0, 0, 0]) {
+  return readVec3(v, fallback);
+}
+
 function readColor(v, fallback = 0xffffff) {
   try {
     if (typeof v === "number") return new THREE.Color(v);
@@ -156,16 +161,17 @@ function readOpacity(v, fallback = 1) {
   return Math.max(0, Math.min(1, n));
 }
 
-function readCenter(v, fallback = [0, 0, 0]) {
-  return readVec3(v, fallback);
-}
-
+// ------------------------------------------------------------
+// scene metrics（点座標群から算出：aux除外・生成物依存なし）
+// ------------------------------------------------------------
 function computeSceneMetricsFromPositions(posList) {
-  if (!posList || !posList.length) return null;
-  let minX = +Infinity, minY = +Infinity, minZ = +Infinity;
+  if (!Array.isArray(posList) || posList.length === 0) return null;
+ let minX = +Infinity, minY = +Infinity, minZ = +Infinity;
   let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
   for (const p of posList) {
-    const x = Number(p[0]) || 0, y = Number(p[1]) || 0, z = Number(p[2]) || 0;
+    const x = Number(p?.[0]) || 0;
+    const y = Number(p?.[1]) || 0;
+    const z = Number(p?.[2]) || 0;
     if (x < minX) minX = x; if (y < minY) minY = y; if (z < minZ) minZ = z;
     if (x > maxX) maxX = x; if (y > maxY) maxY = y; if (z > maxZ) maxZ = z;
   }
@@ -175,18 +181,47 @@ function computeSceneMetricsFromPositions(posList) {
   const cz = (minZ + maxZ) / 2;
   let r2 = 0;
   for (const p of posList) {
-    const dx = (Number(p[0]) || 0) - cx;
-    const dy = (Number(p[1]) || 0) - cy;
-    const dz = (Number(p[2]) || 0) - cz;
-    const d2 = dx * dx + dy * dy + dz * dz;
+    const dx = (Number(p?.[0]) || 0) - cx;
+    const dy = (Number(p?.[1]) || 0) - cy;
+    const dz = (Number(p?.[2]) || 0) - cz;
+    const d2 = dx*dx + dy*dy + dz*dz;
     if (d2 > r2) r2 = d2;
   }
-  const radius = Math.sqrt(r2);
-  return { center: [cx, cy, cz], radius: Number.isFinite(radius) ? radius : 0 };
+  let radius = Math.sqrt(r2);
+  if (!Number.isFinite(radius) || radius <= 0) radius = 1; // single-point 対策
+  return { center: [cx, cy, cz], radius };
 }
 
+// ------------------------------------------------------------
+// scene metrics fallback（renderer生成物から算出）
+// - aux は除外（grid/axes が bounds を汚す）
+// ------------------------------------------------------------
+function computeSceneMetricsFromGroups(groups) {
+  if (!groups?.points || !groups?.lines) return null;
+    try {
+      const box = new THREE.Box3().makeEmpty();
+      const tmp = new THREE.Box3();
+      let any = false;
+
+      tmp.setFromObject(groups.points);
+      if (!tmp.isEmpty()) { box.union(tmp); any = true; }
+
+      tmp.setFromObject(groups.lines);
+      if (!tmp.isEmpty()) { box.union(tmp); any = true; }
+
+      if (!any || box.isEmpty()) return null;
+      const sph = new THREE.Sphere();
+      box.getBoundingSphere(sph);
+      const r = Number(sph.radius);
+      if (!Number.isFinite(r) || r <= 0) return null;
+      return { center: [sph.center.x, sph.center.y, sph.center.z], radius: r };
+    } catch (_e) {
+    return null;
+  }
+}
 
 let _lastForceLossAt = 0;
+
 function maybeForceContextLoss(renderer, enabled) {
   if (!enabled) return;
   const now = (globalThis.performance?.now?.() ?? Date.now());
@@ -249,18 +284,7 @@ function maybeForceContextLoss(renderer, enabled) {
   ctx._worldAxesHelper = ctx._worldAxesHelper || null;
   // sceneMetricsCache は下の minimal runtime セクションで 1 回だけ宣言する（重複防止）
 
-  function readCenter(v, fallback = [0, 0, 0]) {
-    return readVec3(v, fallback);
-  }
-
   // picking
-  const _raycaster = new THREE.Raycaster();
-  const _ndc = new THREE.Vector2();
-  // 線/点の当たり判定を少し太めに（必要なら後で調整）
-  _raycaster.params.Line = _raycaster.params.Line || {};
-  _raycaster.params.Points = _raycaster.params.Points || {};
-  _raycaster.params.Line.threshold = 0.15;
-  _raycaster.params.Points.threshold = 0.15;
 
   function isObjectVisible(obj) {
     let o = obj;
@@ -276,34 +300,6 @@ function maybeForceContextLoss(renderer, enabled) {
   try { raycaster.params.Line.threshold = 0.5; } catch (_e) {}
   const pickTargets = [];
   let _pickTargetSet = new WeakSet();
-
-  // ------------------------------------------------------------
-  // scene metrics（center/radius）fallback
-  // - worldAxes/microFX/selection みたいな補助描画は含めたくないので
-  //   groups.{points,lines,aux} だけを見る
-  // ------------------------------------------------------------
-  function computeSceneMetricsFromGroups() {
-    const box = new THREE.Box3();
-    let hasAny = false;
-
-    for (const k of ["points", "lines", "aux"]) {
-      const g = groups?.[k];
-      if (!g) continue;
-      try { g.updateWorldMatrix(true, true); } catch (_e) {}
-      const b = new THREE.Box3().setFromObject(g);
-      if (b.isEmpty()) continue;
-      if (!hasAny) { box.copy(b); hasAny = true; }
-      else box.union(b);
-    }
-
-    if (!hasAny || box.isEmpty()) return null;
-    const sphere = new THREE.Sphere();
-    box.getBoundingSphere(sphere);
-    const r = Number(sphere.radius);
-    if (!Number.isFinite(r) || r <= 0) return null;
-    const c = sphere.center;
-    return { center: [c.x, c.y, c.z], radius: r };
-  }
 
   let sceneMetricsCache = null;
 
@@ -347,6 +343,25 @@ function maybeForceContextLoss(renderer, enabled) {
       Number.isFinite(r) && r > 0 ? Math.max(0.6, Math.min(r * 0.25, 50)) : 1.0;
     h.scale.setScalar(s);
   }
+
+  // viewerHub.viewerSettings が直接叩く公開 API
+  function setWorldAxesVisible(flag) {
+    const on = !!flag;
+    if (!on) {
+      if (ctx._worldAxesHelper) ctx._worldAxesHelper.visible = false;
+      return;
+    }
+    ensureWorldAxesHelper().visible = true;
+    updateWorldAxesScaleFromMetrics();
+  }
+
+  function getWorldAxesVisible() {
+    return !!ctx._worldAxesHelper?.visible;
+  }
+
+  // hub から呼べるように公開（ここ1回だけ）
+  ctx.setWorldAxesVisible = setWorldAxesVisible;
+  ctx.getWorldAxesVisible = getWorldAxesVisible;
 
   const groups = {
     points: new THREE.Group(),
@@ -403,42 +418,6 @@ function maybeForceContextLoss(renderer, enabled) {
   function clearPickTargets() {
     pickTargets.length = 0;
     _pickTargetSet = new WeakSet();
-  }
-
-  // ------------------------------------------------------------
-  // scene metrics（center/radius）算出（points/lines/aux の実体から）
-  // - worldAxes / microFX / selection など「表示補助」は除外したいので
-  //   groups.{points,lines,aux} のみを見る
-  // ------------------------------------------------------------
-  function computeSceneMetricsFromGroups() {
-    const box = new THREE.Box3();
-    let hasAny = false;
-
-    const keys = ["points", "lines", "aux"];
-    for (const k of keys) {
-      const g = groups && groups[k];
-      if (!g) continue;
-      try { g.updateWorldMatrix(true, true); } catch (_e) {}
-
-      const b = new THREE.Box3().setFromObject(g);
-      if (b.isEmpty()) continue;
-      if (!hasAny) {
-        box.copy(b);
-        hasAny = true;
-      } else {
-        box.union(b);
-      }
-    }
-
-    if (!hasAny || box.isEmpty()) return null;
-
-    const sphere = new THREE.Sphere();
-    box.getBoundingSphere(sphere);
-
-    const r = Number(sphere.radius);
-    if (!Number.isFinite(r) || r <= 0) return null;
-    const c = sphere.center;
-    return { center: [c.x, c.y, c.z], radius: r };
   }
 
   function addPickTarget(obj) {
@@ -582,20 +561,24 @@ function maybeForceContextLoss(renderer, enabled) {
       else warnRenderer("[renderer] point pos missing", u, p);
     }
 
-    // ---- metrics（初期カメラ用）----
-    // まず structIndex.bounds を信用、無ければ点群から計算
+    // ------------------------------------------------------------
+    // scene metrics をここで一度だけ確定（点サイズ/axes/初期カメラで共通）
+    //   1) bounds（最優先）
+    //   2) 点座標群（生成物に依存しない）
+    //   3) groups（最後の保険：線のみ等）
+    // ------------------------------------------------------------
+    sceneMetricsCache = null;
     try {
       const b = structIndex?.bounds ?? structIndex?.getSceneBounds?.() ?? null;
       const r = Number(b?.radius);
-      const c = b?.center ?? b?.centroid ?? null;
       if (Number.isFinite(r) && r > 0) {
-        // NOTE: sceneMetricsCache は syncDocument の末尾で確定する（重複防止）
+        const cRaw = b?.center ?? b?.centroid ?? b?.origin ?? b?.box?.center ?? null;
+        sceneMetricsCache = { center: readCenter(cRaw, [0, 0, 0]), radius: r };
       }
     } catch (_e) {}
     if (!sceneMetricsCache) {
-      const posList = Array.from(pointPosByUuid.values());
-      const m = computeSceneMetricsFromPositions(posList);
-      // NOTE: sceneMetricsCache は syncDocument の末尾で確定する（重複防止）
+      const m = computeSceneMetricsFromPositions(Array.from(pointPosByUuid.values()));
+      if (m && Number(m.radius) > 0) sceneMetricsCache = m;
     }
 
     function resolvePointPos(uuid) {
@@ -610,12 +593,8 @@ function maybeForceContextLoss(renderer, enabled) {
     }
 
     // ---- scale（点が小さすぎて見えん問題を避ける）----
-    let sceneRadius = null;
-    try {
-      const b = structIndex?.bounds ?? structIndex?.getSceneBounds?.() ?? null;
-      const r = Number(b?.radius);
-      if (Number.isFinite(r) && r > 0) sceneRadius = r;
-    } catch (_e) {}
+    let sceneRadius = Number(sceneMetricsCache?.radius);
+    if (!Number.isFinite(sceneRadius) || sceneRadius <= 0) sceneRadius = null;
     
     // points: small spheres (最小実装)
     if (pts.length) {
@@ -740,59 +719,19 @@ function maybeForceContextLoss(renderer, enabled) {
       addPickTarget(obj);
     }
 
-    // 明示 metrics が入ってない / 壊れてる場合だけ fallback 算出
-    if (!sceneMetricsCache || !Number.isFinite(Number(sceneMetricsCache.radius)) || Number(sceneMetricsCache.radius) <= 0) {
-      const m2 = computeSceneMetricsFromGroups();
-      if (m2) sceneMetricsCache = m2;
-    }
-
     debugRenderer("[renderer] syncDocument built", {
       points: maps.points.size,
       lines: maps.lines.size,
       aux: maps.aux.size,
     });
 
-    // ------------------------------------------------------------
-    // scene metrics（center/radius）
-    //   1) structIndex.bounds の radius/center を最優先
-    //   2) 無ければ points+lines から算出（aux は除外）
-    // ------------------------------------------------------------
+    // 線のみ等で positions から決められへん場合の最終保険
+    if (!sceneMetricsCache) sceneMetricsCache = computeSceneMetricsFromGroups(groups);
+
+    // world axes が表示中なら最新 metrics でスケール更新
     try {
-      const b = structIndex?.bounds ?? structIndex?.getSceneBounds?.() ?? null;
-      const r = Number(b?.radius);
-      if (Number.isFinite(r) && r > 0) {
-        const cRaw =
-          b?.center ?? b?.centroid ?? b?.origin ??
-          b?.box?.center ?? null;
-        sceneMetricsCache = { center: readCenter(cRaw, [0, 0, 0]), radius: r };
-      }
+      if (ctx._worldAxesHelper?.visible) updateWorldAxesScaleFromMetrics();
     } catch (_e) {}
-
-    if (!sceneMetricsCache) {
-      try {
-        const box = new THREE.Box3().makeEmpty();
-        const tmp = new THREE.Box3();
-        let any = false;
-
-        tmp.setFromObject(groups.points);
-        if (!tmp.isEmpty()) { box.union(tmp); any = true; }
-
-        tmp.setFromObject(groups.lines);
-        if (!tmp.isEmpty()) { box.union(tmp); any = true; }
-
-        if (any && !box.isEmpty()) {
-          const sph = new THREE.Sphere();
-          box.getBoundingSphere(sph);
-          const rr = Number(sph.radius);
-          if (Number.isFinite(rr) && rr > 0) {
-            sceneMetricsCache = {
-              center: [sph.center.x, sph.center.y, sph.center.z],
-              radius: rr,
-            };
-          }
-        }
-      } catch (_e) {}
-    }
   };
 
   ctx.getSceneMetrics = () => {
@@ -804,7 +743,7 @@ function maybeForceContextLoss(renderer, enabled) {
       !Array.isArray(m.center) || m.center.length < 3 ||
       !Number.isFinite(Number(m.radius)) || Number(m.radius) <= 0
     ) {
-      const m2 = computeSceneMetricsFromGroups();
+      const m2 = computeSceneMetricsFromGroups(groups);
       if (m2) {
         sceneMetricsCache = m2;
         m = m2;
@@ -978,28 +917,17 @@ function maybeForceContextLoss(renderer, enabled) {
 
     const vs = viewerSettings && typeof viewerSettings === "object" ? viewerSettings : {};
 
-    // 命名ゆれ吸収（必要なら増やしてええ）
-    const worldAxesVisible = !!(vs.worldAxesVisible ?? vs.worldAxes ?? vs.showWorldAxes);
+    // NOTE:
+    // - worldAxes は hub 管理（ctx.setWorldAxesVisible 経由）なので、ここでは触らない。
+
     const lineWidthMode = typeof vs.lineWidthMode === "string" ? vs.lineWidthMode : "";
     const microFXProfile = typeof vs.microFXProfile === "string" ? vs.microFXProfile : "";
 
-    const key = `${worldAxesVisible}|${lineWidthMode}|${microFXProfile}`;
+    const key = `${lineWidthMode}|${microFXProfile}`;
     if (key !== _lastViewerSettingsKey) {
       _lastViewerSettingsKey = key;
-
-      // world axes on/off（生成は必要時のみ）
-      if (!worldAxesVisible) {
-        if (ctx._worldAxesHelper) ctx._worldAxesHelper.visible = false;
-      } else {
-        ensureWorldAxesHelper().visible = true;
-        updateWorldAxesScaleFromMetrics();
-      }
     } else {
-      // key 変わってなくても、metrics 変化後に追随したいので visible 時だけ更新
-      if (worldAxesVisible) {
-        ensureWorldAxesHelper().visible = true;
-        updateWorldAxesScaleFromMetrics();
-      }
+    // no-op
     }
   };
 

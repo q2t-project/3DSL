@@ -1,11 +1,55 @@
 // viewer/ui/gizmo.js
 
 import * as THREE from "../../vendor/three/build/three.module.js";
+import { teardownPrevHandle } from "./handleUtils.js";
 import {
-   CAMERA_VIEW_DEFS,
-   CAMERA_VIEW_ALIASES,
-   CAMERA_VIEW_PRESET_SEQUENCE,
- } from "../runtime/core/cameraViewDefs.js";
+  CAMERA_VIEW_DEFS,
+  CAMERA_VIEW_ALIASES,
+  CAMERA_VIEW_PRESET_SEQUENCE,
+} from "../runtime/core/cameraViewDefs.js";
+
+// ------------------------------------------------------------
+// perf tuning（gizmoだけ軽量化）
+// ------------------------------------------------------------
+// "phong" が見た目と軽さのバランス良い。さらに軽くしたけりゃ "lambert"
+const GIZMO_MATERIAL_KIND = "phong"; // "phong" | "lambert" | "standard"
+
+// トーラス分割：ここが頂点数の主犯やから落とす（16/48 → 10/32）
+const RING_RADIAL_SEGMENTS  = 10;
+const RING_TUBULAR_SEGMENTS = 32;
+
+// 細部も軽く（お好みで）
+const SPHERE_SEGMENTS = 16;   // 24 -> 16
+const PATCH_SEGMENTS  = 32;   // 48 -> 32
+const ROD_SEGMENTS    = 20;   // 32 -> 20
+const LENS_SEGMENTS   = 24;   // 32 -> 24
+const BEAM_SEGMENTS   = 12;   // 16 -> 12
+
+function createLitMaterial(params) {
+  const kind = GIZMO_MATERIAL_KIND;
+
+  // StandardMaterial 由来のキーを除去（Phong/Lambert に投げると無駄）
+  const {
+    metalness: _metalness,
+    roughness: _roughness,
+    clearcoat: _clearcoat,
+    clearcoatRoughness: _clearcoatRoughness,
+    ior: _ior,
+    transmission: _transmission,
+    thickness: _thickness,
+    ...rest
+  } = params || {};
+
+  if (kind === "standard") return new THREE.MeshStandardMaterial(params);
+  if (kind === "lambert") return new THREE.MeshLambertMaterial(rest);
+
+  // phong
+  const mat = new THREE.MeshPhongMaterial(rest);
+  // 既定のテカり（指定が無い時だけ）
+  if (!("specular" in rest)) mat.specular = new THREE.Color(0x9aa0aa);
+  if (!("shininess" in rest)) mat.shininess = 70;
+  return mat;
+}
 
 // 軸カラー設定
 //   XY 平面 (Z 軸) = 赤 : existence (上下)
@@ -14,9 +58,6 @@ import {
 const COLOR_AXIS_X = 0x5588ff; // X / YZ plane → blue
 const COLOR_AXIS_Y = 0x55ff55; // Y / ZX plane → green
 const COLOR_AXIS_Z = 0xff5555; // Z / XY plane → red;
-
-const KEY_VIEW = Symbol.for("3dsl:gizmoViewHandler");
-const KEY_AXIS = Symbol.for("3dsl:gizmoAxisHandler");
 
 // 軸 → view 名ヘルパ（上のほうに置くとスッキリ）
 function axisToViewName(axis) {
@@ -104,32 +145,209 @@ function applyViewPresetIndex(cam, hub, index) {
 
 // メインカメラ state から「向き」だけをもらって、
 // 原点まわりの小さい「リング型 gizmo」を描画するミニ・ビューポート
-export function attachGizmo(wrapper, hub) {
+export function attachGizmo(wrapper, hub, ctx = {}) {
   if (!wrapper) return null;
 
-  // 既存の gizmo があれば先に dispose（呼び出し側のミスも吸収）
-  if (wrapper.__gizmoHandle && typeof wrapper.__gizmoHandle.dispose === "function") {
-    wrapper.__gizmoHandle.dispose();
+  const doc = ctx.doc || wrapper.ownerDocument || document;
+  const win = ctx.win || doc.defaultView || window;
+  const getEl = (typeof ctx.el === "function") ? ctx.el : null;
+
+  console.log("[gizmo] attach start", wrapper);
+
+  // 既存 gizmo を teardown（参照一致なら null に戻す）
+  teardownPrevHandle(wrapper, "__gizmoHandle");
+
+  // canvas差し込み専用スロット（wrapper内に閉じる / ctx.el を最優先）
+  const mountFromCtx = getEl?.("gizmoCanvasSlot") || null;
+  const mountFromCtxOk =
+    mountFromCtx && wrapper.contains(mountFromCtx) ? mountFromCtx : null;
+
+  let mount =
+    mountFromCtxOk ||
+    wrapper.querySelector?.('[data-role="gizmo-canvas-slot"]') ||
+    null;
+
+  if (!mount) {
+    mount = doc.createElement("div");
+    mount.dataset.role = "gizmo-canvas-slot";
+    mount.style.position = "absolute";
+    mount.style.inset = "0";
+    wrapper.appendChild(mount);
   }
-  wrapper.__gizmoHandle = null;
 
-  // 二重 attach 対策で一回中身クリアしとく
-  wrapper.innerHTML = "";
+  // 既存canvasだけ除去（他DOMは残す）
+  Array.from(
+    mount.querySelectorAll?.("canvas[data-role='gizmo-canvas']") || []
+  ).forEach((n) => n.remove());
 
-  const canvas = document.createElement("canvas");
+  const canvas = doc.createElement("canvas");
+  canvas.dataset.role = "gizmo-canvas";
   canvas.style.display = "block";
   canvas.style.pointerEvents = "auto";
-  wrapper.appendChild(canvas);
+  mount.appendChild(canvas);
+
+  let handle = null;
 
   const renderer = new THREE.WebGLRenderer({
     canvas,
     alpha: true,
-    antialias: true,
+    antialias: false,
   });
 
   // ★ dispose 用フラグと rAF ハンドル
   let isDisposed = false;
+
+  // ------------------------------------------------------------
+  // Render scheduler
+  // ------------------------------------------------------------
   let rafId = null;
+  let needsRender = false;
+  let isInteracting = false;
+  let settleTimer = null;
+
+  const DPR_INTERACT = 1.0;
+  const DPR_IDLE = Math.min(win.devicePixelRatio || 1, 1.5);
+  let desiredDpr = DPR_IDLE;
+
+  // HUD controls（gizmo関連のボタン初期化はここが唯一の正規ルート）
+  // ...
+  const presetToggleBtn = getEl?.("gizmoPresetsToggle") || null;
+
+  // ★ row-only HUD buttons（X/Y/Z + NE/NW/SW/SE）をここで初期化
+  const hudBtnHandle = initGizmoButtons(hub, { doc, el: getEl });
+
+  function setQuality(interacting) {
+    desiredDpr = interacting ? DPR_INTERACT : DPR_IDLE;
+    // setPixelRatio は resizeIfNeeded() 側で setSize とセットでやる
+  }
+
+  function requestRender() {
+    needsRender = true;
+    if (rafId != null) return;
+    rafId = win.requestAnimationFrame(tick);
+  }
+
+  function startInteractiveLoop() {
+    if (isInteracting) return;
+    isInteracting = true;
+    if (settleTimer) { win.clearTimeout(settleTimer); settleTimer = null; }
+    setQuality(true);
+    syncHudFromHub();
+    requestRender();
+  }
+
+  function stopInteractiveLoop() {
+    if (!isInteracting) return;
+    isInteracting = false;
+    if (settleTimer) win.clearTimeout(settleTimer);
+    settleTimer = win.setTimeout(() => {
+      setQuality(false);
+      requestRender();
+    }, 200);
+  }
+
+
+  // ------------------------------------------------------------
+  // HUD controls（gizmo関連のボタン初期化はここが唯一の正規ルート）
+  // ------------------------------------------------------------
+  const core = hub?.core || null;
+  const camCtrl = hub?.camera || core?.camera || null; // 公開API優先、無ければcore fallback
+
+  const elModeText  = getEl?.("gizmoModeLabel") || null;
+  const elMacroPill = getEl?.("modePillMacro")   || null;
+  const elMicroPill = getEl?.("modePillMicro")   || null;
+
+  const btnAutoToggle = getEl?.("autoOrbitToggle")  || null;
+  const btnCW  = getEl?.("autoOrbitCW")  || null;
+  const btnCCW = getEl?.("autoOrbitCCW") || null;
+
+  let autoRunning = false;
+  let autoDir = "ccw";
+  let autoSpeed = 1;
+  const AUTO_MAX_SPEED = 2;
+
+  const readAuto = () => {
+    try {
+      if (camCtrl && typeof camCtrl.isAutoOrbiting === "function") return !!camCtrl.isAutoOrbiting();
+    } catch (_e) {}
+    return !!core?.uiState?.runtime?.isCameraAuto;
+  };
+
+  const readMode = () => {
+    const st = core?.uiState?.runtime?.status ?? null;
+    const eff = st?.effective?.mode;
+    if (eff === "micro" || eff === "macro") return eff;
+    const modeAPI = core?.mode?.get ? core.mode : (core?.modeController?.get ? core.modeController : null);
+    const mm = modeAPI?.get?.();
+    return (mm === "micro") ? "micro" : "macro";
+  };
+
+  const uiAuto = () => {
+    if (!btnCW || !btnCCW) return;
+    [btnCW, btnCCW].forEach((b) => b.classList.remove("is-running", "is-fast"));
+    if (!autoRunning) return;
+    const b = (autoDir === "cw") ? btnCW : btnCCW;
+    b.classList.add("is-running");
+    if (autoSpeed === 2) b.classList.add("is-fast");
+  };
+
+  const applyAuto = () => {
+    if (!camCtrl) return;
+    if (!autoRunning) { camCtrl.stopAutoOrbit?.(); return; }
+    const dirSign = (autoDir === "cw") ? -1 : 1;
+    const opts = { direction: dirSign, speedLevel: autoSpeed };
+    if (readAuto() && typeof camCtrl.updateAutoOrbitSettings === "function") {
+      camCtrl.updateAutoOrbitSettings(opts);
+    } else {
+      camCtrl.startAutoOrbit?.(opts);
+    }
+  };
+
+  const syncHudFromHub = () => {
+    // mode
+    const m = readMode();
+    if (elModeText) elModeText.textContent = m;
+    if (elMacroPill && elMicroPill) {
+      elMacroPill.classList.toggle("mode-pill-active", m === "macro");
+      elMicroPill.classList.toggle("mode-pill-active", m === "micro");
+    }
+
+    // auto orbit（runtime truth に追従）
+    const a = readAuto();
+    if (a !== autoRunning) autoRunning = a;
+    uiAuto();
+  };
+
+  const on = (el, type, fn, opt) => {
+    if (!el?.addEventListener) return () => {};
+    el.addEventListener(type, fn, opt);
+    return () => { try { el.removeEventListener(type, fn, opt); } catch (_e) {} };
+  };
+
+  const offAutoToggle = on(btnAutoToggle, "click", (ev) => {
+    ev.preventDefault?.();
+    autoRunning = !autoRunning;
+    if (!autoRunning) { uiAuto(); applyAuto(); return; }
+    autoDir = autoDir || "ccw";
+    autoSpeed = autoSpeed || 1;
+    uiAuto(); applyAuto();
+  });
+
+  const offCW = on(btnCW, "click", (ev) => {
+    ev.preventDefault?.();
+    if (!autoRunning) { autoRunning = true; autoDir = "cw"; autoSpeed = 1; uiAuto(); applyAuto(); return; }
+    if (autoDir === "cw") autoSpeed = (autoSpeed === 1 ? AUTO_MAX_SPEED : 1);
+    else { autoDir = "cw"; autoSpeed = 1; }
+    uiAuto(); applyAuto();
+  });
+
+  const offCCW = on(btnCCW, "click", (ev) => {
+    ev.preventDefault?.();
+    if (!autoRunning) { autoRunning = true; autoDir = "ccw"; autoSpeed = 1; uiAuto(); applyAuto(); return; }
+    if (autoDir === "ccw") autoSpeed = (autoSpeed === 1 ? AUTO_MAX_SPEED : 1);
+    else { autoDir = "ccw"; autoSpeed = 1; }
+    uiAuto(); applyAuto();
+  });
 
   // 初期値
   const width = wrapper.clientWidth || 210;
@@ -152,8 +370,8 @@ export function attachGizmo(wrapper, hub) {
   // ------------------------------------------------------------
   const ringRadius = 1.3;
   const ringTube = 0.12;
-  const ringRadialSegments = 16;
-  const ringTubularSegments = 48;
+  const ringRadialSegments = RING_RADIAL_SEGMENTS;
+  const ringTubularSegments = RING_TUBULAR_SEGMENTS;
 
   const CAM_DISTANCE = ringRadius * 1.3; // カメラ中心と原点の距離
   const LENS_OFFSET = 0.18;              // カメラローカル原点→レンズ中心の距離（-Z 方向）
@@ -264,15 +482,13 @@ export function attachGizmo(wrapper, hub) {
 
     geom.setAttribute("color", new THREE.BufferAttribute(colorArray, 3));
 
-    const mat = new THREE.MeshStandardMaterial({
+    const mat = createLitMaterial({
       vertexColors: true,
-      metalness: 0.75,
-      roughness: 0.3,
     });
 
     const mesh = new THREE.Mesh(geom, mat);
     mesh.userData.axis = axis; // snap 用
-    clickableRingMeshes.push(mesh); // raycast 用
+    clickableRingMeshes.push(mesh); // raycast 用 group から子へ recursive で拾う
     gyroGroup.add(mesh);
     return mesh;
   }
@@ -284,12 +500,8 @@ export function attachGizmo(wrapper, hub) {
 
   // 中心の小さなメタル球
   const centerSphere = new THREE.Mesh(
-    new THREE.SphereGeometry(0.14, 24, 24),
-    new THREE.MeshStandardMaterial({
-      color: 0xdddddd,
-      metalness: 0.5,
-      roughness: 0.5,
-    })
+    new THREE.SphereGeometry(0.14, SPHERE_SEGMENTS, SPHERE_SEGMENTS),
+    createLitMaterial({ color: 0xdddddd })
   );
   gyroGroup.add(centerSphere);
 
@@ -299,12 +511,12 @@ export function attachGizmo(wrapper, hub) {
   const patchRadius = ringRadius - ringTube * 0.6;
   const patchGeom = new THREE.CircleGeometry(
     patchRadius,
-    48,
+    PATCH_SEGMENTS,
     0,
     Math.PI / 2 // 90°
   );
 
-  const basePatchMat = new THREE.MeshStandardMaterial({
+  const basePatchMat = createLitMaterial({
     color: 0xffff99,
     emissive: 0x332200,
     transparent: true,
@@ -329,11 +541,9 @@ export function attachGizmo(wrapper, hub) {
   // ------------------------------------------------------------
   const rodRadius = 0.32;
   const rodLength = ringRadius * 2.8;
-  const rodGeom = new THREE.CylinderGeometry(rodRadius, rodRadius, rodLength, 32);
-  const rodMat = new THREE.MeshStandardMaterial({
-    color: 0xb8c8ff,
-    metalness: 0.9,
-    roughness: 0.35,
+  const rodGeom = new THREE.CylinderGeometry(rodRadius, rodRadius, rodLength, ROD_SEGMENTS);
+  const rodMat = createLitMaterial({
+    color: 0x444444,
   });
   const zRod = new THREE.Mesh(rodGeom, rodMat);
   zRod.rotation.x = Math.PI / 2;
@@ -351,7 +561,7 @@ export function attachGizmo(wrapper, hub) {
     } = options;
 
     const size = 128;
-    const canvasLabel = document.createElement("canvas");
+    const canvasLabel = doc.createElement("canvas");
     canvasLabel.width = size;
     canvasLabel.height = size / 2;
 
@@ -435,23 +645,19 @@ export function attachGizmo(wrapper, hub) {
   // 7 ビュー用ミニカメラ（3D メッシュ）＋ビーム
   // ------------------------------------------------------------
   const camBodyGeo = new THREE.BoxGeometry(0.36, 0.2, 0.26);
-  const camBodyMat = new THREE.MeshStandardMaterial({
+  const camBodyMat = createLitMaterial({
     color: 0x999999, // グレー筐体
-    metalness: 0.3,
-    roughness: 0.6,
   });
 
-  const lensGeo = new THREE.CircleGeometry(0.09, 32);
-  const lensMat = new THREE.MeshStandardMaterial({
+  const lensGeo = new THREE.CircleGeometry(0.09, LENS_SEGMENTS);
+  const lensMat = createLitMaterial({
     color: 0x99c0ff,
     emissive: 0x3355ff,
-    metalness: 0.6,
-    roughness: 0.1,
   });
 
   const beamRadius = 0.03;
 
-  const beamMatBase = new THREE.MeshStandardMaterial({
+  const beamMatBase = createLitMaterial({
     color: 0x99bbff,
     emissive: 0x3355ff,
     transparent: true,
@@ -491,7 +697,7 @@ export function attachGizmo(wrapper, hub) {
         beamRadius,
         beamRadius,
         beamLength,
-        16
+        BEAM_SEGMENTS
       );
 
       const beam = new THREE.Mesh(beamGeom, beamMatBase.clone());
@@ -540,7 +746,6 @@ export function attachGizmo(wrapper, hub) {
   // ------------------------------------------------------------
   // 7ビュー UI 制御（ON/OFF）
   // ------------------------------------------------------------
-  const presetToggleBtn = document.getElementById("gizmo-presets-toggle");
   let presetsVisible = false;
 
   function updatePresetVisibility() {
@@ -562,6 +767,7 @@ export function attachGizmo(wrapper, hub) {
     ev.preventDefault();
     presetsVisible = !presetsVisible;
     updatePresetVisibility();
+    requestRender();
   }
 
   if (presetToggleBtn) {
@@ -616,6 +822,7 @@ export function attachGizmo(wrapper, hub) {
 
     // beams / スケール制御用
     activePresetKey = key;
+    requestRender();
   }
 
   // ------------------------------------------------------------
@@ -645,22 +852,17 @@ export function attachGizmo(wrapper, hub) {
 
   function resizeIfNeeded() {
     const rect = wrapper.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
+    if (!rect.width || !rect.height) return false;
 
-    // 枠の中で正方形を確保（末広がり前提なので最小辺）
-    const logicalSize = Math.max(
-      32,
-      Math.min(rect.width, rect.height)
-    );
-
+    const logicalSize = Math.max(32, Math.min(rect.width, rect.height));
     const displaySize = Math.round(logicalSize);
-    const dpr = window.devicePixelRatio || 1;
 
-    if (displaySize === lastDisplaySize && dpr === lastDpr) return;
+    const dpr = desiredDpr; // ★ window.devicePixelRatio じゃなくこれ
+
+    if (displaySize === lastDisplaySize && dpr === lastDpr) return false;
     lastDisplaySize = displaySize;
     lastDpr = dpr;
 
-    // DOM（見た目）は displaySize の正方形に固定
     canvas.style.width = `${displaySize}px`;
     canvas.style.height = `${displaySize}px`;
 
@@ -669,7 +871,52 @@ export function attachGizmo(wrapper, hub) {
 
     camera.aspect = 1;
     camera.updateProjectionMatrix();
+    return true;
   }
+
+  let _profLastLog = 0;
+  function profLog(parts) {
+    const now = performance.now();
+    if (now - _profLastLog < 800) return; // 連打防止
+    _profLastLog = now;
+
+    const s = Object.entries(parts)
+      .map(([k, v]) => `${k}:${v.toFixed(1)}ms`)
+      .join("  ");
+    console.warn("[gizmo][perf]", s);
+  }
+
+const PERF_DEBUG = false;
+let perfSamplesLeft = 8;
+
+function tick(now) {
+  rafId = null;
+  if (isDisposed) return;
+
+  const t0 = performance.now();
+  const resized = resizeIfNeeded();
+  const t1 = performance.now();
+
+  syncCameraFromHub();
+  const t2 = performance.now();
+
+  // iso beam pulse（点滅）
+  updatePresetBeams(((typeof now === "number" ? now : performance.now()) / 1000));
+
+  if (needsRender || resized || isInteracting) {
+    needsRender = false;
+    renderer.render(scene, camera);
+  }
+  const t3 = performance.now();
+
+  if (PERF_DEBUG && perfSamplesLeft-- > 0) {
+    console.log(
+      `[gizmo][perf] resize:${(t1-t0).toFixed(1)}ms  sync:${(t2-t1).toFixed(1)}ms  render:${(t3-t2).toFixed(1)}ms  total:${(t3-t0).toFixed(1)}ms`
+    );
+  }
+
+  if (isInteracting) rafId = win.requestAnimationFrame(tick);
+}
 
   // ------------------------------------------------------------
   // メインカメラ state → ミニカメラ姿勢
@@ -763,6 +1010,8 @@ export function attachGizmo(wrapper, hub) {
 
     stopAuto(cam, hub);
 
+    startInteractiveLoop();
+
     isDragging = true;
     lastX = ev.clientX;
     lastY = ev.clientY;
@@ -791,6 +1040,8 @@ export function attachGizmo(wrapper, hub) {
 
     const SENS_THETA = 0.01;
     const SENS_PHI = 0.01;
+
+    startInteractiveLoop();
 
     cam.rotate(dx * SENS_THETA, -dy * SENS_PHI);
 
@@ -861,7 +1112,25 @@ export function attachGizmo(wrapper, hub) {
       handleGizmoClick(ev);
     }
 
+    stopInteractiveLoop();
     ev.preventDefault();
+  }
+
+  let lastHubHash = "";
+
+  function calcHubHash() {
+    const st = hub?.core?.camera?.getState?.();
+    if (!st) return "";
+    const t = Number(st.theta ?? 0).toFixed(4);
+    const p = Number(st.phi ?? 0).toFixed(4);
+    const f = (st.fov != null) ? Number(st.fov).toFixed(2) : "";
+    const idx = hub?.core?.camera?.getViewPresetIndex?.();
+    const mode = (() => {
+      const m = hub?.core?.uiState?.runtime?.status?.effective?.mode;
+      return (m === "micro" || m === "macro") ? m : "";
+    })();
+    const auto = hub?.core?.uiState?.runtime?.isCameraAuto ? "1" : "0";
+    return `${t}|${p}|${f}|${idx ?? ""}|${mode}|${auto}`;
   }
 
   canvas.addEventListener("pointerdown", handlePointerDown);
@@ -870,167 +1139,237 @@ export function attachGizmo(wrapper, hub) {
   canvas.addEventListener("pointercancel", handlePointerUp);
   canvas.addEventListener("pointerleave", handlePointerUp);
 
-  // ------------------------------------------------------------
-  // ループ: サイズ調整 → カメラ同期 → レンダ
-  // ------------------------------------------------------------
-  function loop(now) {
+  // 初回だけ：サイズ→同期→1回描画
+  resizeIfNeeded();
+  syncCameraFromHub();
+  syncHudFromHub();
+  setQuality(false);
+
+  // ---- warm-up (初回だけ重い compile/render を rAF の外へ) ----
+  try {
+    // shader compile + CanvasTexture upload をここで終わらせる
+    if (typeof renderer.compile === "function") renderer.compile(scene, camera);
+    renderer.render(scene, camera);
+
+    // tick 側で二度描きしないように
+    needsRender = false;
+  } catch (_e) {}
+
+  // 以後の更新用に rAF 1回だけ回しとく（重くならん）
+  requestRender();
+
+  const pollId = win.setInterval(() => {
     if (isDisposed) return;
 
-    try {
-      resizeIfNeeded();
-      syncCameraFromHub();
-      updatePresetBeams(now * 0.001);
-      renderer.render(scene, camera);
-    } catch (e) {
-      console.warn("[gizmo] loop error", e);
+    // idleでもisoビームだけ軽く点滅させる
+    if (presetsVisible && activePresetKey) {
+      updatePresetBeams(performance.now() / 1000);
+      requestRender();
     }
 
-    rafId = requestAnimationFrame(loop);  // ★ id を保持
+    const h = calcHubHash();
+    if (h && h !== lastHubHash) {
+      lastHubHash = h;
+      syncHudFromHub();
+      requestRender();
+    }
+  }, 120);
+
+function dispose() {
+  console.log("[gizmo] dispose called");
+  if (isDisposed) return;
+  isDisposed = true;
+
+  try { win.clearInterval(pollId); } catch (_e) {}
+  try { offAutoToggle?.(); } catch (_e) {}
+  try { offCW?.(); } catch (_e) {}
+  try { offCCW?.(); } catch (_e) {}
+  try { if (settleTimer) win.clearTimeout(settleTimer); } catch (_e) {}
+  try { hudBtnHandle?.detach?.(); } catch (_e) {}
+
+  if (wrapper.__gizmoHandle === handle) wrapper.__gizmoHandle = null;
+
+  if (rafId !== null) {
+    win.cancelAnimationFrame(rafId);
+    rafId = null;
   }
 
-  rafId = requestAnimationFrame(loop);    // ★ 初回キック
+  canvas.removeEventListener("pointerdown", handlePointerDown);
+  canvas.removeEventListener("pointermove", handlePointerMove);
+  canvas.removeEventListener("pointerup", handlePointerUp);
+  canvas.removeEventListener("pointercancel", handlePointerUp);
+  canvas.removeEventListener("pointerleave", handlePointerUp);
 
-  // ------------------------------------------------------------
-  // dispose ハンドルを返す
-  // ------------------------------------------------------------
-  function dispose() {
-    if (isDisposed) return;
-    isDisposed = true;
-
-    // wrapper に残ってる参照も落とす（直叩き dispose 対策）
-    if (wrapper.__gizmoHandle && wrapper.__gizmoHandle.dispose === dispose) {
-      wrapper.__gizmoHandle = null;
-    }
-
-    // rAF 停止
-    if (rafId !== null) {
-      cancelAnimationFrame(rafId);
-      rafId = null;
-    }
-
-    // イベントリスナ解除
-    canvas.removeEventListener("pointerdown", handlePointerDown);
-    canvas.removeEventListener("pointermove", handlePointerMove);
-    canvas.removeEventListener("pointerup", handlePointerUp);
-    canvas.removeEventListener("pointercancel", handlePointerUp);
-    canvas.removeEventListener("pointerleave", handlePointerUp);
-
-    if (presetToggleBtn) {
-      presetToggleBtn.removeEventListener("click", handlePresetToggle);
-    }
-
-    // three.js リソース破棄
-    renderer.dispose();
-    scene.traverse((obj) => {
-      if (obj.geometry && typeof obj.geometry.dispose === "function") {
-        obj.geometry.dispose();
-      }
-      if (obj.material) {
-        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-        mats.forEach((m) => {
-          if (!m) return;
-          if (m.map && typeof m.map.dispose === "function") m.map.dispose();
-          if (typeof m.dispose === "function") m.dispose();
-        });
-      }
-    });
-
-    if (typeof renderer.forceContextLoss === "function") {
-      renderer.forceContextLoss();
-    }
-
-    // DOM から取り外し
-    if (canvas.parentElement === wrapper) {
-      wrapper.removeChild(canvas);
-    }
-    wrapper.innerHTML = ""; // 念のため
+  if (presetToggleBtn) {
+    presetToggleBtn.removeEventListener("click", handlePresetToggle);
   }
 
-  const handle = { dispose };
+  // ---- dispose shared resources safely (only once) ----
+  const geoms = new Set();
+  const mats = new Set();
+  const texs = new Set();
+
+  scene.traverse((obj) => {
+    if (obj.geometry) geoms.add(obj.geometry);
+
+    const mm = obj.material
+      ? (Array.isArray(obj.material) ? obj.material : [obj.material])
+      : [];
+
+    for (const m of mm) {
+      if (!m) continue;
+      mats.add(m);
+      if (m.map) texs.add(m.map);
+    }
+  });
+
+  for (const t of texs) t.dispose?.();
+  for (const m of mats) m.dispose?.();
+  for (const g of geoms) g.dispose?.();
+
+  try { renderer.dispose(); } catch (_e) {}
+  try { renderer.forceContextLoss?.(); } catch (_e) {}
+  try { canvas.remove(); } catch (_e) {}
+}
+
+  const detach = dispose;
+  handle = { detach, dispose };
   wrapper.__gizmoHandle = handle;
   return handle;
 }
 
 // ------------------------------------------------------------
-// HUD 側 gizmo ボタン初期化
-//   - data-view-preset="front" / "top" / "right" / "iso-ne" ...
-//   - data-axis-snap="x" / "y" / "z"
+// HUD 側 gizmo ボタン初期化（row-only）
+//   - contract: gizmoAxisRow / gizmoViewRow のみ
+//   - HTML側に個別ボタンは置かない（JSが中身を生成）
 // ------------------------------------------------------------
-export function initGizmoButtons(hub) {
-  if (!hub || !hub.core || !hub.core.camera) {
-    console.warn("[viewer-dev gizmo] initGizmoButtons: camera not ready");
-    return;
+export function initGizmoButtons(hub, ctx = {}) {
+  const doc = ctx.doc || document;
+  const getEl = (typeof ctx.el === "function") ? ctx.el : null;
+
+  if (!getEl) {
+    console.warn("[gizmo] initGizmoButtons: role resolver (ctx.el) missing; disabled");
+    return { detach() {}, dispose() {} };
   }
 
-  const cam = hub.core.camera;
-  console.log("[viewer-dev gizmo] initGizmoButtons start", cam);
+  const cleanup = [];
+  const created = [];
 
-  const root = document;
+  const on = (el, type, fn, opt) => {
+    if (!el?.addEventListener) return;
+    el.addEventListener(type, fn, opt);
+    cleanup.push(() => {
+      try { el.removeEventListener(type, fn, opt); } catch (_e) {}
+    });
+  };
 
-  // 例: <button data-view-preset="front">FRONT</button>
-  const viewButtons = root.querySelectorAll("[data-view-preset]");
-  viewButtons.forEach((btn) => {
-    const name = btn.dataset.viewPreset;
-    if (!name) return;
+  const camOf = () => hub?.core?.camera || null;
 
-    if (btn[KEY_VIEW]) btn.removeEventListener("click", btn[KEY_VIEW]);
+  const clearChildren = (parent) => {
+    if (!parent) return;
+    while (parent.firstChild) parent.removeChild(parent.firstChild);
+  };
 
-    const handler = (ev) => {
-      ev.preventDefault();
+  const createBtn = (parent, { label, title, className, onClick }) => {
+    if (!parent) return null;
+    const b = doc.createElement("button");
+    b.type = "button";
+    b.className = className || "keycap";
+    b.textContent = label || "";
+    if (title) b.title = title;
+    parent.appendChild(b);
+    created.push(b);
+    if (onClick) on(b, "click", onClick);
+    return b;
+  };
 
-      stopAuto(cam, hub);
+  // -----------------------------
+  // Axis row (X/Y/Z)
+  // -----------------------------
+  const axisRow = getEl("gizmoAxisRow") || null;
+  if (axisRow) {
+    clearChildren(axisRow);
 
-      const idx = resolvePresetIndexByName(name);
+    const mkAxis = (axis, label) => {
+      createBtn(axisRow, {
+        label,
+        title: `Snap to ${axis.toUpperCase()} axis`,
+        className: "keycap gizmo-axis-btn",
+        onClick: (ev) => {
+          ev.preventDefault?.();
+          const cam = camOf();
+          if (!cam) return;
 
-      if (idx != null && typeof cam.setViewPreset === "function") {
-        applyViewPresetIndex(cam, hub, idx);
-      } else if (typeof cam.setViewByName === "function") {
-        // 古い実装用フォールバック
-        cam.setViewByName(name);
-      } else if (
-        CAMERA_VIEW_DEFS &&
-        Object.prototype.hasOwnProperty.call(CAMERA_VIEW_DEFS, name) &&
-        typeof cam.setState === "function"
-      ) {
-        // さらに古い実装用の最後の保険
-        const def = CAMERA_VIEW_DEFS[name];
-        const cur =
-          typeof cam.getState === "function" ? cam.getState() : {};
-        cam.setState({
-          ...cur,
-          theta: def.theta,
-          phi: def.phi,
-        });
-      }
+          stopAuto(cam, hub);
+
+          const viewName = axisToViewName(axis);
+          const idx = viewName != null ? resolvePresetIndexByName(viewName) : null;
+
+          if (idx != null && typeof cam.setViewPreset === "function") {
+            applyViewPresetIndex(cam, hub, idx);
+          } else if (typeof cam.snapToAxis === "function") {
+            cam.snapToAxis(axis);
+          }
+        },
+      });
     };
-    btn[KEY_VIEW] = handler;
-    btn.addEventListener("click", handler);
-  });
 
-  // 例: <button data-axis-snap="z">Z</button>
-  const axisButtons = root.querySelectorAll("[data-axis-snap]");
-  axisButtons.forEach((btn) => {
-    const axis = btn.dataset.axisSnap; // "x" / "y" / "z"
-    if (!axis) return;
+    mkAxis("x", "X");
+    mkAxis("y", "Y");
+    mkAxis("z", "Z");
+  }
 
-    if (btn[KEY_AXIS]) btn.removeEventListener("click", btn[KEY_AXIS]);
+  // -----------------------------
+  // View row (iso NE/NW/SW/SE)
+  // -----------------------------
+  const viewRow = getEl("gizmoViewRow") || null;
+  if (viewRow) {
+    clearChildren(viewRow);
 
-    const handler = (ev) => {
-      ev.preventDefault();
+    const PRESETS = [
+      { name: "iso-ne", label: "NE" },
+      { name: "iso-nw", label: "NW" },
+      { name: "iso-sw", label: "SW" },
+      { name: "iso-se", label: "SE" },
+    ];
 
-      stopAuto(cam, hub);
+    PRESETS.forEach(({ name, label }) => {
+      createBtn(viewRow, {
+        label,
+        title: `View preset: ${name}`,
+        className: "keycap gizmo-view-btn",
+        onClick: (ev) => {
+          ev.preventDefault?.();
+          const cam = camOf();
+          if (!cam) return;
 
-      const viewName = axisToViewName(axis);
-      const idx = viewName != null ? resolvePresetIndexByName(viewName) : null;
+          stopAuto(cam, hub);
 
-      if (idx != null && typeof cam.setViewPreset === "function") {
-        applyViewPresetIndex(cam, hub, idx);
-      } else if (typeof cam.snapToAxis === "function") {
-        // 古い CameraEngine 実装用に一応残す
-        cam.snapToAxis(axis);
+          const idx = resolvePresetIndexByName(name);
+          if (idx != null && typeof cam.setViewPreset === "function") {
+            applyViewPresetIndex(cam, hub, idx);
+            return;
+          }
+
+          // legacy fallback（残すなら）
+          if (typeof cam.setViewByName === "function") cam.setViewByName(name);
+        },
+      });
+    });
+  }
+
+  return {
+    detach() {
+      for (let i = cleanup.length - 1; i >= 0; i--) {
+        try { cleanup[i](); } catch (_e) {}
       }
-    };
-    btn[KEY_AXIS] = handler;
-    btn.addEventListener("click", handler);
-  });
+      cleanup.length = 0;
+
+      for (let i = created.length - 1; i >= 0; i--) {
+        try { created[i]?.remove?.(); } catch (_e) {}
+      }
+      created.length = 0;
+    },
+    dispose() { this.detach(); },
+  };
 }

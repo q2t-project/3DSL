@@ -560,18 +560,18 @@ runtime_spec:
           - name: startAutoOrbit
             signature: "(opts?) → void"
             calls:
-              - "DI: core.cameraEngine.startAutoOrbit"
-              - "CALL: core.cameraEngine.startAutoOrbit(opts?)"
+              - "DI: core.camera.startAutoOrbit"
+              - "CALL: core.camera.startAutoOrbit(opts?)"
           - name: updateAutoOrbitSettings
             signature: "(opts?) → void"
             calls:
-              - "DI: core.cameraEngine.updateAutoOrbitSettings"
-              - "CALL: core.cameraEngine.updateAutoOrbitSettings(opts?)"
+              - "DI: core.camera.updateAutoOrbitSettings"
+              - "CALL: core.camera.updateAutoOrbitSettings(opts?)"
           - name: stopAutoOrbit
             signature: "() → void"
             calls:
-              - "DI: core.cameraEngine.stopAutoOrbit"
-              - "CALL: core.cameraEngine.stopAutoOrbit()"
+              - "DI: core.camera.stopAutoOrbit"
+              - "CALL: core.camera.stopAutoOrbit()"
         mode:
           - name: set
             signature: "(mode:'macro'|'micro', uuid?:string) → 'macro'|'micro'"
@@ -740,8 +740,7 @@ runtime_spec:
         - "DI: modeController.set   # startAutoOrbit で 'macro' 強制"
       responsibility:
         - "uiState.cameraState を更新/参照し、renderer に渡すための状態を作る"
-        - "startAutoOrbit/stopAutoOrbit で uiState.runtime.isCameraAuto を更新する"
-        - "startAutoOrbit は modeController.set('macro') を呼び micro を必ず抜ける（micro 中の AutoOrbit を禁止する規範）"
+        - "AutoOrbit を含むカメラ状態の更新（runtime/mode は触らない）"
 
       exports:
         - name: createCameraEngine
@@ -780,8 +779,9 @@ runtime_spec:
     - name: runtime/core/cameraController.js
       layer: core
       responsibility:
-        - "hub から呼ばれる高レベル camera API を提供する（引数正規化・uuid 解決・focus 算出など）"
-        - "cameraEngine / structIndex を束ねるが、mode は変更しない（cameraState 更新に限定）"
+        - "hub から呼ばれる camera façade（rotate/pan/zoom/reset/preset/autoOrbit 等）を提供"
+        - "uiState.runtime.isCameraAuto をこの層だけで管理する（single-writer）"
+        - "startAutoOrbit は macro 強制（micro 中 auto 禁止の規範）"
       exports:
         - name: createCameraController
           returns: cameraController
@@ -1509,9 +1509,9 @@ runtime_spec:
       - "  0) if disposed: return（core/renderer に触らない）"
       - "  1) dtSeconds を算出（推奨: clamp。例: 0〜0.1）"
       - "  2) DI: core.frameController.updatePlayback(dtSeconds)（isFramePlaying のときのみ。frame は setActive 経由で進行させる）"
-      - "  3) DI: core.cameraEngine.update(dtSeconds)（AutoOrbit/補間など）"
+      - "  3) DI: core.camera.update(dtSeconds)（AutoOrbit/補間など）""
       - "  4) if (uiState.mode === 'micro') DI: core.microController.refresh() else uiState.microState = null"
-      - "  5) renderer.updateCamera(core.cameraEngine.getState())"
+      - "  5) renderer.updateCamera(core.camera.getState())"
       - "  6) renderer.applyFrame(uiState.visibleSet)"
       - "  7) renderer.applyViewerSettings(uiState.viewerSettings)"
       - "  8) renderer.applyMicroFX(uiState.microState)"

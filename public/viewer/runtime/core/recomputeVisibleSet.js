@@ -93,6 +93,20 @@ function getMode(uiState) {
   return VALID_MODE.has(m) ? m : "macro";
 }
 
+function ensureRuntimeCanonical(uiState) {
+  const rt = uiState?.runtime;
+  if (!rt || typeof rt !== "object") {
+    uiState.runtime = {};
+    return uiState.runtime;
+  }
+  return rt;
+}
+
+function readMicroKind(ms, sel) {
+  const k = ms?.kind ?? ms?.focusKind ?? sel?.kind ?? null;
+  return (k === "points" || k === "lines" || k === "aux") ? k : null;
+}
+
 export function createRecomputeVisibleSet({
   uiState,
   structIndex,
@@ -160,7 +174,7 @@ export function createRecomputeVisibleSet({
 
 
     // 3) microState / mode 整合
-    const runtime = (uiState.runtime && typeof uiState.runtime === "object") ? uiState.runtime : {};
+    const runtime = ensureRuntimeCanonical(uiState);
     const fxMicro = uiState.viewerSettings?.fx?.micro || {};
     const microEnabled = fxMicro.enabled !== undefined ? !!fxMicro.enabled : true;
     const microBlocked = !microEnabled || !!runtime.isFramePlaying || !!runtime.isCameraAuto;
@@ -196,7 +210,61 @@ export function createRecomputeVisibleSet({
 
     uiState.mode = mode;
 
-    if (TRACE_RECOMPUTE) {
+    // 4) 「状態＝結果」スナップショット（UIはこれだけを見る）
+    {
+      const sel = uiState.selection ? { uuid: uiState.selection.uuid, kind: uiState.selection.kind ?? null } : null;
+      const ms = uiState.microState ?? null;
+      const focusUuid = typeof ms?.focusUuid === "string" ? ms.focusUuid : null;
+      const focusKind = readMicroKind(ms, uiState.selection);
+      const focusPosition =
+        Array.isArray(ms?.focusPosition) && ms.focusPosition.length >= 3
+          ? [Number(ms.focusPosition[0]) || 0, Number(ms.focusPosition[1]) || 0, Number(ms.focusPosition[2]) || 0]
+          : null;
+      const localBounds =
+        ms?.localBounds && typeof ms.localBounds === "object"
+          ? ms.localBounds
+          : null;
+
+      let blockedBy = null;
+      if (requestedMode === "micro") {
+        const selUuid = uiState.selection?.uuid ? String(uiState.selection.uuid).trim() : "";
+        if (!microEnabled) blockedBy = "microDisabled";
+        else if (!!runtime.isFramePlaying) blockedBy = "framePlaying";
+        else if (!!runtime.isCameraAuto) blockedBy = "cameraAuto";
+        else if (!selUuid) blockedBy = "noSelection";
+        else if (!_isVisibleUuid(selUuid, visibleSet)) blockedBy = "selectionHidden";
+        else if (!ms) blockedBy = "noMicroState";
+        else if (!focusPosition) blockedBy = "noFocusPosition";
+      }
+
+      runtime.status = {
+        requested: {
+          mode: requestedMode,
+          selection: sel,
+        },
+        effective: {
+          mode: uiState.mode,
+          selection: sel,
+          microReady: uiState.mode === "micro" && !!ms,
+        },
+        micro: {
+          focusUuid,
+          focusKind,
+          focusPosition,
+          localBounds,
+          blockedBy,
+        },
+        frame: {
+          index: activeFrame,
+          playing: !!runtime.isFramePlaying,
+        },
+        visibility: {
+          dirty: !!uiState._dirtyVisibleSet,
+        },
+      };
+    }
+
+if (TRACE_RECOMPUTE) {
       const selUuid = uiState.selection?.uuid ? String(uiState.selection.uuid) : null;
       console.log(`[recomputeVisibleSet #${seq}] end`, {
         ui: uiState?.__dbgId,

@@ -156,7 +156,13 @@ export function createViewerHub({ core, renderer }) {
     }
   }
 
-  // --- viewer 設定（いまはワールド座標軸の ON/OFF だけ） ---
+  // --- viewer 設定 ---
+  // NOTE:
+  // - worldAxesVisible は「hub管理」で固定（viewerSettingsController の管轄外）。
+  // - worldAxes の実体（AxesHelper）は renderer が持つが、可視/不可視の唯一の入口は
+  //   hub.viewerSettings.setWorldAxesVisible -> renderer.setWorldAxesVisible に限定する。
+  // - renderer.applyViewerSettings() では worldAxes を扱わない（= 二重管理禁止）。
+
   const viewerSettingsState = {
     // ワールド座標軸だけは当面 hub 管理でOK（Phase2の対象外にしてある）
    worldAxesVisible: false,
@@ -875,25 +881,25 @@ export function createViewerHub({ core, renderer }) {
 
       // index ベース（キーボード循環用ラッパ）
       setViewPreset: (index, opts) => {
-        if (!assertAlive()) return;
-        if (!cameraEngine) return;
-        if (typeof cameraEngine.setViewPreset === "function") {
+        const cam = core?.camera || null; // ★ core.camera façade を正とする
+        if (!cam) return;
+        if (typeof cam.setViewPreset === "function") {
           const n = Math.floor(Number(index));
           if (!Number.isFinite(n)) return;
 
-          cameraEngine.setViewPreset(n, opts || {});
+          cam.setViewPreset(n, opts || {});
 
           // hub側で canonical(uiState) を同期（UIに書かせない）
           const resolved =
-            typeof cameraEngine.getViewPresetIndex === "function"
-              ? cameraEngine.getViewPresetIndex()
+            typeof cam.getViewPresetIndex === "function"
+              ? cam.getViewPresetIndex()
               : n;
           if (core?.uiState) core.uiState.view_preset_index = resolved;
 
           commitVisibleSet("camera.setViewPreset");
         } else {
           debugHub(
-            "[hub.camera.setViewPreset] cameraEngine.setViewPreset missing",
+            "[hub.camera.setViewPreset] core.camera.setViewPreset missing",
             index
           );
         }
@@ -901,70 +907,46 @@ export function createViewerHub({ core, renderer }) {
 
         setState: (partial) => {
           if (!assertAlive()) return;
-          if (cameraEngine && typeof cameraEngine.setState === "function") {
-            cameraEngine.setState(partial);
-          }
+          const cam = core?.camera || null;
+          if (cam && typeof cam.setState === "function") cam.setState(partial);
         },
 
         getState: () => {
-          return cameraEngine && typeof cameraEngine.getState === "function"
-            ? cameraEngine.getState()
-            : null;
+          const cam = core?.camera || null;
+          return cam && typeof cam.getState === "function" ? cam.getState() : null;
         },
 
         // ★ AutoOrbit（自動ぐるり俯瞰）用のパススルー API
         startAutoOrbit: (opts) => {
           if (!assertAlive()) return;
-          if (
-            cameraEngine &&
-            typeof cameraEngine.startAutoOrbit === "function"
-          ) {
-            cameraEngine.startAutoOrbit(opts || {});
-
-            // runtime.isCameraAuto フラグもここで立てる
-            if (core.uiState && core.uiState.runtime) {
-              core.uiState.runtime.isCameraAuto = true;
-            }
+          const cam = core?.camera || null;
+          if (cam && typeof cam.startAutoOrbit === "function") {
+            cam.startAutoOrbit(opts || {}); // ★ isCameraAuto は core.camera が書く
             commitVisibleSet("camera.startAutoOrbit");
-          } else {
-            debugHub(
-              "[hub.camera.startAutoOrbit] cameraEngine.startAutoOrbit missing"
-            );
+            return;
           }
+          debugHub("[hub.camera.startAutoOrbit] core.camera.startAutoOrbit missing");
         },
 
         updateAutoOrbitSettings: (opts) => {
           if (!assertAlive()) return;
-          if (
-            cameraEngine &&
-            typeof cameraEngine.updateAutoOrbitSettings === "function"
-          ) {
-            cameraEngine.updateAutoOrbitSettings(opts || {});
-          } else {
-            debugHub(
-              "[hub.camera.updateAutoOrbitSettings] cameraEngine.updateAutoOrbitSettings missing"
-            );
+          const cam = core?.camera || null;
+          if (cam && typeof cam.updateAutoOrbitSettings === "function") {
+            cam.updateAutoOrbitSettings(opts || {});
+            return;
           }
+          debugHub("[hub.camera.updateAutoOrbitSettings] core.camera.updateAutoOrbitSettings missing");
         },
 
         stopAutoOrbit: () => {
           if (!assertAlive()) return;
-          if (
-            cameraEngine &&
-            typeof cameraEngine.stopAutoOrbit === "function"
-          ) {
-            cameraEngine.stopAutoOrbit();
-
-            // Auto 停止時に isCameraAuto を落とす
-            if (core.uiState && core.uiState.runtime) {
-              core.uiState.runtime.isCameraAuto = false;
-              commitVisibleSet("camera.stopAutoOrbit");
-            }
-          } else {
-            debugHub(
-              "[hub.camera.stopAutoOrbit] cameraEngine.stopAutoOrbit missing"
-            );
+          const cam = core?.camera || null;
+          if (cam && typeof cam.stopAutoOrbit === "function") {
+            cam.stopAutoOrbit(); // ★ isCameraAuto は core.camera が書く
+            commitVisibleSet("camera.stopAutoOrbit");
+            return;
           }
+          debugHub("[hub.camera.stopAutoOrbit] core.camera.stopAutoOrbit missing");
         },
       },
 

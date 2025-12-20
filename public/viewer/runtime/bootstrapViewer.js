@@ -156,6 +156,18 @@ function resolveI18n(value, lang = "ja") {
   return "";
 }
 
+// dev-only (optional): <pre id="scene-metrics-pre">
+// Host(/viewer) には存在しないことがあるので null 前提で扱う。
+// ※これが未宣言のまま参照されると ReferenceError で boot が止まる。
+let sceneMetricsPre = null;
+
+function resolveSceneMetricsPre() {
+  if (sceneMetricsPre) return sceneMetricsPre;
+  if (typeof document === "undefined") return null;
+  sceneMetricsPre = document.getElementById("scene-metrics-pre");
+  return sceneMetricsPre;
+}
+
 // ------------------------------------------------------------
 // document_meta / scene_meta → documentCaption(title/body) 正規化
 //   - 新: document_meta.document_title / document_summary
@@ -612,6 +624,7 @@ const addUuid = (u, path) => {
  */
 
 export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
+  resolveSceneMetricsPre();
   debugBoot("[bootstrap] bootstrapViewer: start");
   debugBoot("[bootstrap] received 3DSS keys =", Object.keys(document3dss || {}));
 
@@ -665,6 +678,14 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   const structIndex = buildUUIDIndex(struct);
   const frameRange = detectFrameRange(struct);
 
+  // 後で renderer.syncDocument 後に確定させる。とりあえず先に宣言だけする（TDZ回避）
+  const sceneMetrics =
+   (typeof structIndex?.getSceneBounds === "function"
+     ? structIndex.getSceneBounds()
+     : null) ||
+   structIndex?.metrics ||
+   null;
+
   // 4) controllers
   const uiState = createUiState({
     view_preset_index: 3, // iso_ne
@@ -673,13 +694,23 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     cameraState: { theta: 0, phi: 1, distance: 4, target: { x: 0, y: 0, z: 0 }, fov: 50 },
   });
 
+ const initialCameraState =
+   (uiState && uiState.cameraState && typeof uiState.cameraState === "object")
+     ? uiState.cameraState
+     : {};
+  
+  // modeController は後で代入する（forceMacro の参照を安全に）
+  let modeController = null;
+
+  // viewerSettings（ここで必ず生成）
   const viewerSettingsController = createViewerSettingsController(uiState, {
     lineWidthMode: "auto",
     microFXProfile: "normal",
     fov: options?.viewerSettings?.camera?.fov,
   });
 
-  const cameraEngine = createCameraEngine(uiState.cameraState, { metrics: null });
+  // engine は純粋に cameraState 更新だけ（runtime/mode は触らん）
+  const cameraEngine = createCameraEngine(initialCameraState, { metrics: sceneMetricsPre });
   const cameraTransition = createCameraTransition(cameraEngine, { durationMs: 220 });
 
   const selectionController = createSelectionController(uiState, structIndex, {
@@ -694,7 +725,7 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   const frameController = createFrameController(uiState, visibilityController);
   const microController = createMicroController(uiState, structIndex);
 
-  const modeController = createModeController(
+  modeController = createModeController(
     uiState,
     selectionController,
     cameraEngine,
@@ -705,18 +736,25 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     structIndex
   );
 
+  // ★ core.camera は façade（ここが runtime.isCameraAuto を一元管理）
+  const camera = createCoreCamera(uiState, cameraEngine, modeController);
+
   // 5) renderer.syncDocument
   if (typeof renderer.syncDocument === "function") {
     renderer.syncDocument(struct, structIndex);
   }
 
-  // 6) metrics → initial camera
-  const metrics =
-    structIndex?.bounds ||
-    (typeof structIndex?.getSceneBounds === "function" ? structIndex.getSceneBounds() : null) ||
-    (typeof renderer.getSceneMetrics === "function" ? renderer.getSceneMetrics() : null);
+  // 6) metrics → initial camera（syncDocument 後の renderer 由来が取れるなら優先）
+  const sceneMetricsFinal =
+    (typeof renderer.getSceneMetrics === "function" ? renderer.getSceneMetrics() : null) ||
+    sceneMetricsPre;
 
-  applyInitialCameraFromMetrics(uiState, cameraEngine, metrics, viewerSettingsController.getFov?.());
+  applyInitialCameraFromMetrics(
+    uiState,
+    cameraEngine,
+    sceneMetricsFinal,
+    viewerSettingsController?.getFov?.()
+  );
 
   // iso preset は「角度だけ」採用して target/distance は metrics を優先
   if (typeof cameraEngine.setViewPreset === "function") {
@@ -776,6 +814,8 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
 
   recomputeVisibleSet?.();
 
+  // camera はすでに createCoreCamera で確定（ここで再定義しない）
+
   const core = {
     data: struct,
     structIndex,
@@ -787,6 +827,7 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     sceneMeta,
 
     uiState,
+    camera,
     viewerSettingsController,
     cameraEngine,
     cameraTransition,
@@ -814,6 +855,19 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   const wantDevBootLog = options.devBootLog === true;
   if (wantDevBootLog) emitDevBootLog(core, options);
 
+  // ------------------------------------------------------------
+  // DEV: expose hub to global for console debugging
+  // - enable by: ?dbgHub=1
+  // ------------------------------------------------------------
+  try {
+    const sp = new URLSearchParams(globalThis.location?.search ?? "");
+    if (sp.get("dbgHub") === "1") {
+      globalThis.viewerHub = hub;
+      console.log("[boot] dbgHub=1 -> globalThis.viewerHub exposed", hub);
+    }
+  } catch (_e) {}
+
+
   return hub;
 }
 
@@ -828,6 +882,64 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
  * @param {BootstrapOptions} [options]
  * @returns {Promise<import("./viewerHub.js").ViewerHub>}
  */
+
+// ------------------------------------------------------------
+// core.camera façade（uiState.runtime.isCameraAuto は core が管理）
+//   - 手動操作が入ったら必ず autoOrbit を止める
+//   - startAutoOrbit は必ず macro に戻す（micro 中 auto 禁止）
+// ------------------------------------------------------------
+function createCoreCamera(uiState, cameraEngine, modeController) {
+  const rt = uiState.runtime || (uiState.runtime = {});
+ if (typeof rt.isCameraAuto !== "boolean") rt.isCameraAuto = false;
+
+  const setAuto = (v) => { rt.isCameraAuto = !!v; };
+  const api = {};
+
+  const stopAutoIfRunning = () => {
+    if (!rt.isCameraAuto) return;
+    try { api.stopAutoOrbit?.(); } catch (_e) {}
+    setAuto(false);
+  };
+
+  Object.assign(api, {
+    // viewerHub render loop 用
+    update: (dtSeconds) => cameraEngine.update?.(dtSeconds),
+
+    // 手動操作は auto を止める
+    rotate: (dTheta, dPhi) => (stopAutoIfRunning(), cameraEngine.rotate(dTheta, dPhi)),
+    pan:    (dx, dy)       => (stopAutoIfRunning(), cameraEngine.pan(dx, dy)),
+    zoom:   (delta)        => (stopAutoIfRunning(), cameraEngine.zoom(delta)),
+    setState: (partial)    => (stopAutoIfRunning(), cameraEngine.setState(partial)),
+
+    reset: () => {
+      stopAutoIfRunning();
+      setAuto(false);
+      return cameraEngine.reset();
+    },
+
+    snapToAxis:    (axis) => (stopAutoIfRunning(), cameraEngine.snapToAxis(axis)),
+    setViewByName: (name) => (stopAutoIfRunning(), cameraEngine.setViewByName(name)),
+    setViewPreset: (i, o) => (stopAutoIfRunning(), cameraEngine.setViewPreset(i, o)),
+
+    startAutoOrbit: (opts = {}) => {
+      // micro 中 autoOrbit を禁止 → 必ず macro に戻す
+      try { modeController?.set?.("macro"); } catch (_e) {}
+      try { modeController?.forceMacro?.(); } catch (_e) {}
+      setAuto(true);
+      return cameraEngine.startAutoOrbit?.(opts);
+    },
+    updateAutoOrbitSettings: (opts = {}) => cameraEngine.updateAutoOrbitSettings?.(opts),
+    stopAutoOrbit: () => {
+      setAuto(false);
+      return cameraEngine.stopAutoOrbit?.();
+    },
+
+    // 状態参照
+    getState: () => cameraEngine.getState(),
+    getViewPresetIndex: () => cameraEngine.getViewPresetIndex?.(),
+  });
+  return api;
+}
 
 export async function bootstrapViewerFromUrl(canvasOrId, url, options = {}) {
   debugBoot("[bootstrap] bootstrapViewerFromUrl:", url);

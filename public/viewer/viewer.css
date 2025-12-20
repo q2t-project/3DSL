@@ -670,6 +670,35 @@ body {
   background: rgba(255, 255, 255, 0.18);
 }
 
+[data-role="gizmo-axis-row"] .gizmo-axis-btn,
+[data-role="gizmo-view-row"] .gizmo-view-btn {
+  /* hit area / sizing */
+  min-width: 26px;
+  height: 22px;
+  padding: 0 8px;
+
+  /* typography */
+  font-size: 11px;
+  line-height: 1;
+
+  /* avoid layout wobble */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 任意：ホバー/押下の効き（keycapが既に持ってるなら不要） */
+[data-role="gizmo-axis-row"] .gizmo-axis-btn:hover,
+[data-role="gizmo-view-row"] .gizmo-view-btn:hover {
+  filter: brightness(1.08);
+}
+
+[data-role="gizmo-axis-row"] .gizmo-axis-btn:active,
+[data-role="gizmo-view-row"] .gizmo-view-btn:active {
+  transform: translateY(1px);
+}
+
+
 /* coord. アイコン共通（world-axis） */
 .coordinate-icon-img {
   width: 20px;

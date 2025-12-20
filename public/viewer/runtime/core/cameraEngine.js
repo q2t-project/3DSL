@@ -40,15 +40,20 @@ function sanitizeScalarCoord(v) {
 }
 
 function sanitizePosition(positionVec3) {
-  if (!Array.isArray(positionVec3) || positionVec3.length !== 3) {
-    return [0, 0, 0];
+  if (Array.isArray(positionVec3) && positionVec3.length === 3) {
+    return positionVec3.map((v) => {
+      let n = Number(v);
+      if (!Number.isFinite(n)) n = 0;
+      return clamp(n, -MAX_COORD, MAX_COORD);
+    });
   }
-
-  return positionVec3.map((v) => {
-    let n = Number(v);
-    if (!Number.isFinite(n)) n = 0;
-    return clamp(n, -MAX_COORD, MAX_COORD);
-  });
+  if (positionVec3 && typeof positionVec3 === "object") {
+    const x = sanitizeScalarCoord(positionVec3.x);
+    const y = sanitizeScalarCoord(positionVec3.y);
+    const z = sanitizeScalarCoord(positionVec3.z);
+    return [x, y, z];
+  }
+  return [0, 0, 0];
 }
 
 function normalizePresetIndex(index) {
@@ -112,7 +117,7 @@ function deriveMetricsDefaults(metrics) {
  */
 
 export function createCameraEngine(initialState = {}, options = {}) {
-  // ★ metrics: { center, radius } をここで受ける想定
+  // ★ engine は “純粋にカメラ状態のみ” を管理する（runtime/mode/uiState は触らない）
   const { metrics } = options;
 
   const metricsDefaults = deriveMetricsDefaults(metrics);
@@ -198,6 +203,7 @@ export function createCameraEngine(initialState = {}, options = {}) {
      * 距離 / ターゲット / FOV はそのまま、theta/phi だけ切り替える。
      */
     snapToAxis(axis) {
+      currentPresetIndex = null;
       const raw = String(axis || "").toLowerCase();
 
       let key = null;
@@ -248,6 +254,7 @@ export function createCameraEngine(initialState = {}, options = {}) {
     // 名前からビューを切り替え ("front" / "top" / "iso-ne" など)
     // --------------------------------------------------------
     setViewByName(name) {
+      currentPresetIndex = null;
       if (!name) return state;
 
       const raw = String(name);
@@ -356,6 +363,7 @@ export function createCameraEngine(initialState = {}, options = {}) {
     //   - dPhi  : 垂直回転量（rad）
     // --------------------------------------------------------
     rotate(dTheta, dPhi) {
+      currentPresetIndex = null;
       let dth = Number(dTheta);
       let dph = Number(dPhi);
       if (!Number.isFinite(dth)) dth = 0;
@@ -372,6 +380,11 @@ export function createCameraEngine(initialState = {}, options = {}) {
 
     // Z-up 版パン処理
     pan(dx, dy) {
+      currentPresetIndex = null;
+      let ndx = Number(dx);
+      let ndy = Number(dy);
+      if (!Number.isFinite(ndx)) ndx = 0;
+      if (!Number.isFinite(ndy)) ndy = 0;
       const cosTheta = Math.cos(state.theta);
       const sinTheta = Math.sin(state.theta);
 
@@ -380,20 +393,19 @@ export function createCameraEngine(initialState = {}, options = {}) {
       const rightY =  cosTheta;
 
       // カメラ移動と逆向きにターゲットを動かす
-      state.target.x = sanitizeScalarCoord(
-        state.target.x + -dx * rightX
-      );
-      state.target.y = sanitizeScalarCoord(
-        state.target.y + -dx * rightY
-      );
+      state.target.x = sanitizeScalarCoord(state.target.x + (-ndx * rightX));
+      state.target.y = sanitizeScalarCoord(state.target.y + (-ndx * rightY));
       state.target.z = sanitizeScalarCoord(
-        state.target.z + dy
+        state.target.z + ndy
       );
       return state;
     },
 
     zoom(delta) {
-      const factor = 1 + delta;
+      currentPresetIndex = null;
+      let d = Number(delta);
+      if (!Number.isFinite(d)) d = 0;
+      const factor = 1 + d;
       state.distance = clamp(
         state.distance * factor,
         MIN_DISTANCE,
@@ -452,6 +464,7 @@ export function createCameraEngine(initialState = {}, options = {}) {
       if (!Number.isFinite(d) || d <= 0) return state;
 
       if (autoOrbit.enabled && autoOrbit.angularSpeed > 0) {
+        currentPresetIndex = null;
         const deltaAngle =
           autoOrbit.direction * autoOrbit.angularSpeed * d;
         state.theta += deltaAngle;
@@ -464,6 +477,7 @@ export function createCameraEngine(initialState = {}, options = {}) {
      * AutoOrbit 開始
      */
   startAutoOrbit(opts = {}) {
+    currentPresetIndex = null;
     const {
       center,
       radius,
@@ -553,22 +567,24 @@ export function createCameraEngine(initialState = {}, options = {}) {
     },
 
     setState(partial) {
+      currentPresetIndex = null;
       if (!partial || typeof partial !== "object") return state;
 
-      if ("theta" in partial) state.theta = partial.theta;
+      if ("theta" in partial) {
+        const n = Number(partial.theta);
+        if (Number.isFinite(n)) state.theta = n;
+      }
       if ("phi" in partial) {
-        state.phi = clamp(
-          partial.phi,
-          EPSILON,
-          Math.PI - EPSILON
-        );
+        const n = Number(partial.phi);
+        if (Number.isFinite(n)) {
+          state.phi = clamp(n, EPSILON, Math.PI - EPSILON);
+        }
       }
       if ("distance" in partial) {
-        state.distance = clamp(
-          partial.distance,
-          MIN_DISTANCE,
-          MAX_DISTANCE
-        );
+        const n = Number(partial.distance);
+        if (Number.isFinite(n)) {
+          state.distance = clamp(n, MIN_DISTANCE, MAX_DISTANCE);
+        }
       }
 
       if (partial.target && typeof partial.target === "object") {
@@ -583,7 +599,10 @@ export function createCameraEngine(initialState = {}, options = {}) {
         }
       }
 
-      if ("fov" in partial) state.fov = partial.fov;
+      if ("fov" in partial) {
+        const n = Number(partial.fov);
+        if (Number.isFinite(n)) state.fov = n;
+      }
 
       return state;
     },
