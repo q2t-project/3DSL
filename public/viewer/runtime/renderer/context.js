@@ -3,7 +3,7 @@
 import * as THREE from "../../../vendor/three/build/three.module.js";
 import { applyMicroFX as applyMicroFXImpl, clearMicroFX as clearMicroFXImpl } from "./microFX/index.js";
 import { microFXConfig } from "./microFX/config.js";
-import { buildPointLabelIndex } from "../utils/labelIndex.js";
+import { buildPointLabelIndex } from "./labels/labelIndex.js";
 import { createLabelRuntime } from "./labels/labelRuntime.js";
 import { createWorldAxesLayer } from "./worldAxes.js";
 import { createLineEffectsRuntime } from "./effects/lineEffects.js";
