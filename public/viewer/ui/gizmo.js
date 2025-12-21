@@ -7,6 +7,7 @@ import {
   CAMERA_VIEW_ALIASES,
   CAMERA_VIEW_PRESET_SEQUENCE,
 } from "../runtime/core/cameraViewDefs.js";
+import { mapDragToOrbitDelta, ORBIT_SENS } from "./orbitMapping.js";
 
 // ------------------------------------------------------------
 // perf tuning（gizmoだけ軽量化）
@@ -936,7 +937,12 @@ function tick(now) {
       return;
     }
 
-    const state = hub.core.camera.getState();
+    const state =
+      (typeof hub.core.camera.getCurrentSnapshot === "function")
+        ? hub.core.camera.getCurrentSnapshot(_camSnap)
+        : (typeof hub.core.camera.getSnapshot === "function")
+          ? hub.core.camera.getSnapshot(_camSnap)
+          : hub.core.camera.getState();
     if (!state) return;
 
     const theta = typeof state.theta === "number" ? state.theta : 0;
@@ -1038,12 +1044,10 @@ function tick(now) {
     lastY = ev.clientY;
     dragDistSq += dx * dx + dy * dy;
 
-    const SENS_THETA = 0.01;
-    const SENS_PHI = 0.01;
-
     startInteractiveLoop();
 
-    cam.rotate(dx * SENS_THETA, -dy * SENS_PHI);
+    const { dTheta, dPhi } = mapDragToOrbitDelta(dx, dy, ORBIT_SENS);
+    cam.rotate(dTheta, dPhi);
 
     ev.preventDefault();
   }
@@ -1116,21 +1120,52 @@ function tick(now) {
     ev.preventDefault();
   }
 
-  let lastHubHash = "";
+  // rAF 監視用：snapshot 再利用（GC出さん）
+  const _camSnap = { target: { x: 0, y: 0, z: 0 } };
+  let _lastTheta = NaN;
+  let _lastPhi = NaN;
+  let _lastFov = NaN;
+  let _lastPresetIdx = null;
+  let _lastMode = "";
+  let _lastAuto = null;
 
-  function calcHubHash() {
-    const st = hub?.core?.camera?.getState?.();
-    if (!st) return "";
-    const t = Number(st.theta ?? 0).toFixed(4);
-    const p = Number(st.phi ?? 0).toFixed(4);
-    const f = (st.fov != null) ? Number(st.fov).toFixed(2) : "";
-    const idx = hub?.core?.camera?.getViewPresetIndex?.();
-    const mode = (() => {
-      const m = hub?.core?.uiState?.runtime?.status?.effective?.mode;
-      return (m === "micro" || m === "macro") ? m : "";
-    })();
-    const auto = hub?.core?.uiState?.runtime?.isCameraAuto ? "1" : "0";
-    return `${t}|${p}|${f}|${idx ?? ""}|${mode}|${auto}`;
+  function readCameraSnapshot() {
+    const cam = hub?.core?.camera;
+    if (!cam) return null;
+    if (typeof cam.getCurrentSnapshot === "function") return cam.getCurrentSnapshot(_camSnap);
+    if (typeof cam.getSnapshot === "function") return cam.getSnapshot(_camSnap);
+    if (typeof cam.getState === "function") return cam.getState(); // fallback（参照返し）
+    return null;
+  }
+
+  function detectCameraChange(st) {
+    if (!st) return false;
+    const theta = Number(st.theta);
+    const phi = Number(st.phi);
+    const fov = Number(st.fov);
+    const idx = hub?.core?.camera?.getViewPresetIndex?.() ?? null;
+    const mode = readMode();
+    const auto = readAuto();
+
+    const eps = 1e-7;
+    const changed =
+      !Number.isFinite(_lastTheta) ||
+      Math.abs(theta - _lastTheta) > eps ||
+      Math.abs(phi - _lastPhi) > eps ||
+      Math.abs(fov - _lastFov) > 1e-4 ||
+      idx !== _lastPresetIdx ||
+      mode !== _lastMode ||
+      auto !== _lastAuto;
+
+    if (changed) {
+      _lastTheta = theta;
+      _lastPhi = phi;
+      _lastFov = fov;
+      _lastPresetIdx = idx;
+      _lastMode = mode;
+      _lastAuto = auto;
+    }
+    return changed;
   }
 
   canvas.addEventListener("pointerdown", handlePointerDown);
@@ -1158,29 +1193,38 @@ function tick(now) {
   // 以後の更新用に rAF 1回だけ回しとく（重くならん）
   requestRender();
 
-  const pollId = win.setInterval(() => {
-    if (isDisposed) return;
+  let monitorRafId = null;
 
-    // idleでもisoビームだけ軽く点滅させる
-    if (presetsVisible && activePresetKey) {
-      updatePresetBeams(performance.now() / 1000);
-      requestRender();
-    }
+  function monitor() {
+  if (isDisposed) return;
 
-    const h = calcHubHash();
-    if (h && h !== lastHubHash) {
-      lastHubHash = h;
-      syncHudFromHub();
-      requestRender();
-    }
-  }, 120);
+  const st = readCameraSnapshot();
+  const changed = detectCameraChange(st);
 
+  // 変化してたらHUD同期＋描画要求（tick側が syncCameraFromHub して render）
+  if (changed) {
+    syncHudFromHub();
+    requestRender();
+  }
+
+  // プリセット表示中のビーム点滅は rAF で回したいならここで requestRender
+  if (presetsVisible && activePresetKey) {
+    requestRender();
+  }
+
+  monitorRafId = win.requestAnimationFrame(monitor);
+}
+
+monitorRafId = win.requestAnimationFrame(monitor);
 function dispose() {
   console.log("[gizmo] dispose called");
   if (isDisposed) return;
   isDisposed = true;
 
-  try { win.clearInterval(pollId); } catch (_e) {}
+  if (monitorRafId != null) {
+    try { win.cancelAnimationFrame(monitorRafId); } catch (_e) {}
+    monitorRafId = null;
+  }
   try { offAutoToggle?.(); } catch (_e) {}
   try { offCW?.(); } catch (_e) {}
   try { offCCW?.(); } catch (_e) {}

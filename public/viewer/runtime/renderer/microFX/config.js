@@ -51,17 +51,11 @@ export const microFXConfig = {
   },
 
   glow: {
-    // カメラ→点 方向へのオフセット係数（距離に対する比率）
-    // 距離 dist に対して dist * offsetFactor だけカメラ側へ寄せる
-    offsetFactor: 0.04,
-
-    // world 座標系での「グロー半径」の基準値（unitless）
-    // ここを変えると、ズームしたときの見かけの大きさも一緒に変わる。
-    baseScale: 0.4,
-
-    // 安全のためのクランプ（unitless）
-    minScale: 0.1,
-    maxScale: 3.0,
+    screenPx: 96,   // ここ変えたらサイズ変わる（必ず）
+    offsetPx: 16,   // 点と被らん程度
+    // 必要なら安全柵（無しでもOK）
+    // minWorldScale: 0.001,
+    // maxWorldScale: 1000,
   },
 
   // micro モード時の「親等別」強調ポリシー

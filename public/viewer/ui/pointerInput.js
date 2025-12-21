@@ -1,6 +1,7 @@
 // viewer/ui/pointerInput.js
 // canvas 上の pointer / wheel イベントを受けて
 // hub.core.camera / hub.core.selection / hub.core.mode を操作する UI 入力アダプタ。
+import { mapDragToOrbitDelta } from "./orbitMapping.js";
 
 const ROTATE_SPEED = 0.005;
 const PAN_SPEED = 0.002;
@@ -22,6 +23,8 @@ export class PointerInput {
     this.clickPending = false;
     this._activePointerId = null;
     this._dragging = false;
+    
+    this._camSnap = { target: { x: 0, y: 0, z: 0 } };
 
     // UI から見える統一 camera API（hub.core.camera）だけ触る
     this.camera = this._resolveCamera();
@@ -103,8 +106,15 @@ export class PointerInput {
     if (!core) return null;
 
     const camApi = core.camera || core.cameraEngine;
-    if (camApi && typeof camApi.getState === "function") {
-      return camApi.getState();
+    if (!camApi) return null;
+    if (typeof camApi.getCurrentSnapshot === "function") {
+      return camApi.getCurrentSnapshot(this._camSnap);
+    }
+    if (typeof camApi.getSnapshot === "function") {
+      return camApi.getSnapshot(this._camSnap);
+    }
+    if (typeof camApi.getState === "function") {
+      return camApi.getState(); // fallback
     }
     return null;
   }
@@ -146,7 +156,7 @@ export class PointerInput {
     this.lastY = event.clientY;
 
     // 一定以上動いたら「クリック」ではなくドラッグ扱い
-    if (Math.hypot(dx, dy) > 2) {
+    if ((dx * dx + dy * dy) > (2 * 2)) {
       this.clickPending = false;
       this._dragging = true;
 
@@ -163,7 +173,11 @@ export class PointerInput {
       const panScale = distance * PAN_SPEED;
       this.dispatch("pan", dx * panScale, dy * panScale);
     } else {
-      this.dispatch("rotate", dx * ROTATE_SPEED, dy * ROTATE_SPEED);
+      const { dTheta, dPhi } = mapDragToOrbitDelta(dx, dy, {
+        theta: ROTATE_SPEED,
+        phi: ROTATE_SPEED,
+      });
+      this.dispatch("rotate", dTheta, dPhi);
     }
   }
 

@@ -357,6 +357,25 @@ export function createCameraEngine(initialState = {}, options = {}) {
       return 0;
     },
 
+    // ★ 呼び出し側が state を壊さんようにコピーで返す（out を渡せば再利用）
+    getSnapshot(out) {
+      const o = (out && typeof out === "object") ? out : {};
+      o.theta = state.theta;
+      o.phi = state.phi;
+      o.distance = state.distance;
+      o.fov = state.fov;
+      const tgt = o.target && typeof o.target === "object" ? o.target : (o.target = {});
+      tgt.x = state.target.x;
+      tgt.y = state.target.y;
+      tgt.z = state.target.z;
+      return o;
+    },
+
+    // ★ 将来 current/target 分離したくなった時の逃げ道。現状は snapshot と同じでOK
+    getCurrentSnapshot(out) {
+      return api.getSnapshot(out);
+    },
+
     // --------------------------------------------------------
     // 角度回転（オービット）
     //   - dTheta: 水平回転量（rad）

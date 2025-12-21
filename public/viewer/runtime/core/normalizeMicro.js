@@ -69,7 +69,15 @@ function getItemByUuid(structIndex, uuid) {
   if (!u2i || typeof u2i.get !== "function") return null;
   try {
     const rec = u2i.get(uuid);
-    return rec?.item ?? rec?.data ?? rec?.value ?? rec ?? null;
+    const node =
+      rec?.item ??
+      rec?.point ??
+      rec?.line ??
+      rec?.aux ??
+      rec?.data ??
+      rec?.value ??
+      rec;
+    return node && typeof node === "object" ? node : null;
   } catch (_e) {
     return null;
   }
@@ -77,17 +85,26 @@ function getItemByUuid(structIndex, uuid) {
 
 function readPointPosFromItem(p) {
   return readVec3(
+    p?.geometry?.position ??
     p?.appearance?.position ??
-      p?.position ??
-      p?.pos ??
-      p?.xyz ??
-      null,
+    p?.position ??
+    p?.pos ??
+    p?.xyz ??
+    null,
     null
   );
 }
 
 function readEndpointPos(ep, structIndex) {
   if (!ep) return null;
+  // UUID 文字列そのまま（end_a_uuid 等の互換）
+  if (typeof ep === "string") {
+    const u = ep.trim();
+    if (!u) return null;
+    const p = getItemByUuid(structIndex, u);
+    return readPointPosFromItem(p);
+  }
+
   // 直座標優先
   const direct =
     readVec3(ep?.coord ?? ep?.position ?? ep?.pos ?? ep?.xyz ?? null, null);
@@ -96,6 +113,7 @@ function readEndpointPos(ep, structIndex) {
   // ref/uuid 経由
   const ref =
     (typeof ep?.ref === "string" && ep.ref) ||
+    (typeof ep?.ref?.uuid === "string" && ep.ref.uuid) ||
     (typeof ep?.uuid === "string" && ep.uuid) ||
     (typeof ep?.id === "string" && ep.id) ||
     null;
@@ -104,21 +122,40 @@ function readEndpointPos(ep, structIndex) {
   return readPointPosFromItem(p);
 }
 
-function readLineMidpointFromItem(line, structIndex) {
+function readLineMidpointFromItem(line, structIndex, lineUuid) {
   if (!line) return null;
+
+  // structIndex が lineEndpoints を持ってるなら最優先（microController と揃える）
+  if (lineUuid && structIndex?.lineEndpoints instanceof Map) {
+    const ep = structIndex.lineEndpoints.get(lineUuid);
+    if (ep) {
+      const pa = readEndpointPos(ep.endA ?? ep.end_a ?? ep.a ?? ep.start ?? ep.from ?? null, structIndex);
+      const pb = readEndpointPos(ep.endB ?? ep.end_b ?? ep.b ?? ep.end ?? ep.to   ?? null, structIndex);
+      if (pa && pb) return [(pa[0] + pb[0]) / 2, (pa[1] + pb[1]) / 2, (pa[2] + pb[2]) / 2];
+    }
+  }
+
   const a =
     line?.end_a ??
     line?.endA ??
     line?.a ??
     line?.start ??
     line?.from ??
+    line?.end_a_uuid ??
+    line?.endAUuid ??
+    line?.a_uuid ??
+    line?.aUuid ??
     null;
   const b =
     line?.end_b ??
     line?.endB ??
     line?.b ??
     line?.end ??
-   line?.to ??
+    line?.to ??
+    line?.end_b_uuid ??
+    line?.endBUuid ??
+    line?.b_uuid ??
+    line?.bUuid ??
     null;
   const pa = readEndpointPos(a, structIndex);
   const pb = readEndpointPos(b, structIndex);
@@ -166,7 +203,10 @@ export function normalizeMicro(microState, ctx = {}) {
   // kind（任意だが、あると downstream が楽）
   const k0 = selection?.kind;
   const focusKind = KIND_SET.has(k0) ? k0 : inferKind(focusUuid, visibleSet, structIndex);
-  if (focusKind) out.focusKind = focusKind;
+  if (focusKind) {
+    out.focusKind = focusKind;
+    if (!out.kind) out.kind = focusKind;
+  }
 
   // relatedUuids を整形（重複除去 + visibleSet filter）
   const relRaw = Array.isArray(out.relatedUuids)
@@ -190,14 +230,39 @@ export function normalizeMicro(microState, ctx = {}) {
 
   // focusPosition を補完
   let pos = readVec3(out.focusPosition, null);
+
+  // points: structIndex.pointPosition を最優先（microController と同じルート）
+  if (!pos && focusKind === "points") {
+    const pm = structIndex?.pointPosition;
+    if (pm instanceof Map) {
+      pos = readVec3(pm.get(focusUuid), null);
+    }
+  }
+
   if (!pos) {
     const item = getItemByUuid(structIndex, focusUuid);
     pos = readPointPosFromItem(item);
   }
+
+  // lines: structIndex.lineEndpoints から中点（microController と同じルート）
+  if (!pos && focusKind === "lines") {
+    const lm = structIndex?.lineEndpoints;
+    if (lm instanceof Map) {
+      const ep = lm.get(focusUuid);
+      const a = ep?.endA ?? ep?.end_a ?? ep?.a ?? ep?.start ?? ep?.from ?? null;
+      const b = ep?.endB ?? ep?.end_b ?? ep?.b ?? ep?.end   ?? ep?.to   ?? null;
+      const pa = readEndpointPos(a, structIndex);
+      const pb = readEndpointPos(b, structIndex);
+      if (pa && pb) {
+        pos = [(pa[0] + pb[0]) / 2, (pa[1] + pb[1]) / 2, (pa[2] + pb[2]) / 2];
+      }
+    }
+  }
+
   // line の場合は midpoint を試す
   if (!pos && focusKind === "lines") {
     const item = getItemByUuid(structIndex, focusUuid);
-    pos = readLineMidpointFromItem(item, structIndex);
+    pos = readLineMidpointFromItem(item, structIndex, focusUuid);
   }
   if (pos) out.focusPosition = pos;
 

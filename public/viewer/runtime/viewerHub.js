@@ -1100,6 +1100,8 @@ export function createViewerHub({ core, renderer }) {
     hub.core.__dbg = hub.__dbg;
   }
 
+  if (typeof window !== "undefined") window.__hub = hub;
+
 
   return hub;
 }

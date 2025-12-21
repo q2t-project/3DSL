@@ -221,6 +221,19 @@ if (!DEBUG_MICROFX) {
     kind,
   } = lastMicroState;
 
+  // focusPosition が無いケースのフォールバック
+  // ※ hover のときに camera.target 使うとズレるから isHover では使わん
+  const focusPosRaw =
+    Array.isArray(focusPosition)
+      ? focusPosition
+      : (!isHover &&
+         cameraState?.target &&
+         Number.isFinite(cameraState.target.x) &&
+         Number.isFinite(cameraState.target.y) &&
+         Number.isFinite(cameraState.target.z))
+      ? [cameraState.target.x, cameraState.target.y, cameraState.target.z]
+      : null;
+
   // localAxes が未指定でも、focusPosition があればそこを原点とする標準 XYZ 軸を自動生成
   let effectiveLocalAxes = localAxes;
   if (!effectiveLocalAxes && Array.isArray(focusPosition)) {
@@ -266,11 +279,34 @@ if (!DEBUG_MICROFX) {
     removeMarker(scene);
   }
 
+  // dbg: focus が変わった時だけ1回出す（ログ汚染防止）
+  const __u = microState?.focusUuid ?? microState?.uuid ?? null;
+  if (__u && window.__dbg_microfx_u !== __u) {
+    window.__dbg_microfx_u = __u;
+    const obj = (typeof getObjectByUuid === "function") ? getObjectByUuid(__u, indexMaps) : null;
+    console.log("[dbg microFX]", {
+      kind,
+      hasCamera: !!camera,
+      hasFocus: !!sanitizedFocus,
+      hasObj: !!obj,
+      objType: obj?.type ?? obj?.constructor?.name ?? null,
+      isObject3D: !!obj?.isObject3D,
+      maps: indexMaps ? Object.keys(indexMaps) : null,
+    });
+  }
+
+
   // --- Glow ---
-  // 線選択時（kind === "lines"）は中点からの玉グローは出さない
-  if (sanitizedFocus && camera && kind !== "lines") {
+  if (sanitizedFocus && camera) {
     const glow = ensureGlow(scene);
-    updateGlow(glow, sanitizedFocus, camera, intensity);
+
+    // canvas 高さを渡せるならそれがベスト（indexMaps 側で詰めろ）
+    const viewportH =
+      indexMaps?.viewport?.h ??
+      indexMaps?.viewportH ??
+      window.innerHeight;
+
+    updateGlow(glow, sanitizedFocus, camera, intensity, viewportH);
   } else {
     removeGlow(scene);
   }

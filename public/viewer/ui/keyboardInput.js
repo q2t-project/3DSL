@@ -1,4 +1,5 @@
 // viewer/ui/keyboardInput.js
+import { mapArrowKeyToOrbitDelta } from "./orbitMapping.js";
 
 const DEBUG_KEYBOARD = false;
 
@@ -230,30 +231,13 @@ export class KeyboardInput {
     const BASE_STEP = Math.PI / 90; // ≒ 2°
     const FAST_STEP = Math.PI / 45; // ≒ 4°
     const step = ev.shiftKey ? FAST_STEP : BASE_STEP;
-
-    switch (code) {
-      case "ArrowLeft":
-        ev.preventDefault();
-        this.stopAutoCamera();
-        camera.rotate(-step, 0);
-        return;
-      case "ArrowRight":
-        ev.preventDefault();
-        this.stopAutoCamera();
-        camera.rotate(step, 0);
-        return;
-      case "ArrowUp":
-        ev.preventDefault();
-        this.stopAutoCamera();
-        camera.rotate(0, -step); // 上：上にチルト
-        return;
-      case "ArrowDown":
-        ev.preventDefault();
-        this.stopAutoCamera();
-        camera.rotate(0, step); // 下：下にチルト
-        return;
-      default:
-        return;
+    
+    const { dTheta, dPhi } = mapArrowKeyToOrbitDelta(code, step);
+    if (dTheta !== 0 || dPhi !== 0) {
+      ev.preventDefault();
+      this.stopAutoCamera();
+      camera.rotate(dTheta, dPhi);
+      return;
     }
-  }
+    return;  }
 }

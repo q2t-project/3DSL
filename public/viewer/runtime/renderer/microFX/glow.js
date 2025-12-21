@@ -1,18 +1,10 @@
 // viewer/runtime/renderer/microFX/glow.js
-
 import * as THREE from "../../../../vendor/three/build/three.module.js";
 import { microFXConfig } from "./config.js";
-
-// microState.focusPosition をアンカーにした「輝き」オーバーレイ。
-// - position: world 座標系（unitless）の点位置（通常は microState.focusPosition）
-// - offsetFactor: カメラ距離 dist に対する係数（無次元）
-// - baseScale / minScale / maxScale: 同一 world 長さ単位でのスカラー
-//   （viewer 全体での「unitless world 長さ」に揃える）
 
 let glow = null;
 let glowTexture = null;
 
-// 中心が最も明るく、外側へ向かって透明になるラジアルグラデのテクスチャ
 function getGlowTexture() {
   if (glowTexture) return glowTexture;
 
@@ -20,6 +12,7 @@ function getGlowTexture() {
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
+
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
 
@@ -45,10 +38,35 @@ function getGlowTexture() {
   return glowTexture;
 }
 
-const MAX_COORD = 1e4; // 数値暴走だけ抑える。単位はここでは規定しない。
-
+const MAX_COORD = 1e4;
 function clamp(v, min, max) {
   return Math.min(Math.max(v, min), max);
+}
+
+function sanitizePosition(position) {
+  if (!Array.isArray(position) || position.length < 3) return null;
+  const raw = position.map((v) => Number(v));
+  if (!raw.every((v) => Number.isFinite(v))) return null;
+  return raw.map((v) => clamp(v, -MAX_COORD, MAX_COORD));
+}
+
+// px -> world（この式が“画面一定”の本体）
+function worldSizeForPixels(camera, dist, px, viewportH) {
+  const h = Math.max(1, Number(viewportH) || 0);
+  const p = Math.max(0, Number(px) || 0);
+
+  if (camera?.isPerspectiveCamera) {
+    const fov = THREE.MathUtils.degToRad(camera.fov || 50);
+    const worldH = 2 * dist * Math.tan(fov / 2);
+    return worldH * (p / h);
+  }
+
+  if (camera?.isOrthographicCamera) {
+    const worldH = (camera.top - camera.bottom) / (camera.zoom || 1);
+    return worldH * (p / h);
+  }
+
+  return 0;
 }
 
 export function ensureGlow(scene) {
@@ -60,88 +78,64 @@ export function ensureGlow(scene) {
   if (!glow) {
     const tex = getGlowTexture();
     if (!tex) return null;
+
     const material = new THREE.SpriteMaterial({
       map: tex,
       color: new THREE.Color("#00ffff"),
       transparent: true,
       opacity: 1.0,
       blending: THREE.AdditiveBlending,
+      // ここは true のままでOK（px→world で“見かけ一定”にする）
       sizeAttenuation: true,
       depthWrite: false,
       depthTest: false,
     });
+
     glow = new THREE.Sprite(material);
-    glow.renderOrder = 998;
+    glow.renderOrder = 9999;
   }
 
-  if (glow.parent !== scene) {
-    scene.add(glow);
-  }
-
+  if (glow.parent !== scene) scene.add(glow);
   return glow;
 }
 
-// microState.focusPosition 相当の座標を軽くサニタイズ
-function sanitizePosition(position) {
-  if (!Array.isArray(position) || position.length < 3) return null;
+export function updateGlow(target, position, camera, intensity = 1, viewportH = window.innerHeight) {
+  if (!target || !camera) return;
 
-  const raw = position.map((v) => Number(v));
-  if (!raw.every((v) => Number.isFinite(v))) return null;
+  const cfg = microFXConfig?.glow || {}; // ★これが無いと screenPx 効かん/落ちる
 
-  // world 座標（unitless）として ±MAX_COORD にだけクランプ
-  return raw.map((v) => clamp(v, -MAX_COORD, MAX_COORD));
-}
-
-// position: microState.focusPosition を想定（null の場合は呼び出し側でフォールバック済み）
-export function updateGlow(target, position, camera, intensity = 1) {
-  if (!target) return;
-  if (!camera) return;
-
-  // intensity を 0..1 にクランプ、0 以下なら完全 OFF
   let s = Number.isFinite(intensity) ? intensity : 1;
   s = clamp(s, 0, 1);
+  if (s <= 0) { target.visible = false; return; }
 
-  if (s <= 0) {
-    target.visible = false;
-    return;
-  }
-
-  const sanitized = sanitizePosition(position);
-  if (!sanitized) {
-    target.visible = false;
-    return;
-  }
+  const p = sanitizePosition(position);
+  if (!p) { target.visible = false; return; }
 
   target.visible = true;
-  target.position.set(sanitized[0], sanitized[1], sanitized[2]);
+  target.position.set(p[0], p[1], p[2]);
 
-  const cfg = microFXConfig.glow || {};
+  // dist はアンカー位置基準
+  let dist = camera.position.distanceTo(target.position) || 1.0;
 
-  // 距離は「点とカメラの現在距離」（world 長さ）
-  const dist = camera.position.distanceTo(target.position) || 1.0;
+  // オフセット（点→カメラ方向に“画面px相当”だけ前に出す）
+  const offsetPx = Number.isFinite(cfg.offsetPx) ? cfg.offsetPx : 12;
+  const toCameraDir = new THREE.Vector3().subVectors(camera.position, target.position).normalize();
+  const offsetWorld = worldSizeForPixels(camera, dist, offsetPx, viewportH);
+  if (offsetWorld > 0) target.position.addScaledVector(toCameraDir, offsetWorld);
 
-  // 設定が無ければ適当なデフォルトを持つ
-  const offsetFactor = Number.isFinite(cfg.offsetFactor)
-    ? cfg.offsetFactor
-    : 0.04;
-  const baseScale = Number.isFinite(cfg.baseScale) ? cfg.baseScale : 0.3;
-  const minScale = Number.isFinite(cfg.minScale) ? cfg.minScale : 0.1;
-  const maxScale = Number.isFinite(cfg.maxScale) ? cfg.maxScale : 3.0;
+  // dist はオフセット後で更新
+  dist = camera.position.distanceTo(target.position) || 1.0;
 
-  // ★ オフセット方向を「点 → カメラ」にする
-  const toCameraDir = new THREE.Vector3()
-    .subVectors(camera.position, target.position)
-    .normalize();
+  // スケール（画面px固定）
+  const screenPx = Number.isFinite(cfg.screenPx) ? cfg.screenPx : 64;
+  let scaleWorld = worldSizeForPixels(camera, dist, screenPx, viewportH);
 
-  const offset = dist * offsetFactor;
-  target.position.addScaledVector(toCameraDir, offset);
+  // 任意の安全柵（欲しいなら config で指定）
+  if (Number.isFinite(cfg.minWorldScale)) scaleWorld = Math.max(scaleWorld, cfg.minWorldScale);
+  if (Number.isFinite(cfg.maxWorldScale)) scaleWorld = Math.min(scaleWorld, cfg.maxWorldScale);
 
-  // ★ スケールは world 固定（カメラ距離には依存させない）
-  //    → ズームすると画面上では一緒に大きく／小さく見える。
-  const scale = clamp(baseScale, minScale, maxScale);
-  target.scale.setScalar(scale);
+  target.scale.setScalar(scaleWorld);
 
-  // ★ intensity に応じてフェード
   const mat = target.material;
   if (mat && "opacity" in mat) {
     mat.transparent = true;
