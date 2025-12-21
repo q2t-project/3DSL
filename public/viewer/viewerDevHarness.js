@@ -40,6 +40,7 @@ function stopHub() {
 function exposeDevGlobals(hub, handle) {
   window.viewerHub = hub || null;
   window.hub = hub || null; // 互換
+  window.__viewerHub = hub || null; // phase7 runner 固定名
   window.pointerInput  = handle?.pointerInput  || null;
   window.keyboardInput = handle?.keyboardInput || null;
   window.picker        = handle?.picker        || null;
@@ -48,6 +49,7 @@ function exposeDevGlobals(hub, handle) {
 function clearDevGlobals() {
   window.viewerHub = null;
   window.hub = null;
+  window.__viewerHub = null;
   window.pointerInput = null;
   window.keyboardInput = null;
   window.picker = null;
@@ -354,13 +356,27 @@ async function boot() {
   const params = new URLSearchParams(window.location.search);
   const jsonUrl = params.get("model") || DEFAULT_MODEL;
 
+  // 1) hub は最優先で立てて、失敗したらここで終了
   try {
     setOwnedHandle(owned, "hub", await bootstrapViewerFromUrl("viewer-canvas", jsonUrl, {
       devBootLog: true,
       devLabel: "viewer_dev",
       modelUrl: jsonUrl,
     }));
+    // UI が無くても hub は公開する（runner が回せる）
+    exposeDevGlobals(owned.hub, null);
+    owned.hub.start?.();
+  } catch (err) {
+  console.error("[viewer-dev] boot failed:", err);
+    const { kind, message } = classifyBootstrapError(err);
+    showFatalError(kind, message);
+    // 画面のエラー表示は残したいからパネルは消さへん
+    shutdown({ clearPanels: false });
+    return;
+  }
 
+  // 2) UI は失敗しても hub を殺さない
+  try {
     setOwnedHandle(owned, "ui", attachUiProfile(owned.hub, {
       profile: "devHarness_full",
       canvas: elCanvas,
@@ -369,28 +385,26 @@ async function boot() {
       gizmoWrapper: document.getElementById("gizmo-slot"),
       timelineRoot: document,
       force: true,
-      // dev harness の既存 util を使うなら（任意）
-      toast: window.viewerToast, // showHudMessage を代入してもOK
+      toast: window.viewerToast,
       log: (...a) => console.log(...a),
     }));
-
     exposeDevGlobals(owned.hub, owned.ui);
+  } catch (e) {
+    console.warn("[viewer-dev] ui attach failed (continuing):", e);
+  }
 
-    owned.hub.start?.();
-
+  // 3) detail view も任意（失敗しても hub 生存）
+  try {
     const detailWrapper = document.getElementById("viewer-detail");
     if (detailWrapper) {
-      setOwnedHandle(
-        owned,
-        "detailView",
-        attachDetailView(detailWrapper, owned.hub)
-      );
+      setOwnedHandle(owned, "detailView", attachDetailView(detailWrapper, owned.hub));
     }
-  } catch (err) {
-    console.error("[viewer-dev] boot failed:", err);
-    const { kind, message } = classifyBootstrapError(err);
-    showFatalError(kind, message);
-    // 画面のエラー表示は残したいからパネルは消さへん
-    shutdown({ clearPanels: false });
+  } catch (e) {
+    console.warn("[viewer-dev] detail attach failed (continuing):", e);
   }
 }
+
+// viewerDevHarness.js の末尾に追加
+window.addEventListener("load", () => {
+  boot();
+});

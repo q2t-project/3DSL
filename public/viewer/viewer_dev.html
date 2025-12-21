@@ -1,246 +1,37 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
   <head>
-    <meta charset="UTF-8" />
-    <title>3DSL Viewer – Dev Harness</title>
-    <link rel="stylesheet" href="/viewer/viewer.css" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>viewer_dev</title>
+    <style>
+      html, body { margin:0; height:100%; background:#111; color:#ddd; font-family:system-ui, sans-serif; }
+      #wrap { display:grid; grid-template-columns: 1fr 360px; height:100%; }
+      #stage { position:relative; }
+      #viewer-canvas { width:100%; height:100%; display:block; }
+      #gizmo-slot { position:absolute; inset:0; pointer-events:none; }
+      #viewer-hud { position:absolute; right:12px; bottom:12px; padding:8px 10px; background:rgba(0,0,0,.55); border-radius:10px; }
+      #side { overflow:auto; padding:10px; border-left:1px solid rgba(255,255,255,.1); }
+      #meta-model { max-height:50vh; overflow:auto; background:rgba(255,255,255,.03); padding:8px; border-radius:10px; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px; }
+    </style>
   </head>
-<body>
-  <div id="viewer-layout">
-    <!-- 左：3D ビュー＋オーバーレイ全部 -->
-    <div id="viewer-main">
-      <!-- 左上 300x250 -->
-      <div id="ad-top-left">300×250 AD</div>
-      <!-- 右上 300x250：3DSS Library / 3DSD 自前コンテンツ用プロモ枠 -->
-      <div id="promo-top-right" data-source="3dss-promo">
-        <a class="promo-card" href="#" data-role="promo-link">
-          <div class="promo-tag">3DSL LIBRARY</div>
-
-          <div class="promo-body">
-            <div>
-              <div class="promo-title">
-                往還構造 × 時間の矢<br />
-                3DSD で読む「揺れ」と収束
-              </div>
-              <div class="promo-sub">
-                いま見ている構造と同じパターンを扱った
-                3DSS/3DSD サンプルへジャンプ。
-              </div>
-            </div>
-
-            <div class="promo-ticker-shell">
-              <div class="promo-ticker-line">
-                <span>往還構造 / 分水嶺 / エントロピー × 知識トポス …</span>
-                <span>時間逆行の議論と同型の 3DSD 図解をもっと見る</span>
-              </div>
-            </div>
-
-            <div class="promo-footer">
-              <div class="promo-meta">
-                from 3DSS library<br />
-                filtered as: <span>knowledge-flow</span>
-              </div>
-              <div class="promo-cta">OPEN</div>
-            </div>
-          </div>
-        </a>
-      </div>
-      <!-- 3D シーン -->
-      <canvas id="viewer-canvas"></canvas>
-
-      <!-- HUD: 一時メッセージ用トースト -->
-      <div id="viewer-hud" class="hud-hidden"></div>
-
-      <!-- 下部ツールバー -->
-      <div id="viewer-toolbar">
-        <div class="frame-block">
-          <div class="frame-main">
-            <div class="frame-top-row">
-              <div class="filter-column">
-                <button
-                  id="filter-lines"
-                  class="filter-toggle filter-on"
-                  type="button"
-                  title="toggle lines"
-                >
-                  <span class="icon">👁</span><span class="label">lines</span>
-                </button>
-                <button
-                  id="filter-points"
-                  class="filter-toggle filter-on"
-                  type="button"
-                  title="toggle points"
-                >
-                  <span class="icon">👁</span><span class="label">points</span>
-                </button>
-                <button
-                  id="filter-aux"
-                  class="filter-toggle filter-on"
-                  type="button"
-                  title="toggle aux"
-                >
-                  <span class="icon">👁</span><span class="label">aux</span>
-                </button>
-              </div>
-
-              <div class="frame-header-main">
-                <div class="frame-label">
-                  Frame: <span id="frame-slider-label">0</span>
-                </div>
-
-                <div id="frame-controls" class="mode-flip">
-                  <div class="row row-continuous">
-                    <button id="btn-rew" title="逆送り（最小までジャンプ）">
-                      ⏮
-                    </button>
-                    <button id="btn-play" title="再生 / 一時停止 (Space)">
-                      Play
-                    </button>
-                    <button id="btn-ff" title="先送り（最大までジャンプ）">
-                      ⏭
-                    </button>
-                  </div>
-                  <div class="row row-flip">
-                    <button id="btn-step-back" title="1 フレーム戻る (PgDn)">
-                      ◀
-                    </button>
-                    <button id="btn-home" title="ホームフレーム (0)">●</button>
-                    <button
-                      id="btn-step-forward"
-                      title="1 フレーム進む (PgUp)"
-                    >
-                      ▶
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <input
-              id="frame-slider"
-              type="range"
-              min="0"
-              max="0"
-              value="0"
-              step="1"
-            />
-          </div>
-        </div>
-      </div>
-
-      <!-- カメラモード表示（右上寄り） -->
-      <div id="camera-panel">
-        <div id="mode-stack">
-          <div class="mode-pills-block">
-            <div id="mode-label-macro" class="mode-pill mode-pill-active">
-              MACRO
-            </div>
-            <div id="mode-label-micro" class="mode-pill">MICRO</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Gizmo 本体（右下） -->
-      <div id="gizmo-wrapper">
-        <div class="gizmo-axis-row"></div>
+  <body>
+    <div id="wrap">
+      <div id="stage">
+        <canvas id="viewer-canvas"></canvas>
         <div id="gizmo-slot"></div>
+        <div id="viewer-hud" class="hud-hidden"></div>
       </div>
 
-      <!-- 座標軸トグル + autoOrbit + preset view（右下横並び） -->
-      <div id="camera-bottom-row">
-        <div class="world-axes-toggle">
-          <button
-            id="world-axes-toggle"
-            type="button"
-            aria-pressed="false"
-            data-visible="false"
-          >
-            <span class="icon" data-icon="on">👁</span>
-            <span class="icon" data-icon="off">👁‍🗨</span>
-          </button>
-          <span class="world-axes-label">coord.</span>
-        </div>
+      <aside id="side">
+        <div><b>file</b>: <span id="meta-file" class="mono">(n/a)</span></div>
+        <div style="margin-top:8px;"><b>model</b></div>
+        <div id="meta-model"><div id="meta-model-log" class="mono">(log)</div></div>
+        <div id="viewer-detail" style="margin-top:10px;"></div>
+      </aside>
+    </div>
 
-        <div id="auto-orbit-slot" class="auto-orbit-slot">
-          <button
-            id="auto-orbit-pill"
-            type="button"
-            class="keycap auto-orbit-pill"
-            title="Auto orbit"
-          >
-            autoOrbit
-          </button>
-
-          <div id="auto-orbit-controls" class="auto-orbit-controls">
-            <button
-              type="button"
-              class="keycap auto-orbit-btn"
-              data-role="rev"
-              title="Reverse orbit / faster reverse"
-            >
-              ⟲
-            </button>
-            <button
-              type="button"
-              class="keycap auto-orbit-btn"
-              data-role="stop"
-              title="Stop auto orbit"
-            >
-              ■
-            </button>
-            <button
-              type="button"
-              class="keycap auto-orbit-btn"
-              data-role="fwd"
-              title="Forward orbit / faster"
-            >
-              ⟳
-            </button>
-          </div>
-        </div>
-
-        <button
-          id="gizmo-presets-toggle"
-          class="keycap"
-          type="button"
-          title="Preset views"
-        >
-          preset view
-        </button>
-      </div>
-    </div> <!-- /viewer-main -->
-
-    <!-- 中央：300x600 -->
-    <aside id="viewer-ad-rail">
-      300×600 AD
-    </aside>
-
-    <!-- 右：メタ情報エリア -->
-    <aside id="viewer-meta">
-      <div id="meta-header">
-        <a id="meta-logo-link" href="/viewer/">
-          <img
-            id="meta-logo"
-            src="../assets/logo/3DSD-viewer.svg"
-            alt="3DSD-viewer"
-          />
-        </a>
-      </div>
-
-      <div id="meta-file">
-        <h3>File</h3>
-        <div>(no file yet)</div>
-      </div>
-      <div id="meta-model">
-        <h3>Model</h3>
-        <div id="meta-model-log" class="meta-log">
-          (logs will appear here)
-        </div>
-        <div id="viewer-detail"></div>
-      </div>
-    </aside>
-  </div>
-
-  <script type="module" src="./viewerDevHarness.js"></script>
-</body>
+    <script type="module" src="./viewerDevHarness.js"></script>
+  </body>
 </html>
