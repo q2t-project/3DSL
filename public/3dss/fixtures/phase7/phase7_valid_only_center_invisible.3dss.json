@@ -1,0 +1,28 @@
+{
+  "document_meta": {
+    "document_title": "Phase7 valid: only invisible center",
+    "document_summary": "Pick guard: center is invisible, no other geometry overlaps.",
+    "document_uuid": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json",
+    "author": "phase7",
+    "version": "1.1.0",
+    "coordinate_system": "Z+up/freeXY",
+    "units": "non_si:px",
+    "generator": "phase7"
+  },
+  "points": [
+    {
+      "meta": {
+        "uuid": "11111111-1111-1111-1111-111111111111",
+        "tags": ["s:phase7", "s:center"]
+      },
+      "appearance": {
+        "position": [0, 0, 0],
+        "marker": { "primitive": "sphere", "radius": 0.4 },
+        "visible": false
+      }
+    }
+  ],
+  "lines": [],
+  "aux": []
+}

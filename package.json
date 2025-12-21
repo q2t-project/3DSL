@@ -22,6 +22,8 @@
     "check:phase4:hub-noop": "node scripts/check-phase4-hub-noop.mjs",
     "check:phase4": "npm run check:phase3 && npm run check:phase4:hub-contract && npm run check:phase4:hub-noop",
     "check:single-writer": "node scripts/check-single-writer.mjs",
+    "check:phase7": "node scripts/check-phase7-regression.mjs",
+    "validate:phase7": "node scripts/validate-3dss-fixtures.mjs --ref",
     "astro": "astro"
   },
   "dependencies": {
