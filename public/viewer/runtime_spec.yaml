@@ -124,7 +124,7 @@ runtime_spec:
 
         - "create*Controller は必要依存を引数で受け取れる形（DI）で構築する"
         - "初期化後に recomputeVisibleSet() を1回呼ぶ"
-        - "core.structIndex（= structIndexFacade。indices内包の read-only facade）を構築して hub へ渡す"
+        - "core.structIndex（runtime/core/structIndex.js の buildUUIDIndex 結果）を構築して hub へ渡す"
         - "core.cameraController（= cameraController。uuid 解決などの高レベル camera API）を構築して hub へ渡す"
         - "createViewerHub に渡す core は次を含む: { uiState, frameController, selectionController, modeController, microController, visibilityController, cameraEngine, cameraController, viewerSettingsController, structIndex, recomputeVisibleSet }"
       exports:
@@ -171,7 +171,8 @@ runtime_spec:
         - "IMPORT: runtime/core/structIndex.detectFrameRange"
         - "CALL: frameRange = detectFrameRange(document)"
 
-        - "IMPORT: runtime/core/structIndexFacade.createStructIndexFacade"
+        - "IMPORT: runtime/core/structIndex.buildUUIDIndex"
+        - "IMPORT: runtime/core/structIndex.detectFrameRange"
         - "CALL: structIndex = createStructIndexFacade({ indices, document })"
 
         - "IMPORT: runtime/core/selectionController.createSelectionController"
@@ -312,7 +313,7 @@ runtime_spec:
             - name: recomputeVisibleSet
               description: "visibleSet + selection/micro の後処理を再計算する正規関数（core.recomputeVisibleSet）。frameController や filters からも同じ関数が呼ばれる。"
             - name: structIndex
-              description: "read-only 検索API（= structIndexFacade。indices を内包）。getCenter(uuid) などを提供。"
+              description: "read-only 検索API（buildUUIDIndex の結果Map）。uuid→(kind,item) を引ける。"
         viewerSettings_api:
           methods:
             - name: setWorldAxesVisible
@@ -412,7 +413,7 @@ runtime_spec:
             signature: "(uuid:string) → [number,number,number] | null"
             calls:
               - "DI: core.structIndex.getCenter"
-              - "CALL: core.structIndex.getCenter(uuid)"
+              - "CALL: core.structIndex.uuidToItem.get(uuid)"
           - name: getKind
             signature: "(uuid:string) → 'points'|'lines'|'aux'|null"
             calls:
@@ -663,7 +664,6 @@ runtime_spec:
     # =========================
     # 2.3 core
     # =========================
-    - name: runtime/core/structIndexFacade.js
       layer: core
       responsibility:
         - "indices を内包した read-only 検索API（hub へ渡す）"
@@ -1406,6 +1406,7 @@ runtime_spec:
         - "CALL: hub.start()"
 
     - name: viewerHost.js
+    - name: viewerHostBoot.js
       layer: ui
       responsibility:
         - "本番 Host の UI 初期化エントリ"
@@ -1477,7 +1478,7 @@ runtime_spec:
       - "Host が bootstrapViewerFromUrl(canvas, url, options) or bootstrapViewer(canvas, doc, options) を呼ぶ"
       - "推奨: bootstrapViewer(canvas, doc) を使う場合、Host は事前に strict validate 済み doc を渡す（bootstrapViewer 側で validate3DSS は常に実行される）"
       - "bootstrapViewerFromUrl が JSON load → bootstrapViewer に渡す（validate/deepFreeze は bootstrapViewer が行う）"
-      - "bootstrapViewer が uiState / indices / rendererContext / viewerHub を生成する（順: validate→deepFreeze→indices/frameRange→structIndexFacade→controllers→renderer.syncDocument→getSceneMetrics→cameraEngine.setState→core.recomputeVisibleSet→createViewerHub）"
+      - "bootstrapViewer が uiState / indices / rendererContext / viewerHub を生成する（順: validate→deepFreeze→buildUUIDIndex/detectFrameRange→controllers→renderer.syncDocument→getSceneMetrics→cameraEngine.setState→core.recomputeVisibleSet→createViewerHub）"
       - "options.devBootLog === true のとき、起動診断ログ（BOOT/MODEL/CAMERA/LAYERS/FRAME）を 1 回ずつ送る（logger 未指定なら console.log 相当にフォールバック可）"
       - "Host / dev harness が PointerInput(canvas, hub) / KeyboardInput(window, hub) を構築し、入力イベントを hub.core.* / hub.pickObjectAt / hub.viewerSettings に集約する"
       - "Host / dev harness が gizmo / timeline / HUD 等の ui/* を初期化し、hub.core.* / hub.pickObjectAt にイベントを接続する"
