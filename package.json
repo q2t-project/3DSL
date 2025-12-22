@@ -24,6 +24,7 @@
     "check:single-writer": "node scripts/check-single-writer.mjs",
     "check:phase7": "node scripts/check-phase7-regression.mjs",
     "validate:phase7": "node scripts/validate-3dss-fixtures.mjs --ref",
+    "check:spec-filenames": "node scripts/check-spec-filenames.mjs",
     "astro": "astro"
   },
   "dependencies": {
