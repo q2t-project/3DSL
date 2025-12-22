@@ -2,81 +2,81 @@ runtime_spec:
 
   version: "2.2-draft"
 
-  description: "3DSL Viewer Runtime Manifest – holy API spec for 3DSL Viewer"
+  description: "3DSL Modeler Runtime Manifest  Eholy API spec for 3DSL Viewer"
 
   # =========================================================
-  # 0. レイヤ定義 ＋ 依存ルール
+  # 0. レイヤ定義 �E�E依存ルール
   # =========================================================
 
   layers:
     - name: entry
-      description: "Host（Astro/HTML）から叩かれるエントリポイント層"
+      description: "Host�E�Estro/HTML�E�から叩かれるエントリポイント層"
     - name: hub
-      description: "UI と core / renderer の集線層（ロジック禁止）"
+      description: "UI と core / renderer の雁E��層�E�ロジチE��禁止�E�E
     - name: core
-      description: "状態とビジネスロジックの中枢。3DSS は read-only"
+      description: "状態とビジネスロジチE��の中枢、EDSS は read-only"
     - name: renderer
-      description: "three.js による描画専用。状態は描画キャッシュに限定（canonical state は core）"
+      description: "three.js による描画専用。状態�E描画キャチE��ュに限定！Eanonical state は core�E�E
     - name: ui
-      description: "UI イベント → hub.core.* への橋渡し層（dev harness / 本番 host 側）"
+      description: "UI イベンチEↁEhub.core.* への橋渡し層�E�Eev harness / 本番 host 側�E�E
 
   dependency_rules:
-    # 正方向
-    - "ui        → entry"
-    - "entry     → hub"
-    - "entry     → core"
-    - "entry     → renderer"
-    - "ui        → hub"
-    - "hub       → core"
-    - "hub       → renderer"
+    # 正方吁E
+    - "ui        ↁEentry"
+    - "entry     ↁEhub"
+    - "entry     ↁEcore"
+    - "entry     ↁErenderer"
+    - "ui        ↁEhub"
+    - "hub       ↁEcore"
+    - "hub       ↁErenderer"
 
-    # 禁止方向（絶対）
-    - "core      → hub:       FORBIDDEN"
-    - "core      → renderer:  FORBIDDEN"
-    - "renderer  → core:      FORBIDDEN"
-    - "renderer  → hub:       FORBIDDEN"
-    - "hub       → ui:        FORBIDDEN"
-    - "ui        → renderer:  FORBIDDEN（pick も hub 経由）"
-    - "entry     → ui:        FORBIDDEN（UI は Host 側責務）"
+    # 禁止方向（絶対�E�E
+    - "core      ↁEhub:       FORBIDDEN"
+    - "core      ↁErenderer:  FORBIDDEN"
+    - "renderer  ↁEcore:      FORBIDDEN"
+    - "renderer  ↁEhub:       FORBIDDEN"
+    - "hub       ↁEui:        FORBIDDEN"
+    - "ui        ↁErenderer:  FORBIDDEN�E�Eick めEhub 経由�E�E
+    - "entry     ↁEui:        FORBIDDEN�E�EI は Host 側責務！E
 
   # =========================================================
-  # 0.2 DI（依存注入）方針と calls 表記ルール
+  # 0.2 DI�E�依存注入�E�方針と calls 表記ルール
   # =========================================================
 
   di_policy:
     principle:
-      - "core 内の相互参照は import で結ばない。bootstrapViewer を composition root として DI で渡す。"
-      - "hub は { core, renderer } を DI で受け取り、core/* や renderer/* を import しない。"
-      - "core の各モジュールは 'factory + injected deps' で完結させる。createXxx は必要依存（関数/参照/値）を **すべて引数オブジェクトで受け取る**。"
-      - "calls 記法は仕様の規範であり、実装はこれに従う（曖昧さを残さない）。"
-      - "禁止: core/* が他の core/* を import して呼ぶ。例外として JSDoc の型参照 **のみ** は許容する（例: /** @typedef {import('./x.js').Foo} Foo */）。※ ESM の実行時 import（import {Foo} from ...）は例外に含めない。"
-      - "helper（local helper）は **同一ファイル内に閉じる純関数** とし、他モジュールから import してはならない。"
+      - "core 冁E�E相互参照は import で結�EなぁE��bootstrapViewer めEcomposition root として DI で渡す、E
+      - "hub は { core, renderer } めEDI で受け取り、core/* めErenderer/* めEimport しなぁE��E
+      - "core の吁E��ジュールは 'factory + injected deps' で完結させる。createXxx は忁E��依存（関数/参�E/値�E�を **すべて引数オブジェクトで受け取る**、E
+      - "calls 記法�E仕様�E規篁E��あり、実裁E�Eこれに従う�E�曖昧さを残さなぁE��、E
+      - "禁止: core/* が他�E core/* めEimport して呼ぶ。例外として JSDoc の型参照 **のみ** は許容する�E�侁E /** @typedef {import('./x.js').Foo} Foo */�E�。※ ESM の実行時 import�E�Emport {Foo} from ...�E��E例外に含めなぁE��E
+      - "helper�E�Eocal helper�E��E **同一ファイル冁E��閉じる純関数** とし、他モジュールから import してはならなぁE��E
     contract_gates:
-      - "scripts/check-invariants.mjs: 依存方向（forbidden imports）を強制"
-      - "scripts/check-phase2-contract.mjs: bootstrapViewer 公開面の整合"
-      - "scripts/check-phase2-core-contract.mjs: core 公開面（controller群/recomputeVisibleSet）の整合"
-      - "grep-based single-writer check（推奨）: uiState.visibleSet / uiState.runtime.isFramePlaying の書き込み箇所を固定"
+      - "scripts/check-invariants.mjs: 依存方向！Eorbidden imports�E�を強制"
+      - "scripts/check-phase2-contract.mjs: bootstrapViewer 公開面の整吁E
+      - "scripts/check-phase2-core-contract.mjs: core 公開面�E�Eontroller群/recomputeVisibleSet�E��E整吁E
+      - "grep-based single-writer check�E�推奨�E�E uiState.visibleSet / uiState.runtime.isFramePlaying の書き込み箁E��を固宁E
     calls_notation:
-      - "calls: 'IMPORT:' は当該モジュールが import して直接呼ぶことを意味する（entry など）。"
-      - "calls: 'DI:' は注入された依存（関数/参照/値）へのアクセスを意味する（呼び出し/参照の両方）。import を意味しない。"
-      - "calls: 'CALL:' は当該モジュール内で行う **呼び出し式** を意味する（import 済み関数の呼び出し／ローカル関数／インスタンスメソッドを含む）。DI 経由の呼び出しも CALL で式を明記してよいが、その場合は対応する DI 行を必ず併記する（CALL だけは禁止）。"
-      - "core 内で他 core モジュール機能を使う場合は必ず 'DI:' で表記する。"
+      - "calls: 'IMPORT:' は当該モジュールぁEimport して直接呼ぶことを意味する�E�Entry など�E�、E
+      - "calls: 'DI:' は注入された依存（関数/参�E/値�E�へのアクセスを意味する�E�呼び出ぁE参�Eの両方�E�。import を意味しなぁE��E
+      - "calls: 'CALL:' は当該モジュール冁E��行う **呼び出し弁E* を意味する�E�Emport 済み関数の呼び出し／ローカル関数�E�インスタンスメソチE��を含む�E�、EI 経由の呼び出しも CALL で式を明記してよいが、その場合�E対応すめEDI 行を忁E��併記する！EALL だけ�E禁止�E�、E
+      - "core 冁E��仁Ecore モジュール機�Eを使ぁE��合�E忁E�� 'DI:' で表記する、E
     injection_trace:
-      - "各 core モジュールは di_injected に注入元（source）を明記する（実装は引数 DI を推奨）。"
+      - "吁Ecore モジュールは di_injected に注入允E��Eource�E�を明記する（実裁E�E引数 DI を推奨�E�、E
 
       
   # =========================================================
-  # 0.3 ライフサイクル（start/stop/dispose）規約
+  # 0.3 ライフサイクル�E�Etart/stop/dispose�E�規紁E
   # =========================================================
 
   lifecycle_policy:
-    - "hub.start()/hub.stop()/hub.dispose() は **idempotent**（複数回呼んでも安全）とする。"
-    - "hub.stop(): RAF 停止のみ（WebGL 資源は保持）。"
-    - "hub.dispose(): stop + renderer.dispose（資源解放）。hub は勝手に購読を作らないため、onXChanged の解除は呼び出し側が unsubscribe を保持して行う（再利用不可）。"
-    - "rendererContext.dispose(): three.js 資源を可能な範囲で解放し、2回目以降は no-op（idempotent）とする。"
-    - "onXChanged 系の listener 登録は unsubscribe を返す（dev harness で積み上げない）。"
-    - "dispose 後の start/stop/resize は no-op。pickObjectAt は常に null を返す（例外にしない）。"
-    - "dispose 後の isRunning() は常に false を返す。"
+    - "hub.start()/hub.stop()/hub.dispose() は **idempotent**�E�褁E��回呼んでも安�E�E�とする、E
+    - "hub.stop(): RAF 停止のみ�E�EebGL 賁E���E保持�E�、E
+    - "hub.dispose(): stop + renderer.dispose�E�賁E��解放�E�。hub は勝手に購読を作らなぁE��め、onXChanged の解除は呼び出し�EぁEunsubscribe を保持して行う�E��E利用不可�E�、E
+    - "rendererContext.dispose(): three.js 賁E��を可能な篁E��で解放し、E回目以降�E no-op�E�Edempotent�E�とする、E
+    - "onXChanged 系の listener 登録は unsubscribe を返す�E�Eev harness で積み上げなぁE��、E
+    - "dispose 後�E start/stop/resize は no-op。pickObjectAt は常に null を返す�E�例外にしなぁE��、E
+    - "dispose 後�E isRunning() は常に false を返す、E
 
   # =========================================================
   # 1. state 所有権
@@ -105,49 +105,49 @@ runtime_spec:
     - name: runtime/bootstrapViewer.js
       layer: entry
       responsibility:
-        - "canvas と 3DSS オブジェクトを受け取り、AJV validate3DSS を **常に** 実行して runtime 一式を初期化する（NGなら throw）"
-        - "validateRefIntegrity は options.strictValidate=true または options.validateRefIntegrity=true のときのみ実行する"
+        - "canvas と 3DSS オブジェクトを受け取り、AJV validate3DSS めE**常に** 実行して runtime 一式を初期化する！EGなめEthrow�E�E
+        - "validateRefIntegrity は options.strictValidate=true また�E options.validateRefIntegrity=true のとき�Eみ実行すめE
         - "core / renderer / viewerHub を生成して返す"
-        - "rendererContext.syncDocument(document, indices) を 1 回呼び、描画オブジェクトを構築する"
-        - "rendererContext.getSceneMetrics() を 1 回呼び、cameraEngine の初期 cameraState を確定する（target/position/up/distance/fov/near/far 等）"
-        - "metrics が null の場合はフォールバック規範を適用し、初期 cameraState を確定させる（例: center=[0,0,0], radius=1 を基準に距離等を決める）"
-        - "createRecomputeVisibleSet(...).recomputeVisibleSet（関数）を core.recomputeVisibleSet として保持し、frameController/filters/hub から呼べるように配線する"
-        - "描画ループ開始は行わず、返却した hub.start() に委譲する"
-        - "入力系（PointerInput / KeyboardInput / gizmo 等）は構築せず、Host / dev harness 側の責務とする"
-        - "（dev オプションが指定された場合）起動診断ログ（BOOT/MODEL/CAMERA/LAYERS/FRAME）を発行する"
-        - "core 内の相互呼び出しは import ではなく bootstrap で依存注入（DI）で渡す（composition root）"
-        - "validate 後に deepFreeze(document) を行い、以後 document は immutable 扱いとする（fromUrl 経由でも最終的に bootstrapViewer が実施）"
-        - "（bootstrapViewerFromUrl のみ）URL から JSON をロードし、document を bootstrapViewer に渡す"
-        - "bootstrapViewerFromUrl は options.strictValidate の default を true とする（未指定時は validateRefIntegrity まで実行）"
-        - "bootstrapViewerFromUrl は res.ok===false の場合は throw（HTTP status を含めるのを推奨）"
-        - "validate + deepFreeze は bootstrapViewer が **常に** 行う（fromUrl 側では行わない）"
+        - "rendererContext.syncDocument(document, indices) めE1 回呼び、描画オブジェクトを構築すめE
+        - "rendererContext.getSceneMetrics() めE1 回呼び、cameraEngine の初期 cameraState を確定する！Earget/position/up/distance/fov/near/far 等！E
+        - "metrics ぁEnull の場合�Eフォールバック規篁E��適用し、�E朁EcameraState を確定させる�E�侁E center=[0,0,0], radius=1 を基準に距離等を決める�E�E
+        - "createRecomputeVisibleSet(...).recomputeVisibleSet�E�関数�E�を core.recomputeVisibleSet として保持し、frameController/filters/hub から呼べるよぁE��配線すめE
+        - "描画ループ開始�E行わず、返却した hub.start() に委譲する"
+        - "入力系�E�EointerInput / KeyboardInput / gizmo 等）�E構築せず、Host / dev harness 側の責務とする"
+        - "�E�Eev オプションが指定された場合）起動診断ログ�E�EOOT/MODEL/CAMERA/LAYERS/FRAME�E�を発行すめE
+        - "core 冁E�E相互呼び出し�E import ではなぁEbootstrap で依存注入�E�EI�E�で渡す！Eomposition root�E�E
+        - "validate 後に deepFreeze(document) を行い、以征Edocument は immutable 扱ぁE��する�E�EromUrl 経由でも最終的に bootstrapViewer が実施�E�E
+        - "�E�EootstrapViewerFromUrl のみ�E�URL から JSON をロードし、document めEbootstrapViewer に渡ぁE
+        - "bootstrapViewerFromUrl は options.strictValidate の default めEtrue とする�E�未持E��時は validateRefIntegrity まで実行！E
+        - "bootstrapViewerFromUrl は res.ok===false の場合�E throw�E�ETTP status を含めるのを推奨�E�E
+        - "validate + deepFreeze は bootstrapViewer ぁE**常に** 行う�E�EromUrl 側では行わなぁE��E
 
-        - "create*Controller は必要依存を引数で受け取れる形（DI）で構築する"
-        - "初期化後に recomputeVisibleSet() を1回呼ぶ"
-        - "core.structIndex（runtime/core/structIndex.js の buildUUIDIndex 結果）を構築して hub へ渡す"
-        - "core.cameraController（= cameraController。uuid 解決などの高レベル camera API）を構築して hub へ渡す"
-        - "createViewerHub に渡す core は次を含む: { uiState, frameController, selectionController, modeController, microController, visibilityController, cameraEngine, cameraController, viewerSettingsController, structIndex, recomputeVisibleSet }"
+        - "create*Controller は忁E��依存を引数で受け取れる形�E�EI�E�で構築すめE
+        - "初期化後に recomputeVisibleSet() めE回呼ぶ"
+        - "core.structIndex�E�Euntime/core/structIndex.js の buildUUIDIndex 結果�E�を構築して hub へ渡ぁE
+        - "core.cameraController�E�E cameraController。uuid 解決などの高レベル camera API�E�を構築して hub へ渡ぁE
+        - "createViewerHub に渡ぁEcore は次を含む: { uiState, frameController, selectionController, modeController, microController, visibilityController, cameraEngine, cameraController, viewerSettingsController, structIndex, recomputeVisibleSet }"
       exports:
         - name: bootstrapViewer
-          signature: "(canvasOrId, threeDSS, options?) → hub"
+          signature: "(canvasOrId, threeDSS, options?) ↁEhub"
         - name: bootstrapViewerFromUrl
-          signature: "(canvasOrId, url, options?) → Promise<hub>"
+          signature: "(canvasOrId, url, options?) ↁEPromise<hub>"
         - name: ViewerBootstrapOptions
           fields:
             - name: devBootLog
               signature: "(boolean)?"
-              description: "true のとき起動診断ログ（BOOT/MODEL/CAMERA/LAYERS/FRAME）を出す"
+              description: "true のとき起動診断ログ�E�EOOT/MODEL/CAMERA/LAYERS/FRAME�E�を出ぁE
             - name: logger
               signature: "((line:string)=>void)?"
-              description: "起動診断ログや dev ログの出力先。未指定なら console.log 相当でよい"
+              description: "起動診断ログめEdev ログの出力�E。未持E��なめEconsole.log 相当でよい"
             - name: strictValidate
               signature: "(boolean)?"
-              description: "true のとき validate3DSS + validateRefIntegrity を必ず実行（NGなら throw）"
+              description: "true のとぁEvalidate3DSS + validateRefIntegrity を忁E��実行！EGなめEthrow�E�E
             - name: validateRefIntegrity
               signature: "(boolean)?"
-              description: "true のとき参照整合性チェックを実行（NGなら throw）。strictValidate=true の場合は暗黙に true と同等。"
+              description: "true のとき参照整合性チェチE��を実行！EGなめEthrow�E�。strictValidate=true の場合�E暗黙に true と同等、E
       calls:
-        # --- bootstrapViewer（validate→freeze→indices→controllers→renderer→hub）---
+        # --- bootstrapViewer�E�Ealidate→freeze→indices→controllers→renderer→hub�E�E--
         - "IMPORT: runtime/core/validator.initValidator"
         - "CALL: validator = initValidator()"
         - "CALL: options = normalizeBootstrapOptions(options)  # local helper (default {})"
@@ -157,10 +157,10 @@ runtime_spec:
         - "CALL: validator.validate3DSS(document)"
         - "CALL: if (options.strictValidate || options.validateRefIntegrity) validator.validateRefIntegrity(document)"
 
-        - "CALL: # normalizeBootstrapOptions の既定: { strictValidate:false, validateRefIntegrity:false, devBootLog:false }"
+        - "CALL: # normalizeBootstrapOptions の既宁E { strictValidate:false, validateRefIntegrity:false, devBootLog:false }"
 
         - "IMPORT: runtime/core/deepFreeze.deepFreeze"
-        - "CALL: deepFreeze(document)  # validate 後に必ず"
+        - "CALL: deepFreeze(document)  # validate 後に忁E��"
 
         - "IMPORT: runtime/core/uiState.createUiState"
         - "CALL: uiState = createUiState()"
@@ -217,31 +217,31 @@ runtime_spec:
         - "IMPORT: runtime/viewerHub.createViewerHub"
         - "CALL: hub = createViewerHub({ core, renderer: rendererContext })"
 
-        # --- bootstrapViewerFromUrl（fetch→json→bootstrapViewer）---
+        # --- bootstrapViewerFromUrl�E�Eetch→json→bootstrapViewer�E�E--
         - "CALL: res = await fetch(url)"
         - "CALL: if (!res.ok) throw new Error(...)"
         - "CALL: document = await res.json()"
         - "CALL: options2 = normalizeBootstrapOptionsForFromUrl(options)  # local helper (strictValidate default=true)"
 
-        - "CALL: # normalizeBootstrapOptionsForFromUrl の既定: { strictValidate:true, validateRefIntegrity:false, devBootLog:false }"
+        - "CALL: # normalizeBootstrapOptionsForFromUrl の既宁E { strictValidate:true, validateRefIntegrity:false, devBootLog:false }"
 
         - "CALL: hub = bootstrapViewer(canvasOrId, document, options2)"
 
       called_by:
-        - "Host（Astro / HTML 側の起動コード / viewerDevHarness）"
+        - "Host�E�Estro / HTML 側の起動コーチE/ viewerDevHarness�E�E
       constraints:
-        - "描画ループ（requestAnimationFrame）は持たない。hub.start に任せる"
-        - "ui/* モジュールを import してはならない"
-        - "3DSS が AJV で NG の場合は hub を生成せず Error を投げる"
-        - "3DSS document は deepFreeze 済み immutable とみなす"
-        - "推奨: Host は strict validation 済み doc を渡す。"
-        - "bootstrapViewer は validate3DSS を **常に** 実行する（NGなら throw）。"
-        - "validateRefIntegrity は options.strictValidate=true または options.validateRefIntegrity=true のときのみ実行する。"
-        - "PointerInput / KeyboardInput は構築しない（入力系は Host / dev harness が new する）"
-        - "仕様テキストに外部ツール/URL（例: chatgpt/codex 等）を混入させない（規範情報のみ）。"
-        - "getSceneMetrics() が null を返しても起動不能にしない（規定の fallback で初期 cameraState を確定する）"
-        - "canvasOrId が不正（見つからない / canvas でない）なら throw"
-        - "options 未指定は {} 扱い（normalize で補う）"
+        - "描画ループ！EequestAnimationFrame�E��E持たなぁE��hub.start に任せる"
+        - "ui/* モジュールめEimport してはならなぁE
+        - "3DSS ぁEAJV で NG の場合�E hub を生成せぁEError を投げる"
+        - "3DSS document は deepFreeze 済み immutable とみなぁE
+        - "推奨: Host は strict validation 済み doc を渡す、E
+        - "bootstrapViewer は validate3DSS めE**常に** 実行する！EGなめEthrow�E�、E
+        - "validateRefIntegrity は options.strictValidate=true また�E options.validateRefIntegrity=true のとき�Eみ実行する、E
+        - "PointerInput / KeyboardInput は構築しなぁE���E力系は Host / dev harness ぁEnew する�E�E
+        - "仕様テキストに外部チE�Eル/URL�E�侁E chatgpt/codex 等）を混入させなぁE��規篁E��報のみ�E�、E
+        - "getSceneMetrics() ぁEnull を返しても起動不�EにしなぁE��規定�E fallback で初期 cameraState を確定する！E
+        - "canvasOrId が不正�E�見つからなぁE/ canvas でなぁE��なめEthrow"
+        - "options 未持E���E {} 扱ぁE��Eormalize で補う�E�E
 
     # =========================
     # 2.2 hub
@@ -249,44 +249,44 @@ runtime_spec:
     - name: runtime/viewerHub.js
       layer: hub
       responsibility:
-        - "core と renderer を束ねて、UI に対して hub.core.* API を提供する"
-        - "render loop（hub.start / hub.stop）を 1 箇所で管理する"
-        - "UI からの呼び出しはすべて hub.core.* / hub.pickObjectAt / hub.viewerSettings.* に統一する"
-        - "viewport/canvas サイズ変更を hub.resize(width,height) で受け、renderer.resize に委譲する"
+        - "core と renderer を束ねて、UI に対して hub.core.* API を提供すめE
+        - "render loop�E�Eub.start / hub.stop�E�を 1 箁E��で管琁E��めE
+        - "UI からの呼び出し�Eすべて hub.core.* / hub.pickObjectAt / hub.viewerSettings.* に統一する"
+        - "viewport/canvas サイズ変更めEhub.resize(width,height) で受け、renderer.resize に委譲する"
       exports:
         - name: createViewerHub
-          signature: "({ core, renderer }) → hub"
+          signature: "({ core, renderer }) ↁEhub"
         - name: ViewerHub
           fields:
             - name: start
-              signature: "() → void"
-              description: "render loop を開始。二重 start は no-op（例外にしない）。"
+              signature: "() ↁEvoid"
+              description: "render loop を開始。二重 start は no-op�E�例外にしなぁE��、E
             - name: stop
-              signature: "() → void"
-              description: "render loop を停止（RAF 停止のみ）。WebGL 資源は保持。二重 stop は no-op。"
+              signature: "() ↁEvoid"
+              description: "render loop を停止�E�EAF 停止のみ�E�。WebGL 賁E���E保持。二重 stop は no-op、E
             - name: isRunning
-              signature: "() → boolean"
-              description: "render loop が稼働中かを返す。"
+              signature: "() ↁEboolean"
+              description: "render loop が稼働中かを返す、E
             - name: dispose
-              signature: "() → void"
+              signature: "() ↁEvoid"
               description: |
-                stop + renderer.dispose（資源解放）。
-                ※ onXChanged の unsubscribe は呼び出し側（UI/Host）が保持して解除する。hub は勝手に購読を作らない。
-                dispose 後の hub は再利用不可。
+                stop + renderer.dispose�E�賁E��解放�E�、E
+                ※ onXChanged の unsubscribe は呼び出し�E�E�EI/Host�E�が保持して解除する。hub は勝手に購読を作らなぁE��E
+                dispose 後�E hub は再利用不可、E
             - name: resize
-              signature: "(width:number, height:number) → void"
+              signature: "(width:number, height:number) ↁEvoid"
               description: |
-                Host が canvas の表示サイズ（CSS px）を計算して渡す。
-                hub は renderer.resize(width,height) に委譲する。
-                その直後、未 dispose の場合は renderer.updateCamera(hub.core.camera.getState()) を **必ず** 呼ぶ。
-                dispose 後は no-op。
+                Host ぁEcanvas の表示サイズ�E�ESS px�E�を計算して渡す、E
+                hub は renderer.resize(width,height) に委譲する、E
+                そ�E直後、未 dispose の場合�E renderer.updateCamera(hub.core.camera.getState()) めE**忁E��** 呼ぶ、E
+                dispose 後�E no-op、E
             - name: pickObjectAt
-              signature: "(ndcX:number, ndcY:number) → {uuid:string, kind:'points'|'lines'|'aux', distance:number, point:[number,number,number]} | null"
+              signature: "(ndcX:number, ndcY:number) ↁE{uuid:string, kind:'points'|'lines'|'aux', distance:number, point:[number,number,number]} | null"
               description: |
-                pick は renderer のレイキャスト結果を受け取るが、
-                visibilityController.isVisible(uuid) が false の場合は必ず null として返す。
-                （不可視要素は UI から選択できないことを仕様で保証する）
-                dispose 後は常に null（renderer に触らない）。
+                pick は renderer のレイキャスト結果を受け取るが、E
+                visibilityController.isVisible(uuid) ぁEfalse の場合�E忁E�� null として返す、E
+                �E�不可視要素は UI から選択できなぁE��とを仕様で保証する�E�E
+                dispose 後�E常に null�E�Eenderer に触らなぁE��、E
             - name: viewerSettings
               signature: "ViewerSettingsAPI"
             - name: core
@@ -295,81 +295,81 @@ runtime_spec:
         core:
           props:
             - name: uiState
-              description: "uiState オブジェクトそのもの（所有権は core）。"
+              description: "uiState オブジェクトそのも�E�E�所有権は core�E�、E
             - name: frame
-              description: "frameController への公開ラッパ（setActive/getActive/step/next/prev/getRange/startPlayback/stopPlayback）。"
+              description: "frameController への公開ラチE���E�EetActive/getActive/step/next/prev/getRange/startPlayback/stopPlayback�E�、E
             - name: camera
-              description: "cameraEngine + cameraController への公開ラッパ（rotate/pan/zoom/reset/snapToAxis/focusOn/…）。"
+              description: "cameraEngine + cameraController への公開ラチE���E�Eotate/pan/zoom/reset/snapToAxis/focusOn/…�E�、E
             - name: mode
-              description: "modeController への公開ラッパ（set/get/canEnter/exit/focus）。"
+              description: "modeController への公開ラチE���E�Eet/get/canEnter/exit/focus�E�、E
             - name: micro
-              description: "micro mode の enter/exit/isActive だけをまとめた薄いラッパ。"
+              description: "micro mode の enter/exit/isActive だけをまとめた薁E��ラチE��、E
             - name: selection
-              description: "selectionController への公開ラッパ（select/clear/get）。"
+              description: "selectionController への公開ラチE���E�Eelect/clear/get�E�、E
             - name: filters
-              description: "visibilityController の filters ラッパ（setTypeEnabled/get）。"
+              description: "visibilityController の filters ラチE���E�EetTypeEnabled/get�E�、E
             - name: runtime
-              description: "uiState.runtime.isFramePlaying / isCameraAuto の読み出し専用ラッパ。"
+              description: "uiState.runtime.isFramePlaying / isCameraAuto の読み出し専用ラチE��、E
             - name: recomputeVisibleSet
-              description: "visibleSet + selection/micro の後処理を再計算する正規関数（core.recomputeVisibleSet）。frameController や filters からも同じ関数が呼ばれる。"
+              description: "visibleSet + selection/micro の後�E琁E��再計算する正規関数�E�Eore.recomputeVisibleSet�E�。frameController めEfilters からも同じ関数が呼ばれる、E
             - name: structIndex
-              description: "read-only 検索API（buildUUIDIndex の結果Map）。uuid→(kind,item) を引ける。"
+              description: "read-only 検索API�E�EuildUUIDIndex の結果Map�E�。uuidↁEkind,item) を引ける、E
         viewerSettings_api:
           methods:
             - name: setWorldAxesVisible
-              signature: "(visible:boolean) → void"
+              signature: "(visible:boolean) ↁEvoid"
               calls:
                 - "DI: core.viewerSettingsController.setWorldAxesVisible"
                 - "CALL: core.viewerSettingsController.setWorldAxesVisible(visible)"
             - name: toggleWorldAxes
-              signature: "() → void"
+              signature: "() ↁEvoid"
               calls:
                - "DI: core.viewerSettingsController.toggleWorldAxes"
                - "CALL: core.viewerSettingsController.toggleWorldAxes()"
             - name: getWorldAxesVisible
-              signature: "() → boolean"
+              signature: "() ↁEboolean"
               calls:
                 - "DI: core.viewerSettingsController.getWorldAxesVisible"
                 - "CALL: core.viewerSettingsController.getWorldAxesVisible()"
             - name: onWorldAxesChanged
-              signature: "(listener:(visible:boolean) => void) → () => void"
+              signature: "(listener:(visible:boolean) => void) ↁE() => void"
               calls:
                 - "DI: core.viewerSettingsController.onWorldAxesChanged"
                 - "CALL: core.viewerSettingsController.onWorldAxesChanged(listener)"
             - name: setLineWidthMode
-              signature: "(mode:'auto'|'fixed'|'adaptive') → void"
+              signature: "(mode:'auto'|'fixed'|'adaptive') ↁEvoid"
               calls:
                 - "DI: core.viewerSettingsController.setLineWidthMode"
                 - "CALL: core.viewerSettingsController.setLineWidthMode(mode)"
             - name: getLineWidthMode
-              signature: "() → 'auto'|'fixed'|'adaptive'"
+              signature: "() ↁE'auto'|'fixed'|'adaptive'"
               calls:
                 - "DI: core.viewerSettingsController.getLineWidthMode"
                 - "CALL: core.viewerSettingsController.getLineWidthMode()"
             - name: onLineWidthModeChanged
-              signature: "(listener:(mode:'auto'|'fixed'|'adaptive') => void) → () => void"
+              signature: "(listener:(mode:'auto'|'fixed'|'adaptive') => void) ↁE() => void"
               calls:
                 - "DI: core.viewerSettingsController.onLineWidthModeChanged"
                 - "CALL: core.viewerSettingsController.onLineWidthModeChanged(listener)"
             - name: setMicroFXProfile
-              signature: "(profile:'weak'|'normal'|'strong') → void"
+              signature: "(profile:'weak'|'normal'|'strong') ↁEvoid"
               calls:
                 - "DI: core.viewerSettingsController.setMicroFXProfile"
                 - "CALL: core.viewerSettingsController.setMicroFXProfile(profile)"
             - name: getMicroFXProfile
-              signature: "() → 'weak'|'normal'|'strong'"
+              signature: "() ↁE'weak'|'normal'|'strong'"
               calls:
                 - "DI: core.viewerSettingsController.getMicroFXProfile"
                 - "CALL: core.viewerSettingsController.getMicroFXProfile()"
             - name: onMicroFXProfileChanged
-              signature: "(listener:(profile:'weak'|'normal'|'strong') => void) → () => void"
+              signature: "(listener:(profile:'weak'|'normal'|'strong') => void) ↁE() => void"
               calls:
                 - "DI: core.viewerSettingsController.onMicroFXProfileChanged"
                 - "CALL: core.viewerSettingsController.onMicroFXProfileChanged(listener)"
           notes:
-            - "viewerSettings の canonical state は core(uiState.viewerSettings)。hub は core.viewerSettingsController へ委譲するだけ。"
-            - "反映は render loop 内で renderer.applyViewerSettings(uiState.viewerSettings) が行う（UI→renderer 直結は禁止を維持）。"
-            - "viewerSettings.worldAxesVisible は viewer のワールド軸（HUD/オーバーレイ）の表示。filters.setAuxModuleEnabled('axis',...) は 3DSS 側 aux モジュールの可視で別物。"
+            - "viewerSettings の canonical state は core(uiState.viewerSettings)。hub は core.viewerSettingsController へ委譲するだけ、E
+            - "反映は render loop 冁E�� renderer.applyViewerSettings(uiState.viewerSettings) が行う�E�EI→renderer 直結�E禁止を維持E��、E
+            - "viewerSettings.worldAxesVisible は viewer のワールド軸�E�EUD/オーバ�Eレイ�E��E表示。filters.setAuxModuleEnabled('axis',...) は 3DSS 側 aux モジュールの可視で別物、E
       calls:
         - "DI: core.uiState  # read-only"
         - "DI: core.cameraEngine.update"
@@ -377,8 +377,8 @@ runtime_spec:
         - "DI: core.frameController.updatePlayback"
 
         - "DI: core.microController.refresh"
-        - "DI: core.cameraEngine.getState  # render loop / resize で参照"
-        - "DI: core.visibilityController.isVisible  # pick の境界強制"
+        - "DI: core.cameraEngine.getState  # render loop / resize で参�E"
+        - "DI: core.visibilityController.isVisible  # pick の墁E��強制"
         - "DI: renderer.applyFrame"
         - "DI: renderer.applyViewerSettings"
         - "DI: renderer.applyMicroFX"
@@ -393,87 +393,87 @@ runtime_spec:
         - "ui/keyboardInput.js"
         - "ui/gizmo.js"
         - "ui/picker.js"
-        - "ui/timeline.js（将来の独立タイムライン UI を想定）"
-        - "viewerDevHarness.js（dev viewer 専用 UI）"
+        - "ui/timeline.js�E�封E��の独立タイムライン UI を想定！E
+        - "viewerDevHarness.js�E�Eev viewer 専用 UI�E�E
       constraints:
-        - "frame/mode/micro/selection の判定ロジックを hub に書いてはならない。必ず core.* に委譲する"
-        - "hub は引数の正規化（例: uuid vs vec の解決）すら原則 core 側へ寄せる（cameraController 等）"
-        - "例外: UI 安全性の不変条件（不可視は pick できない等）の境界強制は hub 側で行ってよい"
-        - "three.js のオブジェクトや material を直接触ってはならない"
-        - "core/* や renderer/* を import してはならない（{ core, renderer } を DI で受け取って呼ぶ）"
-        - "3DSS document を直接変更してはならない"
-        - "hub.core.uiState は参照専用として公開する。UI/Host は uiState を直接 mutate してはならない（更新は必ず hub.core.* API 経由）。"
-        - "viewerSettings は core(uiState.viewerSettings) が canonical。hub/viewerSettings API は core.viewerSettingsController に委譲し、renderer へ直接触れてはならない（反映は render loop の renderer.applyViewerSettings に一本化）。"
-        - "hub は uiState.visibleSet / uiState.runtime.isFramePlaying を直接書き換えない（single-writer 遵守）"
-        - "frame/selection/filter/mode の結果確定は core.* を呼ぶことで達成する"
+        - "frame/mode/micro/selection の判定ロジチE��めEhub に書ぁE��はならなぁE��忁E�� core.* に委譲する"
+        - "hub は引数の正規化�E�侁E uuid vs vec の解決�E�すら原剁Ecore 側へ寁E��る！EameraController 等！E
+        - "例夁E UI 安�E性の不変条件�E�不可視�E pick できなぁE��）�E墁E��強制は hub 側で行ってよい"
+        - "three.js のオブジェクトや material を直接触ってはならなぁE
+        - "core/* めErenderer/* めEimport してはならなぁE��E core, renderer } めEDI で受け取って呼ぶ�E�E
+        - "3DSS document を直接変更してはならなぁE
+        - "hub.core.uiState は参�E専用として公開する。UI/Host は uiState を直接 mutate してはならなぁE��更新は忁E�� hub.core.* API 経由�E�、E
+        - "viewerSettings は core(uiState.viewerSettings) ぁEcanonical。hub/viewerSettings API は core.viewerSettingsController に委譲し、renderer へ直接触れてはならなぁE��反映は render loop の renderer.applyViewerSettings に一本化）、E
+        - "hub は uiState.visibleSet / uiState.runtime.isFramePlaying を直接書き換えなぁE��Eingle-writer 遵守！E
+        - "frame/selection/filter/mode の結果確定�E core.* を呼ぶことで達�Eする"
 
       core_api:
         structIndex:
           - name: getCenter
-            signature: "(uuid:string) → [number,number,number] | null"
+            signature: "(uuid:string) ↁE[number,number,number] | null"
             calls:
               - "DI: core.structIndex.getCenter"
               - "CALL: core.structIndex.uuidToItem.get(uuid)"
           - name: getKind
-            signature: "(uuid:string) → 'points'|'lines'|'aux'|null"
+            signature: "(uuid:string) ↁE'points'|'lines'|'aux'|null"
             calls:
               - "DI: core.structIndex.getKind"
               - "CALL: core.structIndex.getKind(uuid)"
           - name: getItem
-            signature: "(uuid:string) → object|null"
+            signature: "(uuid:string) ↁEobject|null"
             calls:
               - "DI: core.structIndex.getItem"
               - "CALL: core.structIndex.getItem(uuid)"
         frame:
           - name: setActive
-            signature: "(frame:number|null) → void"
+            signature: "(frame:number|null) ↁEvoid"
             calls:
               - "DI: core.frameController.setActive"
               - "CALL: core.frameController.setActive(frame)"
           - name: getActive
-            signature: "() → number|null"
+            signature: "() ↁEnumber|null"
             calls:
               - "DI: core.frameController.getActive"
               - "CALL: core.frameController.getActive()"
           - name: step
-            signature: "(delta:number) → void"
+            signature: "(delta:number) ↁEvoid"
             calls:
               - "DI: core.frameController.step"
               - "CALL: core.frameController.step(delta)"
           - name: next
-            impl_note: "step(+1) の薄いラッパ"
+            impl_note: "step(+1) の薁E��ラチE��"
             calls:
               - "CALL: step(+1)"
           - name: prev
-            impl_note: "step(-1) の薄いラッパ"
+            impl_note: "step(-1) の薁E��ラチE��"
             calls:
               - "CALL: step(-1)"
           - name: getRange
-            signature: "() → {min:number,max:number} | null"
+            signature: "() ↁE{min:number,max:number} | null"
             calls:
               - "DI: core.frameController.getRange"
               - "CALL: core.frameController.getRange()"
           - name: startPlayback
-            signature: "() → void"
+            signature: "() ↁEvoid"
             calls:
               - "DI: core.frameController.startPlayback"
               - "CALL: core.frameController.startPlayback()"
             method_notes:
-              - "結果として uiState.runtime.isFramePlaying が true になる（更新は core.frameController 側）"
-              - "macro へ戻すのは core.frameController.startPlayback の責務"
+              - "結果として uiState.runtime.isFramePlaying ぁEtrue になる（更新は core.frameController 側�E�E
+              - "macro へ戻す�Eは core.frameController.startPlayback の責勁E
           - name: stopPlayback
-            signature: "() → void"
+            signature: "() ↁEvoid"
             calls:
               - "DI: core.frameController.stopPlayback"
               - "CALL: core.frameController.stopPlayback()"
             method_notes:
-              - "結果として uiState.runtime.isFramePlaying が false になる（更新は core.frameController 側）"
+              - "結果として uiState.runtime.isFramePlaying ぁEfalse になる（更新は core.frameController 側�E�E
 
         selection:
           - name: select
-            signature: "(uuid:string, kind?:'points'|'lines'|'aux') → {kind:'points'|'lines'|'aux', uuid:string}|null"
+            signature: "(uuid:string, kind?:'points'|'lines'|'aux') ↁE{kind:'points'|'lines'|'aux', uuid:string}|null"
             notes:
-              - "visibilityController.isVisible(uuid) が false の場合は null を返し、core.selectionController.select を呼ばない"
+              - "visibilityController.isVisible(uuid) ぁEfalse の場合�E null を返し、core.selectionController.select を呼ばなぁE
             calls:
               - "DI: core.visibilityController.isVisible"
               - "CALL: if (!core.visibilityController.isVisible(uuid)) return null"
@@ -481,111 +481,111 @@ runtime_spec:
               - "CALL: return core.selectionController.select(uuid, kind?)"
 
           - name: clear
-            signature: "() → void"
+            signature: "() ↁEvoid"
             calls:
               - "DI: core.selectionController.clear"
               - "CALL: core.selectionController.clear()"
           - name: get
-            signature: "() → {kind:'points'|'lines'|'aux', uuid:string}|null"
+            signature: "() ↁE{kind:'points'|'lines'|'aux', uuid:string}|null"
             calls:
               - "DI: core.selectionController.get"
               - "CALL: core.selectionController.get()"
 
         camera:
           - name: rotate
-            signature: "(dTheta:number, dPhi:number) → void"
+            signature: "(dTheta:number, dPhi:number) ↁEvoid"
             calls:
               - "DI: core.cameraEngine.rotate"
               - "CALL: core.cameraEngine.rotate(dTheta, dPhi)"
           - name: pan
-            signature: "(dx:number, dy:number) → void"
+            signature: "(dx:number, dy:number) ↁEvoid"
             calls:
               - "DI: core.cameraEngine.pan"
               - "CALL: core.cameraEngine.pan(dx, dy)"
           - name: zoom
-            signature: "(delta:number) → void"
+            signature: "(delta:number) ↁEvoid"
             calls:
               - "DI: core.cameraEngine.zoom"
               - "CALL: core.cameraEngine.zoom(delta)"
           - name: reset
-            signature: "() → void"
+            signature: "() ↁEvoid"
             calls:
               - "DI: core.cameraEngine.reset"
               - "CALL: core.cameraEngine.reset()"
           - name: snapToAxis
-            signature: "(axis:'x'|'y'|'z') → void"
+            signature: "(axis:'x'|'y'|'z') ↁEvoid"
             calls:
               - "DI: core.cameraEngine.snapToAxis"
               - "CALL: core.cameraEngine.snapToAxis(axis)"
 
           - name: focusOn
-            signature: "(target:[number,number,number] | uuid:string, opts?) → cameraState"
+            signature: "(target:[number,number,number] | uuid:string, opts?) ↁEcameraState"
             impl_note: |
-              focusOn は cameraState だけを更新する（mode は変更しない）。
-              uuid 解決や focus state 算出は core.cameraController が担う。
-              micro 侵入は UI が mode.focus / micro.enter を別途呼ぶ。
+              focusOn は cameraState だけを更新する�E�Eode は変更しなぁE��、E
+              uuid 解決めEfocus state 算�Eは core.cameraController が担ぁE��E
+              micro 侵入は UI ぁEmode.focus / micro.enter を別途呼ぶ、E
             calls:
               - "DI: core.cameraController.focusOn"
               - "CALL: core.cameraController.focusOn(target, opts?)"
           - name: setFOV
-            signature: "(value:number) → void"
+            signature: "(value:number) ↁEvoid"
             calls:
               - "DI: core.cameraEngine.setFOV"
               - "CALL: core.cameraEngine.setFOV(value)"
           - name: setViewByName
-            signature: "(name:string) → void"
+            signature: "(name:string) ↁEvoid"
             calls:
               - "DI: core.cameraEngine.setViewByName"
               - "CALL: core.cameraEngine.setViewByName(name)"
           - name: setViewPreset
-            signature: "(index:number, opts?) → void"
+            signature: "(index:number, opts?) ↁEvoid"
             calls:
               - "DI: core.cameraEngine.setViewPreset"
               - "CALL: core.cameraEngine.setViewPreset(index, opts?)"
           - name: getViewPresetIndex
-            signature: "() → number"
+            signature: "() ↁEnumber"
             calls:
               - "DI: core.cameraEngine.getViewPresetIndex"
               - "CALL: core.cameraEngine.getViewPresetIndex()"
 
           - name: setState
-            signature: "(partialState:object) → void"
+            signature: "(partialState:object) ↁEvoid"
             calls:
               - "DI: core.cameraEngine.setState"
               - "CALL: core.cameraEngine.setState(partialState)"
           - name: getState
-            signature: "() → cameraState"
+            signature: "() ↁEcameraState"
             calls:
               - "DI: core.cameraEngine.getState"
               - "CALL: core.cameraEngine.getState()"
           - name: startAutoOrbit
-            signature: "(opts?) → void"
+            signature: "(opts?) ↁEvoid"
             calls:
               - "DI: core.camera.startAutoOrbit"
               - "CALL: core.camera.startAutoOrbit(opts?)"
           - name: updateAutoOrbitSettings
-            signature: "(opts?) → void"
+            signature: "(opts?) ↁEvoid"
             calls:
               - "DI: core.camera.updateAutoOrbitSettings"
               - "CALL: core.camera.updateAutoOrbitSettings(opts?)"
           - name: stopAutoOrbit
-            signature: "() → void"
+            signature: "() ↁEvoid"
             calls:
               - "DI: core.camera.stopAutoOrbit"
               - "CALL: core.camera.stopAutoOrbit()"
         mode:
           - name: set
-            signature: "(mode:'macro'|'micro', uuid?:string) → 'macro'|'micro'"
+            signature: "(mode:'macro'|'micro', uuid?:string) ↁE'macro'|'micro'"
             calls:
               - "DI: core.modeController.set"
               - "CALL: core.modeController.set(mode, uuid?)"
           - name: get
-            signature: "() → 'macro'|'micro'"
+            signature: "() ↁE'macro'|'micro'"
             calls:
               - "DI: core.modeController.get"
               - "CALL: core.modeController.get()"
           - name: canEnter
-            signature: "(uuid:string) → boolean"
+            signature: "(uuid:string) ↁEboolean"
             calls:
               - "DI: core.modeController.canEnter"
               - "CALL: core.modeController.canEnter(uuid)"
@@ -593,38 +593,38 @@ runtime_spec:
               - "uiState.runtime を参照する"
 
           - name: exit
-            signature: "() → 'macro'|'micro'"
+            signature: "() ↁE'macro'|'micro'"
             calls:
               - "DI: core.modeController.exit"
               - "CALL: core.modeController.exit()"
 
           - name: focus
-            signature: "(uuid:string) → 'macro'|'micro'"
+            signature: "(uuid:string) ↁE'macro'|'micro'"
             calls:
               - "DI: core.modeController.focus"
               - "CALL: core.modeController.focus(uuid)"
 
         micro:
           - name: enter
-            signature: "(uuid:string) → 'macro'|'micro'"
+            signature: "(uuid:string) ↁE'macro'|'micro'"
             calls:
               - "DI: core.modeController.set"
               - "CALL: core.modeController.set('micro', uuid)"
             method_notes:
-             - "規範: canEnter=false の場合は no-op（状態変更なし）で現在の mode を返す。例外は禁止。"
+             - "規篁E canEnter=false の場合�E no-op�E�状態変更なし）で現在の mode を返す。例外�E禁止、E
 
           - name: exit
-            signature: "() → 'macro'"
+            signature: "() ↁE'macro'"
             calls:
               - "DI: core.modeController.set"
               - "CALL: core.modeController.set('macro')"
           - name: isActive
-            signature: "() → boolean"
-            impl_note: "uiState.mode === 'micro' を見るだけ（core 所有）"
+            signature: "() ↁEboolean"
+            impl_note: "uiState.mode === 'micro' を見るだけ！Eore 所有！E
 
         filters:
           - name: setTypeEnabled
-            signature: "(kind:'points'|'lines'|'aux', enabled:boolean) → void"
+            signature: "(kind:'points'|'lines'|'aux', enabled:boolean) ↁEvoid"
             calls:
               - "DI: core.visibilityController.setTypeEnabled"
               - "CALL: core.visibilityController.setTypeEnabled(kind, enabled)"
@@ -632,7 +632,7 @@ runtime_spec:
               - "CALL: core.recomputeVisibleSet()"
 
           - name: setAuxModuleEnabled
-            signature: "(module:'grid'|'axis'|'plate'|'shell'|'hud'|'extension', enabled:boolean) → void"
+            signature: "(module:'grid'|'axis'|'plate'|'shell'|'hud'|'extension', enabled:boolean) ↁEvoid"
             calls:
               - "DI: core.visibilityController.setAuxModuleEnabled"
               - "CALL: core.visibilityController.setAuxModuleEnabled(module, enabled)"
@@ -640,24 +640,24 @@ runtime_spec:
               - "CALL: core.recomputeVisibleSet()"
 
           - name: get
-            signature: "() → FiltersState"
+            signature: "() ↁEFiltersState"
             calls:
               - "DI: core.visibilityController.get"
               - "CALL: core.visibilityController.get()"
 
         runtime:
           - name: isFramePlaying
-            signature: "() → boolean"
-            impl_note: "uiState.runtime.isFramePlaying を返す。core.frame.startPlayback/stopPlayback 側でフラグを更新。"
+            signature: "() ↁEboolean"
+            impl_note: "uiState.runtime.isFramePlaying を返す。core.frame.startPlayback/stopPlayback 側でフラグを更新、E
 
           - name: isCameraAuto
-            signature: "() → boolean"
-            impl_note: "uiState.runtime.isCameraAuto を返す（AutoOrbit 中 true）。"
+            signature: "() ↁEboolean"
+            impl_note: "uiState.runtime.isCameraAuto を返す�E�EutoOrbit 中 true�E�、E
 
-        # core 直下に関数として生やす（hub.core.recomputeVisibleSet()）
+        # core 直下に関数として生やす！Eub.core.recomputeVisibleSet()�E�E
         recomputeVisibleSet:
           - name: recomputeVisibleSet
-            signature: "() → void"
+            signature: "() ↁEvoid"
             calls:
               - "DI: core.recomputeVisibleSet"
               - "CALL: core.recomputeVisibleSet()"
@@ -666,10 +666,10 @@ runtime_spec:
     # =========================
       layer: core
       responsibility:
-        - "indices を内包した read-only 検索API（hub へ渡す）"
+        - "indices を�E匁E��ぁEread-only 検索API�E�Eub へ渡す！E
       exports:
         - name: createStructIndexFacade
-          signature: "({ indices, document }) → structIndex"
+          signature: "({ indices, document }) ↁEstructIndex"
       structIndex:
         methods:
           - getCenter(uuid:string): [number,number,number] | null
@@ -680,33 +680,33 @@ runtime_spec:
     - name: runtime/core/validator.js
       layer: core
       responsibility:
-        - "AJV strict validator を初期化し、3DSS と参照整合性を検証する"
+        - "AJV strict validator を�E期化し、EDSS と参�E整合性を検証する"
       exports:
         - name: initValidator
-          signature: "() → { validate3DSS, validateRefIntegrity }"
+          signature: "() ↁE{ validate3DSS, validateRefIntegrity }"
       constraints:
-        - "doc を書き換えない"
+        - "doc を書き換えなぁE
 
     - name: runtime/core/deepFreeze.js
       layer: core
       responsibility:
-        - "document を deep freeze して immutable 扱いにする"
+        - "document めEdeep freeze して immutable 扱ぁE��する"
       exports:
         - name: deepFreeze
-          signature: "(obj) → obj"
+          signature: "(obj) ↁEobj"
       constraints:
-        - "Set/Map 等 runtime state には使わない（document 専用）"
+        - "Set/Map 筁Eruntime state には使わなぁE��Eocument 専用�E�E
 
     - name: runtime/core/viewerSettingsController.js
       layer: core
       responsibility:
-        - "uiState.viewerSettings の初期値を確定し、viewerSettings API を提供する（state 所有は core）"
+        - "uiState.viewerSettings の初期値を確定し、viewerSettings API を提供する！Etate 所有�E core�E�E
         - "set*/toggle* で uiState.viewerSettings を更新し、登録済み listener を通知する"
-        - "renderer への直接アクセスはしない（反映は hub の render loop が applyViewerSettings で行う）"
+        - "renderer への直接アクセスはしなぁE��反映は hub の render loop ぁEapplyViewerSettings で行う�E�E
       exports:
         - name: createViewerSettingsController
           returns: viewerSettingsController
-          signature: "({ uiState }) → viewerSettingsController"
+          signature: "({ uiState }) ↁEviewerSettingsController"
       di_injected:
         - name: uiState
           source: "bootstrapViewer (createUiState result)"
@@ -727,25 +727,25 @@ runtime_spec:
         - "lineWidthMode: 'auto'"
         - "microFXProfile: 'normal'"
       state:
-        - "uiState.viewerSettings を canonical とする"
-        - "listeners は runtime-only（uiState には保持しない）"
-        - "onXChanged は unsubscribe 関数を返す（同一 listener の二重登録を防ぐのは実装任意。ただし解除できることは必須）。"
+        - "uiState.viewerSettings めEcanonical とする"
+        - "listeners は runtime-only�E�EiState には保持しなぁE��E
+        - "onXChanged は unsubscribe 関数を返す�E�同一 listener の二重登録を防ぐ�Eは実裁E��意。ただし解除できることは忁E��）、E
       constraints:
-        - "viewerSettingsController は renderer に直接アクセスしてはならない（setLineWidthMode 等で renderer.setXxx を呼ばない）。反映は hub の render loop が renderer.applyViewerSettings(uiState.viewerSettings) で行う。"
-        - "setMicroFXProfile(profile) は uiState.viewerSettings.microFXProfile のみ更新する。lineWidthMode 等の別設定を書き換えるのは禁止。renderer.setXxx を呼ぶのも禁止（反映は hub render loop の applyViewerSettings に一本化）。"
+        - "viewerSettingsController は renderer に直接アクセスしてはならなぁE��EetLineWidthMode 等で renderer.setXxx を呼ばなぁE��。反映は hub の render loop ぁErenderer.applyViewerSettings(uiState.viewerSettings) で行う、E
+        - "setMicroFXProfile(profile) は uiState.viewerSettings.microFXProfile のみ更新する。lineWidthMode 等�E別設定を書き換えるのは禁止。renderer.setXxx を呼ぶのも禁止�E�反映は hub render loop の applyViewerSettings に一本化）、E
 
     - name: runtime/core/cameraEngine.js
       layer: core
       calls:
         - "DI: modeController.set   # startAutoOrbit で 'macro' 強制"
       responsibility:
-        - "uiState.cameraState を更新/参照し、renderer に渡すための状態を作る"
-        - "AutoOrbit を含むカメラ状態の更新（runtime/mode は触らない）"
+        - "uiState.cameraState を更新/参�Eし、renderer に渡すため�E状態を作る"
+        - "AutoOrbit を含むカメラ状態�E更新�E�Euntime/mode は触らなぁE��E
 
       exports:
         - name: createCameraEngine
           returns: cameraEngine
-          signature: "({ uiState, modeController }) → cameraEngine"
+          signature: "({ uiState, modeController }) ↁEcameraEngine"
       di_injected:
         - name: uiState
           source: "bootstrapViewer (createUiState result)"
@@ -770,22 +770,22 @@ runtime_spec:
           - updateAutoOrbitSettings(opts?)
           - stopAutoOrbit()
       called_by:
-        - "runtime/viewerHub.js（core.camera.* 経由）"
-        - "core/modeController.js（フォーカス遷移時に参照する場合があれば）"
+        - "runtime/viewerHub.js�E�Eore.camera.* 経由�E�E
+        - "core/modeController.js�E�フォーカス遷移時に参�Eする場合があれば�E�E
       state:
-        - "uiState.cameraState を canonical とし、cameraEngine はそれを更新/参照する（内部に別コピーは持たない）"
-        - "three.js の Camera インスタンスは renderer が保持し、この state を反映するだけ"
+        - "uiState.cameraState めEcanonical とし、cameraEngine はそれを更新/参�Eする�E��E部に別コピ�Eは持たなぁE��E
+        - "three.js の Camera インスタンスは renderer が保持し、この state を反映するだぁE
 
     - name: runtime/core/cameraController.js
       layer: core
       responsibility:
-        - "hub から呼ばれる camera façade（rotate/pan/zoom/reset/preset/autoOrbit 等）を提供"
-        - "uiState.runtime.isCameraAuto をこの層だけで管理する（single-writer）"
-        - "startAutoOrbit は macro 強制（micro 中 auto 禁止の規範）"
+        - "hub から呼ばれる camera façade�E�Eotate/pan/zoom/reset/preset/autoOrbit 等）を提侁E
+        - "uiState.runtime.isCameraAuto をこの層だけで管琁E��る！Eingle-writer�E�E
+        - "startAutoOrbit は macro 強制�E�Eicro 中 auto 禁止の規篁E��E
       exports:
         - name: createCameraController
           returns: cameraController
-          signature: "({ uiState, cameraEngine, structIndex }) → cameraController"
+          signature: "({ uiState, cameraEngine, structIndex }) ↁEcameraController"
       di_injected:
         - name: uiState
           source: "bootstrapViewer (createUiState result)"
@@ -801,28 +801,28 @@ runtime_spec:
         - "DI: cameraEngine.computeFocusState"
         - "DI: cameraEngine.setState"
       constraints:
-        - "three.js を import してはならない"
-        - "renderer に直接アクセスしてはならない"
+        - "three.js めEimport してはならなぁE
+        - "renderer に直接アクセスしてはならなぁE
       called_by:
-        - "runtime/viewerHub.js（core.camera.focusOn 経由）"
+        - "runtime/viewerHub.js�E�Eore.camera.focusOn 経由�E�E
 
     - name: runtime/core/frameController.js
       layer: core
       responsibility:
-        - "active frame を管理する"
+        - "active frame を管琁E��めE
         - "frameRange を決定し、uiState.frame に保持する"
-        - "frameRange は structIndex.detectFrameRange() を使い、v1.1.0 の frames:number|number[] を解釈して算出する"
+        - "frameRange は structIndex.detectFrameRange() を使ぁE��v1.1.0 の frames:number|number[] を解釈して算�Eする"
         - "初期 activeFrame は次で統一する:"
-        - "  - frameRange === null のとき: activeFrame = null（フレーム絞り込み無し）"
-        - "  - frameRange !== null のとき: activeFrame = frameRange.min（最初のフレームから開始）"
+        - "  - frameRange === null のとぁE activeFrame = null�E�フレーム絞り込み無し！E
+        - "  - frameRange !== null のとぁE activeFrame = frameRange.min�E�最初�Eフレームから開始！E
         - "startPlayback/stopPlayback で uiState.runtime.isFramePlaying を更新する"
-        - "startPlayback は modeController.set('macro') を必ず呼ぶ"
+        - "startPlayback は modeController.set('macro') を忁E��呼ぶ"
       constraints:
-        - "uiState.runtime.isFramePlaying を直接代入してよいのは frameController のみ（single-writer）"
+        - "uiState.runtime.isFramePlaying を直接代入してよいのは frameController のみ�E�Eingle-writer�E�E
       exports:
         - name: createFrameController
           returns: frameController
-          signature: "({ uiState, frameRange, recomputeVisibleSet, modeController }) → frameController"
+          signature: "({ uiState, frameRange, recomputeVisibleSet, modeController }) ↁEframeController"
       di_injected:
         - name: uiState
           source: "bootstrapViewer (createUiState result)"
@@ -846,45 +846,45 @@ runtime_spec:
           - updatePlayback(dtSeconds:number): void
 
       playback_policy:
-        - "startPlayback(): uiState.runtime.isFramePlaying = true; accumulator をリセット"
-        - "stopPlayback(): uiState.runtime.isFramePlaying = false; accumulator をリセット"
-        - "updatePlayback(dtSeconds): isFramePlaying===false なら no-op。dt を積算して必要ステップだけ frame を進め、上限到達で stopPlayback()"
-        - "frame を進める経路は setActive/内部 setActive を通し、結果として recomputeVisibleSet の正規ルートが維持される"
+        - "startPlayback(): uiState.runtime.isFramePlaying = true; accumulator をリセチE��"
+        - "stopPlayback(): uiState.runtime.isFramePlaying = false; accumulator をリセチE��"
+        - "updatePlayback(dtSeconds): isFramePlaying===false なめEno-op。dt を積算して忁E��スチE��プだぁEframe を進め、上限到達で stopPlayback()"
+        - "frame を進める経路は setActive/冁E�� setActive を通し、結果として recomputeVisibleSet の正規ルートが維持される"
  
       internal_state:
 
-        - "playbackAccumulatorSeconds: number  # frameController 内部にのみ保持（uiState には保持しない）"
-        - "playbackStepSeconds: number  # 既定 1/30（実装判断で可。仕様は『一定間隔で step する』を要求）"
+        - "playbackAccumulatorSeconds: number  # frameController 冁E��にのみ保持�E�EiState には保持しなぁE��E
+        - "playbackStepSeconds: number  # 既宁E1/30�E�実裁E��断で可。仕様�E『一定間隔で step する』を要求！E
 
       method_notes:
         - "step(delta):"
-        - "  - frameRange === null のとき no-op"
-        - "  - activeFrame === null のとき:"
-        - "      delta > 0 → setActive(frameRange.min)"
-        - "      delta < 0 → setActive(frameRange.max)"
-        - "      delta = 0 → no-op"
-        - "  activeFrame !== null のときは **必ず clamp**（min/max で打ち止め）"
-        - "setActive/step は activeFrame 更新後に recomputeVisibleSet() を必ず呼ぶ（frame変更後の唯一の正規ルート）"
+        - "  - frameRange === null のとぁEno-op"
+        - "  - activeFrame === null のとぁE"
+        - "      delta > 0 ↁEsetActive(frameRange.min)"
+        - "      delta < 0 ↁEsetActive(frameRange.max)"
+        - "      delta = 0 ↁEno-op"
+        - "  activeFrame !== null のとき�E **忁E�� clamp**�E�Ein/max で打ち止めE��E
+        - "setActive/step は activeFrame 更新後に recomputeVisibleSet() を忁E��呼ぶ�E�Erame変更後�E唯一の正規ルート！E
       calls:
         - "DI: recomputeVisibleSet"
         - "CALL: recomputeVisibleSet()"
         - "DI: modeController.set"
 
-        - "CALL: # updatePlayback は setActive/step を内部利用して進行させる（recomputeVisibleSet を必ず通す）"
+        - "CALL: # updatePlayback は setActive/step を�E部利用して進行させる�E�EecomputeVisibleSet を忁E��通す�E�E
  
       called_by:
-        - "runtime/viewerHub.js（core.frame.* 経由）"
+        - "runtime/viewerHub.js�E�Eore.frame.* 経由�E�E
       state:
-        - "activeFrame と frameRange を uiState.frame に保持する（current:number|null, range:{min,max}|null）。"
+        - "activeFrame と frameRange めEuiState.frame に保持する�E�Eurrent:number|null, range:{min,max}|null�E�、E
 
     - name: runtime/core/selectionController.js
       layer: core
       responsibility:
-        - "現在の選択要素（kind, uuid）および hover 状態を管理する"
+        - "現在の選択要素�E�Eind, uuid�E�およ�E hover 状態を管琁E��めE
       exports:
         - name: createSelectionController
           returns: selectionController
-          signature: "({ uiState, indices }) → selectionController"
+          signature: "({ uiState, indices }) ↁEselectionController"
       di_injected:
         - name: uiState
           source: "bootstrapViewer (createUiState result)"
@@ -898,23 +898,23 @@ runtime_spec:
           - setHover(payload:{uuid:string|null,kind:'points'|'lines'|'aux'|null})
           - getHover(): {kind:'points'|'lines'|'aux'|null, uuid:string|null}
         method_notes:
-          - "kind 未指定の場合は indices から推定する。uuid 不明、または kind 不一致の場合は null を返す。"
+          - "kind 未持E���E場合�E indices から推定する。uuid 不�E、また�E kind 不一致の場合�E null を返す、E
         calls: []
         called_by:
-          - "runtime/viewerHub.js（core.selection.*）"
+          - "runtime/viewerHub.js�E�Eore.selection.*�E�E
           - "core/modeController.js"
         state:
-          - "uiState.selection を更新する（SelectionState|null）。null は未選択。"
-          - "uiState.hover を更新する（HoverState|null）。null は hover 無し（hover 機能採用時）。"
+          - "uiState.selection を更新する�E�EelectionState|null�E�。null は未選択、E
+          - "uiState.hover を更新する�E�EoverState|null�E�。null は hover 無し！Eover 機�E採用時）、E
 
     - name: runtime/core/modeController.js
       layer: core
       responsibility:
-        - "mode（macro/micro）と micro 侵入条件の優先ルールを管理する"
+        - "mode�E�Eacro/micro�E�と micro 侵入条件の優先ルールを管琁E��めE
       exports:
         - name: createModeController
           returns: modeController
-          signature: "({ uiState, selectionController, microController, visibilityController }) → modeController"
+          signature: "({ uiState, selectionController, microController, visibilityController }) ↁEmodeController"
       di_injected:
         - name: uiState
           source: "bootstrapViewer (createUiState result)"
@@ -935,31 +935,31 @@ runtime_spec:
           - "DI: selectionController.select"
           - "DI: selectionController.get"
           - "DI: microController.refresh"
-          # activeFrame は uiState.frame.current を参照する（frameController 依存を持たない）
+          # activeFrame は uiState.frame.current を参照する�E�ErameController 依存を持たなぁE��E
           - "DI: visibilityController.isVisible"
         called_by:
-          - "runtime/viewerHub.js（core.mode.*, core.micro.*）"
+          - "runtime/viewerHub.js�E�Eore.mode.*, core.micro.*�E�E
         rules:
-          - "uiState.runtime.isFramePlaying === true の間は canEnter(uuid) を必ず false にする（micro 侵入禁止）"
-          - "再生開始時の mode='macro' 強制は core.frameController.startPlayback が担保する"
-          - "micro は visibleSet 内の要素にだけ適用される"
-          - "canEnter は isFramePlaying / isCameraAuto / visibilityController.isVisible(uuid) をチェックする（frame 条件は visibleSet に反映済み）"
-          - "isFramePlaying / isCameraAuto は core 所有の uiState.runtime を参照して判定する"
-          - "set('micro', uuid) は内部で必ず canEnter(uuid) を評価し、満たさない場合は **no-op**（状態変更なし）で現在の mode を返す（例外禁止）"
-          - "mode が 'macro' に遷移した場合は uiState.microState を必ず null にする（microFX off を保証）"
-          - "set('micro') で uuid が未指定の場合は selection.uuid を用いる。selection が null の場合は no-op で現状 mode を返す。"
+          - "uiState.runtime.isFramePlaying === true の間�E canEnter(uuid) を忁E�� false にする�E�Eicro 侵入禁止�E�E
+          - "再生開始時の mode='macro' 強制は core.frameController.startPlayback が担保すめE
+          - "micro は visibleSet 冁E�E要素にだけ適用されめE
+          - "canEnter は isFramePlaying / isCameraAuto / visibilityController.isVisible(uuid) をチェチE��する�E�Erame 条件は visibleSet に反映済み�E�E
+          - "isFramePlaying / isCameraAuto は core 所有�E uiState.runtime を参照して判定すめE
+          - "set('micro', uuid) は冁E��で忁E�� canEnter(uuid) を評価し、満たさなぁE��合�E **no-op**�E�状態変更なし）で現在の mode を返す�E�例外禁止�E�E
+          - "mode ぁE'macro' に遷移した場合�E uiState.microState を忁E�� null にする�E�EicroFX off を保証�E�E
+          - "set('micro') で uuid が未持E���E場合�E selection.uuid を用ぁE��。selection ぁEnull の場合�E no-op で現状 mode を返す、E
         state:
           - "uiState.mode を更新する"
-          - "uiState.microState は microController.refresh() により更新する（mode==='micro' の間の正規ルート）"
+          - "uiState.microState は microController.refresh() により更新する�E�Eode==='micro' の間�E正規ルート！E
 
     - name: runtime/core/microController.js
       layer: core
       responsibility:
-        - "selection + cameraState + indices から microState（= MicroFXPayload）を算出する"
+        - "selection + cameraState + indices から microState�E�E MicroFXPayload�E�を算�Eする"
       exports:
         - name: createMicroController
           returns: microController
-          signature: "({ uiState, indices }) → microController"
+          signature: "({ uiState, indices }) ↁEmicroController"
       di_injected:
         - name: uiState
           source: "bootstrapViewer (createUiState result)"
@@ -970,35 +970,35 @@ runtime_spec:
           - compute(selection, cameraState): MicroFXPayload | null   # optional: pure helper として残すなら残す
           - refresh(): MicroFXPayload | null
         notes:
-          - "refresh() は uiState.microState を更新する（mode!=='micro' のときは uiState.microState=null を保証）。戻り値は更新後の値（MicroFXPayload|null）。"
-          - "規範: 呼び出し側は原則として代入しない（refresh の副作用を正とする）。"
+          - "refresh() は uiState.microState を更新する�E�Eode!=='micro' のとき�E uiState.microState=null を保証�E�。戻り値は更新後�E値�E�EicroFXPayload|null�E�、E
+          - "規篁E 呼び出し�Eは原則として代入しなぁE��Eefresh の副作用を正とする�E�、E
         calls: []
         called_by:
           - "core/modeController"
-          - "core.recomputeVisibleSet()（bootstrapViewer が core にぶら下げる補助メソッド）"
-          - "runtime/viewerHub.js（render loop 内で refresh）"
+          - "core.recomputeVisibleSet()�E�EootstrapViewer ぁEcore にぶら下げる補助メソチE���E�E
+          - "runtime/viewerHub.js�E�Eender loop 冁E�� refresh�E�E
         constraints:
-          - "three.js を import してはならない"
-          - "renderer に直接アクセスしてはならない"
+          - "three.js めEimport してはならなぁE
+          - "renderer に直接アクセスしてはならなぁE
         microState_shape:
-          - "MicroFXPayload 型（3DSD-viewer.md 7.11 節）と同型のオブジェクト、または null を返す"
-          - "renderer は unknown なフィールドは無視して良い"
+          - "MicroFXPayload 型！EDSD-viewer.md 7.11 節�E�と同型のオブジェクト、また�E null を返す"
+          - "renderer は unknown なフィールド�E無視して良ぁE
 
     - name: runtime/core/visibilityController.js
       layer: core
       responsibility:
-        - "appearance.visible / frames / filters を合成し、visibleSet を計算する"
-        - "v1.1.0: appearance.visible は default を持たないため、未指定(undefined)は true 扱いとする（false のときのみ非表示）"
-        - "v1.1.0: appearance.frames は number | number[] を許容し、activeFrame と照合して可視判定する"
+        - "appearance.visible / frames / filters を合成し、visibleSet を計算すめE
+        - "v1.1.0: appearance.visible は default を持たなぁE��め、未持E��Eundefined)は true 扱ぁE��する�E�Ealse のとき�Eみ非表示�E�E
+        - "v1.1.0: appearance.frames は number | number[] を許容し、activeFrame と照合して可視判定すめE
       rules:
-        - "visible: undefined ⇒ true / false ⇒ hidden"
-        - "frames: undefined ⇒ 全フレームで可視"
-        - "activeFrame === null のとき: frames は判定に使わず（visible と filters のみ）可視判定する"
-        - "activeFrame !== null のとき: frames が number なら一致時のみ可視、number[] なら含まれるとき可視"
+        - "visible: undefined ⇁Etrue / false ⇁Ehidden"
+        - "frames: undefined ⇁E全フレームで可要E
+        - "activeFrame === null のとぁE frames は判定に使わず�E�Eisible と filters のみ�E�可視判定すめE
+        - "activeFrame !== null のとぁE frames ぁEnumber なら一致時�Eみ可視、number[] なら含まれるとき可要E
       exports:
         - name: createVisibilityController
           returns: visibilityController
-          signature: "({ uiState, document, indices }) → visibilityController"
+          signature: "({ uiState, document, indices }) ↁEvisibilityController"
       di_injected:
         - name: uiState
           source: "bootstrapViewer (createUiState result)"
@@ -1016,25 +1016,25 @@ runtime_spec:
           - setAuxModuleEnabled(module:'grid'|'axis'|'plate'|'shell'|'hud'|'extension', enabled:boolean)
       method_notes:
         - "setTypeEnabled/setAuxModuleEnabled は filters の状態更新のみ行う"
-        - "visibleSet 再計算と selection/micro 後処理は caller が core.recomputeVisibleSet() を呼んで保証する（循環依存回避）"
-        - "isVisible(uuid) は uiState.visibleSet の points/lines/aux の membership を見る（visibleSet が null の場合は false）"
+        - "visibleSet 再計算と selection/micro 後�E琁E�E caller ぁEcore.recomputeVisibleSet() を呼んで保証する�E�循環依存回避�E�E
+        - "isVisible(uuid) は uiState.visibleSet の points/lines/aux の membership を見る�E�EisibleSet ぁEnull の場合�E false�E�E
       calls: []
       called_by:
-        - "runtime/viewerHub.js（core.filters.*）"
+        - "runtime/viewerHub.js�E�Eore.filters.*�E�E
         - "core/recomputeVisibleSet"
         - "core/modeController"
       state:
-        - "uiState.visibleSet は core.recomputeVisibleSet が更新し、visibilityController は参照のみ"
-        - "uiState.filters を {points,lines,aux,auxModules?:Record<string,boolean>} として保持する"
+        - "uiState.visibleSet は core.recomputeVisibleSet が更新し、visibilityController は参�Eのみ"
+        - "uiState.filters めE{points,lines,aux,auxModules?:Record<string,boolean>} として保持する"
 
     - name: runtime/core/uiState.js
       layer: core
       responsibility:
-        - "viewer の UI 状態を一元管理する（document とは分離）"
+        - "viewer の UI 状態を一允E��琁E��る！Eocument とは刁E���E�E
       exports:
         - name: createUiState
           returns: uiState
-          signature: "() → uiState"
+          signature: "() ↁEuiState"
       fields:
         - "frame: {current:number|null, range:{min:number,max:number}|null}"
         - "runtime: {isFramePlaying:boolean, isCameraAuto:boolean}"
@@ -1061,7 +1061,7 @@ runtime_spec:
       defaults:
         - "filters: { points:true, lines:true, aux:true, auxModules:{grid:true, axis:true, plate:true, shell:true, hud:true, extension:true} }"
         - "frame: { current:null, range:null }"
-        - "visibleSet: null  # 初期化後に core.recomputeVisibleSet() で確定"
+        - "visibleSet: null  # 初期化後に core.recomputeVisibleSet() で確宁E
         - "mode: 'macro'"
         - "selection: null"
         - "hover: null"
@@ -1071,19 +1071,19 @@ runtime_spec:
     - name: runtime/core/structIndex.js
       layer: core
       responsibility:
-        - "3DSS document から uuid インデックスと frameRange を構築する"
+        - "3DSS document から uuid インチE��クスと frameRange を構築すめE
       exports:
         - name: buildUUIDIndex
-          signature: "(document) → { uuidToKind:Map<string,kind>, ... }"
+          signature: "(document) ↁE{ uuidToKind:Map<string,kind>, ... }"
         - name: getCenter
-          signature: "(indices, uuid:string) → [number,number,number] | null"
-          description: "pointはその座標、lineは中点、auxは代表点（実装定義）"
+          signature: "(indices, uuid:string) ↁE[number,number,number] | null"
+          description: "pointはそ�E座標、lineは中点、auxは代表点�E�実裁E��義�E�E
         - name: detectFrameRange
-          signature: "(document) → {min:number,max:number} | null"
+          signature: "(document) ↁE{min:number,max:number} | null"
           description: |
-            v1.1.0: appearance.frames は number | number[]。
-            points/lines/aux 全要素の frames を走査して min/max を返す。
-            frames が1件も無い場合は null。
+            v1.1.0: appearance.frames は number | number[]、E
+            points/lines/aux 全要素の frames を走査して min/max を返す、E
+            frames ぁE件も無ぁE��合�E null、E
       called_by:
         - "bootstrapViewer"
 
@@ -1091,14 +1091,14 @@ runtime_spec:
       layer: core
       responsibility:
         - "visibilityController.recompute() を呼び uiState.visibleSet を更新"
-        - "selection が不可視になった場合の不変条件を保証:"
-        - "  - selectionController.clear() を呼ぶ（推奨：保持しない）"
-        - "selection が不可視になった場合、modeController.set('macro') で micro を確実に抜ける"
-        - "  - microState を null にする"
-        - "selection が可視で mode が micro の場合は microController.refresh() で microState を再計算"
+        - "selection が不可視になった場合�E不変条件を保証:"
+        - "  - selectionController.clear() を呼ぶ�E�推奨�E�保持しなぁE��E
+        - "selection が不可視になった場合、modeController.set('macro') で micro を確実に抜けめE
+        - "  - microState めEnull にする"
+        - "selection が可視で mode ぁEmicro の場合�E microController.refresh() で microState を�E計箁E
       exports:
         - name: createRecomputeVisibleSet
-          signature: "({ uiState, visibilityController, selectionController, microController, modeController }) → { recomputeVisibleSet }"
+          signature: "({ uiState, visibilityController, selectionController, microController, modeController }) ↁE{ recomputeVisibleSet }"
       di_injected:
         - name: uiState
           source: "bootstrapViewer (createUiState result)"
@@ -1118,12 +1118,12 @@ runtime_spec:
         - "CALL: sel = selectionController.get()"
         - "DI: visibilityController.isVisible"
         - "CALL: if (sel && !visibilityController.isVisible(sel.uuid)) { selectionController.clear(); modeController.set('macro'); uiState.microState = null; return; }"
-        - "DI: selectionController.clear  # selection が不可視なら"
-        - "DI: modeController.set         # selection 不可視なら 'macro' 強制"
-        - "DI: microController.refresh    # selection 可視かつ mode==='micro' のとき"
+        - "DI: selectionController.clear  # selection が不可視なめE
+        - "DI: modeController.set         # selection 不可視なめE'macro' 強制"
+        - "DI: microController.refresh    # selection 可視かつ mode==='micro' のとぁE
         - "CALL: if (uiState.mode === 'micro') microController.refresh()"
       notes:
-        - "recomputeVisibleSet() は bootstrapViewer で生成され、他 core モジュールへ DI で配布される（import 参照しない）。"
+        - "recomputeVisibleSet() は bootstrapViewer で生�Eされ、仁Ecore モジュールへ DI で配币E��れる�E�Emport 参�EしなぁE��、E
 
     # =========================
     # 2.4 renderer
@@ -1131,11 +1131,11 @@ runtime_spec:
     - name: runtime/renderer/context.js
       layer: renderer
       responsibility:
-        - "three.js renderer / scene / camera を初期化し、Core から渡された状態を描画する"
+        - "three.js renderer / scene / camera を�E期化し、Core から渡された状態を描画する"
       exports:
         - name: createRendererContext
           returns: rendererContext
-          signature: "({ canvas }) → rendererContext"
+          signature: "({ canvas }) ↁErendererContext"
         - name: rendererContext
           methods:
             - syncDocument(document, indices)
@@ -1158,10 +1158,10 @@ runtime_spec:
         - "pointObjects: Map<string,THREE.Object3D>  # key=uuid"
         - "lineObjects: Map<string,THREE.Object3D>  # key=uuid"
         - "auxObjects: Map<string,THREE.Object3D>   # key=uuid"
-        - "baseStyle: Map<string,{color:THREE.Color,opacity:number, renderOrder:number}>  # color は clone を保存"
+        - "baseStyle: Map<string,{color:THREE.Color,opacity:number, renderOrder:number}>  # color は clone を保孁E
         - "raycaster: THREE.Raycaster"
         - "viewerSettingsCache: {worldAxesVisible:boolean,lineWidthMode:'auto'|'fixed'|'adaptive',microFXProfile:'weak'|'normal'|'strong'}"
-        - "pickTargets: THREE.Object3D[]  # uuid を持つ対象だけ入れる"
+        - "pickTargets: THREE.Object3D[]  # uuid を持つ対象だけ�Eれる"
         - "lastMicroState: MicroFXPayload | null"
       lifecycle:
         init:
@@ -1169,92 +1169,92 @@ runtime_spec:
           - "renderer.setPixelRatio(window.devicePixelRatio || 1)"
           - "renderer.setSize(canvas.clientWidth, canvas.clientHeight, false)"
           - "scene = new THREE.Scene()"
-          - "camera = new THREE.PerspectiveCamera(fov, aspect, near, far) # 初期値は暫定。最初の updateCamera(cameraState) で確定値に上書きされる"
+          - "camera = new THREE.PerspectiveCamera(fov, aspect, near, far) # 初期値は暫定。最初�E updateCamera(cameraState) で確定値に上書きされる"
           - "scene に AmbientLight / DirectionalLight を追加"
         syncDocument:
           - "前回の point/line/aux オブジェクトを scene から remove"
-          - "各 object の geometry/material/texture を dispose（可能な範囲で）"
-          - "Map を clear"
-          - "3DSS document の points/lines/aux から三次元オブジェクトを生成（未定義は空配列扱い）"
-          - "各オブジェクトに userData.uuid を付与し、対応する Map に登録"
-          - "pick のため、各オブジェクトに userData.kind = 'points'|'lines'|'aux' を付与する"
-          - "baseStyle Map に元の color(clone) / opacity / renderOrder を保存"
-          - "pickTargets を再構築（uuid を持つ object だけ）"
+          - "吁Eobject の geometry/material/texture めEdispose�E�可能な篁E��で�E�E
+          - "Map めEclear"
+          - "3DSS document の points/lines/aux から三次允E��ブジェクトを生�E�E�未定義は空配�E扱ぁE��E
+          - "吁E��ブジェクトに userData.uuid を付与し、対応すめEMap に登録"
+          - "pick のため、各オブジェクトに userData.kind = 'points'|'lines'|'aux' を付与すめE
+          - "baseStyle Map に允E�E color(clone) / opacity / renderOrder を保孁E
+          - "pickTargets を�E構築！Euid を持つ object だけ！E
           - "lastMicroState = null"
         dispose:
-          - "scene から全 object を remove"
-          - "geometry/material/texture を可能な範囲で dispose"
-          - "WebGLRenderer.dispose() / forceContextLoss は実装判断（可能なら dev 時のみ）"
-          - "Map / 配列 / cache を clear"
+          - "scene から全 object めEremove"
+          - "geometry/material/texture を可能な篁E��で dispose"
+          - "WebGLRenderer.dispose() / forceContextLoss は実裁E��断�E�可能なめEdev 時�Eみ�E�E
+          - "Map / 配�E / cache めEclear"
           - "lastMicroState = null"
         applyFrame:
-          - "visibleSet（VisibleSet|null）を受け取り、points/lines/aux の membership に従って各オブジェクトの obj.visible を更新する"
-          - "visibleSet===null の場合は安全側で全非表示（または no-op）にしてよいが、推奨は全非表示（初回 recompute 前のチラつき防止）"
+          - "visibleSet�E�EisibleSet|null�E�を受け取り、points/lines/aux の membership に従って吁E��ブジェクト�E obj.visible を更新する"
+          - "visibleSet===null の場合�E安�E側で全非表示�E�また�E no-op�E�にしてよいが、推奨は全非表示�E��E囁Erecompute 前�Eチラつき防止�E�E
         applyViewerSettings:
-          - "viewerSettings.worldAxesVisible に従い、world axes 表示（HUD/scene どちらでも可）を on/off"
-          - "viewerSettings.lineWidthMode を renderer 内部の line 描画設定に反映（実装詳細は任意）"
-          - "viewerSettings.microFXProfile を renderer 内部に保持し、applyMicroFX の強度/閾値に反映（applyMicroFX の signature は変えない）"
+          - "viewerSettings.worldAxesVisible に従い、world axes 表示�E�EUD/scene どちらでも可�E�を on/off"
+          - "viewerSettings.lineWidthMode めErenderer 冁E��の line 描画設定に反映�E�実裁E��細は任意！E
+          - "viewerSettings.microFXProfile めErenderer 冁E��に保持し、applyMicroFX の強度/閾値に反映�E�EpplyMicroFX の signature は変えなぁE��E
         applyMicroFX:
-          - "microState が null の場合: baseStyle に従って color/opacity/renderOrder をフルリセット"
-          - "microState が MicroFXPayload の場合: **必ず baseStyle から開始して**（= 前段 selection 等の残りを消してから） focus/connection/distance 等に応じて opacity/color を変更する"
+          - "microState ぁEnull の場吁E baseStyle に従って color/opacity/renderOrder をフルリセチE��"
+          - "microState ぁEMicroFXPayload の場吁E **忁E�� baseStyle から開始して**�E�E 前段 selection 等�E残りを消してから�E�Efocus/connection/distance 等に応じて opacity/color を変更する"
           - "lastMicroState = microState"
         updateCamera:
-          - "camera.position / camera.up を cameraState から設定"
+          - "camera.position / camera.up めEcameraState から設宁E
           - "target ベクトルに対して camera.lookAt(target)"
-          - "near/far/fov が変わった場合は camera.near/far/fov 更新 ＋ updateProjectionMatrix()"
-          - "規範: updateCamera は camera.aspect を更新してはならない（aspect は resize の責務）。"
+          - "near/far/fov が変わった場合�E camera.near/far/fov 更新 �E�EupdateProjectionMatrix()"
+          - "規篁E updateCamera は camera.aspect を更新してはならなぁE��Espect は resize の責務）、E
         applySelection:
-          - "selectionState（SelectionState|null）を受け取り、**macro 用**の軽い selection ハイライトを適用してよい（null なら selection をクリアする）"
-          - "優先順位: **microFX > selection（macro） > baseStyle**"
-          - "防御的規範: lastMicroState != null の間は no-op（microFX 優先）。※ mode 判定や uiState 参照は renderer で行わない（呼び出し条件は hub が担保）"
+          - "selectionState�E�EelectionState|null�E�を受け取り、E*macro 用**の軽ぁEselection ハイライトを適用してよい�E�Eull なめEselection をクリアする�E�E
+          - "優先頁E��E **microFX > selection�E�Eacro�E�E> baseStyle**"
+          - "防御皁E��篁E lastMicroState != null の間�E no-op�E�EicroFX 優先）。※ mode 判定や uiState 参�Eは renderer で行わなぁE��呼び出し条件は hub が担保！E
         pickObjectAt:
           - "raycaster.setFromCamera({x:ndcX,y:ndcY}, camera)"
-          - "raycaster.intersectObjects(pickTargets, true) の最前面ヒットから、parent を辿って userData.uuid を持つ最初のノードを採用して返す（子meshヒット対策）"
+          - "raycaster.intersectObjects(pickTargets, true) の最前面ヒットから、parent を辿って userData.uuid を持つ最初�Eノ�Eドを採用して返す�E�子meshヒット対策！E
         render:
           - "renderer.render(scene, camera)"
         resize:
           - "renderer.setSize(width, height, false)"
           - "camera.aspect = width/height; camera.updateProjectionMatrix()"
-          - "規範: aspect 更新は resize のみ。updateCamera で aspect を触らない。"
+          - "規篁E aspect 更新は resize のみ。updateCamera で aspect を触らなぁE��E
       calls: []
       called_by:
-        - "bootstrapViewer（初期化）"
+        - "bootstrapViewer�E��E期化�E�E
         - "runtime/viewerHub.js"
       constraints:
-        - "3DSS document を書き換えてはならない"
-        - "visibleSet / microState / selectionState / cameraState の canonical 所有者は core であり、renderer は各フレームで受け取って反映するだけ"
-        - "mode や selection の判定ロジックを実装してはならない"
-        - "UI layer は renderer を直接 import してはならない（pickObjectAt も必ず viewerHub.pickObjectAt 経由）"
-        - "外部公開 API としての highlight は applySelection/applyMicroFX のみ（setHighlight/clearAllHighlights を export しない）"
+        - "3DSS document を書き換えてはならなぁE
+        - "visibleSet / microState / selectionState / cameraState の canonical 所有老E�E core であり、renderer は吁E��レームで受け取って反映するだぁE
+        - "mode めEselection の判定ロジチE��を実裁E��てはならなぁE
+        - "UI layer は renderer を直接 import してはならなぁE��EickObjectAt も忁E�� viewerHub.pickObjectAt 経由�E�E
+        - "外部公閁EAPI としての highlight は applySelection/applyMicroFX のみ�E�EetHighlight/clearAllHighlights めEexport しなぁE��E
 
     # =========================
     # 2.5 UI Bridge
     # =========================
-    # Pointer/Keyboard 入力も含めて、
-    # UI 層は「DOM 入力 / UI → hub.core.* / hub.pickObjectAt / hub.viewerSettings.*」のみを担当する。
+    # Pointer/Keyboard 入力も含めて、E
+    # UI 層は「DOM 入劁E/ UI ↁEhub.core.* / hub.pickObjectAt / hub.viewerSettings.*」�Eみを担当する、E
 
     - name: ui/gizmo.js
       layer: ui
       responsibility:
-        - "画面右下の HUD 軸ギズモを描画し、クリックで camera snap/home を呼ぶ"
+        - "画面右下�E HUD 軸ギズモを描画し、クリチE��で camera snap/home を呼ぶ"
       exports:
         - name: attachGizmo
-          signature: "(wrapperElement:HTMLElement, hub) → void"
+          signature: "(wrapperElement:HTMLElement, hub) ↁEvoid"
       calls:
         - "DI: hub.core.camera.snapToAxis"
         - "CALL: hub.core.camera.snapToAxis(axis)"
         - "DI: hub.core.camera.reset"
         - "CALL: hub.core.camera.reset()"
       called_by:
-        - "viewerDevHarness.js（dev）"
-        - "Host: viewerHost.js（prod host。gizmo 採用時のみ）"
+        - "viewerDevHarness.js�E�Eev�E�E
+        - "Host: viewerHost.js�E�Erod host。gizmo 採用時�Eみ�E�E
       constraints:
-        - "three.js 本体の scene には入らず、HUD overlay として DOM で描画する"
+        - "three.js 本体�E scene には入らず、HUD overlay として DOM で描画する"
 
     - name: ui/picker.js
       layer: ui
       responsibility:
-        - "canvas 上のクリック座標から uuid を取得し、selection を更新する"
+        - "canvas 上�EクリチE��座標かめEuuid を取得し、selection を更新する"
       exports:
         - name: createPicker
           returns: picker
@@ -1268,13 +1268,13 @@ runtime_spec:
         - "DI: hub.core.selection.select"
         - "CALL: hub.core.selection.select(hit.uuid, hit.kind)"
       called_by:
-        - "viewerDevHarness.js（dev）"
-        - "Host: viewerHost.js（prod host の UI 初期化エントリ。名称は実装に合わせる）"
+        - "viewerDevHarness.js�E�Eev�E�E
+        - "Host: viewerHost.js�E�Erod host の UI 初期化エントリ。名称は実裁E��合わせる�E�E
 
     - name: ui/timeline.js
       layer: ui
       responsibility:
-        - "frame scrub / play/pause UI と core.frame.* を接続する（dev harness に一体化してもよい）"
+        - "frame scrub / play/pause UI と core.frame.* を接続する！Eev harness に一体化してもよぁE��E
       exports:
         - name: createTimeline
           returns: timeline
@@ -1296,17 +1296,17 @@ runtime_spec:
         - "DI: hub.core.frame.stopPlayback"
         - "CALL: hub.core.frame.stopPlayback()"
       called_by:
-        - "viewerDevHarness.js（dev）"
-        - "Host: viewerHost.js（prod host。timeline 採用時のみ）"
+        - "viewerDevHarness.js�E�Eev�E�E
+        - "Host: viewerHost.js�E�Erod host。timeline 採用時�Eみ�E�E
 
     - name: ui/pointerInput.js
       layer: ui
       responsibility:
-        - "canvas 上の Pointer（Mouse/Wheel）入力を hub.core.camera / hub.pickObjectAt にマッピングする UI 入力レイヤ"
+        - "canvas 上�E Pointer�E�Eouse/Wheel�E��E力を hub.core.camera / hub.pickObjectAt にマッピングする UI 入力レイヤ"
       exports:
         - name: PointerInput
           type: class
-          constructor: "(canvas:HTMLCanvasElement, hub) → PointerInput"
+          constructor: "(canvas:HTMLCanvasElement, hub) ↁEPointerInput"
           methods:
             - dispose()
       calls:
@@ -1323,20 +1323,20 @@ runtime_spec:
         - "DI: hub.core.mode.set"
         - "CALL: hub.core.mode.set(mode, uuid?)"
       called_by:
-        - "viewerDevHarness.js（dev）"
-        - "Host: viewerHost.js（prod host）"
+        - "viewerDevHarness.js�E�Eev�E�E
+        - "Host: viewerHost.js�E�Erod host�E�E
       constraints:
-        - "runtime/core からは PointerInput を import してはならない（UI 専用）"
-        - "CameraEngine に直接触らず、原則として hub.core.camera.* 経由で操作する（移行中は cameraEngine 直叩きの互換コードが残る場合がある）"
+        - "runtime/core からは PointerInput めEimport してはならなぁE��EI 専用�E�E
+        - "CameraEngine に直接触らず、原剁E��して hub.core.camera.* 経由で操作する（移行中は cameraEngine 直叩き�E互換コードが残る場合がある�E�E
 
     - name: ui/keyboardInput.js
       layer: ui
       responsibility:
-        - "window の keydown を 1 箇所に集約し、hub.core.camera / hub.core.frame / hub.core.mode / hub.core.selection / hub.viewerSettings だけを叩く"
+        - "window の keydown めE1 箁E��に雁E��E��、hub.core.camera / hub.core.frame / hub.core.mode / hub.core.selection / hub.viewerSettings だけを叩ぁE
       exports:
         - name: KeyboardInput
           type: class
-          constructor: "(target:Window, hub) → KeyboardInput"
+          constructor: "(target:Window, hub) ↁEKeyboardInput"
           methods:
             - dispose()
       calls:
@@ -1344,7 +1344,7 @@ runtime_spec:
         - "CALL: hub.viewerSettings.toggleWorldAxes()"
         - "DI: hub.core.frame.step"
         - "CALL: hub.core.frame.step(delta)"
-        - "DI: hub.core.frame.getRange（将来の UI 用に予約）"
+        - "DI: hub.core.frame.getRange�E�封E��の UI 用に予紁E��E
         - "CALL: hub.core.frame.getRange()"
         - "DI: hub.core.mode.set"
         - "CALL: hub.core.mode.set(mode, uuid?)"
@@ -1363,21 +1363,21 @@ runtime_spec:
         - "DI: hub.core.camera.getViewPresetIndex"
         - "CALL: hub.core.camera.getViewPresetIndex()"
       called_by:
-        - "viewerDevHarness.js（dev）"
-        - "Host: viewerHost.js（prod host。keyboard 採用時のみ）"
+        - "viewerDevHarness.js�E�Eev�E�E
+        - "Host: viewerHost.js�E�Erod host。keyboard 採用時�Eみ�E�E
       keymap:
         - "C / c: viewerSettings.toggleWorldAxes()"
-        - "Backslash / IntlYen / IntlRo / '\\' / '¥': view preset index を ±1 巡回（Shift で逆方向）"
+        - "Backslash / IntlYen / IntlRo / '\\' / '¥': view preset index めE±1 巡回！Ehift で送E��向！E
         - "PageUp:   frame.step(+1)"
         - "PageDown: frame.step(-1)"
         - "Esc:      mode.set('macro')"
         - "Home:     camera.reset()"
         - "+ / NumpadAdd:      camera.zoom(-0.1)"
         - "- / NumpadSubtract: camera.zoom(+0.1)"
-        - "ArrowLeft/Right/Up/Down: camera.rotate(±Δθ,±Δφ)（Shift で倍速）"
+        - "ArrowLeft/Right/Up/Down: camera.rotate(±Δθ,±ΔρE�E�Ehift で倍速！E
       constraints:
-        - "INPUT / TEXTAREA にフォーカスがある場合はキーを無視する"
-        - "runtime/core からは KeyboardInput を import してはならない（UI 専用）"
+        - "INPUT / TEXTAREA にフォーカスがある場合�Eキーを無視すめE
+        - "runtime/core からは KeyboardInput めEimport してはならなぁE��EI 専用�E�E
 
     # =========================
     # 2.6 Host / DevHarness
@@ -1386,8 +1386,8 @@ runtime_spec:
     - name: viewerDevHarness.js
       layer: ui
       responsibility:
-        - "bootstrapViewerFromUrl で hub を生成"
-        - "host_ui_attach.profiles.devHarness_full に従って UI を attach"
+        - "bootstrapViewerFromUrl で hub を生戁E
+        - "host_ui_attach.profiles.devHarness_full に従って UI めEattach"
         - "hub.start() を呼ぶ"
         - "ResizeObserver 等で hub.resize(width,height) を呼ぶ"
       calls:
@@ -1410,7 +1410,7 @@ runtime_spec:
       layer: ui
       responsibility:
         - "本番 Host の UI 初期化エントリ"
-        - "選択した host_ui_attach.profile に従って attach セットを構築"
+        - "選択しぁEhost_ui_attach.profile に従って attach セチE��を構篁E
       calls:
         - "IMPORT: runtime/bootstrapViewer.bootstrapViewer / bootstrapViewerFromUrl"
         - "CALL: hub = ..."
@@ -1426,21 +1426,21 @@ runtime_spec:
   # =========================================================
 
   # =========================================================
-  # 3.1 Host UI attach プロファイル（dev/prod）
+  # 3.1 Host UI attach プロファイル�E�Eev/prod�E�E
   # =========================================================
 
   host_ui_attach:
 
-    # Host は「hub を生成する」＋「必要 UI を attach する」だけを責務とする
+    # Host は「hub を生成する」＋「忁E��EUI めEattach する」だけを責務とする
     principles:
-      - "UI attach は Host/devHarness の責務。runtime(core/renderer/hub) は UI を import しない。"
-      - "採用 UI は profile で宣言し、startup フローは profile に従う。"
-      - "profile に含めない UI は attach しない（機能差を明示する）。"
+      - "UI attach は Host/devHarness の責務。runtime(core/renderer/hub) は UI めEimport しなぁE��E
+      - "採用 UI は profile で宣言し、startup フローは profile に従う、E
+      - "profile に含めなぁEUI は attach しなぁE��機�E差を�E示する�E�、E
 
     profiles:
 
       devHarness_full:
-        description: "開発用フル装備（検証/デバッグ優先）"
+        description: "開発用フル裁E���E�検証/チE��チE��優先！E
         attach:
           - "ui/pointerInput.js: PointerInput(canvas, hub)"
           - "ui/keyboardInput.js: KeyboardInput(window, hub)"
@@ -1448,20 +1448,20 @@ runtime_spec:
           - "ui/picker.js: createPicker(hub).attach(canvas)"
           - "ui/timeline.js: createTimeline(hub).attach(timelineRoot)"
         notes:
-          - "timeline は frameRange が null の場合 UI を disable 表示にしてよい（attach 自体は可）。"
+          - "timeline は frameRange ぁEnull の場吁EUI めEdisable 表示にしてよい�E�Ettach 自体�E可�E�、E
 
       prod_minimal:
-        description: "本番最小（操作と閲覧のみ）"
+        description: "本番最小（操作と閲覧のみ�E�E
         attach:
           - "ui/pointerInput.js: PointerInput(canvas, hub)"
           - "ui/gizmo.js: attachGizmo(wrapperEl, hub)"
         notes:
-          - "picker は採用しない（クリック選択なし運用）。"
-          - "keyboard は採用しない（ショートカット無し運用）。"
-          - "timeline は採用しない（frame UI なし運用）。"
+          - "picker は採用しなぁE��クリチE��選択なし運用�E�、E
+          - "keyboard は採用しなぁE��ショートカチE��無し運用�E�、E
+          - "timeline は採用しなぁE��Erame UI なし運用�E�、E
 
       prod_full:
-        description: "本番フル（ユーザー操作を全部提供）"
+        description: "本番フル�E�ユーザー操作を全部提供！E
         attach:
           - "ui/pointerInput.js: PointerInput(canvas, hub)"
           - "ui/keyboardInput.js: KeyboardInput(window, hub)"
@@ -1469,48 +1469,48 @@ runtime_spec:
           - "ui/picker.js: createPicker(hub).attach(canvas)"
           - "ui/timeline.js: createTimeline(hub).attach(timelineRoot)"
         notes:
-          - "入力衝突（drag中クリック等）の優先順位は UI 層で解決する（hub/core にロジックを持ち込まない）。"
+          - "入力衝突E��Erag中クリチE��等）�E優先頁E���E UI 層で解決する�E�Eub/core にロジチE��を持ち込まなぁE��、E
 
 
 
   runtime_flow:
     startup:
-      - "Host が bootstrapViewerFromUrl(canvas, url, options) or bootstrapViewer(canvas, doc, options) を呼ぶ"
-      - "推奨: bootstrapViewer(canvas, doc) を使う場合、Host は事前に strict validate 済み doc を渡す（bootstrapViewer 側で validate3DSS は常に実行される）"
-      - "bootstrapViewerFromUrl が JSON load → bootstrapViewer に渡す（validate/deepFreeze は bootstrapViewer が行う）"
-      - "bootstrapViewer が uiState / indices / rendererContext / viewerHub を生成する（順: validate→deepFreeze→buildUUIDIndex/detectFrameRange→controllers→renderer.syncDocument→getSceneMetrics→cameraEngine.setState→core.recomputeVisibleSet→createViewerHub）"
-      - "options.devBootLog === true のとき、起動診断ログ（BOOT/MODEL/CAMERA/LAYERS/FRAME）を 1 回ずつ送る（logger 未指定なら console.log 相当にフォールバック可）"
-      - "Host / dev harness が PointerInput(canvas, hub) / KeyboardInput(window, hub) を構築し、入力イベントを hub.core.* / hub.pickObjectAt / hub.viewerSettings に集約する"
-      - "Host / dev harness が gizmo / timeline / HUD 等の ui/* を初期化し、hub.core.* / hub.pickObjectAt にイベントを接続する"
-      - "Host / dev harness が hub.start() を呼び、render loop を開始する（複数回呼んでも no-op）。"
-      - "終了時は hub.stop()（一時停止）または hub.dispose()（完全破棄）を呼ぶ。"
+      - "Host ぁEbootstrapViewerFromUrl(canvas, url, options) or bootstrapViewer(canvas, doc, options) を呼ぶ"
+      - "推奨: bootstrapViewer(canvas, doc) を使ぁE��合、Host は事前に strict validate 済み doc を渡す！EootstrapViewer 側で validate3DSS は常に実行される�E�E
+      - "bootstrapViewerFromUrl ぁEJSON load ↁEbootstrapViewer に渡す！Ealidate/deepFreeze は bootstrapViewer が行う�E�E
+      - "bootstrapViewer ぁEuiState / indices / rendererContext / viewerHub を生成する（頁E validate→deepFreeze→buildUUIDIndex/detectFrameRange→controllers→renderer.syncDocument→getSceneMetrics→cameraEngine.setState→core.recomputeVisibleSet→createViewerHub�E�E
+      - "options.devBootLog === true のとき、起動診断ログ�E�EOOT/MODEL/CAMERA/LAYERS/FRAME�E�を 1 回ずつ送る�E�Eogger 未持E��なめEconsole.log 相当にフォールバック可�E�E
+      - "Host / dev harness ぁEPointerInput(canvas, hub) / KeyboardInput(window, hub) を構築し、�E力イベントを hub.core.* / hub.pickObjectAt / hub.viewerSettings に雁E��E��めE
+      - "Host / dev harness ぁEgizmo / timeline / HUD 等�E ui/* を�E期化し、hub.core.* / hub.pickObjectAt にイベントを接続すめE
+      - "Host / dev harness ぁEhub.start() を呼び、render loop を開始する（褁E��回呼んでめEno-op�E�、E
+      - "終亁E��は hub.stop()�E�一時停止�E�また�E hub.dispose()�E�完�E破棁E��を呼ぶ、E
 
     frame_update:
-      - "UI（slider / ボタン / KeyboardInput の PgUp/PgDn）が hub.core.frame.setActive / step を呼ぶ"
-      - "core.frameController が activeFrame を更新する（null を許容）"
-      - "core.frameController は更新後に core.recomputeVisibleSet() を呼び、visibleSet 再計算と selection/micro の後処理（clear/exit/microState null/refresh）を保証する"
+      - "UI�E�Elider / ボタン / KeyboardInput の PgUp/PgDn�E�が hub.core.frame.setActive / step を呼ぶ"
+      - "core.frameController ぁEactiveFrame を更新する�E�Eull を許容�E�E
+      - "core.frameController は更新後に core.recomputeVisibleSet() を呼び、visibleSet 再計算と selection/micro の後�E琁E��Elear/exit/microState null/refresh�E�を保証する"
       - "次フレームの hub tick で renderer.applyFrame(uiState.visibleSet) および renderer.applyMicroFX(uiState.microState) が呼ばれる"
-      - "playback 中は hub tick が core.frameController.updatePlayback(dtSeconds) を呼び、setActive を通じて frame を進行させる"
+      - "playback 中は hub tick ぁEcore.frameController.updatePlayback(dtSeconds) を呼び、setActive を通じて frame を進行させる"
 
     selection_update:
-      - "PointerInput / ui picker が canvas 座標から NDC 座標を計算し、hub.pickObjectAt(ndcX, ndcY) を呼ぶ"
-      - "viewerHub が renderer.pickObjectAt を呼び、ヒットを得る"
-      - "viewerHub は visibilityController.isVisible(uuid) を用いて不可視 uuid を除外し、可視ヒットのみ {uuid, kind, ...} として返す（無ければ null）"
-      - "selector が hub.core.selection.select(uuid, kind?) を呼ぶ（戻り値 null は「不可視/不正で選択不可」も含む）。通常は pickObjectAt 側で不可視は除外済み。"
-      - "selectionController が uiState.selection を更新"
-      - "UI が micro に入りたい場合は hub.core.mode.focus(uuid) または hub.core.micro.enter(uuid) を呼ぶ"
-      - "modeController は内部で canEnter（isFramePlaying / isCameraAuto / visibilityController.isVisible(uuid)）を満たす場合のみ micro に遷移し、microController.refresh() で uiState.microState を更新する"
+      - "PointerInput / ui picker ぁEcanvas 座標かめENDC 座標を計算し、hub.pickObjectAt(ndcX, ndcY) を呼ぶ"
+      - "viewerHub ぁErenderer.pickObjectAt を呼び、ヒチE��を得る"
+      - "viewerHub は visibilityController.isVisible(uuid) を用ぁE��不可要Euuid を除外し、可視ヒチE��のみ {uuid, kind, ...} として返す�E�無ければ null�E�E
+      - "selector ぁEhub.core.selection.select(uuid, kind?) を呼ぶ�E�戻り値 null は「不可要E不正で選択不可」も含む�E�。通常は pickObjectAt 側で不可視�E除外済み、E
+      - "selectionController ぁEuiState.selection を更新"
+      - "UI ぁEmicro に入りたぁE��合�E hub.core.mode.focus(uuid) また�E hub.core.micro.enter(uuid) を呼ぶ"
+      - "modeController は冁E��で canEnter�E�EsFramePlaying / isCameraAuto / visibilityController.isVisible(uuid)�E�を満たす場合�Eみ micro に遷移し、microController.refresh() で uiState.microState を更新する"
       - "次フレームの hub tick で renderer.applyMicroFX(uiState.microState) が呼ばれる"
-      - "micro に入りたいだけなら hub.core.mode.focus(uuid) だけでもよい（focus 側で select を内包してよい運用とする）。"
+      - "micro に入りたぁE��けなめEhub.core.mode.focus(uuid) だけでもよぁE��Eocus 側で select を�E匁E��てよい運用とする�E�、E
 
     render_loop:
-      - "viewerHub.start() は (disposed===false && isRunning===false) のときだけ RAF を開始する（多重 start は no-op）。"
-      - "RAF は (isRunning===true && disposed===false) の間だけ継続し、stop/dispose で次フレーム以降を止める。"
-      - "各フレーム tick（hub 内部の順序規範）:"
-      - "  0) if disposed: return（core/renderer に触らない）"
-      - "  1) dtSeconds を算出（推奨: clamp。例: 0〜0.1）"
-      - "  2) DI: core.frameController.updatePlayback(dtSeconds)（isFramePlaying のときのみ。frame は setActive 経由で進行させる）"
-      - "  3) DI: core.camera.update(dtSeconds)（AutoOrbit/補間など）""
+      - "viewerHub.start() は (disposed===false && isRunning===false) のときだぁERAF を開始する（多重 start は no-op�E�、E
+      - "RAF は (isRunning===true && disposed===false) の間だけ継続し、stop/dispose で次フレーム以降を止める、E
+      - "吁E��レーム tick�E�Eub 冁E��の頁E��規篁E��E"
+      - "  0) if disposed: return�E�Eore/renderer に触らなぁE��E
+      - "  1) dtSeconds を算�E�E�推奨: clamp。侁E 0、E.1�E�E
+      - "  2) DI: core.frameController.updatePlayback(dtSeconds)�E�EsFramePlaying のとき�Eみ。frame は setActive 経由で進行させる�E�E
+      - "  3) DI: core.camera.update(dtSeconds)�E�EutoOrbit/補間など�E�E"
       - "  4) if (uiState.mode === 'micro') DI: core.microController.refresh() else uiState.microState = null"
       - "  5) renderer.updateCamera(core.camera.getState())"
       - "  6) renderer.applyFrame(uiState.visibleSet)"
@@ -1519,11 +1519,11 @@ runtime_spec:
       - "  9) if (uiState.mode === 'macro' && uiState.microState === null) renderer.applySelection(uiState.selection)"
       - " 10) renderer.render()"
 
-      - "優先順位（規範）: microFX > selection（macro） > baseStyle（= 競合させない。micro 中は selection を適用しない）"
+      - "優先頁E��（規篁E��E microFX > selection�E�Eacro�E�E> baseStyle�E�E 競合させなぁE��micro 中は selection を適用しなぁE��E
 
     resize_update:
-      - "Host が canvas（または wrapper）のサイズ変化を検知する（ResizeObserver 推奨）"
-      - "Host が width=canvas.clientWidth, height=canvas.clientHeight を計算する"
-      - "Host が hub.resize(width, height) を呼ぶ（UI→renderer 直結は禁止のため hub 経由が正規ルート）"
-      - "hub.resize が renderer.resize(width,height) を呼び、renderer が setSize + camera.aspect 更新を行う"
-      - "hub.resize は続けて renderer.updateCamera(hub.core.camera.getState()) を呼ぶ（resize 後の確定反映）"
+      - "Host ぁEcanvas�E�また�E wrapper�E��Eサイズ変化を検知する�E�EesizeObserver 推奨�E�E
+      - "Host ぁEwidth=canvas.clientWidth, height=canvas.clientHeight を計算すめE
+      - "Host ぁEhub.resize(width, height) を呼ぶ�E�EI→renderer 直結�E禁止のため hub 経由が正規ルート！E
+      - "hub.resize ぁErenderer.resize(width,height) を呼び、renderer ぁEsetSize + camera.aspect 更新を行う"
+      - "hub.resize は続けて renderer.updateCamera(hub.core.camera.getState()) を呼ぶ�E�Eesize 後�E確定反映�E�E
