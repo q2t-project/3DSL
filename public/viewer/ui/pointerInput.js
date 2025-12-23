@@ -1,7 +1,7 @@
 // viewer/ui/pointerInput.js
 // canvas 上の pointer / wheel イベントを受けて
 // hub.core.camera / hub.core.selection / hub.core.mode を操作する UI 入力アダプタ。
-import { mapDragToOrbitDelta } from "./orbitMapping.js";
+import { mapDragToOrbitDelta } from './orbitMapping.js';
 
 const ROTATE_SPEED = 0.005;
 const PAN_SPEED = 0.002;
@@ -23,27 +23,28 @@ export class PointerInput {
     this.clickPending = false;
     this._activePointerId = null;
     this._dragging = false;
-    
+
     this._camSnap = { target: { x: 0, y: 0, z: 0 } };
 
+    this._legacyCameraWrapper = null;
     // UI から見える統一 camera API（hub.core.camera）だけ触る
     this.camera = this._resolveCamera();
 
     // ハンドラは自分自身に bind しておく（dispose 時に外せるように）
     this.onPointerDown = this.onPointerDown.bind(this);
     this.onPointerMove = this.onPointerMove.bind(this);
-    this.onPointerUp   = this.onPointerUp.bind(this);
-    this.onWheel       = this.onWheel.bind(this);
+    this.onPointerUp = this.onPointerUp.bind(this);
+    this.onWheel = this.onWheel.bind(this);
     this.onContextMenu = (e) => e.preventDefault();
 
     // イベント登録
-    canvas.addEventListener("pointerdown", this.onPointerDown);
-    canvas.addEventListener("pointermove", this.onPointerMove);
-    canvas.addEventListener("pointerup", this.onPointerUp);
-    canvas.addEventListener("pointerleave", this.onPointerUp);
-    canvas.addEventListener("pointercancel", this.onPointerUp);
-    canvas.addEventListener("wheel", this.onWheel, { passive: false });
-    canvas.addEventListener("contextmenu", this.onContextMenu);
+    canvas.addEventListener('pointerdown', this.onPointerDown);
+    canvas.addEventListener('pointermove', this.onPointerMove);
+    canvas.addEventListener('pointerup', this.onPointerUp);
+    canvas.addEventListener('pointerleave', this.onPointerUp);
+    canvas.addEventListener('pointercancel', this.onPointerUp);
+    canvas.addEventListener('wheel', this.onWheel, { passive: false });
+    canvas.addEventListener('contextmenu', this.onContextMenu);
   }
 
   _resolveCamera() {
@@ -55,16 +56,19 @@ export class PointerInput {
 
     // 最悪の保険（古い実装との互換）：cameraEngine が残ってたら薄くラップ
     if (core.cameraEngine) {
+      if (this._legacyCameraWrapper) return this._legacyCameraWrapper;
+
       const ce = core.cameraEngine;
-      return {
-        rotate: (...args) => ce.rotate && ce.rotate(...args),
-        pan:    (...args) => ce.pan    && ce.pan(...args),
-        zoom:   (...args) => ce.zoom   && ce.zoom(...args),
-        reset:  (...args) => ce.reset  && ce.reset(...args),
-        stopAutoOrbit: (...args) => ce.stopAutoOrbit && ce.stopAutoOrbit(...args),
-        getState: (...args) =>
-          ce.getState ? ce.getState(...args) : null,
+      this._legacyCameraWrapper = {
+        rotate: (...args) => ce.rotate?.(...args),
+        pan: (...args) => ce.pan?.(...args),
+        zoom: (...args) => ce.zoom?.(...args),
+        reset: (...args) => ce.reset?.(...args),
+        stopAutoOrbit: (...args) => ce.stopAutoOrbit?.(...args),
+        getState: (...args) => (ce.getState ? ce.getState(...args) : null),
+        // 必要なら getSnapshot/getCurrentSnapshot も足す
       };
+      return this._legacyCameraWrapper;
     }
 
     return null;
@@ -75,57 +79,62 @@ export class PointerInput {
     const canvas = this.canvas;
     if (!canvas) return;
 
-    canvas.removeEventListener("pointerdown", this.onPointerDown);
-    canvas.removeEventListener("pointermove", this.onPointerMove);
-    canvas.removeEventListener("pointerup", this.onPointerUp);
-    canvas.removeEventListener("pointerleave", this.onPointerUp);
-    canvas.removeEventListener("pointercancel", this.onPointerUp);
-    canvas.removeEventListener("wheel", this.onWheel);
-    canvas.removeEventListener("contextmenu", this.onContextMenu);
+    canvas.removeEventListener('pointerdown', this.onPointerDown);
+    canvas.removeEventListener('pointermove', this.onPointerMove);
+    canvas.removeEventListener('pointerup', this.onPointerUp);
+    canvas.removeEventListener('pointerleave', this.onPointerUp);
+    canvas.removeEventListener('pointercancel', this.onPointerUp);
+    canvas.removeEventListener('wheel', this.onWheel);
+    canvas.removeEventListener('contextmenu', this.onContextMenu);
   }
 
-  // AutoOrbit 停止（UI層は core.camera だけ叩く。runtime 直書き禁止）
+  // ★「毎回 refresh」するヘルパ
+  _refreshCamera() {
+    const next = this._resolveCamera();
+    if (next) this.camera = next;
+    return this.camera || next || null;
+  }
+
   stopAutoCamera() {
-    const cam = this.camera || this._resolveCamera();
-    if (cam && typeof cam.stopAutoOrbit === "function") {
+    const cam = this._refreshCamera();
+    if (cam && typeof cam.stopAutoOrbit === 'function') {
       cam.stopAutoOrbit();
     }
   }
 
   // camera のメソッドを安全に叩くヘルパ
   dispatch(method, ...args) {
-    let camera = this.camera || this._resolveCamera();
-    if (camera && typeof camera[method] === "function") {
-      camera[method](...args);
+    const cam = this._refreshCamera();
+    if (cam && typeof cam[method] === "function") {
+      cam[method](...args);
     }
   }
 
   // pan スケール計算用に「今の cameraState」を安全に取得する
   getCameraState() {
-    const core = this.hub && this.hub.core;
-    if (!core) return null;
+    // ここも「core.camera 優先」に寄せるなら refresh 使ってOK
+    const cam = this._refreshCamera();
+    if (!cam) return null;
 
-    const camApi = core.camera || core.cameraEngine;
-    if (!camApi) return null;
-    if (typeof camApi.getCurrentSnapshot === "function") {
-      return camApi.getCurrentSnapshot(this._camSnap);
+    if (typeof cam.getCurrentSnapshot === "function") {
+      return cam.getCurrentSnapshot(this._camSnap);
     }
-    if (typeof camApi.getSnapshot === "function") {
-      return camApi.getSnapshot(this._camSnap);
+    if (typeof cam.getSnapshot === "function") {
+      return cam.getSnapshot(this._camSnap);
     }
-    if (typeof camApi.getState === "function") {
-      return camApi.getState(); // fallback
+    if (typeof cam.getState === "function") {
+      return cam.getState();
     }
     return null;
   }
 
   // ボタン・修飾キーからドラッグモードを決定
   determineMode(event) {
-    if (event.button === 2) return "pan";      // 右ドラッグ = PAN
-    if (event.button === 1) return "rotate";   // 中ボタン = ROTATE
-    if (event.ctrlKey || event.metaKey) return "pan";  // Ctrl + 左 = PAN
-    if (event.altKey) return "rotate";         // Alt + 左 = ROTATE
-    return "rotate";                           // 左だけ → rotate
+    if (event.button === 2) return 'pan'; // 右ドラッグ = PAN
+    if (event.button === 1) return 'rotate'; // 中ボタン = ROTATE
+    if (event.ctrlKey || event.metaKey) return 'pan'; // Ctrl + 左 = PAN
+    if (event.altKey) return 'rotate'; // Alt + 左 = ROTATE
+    return 'rotate'; // 左だけ → rotate
   }
 
   onPointerDown(event) {
@@ -155,8 +164,8 @@ export class PointerInput {
     this.lastX = event.clientX;
     this.lastY = event.clientY;
 
-    // 一定以上動いたら「クリック」ではなくドラッグ扱い
-    if ((dx * dx + dy * dy) > (2 * 2)) {
+    // 一定以上動いたら「クリック」ではなくドラッグとして扱う
+    if (dx * dx + dy * dy > 2 * 2) {
       this.clickPending = false;
       this._dragging = true;
 
@@ -164,20 +173,20 @@ export class PointerInput {
       this.stopAutoCamera();
     }
 
-    if (this.activeMode === "pan") {
+    // クリック候補の間はカメラを動かさない（微小な手ブレ対策）
+    if (!this._dragging) return;
+
+    if (this.activeMode === 'pan') {
       const camState = this.getCameraState();
-      const distance =
-        camState && typeof camState.distance === "number"
-          ? camState.distance
-          : 1;
+      const distance = camState && typeof camState.distance === 'number' ? camState.distance : 1;
       const panScale = distance * PAN_SPEED;
-      this.dispatch("pan", dx * panScale, dy * panScale);
+      this.dispatch('pan', dx * panScale, dy * panScale);
     } else {
       const { dTheta, dPhi } = mapDragToOrbitDelta(dx, dy, {
         theta: ROTATE_SPEED,
         phi: ROTATE_SPEED,
       });
-      this.dispatch("rotate", dTheta, dPhi);
+      this.dispatch('rotate', dTheta, dPhi);
     }
   }
 
@@ -191,7 +200,9 @@ export class PointerInput {
       this._dragging = false;
       this._activePointerId = null;
       this.clickPending = false;
-      try { this.canvas?.releasePointerCapture?.(e.pointerId); } catch (_e2) {}
+      try {
+        this.canvas?.releasePointerCapture?.(e.pointerId);
+      } catch (_e2) {}
     }
   }
 
@@ -202,6 +213,6 @@ export class PointerInput {
     // ホイール操作が入った時点で自動カメラを停止
     this.stopAutoCamera();
 
-    this.dispatch("zoom", delta);
+    this.dispatch('zoom', delta);
   }
 }

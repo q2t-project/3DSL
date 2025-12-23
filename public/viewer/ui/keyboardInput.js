@@ -1,5 +1,5 @@
 // viewer/ui/keyboardInput.js
-import { mapArrowKeyToOrbitDelta } from "./orbitMapping.js";
+import { mapArrowKeyToOrbitDelta } from './orbitMapping.js';
 
 const DEBUG_KEYBOARD = false;
 
@@ -12,13 +12,12 @@ function stepViewPresetIndex(current, dir) {
   if (!Number.isFinite(i)) i = 0;
   i = Math.floor(i);
 
-  let next = i + (dir || 1);
+  const d = (dir ?? 1);          // 0 を生かす
+  let next = i + d;
 
   if (VIEW_PRESET_COUNT > 0) {
     if (next < 0) {
-      next =
-        ((next % VIEW_PRESET_COUNT) + VIEW_PRESET_COUNT) %
-        VIEW_PRESET_COUNT;
+      next = ((next % VIEW_PRESET_COUNT) + VIEW_PRESET_COUNT) % VIEW_PRESET_COUNT;
     } else {
       next = next % VIEW_PRESET_COUNT;
     }
@@ -34,7 +33,7 @@ function stepViewPresetIndex(current, dir) {
 //   「正規化した index を setViewPreset に渡す」だけにする。
 function applyViewPreset(camera, index) {
   if (!camera) return;
-  if (typeof camera.setViewPreset !== "function") return;
+  if (typeof camera.setViewPreset !== 'function') return;
 
   const i = stepViewPresetIndex(index, 0); // 正規化だけ
   camera.setViewPreset(i);
@@ -47,10 +46,10 @@ export class KeyboardInput {
     this.viewPresetIndex = 0;
 
     this.onKeyDown = this.onKeyDown.bind(this);
-    this.target.addEventListener("keydown", this.onKeyDown);
+    this.target.addEventListener('keydown', this.onKeyDown);
 
     if (DEBUG_KEYBOARD) {
-      console.log("[keyboard] KeyboardInput constructed", {
+      console.log('[keyboard] KeyboardInput constructed', {
         target: this.target,
         hasHub: !!this.hub,
       });
@@ -59,13 +58,10 @@ export class KeyboardInput {
 
   dispose() {
     if (!this.target) return;
-    this.target.removeEventListener("keydown", this.onKeyDown);
+    this.target.removeEventListener('keydown', this.onKeyDown);
     this.target = null;
     this.hub = null;
   }
-
-  // AutoOrbit が走っていたら止める共通ヘルパ
-// viewer/ui/keyboardInput.js
 
   // AutoOrbit が走っていたら止める共通ヘルパ
   stopAutoCamera() {
@@ -73,13 +69,12 @@ export class KeyboardInput {
     cam?.stopAutoOrbit?.();
   }
 
-
   onKeyDown(ev) {
     const key = ev.key;
     const code = ev.code;
 
     if (DEBUG_KEYBOARD) {
-      console.log("[keyboard] keydown", code, key, {
+      console.log('[keyboard] keydown', code, key, {
         tag: ev.target && ev.target.tagName,
       });
     }
@@ -88,26 +83,30 @@ export class KeyboardInput {
     if (!hub || !hub.core) return;
 
     // 入力欄/編集要素にフォーカス乗ってるときはスキップ
-    const tag = (ev.target && ev.target.tagName) || "";
-    if (tag === "INPUT" || tag === "TEXTAREA") return;
+    const tag = (ev.target && ev.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
     if (ev.target?.isContentEditable) return;
 
     const core = hub.core;
     const camera = core.camera || null;
     const frame =
-      (core.frame && typeof core.frame.next === "function" && core.frame) ||
-      (core.frameController && typeof core.frameController.next === "function" && core.frameController) ||
+      (core.frame && typeof core.frame.next === 'function' && core.frame) ||
+      (core.frameController &&
+        typeof core.frameController.next === 'function' &&
+        core.frameController) ||
       null;
     const mode =
-      (core.mode && typeof core.mode.set === "function" && core.mode) ||
-      (core.modeController && typeof core.modeController.set === "function" && core.modeController) ||
+      (core.mode && typeof core.mode.set === 'function' && core.mode) ||
+      (core.modeController &&
+        typeof core.modeController.set === 'function' &&
+        core.modeController) ||
       null;
 
     // --- ワールド軸の表示トグル（C キー） ----------------
     if (
-      (key === "c" || key === "C") &&
+      (key === 'c' || key === 'C') &&
       hub.viewerSettings &&
-      typeof hub.viewerSettings.toggleWorldAxes === "function"
+      typeof hub.viewerSettings.toggleWorldAxes === 'function'
     ) {
       ev.preventDefault();
       hub.viewerSettings.toggleWorldAxes();
@@ -116,23 +115,20 @@ export class KeyboardInput {
 
     // -----------------------------
     // 7 ビュー巡回（バックスラッシュ系キー）
-    //
     // - code:
     //     Backslash / IntlYen / IntlRo（環境差分ケア）
     // - key:
     //     "\" / "¥" も保険で拾う
-    //
     // - 単押し   → 順方向
     // - Shift+押 → 逆方向
-    //
     // view preset index を ±1 して camera.setViewPreset(index)
     // -----------------------------
     const isViewCycleKey =
-      code === "Backslash" ||
-      code === "IntlYen" ||
-      code === "IntlRo" ||
-      key === "\\" ||
-      key === "¥";
+      code === 'Backslash' ||
+      code === 'IntlYen' ||
+      code === 'IntlRo' ||
+      key === '\\' ||
+      key === '¥';
 
     if (isViewCycleKey) {
       if (!camera) return;
@@ -144,7 +140,7 @@ export class KeyboardInput {
 
       // CameraEngine 側の index を正として取得
       let currentIndex = 0;
-      if (camera && typeof camera.getViewPresetIndex === "function") {
+      if (camera && typeof camera.getViewPresetIndex === 'function') {
         currentIndex = camera.getViewPresetIndex();
       }
       const nextIndex = stepViewPresetIndex(currentIndex, dir);
@@ -153,7 +149,7 @@ export class KeyboardInput {
 
       // UI側の巡回状態を更新
       this.viewPresetIndex =
-        camera && typeof camera.getViewPresetIndex === "function"
+        camera && typeof camera.getViewPresetIndex === 'function'
           ? camera.getViewPresetIndex()
           : nextIndex;
       return;
@@ -162,20 +158,16 @@ export class KeyboardInput {
     // -----------------------------
     // Frame 操作（PgUp / PgDn）
     // -----------------------------
-    if (
-      frame &&
-      typeof frame.next === "function" &&
-      typeof frame.prev === "function"
-    ) {
-      if (code === "PageUp") {
+    if (frame && typeof frame.next === 'function' && typeof frame.prev === 'function') {
+      if (code === 'PageUp') {
         ev.preventDefault();
-        frame.next();   // 進む
+        frame.next(); // 進む
         return;
       }
 
-      if (code === "PageDown") {
+      if (code === 'PageDown') {
         ev.preventDefault();
-        frame.prev();   // 戻る
+        frame.prev(); // 戻る
         return;
       }
     }
@@ -185,25 +177,27 @@ export class KeyboardInput {
     //   - Q/W は v1 では未使用（予約のみ）
     // -----------------------------
 
-    if (mode && key === "Escape") {
+    if (mode && key === 'Escape') {
       ev.preventDefault();
-      mode.set("macro");
+      mode.set('macro');
       return;
     }
 
     // -----------------------------
     // カメラ Zoom（+ / -）
     // -----------------------------
-    if (camera && typeof camera.zoom === "function") {
+    if (camera && typeof camera.zoom === 'function') {
       const ZOOM_STEP = 0.1;
 
-      if (key === "+" || code === "NumpadAdd") {
+      const isPlus = key === '+' || (key === '=' && ev.shiftKey) || code === 'NumpadAdd';
+      if (isPlus) {
         ev.preventDefault();
         this.stopAutoCamera();
         camera.zoom(-ZOOM_STEP);
         return;
       }
-      if (key === "-" || code === "NumpadSubtract") {
+      const isMinus = key === '-' || (key === '_' && ev.shiftKey) || code === 'NumpadSubtract';
+      if (isMinus) {
         ev.preventDefault();
         this.stopAutoCamera();
         camera.zoom(ZOOM_STEP);
@@ -214,7 +208,7 @@ export class KeyboardInput {
     // -----------------------------
     // カメラ HOME（Home キー）
     // -----------------------------
-    if (camera && typeof camera.reset === "function" && code === "Home") {
+    if (camera && typeof camera.reset === 'function' && code === 'Home') {
       ev.preventDefault();
       this.stopAutoCamera();
       camera.reset();
@@ -224,14 +218,14 @@ export class KeyboardInput {
     // -----------------------------
     // カメラ Orbit（矢印キー）
     // -----------------------------
-    if (!camera || typeof camera.rotate !== "function") {
+    if (!camera || typeof camera.rotate !== 'function') {
       return;
     }
 
     const BASE_STEP = Math.PI / 90; // ≒ 2°
     const FAST_STEP = Math.PI / 45; // ≒ 4°
     const step = ev.shiftKey ? FAST_STEP : BASE_STEP;
-    
+
     const { dTheta, dPhi } = mapArrowKeyToOrbitDelta(code, step);
     if (dTheta !== 0 || dPhi !== 0) {
       ev.preventDefault();
@@ -239,5 +233,6 @@ export class KeyboardInput {
       camera.rotate(dTheta, dPhi);
       return;
     }
-    return;  }
+    return;
+  }
 }
