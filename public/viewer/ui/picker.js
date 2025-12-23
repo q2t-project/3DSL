@@ -1,5 +1,9 @@
 // viewer/ui/picker.js
+import { createHubFacade } from './hubFacade.js';
+
 export function createPicker(hub, opts = {}) {
+  const hf = createHubFacade(hub);
+
   const CLICK_MOVE_PX = opts.clickMovePx ?? 4;
   const DEBUG = !!opts.debug;
 
@@ -10,7 +14,7 @@ export function createPicker(hub, opts = {}) {
     if (DEBUG) console.log('[picker]', ...a);
   }
 
-  // UI は hub.core.* の公開 API のみを叩く。
+  // UI は hubFacade 経由で core API を参照する。
 
   function toNdc(ev) {
     if (!el) return { ndcX: 0, ndcY: 0 };
@@ -44,22 +48,21 @@ export function createPicker(hub, opts = {}) {
       return;
     }
 
-    const { ndcX, ndcY } = toNdc(ev);
-    const hit = hub.pickObjectAt(ndcX, ndcY);
-    log('pick', { ndcX, ndcY, hit });
-
-    const core = hub.core;
-    const selAPI = core?.selection || null;
-    const modeAPI = core?.mode || null;
+    const selAPI = hf.getSelection();
+    const modeAPI = hf.getMode();
 
     if (!selAPI?.select || !selAPI?.clear) {
-      console.warn('[picker] hub.core.selection API missing');
+      console.warn('[picker] selection API missing');
       return;
     }
     if (!modeAPI?.get || !modeAPI?.set) {
-      console.warn('[picker] hub.core.mode API missing');
+      console.warn('[picker] mode API missing');
       return;
     }
+
+    const { ndcX, ndcY } = toNdc(ev);
+    const hit = hub.pickObjectAt(ndcX, ndcY);
+    log('pick', { ndcX, ndcY, hit });
 
     if (hit && hit.uuid) {
       const k = typeof hit.kind === 'string' && hit.kind.length > 0 ? hit.kind : undefined;
@@ -72,7 +75,9 @@ export function createPicker(hub, opts = {}) {
     if (mode === 'micro') {
       if (typeof modeAPI.exit === 'function') modeAPI.exit();
       else modeAPI.set('macro');
-    } else selAPI.clear();
+    } else {
+      selAPI.clear();
+    }
   }
 
   function attach(domElement) {

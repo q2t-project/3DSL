@@ -43,6 +43,12 @@ export class KeyboardInput {
   constructor(target, hub) {
     this.target = target || window;
     this.hub = hub;
+    this.hf = null;
+    try {
+      this.hf = createHubFacade(hub);
+    } catch (_e) {
+      this.hf = null;
+    }
     this.viewPresetIndex = 0;
 
     this.onKeyDown = this.onKeyDown.bind(this);
@@ -62,10 +68,10 @@ export class KeyboardInput {
     this.target = null;
     this.hub = null;
   }
-
   // AutoOrbit が走っていたら止める共通ヘルパ
   stopAutoCamera() {
-    const cam = this.hub?.core?.camera || null;
+    const hf = this.hf;
+    const cam = hf?.getCamera?.() ?? null;
     cam?.stopAutoOrbit?.();
   }
 
@@ -79,28 +85,18 @@ export class KeyboardInput {
       });
     }
 
+    const hf = this.hf;
+    if (!hf) return;
+
     const hub = this.hub;
-    if (!hub || !hub.core) return;
 
     // 入力欄/編集要素にフォーカス乗ってるときはスキップ
     const tag = (ev.target && ev.target.tagName) || '';
     if (tag === 'INPUT' || tag === 'TEXTAREA') return;
     if (ev.target?.isContentEditable) return;
-
-    const core = hub.core;
-    const camera = core.camera || null;
-    const frame =
-      (core.frame && typeof core.frame.next === 'function' && core.frame) ||
-      (core.frameController &&
-        typeof core.frameController.next === 'function' &&
-        core.frameController) ||
-      null;
-    const mode =
-      (core.mode && typeof core.mode.set === 'function' && core.mode) ||
-      (core.modeController &&
-        typeof core.modeController.set === 'function' &&
-        core.modeController) ||
-      null;
+    const camera = hf.getCamera?.() ?? null;
+    const frame = hf.getFrameApi?.() ?? null;
+    const mode = hf.getMode?.() ?? null;
 
     // --- ワールド軸の表示トグル（C キー） ----------------
     if (

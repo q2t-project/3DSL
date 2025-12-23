@@ -5,6 +5,7 @@ import { attachGizmo } from './gizmo.js';
 import { createPicker } from './picker.js';
 import { createTimeline } from './timeline.js';
 import { assertDomContract, validateDomContract, getRoleEl } from './domContract.js';
+import { createHubFacade } from './hubFacade.js';
 
 const DEV =
   typeof import.meta !== 'undefined' &&
@@ -19,13 +20,12 @@ const NEED_TIMELINE = (p) => p === 'devHarness_full' || p === 'prod_full';
 const NEED_GIZMO = (_p) => true; // 最小/フル問わず表示したいなら true 固定でOK
 const NEED_CONTROLS = (p) => p === 'devHarness_full' || p === 'prod_full';
 
-function coreOf(hub) {
-  return hub && hub.core ? hub.core : null;
-}
 
 export function attachUiProfile(hub, opts) {
   if (!hub) throw new Error('[ui] attachUiProfile: hub required');
   if (!opts || typeof opts !== 'object') throw new Error('[ui] attachUiProfile: opts required');
+
+  const hf = createHubFacade(hub);
 
   const existing = _handles.get(hub);
   if (existing && !opts.force) return existing;
@@ -210,7 +210,7 @@ export function attachUiProfile(hub, opts) {
   if (NEED_CONTROLS(profile)) {
     // UI は hub の公開 API を優先（core 直叩きは最後の保険）
     const vs = hub?.viewerSettings || null;
-    const filtersApi = hub?.filters || hub?.core?.filters || null;
+    const filtersApi = hub?.filters || null;
 
     // filter
     if (filtersApi) {
@@ -335,12 +335,12 @@ export function attachUiProfile(hub, opts) {
       let lastModelKey = null;
 
       rafLoop(() => {
-        const c = coreOf(hub);
+        const c = hf;
         if (!c) return;
 
         // ---- caption ----
         {
-          const cap = c.documentCaption || c.sceneMeta || null;
+          const cap = c.getDocumentCaption?.() || c.getSceneMeta?.() || null;
           const t = String(cap?.title ?? '');
           const b = String(cap?.body ?? cap?.summary ?? '');
           const key = `${t}\n${b}`;
@@ -351,7 +351,7 @@ export function attachUiProfile(hub, opts) {
           }
         }
 
-        const st = c.uiState?.runtime?.status ?? null;
+        const st = c.getUiState?.()?.runtime?.status ?? null;
         if (!st) return;
 
         const req = st.requested ?? {};

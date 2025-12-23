@@ -1,7 +1,8 @@
 // viewer/ui/pointerInput.js
 // canvas 上の pointer / wheel イベントを受けて
-// hub.core.camera / hub.core.selection / hub.core.mode を操作する UI 入力アダプタ。
+// hubFacade(camera/selection/mode) を操作する UI 入力アダプタ。
 import { mapDragToOrbitDelta } from './orbitMapping.js';
+import { createHubFacade } from './hubFacade.js';
 
 const ROTATE_SPEED = 0.005;
 const PAN_SPEED = 0.002;
@@ -15,6 +16,12 @@ export class PointerInput {
   constructor(canvas, hub) {
     this.canvas = canvas;
     this.hub = hub;
+    this.hf = null;
+    try {
+      this.hf = createHubFacade(hub);
+    } catch (_e) {
+      this.hf = null;
+    }
 
     this.isPointerDown = false;
     this.activeMode = null; // "rotate" | "pan" | null
@@ -27,7 +34,7 @@ export class PointerInput {
     this._camSnap = { target: { x: 0, y: 0, z: 0 } };
 
     this._legacyCameraWrapper = null;
-    // UI から見える統一 camera API（hub.core.camera）だけ触る
+    // UI から見える統一 camera API だけ触る
     this.camera = this._resolveCamera();
 
     // ハンドラは自分自身に bind しておく（dispose 時に外せるように）
@@ -48,28 +55,9 @@ export class PointerInput {
   }
 
   _resolveCamera() {
-    const core = this.hub && this.hub.core;
-    if (!core) return null;
-
-    // 正式ルート：hub.core.camera に一本化
-    if (core.camera) return core.camera;
-
-    // 最悪の保険（古い実装との互換）：cameraEngine が残ってたら薄くラップ
-    if (core.cameraEngine) {
-      if (this._legacyCameraWrapper) return this._legacyCameraWrapper;
-
-      const ce = core.cameraEngine;
-      this._legacyCameraWrapper = {
-        rotate: (...args) => ce.rotate?.(...args),
-        pan: (...args) => ce.pan?.(...args),
-        zoom: (...args) => ce.zoom?.(...args),
-        reset: (...args) => ce.reset?.(...args),
-        stopAutoOrbit: (...args) => ce.stopAutoOrbit?.(...args),
-        getState: (...args) => (ce.getState ? ce.getState(...args) : null),
-        // 必要なら getSnapshot/getCurrentSnapshot も足す
-      };
-      return this._legacyCameraWrapper;
-    }
+    const hf = this.hf;
+    const camera = hf?.getCamera?.() ?? null;
+    if (camera) return camera;
 
     return null;
   }

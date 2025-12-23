@@ -1,6 +1,8 @@
 // viewer/ui/timeline.js
 // Frame UI の正規実装：DOM 配線 + 再生トグル + UI 同期
 
+import { createHubFacade } from "./hubFacade.js";
+
 export function createTimeline(hub, opts = {}) {
   const DEBUG = !!opts.debug;
   const onToast =
@@ -43,16 +45,18 @@ export function createTimeline(hub, opts = {}) {
   function log(...a) {
     if (DEBUG) console.log('[timeline]', ...a);
   }
+  const hf = (() => {
+    try { return createHubFacade(hub); } catch { return null; }
+  })();
 
-  function getCore() {
-    return hub && hub.core ? hub.core : null;
+  function getHF() {
+    return hf;
   }
 
   function getFrameAPI() {
-    const core = getCore();
-
-    // 正規：core.frame → core.frameController（UIは core 以外へ降りない）
-    return core?.frame || core?.frameController || null;
+    const hf = getHF();
+    if (!hf) return null;
+    return hf.getFrameApi?.() ?? null;
   }
 
   function readRange(frameAPI) {
@@ -96,8 +100,8 @@ export function createTimeline(hub, opts = {}) {
     const f = frameAPI || getFrameAPI();
     if (f && typeof f.isPlaying === 'function') return !!f.isPlaying();
 
-    const core = getCore();
-    const rt = core?.runtime;
+    const hf = getHF();
+    const rt = hf?.getRuntime?.() ?? null;
     if (rt && typeof rt.isFramePlaying === 'function') return !!rt.isFramePlaying();
     return false; // contract がない場合は UIは「停止状態として扱う」として扱う
   }

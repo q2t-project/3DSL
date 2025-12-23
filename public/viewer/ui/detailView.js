@@ -1,7 +1,8 @@
+import { createHubFacade } from './hubFacade.js';
 // viewer/ui/detailView.js
 
 // 情報パネル（Detail View）
-// - データソース: viewerHub.core.structIndex.uuidToItem
+// - データソース: structIndex.uuidToItem
 // - selection 状態と連動（hover は無視）
 // - 完全 read-only 表示
 
@@ -231,16 +232,24 @@ export function attachDetailView(container, hub) {
     console.warn('[detailView] container not found');
     return null;
   }
-  if (!hub || !hub.core) {
-    console.warn('[detailView] hub/core not ready');
+  if (!hub) {
+    console.warn('[detailView] attachDetailView: hub missing');
+    return null;
+  }
+
+  let hf = null;
+  try {
+    hf = createHubFacade(hub);
+  } catch (e) {
+    console.warn('[detailView] attachDetailView: hub facade unavailable; disabled');
     return null;
   }
 
   const dom = buildPanelDom(container);
   renderEmpty(dom);
 
-  const structIndex = hub.core.structIndex;
-  const selectionAPI = hub.core.selection;
+  const structIndex = hf.getStructIndex();
+  const selectionAPI = hf.getSelection();
 
   if (!structIndex || !structIndex.uuidToItem) {
     console.warn('[detailView] structIndex.uuidToItem not available');

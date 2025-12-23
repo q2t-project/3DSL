@@ -3,6 +3,7 @@
 import * as THREE from '../../vendor/three/build/three.module.js';
 import { teardownPrevHandle } from './handleUtils.js';
 import { mapDragToOrbitDelta, ORBIT_SENS } from './orbitMapping.js';
+import { createHubFacade } from './hubFacade.js';
 
 // ------------------------------------------------------------
 // perf tuning（gizmoだけ軽量化）
@@ -26,11 +27,21 @@ let CAMERA_VIEW_DEFS = null;
 let CAMERA_VIEW_ALIASES = null;
 let CAMERA_VIEW_PRESET_SEQUENCE = null;
 
-function loadViewDefsFromHub(hub) {
-  const vd = hub?.core?.cameraEngine?.getViewDefs?.() || null;
-  CAMERA_VIEW_DEFS = vd?.defs || null;
-  CAMERA_VIEW_ALIASES = vd?.aliases || null;
-  CAMERA_VIEW_PRESET_SEQUENCE = vd?.presetSequence || null;
+function loadViewDefsFromFacade(hf) {
+  // view preset 定義（CameraEngine 側の定義）
+  // - UI 側は hf.getViewDefs() 以外から参照しない
+  const vd = hf?.getViewDefs?.() ?? null;
+  if (!vd) return;
+
+  // { defs, aliases } 形式 / 単純配列 どちらも許容
+  if (Array.isArray(vd)) {
+    viewDefs = vd;
+    viewAliases = {};
+    return;
+  }
+
+  viewDefs = Array.isArray(vd.defs) ? vd.defs : [];
+  viewAliases = vd.aliases && typeof vd.aliases === 'object' ? vd.aliases : {};
 }
 
 function createLitMaterial(params) {
@@ -115,37 +126,37 @@ function resolvePresetIndexByName(name) {
   return idx >= 0 ? idx : null;
 }
 
-function stopAuto(cam, hub) {
-  // 正規ルート：hub.core.camera.stopAutoOrbit
-  if (hub?.core?.camera && typeof hub.core.camera.stopAutoOrbit === 'function') {
-    hub.core.camera.stopAutoOrbit();
+function stopAuto(cam, hf) {
+  if (cam && typeof cam.stopAutoOrbit === 'function') {
+    cam.stopAutoOrbit();
     return;
   }
-  // フォールバック（古い直cam）
-  if (cam && typeof cam.stopAutoOrbit === 'function') cam.stopAutoOrbit();
+  // fallback: facade command
+  hf?.commands?.stopAutoOrbit?.();
 }
 
 // setViewPreset(index)
-function applyViewPresetIndex(cam, hub, index) {
-  if (!cam || typeof cam.setViewPreset !== 'function') return;
-  if (index == null) return;
+function applyViewPresetIndex(cam, hf, nextIndex) {
+  if (!Number.isFinite(nextIndex)) return;
+  const i = Math.floor(nextIndex);
 
-  const i = Number(index);
-  if (!Number.isFinite(i)) return;
+  // auto を止めてから適用
+  stopAuto(cam, hf);
 
-  // hub 経由を優先
-  if (hub?.core?.camera && typeof hub.core.camera.setViewPreset === 'function') {
-    hub.core.camera.setViewPreset(i);
+  if (cam && typeof cam.setViewPreset === 'function') {
+    cam.setViewPreset(i);
     return;
   }
-  // 最後の保険
-  cam.setViewPreset(i);
+  hf?.commands?.setViewPreset?.(i);
 }
 
 // メインカメラ state から「向き」だけをもらって、
 // 原点まわりの小さい「リング型 gizmo」を描画するミニ・ビューポート
 export function attachGizmo(wrapper, hub, ctx = {}) {
   if (!wrapper) return null;
+  if (!hub) return null;
+
+  const hf = createHubFacade(hub);
 
   const DEV =
     typeof import.meta !== 'undefined' && import.meta.env && !!import.meta.env.DEV;
@@ -160,7 +171,7 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
   // 既存 gizmo を teardown（参照一致なら null に戻す）
   teardownPrevHandle(wrapper, '__gizmoHandle');
 
-  loadViewDefsFromHub(hub);
+  loadViewDefsFromFacade(hf);
 
   let mount = wrapper.querySelector?.('[data-role="gizmo-canvas-slot"]') || null;
 
@@ -250,8 +261,9 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
   // ------------------------------------------------------------
   // HUD controls（gizmo関連のボタン初期化はここが唯一の正規ルート）
   // ------------------------------------------------------------
-  const core = hub?.core || null;
-  const camCtrl = hub?.core?.camera || hub?.camera || null; // core優先
+  const camCtrl = hf.getCamera?.() ?? null;
+  const uiState = hf.getUiState?.() ?? null;
+  const modeAPI = hf.getMode?.() ?? null;
 
   const elModeText = getEl?.('gizmoModeLabel') || null;
   const elMacroPill = getEl?.('modePillMacro') || null;
@@ -267,24 +279,21 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
   const AUTO_MAX_SPEED = 2;
 
   const readAuto = () => {
-    try {
-      if (camCtrl && typeof camCtrl.isAutoOrbiting === 'function')
-        return !!camCtrl.isAutoOrbiting();
-    } catch (_e) {}
-    return !!core?.uiState?.runtime?.isCameraAuto;
+    if (camCtrl && typeof camCtrl.isAutoOrbiting === 'function') {
+      return !!camCtrl.isAutoOrbiting();
+    }
+    return !!uiState?.runtime?.isCameraAuto;
   };
 
   const readMode = () => {
-    const st = core?.uiState?.runtime?.status ?? null;
+    const st = uiState?.runtime?.status ?? null;
     const eff = st?.effective?.mode;
-    if (eff === 'micro' || eff === 'macro') return eff;
-    const modeAPI = core?.mode?.get
-      ? core.mode
-      : core?.modeController?.get
-        ? core.modeController
-        : null;
-    const mm = modeAPI?.get?.();
-    return mm === 'micro' ? 'micro' : 'macro';
+    if (eff === 'macro' || eff === 'micro') return eff;
+    if (modeAPI && typeof modeAPI.get === 'function') {
+      const m = modeAPI.get();
+      if (m === 'macro' || m === 'micro') return m;
+    }
+    return 'macro';
   };
 
   const uiAuto = () => {
@@ -838,9 +847,7 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
   // プリセット適用 → CameraEngine 側へ通知
   // ------------------------------------------------------------
   function applyPresetById(id) {
-    if (!hub?.core?.camera) return;
-
-    const cam = hub.core.camera;
+    if (!camCtrl) return;
 
     const key = resolvePresetKey(id) || id;
     const index = Array.isArray(CAMERA_VIEW_PRESET_SEQUENCE)
@@ -848,9 +855,8 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
       : -1;
     if (index < 0) return;
 
-    stopAuto(cam, hub);
-
-    applyViewPresetIndex(cam, hub, index);
+    stopAuto(camCtrl, hf);
+    applyViewPresetIndex(camCtrl, hf, index);
 
     // beams / スケール制御用
     activePresetKey = key;
@@ -937,7 +943,7 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
   const vPos = new THREE.Vector3();
 
   function syncCameraFromHub() {
-    const cam = hub?.core?.camera || null;
+    const cam = camCtrl || null;
     const hasSnap =
       !!cam &&
       (typeof cam.getCurrentSnapshot === 'function' ||
@@ -1014,12 +1020,12 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
   function handlePointerDown(ev) {
     if (isDisposed) return;
     if (ev.button !== 0) return;
-    if (!hub || !hub.core || !hub.core.camera) return;
+    if (!camCtrl) return;
 
     // gizmo ドラッグ開始 = 手動操作 → AutoOrbit 停止
-    const cam = hub.core.camera;
+    const cam = camCtrl;
 
-    stopAuto(cam, hub);
+    stopAuto(cam, hf);
 
     startInteractiveLoop();
 
@@ -1038,9 +1044,9 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
   function handlePointerMove(ev) {
     if (isDisposed) return;
     if (!isDragging) return;
-    if (!hub || !hub.core || !hub.core.camera) return;
+    if (!camCtrl) return;
 
-    const cam = hub.core.camera;
+    const cam = camCtrl;
     if (typeof cam.rotate !== 'function') return;
 
     const dx = ev.clientX - lastX;
@@ -1059,11 +1065,11 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
 
   function handleGizmoClick(ev) {
     if (isDisposed) return;
-    if (!hub || !hub.core || !hub.core.camera) return;
+    if (!camCtrl) return;
 
-    const cam = hub.core.camera;
+    const cam = camCtrl;
 
-    stopAuto(cam, hub);
+    stopAuto(cam, hf);
 
     const rect = canvas.getBoundingClientRect();
     if (!rect || rect.width <= 0 || rect.height <= 0) return;
@@ -1131,7 +1137,7 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
   let _lastAuto = null;
 
   function readCameraSnapshot() {
-    const cam = hub?.core?.camera;
+    const cam = camCtrl;
     if (!cam) return null;
     if (typeof cam.getCurrentSnapshot === 'function') return cam.getCurrentSnapshot(_camSnap);
     if (typeof cam.getSnapshot === 'function') return cam.getSnapshot(_camSnap);
@@ -1144,7 +1150,7 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
     const theta = Number(st.theta);
     const phi = Number(st.phi);
     const fov = Number(st.fov);
-    const idx = hub?.core?.camera?.getViewPresetIndex?.() ?? null;
+    const idx = camCtrl?.getViewPresetIndex?.() ?? null;
     const mode = readMode();
     const auto = readAuto();
 
@@ -1326,7 +1332,8 @@ export function initGizmoButtons(hub, ctx = {}) {
     });
   };
 
-  const camOf = () => hub?.core?.camera || null;
+  const hf = (() => { try { return createHubFacade(hub); } catch { return null; } })();
+  const camOf = () => hf?.getCamera?.() ?? null;
 
   const clearChildren = (parent) => {
     if (!parent) return;
@@ -1363,7 +1370,7 @@ export function initGizmoButtons(hub, ctx = {}) {
           const cam = camOf();
           if (!cam) return;
 
-          stopAuto(cam, hub);
+          stopAuto(cam, hf);
 
           const viewName = axisToViewName(axis);
           const idx = viewName != null ? resolvePresetIndexByName(viewName) : null;
@@ -1406,7 +1413,7 @@ export function initGizmoButtons(hub, ctx = {}) {
           const cam = camOf();
           if (!cam) return;
 
-          stopAuto(cam, hub);
+          stopAuto(cam, hf);
 
           const idx = resolvePresetIndexByName(name);
           if (idx != null && typeof cam.setViewPreset === 'function') {
