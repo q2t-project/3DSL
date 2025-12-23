@@ -25,6 +25,11 @@
     "check:phase7": "node scripts/check-phase7-regression.mjs",
     "validate:phase7": "node scripts/validate-3dss-fixtures.mjs --ref",
     "check:spec-filenames": "node scripts/check-spec-filenames.mjs",
+    "check:viewer:forbidden-imports": "node public/viewer/scripts/check-forbidden-imports.mjs",
+    "check:viewer:single-writer": "node public/viewer/scripts/check-single-writer.mjs",
+    "check:viewer:ports-conformance": "node public/viewer/scripts/check-ports-conformance.mjs",
+    "check:viewer:generated-clean": "node public/viewer/scripts/check-generated-clean.mjs",
+    "check:viewer:ssot": "npm run check:viewer:forbidden-imports && npm run check:viewer:single-writer && npm run check:viewer:ports-conformance && npm run check:viewer:generated-clean",
     "astro": "astro"
   },
   "dependencies": {
