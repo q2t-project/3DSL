@@ -790,9 +790,24 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   // ------------------------------------------------------------------
   // Phase2: recompute handler injection（これが無いと mode/micro が絶対に動かん）
   // ------------------------------------------------------------------
-  try { modeController?.setRecomputeHandler?.(recomputeVisibleSet); } catch (_e) {}
-  try { frameController?.setRecomputeHandler?.(recomputeVisibleSet); } catch (_e) {}
-  try { visibilityController?.setRecomputeHandler?.(recomputeVisibleSet); } catch (_e) {}
+  // Phase2: recompute handler injection
+  //   - Controllers request "recompute" but do NOT execute it directly.
+  //   - Actual recompute+commit is centralized in viewerHub loop.
+  const markDirtyVisibleSet = (_reason) => {
+    if (uiState && typeof uiState === "object") uiState._dirtyVisibleSet = true;
+  };
+
+  try {
+    modeController?.setRecomputeHandler?.(markDirtyVisibleSet);
+  } catch (_e) {}
+
+  try {
+    frameController?.setRecomputeHandler?.(markDirtyVisibleSet);
+  } catch (_e) {}
+
+  try {
+    visibilityController?.setRecomputeHandler?.(markDirtyVisibleSet);
+  } catch (_e) {}
 
   // ------------------------------------------------------------------
   // DEBUG: uiState の同一性チェック用（複数 uiState 混在したら一発でバレる）
@@ -809,9 +824,6 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     }
   } catch (_e) {}
 
-  frameController?.setRecomputeHandler?.((...args) => recomputeVisibleSet(...args));
-
-  recomputeVisibleSet?.();
 
   // camera はすでに createCoreCamera で確定（ここで再定義しない）
 

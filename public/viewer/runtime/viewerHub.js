@@ -304,57 +304,82 @@ export function createViewerHub({ core, renderer }) {
 
   // viewerHub.js 内
   let _committing = false;
+  let _deferCommit = false;
+
+  // ------------------------------------------------------------
+  // commit scheduling: commitVisibleSet is triggered only by hub loop
+  // ------------------------------------------------------------
+  const _pendingCommitReasons = [];
+
+  function _pushCommitReason(reason) {
+    if (typeof reason === "string" && reason) _pendingCommitReasons.push(reason);
+  }
+ 
+  function consumeCommitReason(fallback = "hub.loop") {
+    if (_pendingCommitReasons.length === 0) return fallback;
+    const seen = new Set();
+    const uniq = [];
+    for (const r of _pendingCommitReasons) {
+      if (!r || typeof r !== "string") continue;
+      if (seen.has(r)) continue;
+      seen.add(r);
+      uniq.push(r);
+    }
+    _pendingCommitReasons.length = 0;
+    if (uniq.length === 0) return fallback;
+    if (uniq.length === 1) return uniq[0];
+    return `${uniq[0]}(+${uniq.length - 1})`;
+  }
+
+  function requestCommit(reason = "requestCommit") {
+    const uiState = core.uiState;
+    if (!uiState) return null;
+
+    uiState._dirtyVisibleSet = true;
+    _pushCommitReason(reason);
+
+    // Node/no-rAF: loopが回らんので、defer中じゃなければここで確定
+    if (!raf) {
+      if (!_deferCommit) markDirty(consumeCommitReason(reason));
+      return core.uiState?.visibleSet ?? null;
+    }
+
+    return null;
+  }
 
   function commit(reason, mutator) {
     const ui = core.uiState;
-    if (!ui) throw new Error("[hub] uiState missing");
-
-    // mutator が何回 state を触っても、最後に1回だけrecomputeする
-    ui._dirtyVisibleSet = true;
-
-    try {
-      mutator(ui);
-    } finally {
-      // 例外が起きても、入力の後始末やdirtyは残る（次フレで回収できる）
+    if (!ui) {
+      throw new Error("[hub] core.uiState is required");
     }
 
-    // re-entrancy防止（commit中にcommit呼ばれても1回に畳む）
-    if (_committing) return;
+    ui._dirtyVisibleSet = true;
+    _pushCommitReason(reason);
+
+    // re-entrancy: commit 中に commit されても 1回に畳む
+    if (_committing) return ui.visibleSet;
 
     _committing = true;
     try {
-      return commitVisibleSet(reason);
+      mutator?.(ui);
+      // NOTE: markDirty() is triggered only by hub loop.
+      if (!raf) {
+        if (!_deferCommit) markDirty(consumeCommitReason(reason));
+        return core.uiState?.visibleSet ?? null;
+      }
+      return ui.visibleSet;
     } finally {
       _committing = false;
     }
   }
 
-  let _inCommit = false;
-
-  function commitVisibleSet(reason) {
-    const uiState = core.uiState;
-    if (!uiState) return null;
-
-    if (_inCommit) return uiState.visibleSet;
-    if (!uiState._dirtyVisibleSet) return uiState.visibleSet;
-
-    _inCommit = true;
-    try {
-      uiState._dirtyVisibleSet = false;
-      const vs = recomputeVisibleSet(reason);
-      // ... renderer 反映など
-      return vs;
-    } finally {
-      _inCommit = false;
-    }
-  }
-
-  // 「必ず」正規ルートを踏ませたい場面用（外部API/フレーム/フィルタ等）
-  function forceCommitVisibleSet(reason) {
-    const uiState = core.uiState;
-    if (!uiState) return null;
-    uiState._dirtyVisibleSet = true;
-    return commitVisibleSet(reason);
+  function markDirty(reason) {
+    const ui = core.uiState;
+    if (!ui) return null;
+    const vs = recomputeVisibleSet(reason);
+    ui.visibleSet = vs;
+    ui._dirtyVisibleSet = false;
+    return vs;
   }
 
   function attachViewerSettingsBridge(core, renderer) {
@@ -443,6 +468,349 @@ export function createViewerHub({ core, renderer }) {
     lastCommittedFrame: null,
   };
 
+
+
+// ------------------------------------------------------------
+// Command queue (UI -> hub transaction boundary)
+// ------------------------------------------------------------
+const commandQueue = [];
+
+// UI が “今この瞬間に” hub/core を動かさず、次フレームで確定させる入口。
+// - ここに積んだコマンドは render loop 冒頭でまとめて適用される。
+function enqueueCommand(cmd) {
+  if (!cmd || typeof cmd !== "object") return false;
+  if (disposed) return false;
+  commandQueue.push(cmd);
+
+  // Node/no-rAF: render loop が無いのでここで消化して確定する
+  if (!raf) {
+    flushCommandQueue();
+    if (core?.uiState?._dirtyVisibleSet) {
+      markDirty(consumeCommitReason("commands.flush"));
+    }
+  }
+
+  return true;
+}
+
+// ------------------------------------------------------------
+// Core ops (executed at hub loop boundary)
+// ------------------------------------------------------------
+function opVisibleSetRequestRecompute(reason) {
+  requestCommit(reason ?? "visibleSet.requestRecompute");
+}
+
+function opCameraStopAutoOrbit() {
+  core?.camera?.stopAutoOrbit?.();
+  requestCommit("camera.stopAutoOrbit");
+}
+
+function opCameraStartAutoOrbit(opts) {
+  core?.camera?.startAutoOrbit?.(opts || {});
+  requestCommit("camera.startAutoOrbit");
+}
+
+function opCameraUpdateAutoOrbitSettings(opts) {
+  core?.camera?.updateAutoOrbitSettings?.(opts || {});
+}
+
+function opCameraSetViewPreset(index, opts) {
+  const cam = core?.camera;
+  if (!cam?.setViewPreset) return;
+
+  const n = Math.floor(Number(index));
+  if (!Number.isFinite(n)) return;
+
+  cam.setViewPreset(n, opts || {});
+
+  const resolved = cam.getViewPresetIndex?.() ?? n;
+  if (core?.uiState) core.uiState.view_preset_index = resolved;
+
+  requestCommit("camera.setViewPreset");
+}
+
+function opCameraSetViewByName(name) {
+  if (!name) return;
+  core?.camera?.setViewByName?.(name);
+  requestCommit("camera.setViewByName");
+}
+
+function opCameraFocusOn(uuid, kind) {
+  if (!uuid) return;
+  core?.camera?.stopAutoOrbit?.();
+  if (modeController?.focus) modeController.focus(uuid, kind);
+  requestCommit("camera.focusOn.uuid");
+}
+
+function opCameraFocusOnPosition(position, opts) {
+  const cam = core?.camera;
+  const ce = core?.cameraEngine;
+  if (!cam || typeof cam.setState !== "function") return;
+  if (!ce || typeof ce.computeFocusState !== "function") return;
+
+  if (!Array.isArray(position) || position.length < 3) return;
+  const p3 = [Number(position[0]), Number(position[1]), Number(position[2])];
+  if (!p3.every(Number.isFinite)) return;
+
+  const o = opts && typeof opts === "object" ? opts : {};
+  const mergedOpts = {
+    mode: "approach",
+    distanceFactor: 0.4,
+    minDistance: 0.8,
+    maxDistance: 8,
+    ...o,
+  };
+
+  const next = ce.computeFocusState(p3, mergedOpts);
+  if (next) cam.setState(next);
+
+  // visibleSet recompute is unnecessary here; keep only the reason.
+  _pushCommitReason("camera.focusOn.position");
+}
+
+function opFrameStep(delta) {
+  fcStep(delta || 0);
+  requestCommit("frame.step");
+}
+
+function opFrameNext() {
+  fcStep(+1);
+  requestCommit("frame.next");
+}
+
+function opFramePrev() {
+  fcStep(-1);
+  requestCommit("frame.prev");
+}
+
+function opFrameStartPlayback(opts) {
+  const result = fcStartPlayback(opts);
+
+  // AutoOrbit と排他
+  core?.camera?.stopAutoOrbit?.();
+
+  if (core.uiState) {
+    // 再生開始時は macro に戻して micro 系リセット
+    if (modeController && typeof modeController.exit === "function") {
+      modeController.exit();
+    } else if (modeController && typeof modeController.set === "function") {
+      modeController.set("macro");
+    } else {
+      core.uiState.mode = "macro";
+    }
+
+    if (core.uiState.microFocus) {
+      core.uiState.microFocus = { uuid: null, kind: null };
+    }
+    if (core.uiState.focus) {
+      core.uiState.focus = { active: false, uuid: null };
+    }
+  }
+
+  requestCommit("frame.startPlayback");
+  return result;
+}
+
+function opFrameStopPlayback() {
+  const result = fcStopPlayback();
+  requestCommit("frame.stopPlayback");
+  return result;
+}
+
+function opModeSet(mode, focusUuid, kind) {
+  if (!modeController?.set) return null;
+  const nextMode = modeController.set(mode, focusUuid, kind);
+  requestCommit("mode.set");
+  return nextMode;
+}
+
+function opModeExit() {
+  const r = modeController?.exit?.();
+  requestCommit("mode.exit");
+  return r;
+}
+
+function opModeFocus(uuid, kind) {
+  core?.camera?.stopAutoOrbit?.();
+  const nextMode = modeController?.focus?.(uuid, kind);
+  requestCommit("mode.focus");
+  return nextMode;
+}
+
+function opMicroEnter(uuid, kind) {
+  core?.camera?.stopAutoOrbit?.();
+  const r = modeController?.set?.("micro", uuid, kind);
+  requestCommit("micro.enter");
+  return r;
+}
+
+function opMicroExit() {
+  const r =
+    modeController && typeof modeController.exit === "function"
+      ? modeController.exit()
+      : modeController?.set?.("macro");
+  requestCommit("micro.exit");
+  return r;
+}
+
+function opSelectionSelect(uuid, kind) {
+  if (!uuid) return null;
+  if (!core.selectionController) {
+    console.warn("[hub.selection] selectionController not available");
+    return null;
+  }
+  core.selectionController.select(uuid, kind);
+  requestCommit("selection.select");
+  const committed = core.uiState?.selection;
+  return committed && committed.uuid ? { uuid: committed.uuid } : null;
+}
+
+function opSelectionClear() {
+  if (!core.selectionController) {
+    console.warn("[hub.selection] selectionController not available");
+    return null;
+  }
+  core.selectionController.clear();
+  requestCommit("selection.clear");
+  return null;
+}
+
+function opFiltersSetTypeEnabled(kind, enabled) {
+  const on = !!enabled;
+  if (visibilityController && typeof visibilityController.setTypeFilter === "function") {
+    visibilityController.setTypeFilter(kind, on);
+  } else if (core.uiState && core.uiState.filters) {
+    core.uiState.filters[kind] = on;
+  }
+
+  // canonical mirror
+  if (core.uiState) {
+    if (!core.uiState.filters || typeof core.uiState.filters !== "object") core.uiState.filters = {};
+    if (!core.uiState.filters.types || typeof core.uiState.filters.types !== "object") core.uiState.filters.types = {};
+    core.uiState.filters.types[kind] = on;
+    core.uiState.filters[kind] = on;
+  }
+
+  requestCommit("filters.setTypeEnabled");
+  return core.uiState?.visibleSet ?? null;
+}
+
+function applyCommand(cmd) {
+  const t = cmd && cmd.type;
+  if (!t) return;
+
+  switch (t) {
+    // ---- visibleSet ---------------------------------------------
+    case "visibleSet.requestRecompute":
+      opVisibleSetRequestRecompute(cmd.reason);
+      return;
+
+    // ---- camera -------------------------------------------------
+    case "camera.stopAutoOrbit":
+      opCameraStopAutoOrbit();
+      return;
+    case "camera.startAutoOrbit":
+      opCameraStartAutoOrbit(cmd.opts);
+      return;
+    case "camera.updateAutoOrbitSettings":
+      opCameraUpdateAutoOrbitSettings(cmd.opts);
+      return;
+    case "camera.setViewPreset":
+      opCameraSetViewPreset(cmd.index, cmd.opts);
+      return;
+    case "camera.setViewByName":
+      opCameraSetViewByName(cmd.name);
+      return;
+    case "camera.focusOn.position":
+      opCameraFocusOnPosition(cmd.position, cmd.opts);
+      return;
+    case "camera.focusOn":
+      opCameraFocusOn(cmd.uuid, cmd.kind);
+      return;
+
+    // ---- frame --------------------------------------------------
+    case "frame.next":
+      opFrameNext();
+      return;
+    case "frame.prev":
+      opFramePrev();
+      return;
+    case "frame.step":
+      opFrameStep(cmd.delta);
+      return;
+    case "frame.setActive":
+      opFrameSetActive(cmd.frame);
+      return;
+    case "frame.startPlayback":
+      opFrameStartPlayback(cmd.opts);
+      return;
+    case "frame.stopPlayback":
+      opFrameStopPlayback();
+      return;
+
+    // ---- mode ---------------------------------------------------
+    case "mode.set":
+      opModeSet(cmd.mode, cmd.focusUuid, cmd.kind);
+      return;
+    case "mode.exit":
+      opModeExit();
+      return;
+    case "mode.focus":
+      opModeFocus(cmd.uuid, cmd.kind);
+      return;
+
+    // ---- micro --------------------------------------------------
+    case "micro.enter":
+      opMicroEnter(cmd.uuid, cmd.kind);
+      return;
+    case "micro.exit":
+      opMicroExit();
+      return;
+
+    // ---- selection ---------------------------------------------
+    case "selection.select":
+      opSelectionSelect(cmd.uuid, cmd.kind);
+      return;
+    case "selection.clear":
+      opSelectionClear();
+      return;
+
+    // ---- filters ------------------------------------------------
+    case "filters.setTypeEnabled":
+      opFiltersSetTypeEnabled(cmd.kind, cmd.enabled);
+      return;
+
+    default:
+      return;
+  }
+}
+
+function flushCommandQueue() {
+  if (commandQueue.length === 0) return;
+
+  // まとめて適用する間は commitVisibleSet を “延期” する
+  _deferCommit = true;
+  try {
+    // 1フレーム内に積まれた分だけ適用（途中で増えてもこのフレームで全部処理）
+    while (commandQueue.length > 0) {
+      const cmd = commandQueue.shift();
+      try {
+        applyCommand(cmd);
+      } catch (e) {
+        console.warn("[hub] command failed:", cmd && cmd.type, e);
+      }
+    }
+  } finally {
+    _deferCommit = false;
+  }
+
+  // hub loop でまとめて commit する（ここでは recompute/commit しない）
+  if (core?.uiState?._dirtyVisibleSet) {
+    _pushCommitReason("commands.flush");
+  }
+}
+
+
   const renderFrame = (timestamp) => {
     // 0: guard
     if (disposed || !running) {
@@ -454,6 +822,9 @@ export function createViewerHub({ core, renderer }) {
       return;
     }
 
+
+    // Apply queued UI commands at frame boundary
+    flushCommandQueue();
     // ★ timestamp から dt(sec) を計算して cameraEngine.update(dt) へ
     if (typeof timestamp === "number") {
       if (lastTime === null) {
@@ -474,7 +845,7 @@ export function createViewerHub({ core, renderer }) {
         const curAfter = fcGetActive();
         // フレームが動かずに「再生だけ止まった」場合は、ここで1回だけ正規ルートを踏む
         if (wasPlaying && !nowPlaying && curAfter === hubState.lastCommittedFrame) {
-          commitVisibleSet("playback.autoStop");
+          if (core?.uiState?._dirtyVisibleSet) _pushCommitReason("playback.autoStop");
         }
       }
     }
@@ -490,15 +861,18 @@ export function createViewerHub({ core, renderer }) {
 
     const curFrame = fcGetActive();
 
-    // boot 直後は未確定なので初期化
+    // frame changed → dirtyだけ立てる（commitはこのあと1回だけ）
     if (hubState.lastCommittedFrame == null) {
+      hubState.lastCommittedFrame = curFrame;
+    } else if (curFrame !== hubState.lastCommittedFrame) {
+      if (core.uiState) core.uiState._dirtyVisibleSet = true;
+      _pushCommitReason("frame.changed");
       hubState.lastCommittedFrame = curFrame;
     }
 
-    if (curFrame !== hubState.lastCommittedFrame) {
-      core.uiState._dirtyVisibleSet = true;
-      commitVisibleSet("frame.changed");
-      hubState.lastCommittedFrame = curFrame;
+    // Commit (recomputeVisibleSet) only here: once per frame.
+    if (core?.uiState?._dirtyVisibleSet) {
+      markDirty(consumeCommitReason("hub.loop"));
     }
 
     debugHub("[hub] frame", debugFrameCount++, {
@@ -540,6 +914,7 @@ export function createViewerHub({ core, renderer }) {
   }
 
   const hub = {
+    enqueueCommand,
     // debug / introspection（外部UIは基本触らん想定）
     frameController,
 
@@ -556,7 +931,7 @@ export function createViewerHub({ core, renderer }) {
       lastTime = null;
 
       if (core.uiState && !core.uiState.runtime) core.uiState.runtime = {};
-      forceCommitVisibleSet("hub.start");
+      requestCommit("hub.start");
       hubState.lastCommittedFrame = fcGetActive();
 
       if (raf) animationId = raf(renderFrame);
@@ -642,8 +1017,9 @@ export function createViewerHub({ core, renderer }) {
         // 単一フレーム指定
         setActive(n) {
           if (!assertAlive()) return null;
+          if (raf) { enqueueCommand({ type: "frame.setActive", frame: n }); return null; }
           fcSetActive(n);
-          return forceCommitVisibleSet("frame.setActive");
+          return requestCommit("frame.setActive") ?? core.uiState?.visibleSet ?? null;
         },
 
         // 現在アクティブな frame 番号
@@ -661,25 +1037,30 @@ export function createViewerHub({ core, renderer }) {
         // 仕様上の API（相対移動）
         step(delta) {
           if (!assertAlive()) return null;
+          if (raf) { enqueueCommand({ type: "frame.step", delta }); return null; }
           fcStep(delta || 0);
-          return forceCommitVisibleSet("frame.step");
+          return requestCommit("frame.step") ?? core.uiState?.visibleSet ?? null;
         },
 
         // dev harness 用ショートカット
         next() {
           if (!assertAlive()) return null;
+          if (raf) { enqueueCommand({ type: "frame.next" }); return null; }
           fcStep(+1);
-          return forceCommitVisibleSet("frame.next");
+          return requestCommit("frame.next") ?? core.uiState?.visibleSet ?? null;
+
         },
 
         prev() {
           if (!assertAlive()) return null;
+          if (raf) { enqueueCommand({ type: "frame.prev" }); return null; }
           fcStep(-1);
-          return forceCommitVisibleSet("frame.prev");
+          return requestCommit("frame.prev") ?? core.uiState?.visibleSet ?? null;
         },
 
         startPlayback(opts) {
           if (!assertAlive()) return null;
+          if (raf) { enqueueCommand({ type: "frame.startPlayback", opts }); return null; }
           const result = fcStartPlayback(opts);
 
           // AutoOrbit と排他
@@ -716,15 +1097,16 @@ export function createViewerHub({ core, renderer }) {
             }
           }
 
-          forceCommitVisibleSet("frame.startPlayback");
+          requestCommit("frame.startPlayback");
           return result;
         },
 
       stopPlayback() {
         if (!assertAlive()) return null;
+        if (raf) { enqueueCommand({ type: "frame.stopPlayback" }); return null; }
         const result = fcStopPlayback();
 
-        forceCommitVisibleSet("frame.stopPlayback");
+        requestCommit("frame.stopPlayback");
         return result;
       },
     },
@@ -733,25 +1115,27 @@ export function createViewerHub({ core, renderer }) {
         // uuid（と任意の kind）指定で selection を更新
         select: (uuid, kind) => {
           if (!assertAlive()) return null;
+          if (raf) { enqueueCommand({ type: "selection.select", uuid, kind }); return null; }
           if (!core.selectionController) {
             console.warn("[hub.selection] selectionController not available");
             return null;
           }
 
           core.selectionController.select(uuid, kind);
-          forceCommitVisibleSet("selection.select");
+          requestCommit("selection.select");
           const committed = core.uiState?.selection;
           return committed && committed.uuid ? { uuid: committed.uuid } : null;
         },
 
         clear: () => {
           if (!assertAlive()) return null;
+          if (raf) { enqueueCommand({ type: "selection.clear" }); return null; }
           if (!core.selectionController) {
             console.warn("[hub.selection] selectionController not available");
             return null;
           }
           core.selectionController.clear();
-          forceCommitVisibleSet("selection.clear");
+          requestCommit("selection.clear");
           return null;
         },
         // 外向き API は { uuid } | null に固定
@@ -793,33 +1177,40 @@ export function createViewerHub({ core, renderer }) {
         // - uuid    => micro遷移（入る前に autoOrbit停止）
         focusOn: (target, opts = {}) => {
           if (!assertAlive()) return null;
+          if (!target) return null;
 
-          const mergedOpts = {
-            mode: "approach",
-            distanceFactor: 0.4,
-            minDistance: 0.8,
-            maxDistance: 8,
-            ...opts,
-          };
-
-          // 1) 位置ベクトル
+          // 1) position([x,y,z])
           if (Array.isArray(target)) {
-            const cam = core?.camera;
-            if (!cam?.setState) return cam?.getState?.() ?? null;
+            const o = opts && typeof opts === "object" ? opts : {};
+            const mergedOpts = {
+              mode: "approach",
+              distanceFactor: 0.4,
+              minDistance: 0.8,
+              maxDistance: 8,
+              ...o,
+            };
 
-            const next = core?.cameraEngine?.computeFocusState?.(target, mergedOpts);
-            if (next) cam.setState(next);
+            if (raf) {
+              enqueueCommand({
+                type: "camera.focusOn.position",
+                position: target,
+                opts: mergedOpts,
+              });
+              return null;
+            }
 
-            // visibleSet自体は変わらんが、理由ログとして残すなら
-            commitVisibleSet("camera.focusOn.position");
-            return cam.getState?.() ?? null;
+            opCameraFocusOnPosition(target, mergedOpts);
+            return core?.camera?.getState?.() ?? null;
           }
 
-          // 2) uuid => micro へ
+          // 2) uuid(string) => micro focus
           if (typeof target === "string") {
-            core?.camera?.stopAutoOrbit?.(); // ★重要：transition と autoOrbit の競合防止
-            if (modeController?.focus) modeController.focus(target, mergedOpts.kind);
-            commitVisibleSet("camera.focusOn.uuid");
+            const kind = opts && typeof opts === "object" ? opts.kind : undefined;
+            if (raf) {
+              enqueueCommand({ type: "camera.focusOn", uuid: target, kind });
+              return null;
+            }
+            opCameraFocusOn(target, kind);
             return core?.camera?.getState?.() ?? null;
           }
 
@@ -834,9 +1225,10 @@ export function createViewerHub({ core, renderer }) {
 
         setViewByName: (name) => {
           if (!assertAlive()) return;
+          if (raf) { enqueueCommand({ type: "camera.setViewByName", name }); return; }
           if (!name) return;
           core?.camera?.setViewByName?.(name); // ★ここも controller 経由
-          commitVisibleSet("camera.setViewByName");
+          requestCommit("camera.setViewByName");
         },
 
         getViewPresetIndex: () => {
@@ -846,6 +1238,7 @@ export function createViewerHub({ core, renderer }) {
 
         setViewPreset: (index, opts) => {
           if (!assertAlive()) return;
+          if (raf) { enqueueCommand({ type: "camera.setViewPreset", index, opts }); return; }
           const cam = core?.camera;
           if (!cam?.setViewPreset) return;
 
@@ -858,7 +1251,7 @@ export function createViewerHub({ core, renderer }) {
           const resolved = cam.getViewPresetIndex?.() ?? n;
           if (core?.uiState) core.uiState.view_preset_index = resolved;
 
-          commitVisibleSet("camera.setViewPreset");
+          requestCommit("camera.setViewPreset");
         },
 
         setState: (partial) => {
@@ -872,28 +1265,32 @@ export function createViewerHub({ core, renderer }) {
 
         startAutoOrbit: (opts) => {
           if (!assertAlive()) return;
+          if (raf) { enqueueCommand({ type: "camera.startAutoOrbit", opts }); return; }
           core?.camera?.startAutoOrbit?.(opts || {});
-          commitVisibleSet("camera.startAutoOrbit");
+          requestCommit("camera.startAutoOrbit");
         },
 
         updateAutoOrbitSettings: (opts) => {
           if (!assertAlive()) return;
+          if (raf) { enqueueCommand({ type: "camera.updateAutoOrbitSettings", opts }); return; }
           core?.camera?.updateAutoOrbitSettings?.(opts || {});
         },
 
         stopAutoOrbit: () => {
           if (!assertAlive()) return;
+          if (raf) { enqueueCommand({ type: "camera.stopAutoOrbit" }); return; }
           core?.camera?.stopAutoOrbit?.();
-          commitVisibleSet("camera.stopAutoOrbit");
+          requestCommit("camera.stopAutoOrbit");
         },
       },
 
       mode: {
         set: (mode, uuid, kind) => {
           if (!assertAlive()) return null;
+          if (raf) { enqueueCommand({ type: "mode.set", mode, focusUuid: uuid, kind }); return null; }
           debugHub("[hub.mode] set", mode, uuid);
           const nextMode = modeController.set(mode, uuid, kind);
-          commitVisibleSet("mode.set");
+          requestCommit("mode.set");
           return nextMode;
         },
 
@@ -909,38 +1306,42 @@ export function createViewerHub({ core, renderer }) {
 
         exit: () => {
           if (!assertAlive()) return null;
+          if (raf) { enqueueCommand({ type: "mode.exit" }); return null; }
           const r = modeController.exit();
-          commitVisibleSet("mode.exit");
+          requestCommit("mode.exit");
           return r;
         },
 
         focus: (uuid, kind) => {
+          if (raf) { enqueueCommand({ type: "mode.focus", uuid, kind }); return null; }
           core?.camera?.stopAutoOrbit?.();
           if (!assertAlive()) return null;
           debugHub("[hub.mode] focus", uuid, kind);
           const nextMode = modeController.focus(uuid, kind);
-          commitVisibleSet("mode.focus");
+          requestCommit("mode.focus");
           return nextMode;
         },
       },
 
       micro: {
         enter: (uuid, kind) => {
+          if (raf) { enqueueCommand({ type: "micro.enter", uuid, kind }); return null; }
           core?.camera?.stopAutoOrbit?.();
           if (!assertAlive()) return null;
           // micro mode に強制遷移
           const r = modeController.set("micro", uuid, kind);
-          commitVisibleSet("micro.enter");
+          requestCommit("micro.enter");
           return r;
         },
         exit: () => {
           if (!assertAlive()) return null;
           // macro に戻す
+          if (raf) { enqueueCommand({ type: "micro.exit" }); return null; }
           const r =
             modeController && typeof modeController.exit === "function"
               ? modeController.exit()
               : modeController.set("macro");
-          commitVisibleSet("micro.exit");
+          requestCommit("micro.exit");
           return r;
         },
         isActive: () => {
@@ -952,6 +1353,7 @@ export function createViewerHub({ core, renderer }) {
         setTypeEnabled(kind, enabled) {
           if (!assertAlive()) return null;
           const on = !!enabled;
+          if (raf) { enqueueCommand({ type: "filters.setTypeEnabled", kind, enabled: on }); return null; }
           if (
             visibilityController &&
             typeof visibilityController.setTypeFilter === "function"
@@ -969,7 +1371,7 @@ export function createViewerHub({ core, renderer }) {
             core.uiState.filters[kind] = on;
           }
 
-          return forceCommitVisibleSet("filters.setTypeEnabled");
+          return requestCommit("filters.setTypeEnabled") ?? core.uiState?.visibleSet ?? null;
         },
         get() {
           if (
@@ -1004,7 +1406,8 @@ export function createViewerHub({ core, renderer }) {
        */
       recomputeVisibleSet: () => {
         if (!assertAlive()) return null;
-        return forceCommitVisibleSet("hub.core.recomputeVisibleSet");
+        if (raf) { enqueueCommand({ type: "visibleSet.requestRecompute", reason: "hub.core.recomputeVisibleSet" }); return null; }
+        return requestCommit("hub.core.recomputeVisibleSet") ?? core.uiState?.visibleSet ?? null;
       },
       // ---- read-only state / struct ----
       uiState: core.uiState,
