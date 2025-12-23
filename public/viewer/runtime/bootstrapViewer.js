@@ -159,13 +159,13 @@ function resolveI18n(value, lang = "ja") {
 // dev-only (optional): <pre id="scene-metrics-pre">
 // Host(/viewer) には存在しないことがあるので null 前提で扱う。
 // ※これが未宣言のまま参照されると ReferenceError で boot が止まる。
-let sceneMetricsPre = null;
+let sceneMetricsPreEl = null;
 
 function resolveSceneMetricsPre() {
-  if (sceneMetricsPre) return sceneMetricsPre;
+  if (sceneMetricsPreEl) return sceneMetricsPreEl;
   if (typeof document === "undefined") return null;
-  sceneMetricsPre = document.getElementById("scene-metrics-pre");
-  return sceneMetricsPre;
+  sceneMetricsPreEl = document.getElementById("scene-metrics-pre");
+  return sceneMetricsPreEl;
 }
 
 // ------------------------------------------------------------
@@ -446,13 +446,12 @@ function emitDevBootLog(core, options = {}) {
 
       const sinPhi = Math.sin(phi);
       const cosPhi = Math.cos(phi);
-      const sinTheta = Math.sin(theta);
-      const cosTheta = Math.cos(theta);
 
       return [
-        tx + dist * sinPhi * sinTheta,
-        ty + dist * cosPhi,
-        tz + dist * sinPhi * cosTheta,
+        // Z-up（renderer.updateCamera と同じ）
+        tx + dist * sinPhi * Math.cos(theta),
+        ty + dist * sinPhi * Math.sin(theta),
+        tz + dist * cosPhi,
       ];
     };
 
@@ -710,7 +709,7 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   });
 
   // engine は純粋に cameraState 更新だけ（runtime/mode は触らん）
-  const cameraEngine = createCameraEngine(initialCameraState, { metrics: sceneMetricsPre });
+  const cameraEngine = createCameraEngine(initialCameraState, { metrics: sceneMetrics });
   const cameraTransition = createCameraTransition(cameraEngine, { durationMs: 220 });
 
   const selectionController = createSelectionController(uiState, structIndex, {
@@ -747,7 +746,8 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   // 6) metrics → initial camera（syncDocument 後の renderer 由来が取れるなら優先）
   const sceneMetricsFinal =
     (typeof renderer.getSceneMetrics === "function" ? renderer.getSceneMetrics() : null) ||
-    sceneMetricsPre;
+    sceneMetrics ||
+    null;
 
   applyInitialCameraFromMetrics(
     uiState,
@@ -809,7 +809,6 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     }
   } catch (_e) {}
 
-  visibilityController?.setRecomputeHandler?.((...args) => recomputeVisibleSet(...args));
   frameController?.setRecomputeHandler?.((...args) => recomputeVisibleSet(...args));
 
   recomputeVisibleSet?.();
