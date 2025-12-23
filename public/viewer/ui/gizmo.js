@@ -262,7 +262,7 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
   // HUD controls（gizmo関連のボタン初期化はここが唯一の正規ルート）
   // ------------------------------------------------------------
   const camCtrl = hf.getCamera?.() ?? null;
-  const uiState = hf.getUiState?.() ?? null;
+  const canon = hf.getUiState?.() ?? null;
   const modeAPI = hf.getMode?.() ?? null;
 
   const elModeText = getEl?.('gizmoModeLabel') || null;
@@ -282,11 +282,11 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
     if (camCtrl && typeof camCtrl.isAutoOrbiting === 'function') {
       return !!camCtrl.isAutoOrbiting();
     }
-    return !!uiState?.runtime?.isCameraAuto;
+    return !!canon?.runtime?.isCameraAuto;
   };
 
   const readMode = () => {
-    const st = uiState?.runtime?.status ?? null;
+    const st = canon?.runtime?.status ?? null;
     const eff = st?.effective?.mode;
     if (eff === 'macro' || eff === 'micro') return eff;
     if (modeAPI && typeof modeAPI.get === 'function') {
