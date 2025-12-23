@@ -3,6 +3,7 @@
 import * as THREE from "../../../vendor/three/build/three.module.js";
 import { applyMicroFX as applyMicroFXImpl, clearMicroFX as clearMicroFXImpl } from "./microFX/index.js";
 import { microFXConfig } from "./microFX/config.js";
+// NOTE: microFXConfig は profile 切替の“状態置き場”としても使える（存在すれば）
 import { buildPointLabelIndex } from "./labels/labelIndex.js";
 import { createLabelRuntime } from "./labels/labelRuntime.js";
 import { createWorldAxesLayer } from "./worldAxes.js";
@@ -653,17 +654,103 @@ function maybeForceContextLoss(renderer, enabled) {
         warnRenderer("[renderer] skip line (endpoint unresolved)", uuid, { aRaw, bRaw, a, b });
         continue;
       }
+
+      // ------------------------------------------------------------
+      // lineProfile -> renderer.userData （effects/lineEffectsRuntime 用）
+      // ------------------------------------------------------------
+      const prof = structIndex?.lineProfile?.get?.(uuid) || null;
+      const lineStyle =
+        (prof && typeof prof.lineStyle === "string" && prof.lineStyle.trim())
+          ? prof.lineStyle.trim()
+          : "solid";
+      if (lineStyle === "none") continue;
+
+      let effectType = null;
+      let effect = null;
+      if (prof && prof.effect && typeof prof.effect === "object") {
+        const t = prof.effect.effect_type;
+        if (typeof t === "string" && t !== "none") {
+          effectType = t;
+          effect = { ...prof.effect };
+          delete effect.effect_type;
+
+          // structIndex 側の easing 名（ease-in/out 系）を runtime 側に寄せる
+          if (typeof effect.easing === "string") {
+            const ez = effect.easing;
+            if (ez === "ease-in") effect.easing = "quad_in";
+            else if (ez === "ease-out") effect.easing = "quad_out";
+            else if (ez === "ease-in-out") effect.easing = "quad_in_out";
+          }
+
+          // flow の向きは sense から推測（明示されてるなら尊重）
+          if (effectType === "flow" && !effect.direction) {
+            const sense = prof.sense;
+            effect.direction = sense === "b_to_a" ? "backward" : "forward";
+          }
+        }
+      }
+
+      const useDashed =
+        lineStyle === "dashed" || lineStyle === "dotted" || effectType === "flow";
+
       const col = readColor(line?.appearance?.color ?? line?.color, 0xffffff);
       const op = readOpacity(line?.appearance?.opacity ?? line?.opacity, 1);
-      const mat = new THREE.LineBasicMaterial({ color: col, transparent: op < 1, opacity: op });
+
+      let mat;
+      if (useDashed) {
+        const dx = a[0] - b[0];
+        const dy = a[1] - b[1];
+        const dz = a[2] - b[2];
+        const len = Math.max(1e-6, Math.sqrt(dx * dx + dy * dy + dz * dz));
+
+        let dashSize;
+        let gapSize;
+        if (lineStyle === "dotted") {
+          dashSize = len / 60;
+          gapSize = len / 20;
+        } else {
+          dashSize = len / 12;
+          gapSize = dashSize * 0.6;
+        }
+
+        dashSize = Math.max(0.02, Math.min(dashSize, len));
+        gapSize = Math.max(0.02, Math.min(gapSize, len));
+
+        mat = new THREE.LineDashedMaterial({
+          color: col,
+          transparent: op < 1,
+          opacity: op,
+          dashSize,
+          gapSize,
+        });
+      } else {
+        mat = new THREE.LineBasicMaterial({
+          color: col,
+          transparent: op < 1,
+          opacity: op,
+        });
+      }
       const geo = new THREE.BufferGeometry();
       geo.setAttribute("position", new THREE.Float32BufferAttribute([
         a[0], a[1], a[2],
         b[0], b[1], b[2],
       ], 3));
       const seg = new THREE.LineSegments(geo, mat);
+      if (mat.isLineDashedMaterial) {
+        try { seg.computeLineDistances(); } catch (_e) {}
+      }
       seg.userData.uuid = uuid;
       seg.userData.kind = "lines";
+
+      // lineEffectsRuntime が読む
+      seg.userData.lineStyle = lineStyle;
+      if (prof && typeof prof.sense === "string") seg.userData.sense = prof.sense;
+      if (effectType && effect) {
+        seg.userData.effectType = effectType;
+        seg.userData.effect = effect;
+      }
+
+      groups.lines.add(seg);
       // uuid->object / pick
       try { maps.lines.set(uuid, seg); } catch (_e) {}
       try { addPickTarget(seg); } catch (_e) {}
@@ -673,6 +760,7 @@ function maybeForceContextLoss(renderer, enabled) {
         baseStyleLines.set(uuid, {
           color: mat.color ? mat.color.clone() : new THREE.Color(0xffffff),
           opacity: typeof mat.opacity === "number" ? mat.opacity : 1,
+          linewidth: typeof mat.linewidth === "number" ? mat.linewidth : 1,
         });
       } catch (_e) {}
     }
@@ -826,6 +914,71 @@ function maybeForceContextLoss(renderer, enabled) {
     renderer.render(scene, camera);
   };
 
+  // ------------------------------------------------------------
+  // viewer settings receivers (hub bridge targets)
+  // ------------------------------------------------------------
+  let _lineWidthMode = "auto";       // "auto" | "fixed" | "adaptive"
+  let _microFXProfile = "normal";    // "weak" | "normal" | "strong"
+
+  function _normLineWidthMode(v) {
+    if (typeof v !== "string") return null;
+    const s = v.trim();
+    return (s === "auto" || s === "fixed" || s === "adaptive") ? s : null;
+  }
+  function _normMicroFXProfile(v) {
+    if (typeof v !== "string") return null;
+    const s = v.trim();
+    return (s === "weak" || s === "normal" || s === "strong") ? s : null;
+  }
+  function _clampFov(v) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return null;
+    return Math.max(1, Math.min(179, n));
+  }
+
+  // hub から呼ばれる受け口
+  function setLineWidthMode(mode) {
+    if (ctx._disposed) return;
+    const m = _normLineWidthMode(mode);
+    if (!m) return;
+    if (m === _lineWidthMode) return;
+    _lineWidthMode = m;
+    try { lineEffectsRuntime?.setLineWidthMode?.(m); } catch (_e) {}
+  }
+
+  function setMicroFXProfile(profile) {
+    if (ctx._disposed) return;
+    const p = _normMicroFXProfile(profile);
+    if (!p) return;
+    if (p === _microFXProfile) return;
+    _microFXProfile = p;
+    // microFX 側が microFXConfig.profile を見てる実装ならこれで効く
+    try {
+      if (microFXConfig && typeof microFXConfig === "object") {
+        microFXConfig.profile = p;
+        if (microFXConfig.profileFactors && typeof microFXConfig.profileFactors === "object") {
+          const f = Number(microFXConfig.profileFactors[p]);
+          if (Number.isFinite(f) && f > 0) microFXConfig.profileFactor = f;
+        }
+      }
+    } catch (_e) {}
+    try { lineEffectsRuntime?.setMicroFXProfile?.(p); } catch (_e) {}
+  }
+
+  function setFov(v) {
+    if (ctx._disposed) return;
+    const f = _clampFov(v);
+    if (f == null) return;
+    if (Number(camera.fov) === f) return;
+    camera.fov = f;
+    camera.updateProjectionMatrix();
+  }
+
+  // 公開（hub bridge が呼べるように）
+  ctx.setLineWidthMode = setLineWidthMode;
+  ctx.setMicroFXProfile = setMicroFXProfile;
+  ctx.setFov = setFov;
+
   // micro/selection/viewerSettings
   ctx.applyMicroFX = (microState, camState, visibleSet) => {
     if (ctx._disposed) return;
@@ -853,6 +1006,7 @@ function maybeForceContextLoss(renderer, enabled) {
       aux: maps.aux,
       labels: null,
       camera,
+      microFXProfile: _microFXProfile, // microFX 側が拾えるように渡す（未対応でも害なし）
     };
     try {
       applyMicroFXImpl(scene, microState || null, camState || null, indexMaps, visibleSet || null);
@@ -920,10 +1074,18 @@ function maybeForceContextLoss(renderer, enabled) {
     // NOTE:
     // - worldAxes は hub 管理（ctx.setWorldAxesVisible 経由）なので、ここでは触らない。
 
-    const lineWidthMode = typeof vs.lineWidthMode === "string" ? vs.lineWidthMode : "";
-    const microFXProfile = typeof vs.microFXProfile === "string" ? vs.microFXProfile : "";
+    // viewerSettings の shape 揺れ吸収：
+    // - 正規: viewerSettings.render.lineWidthMode / microFXProfile
+    // - 互換: viewerSettings.lineWidthMode / microFXProfile
+    const rs = (vs.render && typeof vs.render === "object") ? vs.render : vs;
+    const nextLwm = _normLineWidthMode(rs.lineWidthMode);
+    const nextMfx = _normMicroFXProfile(rs.microFXProfile);
 
-    const key = `${lineWidthMode}|${microFXProfile}`;
+    // 変更があれば setter 経由で反映（入口を一本化）
+    if (nextLwm) setLineWidthMode(nextLwm);
+    if (nextMfx) setMicroFXProfile(nextMfx);
+
+    const key = `${_lineWidthMode}|${_microFXProfile}`;
     if (key !== _lastViewerSettingsKey) {
       _lastViewerSettingsKey = key;
     } else {

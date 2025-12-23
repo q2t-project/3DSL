@@ -4,10 +4,47 @@
 // - flow / glow / pulse のアニメーション
 // - selection ハイライト（macro 用）
 // - baseStyle を壊さず、「毎フレーム base に戻してから」上書きする
+ import * as THREE from "../../../../vendor/three/build/three.module.js";
+ 
+function _normLineWidthMode(v) {
+  if (typeof v !== "string") return null;
+  const s = v.trim();
+  return (s === "auto" || s === "fixed" || s === "adaptive") ? s : null;
+}
+
+function _normMicroFXProfile(v) {
+  if (typeof v !== "string") return null;
+  const s = v.trim();
+  return (s === "weak" || s === "normal" || s === "strong") ? s : null;
+}
+
+const _PROFILE_FACTOR = {
+  weak: 0.75,
+  normal: 1.0,
+  strong: 1.35,
+};
 
 export function createLineEffectsRuntime({ lineObjects, baseStyle }) {
   // uuid -> highlight level (0 以上の数値; 0 or undefined なら非ハイライト)
   const highlightLevels = new Map();
+
+  // ------------------------------
+  // viewer settings（外部から切替）
+  // ------------------------------
+  let _lineWidthMode = "auto";     // "auto" | "fixed" | "adaptive"
+  let _microFXProfile = "normal";  // "weak" | "normal" | "strong"
+
+  function setLineWidthMode(mode) {
+    const m = _normLineWidthMode(mode);
+    if (!m) return;
+    _lineWidthMode = m;
+  }
+
+  function setMicroFXProfile(profile) {
+    const p = _normMicroFXProfile(profile);
+    if (!p) return;
+    _microFXProfile = p;
+  }
 
   let lastTime = performance.now();
   let timeSec = 0; // 経過秒
@@ -99,19 +136,21 @@ export function createLineEffectsRuntime({ lineObjects, baseStyle }) {
     }
   }
 
-  function applyGlowEffect(obj, effect, cycleT, highlightLevel) {
+  function applyGlowEffect(obj, effect, cycleT, highlightLevel, profileFactor) {
     const inner = obj.userData.haloInner;
     const outer = obj.userData.haloOuter;
     if (!inner && !outer) return;
 
     const ampRaw =
       typeof effect.amplitude === "number" ? effect.amplitude : 0.6;
-    const amplitude = Math.max(0, Math.min(ampRaw, 1));
+    const amplitude = Math.max(0, Math.min(ampRaw, 1)) * (profileFactor || 1);
 
     // 0..1 の滑らかな波
     const wave = Math.sin(2 * Math.PI * cycleT) * 0.5 + 0.5;
 
-    const extraHighlight = highlightLevel ? 0.15 * highlightLevel : 0;
+    const extraHighlight = highlightLevel
+      ? 0.15 * highlightLevel * (profileFactor || 1)
+      : 0;
 
     if (inner && inner.material) {
       const baseOpacity =
@@ -143,13 +182,13 @@ export function createLineEffectsRuntime({ lineObjects, baseStyle }) {
     }
   }
 
-  function applyPulseEffect(obj, effect, cycleT, highlightLevel) {
+  function applyPulseEffect(obj, effect, cycleT, highlightLevel, profileFactor) {
     const inner = obj.userData.haloInner;
     const outer = obj.userData.haloOuter;
 
     const ampRaw =
       typeof effect.amplitude === "number" ? effect.amplitude : 0.9;
-    const amplitude = Math.max(0, Math.min(ampRaw, 1));
+    const amplitude = Math.max(0, Math.min(ampRaw, 1)) * (profileFactor || 1);
 
     // 鼓動カーブ：
     // 0 〜 1 の間で立ち上がり速く、減衰長め
@@ -157,7 +196,9 @@ export function createLineEffectsRuntime({ lineObjects, baseStyle }) {
     if (s < 0) s = 0;
     const wave = Math.pow(s, 3);        // ピークを尖らせる 0..1
 
-    const extraHighlight = highlightLevel ? 0.2 * highlightLevel : 0;
+    const extraHighlight = highlightLevel
+      ? 0.2 * highlightLevel * (profileFactor || 1)
+      : 0;
 
     // 線本体もドクンと明るく
     const mat = obj.material;
@@ -205,6 +246,41 @@ export function createLineEffectsRuntime({ lineObjects, baseStyle }) {
     }
   }
 
+  function _readBaseLineWidth(base, mat) {
+    const v =
+      (base && typeof base.linewidth === "number" && Number.isFinite(base.linewidth))
+        ? base.linewidth
+        : (base && typeof base.lineWidth === "number" && Number.isFinite(base.lineWidth))
+          ? base.lineWidth
+          : null;
+    if (v != null) return v;
+    if (mat && typeof mat.linewidth === "number" && Number.isFinite(mat.linewidth)) {
+      return mat.linewidth;
+    }
+    return null;
+  }
+
+  function _clampLineWidth(v) {
+    if (!Number.isFinite(v)) return v;
+    return Math.max(0.25, Math.min(v, 16));
+  }
+
+  function _applyLineWidthMode(mat, base, highlightLevel, profileFactor) {
+    if (!mat || typeof mat.linewidth !== "number") return;
+    const baseW = _readBaseLineWidth(base, mat);
+    if (!Number.isFinite(baseW)) return;
+
+    let w = baseW;
+    if (_lineWidthMode === "adaptive") {
+      const hl = Math.max(0, Math.min(Number(highlightLevel) || 0, 6));
+      w = baseW * (1 + 0.15 * hl * (profileFactor || 1));
+    } else {
+      // "auto"/"fixed" は baseW に戻すだけ（距離ベースの調整は別モジュールでやる想定）
+      w = baseW;
+    }
+    mat.linewidth = _clampLineWidth(w);
+  }
+
   // ------------------------------
   // 毎フレーム呼ばれる更新処理
   // ------------------------------
@@ -216,6 +292,7 @@ export function createLineEffectsRuntime({ lineObjects, baseStyle }) {
     if (!Number.isFinite(dtSec) || dtSec <= 0) return;
 
     timeSec += dtSec;
+    const profileFactor = _PROFILE_FACTOR[_microFXProfile] || 1.0;
 
     lineObjects.forEach((obj, uuid) => {
       const base = baseStyle.get(uuid);
@@ -234,6 +311,9 @@ export function createLineEffectsRuntime({ lineObjects, baseStyle }) {
         mat.opacity = base.opacity;
       }
 
+      // lineWidthMode（あれば反映）
+      _applyLineWidthMode(mat, base, highlightLevel, profileFactor);
+
       // dashed でも effect が無い場合は dashOffset を 0 に戻しておく
       if (!effectType && mat.isLineDashedMaterial) {
         if (typeof mat.dashOffset === "number") {
@@ -248,7 +328,7 @@ export function createLineEffectsRuntime({ lineObjects, baseStyle }) {
         if (mat.color) {
           const hsl = { h: 0, s: 0, l: 0 };
           mat.color.getHSL(hsl);
-          const lBoost = Math.min(0.25 * highlightLevel, 0.6);
+          const lBoost = Math.min(0.25 * highlightLevel * profileFactor, 0.6);
           hsl.l = Math.min(1.0, hsl.l + lBoost);
           mat.color.setHSL(hsl.h, hsl.s, hsl.l);
         }
@@ -311,9 +391,9 @@ export function createLineEffectsRuntime({ lineObjects, baseStyle }) {
         const easedT = applyEasing(cycleT, easing);
 
         if (effectType === "glow") {
-          applyGlowEffect(obj, effect, easedT, highlightLevel);
+          applyGlowEffect(obj, effect, easedT, highlightLevel, profileFactor);
         } else if (effectType === "pulse") {
-          applyPulseEffect(obj, effect, easedT, highlightLevel);
+          applyPulseEffect(obj, effect, easedT, highlightLevel, profileFactor);
         }
       }
     });
@@ -335,5 +415,7 @@ export function createLineEffectsRuntime({ lineObjects, baseStyle }) {
     setHighlight,
     applySelection,
     updateLineEffects,
+    setLineWidthMode,
+    setMicroFXProfile,
   };
 }
