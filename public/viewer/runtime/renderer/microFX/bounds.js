@@ -1,6 +1,7 @@
 // viewer/runtime/renderer/microFX/bounds.js
 import * as THREE from "../../../../vendor/three/build/three.module.js";
 import { microFXConfig } from "./config.js";
+import { clamp, clamp01, normalizeIntensity, sanitizeVec3 } from "./utils.js";
 
 // このモジュールは microState.localBounds（world 座標系での局所 AABB）を
 // そのまま受け取って可視化する専用。
@@ -105,17 +106,7 @@ export function ensureBounds(scene) {
  *  Utility（microState.localBounds.* 用の軽いサニタイズ）
  * ----------------------------------------------------- */
 function sanitizeVector3(arr) {
-  if (!Array.isArray(arr)) return [0, 0, 0];
-  const MAX = 1e4; // 数値暴走だけ抑える。単位や意味はここではいじらない。
-  return [0, 1, 2].map((i) => {
-    const n = Number(arr[i]);
-    if (!Number.isFinite(n)) return 0;
-    return clamp(n, -MAX, MAX);
-  });
-}
-
-function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
+  return sanitizeVec3(arr, [0, 0, 0]);
 }
 
 /* -------------------------------------------------------
@@ -132,15 +123,14 @@ function updateHandles(group, size, intensity = 1) {
   // AABB が小さくてもある程度は見えるように最低サイズを確保
   const baseScale = minSize > 0 ? minSize * 0.18 : 0.18;
 
-  let s = Number.isFinite(intensity) ? intensity : 1;
-  s = clamp(s, 0, 1);
+  const s = normalizeIntensity(intensity, 1);
 
   const handleScale = baseScale * s;
 
   handlesGroup.children.forEach((handle) => {
     handle.scale.setScalar(handleScale);
     if (handle.material && "opacity" in handle.material) {
-      handle.material.opacity = s;
+      handle.material.opacity = clamp01(s);
       handle.material.transparent = true;
     }
   });
@@ -152,9 +142,7 @@ function updateHandles(group, size, intensity = 1) {
 export function updateBounds(group, localBounds, intensity = 1) {
   if (!group || !localBounds) return;
 
-  // intensity を 0..1 にクランプ
-  let s = Number.isFinite(intensity) ? intensity : 1;
-  s = clamp(s, 0, 1);
+  const s = normalizeIntensity(intensity, 1);
 
   if (s <= 0) {
     group.visible = false;
@@ -194,14 +182,14 @@ export function updateBounds(group, localBounds, intensity = 1) {
 
   if (box && box.material && "opacity" in box.material) {
     const baseOpacity = 0.15;
-    box.material.opacity = baseOpacity * s;
+    box.material.opacity = clamp01(baseOpacity * s);
     box.material.transparent = true;
     box.material.depthWrite = false;
   }
 
   if (wire && wire.material && "opacity" in wire.material) {
     const baseOpacity = 0.9;
-    wire.material.opacity = baseOpacity * s;
+    wire.material.opacity = clamp01(baseOpacity * s);
     wire.material.transparent = true;
     wire.material.depthWrite = false;
   }
@@ -232,8 +220,6 @@ export function setHandlesVisible(visible) {
  * ----------------------------------------------------- */
 export function removeBounds(scene) {
   if (!boundsGroup) return;
-  if (boundsGroup.parent === scene) {
-    scene.remove(boundsGroup);
-  }
+  boundsGroup.parent?.remove(boundsGroup);
   boundsGroup = null;
 }

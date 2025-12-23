@@ -9,12 +9,83 @@
 
 import * as THREE from "../../../../vendor/three/build/three.module.js";
 import { microFXConfig } from "./config.js";
+import { clamp01, normalizeIntensity } from "./utils.js";
 
 let highlightGroup = null;
 
-function clamp01(v) {
-  return Math.min(Math.max(v, 0), 1);
+// ------------------------------------------------------------
+// focus line glow cache（TubeGeometry は重いので focus 変更時だけ生成）
+// ------------------------------------------------------------
+let _lineGlowCache = {
+  scene: null,
+  focusUuid: null,
+  geomKey: null,
+  meshes: null, // Array<THREE.Mesh>
+};
+
+function _disposeGlowMeshes(meshes) {
+  if (!Array.isArray(meshes)) return;
+  for (const m of meshes) {
+    if (!m) continue;
+    // TubeGeometry は自前生成なので確実に dispose
+    if (m.geometry && typeof m.geometry.dispose === "function") {
+      try { m.geometry.dispose(); } catch (_e) {}
+    }
+    if (m.material && typeof m.material.dispose === "function") {
+      try { m.material.dispose(); } catch (_e) {}
+    }
+    try { m.parent?.remove(m); } catch (_e) {}
+  }
 }
+
+function _resetLineGlowCache(dispose = true) {
+  if (dispose) _disposeGlowMeshes(_lineGlowCache.meshes);
+  _lineGlowCache.scene = null;
+  _lineGlowCache.focusUuid = null;
+  _lineGlowCache.geomKey = null;
+  _lineGlowCache.meshes = null;
+}
+
+// ---------------- visibleSet を判定関数に正規化 ----------------
+function buildVisiblePredicate(vs) {
+  if (!vs) return null;
+
+  // うっかり getVisibleSet 関数が渡ってきたケース
+  if (typeof vs === "function") {
+    try {
+      vs = vs();
+    } catch {
+      return null;
+    }
+  }
+
+  // 旧仕様: Set<uuid>
+  if (vs instanceof Set) {
+    return (uuid) => vs.has(uuid);
+  }
+
+  // 新仕様: { points:Set|uuid[], lines:Set|uuid[], aux:Set|uuid[] }
+  if (typeof vs === "object") {
+    const pools = [];
+    if (vs.points) pools.push(vs.points);
+    if (vs.lines) pools.push(vs.lines);
+    if (vs.aux) pools.push(vs.aux);
+
+    if (!pools.length) return null;
+
+    return (uuid) => {
+      for (const pool of pools) {
+        if (!pool) continue;
+        if (pool instanceof Set && pool.has(uuid)) return true;
+        if (Array.isArray(pool) && pool.includes(uuid)) return true;
+      }
+      return false;
+    };
+  }
+
+  return null;
+}
+// ------------------------------------------------------------
 
 function ensureGroup(scene) {
   // 他 scene の残骸があれば破棄（parent が null の場合もケア）
@@ -25,6 +96,8 @@ function ensureGroup(scene) {
   ) {
     highlightGroup.parent.remove(highlightGroup);
     highlightGroup = null;
+    // scene が変わったら cache も破棄（旧 scene にぶら下がった参照を残さない）
+    _resetLineGlowCache(true);
   }
 
   if (!highlightGroup) {
@@ -34,6 +107,60 @@ function ensureGroup(scene) {
     scene.add(highlightGroup);
   }
   return highlightGroup;
+}
+
+function _getLineGlowLayersCfg(lineGlowCfg) {
+  return Array.isArray(lineGlowCfg?.layers)
+    ? lineGlowCfg.layers
+    : [
+        { radiusMul: 1.0, opacityMul: 1.0 },  // コア
+        { radiusMul: 4.8, opacityMul: 0.35 }, // 内側ハロー
+        { radiusMul: 9.6, opacityMul: 0.12 }, // 外側ハロー
+      ];
+}
+
+function _makeLineGlowGeomKey(src, lineGlowCfg) {
+  const geom = src?.geometry;
+  const posAttr = geom?.attributes?.position;
+  const geomUuid = geom?.uuid || "";
+  const posCount = Number(posAttr?.count) || 0;
+  const posVer = Number(posAttr?.version) || 0;
+
+  const radius = Number(lineGlowCfg?.radius) || 0;
+  const tubularPerSeg = Number(lineGlowCfg?.tubularSegmentsPerSegment) || 0;
+  const radialSeg = Number(lineGlowCfg?.radialSegments) || 0;
+  const baseOpacity = Number(lineGlowCfg?.opacity) || 0;
+  const color = String(lineGlowCfg?.color || "");
+  const layers = _getLineGlowLayersCfg(lineGlowCfg)
+    .map((l) => `${Number(l?.radiusMul) || 0}:${Number(l?.opacityMul) || 0}`)
+    .join(",");
+
+  // focusUuid と組み合わせて使う前提（ここは geometry + config の fingerprint）
+  return `${geomUuid}|${posCount}|${posVer}|r=${radius}|tps=${tubularPerSeg}|rs=${radialSeg}|op=${baseOpacity}|c=${color}|L=${layers}`;
+}
+
+function _syncCachedGlowMeshes(meshes, src, intensity) {
+  if (!Array.isArray(meshes) || !src) return;
+  const s = normalizeIntensity(intensity, 1);
+  for (const m of meshes) {
+    if (!m) continue;
+    // transform は毎フレーム src に追従（position/quaternion/scale は cheap）
+    try { m.position.copy(src.position); } catch (_e) {}
+    try { m.quaternion.copy(src.quaternion); } catch (_e) {}
+    try { m.scale.copy(src.scale); } catch (_e) {}
+
+    const base = Number(m.userData?._microFX_lineGlow_baseOpacity);
+    const mul = Number(m.userData?._microFX_lineGlow_opacityMul);
+    const baseOpacity = Number.isFinite(base) ? base : 0;
+    const opacityMul = Number.isFinite(mul) ? mul : 1;
+
+    const mat = m.material;
+    if (mat && "opacity" in mat) {
+      mat.transparent = true;
+      mat.opacity = clamp01(baseOpacity * opacityMul * s);
+      mat.needsUpdate = true;
+    }
+  }
 }
 
 // focus line 用の「多層チューブグロー」を生成
@@ -83,16 +210,10 @@ function createLineGlowMeshes(src, lineGlowCfg, intensity = 1) {
     typeof lineGlowCfg.opacity === "number" ? lineGlowCfg.opacity : 0.7;
 
   // 中心コア + 外側ハロー層
-  const layersCfg = Array.isArray(lineGlowCfg.layers)
-    ? lineGlowCfg.layers
-    : [
-        { radiusMul: 1.0, opacityMul: 1.0 },  // コア
-        { radiusMul: 4.8, opacityMul: 0.35 }, // 内側ハロー
-        { radiusMul: 9.6, opacityMul: 0.12 }, // 外側ハロー
-      ];
+  const layersCfg = _getLineGlowLayersCfg(lineGlowCfg);
 
   const meshes = [];
-  const s = clamp01(Number.isFinite(intensity) ? intensity : 1);
+  const s = normalizeIntensity(intensity, 1);
 
   for (const layer of layersCfg) {
     const radiusMul =
@@ -138,55 +259,14 @@ export function applyHighlight(
   visibleSet,
   intensity = 1
 ) {
-  clearHighlight(scene);
+  // 毎フレームの clear では cache は残す（TubeGeometry を再利用する）
+  clearHighlight(scene, { disposeCache: false });
   if (!microState) return;
 
-  let s = Number.isFinite(intensity) ? intensity : 1;
-  s = clamp01(s);
+  const s = normalizeIntensity(intensity, 1);
   if (s <= 0) return;
 
-  // ---------------- visibleSet を判定関数に正規化 ----------------
-  function buildVisiblePredicate(vs) {
-    if (!vs) return null;
-
-    // うっかり getVisibleSet 関数が渡ってきたケース
-    if (typeof vs === "function") {
-      try {
-        vs = vs();
-      } catch {
-        return null;
-      }
-    }
-
-    // 旧仕様: Set<uuid>
-    if (vs instanceof Set) {
-      return (uuid) => vs.has(uuid);
-    }
-
-    // 新仕様: { points:Set|uuid[], lines:Set|uuid[], aux:Set|uuid[] }
-    if (typeof vs === "object") {
-      const pools = [];
-      if (vs.points) pools.push(vs.points);
-      if (vs.lines)  pools.push(vs.lines);
-      if (vs.aux)    pools.push(vs.aux);
-
-      if (!pools.length) return null;
-
-      return (uuid) => {
-        for (const pool of pools) {
-          if (!pool) continue;
-          if (pool instanceof Set && pool.has(uuid)) return true;
-          if (Array.isArray(pool) && pool.includes(uuid)) return true;
-        }
-        return false;
-      };
-    }
-
-    return null;
-  }
-
   const isVisible = buildVisiblePredicate(visibleSet);
-  // ------------------------------------------------------------
 
   const { focusUuid, relatedUuids } = microState;
 
@@ -204,7 +284,6 @@ export function applyHighlight(
   const hlCfg       = microFXConfig.highlight || {};
   const focusCfg    = hlCfg.focus   || {};
   const relatedCfg  = hlCfg.related || {};
-  const othersCfg   = hlCfg.others  || {};
   const lineGlowCfg = hlCfg.lineGlow || {};
   const lineCfg     = hlCfg.line || {};
   const lineGlowEnabled = lineGlowCfg.enabled !== false;
@@ -320,19 +399,61 @@ export function applyHighlight(
     }
 
     if (src.isLine && isFocus && lineGlowEnabled && wantsLineGlow) {
-      const glowMeshes = createLineGlowMeshes(src, lineGlowCfg, s);
-      if (Array.isArray(glowMeshes)) {
-        glowMeshes.forEach((m) => group.add(m));
+      // focusUuid + geomKey でキャッシュ（TubeGeometry の再生成を抑止）
+      const geomKey = _makeLineGlowGeomKey(src, lineGlowCfg);
+      const cacheHit =
+        _lineGlowCache.scene === scene &&
+        _lineGlowCache.focusUuid === focusUuid &&
+        _lineGlowCache.geomKey === geomKey &&
+        Array.isArray(_lineGlowCache.meshes) &&
+        _lineGlowCache.meshes.length > 0;
+
+      if (!cacheHit) {
+        _resetLineGlowCache(true);
+        const meshes = createLineGlowMeshes(src, lineGlowCfg, 1);
+        if (Array.isArray(meshes) && meshes.length > 0) {
+          const baseOpacity =
+            typeof lineGlowCfg.opacity === "number" ? lineGlowCfg.opacity : 0.7;
+          const layersCfg = _getLineGlowLayersCfg(lineGlowCfg);
+          meshes.forEach((m, i) => {
+            // clearHighlight で毎フレーム dispose されないようにマーク
+            m.userData._microFX_cachedLineGlow = true;
+            m.userData._microFX_lineGlow_baseOpacity = baseOpacity;
+            m.userData._microFX_lineGlow_opacityMul =
+              typeof layersCfg?.[i]?.opacityMul === "number"
+                ? layersCfg[i].opacityMul
+                : 1.0;
+          });
+
+          _lineGlowCache.scene = scene;
+          _lineGlowCache.focusUuid = focusUuid;
+          _lineGlowCache.geomKey = geomKey;
+          _lineGlowCache.meshes = meshes;
+        }
+      }
+
+      // 毎フレームは transform + opacity だけ同期して add
+      if (Array.isArray(_lineGlowCache.meshes)) {
+        _syncCachedGlowMeshes(_lineGlowCache.meshes, src, s);
+        _lineGlowCache.meshes.forEach((m) => group.add(m));
       }
     }
   }
 }
 
-export function clearHighlight(scene) {
+export function clearHighlight(scene, opts = {}) {
   if (!highlightGroup) return;
+
+  const disposeCache = opts?.disposeCache !== false;
+  if (disposeCache) {
+    // フルリセット時（microFX OFF / dispose）だけ cache も捨てる
+    _resetLineGlowCache(true);
+  }
 
   // 毎フレーム作り直すマテリアル／チューブ用 geometry を破棄してリーク防止。
   for (const child of highlightGroup.children) {
+    // cached glow は毎フレーム dispose せん（フルリセット時は上で捨ててる）
+    if (child?.userData?._microFX_cachedLineGlow) continue;
     // チューブグロー（自前 geometry）のみ dispose
     if (
       child.userData &&

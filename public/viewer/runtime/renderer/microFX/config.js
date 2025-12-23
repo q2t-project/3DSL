@@ -1,124 +1,90 @@
 // viewer/runtime/renderer/microFX/config.js
 //
-// !!! 注意 !!!
-// これは「renderer/microFX サブシステム専用」の係数置き場。
-// CameraEngine や frame/timeline, UI など他レイヤの設定は
-// 絶対にここへ混ぜないこと。
-// （必要なら各レイヤごとに config ファイルを分ける）
-//
-// microFX 全体の係数をここに集約しておく。
-// 原則としてすべて「unitless な world 座標・距離」に対する係数。
-// （一部、three.js の描画用パラメータ値 linewidth などを含む）
-// px や画面解像度には依存しないようにしておき、
-// 数値チューニングは基本ここだけ触れば OK にする。
+// microFX のチューニング設定（renderer 側）
+// - named export: microFXConfig / DEBUG_MICROFX
+// - ここが export してないと import 側が即死する
 
-// microFX の有効/無効をまとめて切り替えるフラグ
-// - 本番運用では true 固定
-// - デバッグで「microFX 全部切りたい」ときだけ false にする
-export const DEBUG_MICROFX = true;
+export const DEBUG_MICROFX = false;
 
 export const microFXConfig = {
-  // フォーカスマーカー（plane）の見た目
+  // ------------------------------------------------------------
+  // Marker（focusPosition の薄板）
+  // ------------------------------------------------------------
   marker: {
-    // world 座標系での一辺長さ（unitless）
     baseSize: 0.14,
-    // plane の不透明度
     opacity: 0.06,
   },
+
+  // ------------------------------------------------------------
+  // Glow（focusPosition の輝きオーバーレイ）
+  // ------------------------------------------------------------
+  glow: {
+    enabled: true,
+
+    // 位置は focusPosition に固定しつつ、距離に応じて見た目を補正したい場合の係数
+    offsetFactor: 0.0,
+
+    // world 長さ（unitless）
+    baseScale: 0.6,
+    minScale: 0.25,
+    maxScale: 3.0,
+
+    opacity: 0.9,
+  },
+
+  // ------------------------------------------------------------
+  // Axes（localAxes の可視化）
+  // ------------------------------------------------------------
   axes: {
-  // target との距離 1.0（unitless）あたりの軸長スケール係数
-    scalePerDistance: 0.045,
+    scalePerDistance: 0.08,
     minScale: 0.6,
     maxScale: 3.0,
     opacity: 0.9,
   },
 
+  // ------------------------------------------------------------
+  // Bounds（localBounds の可視化）
+  // ------------------------------------------------------------
   bounds: {
-    // AABB のサイズ（unitless 長さ）に対する縮小率
-    shrinkFactor: 0.7,
-    // AABB エッジ長の下限・上限（unitless）
-    minEdge: 0.4,
-    maxEdge: 3.0,
-
-    // コーナーハンドルのスケール計算用
-    // - minBase/maxBase: 「最小辺長」から切り出す基準スケールの範囲
-    // - scaleFactor: 基準スケールに掛ける係数
-    handle: {
-      minBase: 0.2,
-      maxBase: 1.0,
-      scaleFactor: 0.05,
-    },
+    shrinkFactor: 0.92,
+    minEdge: 0.2,
+    maxEdge: 6.0,
   },
 
-  glow: {
-    screenPx: 96,   // ここ変えたらサイズ変わる（必ず）
-    offsetPx: 16,   // 点と被らん程度
-    // 必要なら安全柵（無しでもOK）
-    // minWorldScale: 0.001,
-    // maxWorldScale: 1000,
-  },
-
-  // micro モード時の「親等別」強調ポリシー
-  // idx = degree（0 親等 = focus, 1 親等, 2 親等, 3 親等以上）
-  degree: {
-    alpha: [1.0, 0.7, 0.4, 0.15],
-    scale: [1.2, 1.0, 0.95, 0.9],
-
-    // これより大きい degree は描画自体を抑制してもよい
-    // （axes/bounds/glow を出さない等）
-    maxVisibleDegree: 3
-  },
-
-  // focus / related 用のハイライト係数
+  // ------------------------------------------------------------
+  // Highlight（focusUuid / relatedUuids のなぞり）
+  // ------------------------------------------------------------
   highlight: {
     focus: {
-      // baseStyle.opacity に対する加算ブースト（0.0〜）
-      opacityBoost: 0.25,
-      // 線オーバーレイの色
       color: "#00ffff",
-      // 線の見た目を最低どれくらい明るくするか
-      minLineOpacity: 0.95
+      opacityBoost: 0.25,
+      minLineOpacity: 0.85,
     },
     related: {
+      color: "#66aaff",
       opacityBoost: 0.1,
-      color: "#00bfff",
-      minLineOpacity: 0.85
+      minLineOpacity: 0.4,
     },
-    others: {
-      // focus/related 以外をどれくらい暗くするか（1.0 で変化なし）
-      opacityMultiplier: 0.4
-    },
+    others: {},
 
-    // 線オーバーレイの線幅（three.js LineBasicMaterial の linewidth 単位）
     line: {
       focusWidth: 4,
       relatedWidth: 2,
     },
-    // 線フォーカス時の「線そのものが光って見える」用グロー
+
+    // focus line の effect_type="glow" 用（Tube）
     lineGlow: {
       enabled: true,
-      // チューブ半径（unitless）。太さの基準
-      radius: 0.005,
-      // 発光の濃さ
-      opacity: 0.7,
-      // 1 セグメントあたりの細分数（増やすと滑らか・重くなる）
-      tubularSegmentsPerSegment: 32,
-      radialSegments: 32,
       color: "#00ffff",
-
-      // radius に対する多層グローの倍率と不透明度
-      // radiusMul: 半径倍率, opacityMul: 不透明度倍率
+      radius: 0.06,
+      opacity: 0.7,
+      tubularSegmentsPerSegment: 8,
+      radialSegments: 8,
       layers: [
-        { radiusMul: 1.0, opacityMul: 1.0 },   // コア
-        { radiusMul: 4.8, opacityMul: 0.35 },  // 内側ハロー
-        { radiusMul: 9.6, opacityMul: 0.12 },  // 外側ハロー
+        { radiusMul: 1.0, opacityMul: 1.0 },
+        { radiusMul: 4.8, opacityMul: 0.35 },
+        { radiusMul: 9.6, opacityMul: 0.12 },
       ],
-    }
+    },
   },
-
-// micro⇆macro のフェード用
-    transition: {
-    enabled: true,
-    durationMs: 180,
-  }
 };
