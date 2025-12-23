@@ -4,11 +4,13 @@
 
 export function detachOrDispose(handle) {
   if (!handle) return false;
-  const order = ["detach", "dispose", "stop"];
+  const order = ['detach', 'dispose', 'stop'];
   for (const m of order) {
     const fn = handle && handle[m];
-    if (typeof fn === "function") {
-      try { fn.call(handle); } catch (_e) {}
+    if (typeof fn === 'function') {
+      try {
+        fn.call(handle);
+      } catch (_e) {}
       return true;
     }
   }

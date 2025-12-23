@@ -5,70 +5,70 @@
 // - selection 状態と連動（hover は無視）
 // - 完全 read-only 表示
 
-function resolveLocalizedText(value, preferredLocales = ["ja", "en"]) {
-  if (typeof value === "string") return value;
-  if (!value || typeof value !== "object") return "";
+function resolveLocalizedText(value, preferredLocales = ['ja', 'en']) {
+  if (typeof value === 'string') return value;
+  if (!value || typeof value !== 'object') return '';
 
   for (const loc of preferredLocales) {
     const v = value[loc];
-    if (typeof v === "string" && v.trim() !== "") return v;
+    if (typeof v === 'string' && v.trim() !== '') return v;
   }
   const keys = Object.keys(value);
-  if (keys.length > 0 && typeof value[keys[0]] === "string") {
+  if (keys.length > 0 && typeof value[keys[0]] === 'string') {
     return value[keys[0]];
   }
-  return "";
+  return '';
 }
 
 function formatUuidShort(uuid) {
-  if (typeof uuid !== "string") return "";
+  if (typeof uuid !== 'string') return '';
   if (uuid.length <= 8) return uuid;
-  return uuid.slice(0, 8) + "…";
+  return uuid.slice(0, 8) + '…';
 }
 
 function valueToShortString(v) {
-  if (v === null || v === undefined) return "";
-  if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") {
+  if (v === null || v === undefined) return '';
+  if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
     return String(v);
   }
   if (Array.isArray(v)) {
-    return v.map((x) => valueToShortString(x)).join(", ");
+    return v.map((x) => valueToShortString(x)).join(', ');
   }
-  if (typeof v === "object") {
+  if (typeof v === 'object') {
     const localized = resolveLocalizedText(v);
     if (localized) return localized;
 
     try {
       const s = JSON.stringify(v);
-      return s.length > 80 ? s.slice(0, 77) + "..." : s;
+      return s.length > 80 ? s.slice(0, 77) + '...' : s;
     } catch {
-      return "[object]";
+      return '[object]';
     }
   }
   return String(v);
 }
 
 function summarizeRelation(rel) {
-  if (!rel || typeof rel !== "object") return "";
+  if (!rel || typeof rel !== 'object') return '';
 
   // 配列で来た場合: 各要素を再帰で処理
   if (Array.isArray(rel)) {
     return rel
       .map((entry) => summarizeRelation(entry))
-      .filter((s) => s && s.trim() !== "")
-      .join("; ");
+      .filter((s) => s && s.trim() !== '')
+      .join('; ');
   }
 
   const parts = [];
   for (const [k, v] of Object.entries(rel)) {
-    if (v == null || v === "") continue;
+    if (v == null || v === '') continue;
 
     let text;
-    if (typeof v === "string") {
+    if (typeof v === 'string') {
       text = v;
     } else if (Array.isArray(v)) {
-      text = v.map((x) => valueToShortString(x)).join(", ");
-    } else if (typeof v === "object") {
+      text = v.map((x) => valueToShortString(x)).join(', ');
+    } else if (typeof v === 'object') {
       // lang マップっぽいものは優先してローカライズ
       const localized = resolveLocalizedText(v);
       text = localized || valueToShortString(v);
@@ -78,9 +78,8 @@ function summarizeRelation(rel) {
 
     parts.push(`${k}: ${text}`);
   }
-  return parts.join(", ");
+  return parts.join(', ');
 }
-
 
 function stringifyJson(obj) {
   try {
@@ -105,19 +104,20 @@ function buildPanelDom(container) {
   `;
 
   return {
-    kindEl: container.querySelector(".detail-kind"),
-    nameEl: container.querySelector(".detail-name"),
-    summaryEl: container.querySelector(".detail-summary"),
-    jsonEl: container.querySelector(".detail-json"),
+    kindEl: container.querySelector('.detail-kind'),
+    nameEl: container.querySelector('.detail-name'),
+    summaryEl: container.querySelector('.detail-summary'),
+    jsonEl: container.querySelector('.detail-json'),
   };
 }
 
 function renderEmpty(dom) {
   if (!dom) return;
-  dom.kindEl.textContent = "";
-  dom.nameEl.textContent = "";
-  dom.summaryEl.innerHTML = "<div class='detail-row'><span class='detail-key'>(no selection)</span></div>";
-  dom.jsonEl.textContent = "";
+  dom.kindEl.textContent = '';
+  dom.nameEl.textContent = '';
+  dom.summaryEl.innerHTML =
+    "<div class='detail-row'><span class='detail-key'>(no selection)</span></div>";
+  dom.jsonEl.textContent = '';
 }
 
 function renderItem(dom, kind, node) {
@@ -127,27 +127,28 @@ function renderItem(dom, kind, node) {
   }
 
   const sign = node.signification || {};
-  const app  = node.appearance || {};
+  const app = node.appearance || {};
   const meta = node.meta || {};
 
   const name = resolveLocalizedText(sign.name);
-  dom.kindEl.textContent = kind ? kind.toUpperCase() : "";
-  dom.nameEl.textContent = name || "(no name)";
+  dom.kindEl.textContent = kind ? kind.toUpperCase() : '';
+  dom.nameEl.textContent = name || '(no name)';
 
   // summary 部を作り直す
-  dom.summaryEl.innerHTML = "";
+  dom.summaryEl.innerHTML = '';
 
   const addRow = (key, val) => {
-    if (val === undefined || val === null || val === "") return;
-    const row = document.createElement("div");
-    row.className = "detail-row";
+    if (val === undefined || val === null || val === '') return;
+    const d = dom?.kindEl?.ownerDocument || document;
+    const row = d.createElement('div');
+    row.className = 'detail-row';
 
-    const k = document.createElement("div");
-    k.className = "detail-key";
+    const k = d.createElement('div');
+    k.className = 'detail-key';
     k.textContent = key;
 
-    const v = document.createElement("div");
-    v.className = "detail-value";
+    const v = d.createElement('div');
+    v.className = 'detail-value';
     v.textContent = valueToShortString(val);
 
     row.appendChild(k);
@@ -157,62 +158,62 @@ function renderItem(dom, kind, node) {
 
   // signification 系
   if (meta.uuid) {
-    addRow("uuid", formatUuidShort(meta.uuid));
+    addRow('uuid', formatUuidShort(meta.uuid));
   }
-  if (name) addRow("name", name);
+  if (name) addRow('name', name);
 
-  const descText      = resolveLocalizedText(sign.description);
-  const categoryText  =
-    typeof sign.category === "object"
+  const descText = resolveLocalizedText(sign.description);
+  const categoryText =
+    typeof sign.category === 'object'
       ? resolveLocalizedText(sign.category)
       : valueToShortString(sign.category);
 
   const qualifierText =
-    typeof sign.qualifier === "object"
+    typeof sign.qualifier === 'object'
       ? resolveLocalizedText(sign.qualifier)
       : valueToShortString(sign.qualifier);
 
-  if (descText) addRow("description", descText);
-  if (categoryText) addRow("category", categoryText);
-  if (qualifierText) addRow("qualifier", qualifierText);
+  if (descText) addRow('description', descText);
+  if (categoryText) addRow('category', categoryText);
+  if (qualifierText) addRow('qualifier', qualifierText);
 
   if (sign.relation) {
     const relText = summarizeRelation(sign.relation);
-    if (relText) addRow("relation", relText);
+    if (relText) addRow('relation', relText);
   }
 
   // appearance 系
-  if (app.frames !== undefined) addRow("frames", app.frames);
+  if (app.frames !== undefined) addRow('frames', app.frames);
 
-  if (kind === "lines") {
+  if (kind === 'lines') {
     if (app.end_a) {
       if (Array.isArray(app.end_a.coord)) {
         // coord 指定 → 座標だけ
-        addRow("end_a", app.end_a.coord);
+        addRow('end_a', app.end_a.coord);
       } else if (app.end_a.ref) {
         // points 指定 → UUID（短縮）
-        addRow("end_a", formatUuidShort(app.end_a.ref));
+        addRow('end_a', formatUuidShort(app.end_a.ref));
       }
     }
 
     if (app.end_b) {
       if (Array.isArray(app.end_b.coord)) {
-        addRow("end_b", app.end_b.coord);
+        addRow('end_b', app.end_b.coord);
       } else if (app.end_b.ref) {
-        addRow("end_b", formatUuidShort(app.end_b.ref));
+        addRow('end_b', formatUuidShort(app.end_b.ref));
       }
     }
 
-    if (app.line_type) addRow("line_type", app.line_type);
-    if (app.line_style) addRow("line_style", app.line_style);
+    if (app.line_type) addRow('line_type', app.line_type);
+    if (app.line_style) addRow('line_style', app.line_style);
   }
 
   // その他 meta
   if (Array.isArray(meta.tags) && meta.tags.length > 0) {
-    addRow("tags", meta.tags);
+    addRow('tags', meta.tags);
   }
   if (meta.creator_memo) {
-    addRow("creator_memo", meta.creator_memo);
+    addRow('creator_memo', meta.creator_memo);
   }
 
   // JSON 全体
@@ -227,11 +228,11 @@ function renderItem(dom, kind, node) {
  */
 export function attachDetailView(container, hub) {
   if (!container) {
-    console.warn("[detailView] container not found");
+    console.warn('[detailView] container not found');
     return null;
   }
   if (!hub || !hub.core) {
-    console.warn("[detailView] hub/core not ready");
+    console.warn('[detailView] hub/core not ready');
     return null;
   }
 
@@ -242,7 +243,7 @@ export function attachDetailView(container, hub) {
   const selectionAPI = hub.core.selection;
 
   if (!structIndex || !structIndex.uuidToItem) {
-    console.warn("[detailView] structIndex.uuidToItem not available");
+    console.warn('[detailView] structIndex.uuidToItem not available');
   }
 
   let disposed = false;
@@ -254,7 +255,7 @@ export function attachDetailView(container, hub) {
 
     let curUuid = null;
 
-    if (selectionAPI && typeof selectionAPI.get === "function") {
+    if (selectionAPI && typeof selectionAPI.get === 'function') {
       const sel = selectionAPI.get();
       if (sel && sel.uuid) {
         curUuid = sel.uuid;
@@ -272,11 +273,11 @@ export function attachDetailView(container, hub) {
           renderItem(dom, hit.kind, hit.item);
         } else {
           // UUID はあるが doc 側に見つからない場合
-          dom.kindEl.textContent = "";
-          dom.nameEl.textContent = "";
+          dom.kindEl.textContent = '';
+          dom.nameEl.textContent = '';
           dom.summaryEl.innerHTML =
             "<div class='detail-row'><span class='detail-key'>selection</span><span class='detail-value'>UUID not found in structIndex</span></div>";
-          dom.jsonEl.textContent = "";
+          dom.jsonEl.textContent = '';
         }
       }
     }
@@ -286,13 +287,15 @@ export function attachDetailView(container, hub) {
 
   rafId = requestAnimationFrame(loop);
 
-  console.log("[detailView] attached");
+  console.log('[detailView] attached');
 
   function detach() {
     if (disposed) return;
     disposed = true;
     if (rafId) {
-      try { cancelAnimationFrame(rafId); } catch (_e) {}
+      try {
+        cancelAnimationFrame(rafId);
+      } catch (_e) {}
       rafId = 0;
     }
   }

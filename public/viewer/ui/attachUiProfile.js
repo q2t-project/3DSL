@@ -1,29 +1,38 @@
-// ui/attachUiProfile.js
-import { PointerInput } from "./pointerInput.js";
-import { KeyboardInput } from "./keyboardInput.js";
-import { attachGizmo } from "./gizmo.js";
-import { createPicker } from "./picker.js";
-import { createTimeline } from "./timeline.js";
-import { assertDomContract, validateDomContract, getRoleEl } from "./domContract.js";
+// viewer/ui/attachUiProfile.js
+import { PointerInput } from './pointerInput.js';
+import { KeyboardInput } from './keyboardInput.js';
+import { attachGizmo } from './gizmo.js';
+import { createPicker } from './picker.js';
+import { createTimeline } from './timeline.js';
+import { assertDomContract, validateDomContract, getRoleEl } from './domContract.js';
+
+const DEV =
+  typeof import.meta !== 'undefined' &&
+  import.meta.env &&
+  !!import.meta.env.DEV;
 
 const _handles = new WeakMap();
 
-const NEED_KEYBOARD = (p) => p === "devHarness_full" || p === "prod_full";
-const NEED_PICKER   = (p) => p === "devHarness_full" || p === "prod_full";
-const NEED_TIMELINE = (p) => p === "devHarness_full" || p === "prod_full";
-const NEED_GIZMO    = (_p) => true; // 最小/フル問わず表示したいなら true 固定でOK
-const NEED_CONTROLS = (p) => p === "devHarness_full" || p === "prod_full";
+const NEED_KEYBOARD = (p) => p === 'devHarness_full' || p === 'prod_full';
+const NEED_PICKER = (p) => p === 'devHarness_full' || p === 'prod_full';
+const NEED_TIMELINE = (p) => p === 'devHarness_full' || p === 'prod_full';
+const NEED_GIZMO = (_p) => true; // 最小/フル問わず表示したいなら true 固定でOK
+const NEED_CONTROLS = (p) => p === 'devHarness_full' || p === 'prod_full';
 
-function coreOf(hub) { return hub && hub.core ? hub.core : null; }
+function coreOf(hub) {
+  return hub && hub.core ? hub.core : null;
+}
 
 export function attachUiProfile(hub, opts) {
-  if (!hub) throw new Error("[ui] attachUiProfile: hub required");
-  if (!opts || typeof opts !== "object") throw new Error("[ui] attachUiProfile: opts required");
+  if (!hub) throw new Error('[ui] attachUiProfile: hub required');
+  if (!opts || typeof opts !== 'object') throw new Error('[ui] attachUiProfile: opts required');
 
   const existing = _handles.get(hub);
   if (existing && !opts.force) return existing;
   if (existing && opts.force) {
-    try { existing.detach(); } catch (_e) {}
+    try {
+      existing.detach();
+    } catch (_e) {}
     _handles.delete(hub);
   }
 
@@ -37,11 +46,14 @@ export function attachUiProfile(hub, opts) {
     log: logOpt = null,
   } = opts;
 
+  // devビルド以外では debug を殺す（事故防止）
+  const DEBUG = DEV && !!debug;
+
   // 必須 opts を先に確定（contract 以前）
-  if (!profile) throw new Error("[ui] attachUiProfile: profile required");
-  if (!canvas) throw new Error("[ui] attachUiProfile: canvas required");
-  if (!win) throw new Error("[ui] attachUiProfile: win required");
-  if (!doc) throw new Error("[ui] attachUiProfile: doc required");
+  if (!profile) throw new Error('[ui] attachUiProfile: profile required');
+  if (!canvas) throw new Error('[ui] attachUiProfile: canvas required');
+  if (!win) throw new Error('[ui] attachUiProfile: win required');
+  if (!doc) throw new Error('[ui] attachUiProfile: doc required');
 
   // role getter（data-role優先 / id fallback）
   const el = (roleName) => getRoleEl(roleName, doc);
@@ -49,26 +61,27 @@ export function attachUiProfile(hub, opts) {
   // ------------------------------------------------------------
   // DOM contract（profile 別の必須DOMをここで確定）
   // - prod_full は「フレーム＋フィルタ必須」で固定
-  // - 欠けてたら起動を落とす（中途半端に動かさん）
+  // - 不足している場合は起動を停止する（不完全な状態で動作させない）
   // ------------------------------------------------------------
   const report = validateDomContract(profile, doc);
-  if (!report.ok) console.warn("[ui][contract]", report);
+  if (!report.ok) console.warn('[ui][contract]', report);
   assertDomContract(profile, doc); // strict profile は missing required で即死
 
-  console.log("[ui] attachUiProfile profile =", profile);
+  if (DEBUG) console.log('[ui] attachUiProfile profile =', profile);
 
   const cleanup = [];
-  const add = (fn) => { if (typeof fn === "function") cleanup.push(fn); };
+  const add = (fn) => {
+    if (typeof fn === 'function') cleanup.push(fn);
+  };
 
   const on = (el, type, fn, opt) => {
     if (!el?.addEventListener) return;
     el.addEventListener(type, fn, opt);
-    add(() => { try { el.removeEventListener(type, fn, opt); } catch (_e) {} });
-  };
-
-  const onAll = (nodeList, type, fn, opt) => {
-    if (!nodeList) return;
-    Array.from(nodeList).forEach((el) => on(el, type, fn, opt));
+    add(() => {
+      try {
+        el.removeEventListener(type, fn, opt);
+      } catch (_e) {}
+    });
   };
 
   const rafLoop = (fn) => {
@@ -80,17 +93,32 @@ export function attachUiProfile(hub, opts) {
       id = win.requestAnimationFrame(step);
     };
     id = win.requestAnimationFrame(step);
-    add(() => { alive = false; try { win.cancelAnimationFrame(id); } catch (_e) {} });
+    add(() => {
+      alive = false;
+      try {
+        win.cancelAnimationFrame(id);
+      } catch (_e) {}
+    });
   };
 
-  const log = (...a) => { try { logOpt?.(...a); } catch (_e) {} };
+  const log = (...a) => {
+    try {
+      logOpt?.(...a);
+    } catch (_e) {}
+  };
 
   const toast = (text, o) => {
-    if (toastOpt) { try { toastOpt(text, o); } catch (_e) {} return; }
-    // fallback（dev harness だけ想定）
-    const hudEl = el("hudToast");
+    if (toastOpt) {
+      try {
+        toastOpt(text, o);
+      } catch (_e) {}
+      return;
+    }
+    // fallback（devHarness だけ許可。prodで HUD を破壊しない）
+    if (!DEBUG && profile !== 'devHarness_full') return;
+    const hudEl = el('hudToast');
     if (!hudEl) return;
-    hudEl.textContent = String(text ?? "");
+    hudEl.textContent = String(text ?? '');
   };
 
   let detached = false;
@@ -100,7 +128,7 @@ export function attachUiProfile(hub, opts) {
     keyboardInput: null,
     picker: null,
     timeline: null,
-    gizmoHandle: null, // ※互換フィールドとして残しても、参照は入れない（唯一所有者は wrapper）
+    gizmoWrapper: null, // ★ wrapperのみ保持（所有者はDOM側）
     detach,
     dispose: detach,
   };
@@ -110,19 +138,29 @@ export function attachUiProfile(hub, opts) {
   // -----------------------------
   {
     handle.pointerInput = new PointerInput(canvas, hub);
-    handle.pointerInput.attach?.();
-    add(() => { try { handle.pointerInput?.dispose?.(); } catch (_e) {} });
+    add(() => {
+      try {
+        handle.pointerInput?.dispose?.();
+      } catch (_e) {}
+    });
 
     if (NEED_KEYBOARD(profile)) {
       handle.keyboardInput = new KeyboardInput(win, hub);
-      handle.keyboardInput.attach?.();
-      add(() => { try { handle.keyboardInput?.dispose?.(); } catch (_e) {} });
+      add(() => {
+        try {
+          handle.keyboardInput?.dispose?.();
+        } catch (_e) {}
+      });
     }
 
     if (NEED_PICKER(profile)) {
-      handle.picker = createPicker(hub, { debug });
+      handle.picker = createPicker(hub, { debug: DEBUG });
       handle.picker.attach(canvas);
-      add(() => { try { handle.picker?.detach?.(); } catch (_e) {} });
+      add(() => {
+        try {
+          handle.picker?.detach?.();
+        } catch (_e) {}
+      });
     }
   }
 
@@ -131,14 +169,25 @@ export function attachUiProfile(hub, opts) {
   // -----------------------------
   if (NEED_GIZMO(profile)) {
     // contract の gizmoSlot を差し込み先にする
-    const gw = el("gizmoSlot");
+    const gw = el('gizmoSlot');
     if (!gw) {
-      console.warn("[ui] gizmoSlot not found");
+      console.warn('[ui] gizmoSlot not found');
     } else {
-      const gh = attachGizmo(gw, hub, { doc, win, el, debug, log });
-      if (!gh && debug) log("[ui] attachGizmo: returned null/undefined");
-      // attachGizmo が wrapper.__gizmoHandle を管理してる前提で、ここでは二重管理しない
-      add(() => { try { gh?.dispose?.(); } catch (_e) {} });
+      handle.gizmoWrapper = gw;
+
+      const gh = attachGizmo(gw, hub, { doc, win, el, debug: DEBUG, log });
+      if (!gh && DEBUG) log('[ui] attachGizmo: returned null/undefined');
+
+      // ★ cleanup は wrapper 経由が正規ルート（要件(2)）
+      add(() => {
+        try {
+          const h = gw.__gizmoHandle;
+          if (h?.detach) h.detach();
+          else if (h?.dispose) h.dispose();
+          else if (gh?.detach) gh.detach();
+          else gh?.dispose?.();
+        } catch (_e) {}
+      });
     }
   }
 
@@ -146,93 +195,106 @@ export function attachUiProfile(hub, opts) {
   // timeline
   // -----------------------------
   if (NEED_TIMELINE(profile)) {
-    handle.timeline = createTimeline(hub, { debug, toast: (text, o) => toast(text, o) });
+    handle.timeline = createTimeline(hub, { debug: DEBUG, toast: (text, o) => toast(text, o) });
     handle.timeline.attach({ doc, win, el });
-    add(() => { try { handle.timeline?.detach?.(); } catch (_e) {} });
+    add(() => {
+      try {
+        handle.timeline?.detach?.();
+      } catch (_e) {}
+    });
   }
 
   // -----------------------------
   // full controls（ここで全部 bind）
   // -----------------------------
   if (NEED_CONTROLS(profile)) {
-    const core = coreOf(hub);
     // UI は hub の公開 API を優先（core 直叩きは最後の保険）
     const vs = hub?.viewerSettings || null;
-    const vsCore = core?.viewerSettingsController || null;
-    const filtersApi = hub?.filters || core?.filters || null;
- 
+    const filtersApi = hub?.filters || hub?.core?.filters || null;
+
     // filter
     if (filtersApi) {
       const f = filtersApi;
-      const btnLines  = el("filterLines");
-      const btnPoints = el("filterPoints");
-      const btnAux    = el("filterAux");
+      const btnLines = el('filterLines');
+      const btnPoints = el('filterPoints');
+      const btnAux = el('filterAux');
 
       const setBtn = (btn, enabled) => {
         if (!btn) return;
-        btn.classList.toggle("filter-on",  !!enabled);
-        btn.classList.toggle("filter-off", !enabled);
+        btn.classList.toggle('filter-on', !!enabled);
+        btn.classList.toggle('filter-off', !enabled);
+      };
+
+      const isEnabled = (s, kind) => {
+        const t = s?.types && typeof s.types === 'object' ? s.types : null;
+        const v = (t && kind in t) ? t[kind] : s?.[kind];
+        return v !== false;
       };
 
       const sync = () => {
         const s = f.get?.() || {};
-        setBtn(btnLines,  s.lines  !== false);
-        setBtn(btnPoints, s.points !== false);
-        setBtn(btnAux,    s.aux    !== false);
+        setBtn(btnLines, isEnabled(s, 'lines'));
+        setBtn(btnPoints, isEnabled(s, 'points'));
+        setBtn(btnAux, isEnabled(s, 'aux'));
       };
 
       const toggle = (type, btn) => {
         if (!btn) return;
-        const next = btn.classList.contains("filter-off");
+        const s = f.get?.() || {};
+        const next = !isEnabled(s, type);
         f.setTypeEnabled?.(type, next);
         sync();
       };
 
-      on(btnLines,  "click", () => toggle("lines",  btnLines));
-      on(btnPoints, "click", () => toggle("points", btnPoints));
-      on(btnAux,    "click", () => toggle("aux",    btnAux));
+      on(btnLines, 'click', () => toggle('lines', btnLines));
+      on(btnPoints, 'click', () => toggle('points', btnPoints));
+      on(btnAux, 'click', () => toggle('aux', btnAux));
       sync();
     }
 
     // viewerSettings: lineWidthMode / microProfile
     // 公開側(hub.viewerSettings)にあればそれを使う。無ければ core 側にフォールバック。
     {
-      const elLineMode = el("vsLineWidthMode");
-      const elMicro = el("vsMicroProfile");
-      const vsLine = (vs && typeof vs.setLineWidthMode === "function") ? vs : vsCore;
-      const vsMicro = (vs && typeof vs.setMicroFXProfile === "function") ? vs : vsCore;
+      const elLineMode = el('vsLineWidthMode');
+      const elMicro = el('vsMicroProfile');
+      const vsLine = vs && typeof vs.setLineWidthMode === 'function' ? vs : null;
+      const vsMicro = vs && typeof vs.setMicroFXProfile === 'function' ? vs : null;
 
-      if (elLineMode && vsLine && typeof vsLine.setLineWidthMode === "function") {
+      if (elLineMode && vsLine && typeof vsLine.setLineWidthMode === 'function') {
         try {
           const v = vsLine.getLineWidthMode?.();
-          if (typeof v === "string" && v) elLineMode.value = v;
+          if (typeof v === 'string' && v) elLineMode.value = v;
         } catch (_e) {}
 
         const unsub = vsLine.onLineWidthModeChanged?.((m) => {
-          try { elLineMode.value = m; } catch (_e) {}
+          try {
+            elLineMode.value = m;
+          } catch (_e) {}
         });
-        if (typeof unsub === "function") add(unsub);
+        if (typeof unsub === 'function') add(unsub);
 
-        on(elLineMode, "change", () => {
+        on(elLineMode, 'change', () => {
           vsLine.setLineWidthMode(elLineMode.value);
-         toast(`Line width: ${elLineMode.value}`, { duration: 700, level: "info" });
+          toast(`Line width: ${elLineMode.value}`, { duration: 700, level: 'info' });
         });
       }
 
-      if (elMicro && vsMicro && typeof vsMicro.setMicroFXProfile === "function") {
+      if (elMicro && vsMicro && typeof vsMicro.setMicroFXProfile === 'function') {
         try {
           const v = vsMicro.getMicroFXProfile?.();
-          if (typeof v === "string" && v) elMicro.value = v;
+          if (typeof v === 'string' && v) elMicro.value = v;
         } catch (_e) {}
 
         const unsub = vsMicro.onMicroFXProfileChanged?.((p) => {
-          try { elMicro.value = p; } catch (_e) {}
+          try {
+            elMicro.value = p;
+          } catch (_e) {}
         });
-        if (typeof unsub === "function") add(unsub);
+        if (typeof unsub === 'function') add(unsub);
 
-        on(elMicro, "change", () => {
+        on(elMicro, 'change', () => {
           vsMicro.setMicroFXProfile(elMicro.value);
-          toast(`micro FX: ${elMicro.value}`, { duration: 700, level: "info" });
+          toast(`micro FX: ${elMicro.value}`, { duration: 700, level: 'info' });
         });
       }
     }
@@ -240,33 +302,33 @@ export function attachUiProfile(hub, opts) {
     // ------------------------------------------------------------
     // meta panels / document caption（read-only）
     // - devHarness_full は meta* 必須（contract で保証）
-    // - prod_full は optional（あれば更新、無ければ何もせん）
+    // - prod_full は optional（あれば更新、無ければ何もしない）
     // ------------------------------------------------------------
     {
-      const elMetaFile = el("metaFile");
-      const elMetaModel = el("metaModel");
-      const elMetaModelLog = el("metaModelLog"); // 原則触らん（衝突回避）
+      const elMetaFile = el('metaFile');
+      const elMetaModel = el('metaModel');
+      const elMetaModelLog = el('metaModelLog'); // 原則触らん（衝突回避）
 
-      const elCapTitle = el("docCaptionTitle");
-      const elCapBody  = el("docCaptionBody");
+      const elCapTitle = el('docCaptionTitle');
+      const elCapBody = el('docCaptionBody');
 
       // meta-file の本文用コンテナ（h3残すために内側だけ更新）
       const ensureBodySlot = (root, key) => {
         if (!root) return null;
         let slot = root.querySelector(`[data-role="${key}"]`);
         if (!slot) {
-          slot = doc.createElement("div");
+          slot = doc.createElement('div');
           slot.dataset.role = key;
           // h3 があればその後ろに差す
-          const h3 = root.querySelector("h3");
+          const h3 = root.querySelector('h3');
           if (h3 && h3.parentNode === root) root.insertBefore(slot, h3.nextSibling);
           else root.appendChild(slot);
         }
         return slot;
       };
 
-      const fileBody  = ensureBodySlot(elMetaFile, "meta-file-body");
-      const modelBody = ensureBodySlot(elMetaModel, "meta-model-body");
+      const fileBody = ensureBodySlot(elMetaFile, 'meta-file-body');
+      const modelBody = ensureBodySlot(elMetaModel, 'meta-model-body');
 
       let lastCapKey = null;
       let lastFileKey = null;
@@ -279,13 +341,13 @@ export function attachUiProfile(hub, opts) {
         // ---- caption ----
         {
           const cap = c.documentCaption || c.sceneMeta || null;
-          const t = String(cap?.title ?? "");
-          const b = String(cap?.body ?? cap?.summary ?? "");
+          const t = String(cap?.title ?? '');
+          const b = String(cap?.body ?? cap?.summary ?? '');
           const key = `${t}\n${b}`;
           if (key !== lastCapKey) {
             lastCapKey = key;
             if (elCapTitle) elCapTitle.textContent = t;
-            if (elCapBody)  elCapBody.textContent = b;
+            if (elCapBody) elCapBody.textContent = b;
           }
         }
 
@@ -300,20 +362,20 @@ export function attachUiProfile(hub, opts) {
 
         // ---- file panel ----
         if (fileBody) {
-          const modelUrl = String(req.modelUrl ?? req.model ?? eff.modelUrl ?? "");
-          const schema   = String(eff.schemaUri ?? eff.schema ?? "");
+          const modelUrl = String(req.modelUrl ?? req.model ?? eff.modelUrl ?? '');
+          const schema = String(eff.schemaUri ?? eff.schema ?? '');
           const key = `${modelUrl}|${schema}`;
           if (key !== lastFileKey) {
             lastFileKey = key;
 
-            fileBody.innerHTML = "";
-            const a = doc.createElement("div");
-            a.className = "text-xs text-neutral-300";
-            a.textContent = modelUrl ? `model: ${modelUrl}` : "(no file yet)";
+            fileBody.innerHTML = '';
+            const a = doc.createElement('div');
+            a.className = 'text-xs text-neutral-300';
+            a.textContent = modelUrl ? `model: ${modelUrl}` : '(no file yet)';
 
-            const b = doc.createElement("div");
-            b.className = "text-xs text-neutral-400 mt-1";
-            b.textContent = schema ? `schema: ${schema}` : "";
+            const b = doc.createElement('div');
+            b.className = 'text-xs text-neutral-400 mt-1';
+            b.textContent = schema ? `schema: ${schema}` : '';
 
             fileBody.appendChild(a);
             if (schema) fileBody.appendChild(b);
@@ -322,36 +384,41 @@ export function attachUiProfile(hub, opts) {
 
         // ---- model panel summary（logとは別枠） ----
         if (modelBody) {
-          const effMode = String(eff.mode ?? "");
-          const reqMode = String(req.mode ?? "");
-          const blocked = String(micro.blockedBy ?? "");
+          const effMode = String(eff.mode ?? '');
+          const reqMode = String(req.mode ?? '');
+          const blocked = String(micro.blockedBy ?? '');
           const fcur = frame.current ?? frame.frame_id ?? frame.id ?? null;
           const fmin = frame.min ?? frame.range?.min ?? null;
           const fmax = frame.max ?? frame.range?.max ?? null;
 
           const key =
-            `${effMode}|${reqMode}|${blocked}|${micro.focusUuid ?? ""}|${micro.focusKind ?? ""}|` +
-            `${fcur}|${fmin}|${fmax}|${vis.lines ?? ""}|${vis.points ?? ""}|${vis.aux ?? ""}`;
+            `${effMode}|${reqMode}|${blocked}|${micro.focusUuid ?? ''}|${micro.focusKind ?? ''}|` +
+            `${fcur}|${fmin}|${fmax}|${vis.lines ?? ''}|${vis.points ?? ''}|${vis.aux ?? ''}`;
 
           if (key !== lastModelKey) {
             lastModelKey = key;
 
             const lines = [];
-            if (effMode) lines.push(`mode: ${effMode}${reqMode && reqMode !== effMode ? ` (req ${reqMode})` : ""}`);
-            if (blocked && effMode !== "micro") lines.push(`micro blockedBy: ${blocked}`);
-            if (micro.focusUuid) lines.push(`focus: ${micro.focusKind ?? "?"} ${micro.focusUuid}`);
+            if (effMode)
+              lines.push(
+                `mode: ${effMode}${reqMode && reqMode !== effMode ? ` (req ${reqMode})` : ''}`
+              );
+            if (blocked && effMode !== 'micro') lines.push(`micro blockedBy: ${blocked}`);
+            if (micro.focusUuid) lines.push(`focus: ${micro.focusKind ?? '?'} ${micro.focusUuid}`);
             if (fcur != null) {
-              const r = (fmin != null && fmax != null) ? ` [${fmin}, ${fmax}]` : "";
+              const r = fmin != null && fmax != null ? ` [${fmin}, ${fmax}]` : '';
               lines.push(`frame: ${fcur}${r}`);
             }
             if (vis && (vis.lines != null || vis.points != null || vis.aux != null)) {
-              lines.push(`visible: lines=${vis.lines ?? "?"} points=${vis.points ?? "?"} aux=${vis.aux ?? "?"}`);
+              lines.push(
+                `visible: lines=${vis.lines ?? '?'} points=${vis.points ?? '?'} aux=${vis.aux ?? '?'}`
+              );
             }
 
-            modelBody.innerHTML = "";
-            const pre = doc.createElement("div");
-            pre.className = "text-xs text-neutral-300 whitespace-pre-wrap";
-            pre.textContent = lines.join("\n") || "";
+            modelBody.innerHTML = '';
+            const pre = doc.createElement('div');
+            pre.className = 'text-xs text-neutral-300 whitespace-pre-wrap';
+            pre.textContent = lines.join('\n') || '';
             modelBody.appendChild(pre);
 
             // prod 側でログ枠をここに使いたいなら、UIが触ってもええが
@@ -363,25 +430,32 @@ export function attachUiProfile(hub, opts) {
     }
 
     // world axes toggle（公開API固定）
-    if (vs && typeof vs.toggleWorldAxes === "function") {
-      const btn = el("worldAxesToggle");
+    if (vs && typeof vs.toggleWorldAxes === 'function') {
+      const btn = el('worldAxesToggle');
       if (btn) {
         const update = (v) => {
           const onv = !!v;
-          btn.dataset.visible = onv ? "true" : "false";
-          btn.setAttribute("aria-pressed", onv ? "true" : "false");
+          btn.dataset.visible = onv ? 'true' : 'false';
+          btn.setAttribute('aria-pressed', onv ? 'true' : 'false');
         };
 
-        try { update(!!vs.getWorldAxesVisible?.()); } catch (_e) {}
+        try {
+          update(!!vs.getWorldAxesVisible?.());
+        } catch (_e) {}
 
         const unsub = vs.onWorldAxesChanged?.((v) => update(v));
-        if (typeof unsub === "function") add(unsub);
+        if (typeof unsub === 'function') add(unsub);
 
-        on(btn, "click", (ev) => {
+        on(btn, 'click', (ev) => {
           ev.preventDefault?.();
           vs.toggleWorldAxes();
-          if (typeof vs.onWorldAxesChanged !== "function" && typeof vs.getWorldAxesVisible === "function") {
-            try { update(!!vs.getWorldAxesVisible()); } catch (_e) {}
+          if (
+            typeof vs.onWorldAxesChanged !== 'function' &&
+            typeof vs.getWorldAxesVisible === 'function'
+          ) {
+            try {
+              update(!!vs.getWorldAxesVisible());
+            } catch (_e) {}
           }
         });
       }
@@ -392,10 +466,12 @@ export function attachUiProfile(hub, opts) {
   return handle;
 
   function detach() {
-    if (detached) return;      // ★ idempotent
+    if (detached) return; // ★ idempotent
     detached = true;
     for (let i = cleanup.length - 1; i >= 0; i--) {
-      try { cleanup[i](); } catch (_e) {}
+      try {
+        cleanup[i]();
+      } catch (_e) {}
     }
     cleanup.length = 0;
 
@@ -403,14 +479,14 @@ export function attachUiProfile(hub, opts) {
     handle.keyboardInput = null;
     handle.picker = null;
     handle.timeline = null;
-    handle.gizmoHandle = null;
+    handle.gizmoWrapper = null;
 
     _handles.delete(hub);
   }
 }
 
-// attachUiProfile.js の末尾とか（dev only）
-if (typeof window !== "undefined") {
+// dev only
+if (DEV && typeof window !== 'undefined') {
   window.__dom = window.__dom || {};
   window.__dom.validateDomContract = validateDomContract;
   window.__dom.assertDomContract = assertDomContract;

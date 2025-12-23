@@ -1,4 +1,4 @@
-// public/viewer/ui/handleUtils.js
+// viewer/ui/handleUtils.js
 
 /**
  * detach 優先、無ければ dispose（例外は握りつぶす）
@@ -6,10 +6,9 @@
  */
 export function detachOrDispose(h) {
   if (!h) return;
-  try {
-    if (typeof h.detach === "function") return h.detach();
-    if (typeof h.dispose === "function") return h.dispose();
-  } catch (_e) {}
+  if (typeof h === 'function') { h(); return; }
+  if (typeof h.detach === 'function') { h.detach(); return; }
+  if (typeof h.dispose === 'function') { h.dispose(); return; }
 }
 
 /**
@@ -19,14 +18,21 @@ export function detachOrDispose(h) {
  * @returns {any} prev
  */
 export function teardownPrevHandle(owner, key) {
-  if (!owner) return null;
+  if (!owner || !key) return null;
+
   const prev = owner[key];
   if (!prev) return null;
 
-  detachOrDispose(prev);
+  try {
+    detachOrDispose(prev);
+  } catch (_e) {
+    // ここで死ぬのだけは避ける（次の attach を進める）
+    try { console.warn('[handleUtils] detachOrDispose failed', _e); } catch {}
+  }
 
-  // ★ 参照一致だけでOK（別 handle が入ってたら触らん）
-  if (owner[key] === prev) owner[key] = null;
-
+  if (owner[key] === prev) {
+    try { owner[key] = null; } catch (_e) {}
+  }
   return prev;
 }
+
