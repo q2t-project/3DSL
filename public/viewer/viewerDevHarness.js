@@ -3,6 +3,7 @@
 import { bootstrapViewerFromUrl } from "./runtime/bootstrapViewer.js";
 import { attachDetailView } from "./ui/detailView.js";
 import { attachUiProfile } from "./ui/attachUiProfile.js";
+import { startHub } from "./ui/hubOps.js";
 import { teardownPrev, setOwnedHandle } from "./ui/ownedHandle.js";
 
 
@@ -216,10 +217,6 @@ function formatModelLogLine(rawLine) {
   };
 }
 
-function getCore(hub = viewerHub) {
-  return hub && hub.core ? hub.core : null;
-}
-
 // ------------------------------------------------------------
 // Pointer / Keyboard 入力
 // ------------------------------------------------------------
@@ -365,7 +362,7 @@ async function boot() {
     }));
     // UI が無くても hub は公開する（runner が回せる）
     exposeDevGlobals(owned.hub, null);
-    owned.hub.start?.();
+    startHub(owned.hub);
   } catch (err) {
   console.error("[viewer-dev] boot failed:", err);
     const { kind, message } = classifyBootstrapError(err);

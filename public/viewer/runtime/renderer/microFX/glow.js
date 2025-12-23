@@ -1,15 +1,34 @@
 // viewer/runtime/renderer/microFX/glow.js
+//
+// micro-glow:
+// - focusPosition をアンカーにした「光球」オーバーレイ。
+// - 見た目サイズは screen px 基準（ズームしても一定）
+//   → camera.fov + viewportHeight から world 長へ変換して scale を決める。
+//
+// 依存:
+// - microFXConfig.glow.{screenPx, opacity, color, minWorld, maxWorld}
+// - utils.worldSizeFromScreenPx / sanitizePosition / normalizeIntensity / clamp01
+
 import * as THREE from "../../../../vendor/three/build/three.module.js";
 import { microFXConfig } from "./config.js";
+import { createHtmlCanvas, getViewportHeightPxFallback } from "../env.js";
+import {
+  clamp01,
+  normalizeIntensity,
+  sanitizePosition,
+  worldSizeFromScreenPx,
+} from "./utils.js";
 
 let glow = null;
 let glowTexture = null;
 
+// 中心が最も明るく、外へ行くほど透明になるテクスチャ
 function getGlowTexture() {
   if (glowTexture) return glowTexture;
 
   const size = 256;
-  const canvas = document.createElement("canvas");
+  const canvas = createHtmlCanvas();
+  if (!canvas) return null;
   canvas.width = size;
   canvas.height = size;
 
@@ -20,133 +39,131 @@ function getGlowTexture() {
   const cy = size / 2;
   const r = size / 2;
 
-  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-  grad.addColorStop(0.0, "rgba(255,255,255,1.0)");
-  grad.addColorStop(0.4, "rgba(255,255,255,0.7)");
-  grad.addColorStop(1.0, "rgba(255,255,255,0.0)");
+  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+  g.addColorStop(0.0, "rgba(255,255,255,1.0)");
+  g.addColorStop(0.20, "rgba(255,255,255,0.75)");
+  g.addColorStop(0.45, "rgba(255,255,255,0.28)");
+  g.addColorStop(1.0, "rgba(255,255,255,0.0)");
 
-  ctx.fillStyle = grad;
+  ctx.fillStyle = g;
   ctx.fillRect(0, 0, size, size);
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.minFilter = THREE.LinearFilter;
   tex.magFilter = THREE.LinearFilter;
-  tex.wrapS = THREE.ClampToEdgeWrapping;
-  tex.wrapT = THREE.ClampToEdgeWrapping;
+  tex.needsUpdate = true;
 
   glowTexture = tex;
   return glowTexture;
 }
 
-const MAX_COORD = 1e4;
-function clamp(v, min, max) {
-  return Math.min(Math.max(v, min), max);
-}
-
-function sanitizePosition(position) {
-  if (!Array.isArray(position) || position.length < 3) return null;
-  const raw = position.map((v) => Number(v));
-  if (!raw.every((v) => Number.isFinite(v))) return null;
-  return raw.map((v) => clamp(v, -MAX_COORD, MAX_COORD));
-}
-
-// px -> world（この式が“画面一定”の本体）
-function worldSizeForPixels(camera, dist, px, viewportH) {
-  const h = Math.max(1, Number(viewportH) || 0);
-  const p = Math.max(0, Number(px) || 0);
-
-  if (camera?.isPerspectiveCamera) {
-    const fov = THREE.MathUtils.degToRad(camera.fov || 50);
-    const worldH = 2 * dist * Math.tan(fov / 2);
-    return worldH * (p / h);
+function getViewportHeightPx(renderer) {
+  if (renderer && typeof renderer.getSize === "function") {
+    const v = new THREE.Vector2();
+    renderer.getSize(v);
+    if (Number.isFinite(v.y) && v.y > 0) return v.y;
   }
-
-  if (camera?.isOrthographicCamera) {
-    const worldH = (camera.top - camera.bottom) / (camera.zoom || 1);
-    return worldH * (p / h);
-  }
-
-  return 0;
+  const el = renderer?.domElement;
+  const h = el && Number.isFinite(el.clientHeight) ? el.clientHeight : 0;
+  if (h > 0) return h;
+  // 最後の保険（microFX は renderer 持ってるはずやけど）
+  return getViewportHeightPxFallback();
 }
 
 export function ensureGlow(scene) {
-  if (glow && glow.parent !== scene) {
-    glow.parent?.remove(glow);
+  if (glow && glow.parent && glow.parent !== scene) {
+    glow.parent.remove(glow);
     glow = null;
   }
 
   if (!glow) {
     const tex = getGlowTexture();
-    if (!tex) return null;
+    const cfg = microFXConfig.glow || {};
+    const color = cfg.color || "#66ccff";
 
-    const material = new THREE.SpriteMaterial({
+    const mat = new THREE.SpriteMaterial({
       map: tex,
-      color: new THREE.Color("#00ffff"),
+      color,
       transparent: true,
-      opacity: 1.0,
+      opacity: 1,
       blending: THREE.AdditiveBlending,
-      // ここは true のままでOK（px→world で“見かけ一定”にする）
-      sizeAttenuation: true,
-      depthWrite: false,
       depthTest: false,
+      depthWrite: false,
     });
 
-    glow = new THREE.Sprite(material);
-    glow.renderOrder = 9999;
+    glow = new THREE.Sprite(mat);
+    glow.name = "micro-glow";
+    glow.renderOrder = 997; // bounds(10-12) や axes(996) より前面
+    glow.visible = false;
+
+    // 後で update で上書きするけど初期値
+    glow.scale.set(1, 1, 1);
   }
 
-  if (glow.parent !== scene) scene.add(glow);
+  if (glow.parent !== scene) {
+    scene.add(glow);
+  }
   return glow;
 }
 
-export function updateGlow(target, position, camera, intensity = 1, viewportH = window.innerHeight) {
-  if (!target || !camera) return;
+// position: microState.focusPosition（world, unitless）
+// camera/renderer: screen px → world 長変換に必要
+export function updateGlow(target, position, camera, renderer, intensity = 1) {
+  if (!target) return;
 
-  const cfg = microFXConfig?.glow || {}; // ★これが無いと screenPx 効かん/落ちる
+  const p = sanitizePosition(position, null);
+  const s = normalizeIntensity(intensity, 1);
 
-  let s = Number.isFinite(intensity) ? intensity : 1;
-  s = clamp(s, 0, 1);
-  if (s <= 0) { target.visible = false; return; }
+  if (!p || !camera || s <= 0) {
+    target.visible = false;
+    return;
+  }
 
-  const p = sanitizePosition(position);
-  if (!p) { target.visible = false; return; }
-
-  target.visible = true;
   target.position.set(p[0], p[1], p[2]);
 
-  // dist はアンカー位置基準
-  let dist = camera.position.distanceTo(target.position) || 1.0;
+  const cfg = microFXConfig.glow || {};
 
-  // オフセット（点→カメラ方向に“画面px相当”だけ前に出す）
-  const offsetPx = Number.isFinite(cfg.offsetPx) ? cfg.offsetPx : 12;
-  const toCameraDir = new THREE.Vector3().subVectors(camera.position, target.position).normalize();
-  const offsetWorld = worldSizeForPixels(camera, dist, offsetPx, viewportH);
-  if (offsetWorld > 0) target.position.addScaledVector(toCameraDir, offsetWorld);
-
-  // dist はオフセット後で更新
-  dist = camera.position.distanceTo(target.position) || 1.0;
-
-  // スケール（画面px固定）
+  // 見た目サイズ（px）基準：直径扱い
   const screenPx = Number.isFinite(cfg.screenPx) ? cfg.screenPx : 64;
-  let scaleWorld = worldSizeForPixels(camera, dist, screenPx, viewportH);
 
-  // 任意の安全柵（欲しいなら config で指定）
-  if (Number.isFinite(cfg.minWorldScale)) scaleWorld = Math.max(scaleWorld, cfg.minWorldScale);
-  if (Number.isFinite(cfg.maxWorldScale)) scaleWorld = Math.min(scaleWorld, cfg.maxWorldScale);
+  const viewH = getViewportHeightPx(renderer);
+  const dist = camera.position.distanceTo(target.position) || 1;
 
-  target.scale.setScalar(scaleWorld);
+  // px → world 長（直径）
+  let worldSize = worldSizeFromScreenPx(camera, viewH, screenPx, dist);
+
+  // 安全弁（指定があれば）
+  const minW = Number.isFinite(cfg.minWorld) ? cfg.minWorld : null;
+  const maxW = Number.isFinite(cfg.maxWorld) ? cfg.maxWorld : null;
+  if (minW != null) worldSize = Math.max(worldSize, minW);
+  if (maxW != null) worldSize = Math.min(worldSize, maxW);
+
+  // intensity でフェードアウト時は少し縮む（視覚的）
+  const shrink = 0.7 + 0.3 * s;
+  worldSize *= shrink;
+
+  target.scale.set(worldSize, worldSize, 1);
 
   const mat = target.material;
   if (mat && "opacity" in mat) {
+    const baseOpacity = Number.isFinite(cfg.opacity) ? cfg.opacity : 0.85;
     mat.transparent = true;
-    mat.opacity = s;
-    mat.needsUpdate = true;
+    mat.opacity = clamp01(baseOpacity * s);
+    mat.depthTest = false;
+    mat.depthWrite = false;
+    mat.blending = THREE.AdditiveBlending;
   }
+
+  target.visible = true;
 }
 
 export function removeGlow(scene) {
-  if (glow) {
-    scene.remove(glow);
-    glow = null;
-  }
+  if (!glow) return;
+
+  glow.parent?.remove(glow);
+
+  // material/texture は共有想定（texture は module singleton）
+  try { glow.material?.dispose?.(); } catch (_e) {}
+
+  glow = null;
 }

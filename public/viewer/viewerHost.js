@@ -2,6 +2,7 @@
 
 import { bootstrapViewerFromUrl } from "./runtime/bootstrapViewer.js";
 import { attachUiProfile } from "./ui/attachUiProfile.js";
+import { resizeHub, startHub } from "./ui/hubOps.js";
 import { teardownPrev, setOwnedHandle } from "./ui/ownedHandle.js";
 
 export async function mountViewerHost(opts) {
@@ -19,6 +20,34 @@ export async function mountViewerHost(opts) {
 
   const owned = { hub: null, ui: null };
   let ro = null;
+  let disposed = false;
+
+  // 1フレームに1回だけ resize を流す（ResizeObserver の連打対策）
+  let rafId = 0;
+  let pendingW = 0;
+  let pendingH = 0;
+  function requestResize(w, h) {
+    pendingW = w;
+    pendingH = h;
+    if (rafId) return;
+    rafId = window.requestAnimationFrame(() => {
+      rafId = 0;
+      const hub = owned.hub;
+      if (!hub) return;
+      if (pendingW > 0 && pendingH > 0) resizeHub(hub, pendingW, pendingH);
+    });
+  }
+
+  function readCanvasClientSize() {
+    // clientWidth/Height が 0 のケースがあるので rect も見る
+    const cw = canvas.clientWidth || 0;
+    const ch = canvas.clientHeight || 0;
+    if (cw > 0 && ch > 0) return { w: cw, h: ch };
+    const r = canvas.getBoundingClientRect?.();
+    const w = r ? Math.floor(r.width) : 0;
+    const h = r ? Math.floor(r.height) : 0;
+    return { w, h };
+  }
 
   try {
     setOwnedHandle(owned, "hub", await bootstrapViewerFromUrl(canvasId, modelUrl, {
@@ -37,21 +66,26 @@ export async function mountViewerHost(opts) {
       timelineRoot: document.getElementById(timelineRootId) || document,
       force: true,
     }));
-    const ui = owned.ui;
+    void owned.ui; // 参照だけ（未使用警告対策）
 
     // ResizeObserver（host の責務）
     ro = new ResizeObserver(() => {
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
-      if (w > 0 && h > 0) hub?.resize?.(w, h);
+      const { w, h } = readCanvasClientSize();
+      if (w > 0 && h > 0) requestResize(w, h);
     });
     ro.observe(canvas);
 
-    hub?.start?.();
+    // 初回は明示的に 1 回サイズ反映してから start（初期 0 サイズ事故を潰す）
+    {
+      const { w, h } = readCanvasClientSize();
+      if (w > 0 && h > 0) resizeHub(hub, w, h);
+    }
+
+    startHub(hub);
 
     return {
       hub,
-      ui,
+      ui: owned.ui,
       dispose() {
         try { ro?.disconnect?.(); } catch (_e) {}
         teardownPrev(owned, "ui");
@@ -59,7 +93,11 @@ export async function mountViewerHost(opts) {
       },
     };
   } catch (e) {
-    try { ro?.disconnect?.(); } catch (_e) {}
+    if (disposed) return;
+        disposed = true;
+        try { if (rafId) window.cancelAnimationFrame(rafId); } catch (_e) {}
+        rafId = 0;
+        try { ro?.disconnect?.(); } catch (_e) {}
     teardownPrev(owned, "ui");
     teardownPrev(owned, "hub");
     throw e;
