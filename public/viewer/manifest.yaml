@@ -116,6 +116,12 @@ ports:
     surface: "hub.viewerSettings.* (worldAxes + viewerSettingsController bridge)"
     stability: "experimental"
 
+  - id: "hub.enqueueCommand"
+    caller: "ui"
+    callee: "hub"
+    surface: "hub.enqueueCommand(cmd:object) -> boolean"
+    stability: "experimental"
+
   # -----------------------------
   # 3) hub -> core (DI boundary)
   # -----------------------------

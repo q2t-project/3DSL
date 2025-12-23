@@ -32,6 +32,7 @@
 |---|---|---|
 | hub.core.facade | hub.core.* (facade: frame/selection/camera/mode/micro/filters/runtime + recomputeVisibleSet) | stable |
 | hub.dispose | hub.dispose() -> void | stable |
+| hub.enqueueCommand | hub.enqueueCommand(cmd:object) -> boolean | experimental |
 | hub.pickObjectAt | hub.pickObjectAt(screenX, screenY, options?) -> {kind, uuid} \| null | stable |
 | hub.resize | hub.resize(width, height, dpr?) -> void | stable |
 | hub.start | hub.start() -> void | stable |
