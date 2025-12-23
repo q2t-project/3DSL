@@ -8,6 +8,7 @@ import {
 } from "./cameraViewDefs.js";
 
 const EPSILON = 1e-4;
+const MIN_FOV = 1;
 const MIN_DISTANCE = 0.01;
 const MAX_DISTANCE = 1000;
 const MAX_COORD = 1e4;
@@ -25,6 +26,19 @@ const MAX_AUTO_ORBIT_SPEED_LEVEL = AUTO_ORBIT_SPEED_TABLE.length - 1;
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
+
+function clampFovDeg(v, fallback = 50) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return fallback;
+  return clamp(n, MIN_FOV, 179);
+}
+
+const VIEW_DEFS_RO = Object.freeze({
+  defs: CAMERA_VIEW_DEFS,
+  aliases: CAMERA_VIEW_ALIASES,
+  presetSequence: CAMERA_VIEW_PRESET_SEQUENCE,
+  presetCount: CAMERA_VIEW_PRESET_COUNT,
+});
 
 function clampAutoOrbitSpeedLevel(level) {
   let n = Number(level);
@@ -158,10 +172,10 @@ export function createCameraEngine(initialState = {}, options = {}) {
     },
 
     // three.js Camera と同様、fov は「度数法」で扱う想定
-    fov:
-      typeof initialState.fov === "number"
-        ? initialState.fov
-        : 50,
+    fov: clampFovDeg(
+      initialState.fov,
+      50
+    ),
   };
 
   // ★ state は initial のコピー。reset で initial に戻す
@@ -174,7 +188,7 @@ export function createCameraEngine(initialState = {}, options = {}) {
       y: initial.target.y,
       z: initial.target.z,
     },
-    fov: initial.fov,
+    fov: clampFovDeg(initial.fov, 50),
   };
 
   // 現在の view preset index（0〜N-1）
@@ -191,6 +205,14 @@ export function createCameraEngine(initialState = {}, options = {}) {
   };
 
   const api = {
+    // --------------------------------------------------------
+    // UI へ公開する view preset 定義（UI が runtime/core を import しないための口）
+    // - 返すオブジェクトは読み取り専用として扱うこと
+    // --------------------------------------------------------
+    getViewDefs() {
+      return VIEW_DEFS_RO;
+    },
+
     /**
      * 軸スナップ:
      *  - "x" / "+x"  : +X 方向から原点を見る
@@ -319,7 +341,7 @@ export function createCameraEngine(initialState = {}, options = {}) {
         state.distance = clamp(distance, MIN_DISTANCE, MAX_DISTANCE);
       }
       if (typeof fov === "number") {
-        state.fov = fov;
+        state.fov = clampFovDeg(fov, state.fov);
       }
 
       return state;
@@ -424,7 +446,11 @@ export function createCameraEngine(initialState = {}, options = {}) {
       currentPresetIndex = null;
       let d = Number(delta);
       if (!Number.isFinite(d)) d = 0;
-      const factor = 1 + d;
+      // factor <= 0 を許すと一気に MIN_DISTANCE に張り付くので下限を持たせる
+      // （d は wheel/pinch 由来で予想外にデカい値が来る可能性がある）
+      let factor = 1 + d;
+      if (!Number.isFinite(factor)) factor = 1;
+      factor = clamp(factor, 0.05, 20);
       state.distance = clamp(
         state.distance * factor,
         MIN_DISTANCE,
@@ -534,7 +560,7 @@ export function createCameraEngine(initialState = {}, options = {}) {
         : state.phi;
 
     const nextFov =
-      typeof fov === "number" ? fov : state.fov;
+      clampFovDeg(fov, state.fov);
 
     // カメラ state 更新
     state.target.x = cx;
@@ -619,8 +645,7 @@ export function createCameraEngine(initialState = {}, options = {}) {
       }
 
       if ("fov" in partial) {
-        const n = Number(partial.fov);
-        if (Number.isFinite(n)) state.fov = n;
+        state.fov = clampFovDeg(partial.fov, state.fov);
       }
 
       return state;
@@ -629,6 +654,10 @@ export function createCameraEngine(initialState = {}, options = {}) {
     getState() {
       return state;
     },
+
+    // 互換：viewerHub の bridge が setFov / setFOV を探す場合に備える
+    setFov(v) { state.fov = clampFovDeg(v, state.fov); return state; },
+    setFOV(v) { return api.setFov(v); },
 
     // ★ reset で initialSnapshot に戻すように変更
     reset() {

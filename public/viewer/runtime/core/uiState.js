@@ -70,6 +70,40 @@ function normalizeMicroProfile(v) {
   return v === "weak" || v === "normal" || v === "strong" ? v : "normal";
 }
 
+function normalizeInputSettings(v) {
+  const src = v && typeof v === "object" ? v : {};
+  const pointerSrc = src.pointer && typeof src.pointer === "object" ? src.pointer : {};
+  const keyboardSrc = src.keyboard && typeof src.keyboard === "object" ? src.keyboard : {};
+
+  const pointer = {
+    // pointer drag threshold (px)
+    minDragPx: Math.max(0, int(pointerSrc.minDragPx, 2)),
+    clickMovePx: Math.max(0, num(pointerSrc.clickMovePx, 2)),
+
+    // orbit sensitivity (unit: per px)
+    rotateSpeed: num(pointerSrc.rotateSpeed, 0.005),
+    rotateSpeedFast: num(pointerSrc.rotateSpeedFast, num(pointerSrc.rotateSpeed, 0.005) * 2),
+
+    // pan sensitivity (unit: per px) + distance factor
+    panSpeed: num(pointerSrc.panSpeed, 0.002),
+    panSpeedFast: num(pointerSrc.panSpeedFast, num(pointerSrc.panSpeed, 0.002) * 2),
+    panFactor: num(pointerSrc.panFactor, 0.02),
+
+    // wheel zoom sensitivity (unit: per deltaY)
+    wheelZoomSpeed: num(pointerSrc.wheelZoomSpeed, 0.001),
+    wheelZoomSpeedFast: num(pointerSrc.wheelZoomSpeedFast, num(pointerSrc.wheelZoomSpeed, 0.001) * 2),
+  };
+
+  const keyboard = {
+    orbitStep: num(keyboardSrc.orbitStep, Math.PI / 90),
+    orbitStepFast: num(keyboardSrc.orbitStepFast, Math.PI / 45),
+    panFactor: num(keyboardSrc.panFactor, 0.02),
+    zoomStep: num(keyboardSrc.zoomStep, 0.1),
+  };
+
+  return { pointer, keyboard };
+}
+
 function normalizeMode(v) {
   return v === "macro" || v === "meso" || v === "micro" ? v : "macro";
 }
@@ -152,6 +186,9 @@ export function createUiState(initial = {}) {
       zoomStep: num(initialCameraSettings.zoomStep, 0.2),
     },
 
+    // 入力設定（UI はここから読む）
+    input: normalizeInputSettings(initialViewerSettings.input),
+
     // エフェクト系（既存の microFX 初期化を 5.2 の fx.micro に寄せる）
     fx: {
       ...initialFx,
@@ -207,7 +244,7 @@ export function createUiState(initial = {}) {
       },
       // A案：viewerSettings.camera.fov が正
       fov: clampFov(viewerSettings.camera?.fov, 50),
-   },
+    },
     view_preset_index: normalizeViewPresetIndex(initial.view_preset_index),
     mode: normalizeMode(initial.mode),
 
@@ -218,13 +255,39 @@ export function createUiState(initial = {}) {
     },
 
     // filters は “types” を正準にして、常に存在させる
-    filters: {
-      types: {
-        points: bool(initial.filters?.types?.points, true),
-        lines:  bool(initial.filters?.types?.lines, true),
-        aux:    bool(initial.filters?.types?.aux, true),
-      },
-    },
+    // - 旧互換: filters.points / filters.lines / filters.aux も受け取り、types へ寄せる
+    // - 旧互換: UI が root を参照しても壊れないよう mirror も保持する
+    filters: (() => {
+      const root = (initial.filters && typeof initial.filters === "object") ? initial.filters : {};
+      const types = (root.types && typeof root.types === "object") ? root.types : {};
+
+      const points =
+        typeof types.points === "boolean"
+          ? types.points
+          : (typeof root.points === "boolean" ? root.points : true);
+
+      const lines =
+        typeof types.lines === "boolean"
+          ? types.lines
+          : (typeof root.lines === "boolean" ? root.lines : true);
+
+      const aux =
+        typeof types.aux === "boolean"
+          ? types.aux
+          : (typeof root.aux === "boolean" ? root.aux : true);
+
+      const auxModules = (root.auxModules && typeof root.auxModules === "object") ? root.auxModules : {};
+      return {
+        types: { points, lines, aux },
+        points,
+        lines,
+        aux,
+        auxModules: {
+          grid: typeof auxModules.grid === "boolean" ? auxModules.grid : false,
+          axis: typeof auxModules.axis === "boolean" ? auxModules.axis : false,
+        },
+      };
+    })(),
 
     // ここに正準 viewerSettings を載せる
     viewerSettings,

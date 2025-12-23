@@ -498,6 +498,7 @@ export function createViewerHub({ core, renderer }) {
     if (curFrame !== hubState.lastCommittedFrame) {
       core.uiState._dirtyVisibleSet = true;
       commitVisibleSet("frame.changed");
+      hubState.lastCommittedFrame = curFrame;
     }
 
     debugHub("[hub] frame", debugFrameCount++, {
@@ -556,6 +557,7 @@ export function createViewerHub({ core, renderer }) {
 
       if (core.uiState && !core.uiState.runtime) core.uiState.runtime = {};
       forceCommitVisibleSet("hub.start");
+      hubState.lastCommittedFrame = fcGetActive();
 
       if (raf) animationId = raf(renderFrame);
       else animationId = null; // Node では loop しない（hub-noop 対策）
@@ -763,52 +765,35 @@ export function createViewerHub({ core, renderer }) {
       camera: {
         rotate: (dTheta, dPhi) => {
           if (!assertAlive()) return;
-          if (cameraEngine && typeof cameraEngine.rotate === "function") {
-            cameraEngine.rotate(dTheta, dPhi);
-          }
+          core?.camera?.rotate?.(dTheta, dPhi);
         },
 
         pan: (dx, dy) => {
           if (!assertAlive()) return;
-          if (cameraEngine && typeof cameraEngine.pan === "function") {
-            cameraEngine.pan(dx, dy);
-          }
+          core?.camera?.pan?.(dx, dy);
         },
 
         zoom: (delta) => {
           if (!assertAlive()) return;
-          if (cameraEngine && typeof cameraEngine.zoom === "function") {
-            cameraEngine.zoom(delta);
-          }
+          core?.camera?.zoom?.(delta);
         },
 
         reset: () => {
           if (!assertAlive()) return;
-          if (cameraEngine && typeof cameraEngine.reset === "function") {
-            cameraEngine.reset();
-          }
+          core?.camera?.reset?.();
         },
 
         snapToAxis: (axis) => {
           if (!assertAlive()) return;
-          if (!cameraEngine || !axis) return;
-          if (typeof cameraEngine.snapToAxis === "function") {
-            cameraEngine.snapToAxis(axis);
-          } else {
-            debugHub(
-              "[hub.camera.snapToAxis] cameraEngine.snapToAxis missing",
-              axis
-            );
-          }
+          core?.camera?.snapToAxis?.(axis);
         },
 
-        /**
-         * カメラフォーカス:
-         * - 引数が [x,y,z] 配列なら、その座標へ直接フォーカス
-         * - 引数が uuid 文字列なら microState を経由して、その focusPosition へフォーカス
-         */
+        // 位置 or uuid の統一API
+        // - [x,y,z] => computeFocusState -> core.camera.setState（= autoOrbit停止が効く）
+        // - uuid    => micro遷移（入る前に autoOrbit停止）
         focusOn: (target, opts = {}) => {
           if (!assertAlive()) return null;
+
           const mergedOpts = {
             mode: "approach",
             distanceFactor: 0.4,
@@ -817,36 +802,28 @@ export function createViewerHub({ core, renderer }) {
             ...opts,
           };
 
-          // 1) 位置ベクトル指定 [x,y,z]
+          // 1) 位置ベクトル
           if (Array.isArray(target)) {
-            if (!cameraEngine) return null;
-            const next = cameraEngine.computeFocusState(target, mergedOpts);
-            cameraEngine.setState(next);
-            return cameraEngine.getState();
+            const cam = core?.camera;
+            if (!cam?.setState) return cam?.getState?.() ?? null;
+
+            const next = core?.cameraEngine?.computeFocusState?.(target, mergedOpts);
+            if (next) cam.setState(next);
+
+            // visibleSet自体は変わらんが、理由ログとして残すなら
+            commitVisibleSet("camera.focusOn.position");
+            return cam.getState?.() ?? null;
           }
 
-          // 2) uuid 指定 → modeController 側に任せる（micro 侵入＆カメラ遷移）
+          // 2) uuid => micro へ
           if (typeof target === "string") {
-            if (!modeController || typeof modeController.focus !== "function") {
-              debugHub(
-                "[hub.camera.focusOn] modeController.focus not available"
-              );
-              return cameraEngine && cameraEngine.getState
-                ? cameraEngine.getState()
-                : null;
-            }
-
-            modeController.focus(target);
-            commitVisibleSet("camera.focusOn");
-            return cameraEngine && cameraEngine.getState
-              ? cameraEngine.getState()
-              : null;
+            core?.camera?.stopAutoOrbit?.(); // ★重要：transition と autoOrbit の競合防止
+            if (modeController?.focus) modeController.focus(target, mergedOpts.kind);
+            commitVisibleSet("camera.focusOn.uuid");
+            return core?.camera?.getState?.() ?? null;
           }
 
-          // それ以外は何もしない
-          return cameraEngine && cameraEngine.getState
-            ? cameraEngine.getState()
-            : null;
+          return core?.camera?.getState?.() ?? null;
         },
 
         setFOV: (v) => {
@@ -855,98 +832,59 @@ export function createViewerHub({ core, renderer }) {
           viewerSettings.setFov(v);
         },
 
-         // ビュー名で切り替え
-      setViewByName: (name) => {
-        if (!assertAlive()) return;
-        if (!cameraEngine || !name) return;
-        if (typeof cameraEngine.setViewByName === "function") {
-          cameraEngine.setViewByName(name);
-        } else {
-          debugHub(
-            "[hub.camera.setViewByName] cameraEngine.setViewByName missing",
-            name
-          );
-        }
-      },
+        setViewByName: (name) => {
+          if (!assertAlive()) return;
+          if (!name) return;
+          core?.camera?.setViewByName?.(name); // ★ここも controller 経由
+          commitVisibleSet("camera.setViewByName");
+        },
 
-      // index 取得（UIは uiState 直参照禁止なので、ここを正規ルートにする）
-      getViewPresetIndex: () => {
-        if (!assertAlive()) return 0;
-        if (cameraEngine && typeof cameraEngine.getViewPresetIndex === "function") {
-          return cameraEngine.getViewPresetIndex();
-        }
-        const v = core && core.uiState ? core.uiState.view_preset_index : undefined;
-        return typeof v === "number" ? v : 0;
-      },
+        getViewPresetIndex: () => {
+          if (!assertAlive()) return 0;
+          return core?.camera?.getViewPresetIndex?.() ?? 0;
+        },
 
-      // index ベース（キーボード循環用ラッパ）
-      setViewPreset: (index, opts) => {
-        const cam = core?.camera || null; // ★ core.camera façade を正とする
-        if (!cam) return;
-        if (typeof cam.setViewPreset === "function") {
+        setViewPreset: (index, opts) => {
+          if (!assertAlive()) return;
+          const cam = core?.camera;
+          if (!cam?.setViewPreset) return;
+
           const n = Math.floor(Number(index));
           if (!Number.isFinite(n)) return;
 
           cam.setViewPreset(n, opts || {});
 
-          // hub側で canonical(uiState) を同期（UIに書かせない）
-          const resolved =
-            typeof cam.getViewPresetIndex === "function"
-              ? cam.getViewPresetIndex()
-              : n;
+          // UI用の mirror（必要なら）
+          const resolved = cam.getViewPresetIndex?.() ?? n;
           if (core?.uiState) core.uiState.view_preset_index = resolved;
 
           commitVisibleSet("camera.setViewPreset");
-        } else {
-          debugHub(
-            "[hub.camera.setViewPreset] core.camera.setViewPreset missing",
-            index
-          );
-        }
-      },
+        },
 
         setState: (partial) => {
           if (!assertAlive()) return;
-          const cam = core?.camera || null;
-          if (cam && typeof cam.setState === "function") cam.setState(partial);
+          core?.camera?.setState?.(partial);
         },
 
         getState: () => {
-          const cam = core?.camera || null;
-          return cam && typeof cam.getState === "function" ? cam.getState() : null;
+          return core?.camera?.getState?.() ?? null;
         },
 
-        // ★ AutoOrbit（自動ぐるり俯瞰）用のパススルー API
         startAutoOrbit: (opts) => {
           if (!assertAlive()) return;
-          const cam = core?.camera || null;
-          if (cam && typeof cam.startAutoOrbit === "function") {
-            cam.startAutoOrbit(opts || {}); // ★ isCameraAuto は core.camera が書く
-            commitVisibleSet("camera.startAutoOrbit");
-            return;
-          }
-          debugHub("[hub.camera.startAutoOrbit] core.camera.startAutoOrbit missing");
+          core?.camera?.startAutoOrbit?.(opts || {});
+          commitVisibleSet("camera.startAutoOrbit");
         },
 
         updateAutoOrbitSettings: (opts) => {
           if (!assertAlive()) return;
-          const cam = core?.camera || null;
-          if (cam && typeof cam.updateAutoOrbitSettings === "function") {
-            cam.updateAutoOrbitSettings(opts || {});
-            return;
-          }
-          debugHub("[hub.camera.updateAutoOrbitSettings] core.camera.updateAutoOrbitSettings missing");
+          core?.camera?.updateAutoOrbitSettings?.(opts || {});
         },
 
         stopAutoOrbit: () => {
           if (!assertAlive()) return;
-          const cam = core?.camera || null;
-          if (cam && typeof cam.stopAutoOrbit === "function") {
-            cam.stopAutoOrbit(); // ★ isCameraAuto は core.camera が書く
-            commitVisibleSet("camera.stopAutoOrbit");
-            return;
-          }
-          debugHub("[hub.camera.stopAutoOrbit] core.camera.stopAutoOrbit missing");
+          core?.camera?.stopAutoOrbit?.();
+          commitVisibleSet("camera.stopAutoOrbit");
         },
       },
 
@@ -977,6 +915,7 @@ export function createViewerHub({ core, renderer }) {
         },
 
         focus: (uuid, kind) => {
+          core?.camera?.stopAutoOrbit?.();
           if (!assertAlive()) return null;
           debugHub("[hub.mode] focus", uuid, kind);
           const nextMode = modeController.focus(uuid, kind);
@@ -987,6 +926,7 @@ export function createViewerHub({ core, renderer }) {
 
       micro: {
         enter: (uuid, kind) => {
+          core?.camera?.stopAutoOrbit?.();
           if (!assertAlive()) return null;
           // micro mode に強制遷移
           const r = modeController.set("micro", uuid, kind);
@@ -1039,6 +979,13 @@ export function createViewerHub({ core, renderer }) {
             return visibilityController.getFilters();
           }
           return { ...(core.uiState?.filters || {}) };
+        },
+      },
+
+      cameraEngine: {
+        getViewDefs: () => {
+          const ce = core?.cameraEngine || null;
+          return ce && typeof ce.getViewDefs === "function" ? ce.getViewDefs() : null;
         },
       },
 

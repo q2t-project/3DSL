@@ -58,5 +58,6 @@ export function createCameraController(uiState, cameraEngine, modeControllerOrOp
     // state
     getState: () => cameraEngine.getState(),
     getViewPresetIndex: () => cameraEngine.getViewPresetIndex?.(),
+    getViewDefs: () => cameraEngine.getViewDefs?.(),
   };
 }
