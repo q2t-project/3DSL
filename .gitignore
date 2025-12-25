@@ -4,3 +4,5 @@
 zips/
 public/viewer*.zip
 nul
+
+*.lnk
