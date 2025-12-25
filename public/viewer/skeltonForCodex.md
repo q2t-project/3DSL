@@ -2,7 +2,7 @@
 3DSL Viewer – 初期スケルトン（空の正式APIのみ）
 ==========================================
 
-以下、viewer/ にそのまま配置してええ。
+以下、viewer/ にそのまま配置してよい。
 
 viewer/
   runtime/
@@ -28,7 +28,7 @@ viewer/
 
 
 すべて 空ロジック・APIだけにしてある。
-ここから実装を Codex なり ChatGPT なりにやらせれば、構造が絶対に崩れへん。
+ここから実装を Codex なり ChatGPT なりにやらせれば、構造が絶対に崩れない。
 
 ==========================================
 📁 runtime/bootstrapViewer.js
@@ -84,7 +84,7 @@ export function createViewerHub({ core, renderer }) {
         zoom: (delta) => {},
         reset: () => {},
         snapToAxis: (axis) => {},
-        focusOn: (uuid) => {},
+        focusOn: (target, opts) => {},
         setFOV: (v) => {},
         setState: (partial) => {},
         getState: () => {},

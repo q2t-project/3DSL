@@ -195,7 +195,7 @@ export function collectStringsShallow(obj, max = 64) {
 
 // point の position 系を形揺れ込みで読む
 export function readPointPos(p, readVec3) {
-  // readVec3 は呼び出し側から注入（three依存をここに入れへん）
+  // readVec3 は呼び出し側から注入（three.js 依存をここに入れない）
   return readVec3(
     pickFirstDefined(
       p?.appearance?.position,

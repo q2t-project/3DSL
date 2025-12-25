@@ -1,4 +1,4 @@
-// runtime/viewerHub.js
+// viewer/runtime/viewerHub.js
 // NOTE: viewerHub loop uses requestAnimationFrame.
 // In Node (no rAF), start() becomes a no-op for the render loop (contract for hub-noop test).
 
@@ -9,58 +9,67 @@ const DEBUG_HUB = false;
 let debugFrameCount = 0;
 function debugHub(...args) {
   if (!DEBUG_HUB) return;
-  // warning にしておけばレベル設定に関係なくまず見える
+  // warn レベルにしておくと、ログレベル設定に関わらず表示されやすい。
   console.warn(...args);
 }
 
 /**
  * viewerHub は runtime と renderer を束ねるハブ。
  *
- * - 外部から createViewerHub を直接呼び出さないこと。s
- * - 必ず bootstrapViewer* から生成された hub を使う。
+ * - 外部から createViewerHub を直接呼び出さないでください。
+ * - 必ず bootstrapViewer* から生成された hub を使用してください。
  */
 
-  // --- pick debug（必要なときだけ true）
-  const DEBUG_PICK = true;
+// pick debug（必要なときだけ true）
+const DEBUG_PICK = false;
 
-  function _has(setLike, uuid) {
-    if (!setLike || !uuid) return false;
-    try {
-      return typeof setLike.has === "function" ? !!setLike.has(uuid) : false;
-    } catch (_e) {
-      return false;
-    }
+// ------------------------------------------------------------
+// helpers
+// ------------------------------------------------------------
+function _has(setLike, uuid) {
+  if (!setLike || !uuid) return false;
+  try {
+    return typeof setLike.has === "function" ? !!setLike.has(uuid) : false;
+  } catch (_e) {
+    return false;
   }
+}
 
-// NOTE: fcStartPlayback は createViewerHub 内にだけ置く（frameController のスコープを保証）
+// visibleSet の形揺れ吸収:
+// - Set<string>
+// - { points:SetLike, lines:SetLike, aux:SetLike }
+// - SetLike(has)
+function _isHitVisible(uiVisibleSet, hit) {
+  const uuid = hit?.uuid;
+  const kind = hit?.kind;
+  if (!uuid) return true;
+  if (!uiVisibleSet) return true; // 初期化順/互換の安全弁
 
+  if (uiVisibleSet instanceof Set) return uiVisibleSet.has(uuid);
+  if (typeof uiVisibleSet.has === "function") return !!uiVisibleSet.has(uuid);
 
-  // visibleSet の形揺れ吸収:
-  // - Set<string>
-  // - {points:SetLike, lines:SetLike, aux:SetLike}
-  // - SetLike(has)
-  function _isHitVisible(uiVisibleSet, hit) {
-    const uuid = hit?.uuid;
-    const kind = hit?.kind;
-    if (!uuid) return true;
-    if (!uiVisibleSet) return true; // 無いなら落とさん（初期化順/互換の安全弁）
-
-    if (uiVisibleSet instanceof Set) return uiVisibleSet.has(uuid);
-    if (typeof uiVisibleSet.has === "function") return !!uiVisibleSet.has(uuid);
-
-    if (typeof uiVisibleSet === "object") {
-      if (kind === "points" || kind === "lines" || kind === "aux") {
-        return _has(uiVisibleSet[kind], uuid) || _has(uiVisibleSet.points, uuid) || _has(uiVisibleSet.lines, uuid) || _has(uiVisibleSet.aux, uuid);
-      }
-      return _has(uiVisibleSet.points, uuid) || _has(uiVisibleSet.lines, uuid) || _has(uiVisibleSet.aux, uuid);
+  if (typeof uiVisibleSet === "object") {
+    if (kind === "points" || kind === "lines" || kind === "aux") {
+      return (
+        _has(uiVisibleSet[kind], uuid) ||
+        _has(uiVisibleSet.points, uuid) ||
+        _has(uiVisibleSet.lines, uuid) ||
+        _has(uiVisibleSet.aux, uuid)
+      );
     }
-    return true;
+    return (
+      _has(uiVisibleSet.points, uuid) ||
+      _has(uiVisibleSet.lines, uuid) ||
+      _has(uiVisibleSet.aux, uuid)
+    );
   }
+  return true;
+}
 
 export function createViewerHub({ core, renderer }) {
   let animationId = null;
   let lastTime = null;
-  let running = false; 
+  let running = false;
   let disposed = false;
 
   const modeController = core.modeController || core.mode;
@@ -314,7 +323,7 @@ export function createViewerHub({ core, renderer }) {
   function _pushCommitReason(reason) {
     if (typeof reason === "string" && reason) _pendingCommitReasons.push(reason);
   }
- 
+
   function consumeCommitReason(fallback = "hub.loop") {
     if (_pendingCommitReasons.length === 0) return fallback;
     const seen = new Set();
@@ -475,12 +484,82 @@ export function createViewerHub({ core, renderer }) {
 // ------------------------------------------------------------
 const commandQueue = [];
 
+// High-frequency camera input deltas: optionally queue + accumulate per frame.
+// - UI may enqueue {type:'camera.delta', dTheta?, dPhi?, panX?, panY?, zoom?}
+// - hub collapses many deltas into a single application at the next frame boundary.
+const CAMERA_DELTA_APPLY = 'camera.applyInputDeltas';
+const _cameraDelta = { dTheta: 0, dPhi: 0, panX: 0, panY: 0, zoom: 0 };
+let _cameraDeltaScheduled = false;
+
+function _removeCameraApplyCmd() {
+  for (let i = commandQueue.length - 1; i >= 0; i--) {
+    if (commandQueue[i] && commandQueue[i].type === CAMERA_DELTA_APPLY) {
+      commandQueue.splice(i, 1);
+      return true;
+    }
+  }
+  return false;
+}
+
+function _discardCameraDeltas() {
+  _cameraDelta.dTheta = 0;
+  _cameraDelta.dPhi = 0;
+  _cameraDelta.panX = 0;
+  _cameraDelta.panY = 0;
+  _cameraDelta.zoom = 0;
+  _cameraDeltaScheduled = false;
+  _removeCameraApplyCmd();
+}
+
+function _scheduleCameraApply() {
+  if (_cameraDeltaScheduled) return;
+  commandQueue.push({ type: CAMERA_DELTA_APPLY });
+  _cameraDeltaScheduled = true;
+}
+
+function _ensureCameraApplyLast() {
+  if (!_cameraDeltaScheduled) return;
+  const last = commandQueue[commandQueue.length - 1];
+  if (last && last.type === CAMERA_DELTA_APPLY) return;
+  if (_removeCameraApplyCmd()) {
+    commandQueue.push({ type: CAMERA_DELTA_APPLY });
+  }
+}
+
+const CAMERA_JUMP_TYPES = new Set([
+  // view / focus changes: drop pending input deltas to avoid mixing drag into jumps
+  'camera.setViewPreset',
+  'camera.setViewByName',
+  'camera.focusOn',
+  'camera.focusOn.position',
+  'camera.startAutoOrbit',
+  'camera.setState',
+]);
+
+function _isCameraJumpCommand(type) {
+  if (!type || typeof type !== 'string') return false;
+  return CAMERA_JUMP_TYPES.has(type);
+}
+
+
 // UI が “今この瞬間に” hub/core を動かさず、次フレームで確定させる入口。
 // - ここに積んだコマンドは render loop 冒頭でまとめて適用される。
 function enqueueCommand(cmd) {
   if (!cmd || typeof cmd !== "object") return false;
   if (disposed) return false;
-  commandQueue.push(cmd);
+
+  if (cmd.type === 'camera.delta') {
+    _enqueueCameraDelta(cmd);
+  } else {
+    // ジャンプ系 camera コマンドが来たら、同フレームに溜まった delta は捨てる
+    // （残すなら flush ルールが必要だが、UI 体験上は破棄が安定）
+    if (_isCameraJumpCommand(cmd.type)) {
+      _discardCameraDeltas();
+    }
+    commandQueue.push(cmd);
+    // delta が既に scheduled なら、常にフレーム末尾で適用させる
+    _ensureCameraApplyLast();
+  }
 
   // Node/no-rAF: render loop が無いのでここで消化して確定する
   if (!raf) {
@@ -491,6 +570,55 @@ function enqueueCommand(cmd) {
   }
 
   return true;
+}
+
+// camera.delta は queue 肥大化を避けるため、1フレームぶんを合算して
+// CAMERA_DELTA_APPLY を queue 末尾に1個だけ置く。
+function _enqueueCameraDelta(cmd) {
+  if (!cmd || typeof cmd !== 'object') return;
+  const add = (k) => {
+    const v = Number(cmd[k]);
+    if (!Number.isFinite(v) || v === 0) return;
+    _cameraDelta[k] += v;
+  };
+  add('dTheta');
+  add('dPhi');
+  add('panX');
+  add('panY');
+  add('zoom');
+
+  _scheduleCameraApply();
+  // 同フレーム内で他コマンドが混ざっても apply が末尾になるよう維持
+  _ensureCameraApplyLast();
+}
+
+function opCameraRotate(dTheta, dPhi) {
+  core?.camera?.rotate?.(dTheta, dPhi);
+}
+
+function opCameraPan(panX, panY) {
+  core?.camera?.pan?.(panX, panY);
+}
+
+function opCameraZoom(zoom) {
+  core?.camera?.zoom?.(zoom);
+}
+
+function opCameraApplyInputDeltas() {
+  const a = _cameraDelta;
+  if (!a) return;
+  try {
+    if (a.dTheta || a.dPhi) opCameraRotate(a.dTheta, a.dPhi);
+    if (a.panX || a.panY) opCameraPan(a.panX, a.panY);
+    if (a.zoom) opCameraZoom(a.zoom);
+  } finally {
+    a.dTheta = 0;
+    a.dPhi = 0;
+    a.panX = 0;
+    a.panY = 0;
+    a.zoom = 0;
+    _cameraDeltaScheduled = false;
+  }
 }
 
 // ------------------------------------------------------------
@@ -535,6 +663,20 @@ function opCameraSetViewByName(name) {
   requestCommit("camera.setViewByName");
 }
 
+function opCameraSetState(partial) {
+  const cam = core?.camera;
+  if (!cam || typeof cam.setState !== "function") return;
+  if (!partial || typeof partial !== "object") return;
+
+  // setState は “ジャンプ系” として扱う（input delta 混入防止は enqueue 側で破棄済み）
+  try {
+    cam.setState(partial);
+  } finally {
+    requestCommit("camera.setState");
+  }
+}
+
+
 function opCameraFocusOn(uuid, kind) {
   if (!uuid) return;
   core?.camera?.stopAutoOrbit?.();
@@ -570,17 +712,25 @@ function opCameraFocusOnPosition(position, opts) {
 
 function opFrameStep(delta) {
   fcStep(delta || 0);
-  requestCommit("frame.step");
+  return requestCommit("frame.step");
 }
 
 function opFrameNext() {
   fcStep(+1);
-  requestCommit("frame.next");
+  return requestCommit("frame.next");
 }
 
 function opFramePrev() {
   fcStep(-1);
-  requestCommit("frame.prev");
+  return requestCommit("frame.prev");
+}
+
+function opFrameSetActive(frame) {
+  // normalize + clamp via fcSetActive
+  const n = Number(frame);
+  if (!Number.isFinite(n)) return null;
+  fcSetActive(n);
+  return requestCommit("frame.setActive");
 }
 
 function opFrameStartPlayback(opts) {
@@ -721,11 +871,17 @@ function applyCommand(cmd) {
     case "camera.setViewByName":
       opCameraSetViewByName(cmd.name);
       return;
+    case "camera.setState":
+      opCameraSetState(cmd.partial);
+      return;
     case "camera.focusOn.position":
       opCameraFocusOnPosition(cmd.position, cmd.opts);
       return;
     case "camera.focusOn":
       opCameraFocusOn(cmd.uuid, cmd.kind);
+      return;
+    case "camera.applyInputDeltas":
+      opCameraApplyInputDeltas();
       return;
 
     // ---- frame --------------------------------------------------
@@ -908,7 +1064,7 @@ function flushCommandQueue() {
     if (!disposed && running && raf) animationId = raf(renderFrame);
     else animationId = null;
   };
-  
+
   function assertAlive() {
     return !disposed;
   }
@@ -1018,14 +1174,13 @@ function flushCommandQueue() {
         setActive(n) {
           if (!assertAlive()) return null;
           if (raf) { enqueueCommand({ type: "frame.setActive", frame: n }); return null; }
-          fcSetActive(n);
-          return requestCommit("frame.setActive") ?? core.uiState?.visibleSet ?? null;
+          return opFrameSetActive(n) ?? core.uiState?.visibleSet ?? null;
         },
 
         // 現在アクティブな frame 番号
         // → フレームスライダの現在値表示用
         getActive() {
-          return fcGetActive();          
+          return fcGetActive();
         },
 
         // 有効な frame 範囲 { min, max }
@@ -1038,76 +1193,33 @@ function flushCommandQueue() {
         step(delta) {
           if (!assertAlive()) return null;
           if (raf) { enqueueCommand({ type: "frame.step", delta }); return null; }
-          fcStep(delta || 0);
-          return requestCommit("frame.step") ?? core.uiState?.visibleSet ?? null;
+          return opFrameStep(delta) ?? core.uiState?.visibleSet ?? null;
         },
 
         // dev harness 用ショートカット
         next() {
           if (!assertAlive()) return null;
           if (raf) { enqueueCommand({ type: "frame.next" }); return null; }
-          fcStep(+1);
-          return requestCommit("frame.next") ?? core.uiState?.visibleSet ?? null;
+          return opFrameNext() ?? core.uiState?.visibleSet ?? null;
 
         },
 
         prev() {
           if (!assertAlive()) return null;
           if (raf) { enqueueCommand({ type: "frame.prev" }); return null; }
-          fcStep(-1);
-          return requestCommit("frame.prev") ?? core.uiState?.visibleSet ?? null;
+          return opFramePrev() ?? core.uiState?.visibleSet ?? null;
         },
 
         startPlayback(opts) {
           if (!assertAlive()) return null;
           if (raf) { enqueueCommand({ type: "frame.startPlayback", opts }); return null; }
-          const result = fcStartPlayback(opts);
-
-          // AutoOrbit と排他
-          if (
-            hub &&
-            hub.core &&
-            hub.core.camera &&
-            typeof hub.core.camera.stopAutoOrbit === "function"
-          ) {
-            hub.core.camera.stopAutoOrbit();
-          }
-
-          if (core.uiState) {
-            // 再生開始時は macro に戻して micro 系リセット
-            if (
-              modeController &&
-              typeof modeController.exit === "function"
-            ) {
-              modeController.exit();
-            } else if (
-              modeController &&
-              typeof modeController.set === "function"
-            ) {
-              modeController.set("macro");
-            } else {
-              core.uiState.mode = "macro";
-            }
-
-            if (core.uiState.microFocus) {
-              core.uiState.microFocus = { uuid: null, kind: null };
-            }
-            if (core.uiState.focus) {
-              core.uiState.focus = { active: false, uuid: null };
-            }
-          }
-
-          requestCommit("frame.startPlayback");
-          return result;
+          return opFrameStartPlayback(opts);
         },
 
       stopPlayback() {
         if (!assertAlive()) return null;
         if (raf) { enqueueCommand({ type: "frame.stopPlayback" }); return null; }
-        const result = fcStopPlayback();
-
-        requestCommit("frame.stopPlayback");
-        return result;
+        return opFrameStopPlayback();
       },
     },
 
@@ -1115,28 +1227,23 @@ function flushCommandQueue() {
         // uuid（と任意の kind）指定で selection を更新
         select: (uuid, kind) => {
           if (!assertAlive()) return null;
-          if (raf) { enqueueCommand({ type: "selection.select", uuid, kind }); return null; }
-          if (!core.selectionController) {
-            console.warn("[hub.selection] selectionController not available");
-            return null;
+          if (!uuid) return null;
+
+          // Keep return type stable ({uuid} | null) even when queued.
+          // The selection is committed at the frame boundary, but callers can treat
+          // a truthy return value as "accepted".
+          if (raf) {
+            const ok = enqueueCommand({ type: "selection.select", uuid, kind });
+            return ok ? { uuid } : null;
           }
 
-          core.selectionController.select(uuid, kind);
-          requestCommit("selection.select");
-          const committed = core.uiState?.selection;
-          return committed && committed.uuid ? { uuid: committed.uuid } : null;
+          return opSelectionSelect(uuid, kind);
         },
 
         clear: () => {
           if (!assertAlive()) return null;
           if (raf) { enqueueCommand({ type: "selection.clear" }); return null; }
-          if (!core.selectionController) {
-            console.warn("[hub.selection] selectionController not available");
-            return null;
-          }
-          core.selectionController.clear();
-          requestCommit("selection.clear");
-          return null;
+          return opSelectionClear();
         },
         // 外向き API は { uuid } | null に固定
         get: () => {
@@ -1147,19 +1254,43 @@ function flushCommandQueue() {
       },
 
       camera: {
+        // High-frequency input should be applied at frame boundary (queue + accumulate).
+        // Keep rotate/pan/zoom as aliases for delta-based input to avoid bypassing the hub boundary.
         rotate: (dTheta, dPhi) => {
           if (!assertAlive()) return;
+          if (raf) { enqueueCommand({ type: 'camera.delta', dTheta, dPhi }); return; }
           core?.camera?.rotate?.(dTheta, dPhi);
         },
 
         pan: (dx, dy) => {
           if (!assertAlive()) return;
+          if (raf) { enqueueCommand({ type: 'camera.delta', panX: dx, panY: dy }); return; }
           core?.camera?.pan?.(dx, dy);
         },
 
         zoom: (delta) => {
           if (!assertAlive()) return;
+          if (raf) { enqueueCommand({ type: 'camera.delta', zoom: delta }); return; }
           core?.camera?.zoom?.(delta);
+        },
+
+        // queue + accumulate (optional): use when you want UI input to be applied at frame boundary
+        rotateDelta: (dTheta, dPhi) => {
+          if (!assertAlive()) return;
+          if (raf) { enqueueCommand({ type: 'camera.delta', dTheta, dPhi }); return; }
+          core?.camera?.rotate?.(dTheta, dPhi);
+        },
+
+        panDelta: (panX, panY) => {
+          if (!assertAlive()) return;
+          if (raf) { enqueueCommand({ type: 'camera.delta', panX, panY }); return; }
+          core?.camera?.pan?.(panX, panY);
+        },
+
+        zoomDelta: (zoom) => {
+          if (!assertAlive()) return;
+          if (raf) { enqueueCommand({ type: 'camera.delta', zoom }); return; }
+          core?.camera?.zoom?.(zoom);
         },
 
         reset: () => {
@@ -1226,9 +1357,7 @@ function flushCommandQueue() {
         setViewByName: (name) => {
           if (!assertAlive()) return;
           if (raf) { enqueueCommand({ type: "camera.setViewByName", name }); return; }
-          if (!name) return;
-          core?.camera?.setViewByName?.(name); // ★ここも controller 経由
-          requestCommit("camera.setViewByName");
+          opCameraSetViewByName(name);
         },
 
         getViewPresetIndex: () => {
@@ -1239,24 +1368,16 @@ function flushCommandQueue() {
         setViewPreset: (index, opts) => {
           if (!assertAlive()) return;
           if (raf) { enqueueCommand({ type: "camera.setViewPreset", index, opts }); return; }
-          const cam = core?.camera;
-          if (!cam?.setViewPreset) return;
-
-          const n = Math.floor(Number(index));
-          if (!Number.isFinite(n)) return;
-
-          cam.setViewPreset(n, opts || {});
-
-          // UI用の mirror（必要なら）
-          const resolved = cam.getViewPresetIndex?.() ?? n;
-          if (core?.uiState) core.uiState.view_preset_index = resolved;
-
-          requestCommit("camera.setViewPreset");
+          opCameraSetViewPreset(index, opts);
         },
-
         setState: (partial) => {
           if (!assertAlive()) return;
-          core?.camera?.setState?.(partial);
+          if (!partial || typeof partial !== "object") return;
+          if (raf) {
+            enqueueCommand({ type: "camera.setState", partial });
+            return;
+          }
+          opCameraSetState(partial);
         },
 
         getState: () => {
@@ -1266,21 +1387,19 @@ function flushCommandQueue() {
         startAutoOrbit: (opts) => {
           if (!assertAlive()) return;
           if (raf) { enqueueCommand({ type: "camera.startAutoOrbit", opts }); return; }
-          core?.camera?.startAutoOrbit?.(opts || {});
-          requestCommit("camera.startAutoOrbit");
+          opCameraStartAutoOrbit(opts);
         },
 
         updateAutoOrbitSettings: (opts) => {
           if (!assertAlive()) return;
           if (raf) { enqueueCommand({ type: "camera.updateAutoOrbitSettings", opts }); return; }
-          core?.camera?.updateAutoOrbitSettings?.(opts || {});
+          opCameraUpdateAutoOrbitSettings(opts);
         },
 
         stopAutoOrbit: () => {
           if (!assertAlive()) return;
           if (raf) { enqueueCommand({ type: "camera.stopAutoOrbit" }); return; }
-          core?.camera?.stopAutoOrbit?.();
-          requestCommit("camera.stopAutoOrbit");
+          opCameraStopAutoOrbit();
         },
       },
 
@@ -1288,10 +1407,7 @@ function flushCommandQueue() {
         set: (mode, uuid, kind) => {
           if (!assertAlive()) return null;
           if (raf) { enqueueCommand({ type: "mode.set", mode, focusUuid: uuid, kind }); return null; }
-          debugHub("[hub.mode] set", mode, uuid);
-          const nextMode = modeController.set(mode, uuid, kind);
-          requestCommit("mode.set");
-          return nextMode;
+          return opModeSet(mode, uuid, kind);
         },
 
         get: () => {
@@ -1307,42 +1423,26 @@ function flushCommandQueue() {
         exit: () => {
           if (!assertAlive()) return null;
           if (raf) { enqueueCommand({ type: "mode.exit" }); return null; }
-          const r = modeController.exit();
-          requestCommit("mode.exit");
-          return r;
+          return opModeExit();
         },
 
         focus: (uuid, kind) => {
-          if (raf) { enqueueCommand({ type: "mode.focus", uuid, kind }); return null; }
-          core?.camera?.stopAutoOrbit?.();
           if (!assertAlive()) return null;
-          debugHub("[hub.mode] focus", uuid, kind);
-          const nextMode = modeController.focus(uuid, kind);
-          requestCommit("mode.focus");
-          return nextMode;
+          if (raf) { enqueueCommand({ type: "mode.focus", uuid, kind }); return null; }
+          return opModeFocus(uuid, kind);
         },
       },
 
       micro: {
         enter: (uuid, kind) => {
-          if (raf) { enqueueCommand({ type: "micro.enter", uuid, kind }); return null; }
-          core?.camera?.stopAutoOrbit?.();
           if (!assertAlive()) return null;
-          // micro mode に強制遷移
-          const r = modeController.set("micro", uuid, kind);
-          requestCommit("micro.enter");
-          return r;
+          if (raf) { enqueueCommand({ type: "micro.enter", uuid, kind }); return null; }
+          return opMicroEnter(uuid, kind);
         },
         exit: () => {
           if (!assertAlive()) return null;
-          // macro に戻す
           if (raf) { enqueueCommand({ type: "micro.exit" }); return null; }
-          const r =
-            modeController && typeof modeController.exit === "function"
-              ? modeController.exit()
-              : modeController.set("macro");
-          requestCommit("micro.exit");
-          return r;
+          return opMicroExit();
         },
         isActive: () => {
           return core.uiState.mode === "micro";
@@ -1354,24 +1454,7 @@ function flushCommandQueue() {
           if (!assertAlive()) return null;
           const on = !!enabled;
           if (raf) { enqueueCommand({ type: "filters.setTypeEnabled", kind, enabled: on }); return null; }
-          if (
-            visibilityController &&
-            typeof visibilityController.setTypeFilter === "function"
-          ) {
-            visibilityController.setTypeFilter(kind, on);
-          } else if (core.uiState && core.uiState.filters) {
-            // 最悪のフォールバック
-            core.uiState.filters[kind] = on;
-          }
-          // canonical mirror
-          if (core.uiState) {
-            if (!core.uiState.filters || typeof core.uiState.filters !== "object") core.uiState.filters = {};
-            if (!core.uiState.filters.types || typeof core.uiState.filters.types !== "object") core.uiState.filters.types = {};
-            core.uiState.filters.types[kind] = on;
-            core.uiState.filters[kind] = on;
-          }
-
-          return requestCommit("filters.setTypeEnabled") ?? core.uiState?.visibleSet ?? null;
+          return opFiltersSetTypeEnabled(kind, on) ?? core.uiState?.visibleSet ?? null;
         },
         get() {
           if (
@@ -1443,15 +1526,25 @@ function flushCommandQueue() {
     },
   };
   // DBG_EXPOSE_INTERNALS (dev only)
-  hub.__dbg = hub.__dbg || {};
-  hub.__dbg.frameController = frameController;
-  if (hub.core && typeof hub.core === "object") {
-    hub.core.frameController = frameController;
-    hub.core.__dbg = hub.__dbg;
+  // - enable by: ?dbgHub=1
+  const DBG_EXPOSE_INTERNALS = (() => {
+    try {
+      const sp = new URLSearchParams(globalThis.location?.search ?? "");
+      return sp.get("dbgHub") === "1";
+    } catch (_e) {
+      return false;
+    }
+  })();
+
+  if (DBG_EXPOSE_INTERNALS) {
+    // Expose internals via __dbg only.
+    // NOTE: Do NOT mutate hub.core public surface for debugging.
+    hub.__dbg = hub.__dbg || {};
+    hub.__dbg.frameController = frameController;
+
+    hub.core.__dbg = hub.core.__dbg || {};
+    hub.core.__dbg.frameController = frameController;
   }
-
-  if (typeof window !== "undefined") window.__hub = hub;
-
 
   return hub;
 }

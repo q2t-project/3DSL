@@ -28,20 +28,63 @@ let CAMERA_VIEW_ALIASES = null;
 let CAMERA_VIEW_PRESET_SEQUENCE = null;
 
 function loadViewDefsFromFacade(hf) {
-  // view preset 定義（CameraEngine 側の定義）
-  // - UI 側は hf.getViewDefs() 以外から参照しない
+  // UI layer は runtime/core を直接 import できないため、hubFacade 経由で view preset 定義を取得する。
+  // 取得できない場合も gizmo が最低限動作するように、安全なデフォルトを用意する。
+
+  const ISO_PHI = Math.acos(1 / Math.sqrt(3));
+
+  const DEFAULT_SEQUENCE = ['x+', 'y+', 'z+', 'iso-ne', 'iso-nw', 'iso-sw', 'iso-se'];
+
+  const DEFAULT_DEFS = {
+    'x+': { theta: 0, phi: Math.PI / 2 },
+    'y+': { theta: Math.PI / 2, phi: Math.PI / 2 },
+    'z+': { theta: 0, phi: 0 },
+
+    'iso-ne': { theta: Math.PI / 4, phi: ISO_PHI },
+    'iso-nw': { theta: (3 * Math.PI) / 4, phi: ISO_PHI },
+    'iso-sw': { theta: (-3 * Math.PI) / 4, phi: ISO_PHI },
+    'iso-se': { theta: -Math.PI / 4, phi: ISO_PHI },
+  };
+
+  CAMERA_VIEW_DEFS = { ...DEFAULT_DEFS };
+  CAMERA_VIEW_ALIASES = {};
+  CAMERA_VIEW_PRESET_SEQUENCE = DEFAULT_SEQUENCE.slice();
+
   const vd = hf?.getViewDefs?.() ?? null;
   if (!vd) return;
 
-  // { defs, aliases } 形式 / 単純配列 どちらも許容
-  if (Array.isArray(vd)) {
-    viewDefs = vd;
-    viewAliases = {};
+  // cameraEngine.getViewDefs() は通常 { defs, aliases, presetSequence, presetCount } を返す。
+  // 互換のため、配列や map 形式も受け入れる。
+  const defsSrc = vd && typeof vd === 'object' && 'defs' in vd ? vd.defs : vd;
+
+  const aliases = vd && typeof vd === 'object' ? vd.aliases : null;
+  if (aliases && typeof aliases === 'object') {
+    CAMERA_VIEW_ALIASES = { ...aliases };
+  }
+
+  const seq =
+    vd && typeof vd === 'object' ? (vd.presetSequence ?? vd.sequence ?? vd.order) : null;
+  if (Array.isArray(seq) && seq.length > 0) {
+    CAMERA_VIEW_PRESET_SEQUENCE = seq.slice();
+  }
+
+  if (Array.isArray(defsSrc)) {
+    const m = {};
+    for (const it of defsSrc) {
+      if (!it || typeof it !== 'object') continue;
+      const key = it.key ?? it.id ?? it.name;
+      if (typeof key !== 'string' || !key) continue;
+      m[key] = it;
+    }
+    if (Object.keys(m).length > 0) {
+      CAMERA_VIEW_DEFS = { ...CAMERA_VIEW_DEFS, ...m };
+    }
     return;
   }
 
-  viewDefs = Array.isArray(vd.defs) ? vd.defs : [];
-  viewAliases = vd.aliases && typeof vd.aliases === 'object' ? vd.aliases : {};
+  if (defsSrc && typeof defsSrc === 'object') {
+    CAMERA_VIEW_DEFS = { ...CAMERA_VIEW_DEFS, ...defsSrc };
+  }
 }
 
 function createLitMaterial(params) {
@@ -1047,7 +1090,9 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
     if (!camCtrl) return;
 
     const cam = camCtrl;
-    if (typeof cam.rotate !== 'function') return;
+    const canRotateDelta = typeof cam.rotateDelta === 'function';
+    const canRotate = typeof cam.rotate === 'function';
+    if (!canRotateDelta && !canRotate) return;
 
     const dx = ev.clientX - lastX;
     const dy = ev.clientY - lastY;
@@ -1058,7 +1103,8 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
     startInteractiveLoop();
 
     const { dTheta, dPhi } = mapDragToOrbitDelta(dx, dy, ORBIT_SENS);
-    cam.rotate(dTheta, dPhi);
+    if (canRotateDelta) cam.rotateDelta(dTheta, dPhi);
+    else cam.rotate(dTheta, dPhi);
 
     ev.preventDefault();
   }
@@ -1085,10 +1131,10 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
       const axis = ringHit.object.userData.axis; // "x" / "y" / "z"
 
       const viewName = axisToViewName(axis);
-      const index = viewName != null ? resolvePresetIndexByName(viewName) : null;
+      const idx = viewName != null ? resolvePresetIndexByName(viewName) : null;
 
-      if (index != null && typeof cam.setViewPreset === 'function') {
-        applyViewPresetIndex(cam, hub, index);
+      if (idx != null && typeof cam.setViewPreset === 'function') {
+        applyViewPresetIndex(cam, hf, idx);
       } else if (axis && typeof cam.snapToAxis === 'function') {
         cam.snapToAxis(axis); // フォールバック
       }
@@ -1354,39 +1400,16 @@ export function initGizmoButtons(hub, ctx = {}) {
   };
 
   // -----------------------------
-  // Axis row (X/Y/Z)
+  // Axis row / View row
+  //
+  // ホストUIは "preset view" ボタン1つで十分なため、ここでは
+  // X/Y/Z や NE/NW/SW/SE のピル型ボタンを生成しない。
+  //
+  // DOM側のスロット（gizmoAxisRow / gizmoViewRow）は空のまま残す。
   // -----------------------------
   const axisRow = getEl('gizmoAxisRow') || null;
   if (axisRow) {
     clearChildren(axisRow);
-
-    const mkAxis = (axis, label) => {
-      createBtn(axisRow, {
-        label,
-        title: `Snap to ${axis.toUpperCase()} axis`,
-        className: 'keycap gizmo-axis-btn',
-        onClick: (ev) => {
-          ev.preventDefault?.();
-          const cam = camOf();
-          if (!cam) return;
-
-          stopAuto(cam, hf);
-
-          const viewName = axisToViewName(axis);
-          const idx = viewName != null ? resolvePresetIndexByName(viewName) : null;
-
-          if (idx != null && typeof cam.setViewPreset === 'function') {
-            applyViewPresetIndex(cam, hub, idx);
-          } else if (typeof cam.snapToAxis === 'function') {
-            cam.snapToAxis(axis);
-          }
-        },
-      });
-    };
-
-    mkAxis('x', 'X');
-    mkAxis('y', 'Y');
-    mkAxis('z', 'Z');
   }
 
   // -----------------------------
@@ -1395,37 +1418,6 @@ export function initGizmoButtons(hub, ctx = {}) {
   const viewRow = getEl('gizmoViewRow') || null;
   if (viewRow) {
     clearChildren(viewRow);
-
-    const PRESETS = [
-      { name: 'iso-ne', label: 'NE' },
-      { name: 'iso-nw', label: 'NW' },
-      { name: 'iso-sw', label: 'SW' },
-      { name: 'iso-se', label: 'SE' },
-    ];
-
-    PRESETS.forEach(({ name, label }) => {
-      createBtn(viewRow, {
-        label,
-        title: `View preset: ${name}`,
-        className: 'keycap gizmo-view-btn',
-        onClick: (ev) => {
-          ev.preventDefault?.();
-          const cam = camOf();
-          if (!cam) return;
-
-          stopAuto(cam, hf);
-
-          const idx = resolvePresetIndexByName(name);
-          if (idx != null && typeof cam.setViewPreset === 'function') {
-            applyViewPresetIndex(cam, hub, idx);
-            return;
-          }
-
-          // legacy fallback（残すなら）
-          if (typeof cam.setViewByName === 'function') cam.setViewByName(name);
-        },
-      });
-    });
   }
 
   return {

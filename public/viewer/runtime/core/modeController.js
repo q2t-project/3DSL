@@ -1,9 +1,22 @@
 // viewer/runtime/core/modeController.js
+//
+// モード制御（macro / micro）
+//
+// 役割
+// - micro への遷移可否を判断する
+// - micro 侵入時に selection を確定する
+// - uiState.mode / uiState.microState を更新する
+// - visibleSet の再計算は hub loop に委ね、ここでは dirty だけを立てる
+// - カメラ遷移（副作用）はここで起動する
+//
+// 注意
+// - recomputeVisibleSet をここから直接呼び出さない（hub loop が唯一の commit 点）
 
 const DEBUG_MODE = false;
 function debugMode(...args) {
   if (!DEBUG_MODE) return;
-  console.log(...args);
+  // ログレベルは warn に寄せる（console 設定に依存しにくい）
+  console.warn(...args);
 }
 
 export function createModeController(
@@ -17,58 +30,87 @@ export function createModeController(
   indices
 ) {
   function readVec3(v, fallback = null) {
-    if (Array.isArray(v) && v.length >= 3) return [Number(v[0]) || 0, Number(v[1]) || 0, Number(v[2]) || 0];
-    if (v && typeof v === "object") return [Number(v.x) || 0, Number(v.y) || 0, Number(v.z) || 0];
+    if (Array.isArray(v) && v.length >= 3) {
+      return [Number(v[0]) || 0, Number(v[1]) || 0, Number(v[2]) || 0];
+    }
+    if (v && typeof v === "object") {
+      if ("x" in v || "y" in v || "z" in v) {
+        return [Number(v.x) || 0, Number(v.y) || 0, Number(v.z) || 0];
+      }
+    }
     return fallback;
- }
+  }
 
-  function _clamp(n, a, b) {
+  function clamp(n, a, b) {
     const x = Number(n);
     if (!Number.isFinite(x)) return a;
     return Math.max(a, Math.min(b, x));
   }
 
-  function _estimateMicroRadius(ms) {
-    const s = ms?.localBounds?.size;
-    if (Array.isArray(s) && s.length >= 3) {
-      const sx = Math.abs(Number(s[0]) || 0);
-      const sy = Math.abs(Number(s[1]) || 0);
-      const sz = Math.abs(Number(s[2]) || 0);
-      const m = Math.max(sx, sy, sz);
-      if (Number.isFinite(m) && m > 0) return m * 0.5;
+  function isVisible(uuid) {
+    if (visibilityController && typeof visibilityController.isVisible === "function") {
+      try {
+        const r = visibilityController.isVisible(uuid);
+        if (typeof r === "boolean") return r;
+      } catch (_e) {}
     }
-    // point など bounds 無い/小さい時の最低半径
-    return 0.25;
+    // 未配線の場合は安全側で通す
+    return true;
   }
 
-  function _buildMicroCameraTarget(microState) {
-    const p = microState?.focusPosition || microState?.localBounds?.center || null;
-    if (!Array.isArray(p) || p.length < 3) return null;
-    return [Number(p[0]) || 0, Number(p[1]) || 0, Number(p[2]) || 0];
+  function canEnter(uuid) {
+    if (!uuid) return false;
+
+    // micro 遷移は「再生中 / autoOrbit 中」は禁止
+    if (uiState?.runtime?.isFramePlaying) return false;
+    if (uiState?.runtime?.isCameraAuto) return false;
+
+    // 非表示は micro 対象にしない（微視化する意味が薄く、挙動も不安定になりやすい）
+    return isVisible(uuid);
   }
 
-  function _startMicroCameraTransition(cleanSel) {
-    // ブロック条件は set() 側で弾いてる前提やけど、最終防衛
-    if (!cameraEngine?.getState || !cameraTransition?.start) return;
+  function normalizeMode(m) {
+    return m === "micro" ? "micro" : "macro";
+  }
 
-    const cur = (() => { try { return cameraEngine.getState(); } catch (_e) { return null; } })();
-    if (!cur || typeof cur !== "object") return;
+  // kind 推定（selection.kind 欠け対策）
+  function inferKind(uuid) {
+    if (!uuid || !indices) return null;
 
-    // microState は “計算だけ” をここで作る（uiState へは書かん）
-    const ms = (() => {
-      try { return microController?.compute?.(cleanSel, cur, indices) ?? null; } catch (_e) { return null; }
-    })();
-    const tgt = _buildMicroCameraTarget(ms);
-    if (!tgt) return; // focusPosition 無いならカメラは動かさん（marker/FXだけ）
+    // uuidToItem / uuidToKind がある場合
+    try {
+      const rec = indices.uuidToItem?.get?.(uuid);
+      const k =
+        rec?.kind ??
+        rec?.group ??
+        rec?.type ??
+        rec?.item?.kind ??
+        rec?.item?.group ??
+        rec?.item?.type ??
+        null;
+      if (k === "points" || k === "lines" || k === "aux") return k;
+    } catch (_e) {}
 
-    const r = _estimateMicroRadius(ms);
-    // 「micro っぽい距離」：半径の数倍。大きい scene でも暴走せんよう上限だけ付ける
-    const sceneR = Number(indices?.bounds?.radius);
-    const maxDist = Number.isFinite(sceneR) && sceneR > 0 ? sceneR * 2 : 100000;
-    const nextDist = _clamp(r * 6, 0.6, maxDist);
+    // visibleSet 互換（indices.points/lines/aux が Set の場合）
+    try {
+      if (indices.points?.has?.(uuid)) return "points";
+    } catch (_e) {}
+    try {
+      if (indices.lines?.has?.(uuid)) return "lines";
+    } catch (_e) {}
+    try {
+      if (indices.aux?.has?.(uuid)) return "aux";
+    } catch (_e) {}
 
-    const next = { ...cur, target: tgt, distance: nextDist };
-    try { cameraTransition.start(next); } catch (_e) {}
+    // structIndex 互換
+    try {
+      const si = indices.structIndex || indices.struct || indices.index || null;
+      const it = si?.uuidToItem?.get?.(uuid) ?? null;
+      const k = it?.kind ?? it?.group ?? it?.type ?? null;
+      if (k === "points" || k === "lines" || k === "aux") return k;
+    } catch (_e) {}
+
+    return null;
   }
 
   function getSceneBounds() {
@@ -76,11 +118,32 @@ export function createModeController(
       const si = indices?.structIndex ?? indices?.struct ?? indices?.index ?? indices ?? null;
       return si?.bounds ?? si?.getSceneBounds?.() ?? null;
     } catch (_e) {}
-   return null;
+    return null;
+  }
+
+  function resolveItemByUuid(uuid) {
+    try {
+      const rec =
+        indices?.uuidToItem?.get?.(uuid) ??
+        indices?.structIndex?.uuidToItem?.get?.(uuid) ??
+        null;
+      return (
+        rec?.item ??
+        rec?.point ??
+        rec?.line ??
+        rec?.aux ??
+        rec?.data ??
+        rec?.value ??
+        rec ??
+        null
+      );
+    } catch (_e) {}
+    return null;
   }
 
   function readPointPosLoose(p) {
     if (!p) return null;
+
     // [x,y,z] / {x,y,z}
     const v0 = readVec3(p, null);
     if (v0) return v0;
@@ -96,19 +159,8 @@ export function createModeController(
     return null;
   }
 
-  function resolveItemByUuid(uuid) {
-    try {
-      const rec =
-        indices?.uuidToItem?.get?.(uuid) ??
-        indices?.structIndex?.uuidToItem?.get?.(uuid) ??
-        null;
-      return rec?.item ?? rec?.point ?? rec?.line ?? rec?.aux ?? rec?.data ?? rec?.value ?? rec ?? null;
-    } catch (_e) {}
-    return null;
-  }
-
   function resolveMicroTargetCenter(uuid, kind) {
-    // points は “その点の position” を最優先（これが無いと micro にならん）
+    // points は「点そのものの座標」を最優先
     if (kind === "points") {
       const p = resolveItemByUuid(uuid);
       const pos = readPointPosLoose(p);
@@ -120,131 +172,120 @@ export function createModeController(
     const c = readVec3(b?.center ?? b?.centroid ?? b?.origin ?? b?.box?.center ?? null, null);
     if (c) return c;
 
-    // それすら無いなら原点
+    // 最終手段：原点
     return [0, 0, 0];
   }
 
-  function buildMicroCameraStateFallback(clean) {
+  function estimateMicroRadius(microState) {
+    const s = microState?.localBounds?.size;
+    if (Array.isArray(s) && s.length >= 3) {
+      const sx = Math.abs(Number(s[0]) || 0);
+      const sy = Math.abs(Number(s[1]) || 0);
+      const sz = Math.abs(Number(s[2]) || 0);
+      const m = Math.max(sx, sy, sz);
+      if (Number.isFinite(m) && m > 0) return m * 0.5;
+    }
+
+    // point など bounds が無い / 小さいときの最低半径
+    return 0.25;
+  }
+
+  function buildMicroCameraTarget(microState) {
+    const p = microState?.focusPosition ?? microState?.localBounds?.center ?? null;
+    if (!Array.isArray(p) || p.length < 3) return null;
+    return [Number(p[0]) || 0, Number(p[1]) || 0, Number(p[2]) || 0];
+  }
+
+  function buildMicroCameraState(cleanSel) {
     if (!cameraEngine?.getState) return null;
-    let st = null;
-    try { st = cameraEngine.getState(); } catch (_e) { st = null; }
-    if (!st) return null;
 
-   const tgt0 = readVec3(st.target ?? st.lookAt ?? [0, 0, 0], [0, 0, 0]);
-    const tgt = resolveMicroTargetCenter(clean.uuid, clean.kind) ?? tgt0;
-    const zoom = 0.35; // macro→micro の寄り率
+    let cur = null;
+    try {
+      cur = cameraEngine.getState();
+    } catch (_e) {
+      cur = null;
+    }
+    if (!cur || typeof cur !== "object") return null;
 
-    // position/eye 型ならオフセットを縮める
-    const pos0 = readVec3(st.position ?? st.eye ?? null, null);
+    // microState は「計算だけ」ここで作る（uiState へは書かない）
+    let ms = null;
+    try {
+      ms = microController?.compute?.(cleanSel, cur, indices) ?? null;
+    } catch (_e) {
+      ms = null;
+    }
+
+    // target は microState → fallback の順
+    const tgt0 = readVec3(cur.target ?? cur.lookAt ?? [0, 0, 0], [0, 0, 0]);
+    const tgt = buildMicroCameraTarget(ms) ?? resolveMicroTargetCenter(cleanSel.uuid, cleanSel.kind) ?? tgt0;
+
+    // distance は micro 半径ベースで決め、暴走を抑える
+    const r = estimateMicroRadius(ms);
+    const sceneR = Number(indices?.bounds?.radius);
+    const maxDist = Number.isFinite(sceneR) && sceneR > 0 ? sceneR * 2 : 100000;
+    const nextDist = clamp(r * 6, 0.6, maxDist);
+
+    // state 形式に応じて適用
+    const pos0 = readVec3(cur.position ?? cur.eye ?? null, null);
     if (pos0) {
       const dx = pos0[0] - tgt0[0];
-     const dy = pos0[1] - tgt0[1];
+      const dy = pos0[1] - tgt0[1];
       const dz = pos0[2] - tgt0[2];
-      return {
-        ...st,
-        target: tgt,
-        position: [tgt[0] + dx * zoom, tgt[1] + dy * zoom, tgt[2] + dz * zoom],
-      };
+      const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (Number.isFinite(len) && len > 1e-6) {
+        const s = nextDist / len;
+        return {
+          ...cur,
+          target: tgt,
+          position: [tgt[0] + dx * s, tgt[1] + dy * s, tgt[2] + dz * s],
+        };
+      }
+      // offset が取れない場合は target だけ更新
+      return { ...cur, target: tgt };
     }
 
-    // theta/phi/distance 型なら distance を縮めて target を移す
-    const d0 = Number(st.distance);
-    const d1 = Number.isFinite(d0) ? Math.max(0.5, d0 * zoom) : undefined;
-    return { ...st, target: tgt, distance: d1 };
+    // orbit 形式（distance）
+    if (Number.isFinite(Number(cur.distance))) {
+      return { ...cur, target: tgt, distance: nextDist };
+    }
+
+    // どちらでもない場合は target だけ更新
+    return { ...cur, target: tgt };
   }
 
-  function startMicroCameraTransition(clean) {
+  function startMicroCameraTransition(cleanSel) {
     if (!cameraTransition?.start) return;
 
-    // microController が “micro用のカメラ状態” を返せるならそれ最優先
-    let cam = null;
-    try {
-      cam =
-        microController?.getMicroCameraState?.(clean.uuid, clean.kind) ??
-        microController?.getCameraState?.() ??
-        null;
-    } catch (_e) {}
-
-    if (!cam) cam = buildMicroCameraStateFallback(clean);
-    // 返ってきた cam に target が無い版の救済（points で起きがち）
-    if (cam && cam.target == null && cam.lookAt == null) {
-      cam = { ...cam, target: resolveMicroTargetCenter(clean.uuid, clean.kind) };
-    }
+    const cam = buildMicroCameraState(cleanSel);
     if (!cam) return;
-    try { cameraTransition.start(cam); } catch (_e) {}
+
+    try {
+      cameraTransition.start(cam);
+    } catch (_e) {}
   }
 
-  function buildMicroState(clean) {
+  function buildMicroState(cleanSel) {
     // microController が microState を組めるならそれを使う
     try {
       const r =
-        microController?.buildMicroState?.(clean.uuid, clean.kind) ??
-        microController?.createMicroState?.(clean.uuid, clean.kind) ??
-        microController?.enter?.(clean.uuid, clean.kind) ??
-        microController?.focus?.(clean.uuid, clean.kind) ??
+        microController?.buildMicroState?.(cleanSel.uuid, cleanSel.kind) ??
+        microController?.createMicroState?.(cleanSel.uuid, cleanSel.kind) ??
+        microController?.enter?.(cleanSel.uuid, cleanSel.kind) ??
+        microController?.focus?.(cleanSel.uuid, cleanSel.kind) ??
         null;
       if (r && typeof r === "object") {
-        // {microState, cameraState} みたいな戻りも吸収
+        // {microState, cameraState} 形式も吸収
         return r.microState ?? r.state ?? r;
       }
     } catch (_e) {}
-    // 最低限：renderer/microFX が読める形
-    return { uuid: clean.uuid, kind: clean.kind ?? null };
+
+    // 最低限（normalizeMicro が補完できる形）
+    return { uuid: cleanSel.uuid, kind: cleanSel.kind ?? null };
   }
 
-  // kind 推定（selection.kind 欠け対策）
-  function inferKind(uuid) {
-    if (!uuid || !indices) return null;
-
-    try {
-      const rec = indices.uuidToItem?.get?.(uuid);
-      const k =
-        rec?.kind ?? rec?.group ?? rec?.type ??
-        rec?.item?.kind ?? rec?.item?.group ?? rec?.item?.type ??
-        null;
-      if (k === "points" || k === "lines" || k === "aux") return k;
-    } catch (_e) {}
-
-    try { if (indices.points?.has?.(uuid)) return "points"; } catch (_e) {}
-    try { if (indices.lines?.has?.(uuid)) return "lines"; } catch (_e) {}
-    try { if (indices.aux?.has?.(uuid)) return "aux"; } catch (_e) {}
-
-    try {
-      const si = indices.structIndex || indices.struct || indices.index || null;
-      const it = si?.uuidToItem?.get?.(uuid) ?? null;
-      const k = it?.kind ?? it?.group ?? it?.type ?? null;
-      if (k === "points" || k === "lines" || k === "aux") return k;
-    } catch (_e) {}
-
-    return null;
-  }
-
-  // macro カメラ状態（micro→macro復帰用）
+  // micro→macro 復帰用に macro カメラ状態を保持
   let lastMacroCameraState =
-    cameraEngine && typeof cameraEngine.getState === "function"
-      ? cameraEngine.getState()
-      : null;
-
-  function normalizeMode(m) {
-    return m === "micro" ? "micro" : "macro";
-  }
-
-  function isVisible(uuid) {
-    if (visibilityController && typeof visibilityController.isVisible === "function") {
-      try {
-        const r = visibilityController.isVisible(uuid);
-        if (typeof r === "boolean") return r;
-      } catch (_e) {}
-    }
-    return true; // 未配線は通す
-  }
-
-  function canEnter(uuid) {
-    if (!uuid) return false;
-    if (uiState?.runtime?.isFramePlaying) return false;
-    if (uiState?.runtime?.isCameraAuto) return false;
-    return isVisible(uuid);
-  }
+    cameraEngine && typeof cameraEngine.getState === "function" ? cameraEngine.getState() : null;
 
   // set("micro", null) 等の救済：引数→selection→no-op
   function resolveMicroTargetUuid(inputUuid) {
@@ -252,9 +293,6 @@ export function createModeController(
       const u = inputUuid.trim();
       if (u) return u;
     }
-
-// micro 遷移は selection を確定させる責務が modeController 側にある
-// ただし selectionController.select が onChanged で recompute を直呼びする実装は禁止（dirtyだけ）
 
     // selectionController.get() 優先
     try {
@@ -272,64 +310,57 @@ export function createModeController(
     return null;
   }
 
-function set(mode, uuid, kind) {
-  const prevMode = normalizeMode(uiState?.mode);
+  function set(mode, uuid, kind) {
+    const prevMode = normalizeMode(uiState?.mode);
 
-  if (mode === "micro") {
-    const targetUuid = resolveMicroTargetUuid(uuid);
-    if (!targetUuid) return prevMode;
+    if (mode === "micro") {
+      const targetUuid = resolveMicroTargetUuid(uuid);
+      if (!targetUuid) return prevMode;
 
-    const k0 =
-      (typeof kind === "string" && kind.trim())
-        ? kind.trim()
-        : (inferKind(targetUuid) ?? undefined);
+      const k0 =
+        typeof kind === "string" && kind.trim() ? kind.trim() : inferKind(targetUuid) ?? undefined;
 
-    const clean = selectionController?.sanitize?.(targetUuid, k0);
-    if (!clean) return prevMode;                 // ← ここではまだ state 触らん
+      const clean = selectionController?.sanitize?.(targetUuid, k0);
+      if (!clean) return prevMode;
+      if (!canEnter(clean.uuid)) return prevMode;
 
-    if (!canEnter(clean.uuid)) return prevMode;  // ← 最終防衛
+      const cur = selectionController?.get?.();
+      const isSameSelection =
+        cur?.uuid === clean.uuid && (cur?.kind ?? null) === (clean.kind ?? null);
 
-    const cur = selectionController?.get?.();
-    if (
-      prevMode === "micro" &&
-      cur?.uuid === clean.uuid &&
-      (cur?.kind ?? null) === (clean.kind ?? null)
-    ) {
-      return "micro"; // 完全no-op
+      // macro→micro 侵入時だけ macro カメラを保存
+      if (prevMode !== "micro" && cameraEngine?.getState) {
+        try {
+          lastMacroCameraState = cameraEngine.getState();
+        } catch (_e) {}
+      }
+
+      uiState.mode = "micro";
+
+      // micro 遷移は selection を確定させる（hub loop が dirty を拾って commit する前提）
+      selectionController?.select?.(clean.uuid, clean.kind);
+
+      // microState（最小形）
+      uiState.microState = buildMicroState(clean);
+
+      // カメラ遷移（同フレーム中に合算された cameraDelta と干渉しにくいよう、遷移は 1 回だけ）
+      // 同一 selection でも「macro→micro」や「別要素への focus」では再遷移する。
+      if (prevMode !== "micro" || !isSameSelection) {
+        startMicroCameraTransition(clean);
+      }
+
+      uiState._dirtyVisibleSet = true;
+      return "micro";
     }
 
-    // micro 侵入時だけ macro カメラを保存
-    if (prevMode !== "micro" && cameraEngine?.getState) {
-      try { lastMacroCameraState = cameraEngine.getState(); } catch (_e) {}
-    }
+    // macro 側の no-op は「既に macro かつ microState が null」のときだけ
+    if (prevMode === "macro" && uiState.microState == null) return "macro";
 
-    uiState.mode = "micro";      // ← ここで初めて state 更新
-    selectionController?.select?.(clean.uuid, clean.kind);
-
-    // ★ microState を確定（micro の可視集合 / microFX / カメラの入力になる）
-    uiState.microState = buildMicroState(clean);
-
-    // ★ micro カメラへ遷移（microController優先 → fallback）
-    startMicroCameraTransition(clean);
-
+    uiState.mode = "macro";
+    uiState.microState = null;
     uiState._dirtyVisibleSet = true;
-
-    // ★ここ：micro 侵入/フォーカス変更でカメラをフォーカスへ寄せる
-    // - recomputeVisibleSet は純関数に保つ（ここで副作用起動）
-    _startMicroCameraTransition(clean);
-
-    return "micro";
+    return "macro";
   }
-
-  // macro 側の no-op は「既に macro かつ microState null」のときだけにしとくのが安全
-  if (prevMode === "macro" && uiState.microState == null) return "macro";
-
-  uiState.mode = "macro";
-  uiState.microState = null;
-  uiState._dirtyVisibleSet = true;
-  return "macro";
-}
-
 
   function get() {
     return normalizeMode(uiState?.mode);
@@ -341,12 +372,14 @@ function set(mode, uuid, kind) {
     const prev = normalizeMode(uiState?.mode);
     const next = set("macro");
 
-    // micro→macro のときだけカメラ復帰（失敗しても落ちない）
+    // micro→macro のときだけカメラ復帰（失敗しても落とさない）
     if (prev === "micro" && cameraTransition?.start && lastMacroCameraState) {
-      try { cameraTransition.start(lastMacroCameraState); } catch (_e) {}
+      try {
+        cameraTransition.start(lastMacroCameraState);
+      } catch (_e) {}
     }
 
-    // macro の selection ハイライトを同期（reselectしない）
+    // macro の selection ハイライトを同期（reselect しない）
     selectionController?.refreshHighlight?.();
 
     return next;
@@ -356,15 +389,13 @@ function set(mode, uuid, kind) {
     return enterMacro();
   }
 
-function focus(uuid, kind) {
-  // 仕様：focus(null/""/blank) は no-op（selection へフォールバックしない）
-  if (uuid == null) return get();
-  if (typeof uuid !== "string") return get();
-  const u = uuid.trim();
-  if (!u) return get();
-  return set("micro", u, kind);
-}
-
+  function focus(uuid, kind) {
+    // 仕様：focus(null/""/blank) は no-op
+    if (typeof uuid !== "string") return get();
+    const u = uuid.trim();
+    if (!u) return get();
+    return set("micro", u, kind);
+  }
 
   return {
     set,

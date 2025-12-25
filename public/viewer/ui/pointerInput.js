@@ -95,7 +95,9 @@ export class PointerInput {
     const cam = this._refreshCamera();
     if (cam && typeof cam[method] === "function") {
       cam[method](...args);
+      return true;
     }
+    return false;
   }
 
   // pan スケール計算用に「今の cameraState」を安全に取得する
@@ -168,13 +170,17 @@ export class PointerInput {
       const camState = this.getCameraState();
       const distance = camState && typeof camState.distance === 'number' ? camState.distance : 1;
       const panScale = distance * PAN_SPEED;
-      this.dispatch('pan', dx * panScale, dy * panScale);
+      if (!this.dispatch('panDelta', dx * panScale, dy * panScale)) {
+        this.dispatch('pan', dx * panScale, dy * panScale);
+      }
     } else {
       const { dTheta, dPhi } = mapDragToOrbitDelta(dx, dy, {
         theta: ROTATE_SPEED,
         phi: ROTATE_SPEED,
       });
-      this.dispatch('rotate', dTheta, dPhi);
+      if (!this.dispatch('rotateDelta', dTheta, dPhi)) {
+        this.dispatch('rotate', dTheta, dPhi);
+      }
     }
   }
 
@@ -201,6 +207,8 @@ export class PointerInput {
     // ホイール操作が入った時点で自動カメラを停止
     this.stopAutoCamera();
 
-    this.dispatch('zoom', delta);
+    if (!this.dispatch('zoomDelta', delta)) {
+      this.dispatch('zoom', delta);
+    }
   }
 }

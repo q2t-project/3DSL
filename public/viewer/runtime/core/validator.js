@@ -19,7 +19,7 @@ const schemaInfo = {
   version: null,  // "1.0.0" など
   major: null,    // 1 など
 };
- 
+
 
 function parseSemverMajor(v) {
   if (typeof v !== "string") return null;

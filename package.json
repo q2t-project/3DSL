@@ -30,7 +30,9 @@
     "check:viewer:ports-conformance": "node public/viewer/scripts/check-ports-conformance.mjs",
     "check:viewer:generated-clean": "node public/viewer/scripts/check-generated-clean.mjs",
     "check:viewer:ssot": "npm run check:viewer:forbidden-imports && npm run check:viewer:single-writer && npm run check:viewer:ports-conformance && npm run check:viewer:generated-clean",
-    "astro": "astro"
+    "astro": "astro",
+    "check:host:asset-paths": "node scripts/check-host-asset-paths.mjs",
+    "check:ssot": "npm run check:viewer:ssot && npm run check:host:asset-paths"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.17",

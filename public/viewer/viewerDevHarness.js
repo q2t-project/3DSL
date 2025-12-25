@@ -243,7 +243,7 @@ function showFatalError(kind, message) {
     elHud.textContent = `ERROR: ${kind}`;
   }
 
-  // hub の stop/破棄は shutdown() に任せる（ここで null にせん）
+  // hub の stop/破棄は shutdown() に任せる（ここで null にしない）
 }
 
 function classifyBootstrapError(err) {
@@ -367,7 +367,7 @@ async function boot() {
   console.error("[viewer-dev] boot failed:", err);
     const { kind, message } = classifyBootstrapError(err);
     showFatalError(kind, message);
-    // 画面のエラー表示は残したいからパネルは消さへん
+    // 画面のエラー表示は残したいからパネルは消さない
     shutdown({ clearPanels: false });
     return;
   }

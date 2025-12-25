@@ -194,7 +194,7 @@ snapToAxis(axis)
 setFOV(value)
 setState(partial)
 getState()
-focusOn(uuid) ← viewerHub 専用
+focusOn(target:[x,y,z] | uuid, opts?) ← viewerHub 専用
 
 mode
 set(mode,uuid)

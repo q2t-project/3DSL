@@ -46,7 +46,7 @@ export function attachUiProfile(hub, opts) {
     log: logOpt = null,
   } = opts;
 
-  // devビルド以外では debug を殺す（事故防止）
+  // devビルド以外では debug を無効化する（事故防止）
   const DEBUG = DEV && !!debug;
 
   // 必須 opts を先に確定（contract 以前）
@@ -210,8 +210,7 @@ export function attachUiProfile(hub, opts) {
   if (NEED_CONTROLS(profile)) {
     // UI は hub の公開 API を優先（core 直叩きは最後の保険）
     const vs = hub?.viewerSettings || null;
-    const filtersApi = hub?.filters || null;
-
+    const filtersApi = hf?.getFilters?.() || null;
     // filter
     if (filtersApi) {
       const f = filtersApi;
@@ -225,31 +224,73 @@ export function attachUiProfile(hub, opts) {
         btn.classList.toggle('filter-off', !enabled);
       };
 
-      const isEnabled = (s, kind) => {
-        const t = s?.types && typeof s.types === 'object' ? s.types : null;
-        const v = (t && kind in t) ? t[kind] : s?.[kind];
-        return v !== false;
+      // Committed state (frame-boundary). Prefer uiState.filters.types, then f.get().
+      const readCommitted = () => {
+        const st = hf?.getUiState?.() ?? null;
+        const types = st?.filters?.types && typeof st.filters.types === 'object' ? st.filters.types : null;
+        if (types) {
+          return {
+            lines: types.lines !== false,
+            points: types.points !== false,
+            aux: types.aux !== false,
+          };
+        }
+
+        const s = f.get?.() || {};
+        const t = s?.types && typeof s.types === 'object' ? s.types : s;
+        return {
+          lines: t.lines !== false,
+          points: t.points !== false,
+          aux: t.aux !== false,
+        };
       };
 
+      // Pending (optimistic) state to avoid 1-click lag and rapid-click mismatch.
+      const pending = { lines: null, points: null, aux: null };
+
+      const effective = () => {
+        const c = readCommitted();
+        return {
+          lines: pending.lines ?? c.lines,
+          points: pending.points ?? c.points,
+          aux: pending.aux ?? c.aux,
+        };
+      };
+
+      let lastKey = null;
       const sync = () => {
-        const s = f.get?.() || {};
-        setBtn(btnLines, isEnabled(s, 'lines'));
-        setBtn(btnPoints, isEnabled(s, 'points'));
-        setBtn(btnAux, isEnabled(s, 'aux'));
+        const committed = readCommitted();
+        // clear pending when committed catches up
+        for (const k of ['lines', 'points', 'aux']) {
+          if (pending[k] != null && pending[k] === committed[k]) pending[k] = null;
+        }
+
+        const v = effective();
+        const key = `${v.lines ? 1 : 0}${v.points ? 1 : 0}${v.aux ? 1 : 0}`;
+        if (key === lastKey) return;
+        lastKey = key;
+        setBtn(btnLines, v.lines);
+        setBtn(btnPoints, v.points);
+        setBtn(btnAux, v.aux);
       };
 
-      const toggle = (type, btn) => {
+      const toggleKind = (kind, btn) => {
         if (!btn) return;
-        const s = f.get?.() || {};
-        const next = !isEnabled(s, type);
-        f.setTypeEnabled?.(type, next);
-        sync();
+        const v = effective();
+        const cur = !!v[kind];
+        const next = !cur;
+        pending[kind] = next;
+        f.setTypeEnabled?.(kind, next);
+        setBtn(btn, next);
+        lastKey = null;
       };
 
-      on(btnLines, 'click', () => toggle('lines', btnLines));
-      on(btnPoints, 'click', () => toggle('points', btnPoints));
-      on(btnAux, 'click', () => toggle('aux', btnAux));
+      on(btnLines, 'click', () => toggleKind('lines', btnLines));
+      on(btnPoints, 'click', () => toggleKind('points', btnPoints));
+      on(btnAux, 'click', () => toggleKind('aux', btnAux));
+
       sync();
+      rafLoop(sync);
     }
 
     // viewerSettings: lineWidthMode / microProfile

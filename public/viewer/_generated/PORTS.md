@@ -23,7 +23,7 @@
 
 | id | surface | stability |
 |---|---|---|
-| hub.renderer.pick | renderer.pickObjectAt(screenX, screenY, options?) -> hit \| null | stable |
+| hub.renderer.pick | renderer.pickObjectAt(ndcX, ndcY) -> hit \| null (hit={uuid, kind, distance, point:[x,y,z]}) | stable |
 | hub.renderer.render | renderer.render(frameContext) -> void | stable |
 
 ### ui -> hub
@@ -33,7 +33,7 @@
 | hub.core.facade | hub.core.* (facade: frame/selection/camera/mode/micro/filters/runtime + recomputeVisibleSet) | stable |
 | hub.dispose | hub.dispose() -> void | stable |
 | hub.enqueueCommand | hub.enqueueCommand(cmd:object) -> boolean | experimental |
-| hub.pickObjectAt | hub.pickObjectAt(screenX, screenY, options?) -> {kind, uuid} \| null | stable |
+| hub.pickObjectAt | hub.pickObjectAt(ndcX, ndcY) -> hit \| null (hit={uuid, kind, distance, point:[x,y,z]}) | stable |
 | hub.resize | hub.resize(width, height, dpr?) -> void | stable |
 | hub.start | hub.start() -> void | stable |
 | hub.stop | hub.stop() -> void | stable |

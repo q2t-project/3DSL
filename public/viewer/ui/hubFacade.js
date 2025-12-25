@@ -30,6 +30,7 @@ const _cameraProxyCache = new WeakMap();
 const _frameProxyCache = new WeakMap();
 const _modeProxyCache = new WeakMap();
 const _selectionProxyCache = new WeakMap();
+const _filtersProxyCache = new WeakMap();
 
 function _bindOrValue(target, prop) {
   const v = target[prop];
@@ -60,9 +61,9 @@ function wrapCamera(cam) {
             return target.updateAutoOrbitSettings?.(opts);
           };
         case "setViewPreset":
-          return (index) => {
-            if (enqueue({ type: "camera.setViewPreset", index })) return;
-            return target.setViewPreset?.(index);
+          return (index, opts) => {
+            if (enqueue({ type: "camera.setViewPreset", index, opts })) return;
+            return target.setViewPreset?.(index, opts);
           };
         case "setViewByName":
           return (name) => {
@@ -70,17 +71,71 @@ function wrapCamera(cam) {
             return target.setViewByName?.(name);
           };
         case "focusOn":
-          return (uuid, kind) => {
-            if (enqueue({ type: "camera.focusOn", uuid, kind })) return;
-            return target.focusOn?.(uuid, kind);
+          return (targetOrUuid, optsOrKind) => {
+            // focusOn(target, opts?)
+            // - target: uuid:string | position:[x,y,z]
+            // Back-compat:
+            // - focusOn(uuid, kind) => focusOn(uuid, { kind })
+            if (Array.isArray(targetOrUuid)) {
+              const position = targetOrUuid;
+              const opts =
+                optsOrKind &&
+                typeof optsOrKind === "object" &&
+                !Array.isArray(optsOrKind)
+                  ? optsOrKind
+                  : {};
+
+              if (
+                enqueue({
+                  type: "camera.focusOn.position",
+                  position,
+                  opts,
+                })
+              )
+                return null;
+
+              return target.focusOn?.(position, opts);
+            }
+
+            if (typeof targetOrUuid === "string") {
+              const uuid = targetOrUuid;
+              const opts =
+                optsOrKind &&
+                typeof optsOrKind === "object" &&
+                !Array.isArray(optsOrKind)
+                  ? optsOrKind
+                  : typeof optsOrKind === "string"
+                    ? { kind: optsOrKind }
+                    : {};
+
+              const kind =
+                opts && typeof opts === "object" ? opts.kind : undefined;
+
+              if (enqueue({ type: "camera.focusOn", uuid, kind })) return { uuid };
+              // core.camera.focusOn は (uuid, {kind}) 形式を想定
+              return target.focusOn?.(uuid, opts);
+            }
+
+            // Unknown shape: try raw call
+            return target.focusOn?.(targetOrUuid, optsOrKind);
+          };
+        case "setState":
+          // setState is internal-only (SSOT boundary).
+          return () => {
+            throw new Error("[hubFacade.camera] setState is internal; use setViewPreset/setViewByName/focusOn");
           };
         default:
           return _bindOrValue(target, prop);
       }
     },
-    set(target, prop, value) {
-      target[prop] = value;
-      return true;
+    set(_target, prop, _value) {
+      throw new Error("[hubFacade] mutation is prohibited: " + String(prop));
+    },
+    defineProperty() {
+      throw new Error("[hubFacade] mutation is prohibited");
+    },
+    deleteProperty() {
+      throw new Error("[hubFacade] mutation is prohibited");
     },
   });
 
@@ -98,36 +153,41 @@ function wrapFrameApi(f) {
       switch (prop) {
         case "next":
           return () => {
-            if (enqueue({ type: "frame.next" })) return;
+            if (enqueue({ type: "frame.next" })) return null;
             return target.next?.();
           };
         case "prev":
           return () => {
-            if (enqueue({ type: "frame.prev" })) return;
+            if (enqueue({ type: "frame.prev" })) return null;
             return target.prev?.();
           };
         case "setActive":
           return (frame) => {
-            if (enqueue({ type: "frame.setActive", frame })) return;
+            if (enqueue({ type: "frame.setActive", frame })) return null;
             return target.setActive?.(frame);
           };
         case "startPlayback":
           return () => {
-            if (enqueue({ type: "frame.startPlayback" })) return;
+            if (enqueue({ type: "frame.startPlayback" })) return null;
             return target.startPlayback?.();
           };
         case "stopPlayback":
           return () => {
-            if (enqueue({ type: "frame.stopPlayback" })) return;
+            if (enqueue({ type: "frame.stopPlayback" })) return null;
             return target.stopPlayback?.();
           };
         default:
           return _bindOrValue(target, prop);
       }
     },
-    set(target, prop, value) {
-      target[prop] = value;
-      return true;
+    set(_target, prop, _value) {
+      throw new Error("[hubFacade] mutation is prohibited: " + String(prop));
+    },
+    defineProperty() {
+      throw new Error("[hubFacade] mutation is prohibited");
+    },
+    deleteProperty() {
+      throw new Error("[hubFacade] mutation is prohibited");
     },
   });
 
@@ -144,15 +204,20 @@ function wrapMode(m) {
     get(target, prop) {
       if (prop === "set") {
         return (mode, focusUuid, kind) => {
-          if (enqueue({ type: "mode.set", mode, focusUuid, kind })) return;
+          if (enqueue({ type: "mode.set", mode, focusUuid, kind })) return null;
           return target.set?.(mode, focusUuid, kind);
         };
       }
       return _bindOrValue(target, prop);
     },
-    set(target, prop, value) {
-      target[prop] = value;
-      return true;
+    set(_target, prop, _value) {
+      throw new Error("[hubFacade] mutation is prohibited: " + String(prop));
+    },
+    defineProperty() {
+      throw new Error("[hubFacade] mutation is prohibited");
+    },
+    deleteProperty() {
+      throw new Error("[hubFacade] mutation is prohibited");
     },
   });
 
@@ -170,25 +235,62 @@ function wrapSelection(s) {
       switch (prop) {
         case "select":
           return (uuid, kind) => {
-            if (enqueue({ type: "selection.select", uuid, kind })) return;
+            if (enqueue({ type: "selection.select", uuid, kind })) return uuid ? { uuid } : null;
             return target.select?.(uuid, kind);
           };
         case "clear":
           return () => {
-            if (enqueue({ type: "selection.clear" })) return;
+            if (enqueue({ type: "selection.clear" })) return null;
             return target.clear?.();
           };
         default:
           return _bindOrValue(target, prop);
       }
     },
-    set(target, prop, value) {
-      target[prop] = value;
-      return true;
+    set(_target, prop, _value) {
+      throw new Error("[hubFacade] mutation is prohibited: " + String(prop));
+    },
+    defineProperty() {
+      throw new Error("[hubFacade] mutation is prohibited");
+    },
+    deleteProperty() {
+      throw new Error("[hubFacade] mutation is prohibited");
     },
   });
 
   _selectionProxyCache.set(s, proxy);
+  return proxy;
+}
+
+function wrapFilters(f) {
+  if (!f || typeof f !== "object") return null;
+  const cached = _filtersProxyCache.get(f);
+  if (cached) return cached;
+
+  const proxy = new Proxy(f, {
+    get(target, prop) {
+      switch (prop) {
+        case "setTypeEnabled":
+          return (kind, enabled) => {
+            if (enqueue({ type: "filters.setTypeEnabled", kind, enabled: !!enabled })) return null;
+            return target.setTypeEnabled?.(kind, !!enabled);
+          };
+        default:
+          return _bindOrValue(target, prop);
+      }
+    },
+    set(_target, prop, _value) {
+      throw new Error("[hubFacade] mutation is prohibited: " + String(prop));
+    },
+    defineProperty() {
+      throw new Error("[hubFacade] mutation is prohibited");
+    },
+    deleteProperty() {
+      throw new Error("[hubFacade] mutation is prohibited");
+    },
+  });
+
+  _filtersProxyCache.set(f, proxy);
   return proxy;
 }
 
@@ -222,6 +324,11 @@ function getFrameApi() {
   else raw = f;
 
   return wrapFrameApi(raw);
+}
+
+function getFilters() {
+  const f = core.filters ?? null;
+  return wrapFilters(f);
 }
 
 function getStructIndex() {
@@ -274,14 +381,14 @@ const commands = Object.freeze({
   updateAutoOrbitSettings(opts) {
     return getCamera()?.updateAutoOrbitSettings?.(opts);
   },
-  setViewPreset(i) {
-    return getCamera()?.setViewPreset?.(i);
+  setViewPreset(index, opts) {
+    return getCamera()?.setViewPreset?.(index, opts);
   },
   setViewByName(name) {
     return getCamera()?.setViewByName?.(name);
   },
-  focusOn(uuid, kind) {
-    return getCamera()?.focusOn?.(uuid, kind);
+  focusOn(target, optsOrKind) {
+    return getCamera()?.focusOn?.(target, optsOrKind);
   },
   frameNext() {
     return getFrameApi()?.next?.();
@@ -312,6 +419,7 @@ const commands = Object.freeze({
   return Object.freeze({
     getCamera,
     getCameraEngine,
+    getFilters,
     getSelection,
     getMode,
     getFrameApi,

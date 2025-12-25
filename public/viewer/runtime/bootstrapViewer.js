@@ -20,7 +20,7 @@
  *    MODEL 行に埋め込む識別子（URL か "inline" 等のラベル）。
  * @property {ViewerLogger} [logger]
  *    起動ログの出力先。未指定なら console.log にフォールバックしてもよい。
- * 
+ *
  * @property {boolean} [strictValidate]
  *   default: true（AJV + meta compatibility を実行）
  * @property {boolean} [validateRefIntegrity]
@@ -58,7 +58,7 @@ import { createSelectionController } from "./core/selectionController.js";
 import { createUiState } from "./core/uiState.js";
 import { buildUUIDIndex, detectFrameRange } from "./core/structIndex.js";
 import { createVisibilityController } from "./core/visibilityController.js";
-import { createFrameController } from "./core/frameController.js"; 
+import { createFrameController } from "./core/frameController.js";
 import { createViewerSettingsController } from "./core/viewerSettingsController.js";
 import { createRecomputeVisibleSet } from "./core/recomputeVisibleSet.js";
 import { deepFreeze } from "./core/deepFreeze.js";
@@ -697,7 +697,7 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
    (uiState && uiState.cameraState && typeof uiState.cameraState === "object")
      ? uiState.cameraState
      : {};
-  
+
   // modeController は後で代入する（forceMacro の参照を安全に）
   let modeController = null;
 
@@ -820,7 +820,12 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
           configurable: true,
         });
       }
-      console.log("[boot] uiState.__dbgId =", uiState.__dbgId);
+      let _wantDbgIdLog = false;
+      try {
+        const sp = new URLSearchParams(globalThis.location?.search ?? "");
+        _wantDbgIdLog = sp.get("dbgHub") === "1";
+      } catch (_e) {}
+      if (_wantDbgIdLog) console.log("[boot] uiState.__dbgId =", uiState.__dbgId);
     }
   } catch (_e) {}
 
@@ -860,7 +865,7 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   }
   if (typeof core.runtime.isCameraAuto !== "function") {
     core.runtime.isCameraAuto = () => !!core.uiState?.runtime?.isCameraAuto;
-  }  
+  }
 
   const hub = createViewerHub({ core, renderer });
   const wantDevBootLog = options.devBootLog === true;

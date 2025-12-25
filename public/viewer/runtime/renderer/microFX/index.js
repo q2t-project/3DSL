@@ -27,6 +27,7 @@ function resolveDeps(args) {
       getObjectByUuid: a2,
       visibleSet: a3 ?? null,
       camera: a4 ?? null,
+      renderer: null,
       intensity: a5,
     };
   }
@@ -36,11 +37,12 @@ function resolveDeps(args) {
       getObjectByUuid: typeof a2.getObjectByUuid === "function" ? a2.getObjectByUuid : null,
       visibleSet: a2.visibleSet ?? null,
       camera: a2.camera ?? null,
+      renderer: a2.renderer ?? null,
       intensity: a2.intensity,
     };
   }
 
-  return { getObjectByUuid: null, visibleSet: null, camera: null, intensity: undefined };
+  return { getObjectByUuid: null, visibleSet: null, camera: null, renderer: null, intensity: undefined };
 }
 
 function logDebug(...xs) {
@@ -87,7 +89,7 @@ export function clearMicroFX(scene) {
 export function applyMicroFX(scene, microState, ...rest) {
   if (!scene) return;
 
-  const { getObjectByUuid, visibleSet, camera, intensity } = resolveDeps([scene, microState, ...rest]);
+  const { getObjectByUuid, visibleSet, camera, renderer, intensity } = resolveDeps([scene, microState, ...rest]);
   const s = normalizeIntensity(intensity, 1);
 
   if (!microState || s <= 0) {
@@ -104,7 +106,7 @@ export function applyMicroFX(scene, microState, ...rest) {
 
     if (microFXConfig.glow?.enabled !== false) {
       const g = ensureGlow(scene);
-      updateGlow(g, focusPos, camera, s);
+      updateGlow(g, focusPos, camera, renderer, s);
     } else {
       removeGlow(scene);
     }

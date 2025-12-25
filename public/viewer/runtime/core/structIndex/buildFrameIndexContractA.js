@@ -2,11 +2,11 @@
 //
 // Contract A:
 // - frameIndex[kind]: Map<frame:number, Set<uuid>>
-//   -> frames 指定（配列 or 単一 or frame）で「index可能」なやつだけ入れる
+//   -> frames 指定（配列 or 単一 or frame）で「index 可能」な対象だけ入れる
 // - uuidsWithoutFramesByKind[kind]: Set<uuid>
-//   -> 「frameIndexに載せない」やつ全部（frames未指定 / 空配列 / 無効値 / range系 etc）
+//   -> 「frameIndexに載せない」対象をすべて（frames 未指定 / 空配列 / 無効値 / range 系など）
 //
-// これで computeVisibleSet の fast path が range系を落とさへん。
+// これで computeVisibleSet の fast path が range 系を落とさない。
 
 const KINDS = ["points", "lines", "aux"];
 
@@ -53,7 +53,7 @@ export function buildFrameIndexContractA(model, structIndex = {}) {
           set.add(uuid);
         }
       } else {
-        // ★ ここが契約A：range系も含め “非indexed枠” に全部突っ込む
+        // ★ ここが契約A：range 系も含めて「nonIndexed 枠」にまとめて入れる
         structIndex.uuidsWithoutFramesByKind[kind].add(uuid);
       }
     }
@@ -81,7 +81,7 @@ function getUuid(node) {
 
 /**
  * index できるのは「frames指定が “離散フレーム集合” として取れる」場合だけ。
- * range系は index不能扱い（= withoutFrames枠へ）
+ * range 系は index 不可扱い（= withoutFrames枠へ）
  */
 function classifyFrameSpec(node) {
   const app = (node && typeof node === "object" && node.appearance) || {};
@@ -89,7 +89,7 @@ function classifyFrameSpec(node) {
 
   // 1) frames（配列）
   if (Array.isArray(framesRaw)) {
-    // 空配列は「指定無し」扱い（全フレーム表示）→ index不能 → withoutFrames
+    // 空配列は「指定無し」扱い（全フレーム表示）→ index 不可 → withoutFrames
     if (framesRaw.length === 0) return { mode: "nonIndexed" };
 
     const frames = new Set();
@@ -124,7 +124,7 @@ function classifyFrameSpec(node) {
     return { mode: "nonIndexed" };
   }
 
-  // 4) range系（index不能）→ 契約Aでは withoutFrames へ
+  // 4) range 系（index 不可）→ 契約Aでは withoutFrames へ
   const fr =
     app.frame_range ||
     app.frameRange ||

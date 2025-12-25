@@ -101,7 +101,7 @@ ports:
   - id: "hub.pickObjectAt"
     caller: "ui"
     callee: "hub"
-    surface: "hub.pickObjectAt(screenX, screenY, options?) -> {kind, uuid} | null"
+    surface: "hub.pickObjectAt(ndcX, ndcY) -> hit | null (hit={uuid, kind, distance, point:[x,y,z]})"
     stability: "stable"
 
   - id: "hub.core.facade"
@@ -143,7 +143,7 @@ ports:
   - id: "hub.renderer.pick"
     caller: "hub"
     callee: "renderer"
-    surface: "renderer.pickObjectAt(screenX, screenY, options?) -> hit | null"
+    surface: "renderer.pickObjectAt(ndcX, ndcY) -> hit | null (hit={uuid, kind, distance, point:[x,y,z]})"
     stability: "stable"
 
 # 互換ラッパ（compat）は ports に含めない。deprecated として隔離する。
@@ -175,6 +175,11 @@ checks:
     command: "node scripts/check-generated-clean.mjs"
     enforced: true
 
+  - id: "host-asset-paths"
+    purpose: "host/ の viewer 公開資産参照が /viewer/ 配下の絶対参照に統一されていること"
+    command: "node scripts/check-host-asset-paths.mjs"
+    enforced: true
+
 docs:
   human_specs:
     - id: "ssot-policy"
@@ -188,6 +193,10 @@ docs:
     - id: "dom-contract"
       path: "/viewer/viewer_dom_contract.md"
       role: "DOM skeleton contract (human)"
+      status: "authoritative"
+    - id: "host-asset-policy"
+      path: "/viewer/host/SSOT_HOST_ASSET_POLICY.md"
+      role: "Astro host integration + asset path SSOT (human)"
       status: "authoritative"
     - id: "api-note"
       path: "/viewer/API#U6574#U7406.md"

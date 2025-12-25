@@ -39,8 +39,6 @@ function debugRenderer(...args) {
   console.log(...args);
 }
 
-
-
 function warnRenderer(...args) {
   if (!DEBUG_RENDERER) return;
   console.warn(...args);
@@ -88,7 +86,7 @@ function pickWebGLOptions(renderSettings) {
 
 function attachContextEvents(canvas, ctx, label = "viewer") {
   const onLost = (e) => {
-    // preventDefault しないと restore されへん
+    // preventDefault しないと復帰できない
     try { e.preventDefault(); } catch (_e) {}
     warnRenderer(`[${label}] webglcontextlost`, e);
   };
@@ -126,7 +124,7 @@ export function disposeRendererContext(target) {
      try { r.dispose?.(); } catch (_e) {}
     // NOTE:
     // forceContextLoss() は WEBGL_lose_context を叩く＝「ページが意図的に context loss を起こした」扱いになり、
-    // 回数が多いと Chrome が新規 WebGL 作成をブロックすることがある（今回の "blocked" に直結しやすい）
+    // 作成回数が多いと、Chrome が新規 WebGL コンテキストの作成をブロックすることがある（"blocked" の主因になりやすい）
    }
 
   ctx.renderer = null;
@@ -234,7 +232,7 @@ function maybeForceContextLoss(renderer, enabled) {
  export function createRendererContext(canvas, viewerSettingsOrRenderSettings = {}, opts = {}) {
   if (!canvas) throw new Error("[renderer] canvas is required");
 
-  // 同一canvasで既に生きてたら必ず殺す（Phase5/HMR対策の本丸）
+  // 同一canvasで既に生きてたら必ず破棄する（Phase5/HMR対策の本丸）
   const prev = _canvasContexts.get(canvas);
   if (prev) disposeRendererContext(prev);
 
@@ -267,7 +265,7 @@ function maybeForceContextLoss(renderer, enabled) {
   try {
     renderer = new THREE.WebGLRenderer({ canvas, ...webglOpts });
   } catch (e) {
-    // ここで作れへん＝Chromeにブロックされてる可能性大
+    // ここで作成できない場合、Chrome にブロックされている可能性が高い
     try { ctx.dispose(); } catch (_e) {}
     throw e;
   }
@@ -383,6 +381,14 @@ function maybeForceContextLoss(renderer, enabled) {
 
   // selectionHighlight に渡す bundles（labels は今は未接続なら null のままでOK）
   const bundles = { points: maps.points, lines: maps.lines, aux: maps.aux, labels: null };
+
+  // microFX/highlight 用：UUID から描画 Object3D を引く。
+  // renderer 側で生成した points/lines/aux の描画物は maps.* に登録される前提。
+  function getObjectByUuid(uuid) {
+    if (!uuid) return null;
+    const u = String(uuid);
+    return maps.points.get(u) || maps.lines.get(u) || maps.aux.get(u) || null;
+  }
   // microFX 中は selection を無効化（microFX > selection、fade-out 中も抑止）
   let _microWasActive = false;
   let _suppressSelectionUntil = 0; // performance.now() 基準
@@ -596,7 +602,7 @@ function maybeForceContextLoss(renderer, enabled) {
     // ---- scale（点が小さすぎて見えん問題を避ける）----
     let sceneRadius = Number(sceneMetricsCache?.radius);
     if (!Number.isFinite(sceneRadius) || sceneRadius <= 0) sceneRadius = null;
-    
+
     // points: small spheres (最小実装)
     if (pts.length) {
       debugRenderer("[renderer] point[0] uuid candidates", {
@@ -628,7 +634,6 @@ function maybeForceContextLoss(renderer, enabled) {
       maps.points.set(uuid, mesh);
       addPickTarget(mesh);
     }
-
 
     // lines: LineSegments(2pts)
     if (lns.length) {
@@ -813,7 +818,7 @@ function maybeForceContextLoss(renderer, enabled) {
       aux: maps.aux.size,
     });
 
-    // 線のみ等で positions から決められへん場合の最終保険
+    // 線のみ等で positions から決められない場合の最終手段
     if (!sceneMetricsCache) sceneMetricsCache = computeSceneMetricsFromGroups(groups);
 
     // world axes が表示中なら最新 metrics でスケール更新
@@ -1000,16 +1005,22 @@ function maybeForceContextLoss(renderer, enabled) {
     // microFX 有効中＋fade-out 中は、lineEffects が上書きせんよう止める
     _suppressLineEffects = !!microState || suppressed;
 
-    const indexMaps = {
-      points: maps.points,
-      lines: maps.lines,
-      aux: maps.aux,
-      labels: null,
-      camera,
-      microFXProfile: _microFXProfile, // microFX 側が拾えるように渡す（未対応でも害なし）
-    };
+    // NOTE:
+    // microFX は renderer 側の Object3D と camera が必要。
+    // 以前の旧 signature（getObjectByUuid, visibleSet, camera, intensity）とも互換のある
+    // deps-object 形式で渡す。
+    const intensity = Number.isFinite(Number(microFXConfig?.profileFactor))
+      ? Number(microFXConfig.profileFactor)
+      : 1;
+
     try {
-      applyMicroFXImpl(scene, microState || null, camState || null, indexMaps, visibleSet || null);
+      applyMicroFXImpl(scene, microState || null, {
+        getObjectByUuid,
+        visibleSet: visibleSet || null,
+        camera,
+        renderer,
+        intensity,
+      });
     } catch (_e) {}
 
     // fade-out 終了後に microFX の残骸を確実に掃除（microFX 実装が clear しない場合の安全弁）

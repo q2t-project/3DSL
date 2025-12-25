@@ -268,7 +268,8 @@ export function applyHighlight(
 
   const isVisible = buildVisiblePredicate(visibleSet);
 
-  const { focusUuid, relatedUuids } = microState;
+  const { focusUuid, relatedUuids, focusKind } = microState;
+  const focusKindStr = typeof focusKind === "string" ? focusKind : null;
 
   const ids = [];
   if (focusUuid) ids.push(focusUuid);
@@ -298,6 +299,13 @@ export function applyHighlight(
 
     const isFocus = focusSet.has(uuid);
     const isRelated = relatedSet.has(uuid);
+
+    // aux を focus したときは、grid 等の補助線が「全面発光」して見た目が荒れる。
+    // focus の aux は marker/bounds/axes だけで十分なので、uuid overlay はスキップする。
+    // （related は従来通り処理する）
+    if (isFocus && focusKindStr === "aux") {
+      continue;
+    }
 
     // 役割ごとの色を決定（なければフォールバック）
     const color =
@@ -363,7 +371,7 @@ export function applyHighlight(
     // ★ intensity を掛けて最終不透明度にする
     material.opacity = clamp01(opacity * s);
 
-    // opacity がゼロに落ちたら生成しても見えへんので、そのまま続行
+    // opacity がゼロに落ちたら生成しても見えないので、そのまま続行する
     let clone;
     if (src.isLine) {
       // 対応ブラウザではちょっと太く見えるかも（効かなくても害はない）
@@ -386,19 +394,22 @@ export function applyHighlight(
 
     group.add(clone);
 
-    // 線がフォーカス対象かつ effect_type="glow" のときだけ、
-    // 線全体に沿った多層チューブグローを追加（L2 入口）
-    let wantsLineGlow = false;
-    if (src.isLine) {
+    // focus line の強調表示として、線全体に沿った多層チューブグローを追加。
+    // 以前は effect_type="glow" のみに限定していたが、
+    // WebGL の linewidth 制約で「太さが効かない」環境では見え方が弱くなるため、
+    // デフォルトは focus line なら常に有効にする。
+    // 旧挙動に戻したい場合は lineGlow.requireEffectTypeGlow=true を使う。
+    let wantsLineGlow = true;
+    if (src.isLine && lineGlowCfg?.requireEffectTypeGlow === true) {
       const ud = src.userData || {};
       const eff = ud.effect;
-      const effType =
-        ud.effectType ||
-        (eff && (eff.effect_type || eff.type));
+      const effType = ud.effectType || (eff && (eff.effect_type || eff.type));
       wantsLineGlow = effType === "glow";
     }
 
-    if (src.isLine && isFocus && lineGlowEnabled && wantsLineGlow) {
+    // lineGlow（Tube）は「線を focus したとき」だけ。
+    // aux の grid（LineSegments）を focus した場合に太いチューブが出ると見た目が汚くなる。
+    if (src.isLine && isFocus && focusKindStr === "lines" && lineGlowEnabled && wantsLineGlow) {
       // focusUuid + geomKey でキャッシュ（TubeGeometry の再生成を抑止）
       const geomKey = _makeLineGlowGeomKey(src, lineGlowCfg);
       const cacheHit =
@@ -441,6 +452,96 @@ export function applyHighlight(
   }
 }
 
+
+let glowLine = null;
+let glowMat = null;
+let glowSrcUuid = null;
+
+function disposeGlowLine(scene) {
+  if (!glowLine) return;
+  scene.remove(glowLine);
+  glowLine.geometry?.dispose?.();
+  glowMat?.dispose?.();
+  glowLine = null;
+  glowMat = null;
+  glowSrcUuid = null;
+}
+
+function findLineObject(root) {
+  let found = null;
+  root.traverse?.((o) => {
+    // Line2 / LineSegments2 / THREE.Line 系を拾う
+    if (o && (o.isLine2 || o.isLineSegments2 || o.isLine || o.type?.includes("Line"))) {
+      found = o;
+    }
+  });
+  return found;
+}
+
+export function updateHighlight(scene, microState, deps) {
+  const { focusUuid, focusKind } = microState;
+  const cfg = microFXConfig?.highlight?.lineGlow;
+
+  // lines 以外なら消す
+  if (!cfg?.enabled || focusKind !== "lines" || !focusUuid) {
+    disposeGlowLine(scene);
+    return;
+  }
+
+  const srcRoot = deps.getObjectByUuid?.(focusUuid);
+  const src = srcRoot ? findLineObject(srcRoot) : null;
+  if (!src || !src.geometry || !src.material) {
+    disposeGlowLine(scene);
+    return;
+  }
+
+  // 初回 or 対象が変わったら作り直し
+  if (!glowLine || glowSrcUuid !== focusUuid) {
+    disposeGlowLine(scene);
+
+    // material clone（Additive発光）
+    glowMat = src.material.clone();
+    if (glowMat.color) glowMat.color = new THREE.Color(cfg.color ?? 0xffffff);
+    glowMat.transparent = true;
+    glowMat.opacity = cfg.opacity ?? 0.35;
+    glowMat.depthWrite = false;
+    glowMat.depthTest = cfg.depthTest ?? false;
+    glowMat.blending = THREE.AdditiveBlending;
+
+    // LineMaterial 系は linewidth/resolution が効く
+    if ("linewidth" in glowMat) {
+      const base = (src.material.linewidth ?? glowMat.linewidth ?? 1);
+      glowMat.linewidth = base * (cfg.widthFactor ?? 3.0);
+    }
+    if (glowMat.resolution && deps.renderer?.domElement) {
+      const c = deps.renderer.domElement;
+      glowMat.resolution.set(c.width, c.height);
+    }
+
+    // geometry は clone（元の更新に引っ張られないように）
+    const g = src.geometry.clone();
+
+    // できるだけ同じクラスで作る（Line2/LineSegments2 を維持）
+    glowLine = new src.constructor(g, glowMat);
+    glowLine.renderOrder = 999;
+    glowLine.frustumCulled = false;
+
+    scene.add(glowLine);
+    glowSrcUuid = focusUuid;
+  }
+
+  // 毎フレーム、transform と resolution を追従
+  glowLine.position.copy(src.getWorldPosition(new THREE.Vector3()));
+  glowLine.quaternion.copy(src.getWorldQuaternion(new THREE.Quaternion()));
+  glowLine.scale.copy(src.getWorldScale(new THREE.Vector3()));
+
+  if (glowMat?.resolution && deps.renderer?.domElement) {
+    const c = deps.renderer.domElement;
+    glowMat.resolution.set(c.width, c.height);
+  }
+}
+
+
 export function clearHighlight(scene, opts = {}) {
   if (!highlightGroup) return;
 
@@ -452,7 +553,7 @@ export function clearHighlight(scene, opts = {}) {
 
   // 毎フレーム作り直すマテリアル／チューブ用 geometry を破棄してリーク防止。
   for (const child of highlightGroup.children) {
-    // cached glow は毎フレーム dispose せん（フルリセット時は上で捨ててる）
+    // cached glow は毎フレーム dispose しない（フルリセット時は上で捨ててる）
     if (child?.userData?._microFX_cachedLineGlow) continue;
     // チューブグロー（自前 geometry）のみ dispose
     if (

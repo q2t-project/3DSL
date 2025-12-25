@@ -66,7 +66,7 @@ function getViewportHeightPx(renderer) {
   const el = renderer?.domElement;
   const h = el && Number.isFinite(el.clientHeight) ? el.clientHeight : 0;
   if (h > 0) return h;
-  // 最後の保険（microFX は renderer 持ってるはずやけど）
+  // 最終手段（microFX は renderer を持っているはずだが）
   return getViewportHeightPxFallback();
 }
 

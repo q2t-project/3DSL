@@ -1,5 +1,6 @@
 // viewer/ui/keyboardInput.js
 import { mapArrowKeyToOrbitDelta } from './orbitMapping.js';
+import { createHubFacade } from './hubFacade.js';
 
 const DEBUG_KEYBOARD = false;
 
@@ -12,7 +13,7 @@ function stepViewPresetIndex(current, dir) {
   if (!Number.isFinite(i)) i = 0;
   i = Math.floor(i);
 
-  const d = (dir ?? 1);          // 0 を生かす
+  const d = dir ?? 1; // 0 を保持する
   let next = i + d;
 
   if (VIEW_PRESET_COUNT > 0) {
@@ -67,8 +68,9 @@ export class KeyboardInput {
     this.target.removeEventListener('keydown', this.onKeyDown);
     this.target = null;
     this.hub = null;
+    this.hf = null;
   }
-  // AutoOrbit が走っていたら止める共通ヘルパ
+  // AutoOrbit が有効な場合に停止する共通ヘルパ
   stopAutoCamera() {
     const hf = this.hf;
     const cam = hf?.getCamera?.() ?? null;
@@ -182,21 +184,23 @@ export class KeyboardInput {
     // -----------------------------
     // カメラ Zoom（+ / -）
     // -----------------------------
-    if (camera && typeof camera.zoom === 'function') {
+    if (camera && (typeof camera.zoomDelta === 'function' || typeof camera.zoom === 'function')) {
       const ZOOM_STEP = 0.1;
 
       const isPlus = key === '+' || (key === '=' && ev.shiftKey) || code === 'NumpadAdd';
       if (isPlus) {
         ev.preventDefault();
         this.stopAutoCamera();
-        camera.zoom(-ZOOM_STEP);
+        if (typeof camera.zoomDelta === 'function') camera.zoomDelta(-ZOOM_STEP);
+        else camera.zoom(-ZOOM_STEP);
         return;
       }
       const isMinus = key === '-' || (key === '_' && ev.shiftKey) || code === 'NumpadSubtract';
       if (isMinus) {
         ev.preventDefault();
         this.stopAutoCamera();
-        camera.zoom(ZOOM_STEP);
+        if (typeof camera.zoomDelta === 'function') camera.zoomDelta(ZOOM_STEP);
+        else camera.zoom(ZOOM_STEP);
         return;
       }
     }
@@ -214,7 +218,9 @@ export class KeyboardInput {
     // -----------------------------
     // カメラ Orbit（矢印キー）
     // -----------------------------
-    if (!camera || typeof camera.rotate !== 'function') {
+    const canRotateDelta = !!(camera && typeof camera.rotateDelta === 'function');
+    const canRotate = !!(camera && typeof camera.rotate === 'function');
+    if (!canRotateDelta && !canRotate) {
       return;
     }
 
@@ -226,7 +232,8 @@ export class KeyboardInput {
     if (dTheta !== 0 || dPhi !== 0) {
       ev.preventDefault();
       this.stopAutoCamera();
-      camera.rotate(dTheta, dPhi);
+      if (canRotateDelta) camera.rotateDelta(dTheta, dPhi);
+      else camera.rotate(dTheta, dPhi);
       return;
     }
     return;

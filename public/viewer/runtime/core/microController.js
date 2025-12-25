@@ -49,8 +49,6 @@ function debugMicro(...args) {
   console.log(...args);
 }
 
-debugMicro("[micro] microController loaded v2");
-
 function sanitizeVec3(raw) {
   if (Array.isArray(raw) && raw.length >= 3) {
     const x = Number(raw[0]);
@@ -67,7 +65,7 @@ function sanitizeVec3(raw) {
     if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) return null;
     return [x, y, z];
   }
- 
+
   return null;
 }
 
@@ -84,29 +82,30 @@ function getItemByUuid(indices, uuid) {
 }
 
 // 3DSS ノードから position を抜き出して Vec3 に正規化
- function getNodePositionFromItem(node) {
-   if (!node || typeof node !== "object") return null;
+function getNodePositionFromItem(node) {
+  if (!node || typeof node !== "object") return null;
 
-  // geometry.position（現行データがここに居るなら拾う）
+  // geometry.position（現行データがここにあるなら拾う）
   if (node.geometry && node.geometry.position != null) {
     const v = sanitizeVec3(node.geometry.position);
     if (v) return v;
   }
 
-   // appearance.position 優先
-   if (Array.isArray(node?.appearance?.position)) {
-     const v = sanitizeVec3(node.appearance.position);
-     if (v) return v;
-   }
- 
-   // 古いフィールド用のフォールバック（あれば）
-   if (Array.isArray(node.position)) {
-     const v = sanitizeVec3(node.position);
-     if (v) return v;
-   }
- 
-   return null;
- }
+  // appearance.position を優先
+  if (Array.isArray(node?.appearance?.position)) {
+    const v = sanitizeVec3(node.appearance.position);
+    if (v) return v;
+  }
+
+  // 旧フィールドのフォールバック（存在する場合）
+  if (Array.isArray(node.position)) {
+    const v = sanitizeVec3(node.position);
+    if (v) return v;
+  }
+
+  return null;
+}
+
 
 // line の end_a / end_b から 3D 座標を解決
 // - end.ref があれば pointPosition / uuidToItem 経由で解決
@@ -307,14 +306,14 @@ function computeLineMicroState(base, indices) {
       Math.abs(posA[2] - posB[2]) || 0.1,
     ];
   } else {
-    // 端点から取れへん場合は頂点群の AABB にフォールバック
+    // 端点から取得できない場合は、頂点群の AABB にフォールバックする
     const item = getItemByUuid(indices, base.focusUuid);
     const bounds = computeLineBoundsFromVertices(item);
     if (bounds) {
       center = bounds.center;
       size = bounds.size;
     }
-    // bounds も取れへん場合は center/size は null のまま
+    // bounds も取得できない場合は center/size は null のままにする
   }
 
   const related = [base.focusUuid];
@@ -397,7 +396,7 @@ function buildBaseMicroState(selection, indices) {
 
 // 純計算版 microState 生成関数
 //
-// - uiState を触らへん「ただの関数」
+// - uiState を触らない「純関数」
 // - modeController / viewerHub から直接呼び出しても OK
 // - いまのところ cameraState は使っていない（将来の拡張用に残す）
 export function computeMicroState(selection, _cameraState, indices) {
@@ -405,7 +404,7 @@ export function computeMicroState(selection, _cameraState, indices) {
     // micro OFF なので何もしない（ログも出さない）
     return null;
   }
-  
+
   // uuidToKind が無くても selection.kind があれば成立させる
   const effectiveIndices = indices || null;
 

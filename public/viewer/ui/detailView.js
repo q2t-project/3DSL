@@ -1,10 +1,18 @@
-import { createHubFacade } from './hubFacade.js';
 // viewer/ui/detailView.js
 
 // 情報パネル（Detail View）
 // - データソース: structIndex.uuidToItem
 // - selection 状態と連動（hover は無視）
-// - 完全 read-only 表示
+// - 読み取り専用（UI から model/uiState を直接書き換えない）
+
+import { createHubFacade } from './hubFacade.js';
+
+const DEBUG_DETAIL_VIEW = false;
+function debugDetailView(...args) {
+  if (!DEBUG_DETAIL_VIEW) return;
+  // eslint-disable-next-line no-console
+  console.log('[detailView]', ...args);
+}
 
 function resolveLocalizedText(value, preferredLocales = ['ja', 'en']) {
   if (typeof value === 'string') return value;
@@ -296,7 +304,8 @@ export function attachDetailView(container, hub) {
 
   rafId = requestAnimationFrame(loop);
 
-  console.log('[detailView] attached');
+
+  debugDetailView('attached');
 
   function detach() {
     if (disposed) return;

@@ -35,4 +35,3 @@ export function teardownPrevHandle(owner, key) {
   }
   return prev;
 }
-

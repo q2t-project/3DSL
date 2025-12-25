@@ -26,6 +26,16 @@ function safe(label, fn) {
   }
 }
 
+async function nextFrame(n = 1) {
+  const steps = Math.max(1, Math.floor(Number(n) || 1));
+  for (let i = 0; i < steps; i++) {
+    await new Promise((resolve) => {
+      if (typeof requestAnimationFrame === "function") requestAnimationFrame(() => resolve());
+      else setTimeout(resolve, 0);
+    });
+  }
+}
+
 // --- helpers: structIndex wrapper対応（{kind,item} でも raw item でもOK）
 function getCenterEntry(hub) {
   const si = hub?.core?.structIndex;
@@ -151,9 +161,11 @@ export async function runAll(hub, opts = {}) {
     if (cam?.startAutoOrbit && cam?.stopAutoOrbit) {
       safe("camera.stopAutoOrbit", () => cam.stopAutoOrbit());
       safe("camera.startAutoOrbit", () => cam.startAutoOrbit());
+      await nextFrame();
       const c1 = safe("mode.canEnter(center) while autoOrbit", () => mode.canEnter(UUID_CENTER));
       if (c1.ok) results.push(c1.value === false ? ok("canEnter blocked while autoOrbit") : ng("canEnter blocked while autoOrbit", `canEnter=${c1.value}`));
       safe("camera.stopAutoOrbit", () => cam.stopAutoOrbit());
+      await nextFrame();
       if (runtime?.isCameraAuto) {
         const a = safe("runtime.isCameraAuto()", () => runtime.isCameraAuto());
         if (a.ok) results.push(a.value === false ? ok("runtime.isCameraAuto false after stop") : ng("runtime.isCameraAuto false after stop", `isCameraAuto=${a.value}`));
@@ -167,15 +179,19 @@ export async function runAll(hub, opts = {}) {
     const frame = hub?.core?.frame;
     if (frame?.startPlayback && frame?.stopPlayback && runtime?.isFramePlaying) {
       safe("frame.stopPlayback", () => frame.stopPlayback());
+      await nextFrame();
       if (frameRange == null) {
         safe("frame.startPlayback", () => frame.startPlayback());
+        await nextFrame();
         const p = safe("runtime.isFramePlaying()", () => runtime.isFramePlaying());
         if (p.ok) results.push(p.value === false ? ok("startPlayback no-op when range null") : ng("startPlayback no-op when range null", `isFramePlaying=${p.value}`));
       } else {
         safe("frame.startPlayback", () => frame.startPlayback());
+        await nextFrame();
         const c2 = safe("mode.canEnter(center) while playing", () => mode.canEnter(UUID_CENTER));
         if (c2.ok) results.push(c2.value === false ? ok("canEnter blocked while playing") : ng("canEnter blocked while playing", `canEnter=${c2.value}`));
         safe("frame.stopPlayback", () => frame.stopPlayback());
+      await nextFrame();
       }
     } else {
       results.push(ok("playback check", "SKIP (frame/runtime API missing)"));
@@ -184,6 +200,7 @@ export async function runAll(hub, opts = {}) {
     // normal micro enter/exit
     if (micro?.enter && micro?.exit && micro?.isActive) {
       safe("micro.exit", () => micro.exit()); // clean
+      await nextFrame();
       const c3 = safe("mode.canEnter(center) normal", () => mode.canEnter(UUID_CENTER));
       if (c3.ok) {
         if (!centerVisible) {
@@ -192,12 +209,14 @@ export async function runAll(hub, opts = {}) {
           results.push(c3.value === true ? ok("canEnter=true when center visible") : ng("canEnter=true when center visible", `canEnter=${c3.value}`));
 
           const e1 = safe("micro.enter(center)", () => micro.enter(UUID_CENTER));
+          await nextFrame();
           results.push(e1.ok ? ok("micro.enter no-throw", `mode=${e1.value}`) : ng("micro.enter no-throw", e1.error));
 
           const a1 = safe("micro.isActive()", () => micro.isActive());
           if (a1.ok) results.push(a1.value === true ? ok("micro.isActive true") : ng("micro.isActive true", `isActive=${a1.value}`));
 
           const e2 = safe("micro.exit()", () => micro.exit());
+          await nextFrame();
           results.push(e2.ok ? ok("micro.exit no-throw", `mode=${e2.value}`) : ng("micro.exit no-throw", e2.error));
 
           const a2 = safe("micro.isActive()", () => micro.isActive());

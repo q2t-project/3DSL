@@ -20,16 +20,11 @@ export const microFXConfig = {
   // ------------------------------------------------------------
   glow: {
     enabled: true,
-
-    // 位置は focusPosition に固定しつつ、距離に応じて見た目を補正したい場合の係数
-    offsetFactor: 0.0,
-
-    // world 長さ（unitless）
-    baseScale: 0.6,
-    minScale: 0.25,
-    maxScale: 3.0,
-
-    opacity: 0.9,
+    screenPx: 180,   // ★ 直径(px)。64→120 とかに上げる
+    opacity: 0.8,
+    // 必要なら安全弁（world直径）
+    minWorld: 0.6,
+    maxWorld: 6.0,
   },
 
   // ------------------------------------------------------------
@@ -72,12 +67,16 @@ export const microFXConfig = {
       relatedWidth: 2,
     },
 
-    // focus line の effect_type="glow" 用（Tube）
+    // focus line の強調表示（Tube）
     lineGlow: {
       enabled: true,
       color: "#00ffff",
+      // true にすると、lineProfile.effect_type="glow" の線だけに限定する（旧挙動）
+      requireEffectTypeGlow: false,
       radius: 0.06,
       opacity: 0.7,
+      widthFactor: 3.0,   // ベース線の何倍にするか
+      depthTest: false,   // 常に前に出したいなら false
       tubularSegmentsPerSegment: 8,
       radialSegments: 8,
       layers: [

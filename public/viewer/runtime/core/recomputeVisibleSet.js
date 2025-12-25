@@ -11,7 +11,7 @@ import { normalizeMicro } from "./normalizeMicro.js";
 const VALID_MODE = new Set(["macro", "meso", "micro"]);
 const VALID_KIND = ["points", "lines", "aux"];
 
-const TRACE_RECOMPUTE = true;
+const TRACE_RECOMPUTE = false; // デバッグ時のみ true
 let _recomputeSeq = 0;
 
 function toSet(x) {
@@ -264,7 +264,8 @@ export function createRecomputeVisibleSet({
       };
     }
 
-if (TRACE_RECOMPUTE) {
+    const wantTrace = TRACE_RECOMPUTE || !!uiState?.runtime?._traceRecomputeVisibleSet;
+    if (wantTrace) {
       const selUuid = uiState.selection?.uuid ? String(uiState.selection.uuid) : null;
       console.log(`[recomputeVisibleSet #${seq}] end`, {
         ui: uiState?.__dbgId,
