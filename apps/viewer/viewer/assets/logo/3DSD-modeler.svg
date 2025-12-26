@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="160" viewBox="0 0 640 160">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Inter+Tight:wght@500&amp;display=swap');
+      text { dominant-baseline: bottom; text-anchor: middle; fill: #111; }
+      .head { font-family: 'Bebas Neue', sans-serif; font-size: 80px; letter-spacing: 1px; font-weight: 1000; }
+      .tail { font-family: 'Inter Tight', sans-serif; font-size: 56px; font-weight: 500; }
+    </style>
+  </defs>
+  <text x="50%" y="50%">
+    <tspan class="head">3DSD</tspan>
+    <tspan class="tail">modeler</tspan>
+  </text>
+</svg>
