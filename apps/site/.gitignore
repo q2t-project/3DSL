@@ -32,3 +32,9 @@ nul
 public/viewer.zip
 **/*.zip
 
+# --- generated distro copies (DO NOT COMMIT) ---
+apps/site/public/viewer/**
+!apps/site/public/viewer/.gitkeep
+
+apps/site/public/3dss/3dss/release/3DSS.schema.json
+
