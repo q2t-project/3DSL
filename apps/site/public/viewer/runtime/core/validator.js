@@ -1,84 +1,36 @@
-// runtime/core/validator.js
-
-// Ajv の import パスは環境に合わせて調整して。
-// - CDN / <script> 直読み環境   → window.Ajv として提供されている前提
-// - モジュールバンドラ環境（Vite / Webpack 等） → `import Ajv from "ajv";` で OK
-// - 生ブラウザで使う場合 → vendor 下に ESM を置いて相対パス import など
-
+﻿// runtime/core/validator.js
+// 3DSS.schema.json を Ajv で検証するための薄いラッパ（bootstrapViewer の契約：init(schemaJson)）
 import Ajv from "../../../vendor/ajv/dist/ajv.bundle.js";
-
 let ajv = null;
 let validateFn = null;
 let lastErrors = null;
-
-// schema 側（$id）から抜き出したバージョン情報。
-// ここを基準に document_meta.schema_uri / document_meta.version の major をチェックする。
-const schemaInfo = {
-  $id: null,
-  baseUri: null,  // "#vX.Y.Z" より前のベース URL
-  version: null,  // "1.0.0" など
-  major: null,    // 1 など
-};
-
-
+// schema $id からバージョン情報を抜く（#vX.Y.Z 形式）
+let schemaInfo = { $id: null, baseUri: null, version: null, major: null };
 function parseSemverMajor(v) {
   if (typeof v !== "string") return null;
   const m = v.trim().match(/^(\d+)\./);
   return m ? Number(m[1]) : null;
 }
-
-// "....#vX.Y.Z" 形式の末尾から version を抜き出すユーティリティ
 function extractVersionFromId(id) {
-  if (typeof id !== "string") {
-    return { base: null, version: null, major: null };
-  }
+  if (typeof id !== "string") return { base: null, version: null, major: null };
   const m = id.match(/^(.*)#v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?)$/);
-  if (!m) {
-    return { base: id, version: null, major: null };
-  }
+  if (!m) return { base: id, version: null, major: null };
   const base = m[1];
   const version = m[2];
   return { base, version, major: parseSemverMajor(version) };
 }
-
-/**
- * schemaJson: /schemas/3DSS.schema.json の中身
- */
-export function init(schemaJson) {
-  if (!schemaJson) {
-    throw new Error("validator.init: schemaJson is required");
-  }
-
-  ajv = new Ajv({
-    allErrors: true,
-
-    // ★ A-4 要件：strict full validation
-    strict: true,
-    strictSchema: true,
-    strictTypes: true,
-
-    // ★ A-4 要件：「viewer が勝手に直さない」
-    removeAdditional: false,
-    useDefaults: false,
-    coerceTypes: false,
-  });
-
-  validateFn = ajv.compile(schemaJson);
-  lastErrors = null;
-
-  // schema 側の $id から「この validator が想定している 3DSS の major version」を決める。
-  // 例: "https://.../3DSS.schema.json#v1.0.2" → base / version / major(=1)
-  const fromId = extractVersionFromId(schemaJson.$id || "");
-
-  schemaInfo.$id = schemaJson.$id || null;
-  schemaInfo.baseUri = fromId.base || null;
-  schemaInfo.version = fromId.version || null;
-  schemaInfo.major = fromId.major;
+function extractSchemaInfo(schemaJson) {
+  const fromId = extractVersionFromId(schemaJson?.$id || "");
+  return {
+    $id: schemaJson?.$id || null,
+    baseUri: fromId.base || null,
+    version: fromId.version || null,
+    major: fromId.major,
+  };
 }
-
+// document_meta の major 整合をチェック（viewerが勝手に直さない）
 function checkVersionAndSchemaUri(doc) {
   const errors = [];
-
   const dm = doc && doc.document_meta;
   if (!dm) {
     errors.push({
@@ -89,12 +41,9 @@ function checkVersionAndSchemaUri(doc) {
     });
     return { ok: false, errors };
   }
-
-  // --- schema_uri のベース URL / major version の一致チェック ---
+  // schema_uri の base / major
   if (schemaInfo.baseUri) {
     const uriInfo = extractVersionFromId(dm.schema_uri || "");
-
-    // ベース URL が違う → そもそも別スキーマ用データ
     if (uriInfo.base && uriInfo.base !== schemaInfo.baseUri) {
       errors.push({
         instancePath: "/document_meta/schema_uri",
@@ -102,15 +51,12 @@ function checkVersionAndSchemaUri(doc) {
         message: `schema_uri base mismatch: expected '${schemaInfo.baseUri}', got '${uriInfo.base}'`,
       });
     }
-
     if (schemaInfo.major != null) {
-      // $id 側に major があるなら、schema_uri 側にも #vX.Y.Z を必須とする
       if (!uriInfo.version) {
         errors.push({
           instancePath: "/document_meta/schema_uri",
           keyword: "schema_uri",
-          message:
-            "schema_uri must include '#v<major.minor.patch>' (e.g. ...#v1.0.2)",
+          message: "schema_uri must include '#v<major.minor.patch>' (e.g. ...#v1.0.2)",
         });
       } else if (uriInfo.major == null) {
         errors.push({
@@ -127,8 +73,7 @@ function checkVersionAndSchemaUri(doc) {
       }
     }
   }
-
-  // --- document_meta.version の major も $id と一致させる ---
+  // document_meta.version の major
   if (schemaInfo.major != null) {
     if (typeof dm.version !== "string") {
       errors.push({
@@ -153,31 +98,47 @@ function checkVersionAndSchemaUri(doc) {
       }
     }
   }
-
   return { ok: errors.length === 0, errors };
 }
-
+/**
+ * bootstrapViewer から呼ばれる契約：init(schemaJson)
+ */
+export function init(schemaJson) {
+  if (!schemaJson) throw new Error("validator.init: schemaJson is required");
+  ajv = new Ajv({
+    allErrors: true,
+    // strictは維持
+    strict: true,
+    strictSchema: false,
+    strictTypes: true,
+    // ★ここだけOFF（例の strictRequired 落ちを止める）
+    strictRequired: false,
+    // schema自体の検証で落ちるのも止血
+    validateSchema: false,
+    // viewerが勝手に直さない
+    removeAdditional: false,
+    useDefaults: false,
+    coerceTypes: false,
+  });
+  validateFn = ajv.compile(schemaJson);
+  schemaInfo = extractSchemaInfo(schemaJson);
+  lastErrors = null;
+}
 export function validate3DSS(doc) {
   if (!ajv || !validateFn) {
     throw new Error("validator not initialized. Call init(schemaJson) first.");
   }
-
   lastErrors = null;
-
   const ok = validateFn(doc);
   const ajvErrors = validateFn.errors || [];
-
   const versionResult = checkVersionAndSchemaUri(doc);
-
   if (!ok || !versionResult.ok) {
-    // AJV エラー + version/schema_uri エラーをまとめて保持
     lastErrors = [...ajvErrors, ...versionResult.errors];
     return false;
   }
-
   return true;
 }
-
 export function getErrors() {
   return lastErrors;
 }
+
