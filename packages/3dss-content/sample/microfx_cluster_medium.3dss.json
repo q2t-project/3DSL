@@ -1,0 +1,41 @@
+{
+  "lines": [
+    { "meta": { "uuid": "L_C_P1" }, "appearance": { "end_a": { "ref": "P_CENTER" }, "end_b": { "ref": "P1" }, "color": "#88ccff", "line_type": "straight" } },
+    { "meta": { "uuid": "L_C_P2" }, "appearance": { "end_a": { "ref": "P_CENTER" }, "end_b": { "ref": "P2" }, "color": "#88ccff", "line_type": "straight" } },
+    { "meta": { "uuid": "L_C_P3" }, "appearance": { "end_a": { "ref": "P_CENTER" }, "end_b": { "ref": "P3" }, "color": "#88ccff", "line_type": "straight" } },
+    { "meta": { "uuid": "L_C_P4" }, "appearance": { "end_a": { "ref": "P_CENTER" }, "end_b": { "ref": "P4" }, "color": "#88ccff", "line_type": "straight" } },
+
+    { "meta": { "uuid": "L_P1_Q1" }, "appearance": { "end_a": { "ref": "P1" }, "end_b": { "ref": "Q1" }, "color": "#4488ff", "line_type": "straight" } },
+    { "meta": { "uuid": "L_P2_Q2" }, "appearance": { "end_a": { "ref": "P2" }, "end_b": { "ref": "Q2" }, "color": "#4488ff", "line_type": "straight" } },
+    { "meta": { "uuid": "L_P3_Q3" }, "appearance": { "end_a": { "ref": "P3" }, "end_b": { "ref": "Q3" }, "color": "#4488ff", "line_type": "straight" } },
+    { "meta": { "uuid": "L_P4_Q4" }, "appearance": { "end_a": { "ref": "P4" }, "end_b": { "ref": "Q4" }, "color": "#4488ff", "line_type": "straight" } },
+
+    { "meta": { "uuid": "L_Q1_Q2" }, "appearance": { "end_a": { "ref": "Q1" }, "end_b": { "ref": "Q2" }, "color": "#3366ff", "line_type": "straight" } },
+    { "meta": { "uuid": "L_Q2_Q3" }, "appearance": { "end_a": { "ref": "Q2" }, "end_b": { "ref": "Q3" }, "color": "#3366ff", "line_type": "straight" } },
+    { "meta": { "uuid": "L_Q3_Q4" }, "appearance": { "end_a": { "ref": "Q3" }, "end_b": { "ref": "Q4" }, "color": "#3366ff", "line_type": "straight" } },
+    { "meta": { "uuid": "L_Q4_Q1" }, "appearance": { "end_a": { "ref": "Q4" }, "end_b": { "ref": "Q1" }, "color": "#3366ff", "line_type": "straight" } },
+
+    { "meta": { "uuid": "L_Q1_Q3" }, "appearance": { "end_a": { "ref": "Q1" }, "end_b": { "ref": "Q3" }, "color": "#3355cc", "line_type": "straight" } },
+    { "meta": { "uuid": "L_Q2_Q4" }, "appearance": { "end_a": { "ref": "Q2" }, "end_b": { "ref": "Q4" }, "color": "#3355cc", "line_type": "straight" } }
+  ],
+  "points": [
+    { "meta": { "uuid": "P_CENTER" }, "appearance": { "position": [0.0, 0.0, 0.0], "color": "#55ff55" } },
+
+    { "meta": { "uuid": "P1" }, "appearance": { "position": [1.5, 0.5, 0.0], "color": "#ff5555" } },
+    { "meta": { "uuid": "P2" }, "appearance": { "position": [-1.2, 0.8, 0.3], "color": "#ff5555" } },
+    { "meta": { "uuid": "P3" }, "appearance": { "position": [0.7, -1.4, -0.2], "color": "#ff5555" } },
+    { "meta": { "uuid": "P4" }, "appearance": { "position": [-1.8, -0.9, 0.6], "color": "#ff5555" } },
+
+    { "meta": { "uuid": "Q1" }, "appearance": { "position": [2.5, 1.5, 1.0], "color": "#5599ff" } },
+    { "meta": { "uuid": "Q2" }, "appearance": { "position": [-2.2, 1.7, -1.2], "color": "#5599ff" } },
+    { "meta": { "uuid": "Q3" }, "appearance": { "position": [2.0, -1.8, -1.5], "color": "#5599ff" } },
+    { "meta": { "uuid": "Q4" }, "appearance": { "position": [-2.4, -1.6, 1.3], "color": "#5599ff" } }
+  ],
+  "aux": [],
+  "document_meta": {
+    "document_uuid": "00000000-0000-0000-0000-000000000002",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.1",
+    "author": "dev",
+    "version": "1.0.1"
+  }
+}

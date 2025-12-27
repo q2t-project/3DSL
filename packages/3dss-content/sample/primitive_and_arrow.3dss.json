@@ -1,0 +1,472 @@
+{
+  "document_meta": {
+    "document_uuid": "a1b2c3d4-e5f6-4a7b-8c9d-0123456789ab",
+    "version": "1.0.2",
+    "updated_at": "2025-12-03T00:00:00Z",
+    "tags": [
+      "s:sample",
+      "m:primitive-demo",
+      "m:arrow-demo",
+      "x:extension-demo"
+    ],
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.2",
+    "generator": "https://q2t-project.github.io/3dsl/",
+    "reference": "P-primitive_and_arrow_v1.0.2",
+    "coordinate_system": "Z+up/freeXY",
+    "units": "mm",
+    "i18n": "ja",
+    "author": "sample.author",
+    "creator_memo": "3DSS v1.0.2 primitives & arrows demo (points.marker + lines.arrow + aux.extension)"
+  },
+
+  "points": [
+    {
+      "signification": {
+        "name": {
+          "ja": "原点左・球マーカー",
+          "en": "Left sphere marker"
+        }
+      },
+      "appearance": {
+        "position": [-20, 0, 0],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 8
+        },
+        "visible": true,
+        "frames": 0
+      },
+      "meta": {
+        "uuid": "11111111-1111-4111-8111-111111111111",
+        "tags": ["s:node", "m:marker-sphere"],
+        "creator_memo": "sphere marker / no frames (all frames)"
+      }
+    },
+    {
+      "signification": {
+        "name": {
+          "ja": "原点右・箱マーカー",
+          "en": "Right box marker"
+        }
+      },
+      "appearance": {
+        "position": [20, 0, 0],
+        "marker": {
+          "primitive": "box",
+          "size": [10, 10, 10],
+          "text": {
+            "content": "BOX",
+            "size": 10,
+            "align": "center&middle",
+            "plane": "xy"
+          }
+        },
+        "visible": true,
+        "frames": -1
+      },
+      "meta": {
+        "uuid": "22222222-2222-4222-8222-222222222222",
+        "tags": ["s:node", "m:marker-box"],
+        "creator_memo": "box marker / frame -1 only"
+      }
+    },
+    {
+      "signification": {
+        "name": {
+          "ja": "上・コーンマーカー",
+          "en": "Top cone marker"
+        }
+      },
+      "appearance": {
+        "position": [0, 20, 0],
+        "marker": {
+          "primitive": "cone",
+          "radius": 6,
+          "height": 12,
+          "text": {
+            "content": "CONE",
+            "size": 10,
+            "align": "center&middle",
+            "plane": "yz"
+          }
+        },
+        "visible": true,
+        "frames": 0
+      },
+      "meta": {
+        "uuid": "33333333-3333-4333-8333-333333333333",
+        "tags": ["s:node", "m:marker-cone"],
+        "creator_memo": "cone marker / frame 0 only"
+      }
+    },
+    {
+      "signification": {
+        "name": {
+          "ja": "下・ピラミッドマーカー",
+          "en": "Bottom pyramid marker"
+        }
+      },
+      "appearance": {
+        "position": [0, -20, 0],
+        "marker": {
+          "primitive": "pyramid",
+          "base": [10, 6],
+          "height": 12,
+          "text": {
+            "content": "PYR",
+            "size": 10,
+            "align": "center&middle",
+            "plane": "zx"
+          }
+        },
+        "visible": true,
+        "frames": [0, 1]
+      },
+      "meta": {
+        "uuid": "44444444-4444-4444-8444-444444444444",
+        "tags": ["s:node", "m:marker-pyramid"],
+        "creator_memo": "pyramid marker / frames 0–1"
+      }
+    },
+    {
+      "signification": {
+        "name": {
+          "ja": "前・コロナマーカー",
+          "en": "Front corona marker"
+        }
+      },
+      "appearance": {
+        "position": [0, 0, 20],
+        "marker": {
+          "primitive": "corona",
+          "inner_radius": 6,
+          "outer_radius": 10,
+          "text": {
+            "content": "CORONA",
+            "size": 10,
+            "align": "center&middle",
+            "plane": "billboard"
+          }
+        },
+        "visible": true,
+        "frames": [1, 2]
+      },
+      "meta": {
+        "uuid": "55555555-5555-4555-8555-555555555555",
+        "tags": ["s:node", "m:marker-corona"],
+        "creator_memo": "corona marker / frames 1–2 / text billboard"
+      }
+    },
+    {
+      "signification": {
+        "name": {
+          "ja": "後ろ・ラベルのみ",
+          "en": "Back label only"
+        }
+      },
+      "appearance": {
+        "position": [0, 0, -20],
+        "marker": {
+          "primitive": "none",
+          "text": {
+            "content": "BILLBOARD LABEL",
+            "size": 12,
+            "align": "center&middle",
+            "plane": "billboard"
+          }
+        },
+        "visible": true
+      },
+      "meta": {
+        "uuid": "66666666-6666-4666-8666-666666666666",
+        "tags": ["s:node", "m:marker-none", "m:label-billboard"],
+        "creator_memo": "no geometry / text-only billboard / all frames"
+      }
+    }
+  ],
+
+  "lines": [
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "11111111-1111-4111-8111-111111111111"
+        },
+        "end_b": {
+          "ref": "22222222-2222-4222-8222-222222222222"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#ffffff",
+        "opacity": 0.8,
+        "renderOrder": 0,
+        "effect": {
+          "effect_type": "flow",
+          "speed": 1.0
+        },
+        "arrow": {
+          "primitive": "none",
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "visible": true,
+        "frames": -1
+      },
+      "meta": {
+        "uuid": "77777777-7777-4777-8777-777777777777",
+        "tags": ["m:edge", "m:arrow-none"],
+        "creator_memo": "Left sphere → Right box / no arrow head / frame -1"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "dynamic": "flow"
+        },
+        "sense": "a_to_b"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "22222222-2222-4222-8222-222222222222"
+        },
+        "end_b": {
+          "ref": "33333333-3333-4333-8333-333333333333"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#00ccff",
+        "opacity": 0.9,
+        "renderOrder": 0,
+        "effect": {
+          "effect_type": "glow",
+          "amplitude": 0.8 
+        },
+        "arrow": {
+          "primitive": "line",
+          "length": 6,
+          "thickness": 1,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "visible": true,
+        "frames": 0
+      },
+      "meta": {
+        "uuid": "88888888-8888-4888-8888-888888888888",
+        "tags": ["m:edge", "m:arrow-line", "m:effect-flow"],
+        "creator_memo": "Box → Cone / line arrow / frame 0 / flow effect"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "logical": "implication"
+        },
+        "sense": "a_to_b"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "33333333-3333-4333-8333-333333333333"
+        },
+        "end_b": {
+          "ref": "44444444-4444-4444-8444-444444444444"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#ff8800",
+        "opacity": 0.9,
+        "renderOrder": 0,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 2,
+          "height": 4,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "effect": {
+          "effect_type": "pulse",
+          "amplitude": 0.5,
+          "speed": 1,
+          "duration": 1,
+          "loop": true,
+          "phase": 0,
+          "easing": "ease-in-out",
+          "width": 1
+        },
+        "visible": true,
+        "frames": [0, 1]
+      },
+      "meta": {
+        "uuid": "99999999-9999-4999-8999-999999999999",
+        "tags": ["m:edge", "m:arrow-cone"],
+        "creator_memo": "Cone → Pyramid / cone arrow / frames 0–1"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "temporal": "succession"
+        },
+        "sense": "a_to_b"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "44444444-4444-4444-8444-444444444444"
+        },
+        "end_b": {
+          "ref": "55555555-5555-4555-8555-555555555555"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#88ff88",
+        "opacity": 0.8,
+        "renderOrder": 0,
+        "arrow": {
+          "primitive": "pyramid",
+          "base": [3, 2],
+          "height": 4,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "effect": {
+          "effect_type": "glow",
+          "amplitude": 0.3
+        },
+        "visible": true,
+        "frames": 1
+      },
+      "meta": {
+        "uuid": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "tags": ["m:edge", "m:arrow-pyramid"],
+        "creator_memo": "Pyramid → Corona / pyramid arrow / frame 1"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "b_to_a"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "55555555-5555-4555-8555-555555555555"
+        },
+        "end_b": {
+          "ref": "66666666-6666-4666-8666-666666666666"
+        },
+        "line_type": "straight",
+        "line_style": "dotted",
+        "color": "#ff00ff",
+        "opacity": 0.7,
+        "renderOrder": 1,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.5,
+          "height": 3,
+          "placement": "both",
+          "auto_orient": true
+        },
+        "effect": {
+          "effect_type": "pulse",
+          "amplitude": 0.5,
+          "speed": 1.0,
+          "phase": 0.0
+        },
+        "visible": true,
+        "frames": [1, 2]
+      },
+      "meta": {
+        "uuid": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        "tags": ["m:edge", "m:arrow-both"],
+        "creator_memo": "Corona ↔ Billboard label / cone arrows both ends / frames 1–2"
+      }
+    }
+  ],
+
+  "aux": [
+    {
+      "appearance": {
+        "position": [0, 0, 0],
+        "orientation": [0, 0, 0],
+        "opacity": 0.4,
+        "module": {
+          "grid": {
+            "grid_type": "cartesian",
+            "subdivisions": 8,
+            "major_step": 10,
+            "minor_step": 2,
+            "color_major": "#666666",
+            "color_minor": "#333333"
+          },
+          "extension": {
+            "type": "latex",
+            "latex": {
+              "content": "E = mc^2",
+              "render_mode": "math",
+              "font_size": 18,
+              "color": "#00ffcc",
+              "plane": "billboard",
+              "position": [0, 30, 0]
+            }
+          }
+        },
+        "visible": true,
+        "frames": [0, 1, 2]
+      },
+      "meta": {
+        "uuid": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        "tags": ["m:aux-grid", "x:extension-latex"],
+        "creator_memo": "Ground grid + LaTeX label (extension.latex)"
+      }
+    },
+    {
+      "appearance": {
+        "position": [0, 0, 0],
+        "orientation": [0, 0, 0],
+        "opacity": 0.3,
+        "module": {
+          "axis": {
+            "length": 40,
+            "labels": true,
+            "arrow": {
+              "primitive": "cone",
+              "radius": 1.5,
+              "height": 4
+            }
+          },
+          "extension": {
+            "type": "parametric",
+            "parametric": {
+              "type": "orbit",
+              "version": "1.0.0",
+              "params": {
+                "radius": 15,
+                "speed": 1.2
+              },
+              "bindings": [
+                {
+                  "target": "lines/0/appearance/opacity",
+                  "expression": "0.5 + 0.5 * sin(t)"
+                }
+              ],
+              "seed": 42
+            }
+          }
+        },
+        "visible": true,
+        "frames": [0, 1, 2]
+      },
+      "meta": {
+        "uuid": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+        "tags": ["m:aux-axis", "x:extension-parametric"],
+        "creator_memo": "Axis + parametric extension demo (no runtime interpretation yet)"
+      }
+    }
+  ]
+}

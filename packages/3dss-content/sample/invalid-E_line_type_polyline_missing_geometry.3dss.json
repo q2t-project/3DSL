@@ -1,0 +1,52 @@
+{
+  "lines": [
+    {
+      "signification": {
+        "relation": { "structural": "association" },
+        "sense": "a_to_b"
+      },
+      "appearance": {
+        "end_a": { "ref": "22222222-2222-4222-8222-222222222222" },
+        "end_b": { "ref": "33333333-3333-4333-8333-333333333333" },
+        "line_type": "polyline",
+        "line_style": "solid",
+        "color": "#ffffff",
+        "opacity": 1.0
+      },
+      "meta": {
+        "uuid": "55555555-5555-4555-8555-555555555555"
+      }
+    }
+  ],
+
+  "points": [
+    {
+      "signification": { "name": "Point A" },
+      "appearance": {
+        "position": [0.0, 0.0, 0.0]
+      },
+      "meta": {
+        "uuid": "22222222-2222-4222-8222-222222222222"
+      }
+    },
+    {
+      "signification": { "name": "Point B" },
+      "appearance": {
+        "position": [1.0, 0.0, 0.0]
+      },
+      "meta": {
+        "uuid": "33333333-3333-4333-8333-333333333333"
+      }
+    }
+  ],
+
+  "aux": [],
+
+  "document_meta": {
+    "document_uuid": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.1",
+    "author": "runtime-test",
+    "version": "1.0.0",
+    "creator_memo": "INVALID-E: lines[0].appearance.line_type を 'polyline' に設定しながら geometry を省略し、スキーマ側の if(line_type!=straight) then required:[\"geometry\"] ルールを意図的に違反させるテスト用 3DSS。document_meta と points はスキーマ的に正しい状態に保ち、エラー要因を line.appearance.geometry 欠如のみに限定している。"
+  }
+}
