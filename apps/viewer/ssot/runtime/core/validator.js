@@ -1,32 +1,52 @@
 ﻿// runtime/core/validator.js
 // 3DSS.schema.json を Ajv で検証するための薄いラッパ（bootstrapViewer の契約：init(schemaJson)）
-import Ajv from "../../../vendor/ajv/dist/ajv.bundle.js";
+import Ajv from "/vendor/ajv/dist/ajv.bundle.js";
 let ajv = null;
 let validateFn = null;
 let lastErrors = null;
-// schema $id からバージョン情報を抜く（#vX.Y.Z 形式）
+// schema の base/version を抽出して document_meta と突き合わせる。
+// - base: フラグメント（#...）を除いた URI
+// - version: #vX.Y.Z（または $anchor=vX.Y.Z）
 let schemaInfo = { $id: null, baseUri: null, version: null, major: null };
 function parseSemverMajor(v) {
   if (typeof v !== "string") return null;
   const m = v.trim().match(/^(\d+)\./);
   return m ? Number(m[1]) : null;
 }
-function extractVersionFromId(id) {
-  if (typeof id !== "string") return { base: null, version: null, major: null };
-  const m = id.match(/^(.*)#v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?)$/);
-  if (!m) return { base: id, version: null, major: null };
-  const base = m[1];
-  const version = m[2];
-  return { base, version, major: parseSemverMajor(version) };
+function normalizeSchemaBase(uri) {
+  if (typeof uri !== "string") return null;
+  const s = uri.trim();
+  if (!s) return null;
+  // drop fragment and trailing '#'
+  const base = s.split("#")[0];
+  return base || null;
 }
+
+function extractVersionFromFragment(uri) {
+  if (typeof uri !== "string") return { version: null, major: null };
+  const i = uri.indexOf("#v");
+  if (i < 0) return { version: null, major: null };
+  const version = uri.slice(i + 2);
+  return { version, major: parseSemverMajor(version) };
+}
+
+function extractVersionFromAnchor(anchor) {
+  if (typeof anchor !== "string") return null;
+  const a = anchor.trim();
+  const m = a.match(/^v?(\d+\.\d+\.\d+)$/);
+  return m ? m[1] : null;
+}
+
 function extractSchemaInfo(schemaJson) {
-  const fromId = extractVersionFromId(schemaJson?.$id || "");
-  return {
-    $id: schemaJson?.$id || null,
-    baseUri: fromId.base || null,
-    version: fromId.version || null,
-    major: fromId.major,
-  };
+  const $id = schemaJson?.$id || "";
+  const baseUri = normalizeSchemaBase($id);
+
+  // Prefer #vX.Y.Z in $id, fallback to $anchor (vX.Y.Z)
+  let version = extractVersionFromFragment($id).version;
+  if (!version) version = extractVersionFromAnchor(schemaJson?.$anchor);
+
+  const major = parseSemverMajor(version);
+  return { $id: $id || null, baseUri, version: version || null, major };
 }
 // document_meta の major 整合をチェック（viewerが勝手に直さない）
 function checkVersionAndSchemaUri(doc) {
@@ -43,32 +63,35 @@ function checkVersionAndSchemaUri(doc) {
   }
   // schema_uri の base / major
   if (schemaInfo.baseUri) {
-    const uriInfo = extractVersionFromId(dm.schema_uri || "");
-    if (uriInfo.base && uriInfo.base !== schemaInfo.baseUri) {
+    const gotBase = normalizeSchemaBase(dm.schema_uri || "");
+    const uriV = extractVersionFromFragment(dm.schema_uri || "");
+
+    if (gotBase && gotBase !== schemaInfo.baseUri) {
       errors.push({
         instancePath: "/document_meta/schema_uri",
         keyword: "schema_uri",
-        message: `schema_uri base mismatch: expected '${schemaInfo.baseUri}', got '${uriInfo.base}'`,
+        message: `schema_uri base mismatch: expected '${schemaInfo.baseUri}', got '${gotBase}'`,
       });
     }
+    // If schema version is known (from #v or $anchor), require schema_uri to include #v
     if (schemaInfo.major != null) {
-      if (!uriInfo.version) {
+      if (!uriV.version) {
         errors.push({
           instancePath: "/document_meta/schema_uri",
           keyword: "schema_uri",
           message: "schema_uri must include '#v<major.minor.patch>' (e.g. ...#v1.0.2)",
         });
-      } else if (uriInfo.major == null) {
+      } else if (uriV.major == null) {
         errors.push({
           instancePath: "/document_meta/schema_uri",
           keyword: "schema_uri",
-          message: `invalid schema_uri version '${uriInfo.version}'`,
+          message: `invalid schema_uri version '${uriV.version}'`,
         });
-      } else if (uriInfo.major !== schemaInfo.major) {
+      } else if (uriV.major !== schemaInfo.major) {
         errors.push({
           instancePath: "/document_meta/schema_uri",
           keyword: "schema_uri",
-          message: `schema_uri major mismatch: expected ${schemaInfo.major}, got ${uriInfo.major}`,
+          message: `schema_uri major mismatch: expected ${schemaInfo.major}, got ${uriV.major}`,
         });
       }
     }

@@ -1,5 +1,5 @@
 // runtime/renderer/shared.js
-import * as THREE from "../../../vendor/three/build/three.module.js";
+import * as THREE from "/vendor/three/build/three.module.js";
 
 export function getUuid(node) {
   if (!node) return null;

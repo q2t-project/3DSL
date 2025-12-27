@@ -1,5 +1,14 @@
 <!DOCTYPE html>
 <html lang="ja">
+<script type="importmap">
+{
+  "imports": {
+    "ajv": "/vendor/ajv/dist/ajv.bundle.js",
+    "three": "/vendor/three/build/three.module.js",
+    "three/addons/": "/vendor/three/examples/jsm/"
+  }
+}
+</script>
 <head>
   <meta charset="UTF-8" />
   <title>3DSL Viewer Test</title>
@@ -20,7 +29,6 @@
 </head>
 
 <body>
-<canvas id="view"></canvas>
 <canvas id="view" style="touch-action: none;"></canvas>
 
 <script type="module">
