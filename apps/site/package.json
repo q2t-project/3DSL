@@ -32,14 +32,17 @@
     "check:viewer:ssot": "npm run check:viewer:forbidden-imports && npm run check:viewer:single-writer && npm run check:viewer:ports-conformance && npm run check:viewer:generated-clean",
     "astro": "astro",
     "check:host:asset-paths": "node scripts/check-host-asset-paths.mjs",
-    "check:ssot": "npm run check:viewer:ssot && npm run check:host:asset-paths",
+    "check:generated-clean": "node scripts/check-generated-clean.mjs",
+    "check:ssot": "npm run check:generated-clean && npm run check:viewer:ssot && npm run check:host:asset-paths",
     "sync:viewer": "node scripts/sync-viewer.mjs",
     "sync:schemas": "node scripts/sync-schemas.mjs",
-    "sync:all": "npm run sync:schemas && npm run sync:viewer",
-
+    "sync:vendor": "node scripts/sync-vendor.mjs",
+    "sync:all": "npm run sync:schemas && npm run sync:viewer && npm run sync:vendor",
     "predev": "npm run sync:all",
     "prebuild": "npm run sync:all",
-    "precheck:phase7": "npm run sync:schemas"
+    "precheck:ssot": "npm run sync:all",
+    "precheck:phase7": "npm run sync:all",
+    "ci:build": "npm run check:ssot && npm run check:phase7 && npm run build"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.17",
