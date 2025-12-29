@@ -1,0 +1,95 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import fs from "node:fs";
+import path from "node:path";
+
+const publicDir = path.join(process.cwd(), "public");
+
+function listJson(dirPublicPath) {
+  const absDir = path.join(publicDir, ...dirPublicPath.split("/").filter(Boolean));
+  if (!fs.existsSync(absDir)) return [];
+  const ents = fs.readdirSync(absDir, { withFileTypes: true });
+
+  return ents
+    .filter((e) => e.isFile() && e.name.endsWith(".3dss.json"))
+    .map((e) => {
+      const p = `${dirPublicPath}/${e.name}`.replaceAll("//", "/");
+      return { p, name: e.name };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+const valid = listJson("/3dss/canonical/valid");
+const invalid = listJson("/3dss/canonical/invalid");
+
+function viewerLink(modelPath) {
+  return `/viewer?model=${encodeURIComponent(modelPath)}`;
+}
+function embedLink(modelPath) {
+  return `/app/viewer?model=${encodeURIComponent(modelPath)}`;
+}
+---
+
+<Layout title="Canonical">
+  <h1 class="text-2xl font-semibold">Canonical</h1>
+  <p class="mt-2 text-sm text-neutral-300">
+    valid / invalid の “教育・検証用” まとめ。理由説明は v0 では最低限。
+  </p>
+
+  <section class="mt-8">
+    <h2 class="text-lg font-semibold">Valid</h2>
+    <div class="mt-3 grid gap-3">
+      {valid.length === 0 ? (
+        <div class="text-sm text-neutral-400">No files found: /public/3dss/canonical/valid</div>
+      ) : (
+        valid.map((f) => (
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="font-mono text-sm">{f.name}</div>
+              <div class="flex gap-2 text-sm">
+                <a class="rounded-full border border-white/15 px-3 py-1 hover:bg-white/10" href={viewerLink(f.p)}>
+                  Viewer
+                </a>
+                <a class="rounded-full border border-white/15 px-3 py-1 hover:bg-white/10" href={f.p}>
+                  JSON
+                </a>
+                <a class="rounded-full border border-white/15 px-3 py-1 hover:bg-white/10" href={embedLink(f.p)}>
+                  Embed
+                </a>
+              </div>
+            </div>
+            <div class="mt-1 text-xs text-neutral-400">{f.p}</div>
+          </div>
+        ))
+      )}
+    </div>
+  </section>
+
+  <section class="mt-10">
+    <h2 class="text-lg font-semibold">Invalid</h2>
+    <p class="mt-1 text-xs text-neutral-400">
+      “なぜ invalid か” の説明は、まずタイトル運用だけ（後で追記）。
+    </p>
+    <div class="mt-3 grid gap-3">
+      {invalid.map((f) => (
+        <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="font-mono text-sm">{f.name}</div>
+            <div class="flex gap-2 text-sm">
+              <a class="rounded-full border border-white/15 px-3 py-1 hover:bg-white/10" href={viewerLink(f.p)}>
+                Viewer
+              </a>
+              <a class="rounded-full border border-white/15 px-3 py-1 hover:bg-white/10" href={f.p}>
+                JSON
+              </a>
+              <a class="rounded-full border border-white/15 px-3 py-1 hover:bg-white/10" href={embedLink(f.p)}>
+                Embed
+              </a>
+            </div>
+          </div>
+          <div class="mt-1 text-xs text-neutral-400">{f.p}</div>
+        </div>
+      ))}
+    </div>
+  </section>
+</Layout>

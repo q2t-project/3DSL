@@ -6,7 +6,7 @@
 // - 位置/スケール: cameraState.distance + labelConfig.world
 // - microState は「ラベルの見え方調整」にだけ使う（越権しない）
 
-import * as THREE from "../../../../vendor/three/build/three.module.js";
+import * as THREE from "/vendor/three/build/three.module.js";
 import { labelConfig } from "./labelConfig.js";
 import { createTextLabelObject, disposeTextLabelObject } from "./textSprite.js";
 

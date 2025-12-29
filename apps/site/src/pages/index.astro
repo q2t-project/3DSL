@@ -1,106 +1,79 @@
 ---
-import "../styles/global.css";
+import Layout from "../layouts/Layout.astro";
+
+const demoModel = "/3dss/sample/core_viewer_baseline.3dss.json";
 ---
-<html lang="ja">
-  <head>
-    <meta charset="utf-8" />
-    <title>3DSL Viewer</title>
-  </head>
-       {/** ② PC用 レイアウト */}
-      <section class="hidden md:block relative w-full h-screen">
-        <div class="relative max-w-6xl mx-auto h-full">
 
-          {/* 基準点＋120度ライン */}
-          <div class="axis-origin" aria-hidden="true"></div>
-          <div class="iso-line-main" aria-hidden="true"></div>
+<Layout title="3DSL">
+  <section class="rounded-3xl border border-white/10 bg-white/5 p-8">
+    <p class="text-xs uppercase tracking-widest text-neutral-400">Three-Dimensional Structural Language</p>
+    <h1 class="mt-2 text-3xl font-semibold leading-tight">
+      3DSS を “読む” ための Viewer と、サンプルの Library
+    </h1>
+    <p class="mt-3 max-w-2xl text-neutral-300">
+      /viewer は既存のまま。ここは導線と一覧と説明を足すだけ。
+    </p>
 
-          {/* 左上：Modeler */}
-          <section class="node-modeler space-y-2">
-              上流 / Modeler 側
-            </h2>
-            <p class="text-xs text-slate-300">
-              3DSD-modeler で .3dss.json を生成・編集する側。
-              ここに PC と制作者の人影を“アイソメ風”に描く予定。
-            </p>
-            <div class="mt-2 text-[10px] text-slate-500">
-              [PC＋制作者シルエット アイソメ枠]
-            </div>
-          </section>
+    <div class="mt-6 flex flex-wrap gap-3">
+      <a
+        href={`/app/viewer?model=${encodeURIComponent(demoModel)}&back=${encodeURIComponent('/')}`}
+        class="rounded-full bg-white px-5 py-2 text-sm font-semibold text-neutral-950 hover:opacity-90"
+      >
+        おすすめデモを開く
+      </a>
 
-          {/* 中央：Library */}
-          <section
-            class="node-library flex items-center justify-center border border-slate-700 rounded-lg bg-slate-900/80"
-          >
-            <div class="text-center text-sm text-slate-300 px-4">
-              3DSL コンテンツ図庫（Library）<br />
-              モデル／概念マップ／テンプレ群への入口。
-            </div>
-          </section>
+      <a
+        href="/viewer"
+        class="rounded-full border border-white/15 px-5 py-2 text-sm hover:bg-white/10"
+      >
+        Viewer
+      </a>
 
-          {/* 右下：Viewer */}
-          <section
-              class="node-viewer space-y-2 border border-slate-300 rounded-lg bg-slate-900/60 px-4 py-3 text-right">            
-            <h2 class="text-sm font-semibold tracking-wide text-emerald-300">
-              下流 / Viewer 側
-            </h2>
-            <p class="text-xs text-slate-300">
-              3DSD-viewer で構造を閲覧する側。
-              スマホを見ている読者の人影をアイソメ風に描く予定。
-            </p>
-            <div class="mt-2 text-[10px] text-slate-500">
-              [スマホ＋読者シルエット アイソメ枠]
-            </div>
-          </section>
+      <a
+        href="/library"
+        class="rounded-full border border-white/15 px-5 py-2 text-sm hover:bg-white/10"
+      >
+        Library
+      </a>
 
-          {/* 右上：デモモデル */}
-          <section
-            class="hero-demo border border-slate-700 rounded-lg bg-slate-900/80 flex items-center justify-center"
-          >
-            <div class="text-center text-xs text-slate-300 px-3">
-              デモモデル（数秒イントロアニメ）<br />
-              クリックで簡易操作モード起動予定。<br />
-              ※ ここに three.js の canvas を入れる。
-            </div>
-          </section>
+      <a
+        href="/docs"
+        class="rounded-full border border-white/15 px-5 py-2 text-sm hover:bg-white/10"
+      >
+        Docs
+      </a>
+    </div>
+  </section>
 
-          {/* 左下：思想＋ TECH STATUS（ここだけにまとめる） */}
-          <section class="meta-bottom-left space-y-4 text-xs text-slate-300">
-            <div class="space-y-2">
-              <h1 class="text-sm font-semibold">
-                3DSL Structure Dock
-              </h1>
-              <p class="leading-relaxed">
-                3DSS schema / 3DSD Viewer / Modeler を中核とした
-                「構造を点・線・フレームで記述する」ための技術倉庫。
-              </p>
-              <div class="flex flex-wrap gap-2 text-[11px] text-slate-400">
-                <a href="/docs" class="underline underline-offset-2">
-                  Overview
-                </a>
-                <a href="/docs/schema" class="underline underline-offset-2">
-                  3DSS schema
-                </a>
-                <a href="/gallery" class="underline underline-offset-2">
-                  Gallery
-                </a>
-              </div>
-            </div>
+  <section class="mt-10 grid gap-4 md:grid-cols-3">
+    <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+      <h2 class="text-base font-semibold">Viewer</h2>
+      <p class="mt-2 text-sm text-neutral-300">
+        既存の /viewer をそのまま使う。model 切替は ?model= で。
+      </p>
+      <a class="mt-4 inline-block text-sm underline decoration-white/20 hover:decoration-white/60" href="/viewer">
+        /viewer を開く →
+      </a>
+    </div>
 
-            <div class="space-y-1">
-              <h2 class="text-[11px] font-semibold text-slate-400">
-                TECH STATUS
-              </h2>
-              <ul class="space-y-1 list-disc list-inside">
-                <li>3DSS schema: v1.0.0 / stable</li>
-                <li>3DSD Viewer: alpha（frame / HUD 実装中）</li>
-                <li>3DSD Modeler: spec phase / UI プロトタイピング</li>
-                <li>公開サンプル: N 件（仮）</li>
-              </ul>
-            </div>
-          </section>
-        </div>
-      </section>
+    <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+      <h2 class="text-base font-semibold">Library</h2>
+      <p class="mt-2 text-sm text-neutral-300">
+        public/3dss/sample をビルド時に走査して一覧化。
+      </p>
+      <a class="mt-4 inline-block text-sm underline decoration-white/20 hover:decoration-white/60" href="/library">
+        /library →
+      </a>
+    </div>
 
-    </main>
-  </body>
-</html>
+    <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+      <h2 class="text-base font-semibold">Docs</h2>
+      <p class="mt-2 text-sm text-neutral-300">
+        スキーマ・仕様・Viewer ドキュメントの入口。
+      </p>
+      <a class="mt-4 inline-block text-sm underline decoration-white/20 hover:decoration-white/60" href="/docs">
+        /docs →
+      </a>
+    </div>
+  </section>
+</Layout>

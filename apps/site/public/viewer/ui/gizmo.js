@@ -1,6 +1,6 @@
 // viewer/ui/gizmo.js
 
-import * as THREE from '../../vendor/three/build/three.module.js';
+import * as THREE from '/vendor/three/build/three.module.js';
 import { teardownPrevHandle } from './handleUtils.js';
 import { mapDragToOrbitDelta, ORBIT_SENS } from './orbitMapping.js';
 import { createHubFacade } from './hubFacade.js';

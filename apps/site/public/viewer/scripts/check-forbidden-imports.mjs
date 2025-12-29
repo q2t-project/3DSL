@@ -285,17 +285,30 @@ function extractImportSpecifiers(jsText) {
   return specs;
 }
 
+function isRelativeVendorImport(spec) {
+  const s = String(spec || '');
+  if (!s.startsWith('.')) return false;
+  // e.g. ../../../vendor/three/... or ./vendor/...
+  return s.includes('/vendor/');
+}
+
 function main() {
   const { allowed, forbidden } = readManifestEdges();
   const files = walkJsFiles(repoRoot);
   const violations = [];
   const globalViolations = [];
+  const vendorImportViolations = [];
 
   for (const f of files) {
     const fromLayer = layerOf(f);
     const text = fs.readFileSync(f, 'utf8');
     const specs = extractImportSpecifiers(text);
     for (const spec of specs) {
+      if (isRelativeVendorImport(spec)) {
+        const relFrom = path.relative(repoRoot, f).replace(/\\/g, '/');
+        vendorImportViolations.push({ from: relFrom, spec });
+        continue;
+      }
       const target = resolveImport(f, spec);
       if (!target) continue;
       const toLayer = layerOf(target);
@@ -318,8 +331,11 @@ function main() {
     }
   }
 
-  if (violations.length > 0 || globalViolations.length > 0) {
+  if (violations.length > 0 || globalViolations.length > 0 || vendorImportViolations.length > 0) {
     console.error('[forbidden-imports] violations:');
+    for (const v of vendorImportViolations) {
+      console.error(`- VENDOR_IMPORT_MUST_BE_ABSOLUTE: ${v.from}  (import '${v.spec}')`);
+    }
     for (const v of violations) {
       console.error(`- ${v.edge}: ${v.from}  ->  ${v.to}  (import '${v.spec}')`);
     }
