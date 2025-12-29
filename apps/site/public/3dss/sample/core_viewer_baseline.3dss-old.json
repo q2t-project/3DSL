@@ -3,7 +3,7 @@
     "document_title": "収束と分水嶺 デバッグ版",
     "document_summary": "時間逆行の議論と同型の 3DSD 構造デバッグ版。往還構造 × 分水嶺のテストシーン。",
     "document_uuid": "00000000-0000-0000-0000-000000000000",
-    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.1.1",
     "author": "qoboqobo",
     "version": "1.0.0",
     "tags": [

@@ -2,6 +2,11 @@
 import "../styles/global.css";
 
 const title = "3DSL Viewer – Astro Host";
+
+// When embedded via /app/viewer, we want /viewer to be a pure viewport
+// (no promo ticker / doc caption / meta side panel) so host can own the UI.
+const sp = Astro.url.searchParams;
+const embed = sp.get("embed") === "1";
 ---
 
 <html lang="ja">
@@ -15,7 +20,11 @@ const title = "3DSL Viewer – Astro Host";
   <body class="bg-black text-neutral-200 overflow-hidden">
     <div
       id="viewer-layout"
-      class="viewer-layout grid [grid-template-columns:minmax(0,1fr)_300px_300px] h-screen"
+      class={
+        embed
+          ? "viewer-layout grid grid-cols-1 h-[100dvh]"
+          : "viewer-layout grid grid-cols-1 lg:[grid-template-columns:minmax(0,1fr)_300px] h-[100dvh]"
+      }
     >
       <!-- =========================================================
            左カラム：3D ビュー本体 + 全オーバーレイ
@@ -34,25 +43,17 @@ const title = "3DSL Viewer – Astro Host";
         <!-- =======================================================
              上段オーバーレイ：広告 / プロモ / HUD
              ==================================================== -->
-        <!-- 左上 AD 300×250 -->
-        <section
-          id="ad-top-left"
-          class="ad-slot ad-slot--top-left absolute top-2 left-2 w-[300px] h-[250px] z-20
-                 flex items-center justify-center text-[12px]
-                 border border-white/25 bg-white/5 pointer-events-none"
-          aria-label="Ad slot top-left"
-        >
-          300×250 AD
-        </section>
 
-        <div id="promo-ticker-bar">
-          <div class="promo-ticker-shell">
-            <div class="promo-ticker-line">
-              <span>往還構造 / 分水嶺 / エントロピー × 知識トポス …</span>
-              <span>時間逆行の議論と同型の 3DSD 図解をもっと見る</span>
+        {embed ? null : (
+          <div id="promo-ticker-bar">
+            <div class="promo-ticker-shell">
+              <div class="promo-ticker-line">
+                <span>往還構造 / 分水嶺 / エントロピー × 知識トポス …</span>
+                <span>時間逆行の議論と同型の 3DSD 図解をもっと見る</span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <!-- HUD: 一時メッセージ用トースト -->
         <div
@@ -69,18 +70,20 @@ const title = "3DSL Viewer – Astro Host";
         <!-- =======================================================
             document caption（シーンビューポート右上）
             ==================================================== -->
-        <section id="doc-caption" class="doc-caption-card">
-          <div
-           id="doc-caption-title"
-           data-role="doc-caption-title"
-           class="doc-caption-title">
-          </div>
-          <div
-           id="doc-caption-body"
-           data-role="doc-caption-body" 
-           class="doc-caption-body">
-          </div>
-        </section>
+        {embed ? null : (
+          <section id="doc-caption" class="doc-caption-card">
+            <div
+              id="doc-caption-title"
+              data-role="doc-caption-title"
+              class="doc-caption-title"
+            ></div>
+            <div
+              id="doc-caption-body"
+              data-role="doc-caption-body"
+              class="doc-caption-body"
+            ></div>
+          </section>
+        )}
 
         <!-- =======================================================
              下段オーバーレイ：frame / viewer settings / gizmo / camera
@@ -89,7 +92,8 @@ const title = "3DSL Viewer – Astro Host";
         <!-- 左下：フレーム操作 + viewer settings -->
         <section
           id="viewer-toolbar"
-          class="viewer-toolbar absolute left-3 bottom-3 text-xs text-neutral-100 pointer-events-auto"
+          class="viewer-toolbar absolute left-3 bottom-3 text-xs text-neutral-100 pointer-events-auto
+                 origin-bottom-left scale-[0.67] sm:scale-75 lg:scale-100"
         >
           <!-- フレーム操作パネル -->
           <div
@@ -111,14 +115,14 @@ const title = "3DSL Viewer – Astro Host";
               >
                 <span class="filter-icon filter-icon-on">
                   <img
-                    src="/assets/icons/visibility-on.svg"
+                    src="/viewer/assets/icons/visibility-on.svg"
                     alt=""
                     class="filter-icon-img"
                   />
                 </span>
                 <span class="filter-icon filter-icon-off">
                   <img
-                    src="/assets/icons/visibility-off.svg"
+                    src="/viewer/assets/icons/visibility-off.svg"
                     alt=""
                     class="filter-icon-img"
                   />
@@ -135,14 +139,14 @@ const title = "3DSL Viewer – Astro Host";
               >
                 <span class="filter-icon filter-icon-on">
                   <img
-                    src="/assets/icons/visibility-on.svg"
+                    src="/viewer/assets/icons/visibility-on.svg"
                     alt=""
                     class="filter-icon-img"
                   />
                 </span>
                 <span class="filter-icon filter-icon-off">
                   <img
-                    src="/assets/icons/visibility-off.svg"
+                    src="/viewer/assets/icons/visibility-off.svg"
                     alt=""
                     class="filter-icon-img"
                   />
@@ -159,14 +163,14 @@ const title = "3DSL Viewer – Astro Host";
               >
                 <span class="filter-icon filter-icon-on">
                   <img
-                    src="/assets/icons/visibility-on.svg"
+                    src="/viewer/assets/icons/visibility-on.svg"
                     alt=""
                     class="filter-icon-img"
                   />
                 </span>
                 <span class="filter-icon filter-icon-off">
                   <img
-                    src="/assets/icons/visibility-off.svg"
+                    src="/viewer/assets/icons/visibility-off.svg"
                     alt=""
                     class="filter-icon-img"
                   />
@@ -190,7 +194,7 @@ const title = "3DSL Viewer – Astro Host";
                 title="最初のフレームへ（min までジャンプ）"
               >
                 <img
-                  src="/assets/icons/frame-first.svg"
+                  src="/viewer/assets/icons/frame-first.svg"
                   alt=""
                   class="frame-icon-img"
                 />
@@ -205,7 +209,7 @@ const title = "3DSL Viewer – Astro Host";
                 title="1 フレーム戻る (PgDn)"
               >
                 <img
-                  src="/assets/icons/frame-prev.svg"
+                  src="/viewer/assets/icons/frame-prev.svg"
                   alt=""
                   class="frame-icon-img"
                 />
@@ -221,14 +225,14 @@ const title = "3DSL Viewer – Astro Host";
               >
                 <span class="frame-play-icon">
                   <img
-                    src="/assets/icons/frame-play.svg"
+                    src="/viewer/assets/icons/frame-play.svg"
                     alt=""
                     class="frame-icon-img"
                   />
                 </span>
                 <span class="frame-pause-icon">
                   <img
-                    src="/assets/icons/frame-pause.svg"
+                    src="/viewer/assets/icons/frame-pause.svg"
                     alt=""
                     class="frame-icon-img"
                   />
@@ -244,7 +248,7 @@ const title = "3DSL Viewer – Astro Host";
                 title="1 フレーム進む (PgUp)"
               >
                 <img
-                  src="/assets/icons/frame-next.svg"
+                  src="/viewer/assets/icons/frame-next.svg"
                   alt=""
                   class="frame-icon-img"
                 />
@@ -259,7 +263,7 @@ const title = "3DSL Viewer – Astro Host";
                 title="最後のフレームへ（max までジャンプ）"
               >
                 <img
-                  src="/assets/icons/frame-last.svg"
+                  src="/viewer/assets/icons/frame-last.svg"
                   alt=""
                   class="frame-icon-img"
                 />
@@ -324,50 +328,13 @@ const title = "3DSL Viewer – Astro Host";
               </div>
             </div>
           </div>
-          <!-- =======================================================
-              dev only: viewer settings（lineWidthMode / microProfile）
-              ==================================================== -->
-          <div
-            id="viewer-settings-panel"
-            class="mt-2 px-3 py-2 rounded-xl border border-white/15 bg-black/50 backdrop-blur-sm
-                  flex flex-col gap-2"
-          >
-            <div class="text-[11px] font-semibold tracking-[0.03em] uppercase opacity-90">
-              Viewer settings
-            </div>
-
-            <label for="vs-line-width-mode" class="text-[10px] uppercase opacity-80">
-              Line width mode
-            </label>
-            <select
-              id="vs-line-width-mode"
-              data-role="vs-line-width-mode"
-              class="w-full rounded-lg bg-white/5 border border-white/15 px-2 py-1 text-xs"
-            >
-              <option value="auto">auto</option>
-              <option value="fixed">fixed</option>
-              <option value="adaptive">adaptive</option>
-            </select>
-
-            <label for="vs-micro-profile" class="text-[10px] uppercase opacity-80">
-              Micro FX profile
-            </label>
-            <select
-              id="vs-micro-profile"
-              data-role="vs-micro-profile"
-              class="w-full rounded-lg bg-white/5 border border-white/15 px-2 py-1 text-xs"
-            >
-              <option value="off">off</option>
-              <option value="prod_light">prod_light</option>
-              <option value="prod_full">prod_full</option>
-            </select>
-          </div>
         </section>
 
         <!-- 右下：Gizmo 本体 -->
         <section
           id="gizmo-wrapper"
-          class="gizmo-wrapper absolute right-3 bottom-3 w-[210px] h-[210px]
+          class="gizmo-wrapper absolute right-3 bottom-3
+                 w-[140px] h-[140px] sm:w-[170px] sm:h-[170px] lg:w-[210px] lg:h-[210px]
                  pointer-events-auto z-20"
         >
           <!-- three.js 用の枠（JS がキャンバスを差し込む） -->
@@ -418,7 +385,7 @@ const title = "3DSL Viewer – Astro Host";
                 <!-- on: 軸あり -->
                 <span class="coordinate-icon" data-icon="on">
                   <img
-                    src="/assets/icons/coordinate-on.svg"
+                    src="/viewer/assets/icons/coordinate-on.svg"
                     alt=""
                     class="coordinate-icon-img"
                   />
@@ -426,7 +393,7 @@ const title = "3DSL Viewer – Astro Host";
                 <!-- off: 軸なし -->
                 <span class="coordinate-icon" data-icon="off">
                   <img
-                    src="/assets/icons/coordinate-off.svg"
+                    src="/viewer/assets/icons/coordinate-off.svg"
                     alt=""
                     class="coordinate-icon-img"
                   />
@@ -480,7 +447,7 @@ const title = "3DSL Viewer – Astro Host";
               >
                 <span class="auto-orbit-icon auto-orbit-icon-cw">
                   <img
-                    src="/assets/icons/360-cw.svg"
+                    src="/viewer/assets/icons/360-cw.svg"
                     alt=""
                     class="auto-orbit-icon-img"
                   />
@@ -507,7 +474,7 @@ const title = "3DSL Viewer – Astro Host";
               >
                 <span class="auto-orbit-icon auto-orbit-icon-ccw">
                   <img
-                    src="/assets/icons/360-ccw.svg"
+                    src="/viewer/assets/icons/360-ccw.svg"
                     alt=""
                     class="auto-orbit-icon-img"
                   />
@@ -519,23 +486,13 @@ const title = "3DSL Viewer – Astro Host";
       </main>
 
       <!-- =========================================================
-           中央カラム：300×600 AD レール
-           ====================================================== -->
-      <aside
-        id="viewer-ad-rail"
-        class="viewer-ad-rail flex items-center justify-center border-x border-neutral-800
-               bg-white/5 text-xs"
-      >
-        300×600 AD
-      </aside>
-
-      <!-- =========================================================
            右カラム：メタ情報エリア
            ====================================================== -->
+      {embed ? null : (
       <aside
         id="viewer-meta"
-        class="viewer-meta bg-neutral-900 border-l border-neutral-700 p-3 text-sm
-               flex flex-col min-h-0"
+        class="viewer-meta hidden lg:flex bg-neutral-900 border-l border-neutral-700 p-3 text-sm
+               flex-col min-h-0"
       >
         <!-- ロゴ -->
         <header
@@ -550,7 +507,7 @@ const title = "3DSL Viewer – Astro Host";
           >
             <img
               id="meta-logo"
-              src="../assets/logo/3DSD-viewer.svg"
+              src="/viewer/assets/logo/3DSD-viewer.svg"
               alt="3DSD-viewer"
               style="display:block;height:80px;width:auto;"
               class="invert"
@@ -600,8 +557,31 @@ const title = "3DSL Viewer – Astro Host";
           </div>
         </section>
       </aside>
+      )}
     </div>
     <!-- auto boot -->
-    <script type="module" src="/viewer/viewerHostBoot.js"></script>
+    <!-- embed=1 fallback for static output (query params are client-side) -->
+<script is:inline>
+  (function () {
+    try {
+      const sp = new URLSearchParams(location.search);
+      if (sp.get('embed') === '1') {
+        document.documentElement.classList.add('is-embed');
+      }
+    } catch {}
+  })();
+</script>
+<style is:inline>
+  .is-embed #promo-ticker-bar,
+  .is-embed #doc-caption,
+  .is-embed #viewer-meta {
+    display: none !important;
+  }
+  .is-embed #viewer-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+</style>
+
+<script type="module" src="/viewer/viewerHostBoot.js"></script>
   </body>
 </html>

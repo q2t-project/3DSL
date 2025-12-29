@@ -4,7 +4,7 @@
 // - flow / glow / pulse のアニメーション
 // - selection ハイライト（macro 用）
 // - baseStyle を壊さず、「毎フレーム base に戻してから」上書きする
- import * as THREE from "../../../../vendor/three/build/three.module.js";
+ import * as THREE from "/vendor/three/build/three.module.js";
 
 function _normLineWidthMode(v) {
   if (typeof v !== "string") return null;

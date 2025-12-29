@@ -1,5 +1,14 @@
 <!doctype html>
 <html lang="ja">
+<script type="importmap">
+{
+"imports": {
+  "ajv": "/vendor/ajv/dist/ajv.bundle.js",
+  "three": "/vendor/three/build/three.module.js",
+  "three/addons/": "/vendor/three/examples/jsm/"
+}
+}
+</script>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -31,7 +40,6 @@
         <div id="viewer-detail" style="margin-top:10px;"></div>
       </aside>
     </div>
-
     <script type="module" src="./viewerDevHarness.js"></script>
   </body>
 </html>

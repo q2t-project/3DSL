@@ -1,6 +1,6 @@
 // viewer/runtime/renderer/selectionHighlight.js
 
-import * as THREE from "../../../vendor/three/build/three.module.js";
+import * as THREE from "/vendor/three/build/three.module.js";
 
 // シーン内に 1 個だけ持つ selection ハイライト用グループ
 let selectionGroup = null;

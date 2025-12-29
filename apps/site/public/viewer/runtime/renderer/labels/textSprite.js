@@ -5,7 +5,7 @@
 // - 生成: createTextLabelObject(text,label)
 // - 破棄: disposeTextLabelObject(obj) で release される
 
-import * as THREE from "../../../../vendor/three/build/three.module.js";
+import * as THREE from "/vendor/three/build/three.module.js";
 import { labelConfig } from "./labelConfig.js";
 import { createHtmlCanvas, getDevicePixelRatio } from "../env.js";
 

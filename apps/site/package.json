@@ -7,7 +7,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
-    "validate:3dss:baseline": "npx ajv validate -c ajv-formats -s ../schemas/3DSS.schema.json -d \"public/3dss/sample/core_viewer_baseline.3dss.json\" --spec=draft2020",
+    "validate:3dss:baseline": "npx ajv validate -c ajv-formats -s ../../packages/schemas/3DSS.schema.json -d \"public/3dss/sample/core_viewer_baseline.3dss.json\" --spec=draft2020",
     "check:invariants": "node scripts/check-invariants.mjs",
     "check:phase0": "npm run validate:3dss:baseline && npm run validate:3dss:samples && npm run check:invariants",
     "validate:3dss:samples": "node scripts/validate-3dss-samples.mjs",
@@ -30,7 +30,21 @@
     "check:viewer:ports-conformance": "node public/viewer/scripts/check-ports-conformance.mjs",
     "check:viewer:generated-clean": "node public/viewer/scripts/check-generated-clean.mjs",
     "check:viewer:ssot": "npm run check:viewer:forbidden-imports && npm run check:viewer:single-writer && npm run check:viewer:ports-conformance && npm run check:viewer:generated-clean",
-    "astro": "astro"
+    "astro": "astro",
+    "check:host:asset-paths": "node scripts/check-host-asset-paths.mjs",
+    "check:generated-clean": "node scripts/check-generated-clean.mjs",
+    "check:vendor-required": "node scripts/check-vendor-required.mjs",
+    "check:ssot": "npm run check:vendor-required && npm run check:generated-clean && npm run check:viewer:ssot && npm run check:host:asset-paths",
+    "sync:viewer": "node scripts/sync-viewer.mjs",
+    "sync:schemas": "node scripts/sync-schemas.mjs",
+    "sync:vendor": "node scripts/sync-vendor.mjs",
+    "sync:all": "npm run sync:schemas && npm run sync:3dss-content && npm run sync:viewer && npm run sync:vendor",
+    "predev": "npm run sync:all",
+    "prebuild": "npm run sync:all",
+    "precheck:ssot": "npm run sync:all",
+    "precheck:phase7": "npm run sync:all",
+    "ci:build": "npm run check:ssot && npm run check:phase7 && npm run build",
+    "sync:3dss-content": "node scripts/sync-3dss-content.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.17",
@@ -40,6 +54,7 @@
   "devDependencies": {
     "ajv": "^8.17.1",
     "ajv-cli": "^5.0.0",
-    "ajv-formats": "^3.0.1"
+    "ajv-formats": "^3.0.1",
+    "esbuild": "^0.27.2"
   }
 }

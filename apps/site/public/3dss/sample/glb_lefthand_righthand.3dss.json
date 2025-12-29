@@ -3,7 +3,7 @@
     "document_title": "Right/Left Hand Markers",
     "document_summary": "righthand_model.gltf at [256,0,0], lefthand_model.gltf at [-256,0,0].",
     "document_uuid": "7f2f2b0a-7c4d-4bb1-8a2d-4b4a0f35e8b1",
-    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.1.1",
     "author": "q2t",
     "version": "1.0.0"
   },
