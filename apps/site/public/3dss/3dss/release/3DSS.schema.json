@@ -1,8 +1,7 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema", 
-    "$id": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#",
-    "$anchor": "v1.1.1",
-    "title": "3DSS Schema v1.1.1",
+    "$id": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json",
+    "title": "3DSS Schema v1.1.0",
     "type": "object",
     "properties": {
 
@@ -38,32 +37,29 @@
 
     "$defs": {
         "validator": {
-            "schema_uri": {
-                "type": "string",
-                "pattern": "^https?://\\S+#v\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
-            },
             "uuid": {
-            "type": "string",
-            "pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                "type": "string",
+                "format": "uuid"
             },
             "uuid_v4": {
-            "type": "string",
-            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+                "type": "string",
+                "pattern": "^[0-9a-fA-F]{8}\\-[0-9a-fA-F]{4}\\-4[0-9a-fA-F]{3}\\-[89abAB][0-9a-fA-F]{3}\\-[0-9a-fA-F]{12}$"
             },
             "uri": {
-                "$ref": "#/$defs/validator/uri_http_like"
+                "type": "string",
+                "format": "uri"
             },
             "uri_http_like": {
                 "type": "string",
-                "pattern": "^(https?|ftp|file)://\\S+$"
+                "pattern": "^(https?|ftp|file)://[-\\w.]+(/[\\w\\-./?%&=]*)?$"
             },
             "path_ref": {
                 "type": "string",
-                "pattern": "^[\\w./-]+$" 
+                "pattern": "^[\\w\\-/\\.]+$"
             },
             "tag": {
                 "type": "string",
-                "pattern": "^(s|m|x):[^\\s:]+$"
+                "pattern": "^(s|m|x):[\\w\\-\\p{L}\\p{N}]+$"
             },
             "language_code": {
                 "type": "string",
@@ -75,7 +71,7 @@
             },
             "semver": {
                 "type": "string",
-                "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+                "pattern": "^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9]+(\\.[a-zA-Z0-9]+)*)?$"
             },
             "timestamp_utc": {
                 "type": "string",
@@ -320,6 +316,13 @@
                         "enum": ["reference"]
                     }
                 },
+                "oneOf": [
+                    { "required": ["structural"] },
+                    { "required": ["dynamic"] },
+                    { "required": ["logical"] },
+                    { "required": ["temporal"] },
+                    { "required": ["meta"] }
+                ],
                 "minProperties": 1,
                 "maxProperties": 1,
                 "additionalProperties": false
@@ -417,10 +420,6 @@
                             }
                         },
                         "then": {
-                            "properties": {
-                            "length": {},
-                            "thickness": {}
-                            },
                             "required": ["length", "thickness"]
                         }
                     },
@@ -431,10 +430,6 @@
                             }
                         },
                         "then": {
-                            "properties": {
-                                "radius": {},
-                                "height": {}
-                            },
                             "required": ["radius", "height"]
                         }
                     },
@@ -445,10 +440,6 @@
                             }
                         },
                         "then": {
-                            "properties": {
-                                "base": {},
-                                "height": {}
-                            },
                             "required": ["base", "height"]
                         }
                     }
@@ -562,9 +553,6 @@
                             "required": ["line_type"]
                         },
                         "then": {
-                            "properties": {
-                                "geometry": {}
-                            },
                             "required": ["geometry"]
                         }
                     }
@@ -765,9 +753,6 @@
                             "required": ["primitive"]
                         },
                         "then": {
-                            "properties": {
-                                "radius": {}
-                            },
                             "required": ["radius"]
                         }
                     },
@@ -779,9 +764,6 @@
                             "required": ["primitive"]
                         },
                         "then": {
-                            "properties": {
-                                "size": {}
-                            },
                             "required": ["size"]
                         }
                     },
@@ -793,10 +775,6 @@
                             "required": ["primitive"]
                         },
                         "then": {
-                            "properties": {
-                                "radius": {},
-                                "height": {}
-                            },
                             "required": ["radius", "height"]
                         }
                     },
@@ -808,10 +786,6 @@
                             "required": ["primitive"]
                         },
                         "then": {
-                            "properties": {
-                                "base": {},
-                                "height": {}
-                            },
                             "required": ["base", "height"]
                         }
                     },
@@ -823,10 +797,6 @@
                             "required": ["primitive"]
                         },
                         "then": {
-                            "properties": {
-                                "inner_radius": {},
-                                "outer_radius": {}
-                            },
                             "required": ["inner_radius", "outer_radius"]
                         }
                     }
@@ -945,10 +915,6 @@
                             "required": ["primitive"]
                         },
                         "then": {
-                            "properties": {
-                                "length": {},
-                                "thickness": {}
-                            },
                             "required": ["length", "thickness"]
                         }
                     },
@@ -958,10 +924,6 @@
                             "required": ["primitive"]
                         },
                         "then": {
-                            "properties": {
-                                "radius": {},
-                                "height": {}
-                            },
                             "required": ["radius", "height"]
                         }
                     },
@@ -971,10 +933,6 @@
                             "required": ["primitive"]
                         },
                         "then": {
-                            "properties": {
-                                "base": {},
-                                "height": {}
-                            },
                             "required": ["base", "height"]
                         }
                     }
@@ -1176,6 +1134,7 @@
         },
         "meta": {
             "core": {
+                "$id": "#/$defs/meta/core",
                 "type": "object",
                 "properties": {
                     "uuid": { "$ref": "#/$defs/validator/uuid" },
@@ -1216,12 +1175,11 @@
                         "default": []
                     },
                     "schema_uri": {
-                        "$ref": "#/$defs/validator/schema_uri"
+                        "$ref": "#/$defs/validator/uri"
                     },
                     "generator": {
-                        "allOf": [
-                            { "$ref": "#/$defs/validator/uri" }
-                        ],
+                        "type": "string",
+                        "format": "uri-reference",
                         "default": "https://q2t-project.github.io/3dsl/"
                     },
                     "reference": {
