@@ -37,6 +37,3 @@ public/viewer/**
 public/3dss/**
 public/modeler/**
 public/structs/**
-
-# keep placeholders only
-!public/**/.gitkeep
