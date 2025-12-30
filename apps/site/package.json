@@ -47,7 +47,8 @@
     "precheck:ssot": "npm run sync:all",
     "precheck:phase7": "npm run sync:all",
     "ci:build": "npm run check:ssot && npm run check:phase7 && npm run build",
-    "sync:3dss-content": "node scripts/sync-3dss-content.mjs"
+    "sync:3dss-content": "node scripts/sync-3dss-content.mjs",
+    "check:host:no-src-assets": "node scripts/check-host-no-src-assets.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.17",
