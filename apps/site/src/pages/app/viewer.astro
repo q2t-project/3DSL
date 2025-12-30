@@ -1,0 +1,168 @@
+---
+import LayoutApp from "../../layouts/LayoutApp.astro";
+
+const demoModel = "/3dss/sample/core_viewer_baseline.3dss.json";
+const sp = Astro.url.searchParams;
+
+const model = sp.get("model") || demoModel;
+const back = sp.get("back") || "/library";
+
+// /viewer stays pure; /app/viewer adds ads + simple top chrome.
+// embed=1: hide in-viewer promo/header so host can own the top area.
+const iframeSrc = `/viewer?model=${encodeURIComponent(model)}&embed=1`;
+---
+
+<LayoutApp title="Viewer">
+  <div class="flex h-[100dvh] flex-col overflow-hidden bg-black">
+    <!-- 1) Mobile: Top ad (320x100) -->
+    <div class="lg:hidden shrink-0 border-b border-white/10 bg-neutral-950">
+      <div class="px-4 py-2">
+        <div class="text-xs text-neutral-500">Sponsored</div>
+        <div class="mt-1 h-[100px] w-full rounded-xl border border-white/10 bg-white/5 grid place-items-center text-xs text-neutral-400">
+          Ad Slot (320×100)
+        </div>
+      </div>
+    </div>
+
+    <!-- 2) Ticker (single line, marquee) -->
+    <div class="shrink-0 border-b border-white/10 bg-neutral-950">
+      <div class="px-4 py-2">
+        <div class="overflow-hidden whitespace-nowrap text-[11px] text-neutral-200/90">
+          <div id="app-ticker" class="inline-block will-change-transform">
+            <span id="app-ticker-text" class="opacity-90">
+              Loading…
+            </span>
+            <span class="mx-8 opacity-50">•</span>
+            <span id="app-ticker-text-2" class="opacity-90">Loading…</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3) Left: Back / Right: document_meta -->
+    <div class="shrink-0 border-b border-white/10 bg-neutral-950">
+      <div class="px-4 py-2 flex items-center justify-between gap-3">
+<div class="flex items-center gap-2 shrink-0">
+  <a
+    id="app-btn-back"
+    href={back}
+    class="shrink-0 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-neutral-100 hover:bg-white/10"
+    style="padding-top: calc(0.5rem + env(safe-area-inset-top) * 0.0);"
+  >
+    ← 戻る
+  </a>
+</div>
+
+        <div class="min-w-0 text-right">
+                  <div id="app-doc-title" class="truncate text-sm font-semibold text-neutral-100">(no title)</div>
+                  <div class="truncate text-xs text-neutral-400">
+                    <span id="app-doc-author">(no author)</span>
+                    <span class="mx-2 opacity-40">/</span>
+                    <span id="app-doc-path" class="opacity-80">{model}</span>
+      </div>
+    </div>
+      </div>
+    </div>
+
+    <!-- Viewer area (no scroll) -->
+    <div class="min-h-0 flex-1">
+      <div class="flex h-full">
+        <div class="min-w-0 flex-1 bg-black">
+          <iframe
+            id="app-viewer-iframe"
+            src={iframeSrc}
+            class="block h-full w-full"
+            loading="lazy"
+            referrerpolicy="no-referrer"
+            allowfullscreen
+          />
+        </div>
+
+        <!-- Desktop: right rail ad 300x600 -->
+        <aside class="hidden lg:block w-[300px] shrink-0 border-l border-white/10 bg-neutral-950">
+          <div class="p-3">
+            <div class="text-xs text-neutral-500">Sponsored</div>
+            <div class="mt-2 h-[600px] rounded-xl border border-white/10 bg-white/5 grid place-items-center text-xs text-neutral-400">
+              300×600 AD
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" is:inline>
+  const DEFAULT_MODEL = '/3dss/sample/core_viewer_baseline.3dss.json';
+
+  const sp = new URLSearchParams(location.search);
+  const model = sp.get('model') || DEFAULT_MODEL;
+  const back = sp.get('back') || '/library';
+
+  // Keep /viewer pure; host owns the chrome.
+  const iframeSrc = `/viewer?model=${encodeURIComponent(model)}&embed=1`;
+
+  const $iframe = document.getElementById('app-viewer-iframe');
+  if ($iframe) $iframe.src = iframeSrc;
+
+  const $backBtn = document.getElementById('app-btn-back');
+  if ($backBtn) $backBtn.href = back;
+  const $title = document.getElementById('app-doc-title');
+  const $author = document.getElementById('app-doc-author');
+  const $path = document.getElementById('app-doc-path');
+  const $t1 = document.getElementById('app-ticker-text');
+  const $t2 = document.getElementById('app-ticker-text-2');
+
+  if ($path) $path.textContent = model;
+
+  function pick(obj, paths, fallback = '') {
+    for (const p of paths) {
+      let cur = obj;
+      let ok = true;
+      for (const k of p) {
+        if (!cur || typeof cur !== 'object' || !(k in cur)) { ok = false; break; }
+        cur = cur[k];
+      }
+      if (ok && typeof cur === 'string' && cur.trim()) return cur;
+    }
+    return fallback;
+  }
+
+  async function loadMeta() {
+    try {
+      const res = await fetch(model, { cache: 'no-store' });
+      if (!res.ok) throw new Error(String(res.status));
+      const json = await res.json();
+
+      const title = pick(json, [[ 'document_meta', 'document_title' ]], '(no title)');
+      const author = pick(json, [[ 'document_meta', 'author' ]], '(no author)');
+      const summary = pick(json, [[ 'document_meta', 'document_summary' ]], title);
+
+      if ($title) $title.textContent = title;
+      if ($author) $author.textContent = author;
+      if ($t1) $t1.textContent = summary;
+      if ($t2) $t2.textContent = summary;
+
+      // simple marquee: translateX loop
+      const ticker = document.getElementById('app-ticker');
+      if (ticker) {
+        const dur = Math.max(12, Math.min(30, (summary.length / 6)));
+        ticker.style.animation = `appTickerMarquee ${dur}s linear infinite`;
+      }
+    } catch (e) {
+      if ($title) $title.textContent = '(failed to load meta)';
+    }
+  }
+
+
+  loadMeta();
+</script>
+
+  <style is:inline>
+    @keyframes appTickerMarquee {
+      0%   { transform: translateX(0%); }
+      100% { transform: translateX(-50%); }
+    }
+    /* Make the ticker content wide enough for looping */
+    #app-ticker { padding-right: 100%; }
+  </style>
+</LayoutApp>

@@ -1,0 +1,133 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import fs from "node:fs";
+import path from "node:path";
+
+const publicDir = path.join(process.cwd(), "public");
+const baseDir = path.join(publicDir, "3dss", "sample");
+
+function walk(dir) {
+  const out = [];
+  if (!fs.existsSync(dir)) return out;
+
+  for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+    const abs = path.join(dir, ent.name);
+    if (ent.isDirectory()) out.push(...walk(abs));
+    else out.push(abs);
+  }
+  return out;
+}
+
+function toPublicPath(abs) {
+  const rel = path.relative(publicDir, abs).split(path.sep).join("/");
+  return `/${rel}`;
+}
+
+function normalizeOneLine(s) {
+  const t = String(s ?? "").replace(/\s+/g, " ").trim();
+  return t;
+}
+
+function readMeta(abs) {
+  try {
+    const raw = fs.readFileSync(abs, "utf8");
+    const j = JSON.parse(raw);
+    const dm = j?.document_meta ?? {};
+
+    const title = normalizeOneLine(dm.document_title ?? dm.title ?? "");
+    const summary = normalizeOneLine(
+      dm.document_summary ?? dm.summary ?? dm.creator_memo ?? dm.description ?? ""
+    );
+
+    return {
+      title,
+      summary,
+    };
+  } catch {
+    return { title: "", summary: "" };
+  }
+}
+
+const files = walk(baseDir)
+  .filter((abs) => abs.endsWith(".3dss.json"))
+  .map((abs) => {
+    const p = toPublicPath(abs);
+    const name = path.basename(abs);
+
+    // サンプル群は invalid_ / invalid- / invalid_A... など表記ゆれがあるので広めに拾う
+    const isInvalid = name.toLowerCase().startsWith("invalid");
+
+    const meta = readMeta(abs);
+    const displayTitle = meta.title || name;
+    const displaySummary = meta.summary;
+
+    return { p, name, isInvalid, displayTitle, displaySummary };
+  })
+  .sort((a, b) => a.displayTitle.localeCompare(b.displayTitle));
+
+const valid = files.filter((x) => !x.isInvalid);
+const invalid = files.filter((x) => x.isInvalid);
+
+function openLink(modelPath) {
+  const back = "/library";
+  return `/app/viewer?model=${encodeURIComponent(modelPath)}&back=${encodeURIComponent(back)}`;
+}
+---
+
+<Layout title="Library">
+  <h1 class="text-2xl font-semibold">Library</h1>
+  <p class="mt-2 text-sm text-neutral-300">
+    サンプル一覧。カードをクリックすると Viewer が開く（広告なし・最短導線）。
+  </p>
+
+  <section class="mt-8">
+    <h2 class="text-lg font-semibold">Valid</h2>
+
+    {valid.length === 0 ? (
+      <div class="mt-3 text-sm text-neutral-400">No files found: /public/3dss/sample</div>
+    ) : (
+      <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {valid.map((f) => (
+          <a
+            href={openLink(f.p)}
+            class="block rounded-2xl border border-white/10 bg-white/5 p-4 hover:bg-white/10"
+          >
+            <div class="text-sm font-semibold truncate">{f.displayTitle}</div>
+            {f.displaySummary ? (
+              <div class="mt-1 text-xs text-neutral-300 line-clamp-1">{f.displaySummary}</div>
+            ) : (
+              <div class="mt-1 text-xs text-neutral-500">&nbsp;</div>
+            )}
+            <div class="mt-2 hidden sm:block text-xs text-neutral-500 font-mono truncate">{f.p}</div>
+          </a>
+        ))}
+      </div>
+    )}
+  </section>
+
+  <section class="mt-10">
+    <h2 class="text-lg font-semibold">Invalid</h2>
+    <p class="mt-1 text-xs text-neutral-400">v0 は “invalid*”（invalid_ / invalid- / invalid_A...）で分離するだけ。</p>
+
+    {invalid.length === 0 ? (
+      <div class="mt-3 text-sm text-neutral-400">No invalid files found.</div>
+    ) : (
+      <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {invalid.map((f) => (
+          <a
+            href={openLink(f.p)}
+            class="block rounded-2xl border border-white/10 bg-white/5 p-4 hover:bg-white/10"
+          >
+            <div class="text-sm font-semibold truncate">{f.displayTitle}</div>
+            {f.displaySummary ? (
+              <div class="mt-1 text-xs text-neutral-300 line-clamp-1">{f.displaySummary}</div>
+            ) : (
+              <div class="mt-1 text-xs text-neutral-500">&nbsp;</div>
+            )}
+            <div class="mt-2 hidden sm:block text-xs text-neutral-500 font-mono truncate">{f.p}</div>
+          </a>
+        ))}
+      </div>
+    )}
+  </section>
+</Layout>
