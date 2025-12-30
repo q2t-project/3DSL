@@ -51,30 +51,7 @@ const iframeSrc = `/viewer?model=${encodeURIComponent(model)}&embed=1`;
   >
     ← 戻る
   </a>
-
-  <a
-    id="app-btn-prev"
-    href="#"
-    title="Prev"
-    aria-disabled="true"
-    class="shrink-0 h-9 w-9 grid place-items-center rounded-full border border-white/15 bg-white/5 text-sm text-neutral-100 hover:bg-white/10 opacity-50 pointer-events-none"
-  >
-    ←
-  </a>
-
-  <a
-    id="app-btn-next"
-    href="#"
-    title="Next"
-    aria-disabled="true"
-    class="shrink-0 h-9 w-9 grid place-items-center rounded-full border border-white/15 bg-white/5 text-sm text-neutral-100 hover:bg-white/10 opacity-50 pointer-events-none"
-  >
-    →
-  </a>
-
-  <span id="app-nav-counter" class="hidden sm:inline text-xs text-neutral-400"></span>
 </div>
-
 
         <div class="min-w-0 text-right">
                   <div id="app-doc-title" class="truncate text-sm font-semibold text-neutral-100">(no title)</div>
@@ -129,11 +106,6 @@ const iframeSrc = `/viewer?model=${encodeURIComponent(model)}&embed=1`;
 
   const $backBtn = document.getElementById('app-btn-back');
   if ($backBtn) $backBtn.href = back;
-
-  const $prevBtn = document.getElementById('app-btn-prev');
-  const $nextBtn = document.getElementById('app-btn-next');
-  const $counter = document.getElementById('app-nav-counter');
-
   const $title = document.getElementById('app-doc-title');
   const $author = document.getElementById('app-doc-author');
   const $path = document.getElementById('app-doc-path');
@@ -181,100 +153,9 @@ const iframeSrc = `/viewer?model=${encodeURIComponent(model)}&embed=1`;
     }
   }
 
-  function parseBackQuery() {
-    let sort = 'new';
-    let q = '';
-    try {
-      const u = new URL(back, location.origin);
-      sort = (u.searchParams.get('sort') || 'new').toLowerCase();
-      q = (u.searchParams.get('q') || '').trim().toLowerCase();
-    } catch {}
-    return { sort, q };
-  }
-
-  function toTime(v) {
-    if (!v) return null;
-    const t = Date.parse(v);
-    return Number.isFinite(t) ? t : null;
-  }
-
-  function enableBtn(el, href) {
-    if (!el) return;
-    el.href = href;
-    el.classList.remove('opacity-50', 'pointer-events-none');
-    el.removeAttribute('aria-disabled');
-  }
-
-  function makeLink(modelPath) {
-    const p = new URLSearchParams();
-    p.set('model', modelPath);
-    p.set('back', back);
-    return `${location.pathname}?${p.toString()}`;
-  }
-
-  async function loadNav() {
-    const { sort, q } = parseBackQuery();
-
-    let items = [];
-    try {
-      const res = await fetch('/3dss/library_index.json', { cache: 'no-store' });
-      if (!res.ok) throw new Error(String(res.status));
-      const json = await res.json();
-      items = Array.isArray(json?.items) ? json.items : [];
-    } catch {
-      return;
-    }
-
-    const filtered = q
-      ? items.filter((it) => {
-          const p = String(it.path || '').toLowerCase();
-          const t = String(it.title || '').toLowerCase();
-          const s = String(it.summary || '').toLowerCase();
-          return p.includes(q) || t.includes(q) || s.includes(q);
-        })
-      : items.slice();
-
-    filtered.sort((a, b) => {
-      if (sort === 'popular') {
-        const ar = (a.popular_rank ?? a.popularRank ?? null);
-        const br = (b.popular_rank ?? b.popularRank ?? null);
-        const aRank = (ar == null) ? 1e9 : Number(ar);
-        const bRank = (br == null) ? 1e9 : Number(br);
-        if (aRank !== bRank) return aRank - bRank;
-
-        const at = toTime(a.published_at || a.publishedAt) ?? -1;
-        const bt = toTime(b.published_at || b.publishedAt) ?? -1;
-        return bt - at;
-      }
-
-      if (sort === 'name') {
-        const an = String(a.title || a.path || '');
-        const bn = String(b.title || b.path || '');
-        return an.localeCompare(bn, 'ja');
-      }
-
-      // default: new
-      const at = toTime(a.published_at || a.publishedAt) ?? -1;
-      const bt = toTime(b.published_at || b.publishedAt) ?? -1;
-      return bt - at;
-    });
-
-    const i = filtered.findIndex((it) => String(it.path || '') === model);
-    if (i < 0) return;
-
-    const prev = (i > 0) ? filtered[i - 1] : null;
-    const next = (i < filtered.length - 1) ? filtered[i + 1] : null;
-
-    if (prev?.path) enableBtn($prevBtn, makeLink(prev.path));
-    if (next?.path) enableBtn($nextBtn, makeLink(next.path));
-
-    if ($counter) $counter.textContent = `${i + 1} / ${filtered.length}`;
-  }
 
   loadMeta();
-  loadNav();
 </script>
-
 
   <style is:inline>
     @keyframes appTickerMarquee {

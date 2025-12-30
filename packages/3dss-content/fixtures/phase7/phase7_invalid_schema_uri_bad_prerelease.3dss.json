@@ -1,0 +1,9 @@
+{
+  "document_meta": {
+    "document_title": "invalid schema_uri prerelease",
+    "document_uuid": "22222222-2222-4222-8222-222222222222",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.1.1-alpha..1",
+    "author": "vrrrm",
+    "version": "1.1.1"
+  }
+}

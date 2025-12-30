@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="310" height="160"
+     viewBox="130 0 310 160">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;display=swap');
+      text { dominant-baseline: central; text-anchor: middle; fill: #111; }
+      .head { font-family: 'Bebas Neue', sans-serif; font-size: 192px; letter-spacing: 1px; font-weight: 1000; }
+    </style>
+  </defs>
+
+  <text x="92%" y="56%">
+    <tspan class="head">3DSD</tspan>
+  </text>
+</svg>

@@ -1,8 +1,15 @@
-﻿**/node_modules/
+**/node_modules/
 **/.astro/
 **/dist/
+
+# vendor SSOT may legitimately contain dist/ (e.g. ajv/dist)
+!packages/vendor/**/dist/
+!packages/vendor/**/dist/**
+
 zips/
 public/viewer*.zip
-nul
 
 *.lnk
+
+_ulzip/
+__PATCH_NOTES__*.txt

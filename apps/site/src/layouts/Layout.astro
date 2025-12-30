@@ -24,21 +24,70 @@ function isActive(href) {
 
   <body class="min-h-screen bg-neutral-950 text-neutral-100">
     <header class="sticky top-0 z-50 border-b border-white/10 bg-neutral-950/70 backdrop-blur">
-      <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <a href="/" class="font-semibold tracking-wide">3DSL</a>
-        <nav class="flex gap-3 text-sm">
-          {nav.map((i) => (
-            <a
-              href={i.href}
-              class={
-                "rounded-full px-3 py-1 transition " +
-                (isActive(i.href) ? "bg-white/15" : "hover:bg-white/10")
-              }
+      <div class="mx-auto max-w-6xl px-4 py-3">
+        {/* Mobile top bar (hamburger + centered logo) */}
+        <div class="flex items-center justify-between gap-3 md:hidden">
+          <details class="relative">
+            <summary
+              class="list-none rounded-md border border-white/15 bg-white/5 p-2 hover:bg-white/10"
+              aria-label="メニュー"
             >
-              {i.label}
-            </a>
-          ))}
-        </nav>
+              {/* hamburger */}
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </summary>
+
+            <nav class="absolute left-0 mt-2 w-48 overflow-hidden rounded-xl border border-white/10 bg-neutral-950 shadow-lg">
+              {nav.map((i) => (
+                <a
+                  href={i.href}
+                  class={
+                    "block px-4 py-3 text-sm hover:bg-white/10 " +
+                    (isActive(i.href) ? "bg-white/10" : "")
+                  }
+                >
+                  {i.label}
+                </a>
+              ))}
+            </nav>
+          </details>
+
+          <a href="/" class="flex items-center justify-center" aria-label="3DSL Home">
+            <img src="/assets/logo/3DSL.svg" alt="3DSL" class="h-6 w-auto brightness-200 drop-shadow-sm" />
+          </a>
+
+          {/* Right side: policy/info (placeholder for future use) */}
+          <a
+            href="/policy"
+            class="h-8 w-8 rounded-full border border-white/15 bg-white/5 grid place-items-center hover:bg-white/10"
+            aria-label="ポリシー"
+          >
+            {/* info: circle is the button itself (avoid "circle-in-circle") */}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 17v-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </a>
+        </div>
+
+        {/* Desktop header */}
+        <div class="hidden md:flex items-center justify-between">
+          <a href="/" class="font-semibold tracking-wide">3DSL</a>
+          <nav class="flex gap-3 text-sm">
+            {nav.map((i) => (
+              <a
+                href={i.href}
+                class={
+                  "rounded-full px-3 py-1 transition " +
+                  (isActive(i.href) ? "bg-white/15" : "hover:bg-white/10")
+                }
+              >
+                {i.label}
+              </a>
+            ))}
+          </nav>
+        </div>
       </div>
     </header>
 
