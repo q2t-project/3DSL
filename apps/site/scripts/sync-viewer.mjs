@@ -1,6 +1,6 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { cp, mkdir, rm, access } from "node:fs/promises";
+import { cp, mkdir, rm, access, writeFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -17,12 +17,10 @@ try {
 
 const dst = path.join(repoRoot, "apps/site/public/viewer");
 
-// public/viewer に “持ち込まない” ディレクトリ
-// - assets は public/assets（sync-assets）で配信する
+// public/viewer に "持ち込まない" ディレクトリ
 // - vendor は public/vendor（sync-vendor）で配信する
-// さらに node_modules/dist/.astro などのノイズも除外
+// - node_modules/dist/.astro などのノイズも除外
 const EXCLUDE_TOP = new Set([
-  "assets",
   "vendor",
   "node_modules",
   "dist",
@@ -44,6 +42,12 @@ await cp(src, dst, {
   recursive: true,
   filter: (from) => shouldCopy(from),
 });
+
+await writeFile(
+  path.join(dst, "__GENERATED_DO_NOT_EDIT__.txt"),
+  "This directory is generated. Edit SSOT at apps/viewer/ssot and run npm run sync:all.\n",
+  "utf8",
+);
 
 // Keep viewer-generated artifacts in sync in the generated output.
 // In particular, /viewer/_generated/PORTS.md must match /viewer/manifest.yaml.

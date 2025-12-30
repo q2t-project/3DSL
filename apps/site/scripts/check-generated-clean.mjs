@@ -15,6 +15,9 @@ const repoRoot = path.resolve(__dirname, "../../..");
 const GENERATED_DIRS = [
   "apps/site/public/viewer",
   "apps/site/public/vendor",
+  "apps/site/public/assets",
+  "apps/site/public/modeler",
+  "apps/site/public/structs",
   "apps/site/public/3dss/3dss/release",
 ];
 
@@ -22,6 +25,9 @@ const GENERATED_DIRS = [
 const ALLOWLIST = new Set([
   "apps/site/public/viewer/.gitkeep",
   "apps/site/public/vendor/.gitkeep",
+  "apps/site/public/assets/.gitkeep",
+  "apps/site/public/modeler/.gitkeep",
+  "apps/site/public/structs/.gitkeep",
   "apps/site/public/3dss/3dss/release/.gitkeep",
 ]);
 

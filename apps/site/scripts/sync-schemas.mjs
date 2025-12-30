@@ -1,6 +1,6 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { cp, mkdir, readdir, rm, stat } from "node:fs/promises";
+import { cp, mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "../../..");
@@ -44,3 +44,9 @@ try {
 }
 
 console.log(`[sync] schemas -> site/public OK (latest + ${copiedReleases} release(s))`);
+
+await writeFile(
+  path.join(dstRoot, "__GENERATED_DO_NOT_EDIT__.txt"),
+  "This directory is generated. Edit SSOT at packages/schemas and run npm run sync:all.\n",
+  "utf8",
+);

@@ -1,5 +1,5 @@
-// SSOT check: Host (Astro) viewer page must reference viewer assets via /viewer/* only.
-// - Disallow /assets/* and ../assets/* within src/pages/viewer.astro (and viewer routes).
+// SSOT check: Host (Astro) viewer pages must reference viewer UI assets via /viewer/assets/*.
+// - Forbid /assets/icons/* and /assets/logo/3DSD-viewer.svg in viewer routes.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -8,12 +8,13 @@ const ROOT = process.cwd();
 const TARGETS = [
   'src/pages/viewer.astro',
   'src/pages/viewer/index.astro',
-].map(p => path.join(ROOT, p));
+].map((p) => path.join(ROOT, p));
 
 const forbidden = [
-  { re: /\b(?:src|href)\s*=\s*"\/assets\//g, msg: 'Use /viewer/assets/... instead of /assets/...' },
-  { re: /\b(?:src|href)\s*=\s*"\.\.\/assets\//g, msg: 'Use /viewer/assets/... instead of ../assets/...' },
-  { re: /\b(?:src|href)\s*=\s*"\.\/assets\//g, msg: 'Use /viewer/assets/... instead of ./assets/...' },
+  { re: /\b(?:src|href)\s*=\s*"\/assets\/icons\//g, msg: 'Use /viewer/assets/icons/... instead of /assets/icons/...' },
+  { re: /\b(?:src|href)\s*=\s*"\.{1,2}\/assets\/icons\//g, msg: 'Use /viewer/assets/icons/... (no relative path)'} ,
+  { re: /\b(?:src|href)\s*=\s*"\/assets\/logo\/3DSD-viewer\.svg/g, msg: 'Use /viewer/assets/logo/3DSD-viewer.svg instead of /assets/logo/3DSD-viewer.svg' },
+  { re: /\b(?:src|href)\s*=\s*"\.{1,2}\/assets\/logo\/3DSD-viewer\.svg/g, msg: 'Use /viewer/assets/logo/3DSD-viewer.svg (no relative path)' },
 ];
 
 let ok = true;

@@ -35,15 +35,8 @@ public/assets/**
 public/vendor/**
 public/viewer/**
 public/3dss/**
+public/modeler/**
+public/structs/**
 
-# keep the directories (optional)
-!public/assets/
-!public/vendor/
-!public/viewer/
-!public/3dss/
-
-# keep placeholders
-!public/assets/.gitkeep
-!public/vendor/.gitkeep
-!public/viewer/.gitkeep
-!public/3dss/.gitkeep
+# keep placeholders only
+!public/**/.gitkeep

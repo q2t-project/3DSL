@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { access, cp, mkdir, rm } from 'node:fs/promises';
+import { access, cp, mkdir, rm, writeFile } from 'node:fs/promises';
 
 // Sync SSOT 3dss-content -> apps/site/public/3dss
 // - copies: fixtures/, sample/, canonical/, 3dss-prep/ (if present)
@@ -27,6 +27,12 @@ if (!(await exists(srcRoot))) {
 }
 
 await mkdir(dstRoot, { recursive: true });
+
+await writeFile(
+  path.join(dstRoot, '__GENERATED_DO_NOT_EDIT__.txt'),
+  'This directory is generated. Edit SSOT at packages/3dss-content and run npm run sync:all.\n',
+  'utf8',
+);
 
 const entries = ['fixtures', 'sample', 'canonical', '3dss-prep'];
 for (const name of entries) {
