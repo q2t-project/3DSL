@@ -7,41 +7,50 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // apps/site/scripts -> repo root
 const repoRoot = path.resolve(__dirname, "../../..");
 
-const candidates = [
-  path.join(repoRoot, "apps/viewer/ssot"),
-  path.join(repoRoot, "apps/viewer/public"),
-  path.join(repoRoot, "apps/viewer/viewer"), // legacy (before rename)
-];
-
-let src = null;
-for (const p of candidates) {
-  try {
-    await access(p);
-    src = p;
-    break;
-  } catch {
-    // try next
-  }
-}
-
-if (!src) {
-  throw new Error(`[sync] viewer SSOT not found. tried: ${candidates.map((p) => path.relative(repoRoot, p)).join(", ")}`);
+// SSOT はここに固定（候補探索は混線の元なのでやめる）
+const src = path.join(repoRoot, "apps/viewer/ssot");
+try {
+  await access(src);
+} catch {
+  throw new Error(`[sync] viewer SSOT not found: ${path.relative(repoRoot, src)}`);
 }
 
 const dst = path.join(repoRoot, "apps/site/public/viewer");
 
+// public/viewer に “持ち込まない” ディレクトリ
+// - assets は public/assets（sync-assets）で配信する
+// - vendor は public/vendor（sync-vendor）で配信する
+// さらに node_modules/dist/.astro などのノイズも除外
+const EXCLUDE_TOP = new Set([
+  "assets",
+  "vendor",
+  "node_modules",
+  "dist",
+  ".astro",
+]);
+
+const shouldCopy = (from) => {
+  const rel = path.relative(src, from).replaceAll("\\", "/");
+  if (!rel || rel === ".") return true;
+  const top = rel.split("/")[0];
+  if (EXCLUDE_TOP.has(top)) return false;
+  return true;
+};
+
 await rm(dst, { recursive: true, force: true });
 await mkdir(path.dirname(dst), { recursive: true });
-await cp(src, dst, { recursive: true });
+
+await cp(src, dst, {
+  recursive: true,
+  filter: (from) => shouldCopy(from),
+});
 
 // Keep viewer-generated artifacts in sync in the generated output.
 // In particular, /viewer/_generated/PORTS.md must match /viewer/manifest.yaml.
 try {
-  const genPorts = path.join(dst, 'scripts', 'gen-ports.mjs');
-  // Use the current Node runtime (cross-platform).
-  execFileSync(process.execPath, [genPorts], { stdio: 'inherit' });
+  const genPorts = path.join(dst, "scripts", "gen-ports.mjs");
+  execFileSync(process.execPath, [genPorts], { stdio: "inherit" });
 } catch (e) {
-  // If ports generation fails, surface the error (this should be fixed rather than ignored).
   throw new Error(`[sync] gen-ports failed after viewer sync: ${e?.message ?? e}`);
 }
 
