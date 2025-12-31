@@ -34,7 +34,7 @@
     "check:host:asset-paths": "node scripts/check-host-asset-paths.mjs",
     "check:generated-clean": "node scripts/check-generated-clean.mjs",
     "check:vendor-required": "node scripts/check-vendor-required.mjs",
-    "check:ssot": "npm run check:vendor-required && npm run check:generated-clean && npm run check:viewer:ssot && npm run check:host:asset-paths && npm run check:host:no-src-assets",
+    "check:ssot": "npm run check:vendor-required && npm run check:generated-clean && npm run check:viewer:ssot && npm run check:host:asset-paths && npm run check:host:no-src-assets && npm run check:forbidden-dirs",
     "sync:viewer": "node scripts/sync-viewer.mjs",
     "sync:schemas": "node scripts/sync-schemas.mjs",
     "sync:vendor": "node scripts/sync-vendor.mjs",
@@ -51,7 +51,8 @@
     "check:host:no-src-assets": "node scripts/check-host-no-src-assets.mjs",
     "clean:generated": "git clean -fdX",
     "clean:generated:dry": "git clean -fdXn",
-    "clean:build": "node scripts/clean-build.mjs"
+    "clean:build": "node scripts/clean-build.mjs",
+    "check:forbidden-dirs": "node scripts/check-no-forbidden-dirs.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.17",
