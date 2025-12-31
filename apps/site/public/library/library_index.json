@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "items": [
+    {
+      "id": "recursion-converge-diverge",
+      "slug": "recursion-converge-diverge",
+      "title": "往還 × 収束/発散",
+      "summary": "理解が広がる瞬間と、追い込みで形になる瞬間を往復するための図。",
+      "thumb": "/library/snapshots/recursion-converge-diverge.svg",
+      "viewer_url": "/app/viewer",
+      "tags": ["concept", "mapping"],
+      "entry_points": ["言葉にした瞬間に薄くなる", "全体は見えているのに説明できない"],
+      "pairs": [{ "a": "発散", "b": "収束" }],
+      "rights": {
+        "mode": "quotation",
+        "notice_short": "出典：◯◯（著作権は権利者に帰属）",
+        "sources": [
+          { "title": "出典資料タイトル", "creator": "著者名", "year": "2021", "type": "book", "locator": "p.12-15", "url": "https://example.com" }
+        ]
+      }
+    }
+  ]
+}

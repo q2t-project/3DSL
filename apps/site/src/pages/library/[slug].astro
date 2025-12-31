@@ -1,0 +1,22 @@
+---
+import { getLibraryItems, getLibraryItemBySlug } from "../../lib/libraryIndex";
+export function getStaticPaths() {
+  return getLibraryItems().map((it) => ({ params: { slug: it.slug } }));
+}
+const { slug } = Astro.params;
+const item = getLibraryItemBySlug(slug);
+if (!item) throw new Error(`Library item not found: ${slug}`);
+---
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>{item.title} | 3DSL Library</title>
+    {item.summary && <meta name="description" content={item.summary} />}
+  </head>
+  <body>
+    <p><a href="/library">← Library</a></p>
+    <h1>{item.title}</h1>
+    {item.summary && <p>{item.summary}</p>}
+    <p><a href={item.viewer_url}>Viewerで操作して探索する</a></p>
+  </body>
+</html>
