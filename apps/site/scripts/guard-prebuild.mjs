@@ -59,3 +59,31 @@ if (!exists(canonicalViewer)) {
 }
 
 if (failed) process.exit(1);
+
+
+// --- guard: forbid page-level import of styles/global.css (Layout SSOT only)
+function walk(dir, out = []) {
+  for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, ent.name);
+    if (ent.isDirectory()) walk(p, out);
+    else out.push(p);
+  }
+  return out;
+}
+
+const pagesRoot = path.join(repoRoot, "src", "pages");
+if (fs.existsSync(pagesRoot)) {
+  const astroFiles = walk(pagesRoot).filter((p) => p.endsWith(".astro"));
+  const offenders = [];
+
+  for (const f of astroFiles) {
+    const s = fs.readFileSync(f, "utf8");
+    if (s.includes("styles/global.css")) offenders.push(f);
+  }
+
+  if (offenders.length) {
+    console.error("[guard] Forbidden: pages must not import styles/global.css (Layout SSOT only)");
+    for (const f of offenders) console.error(" -", f);
+    process.exit(1);
+  }
+}
