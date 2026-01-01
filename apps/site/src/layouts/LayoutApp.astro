@@ -1,5 +1,6 @@
 ---
 import "../styles/global.css";
+import "../styles/ui.css";
 
 const { title = "3DSL" } = Astro.props;
 ---
@@ -9,11 +10,19 @@ const { title = "3DSL" } = Astro.props;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap"
+    />
     <title>{title}</title>
   </head>
 
   <!-- app screen: fixed viewport, no page scroll -->
-  <body class="h-[100dvh] overflow-hidden bg-neutral-950 text-neutral-100">
+  <body class="h-[100dvh] overflow-hidden text-neutral-100 antialiased app-shell">
     <slot />
   </body>
 </html>

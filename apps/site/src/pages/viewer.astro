@@ -568,7 +568,21 @@ const embed = sp.get("embed") === "1";
       if (sp.get('embed') === '1') {
         document.documentElement.classList.add('is-embed');
       }
-    } catch {}
+    
+    // ui-mobile: compact HUD layout for small screens (avoid overlaps)
+    const mq = (typeof window !== 'undefined' && window.matchMedia)
+      ? window.matchMedia('(max-width: 520px)')
+      : null;
+    if (mq) {
+      const apply = () => document.documentElement.classList.toggle('ui-mobile', mq.matches);
+      apply();
+      if (mq.addEventListener) mq.addEventListener('change', apply);
+      else if (mq.addListener) mq.addListener(apply);
+      window.addEventListener('resize', apply, { passive: true });
+      window.addEventListener('orientationchange', apply, { passive: true });
+    }
+
+} catch {}
   })();
 </script>
 <style is:inline>

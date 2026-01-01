@@ -1,78 +1,132 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import TopText from "../content/text/top.md";
 
 const demoModel = "/3dss/sample/core_viewer_baseline.3dss.json";
 ---
 
-<Layout title="3DSL">
-  <section class="rounded-3xl border border-white/10 bg-white/5 p-8">
-    <p class="text-xs uppercase tracking-widest text-neutral-400">Three-Dimensional Structural Language</p>
-    <h1 class="mt-2 text-3xl font-semibold leading-tight">
-      3DSS を “読む” ための Viewer と、サンプルの Library
-    </h1>
-    <p class="mt-3 max-w-2xl text-neutral-300">
-      /viewer は既存のまま。ここは導線と一覧と説明を足すだけ。
-    </p>
+<Layout
+  title="3DSL"
+  description="3DSL は、概念や関係を三次元の座標に配置し、拡大縮小しながら局面と総体を行き来できる表現基盤です。"
+>
+  <!-- Hero: information-dense, business-like UI (surface + clear hierarchy) -->
+  <section class="grid gap-6 lg:grid-cols-12">
+    <div class="ui-surface p-6 sm:p-8 lg:col-span-7">
+      <div class="flex items-center gap-2">
+        <span class="ui-chip">3DSS / Viewer</span>
+        <span class="text-xs uppercase tracking-widest text-neutral-400">Three-Dimensional Structural Language</span>
+      </div>
 
-    <div class="mt-6 flex flex-wrap gap-3">
-      <a
-        href={`/app/viewer?model=${encodeURIComponent(demoModel)}&back=${encodeURIComponent('/')}`}
-        class="rounded-full bg-white px-5 py-2 text-sm font-semibold text-neutral-950 hover:opacity-90"
-      >
-        おすすめデモを開く
-      </a>
+      <h1 class="mt-4 text-2xl sm:text-3xl font-semibold tracking-tight">
+        言葉にしきれない「全体」を、図として扱う。
+      </h1>
 
-      <a
-        href="/viewer"
-        class="rounded-full border border-white/15 px-5 py-2 text-sm hover:bg-white/10"
-      >
-        Viewer
-      </a>
+      <div class="mt-4 max-w-none prose prose-invert prose-neutral prose-p:my-2 prose-ul:my-2 prose-li:my-1 prose-h2:mt-0 prose-h2:mb-2 prose-h3:mt-4 prose-h3:mb-2">
+        <TopText />
+      </div>
 
-      <a
-        href="/library"
-        class="rounded-full border border-white/15 px-5 py-2 text-sm hover:bg-white/10"
-      >
-        Library
-      </a>
+      <div class="mt-6 flex flex-wrap gap-3">
+        <a
+          href={`/app/viewer?model=${encodeURIComponent(demoModel)}&back=${encodeURIComponent('/')}`}
+          class="ui-btn ui-btn-primary"
+        >
+          デモを開く
+        </a>
 
-      <a
-        href="/docs"
-        class="rounded-full border border-white/15 px-5 py-2 text-sm hover:bg-white/10"
-      >
-        Docs
-      </a>
+        <a href="/library" class="ui-btn">Library</a>
+        <a href="/viewer" class="ui-btn">Viewer</a>
+        <a href="/docs" class="ui-btn">Docs</a>
+        <a href="/concept" class="ui-btn">Concept</a>
+      </div>
     </div>
+
+    <aside class="lg:col-span-5 grid gap-4">
+      <div class="ui-surface p-6">
+        <h2 class="text-base font-semibold">Quick start</h2>
+        <p class="mt-2 text-sm text-neutral-300">
+          まずは Viewer を開いて、拡大縮小と視点操作で「局面↔総体」を往復してみてください。
+        </p>
+        <div class="mt-4 grid gap-2">
+          <a
+            href={`/app/viewer?model=${encodeURIComponent(demoModel)}&back=${encodeURIComponent('/')}`}
+            class="ui-btn ui-btn-primary"
+          >
+            おすすめデモ
+          </a>
+          <a href="/library" class="ui-btn">公開コンテンツ（Library）</a>
+        </div>
+      </div>
+
+      <div class="ui-surface p-6">
+        <h2 class="text-base font-semibold">このサイトの位置づけ</h2>
+        <ul class="mt-3 space-y-2 text-sm text-neutral-300">
+          <li class="flex gap-2">
+            <span class="text-cyan-200">■</span>
+            <span>トップ：低抽象・導線（触って理解）</span>
+          </li>
+          <li class="flex gap-2">
+            <span class="text-cyan-200">■</span>
+            <span>下層：用語・思想・仕様（読む/参照）</span>
+          </li>
+          <li class="flex gap-2">
+            <span class="text-cyan-200">■</span>
+            <span>Library：スナップショット→Viewerで探索</span>
+          </li>
+        </ul>
+      </div>
+    </aside>
   </section>
 
-  <section class="mt-10 grid gap-4 md:grid-cols-3">
-    <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
-      <h2 class="text-base font-semibold">Viewer</h2>
-      <p class="mt-2 text-sm text-neutral-300">
-        既存の /viewer をそのまま使う。model 切替は ?model= で。
-      </p>
-      <a class="mt-4 inline-block text-sm underline decoration-white/20 hover:decoration-white/60" href="/viewer">
-        /viewer を開く →
-      </a>
+  <!-- Entry cards: consistent UI components -->
+  <section class="mt-10">
+    <div class="flex items-end justify-between gap-3">
+      <h2 class="text-lg font-semibold">入口</h2>
+      <p class="text-xs text-neutral-400">目的がなくても眺めて拾える構成</p>
     </div>
 
-    <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
-      <h2 class="text-base font-semibold">Library</h2>
-      <p class="mt-2 text-sm text-neutral-300">
-        public/3dss/sample をビルド時に走査して一覧化。
-      </p>
-      <a class="mt-4 inline-block text-sm underline decoration-white/20 hover:decoration-white/60" href="/library">
-        /library →
+    <div class="mt-4 grid gap-4 md:grid-cols-2">
+      <a href="/viewer" class="ui-card p-6">
+        <div class="flex items-center justify-between">
+          <h3 class="text-base font-semibold">Viewer</h3>
+          <span class="ui-chip">触って理解</span>
+        </div>
+        <p class="mt-2 text-sm text-neutral-300">
+          拡大縮小・視点操作で、局面と総体を往復。言語の積み上げ無しで「何か」を掴む入口。
+        </p>
+        <div class="mt-4 text-sm text-cyan-100">開く →</div>
       </a>
-    </div>
 
-    <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
-      <h2 class="text-base font-semibold">Docs</h2>
-      <p class="mt-2 text-sm text-neutral-300">
-        スキーマ・仕様・Viewer ドキュメントの入口。
-      </p>
-      <a class="mt-4 inline-block text-sm underline decoration-white/20 hover:decoration-white/60" href="/docs">
-        /docs →
+      <a href="/library" class="ui-card p-6">
+        <div class="flex items-center justify-between">
+          <h3 class="text-base font-semibold">Library</h3>
+          <span class="ui-chip">流し見</span>
+        </div>
+        <p class="mt-2 text-sm text-neutral-300">
+          サムネで眺めて、刺さったものだけ詳細へ。操作による探索は Viewer へのリンクで行います。
+        </p>
+        <div class="mt-4 text-sm text-cyan-100">眺める →</div>
+      </a>
+
+      <a href="/docs" class="ui-card p-6">
+        <div class="flex items-center justify-between">
+          <h3 class="text-base font-semibold">Docs</h3>
+          <span class="ui-chip">仕様/方針</span>
+        </div>
+        <p class="mt-2 text-sm text-neutral-300">
+          用語、設計、運用（引用・権利表記）のハブ。クローラにも意味密度を持たせる領域。
+        </p>
+        <div class="mt-4 text-sm text-cyan-100">読む →</div>
+      </a>
+
+      <a href="/concept" class="ui-card p-6">
+        <div class="flex items-center justify-between">
+          <h3 class="text-base font-semibold">Concept</h3>
+          <span class="ui-chip">理念</span>
+        </div>
+        <p class="mt-2 text-sm text-neutral-300">
+          分節化と言語化の限界、図＝関係、マルチスケールの意味。抽象の受け皿。
+        </p>
+        <div class="mt-4 text-sm text-cyan-100">読む →</div>
       </a>
     </div>
   </section>

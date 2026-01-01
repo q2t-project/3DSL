@@ -1,0 +1,68 @@
+---
+import Layout from "../layouts/Layout.astro";
+export const prerender = true;
+---
+
+<Layout title="3DSL | ポリシー">
+  <section class="rounded-3xl border border-white/10 bg-white/5 p-6 md:p-8">
+    <h1 class="text-2xl font-semibold">ポリシー／プライバシー</h1>
+
+    <div class="prose prose-invert mt-6 max-w-none">
+      <h2>このサイトについて</h2>
+      <p>
+        本サイトは、3DSL / 3DSD に関する Viewer・サンプル（Library）・ドキュメントを提供します。
+        掲載内容は個人開発・研究目的の情報提供です。
+      </p>
+
+      <h2>取得する情報と利用目的</h2>
+      <ul>
+        <li>アクセス解析情報：閲覧ページ、参照元、概算の利用環境等（サイト改善・利用状況把握）</li>
+        <li>Cookie 等：利便性向上、アクセス解析、広告配信</li>
+        <li>お問い合わせフォーム入力情報：返信・対応（メールアドレス、本文など）</li>
+      </ul>
+
+      <h2>広告配信について（Google AdSense）</h2>
+      <p>
+        本サイトは第三者配信の広告サービス（Google AdSense）を利用する場合があります。
+        広告配信事業者は、ユーザーの興味に応じた広告を表示するため Cookie 等を使用することがあります。
+      </p>
+
+      <h2>免責事項</h2>
+      <p>
+        掲載内容の正確性・最新性には注意しますが、完全性を保証するものではありません。
+        本サイトの情報利用により生じた損害について、当方は一切の責任を負いません。
+      </p>
+
+      <h2>お問い合わせ</h2>
+      <p>お問い合わせはフォームよりご連絡ください（内容により返信できない場合があります）。</p>
+
+      <form action="/api/contact" method="POST" class="not-prose mt-4 grid gap-3">
+        <label class="grid gap-1">
+          <span class="text-sm text-neutral-300">メールアドレス（返信が必要な場合）</span>
+          <input name="email" type="email" autocomplete="email"
+            class="rounded-md bg-neutral-900 border border-neutral-800 px-3 py-2"
+            placeholder="you@example.com" />
+        </label>
+
+        <label class="grid gap-1">
+          <span class="text-sm text-neutral-300">件名</span>
+          <input name="subject" type="text"
+            class="rounded-md bg-neutral-900 border border-neutral-800 px-3 py-2"
+            placeholder="例：Viewer の不具合報告" />
+        </label>
+
+        <label class="grid gap-1">
+          <span class="text-sm text-neutral-300">本文</span>
+          <textarea name="message" required rows="6"
+            class="rounded-md bg-neutral-900 border border-neutral-800 px-3 py-2"
+            placeholder="内容を書いてください"></textarea>
+        </label>
+
+        <button type="submit"
+          class="rounded-md bg-neutral-100 text-neutral-900 px-4 py-2 font-medium hover:opacity-90">
+          送信
+        </button>
+      </form>
+    </div>
+  </section>
+</Layout>
