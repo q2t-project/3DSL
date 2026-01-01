@@ -1,4 +1,31 @@
 @import "tailwindcss";
+@import "./ui.css";
+
+/* ==============================
+   Global foundation (SSOT)
+   - ui.css の変数を前提に、html/body の背景・文字色を確定させる
+   - Layout 側の import は global.css のみ（経路一本化）
+   ============================== */
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: var(--ui-bg);
+  color: var(--ui-text);
+}
+
+body {
+  font-family: Inter, "Noto Sans JP", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* Layout が body に付けるクラス（念のため） */
+.app-shell {
+  background: var(--ui-bg);
+  color: var(--ui-text);
+}
 
 /* 3DSL トップ専用レイアウト */
 
