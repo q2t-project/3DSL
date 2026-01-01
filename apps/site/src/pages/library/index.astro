@@ -1,142 +1,225 @@
 ---
+import Layout from "../../layouts/Layout.astro";
 import { getLibraryItems } from "../../lib/libraryIndex";
+
 const items = getLibraryItems();
-const allTags = Array.from(
-  new Set(items.flatMap((it) => it.tags ?? []))
-).sort((a, b) => a.localeCompare(b, "ja"));
+
+const title = "Library | 3DSL";
+const description =
+  "3DSL Library：カードを眺めて入口を選び、詳細や Viewer で深掘りするための一覧です。";
+
+const allTags = Array.from(new Set(items.flatMap((it) => it.tags ?? []))).sort((a, b) =>
+  a.localeCompare(b, "ja")
+);
+
+function joinText(it: any) {
+  return [
+    it.title ?? "",
+    it.summary ?? "",
+    ...(it.tags ?? []),
+    ...(it.entry_points ?? []),
+    ...((it.pairs ?? []).flatMap((p: any) => [p.a, p.b])),
+  ]
+    .join(" ")
+    .toLowerCase();
+}
 ---
-<html lang="ja">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Library | 3DSL</title>
-    <meta name="description" content="3DSL Library：スナップショットで全体を掴み、Viewerで操作して探索します。" />
-  </head>
-  <body style="margin:0;font-family:system-ui;background:#0b0b0f;color:#e5e7eb;">
-    <main style="max-width:1100px;margin:0 auto;padding:24px;">
-      <h1 style="margin:0 0 8px 0;">Library</h1>
-      <p style="margin:0 0 16px 0;color:#d1d5db;">
-        サンプルは完成形ではなく、思考の足場です。スナップショットで全体を掴み、操作は Viewer で行ってください。
-      </p>
-      <section style="padding:14px;border:1px solid #1f2937;border-radius:12px;">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-          <input id="q" placeholder="検索（タイトル/説明/入口/タグ）" style="flex:1;min-width:260px;padding:10px 12px;border-radius:10px;border:1px solid #1f2937;background:#111827;color:#e5e7eb;" />
-          <button id="clear" style="padding:10px 12px;border-radius:10px;border:1px solid #1f2937;background:#0b0b0f;color:#e5e7eb;">
-            クリア
-          </button>
-          <div style="color:#9ca3af;font-size:13px;">
-            <span id="count"></span>
+
+<Layout title={title} description={description}>
+  <section class="ui-surface p-8">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-semibold tracking-tight">Library</h1>
+        <p class="mt-2 text-sm text-neutral-300">
+          一覧をスワイプして、面白そうなカードを開いてください。目的がある場合は、共有リンク（/library/[slug]）から直接入れます。
+        </p>
+      </div>
+
+      <div class="text-xs text-neutral-400">
+        <span id="count">表示 {items.length} / {items.length}</span>
+      </div>
+    </div>
+
+    {/* controls: tags row + optional search */}
+    <div class="mt-5 flex flex-col gap-3">
+      {allTags.length > 0 && (
+        <div class="flex items-center gap-2">
+          <div
+            class="flex flex-1 gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            aria-label="タグ"
+          >
+            {allTags.map((t) => (
+              <button
+                class="tag ui-chip shrink-0"
+                data-tag={t}
+                type="button"
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+
+          <details class="relative">
+            <summary
+              class="list-none ui-chip px-4 py-1 cursor-pointer"
+              aria-label="検索を開く"
+            >
+              検索
+            </summary>
+
+            <div class="absolute right-0 mt-2 w-[min(24rem,90vw)] ui-surface p-4 bg-neutral-950/95 shadow-lg">
+              <div class="flex items-center gap-2">
+                <input
+                  id="q"
+                  class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-cyan-300/30"
+                  placeholder="タイトル/説明/入口/タグ"
+                />
+                <button
+                  id="clear"
+                  class="ui-btn shrink-0"
+                  type="button"
+                >
+                  クリア
+                </button>
+              </div>
+              <p class="mt-2 text-xs text-neutral-400">
+                基本はカード一覧の流し見でOKです。検索は「特定の言葉が含まれるものだけ見たい」場合に使えます。
+              </p>
+            </div>
+          </details>
+        </div>
+      )}
+    </div>
+  </section>
+
+  <section id="grid" class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {items.map((it) => (
+      <article
+        class="card ui-card"
+        data-tags={(it.tags ?? []).join(",")}
+        data-text={joinText(it)}
+      >
+        {it.thumb ? (
+          <img
+            src={it.thumb}
+            alt={it.title}
+            loading="lazy"
+            class="h-40 w-full border-b border-white/10 object-cover bg-white/5"
+          />
+        ) : (
+          <div class="h-40 w-full border-b border-white/10 bg-white/5" />
+        )}
+
+        <div class="p-4">
+          <div class="text-base font-semibold leading-snug">{it.title}</div>
+
+          {it.summary && <p class="mt-2 text-sm text-neutral-300 leading-relaxed">{it.summary}</p>}
+
+          {/* show a few tags/entry points as small hints (not interactive) */}
+          {(it.entry_points?.length ?? 0) > 0 && (
+            <div class="mt-3 flex flex-wrap gap-2">
+              {it.entry_points.slice(0, 2).map((e: string) => (
+                <span class="ui-chip px-2 py-1 text-xs">
+                  {e}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {(it.tags?.length ?? 0) > 0 && (
+            <div class="mt-3 flex flex-wrap gap-2">
+              {it.tags.slice(0, 3).map((t: string) => (
+                <span class="ui-chip px-2 py-1 text-xs text-neutral-400">
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {it.rights?.notice_short && (
+            <p class="mt-3 text-xs text-neutral-400 leading-relaxed">{it.rights.notice_short}</p>
+          )}
+
+          <div class="mt-4 flex gap-2">
+            <a class="ui-btn" href={`/library/${it.slug}`}>詳細</a>
+            <a class="ui-btn ui-btn-primary flex-1" href={it.viewer_url}>Viewer</a>
           </div>
         </div>
-        <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;">
-          {allTags.map((t) => (
-            <button class="tag" data-tag={t} style="padding:6px 10px;border-radius:999px;border:1px solid #1f2937;background:#0b0b0f;color:#d1d5db;font-size:13px;">
-              {t}
-            </button>
-          ))}
-        </div>
-      </section>
-      <section id="grid" style="margin-top:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;">
-        {items.map((it) => (
-          <article class="card" data-tags={(it.tags ?? []).join(",")} data-text={[
-              it.title,
-              it.summary ?? "",
-              ...(it.entry_points ?? []),
-              ...(it.tags ?? []),
-              it.id,
-              it.slug
-            ].join(" ").toLowerCase()}
-            style="border:1px solid #1f2937;border-radius:14px;overflow:hidden;background:#0b0b0f;">
-            {it.thumb && <img src={it.thumb} alt={it.title} style="width:100%;height:160px;object-fit:cover;background:#111827;" loading="lazy" />}
-            <div style="padding:12px;">
-              <div style="font-weight:700;">{it.title}</div>
-              {it.summary && <div style="margin-top:6px;color:#d1d5db;font-size:14px;line-height:1.4;">{it.summary}</div>}
-              {(it.entry_points?.length ?? 0) > 0 ? (
-                <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;">
-                  {it.entry_points.slice(0, 2).map((e) => (
-                    <span style="border:1px solid #1f2937;border-radius:999px;padding:4px 8px;font-size:12px;color:#d1d5db;">{e}</span>
-                  ))}
-                </div>
-              ) : null}
-              {(it.tags?.length ?? 0) > 0 ? (
-                <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;">
-                  {it.tags.slice(0, 3).map((t) => (
-                    <span style="background:#111827;border:1px solid #1f2937;border-radius:999px;padding:4px 8px;font-size:12px;color:#9ca3af;">{t}</span>
-                  ))}
-                </div>
-              ) : null}
-              {it.rights?.notice_short ? (
-                <div style="margin-top:10px;color:#9ca3af;font-size:12px;line-height:1.3;">
-                  {it.rights.notice_short}
-                </div>
-              ) : null}
-              <div style="margin-top:12px;display:flex;gap:10px;">
-                <a href={`/library/${it.slug}`} style="padding:8px 10px;border-radius:10px;border:1px solid #1f2937;color:#e5e7eb;text-decoration:none;">詳細</a>
-                <a href={it.viewer_url} style="padding:8px 10px;border-radius:10px;background:#e5e7eb;color:#111827;text-decoration:none;font-weight:700;">Viewer</a>
-              </div>
-            </div>
-          </article>
-        ))}
-      </section>
-      <section style="margin-top:18px;color:#9ca3af;font-size:12px;line-height:1.4;">
-        <strong style="color:#d1d5db;">著作権について：</strong>
-        本ページに掲載されている図およびスナップショットは、各原著作物を正当に引用し、構造的理解を目的として再構成したものです。著作権はそれぞれの権利者に帰属します。操作による探索はリンク先 Viewer にて行ってください。
-      </section>
-      <script is:inline>
-        const q = document.getElementById("q");
-        const clear = document.getElementById("clear");
-        const count = document.getElementById("count");
-        const cards = Array.from(document.querySelectorAll(".card"));
-        const tagBtns = Array.from(document.querySelectorAll("button.tag"));
-        const state = { tags: new Set(), query: "" };
-        function apply() {
-          const terms = state.query
-            .toLowerCase()
-            .split(/\\s+/)
-            .filter(Boolean);
-          let shown = 0;
-          for (const c of cards) {
-            const text = c.getAttribute("data-text") || "";
-            const tags = (c.getAttribute("data-tags") || "").split(",").filter(Boolean);
-            const okTags = [...state.tags].every(t => tags.includes(t));
-            const okQuery = terms.every(t => text.includes(t));
-            const ok = okTags && okQuery;
-            c.style.display = ok ? "" : "none";
-            if (ok) shown++;
-          }
-          count.textContent = `表示 ${shown} / ${cards.length}`;
-        }
-        tagBtns.forEach(btn => {
-          btn.addEventListener("click", () => {
-            const t = btn.dataset.tag;
-            if (state.tags.has(t)) {
-              state.tags.delete(t);
-              btn.style.background = "#0b0b0f";
-              btn.style.color = "#d1d5db";
-            } else {
-              state.tags.add(t);
-              btn.style.background = "#111827";
-              btn.style.color = "#e5e7eb";
-            }
-            apply();
-          });
-        });
-        q.addEventListener("input", () => {
-          state.query = q.value || "";
-          apply();
-        });
-        clear.addEventListener("click", () => {
-          state.query = "";
-          q.value = "";
-          state.tags.clear();
-          tagBtns.forEach(btn => {
-            btn.style.background = "#0b0b0f";
-            btn.style.color = "#d1d5db";
-          });
-          apply();
-        });
-        apply();
-      </script>
-    </main>
-  </body>
-</html>
+      </article>
+    ))}
+  </section>
+
+  {items.length === 0 && (
+    <p class="mt-6 text-sm text-neutral-400">
+      まだ公開コンテンツがありません。（public/library/library_index.json を編集してください）
+    </p>
+  )}
+
+  <section class="mt-10 ui-surface p-5 text-xs text-neutral-300 leading-relaxed">
+    <strong class="text-neutral-100">著作権について：</strong>
+    Library のスナップショットは、構造理解を目的とした引用（またはライセンス許諾/オリジナル）に基づいて提示します。権利者表示や出典は各カードの詳細ページに記載します。操作による探索はリンク先 Viewer で行ってください。
+  </section>
+
+  <script is:inline>
+    const q = document.getElementById("q");
+    const clear = document.getElementById("clear");
+    const count = document.getElementById("count");
+    const cards = Array.from(document.querySelectorAll(".card"));
+    const tagBtns = Array.from(document.querySelectorAll("button.tag"));
+
+    // Philosophy: cards-first. Tag filter is a lightweight narrowing.
+    const state = { tag: null, query: "" };
+
+    function apply() {
+      const terms = (state.query || "")
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(Boolean);
+
+      let shown = 0;
+      for (const c of cards) {
+        const text = c.getAttribute("data-text") || "";
+        const tags = (c.getAttribute("data-tags") || "").split(",").filter(Boolean);
+
+        const okTag = !state.tag || tags.includes(state.tag);
+        const okQuery = terms.every((t) => text.includes(t));
+        const ok = okTag && okQuery;
+
+        c.style.display = ok ? "" : "none";
+        if (ok) shown++;
+      }
+      if (count) count.textContent = `表示 ${shown} / ${cards.length}`;
+    }
+
+    function setActiveTag(next) {
+      state.tag = next;
+      tagBtns.forEach((btn) => {
+        const isActive = btn.dataset.tag === next;
+        btn.classList.toggle("ui-chip--active", isActive);
+      });
+      apply();
+    }
+
+    tagBtns.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const t = btn.dataset.tag;
+        if (!t) return;
+        setActiveTag(state.tag === t ? null : t);
+      });
+    });
+
+    q?.addEventListener("input", () => {
+      state.query = q.value || "";
+      apply();
+    });
+
+    clear?.addEventListener("click", () => {
+      state.query = "";
+      if (q) q.value = "";
+      setActiveTag(null);
+      apply();
+    });
+
+    apply();
+  </script>
+</Layout>

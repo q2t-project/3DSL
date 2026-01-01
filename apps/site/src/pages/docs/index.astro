@@ -1,5 +1,6 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import DocsText from "../../content/text/docs.md";
 
 // ※ ここは “実在パス” に合わせて調整してな。
 // いまのプランでは /3dss/3dss/release/... を想定してる。
@@ -11,27 +12,24 @@ const links = [
 ];
 ---
 
-<Layout title="Docs">
-  <h1 class="text-2xl font-semibold">Docs</h1>
-  <p class="mt-2 text-sm text-neutral-300">
-    スキーマ・仕様・Viewer ドキュメントの入口。
-  </p>
+<Layout
+  title="Docs | 3DSL"
+  description="3DSL の考え方、用語、設計のハブ。図の自由度問題、発散と収束、引用と表現の方針などをまとめます。"
+>
+  <div class="prose prose-invert prose-neutral max-w-3xl">
+    <DocsText />
+  </div>
 
-  <div class="mt-6 grid gap-3">
+  <div class="prose prose-invert prose-neutral max-w-3xl">
+    <DocsText />
+  </div>
+
+  <div class="mt-10 grid gap-3">
     {links.map((x) => (
-      <a class="rounded-2xl border border-white/10 bg-white/5 p-4 hover:bg-white/10" href={x.href}>
+      <a class="rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10" href={x.href}>
         <div class="text-sm font-semibold">{x.label}</div>
         <div class="mt-1 font-mono text-xs text-neutral-400">{x.href}</div>
       </a>
     ))}
-  </div>
-
-  <div class="mt-10 rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-neutral-300">
-    <div class="font-semibold text-neutral-100">方針メモ</div>
-    <ul class="mt-2 list-disc space-y-1 pl-5">
-      <li>schema_uri は $id 固定（バージョン別フラグメント付与せん）</li>
-      <li>Viewer は構造層（.3dss.json）のみを入力とする</li>
-      <li>表示設定の大半は Viewer 実装側（3DSS の範囲外）</li>
-    </ul>
   </div>
 </Layout>
