@@ -30,7 +30,7 @@ function isActive(href) {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Noto+Sans+JP:wght@300;400;500&display=swap"
     />
 
     <title>{title}</title>
@@ -92,7 +92,7 @@ function isActive(href) {
 
         {/* Desktop header */}
         <div class="hidden md:flex items-center justify-between">
-          <a href="/" class="font-semibold tracking-wide text-neutral-100">3DSL</a>
+          <a href="/" class="flex items-center" aria-label="3DSL Home"><img src="/assets/logo/3DSL.svg" alt="3DSL" class="h-6 w-auto brightness-200 drop-shadow-sm" /></a>
           <nav class="flex gap-3 text-sm">
             {nav.map((i) => (
               <a

@@ -1,0 +1,281 @@
+---
+// src/pages/viewer/dev.astro
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="3DSL Viewer Dev">
+  <main style="position:relative; width:100vw; height:100vh; margin:0; padding:0;">
+    <canvas id="viewer-canvas"
+      style="width:100vw; height:100vh; display:block; background:#111;"
+    ></canvas>
+
+    <!-- Frame スライダ -->
+    <div
+      id="frame-slider-wrap"
+      style="
+        position: absolute;
+        left: 16px;
+        bottom: 16px;
+        right: 16px;
+        pointer-events: auto;
+      "
+    >
+      <label
+        for="frame-slider"
+        style="font-size: 12px; color: #ccc; display: block; margin-bottom: 4px"
+      >
+        Frame: <span id="frame-slider-label">0</span>
+      </label>
+      <input
+        id="frame-slider"
+        type="range"
+        min="0"
+        max="0"
+        value="0"
+        step="1"
+        style="width: 100%"
+      />
+    </div>
+
+    <!-- 再生ボタン＋ランタイム表示 -->
+    <div
+      id="playback-controls"
+      style="
+        position: absolute;
+        left: 16px;
+        bottom: 56px;
+        padding: 4px 8px;
+        background: rgba(0, 0, 0, 0.6);
+        color: #eee;
+        font-size: 11px;
+        border-radius: 4px;
+        pointer-events: auto;
+      "
+    >
+      <button
+        id="btn-play"
+        style="
+          font-size: 11px;
+          padding: 2px 8px;
+          margin-right: 8px;
+          cursor: pointer;
+        "
+      >
+        Play
+      </button>
+      <span>Runtime: <span id="hud-runtime">STOP</span></span>
+      <span style="margin-left: 8px; opacity: 0.7">
+        [Space] Play/Stop, [F] Micro, [Esc] Macro
+      </span>
+    </div>
+
+    <!-- HUD -->
+    <div
+      id="viewer-hud"
+      style="
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        padding: 6px 10px;
+        background: rgba(0, 0, 0, 0.6);
+        color: #eee;
+        font-size: 11px;
+        line-height: 1.4;
+        border-radius: 4px;
+        pointer-events: none;
+      "
+    >
+      <div>Mode: <span id="hud-mode">macro</span></div>
+      <div>Frame: <span id="hud-frame">0</span></div>
+      <div>Selection: <span id="hud-selection">-</span></div>
+      <div>Runtime: <span id="hud-runtime-hud">STOP</span></div>
+      <div>Focus: <span id="hud-focus">-</span></div>
+    </div>
+
+    <!-- type フィルタ -->
+    <div style="
+      position:absolute; top:12px; right:12px;
+      background:rgba(0,0,0,.6); color:#eee; font-size:11px;
+      padding:6px 10px; border-radius:4px;
+    ">
+      <div style="margin-bottom:4px;">
+        <span style="opacity:0.7;">Filters</span>
+      </div>
+      <div>
+        <label><input type="checkbox" id="filter-points" checked> points</label>
+        <label><input type="checkbox" id="filter-lines" checked> lines</label>
+        <label><input type="checkbox" id="filter-aux" checked> aux</label>
+      </div>
+    </div>
+
+    <script type="module">
+      import { bootstrapViewerFromUrl } from "/viewer/runtime/bootstrapViewer.js";
+
+      let core;
+
+      async function boot() {
+        const canvasId = "viewer-canvas";
+        const jsonUrl = "/3dss/sample/frame_filter_test.3dss.json";
+        const schemaURL = "/3dss/3dss/release/3DSS.schema.json";
+
+        try {
+          core = await bootstrapViewerFromUrl(canvasId, jsonUrl, {
+            schemaURL,
+            validate: true,
+          });
+          console.log("[viewer-dev] boot done", core);
+        } catch (err) {
+          console.error("[viewer-dev] boot failed:", err);
+          return;
+        }
+
+        // --- Frame スライダ ---
+        const slider = document.getElementById("frame-slider");
+        const label = document.getElementById("frame-slider-label");
+
+        if (slider && core.frame) {
+          const range = core.frame.getRange();
+          const active = core.frame.getActive();
+
+          slider.min = range.min;
+          slider.max = range.max;
+          slider.step = 1;
+          slider.value = active;
+
+          if (label) label.textContent = String(active);
+
+          slider.addEventListener("input", (ev) => {
+            const v = Number(ev.target.value);
+            if (!Number.isFinite(v)) return;
+
+            core.frame.setActive(v);
+            if (label) label.textContent = String(core.frame.getActive());
+          });
+        }
+
+        // --- HUD 更新 ---
+        const elMode    = document.getElementById("hud-mode");
+        const elFrame   = document.getElementById("hud-frame");
+        const elSel     = document.getElementById("hud-selection");
+        const elRuntime = document.getElementById("hud-runtime");
+        const elRuntimeHud = document.getElementById("hud-runtime-hud");
+        const elFocus   = document.getElementById("hud-focus");
+
+        function updateHUD() {
+          if (!core || !core.ui_state) return;
+          const ui = core.ui_state;
+
+          if (elMode) elMode.textContent = ui.mode;
+          if (elFrame) elFrame.textContent = String(ui.activeFrame);
+          if (elSel) elSel.textContent = ui.selection?.uuid ?? "-";
+
+          const rt = ui.runtime || {};
+          const runtimeText = rt.isFramePlaying ? "PLAY" : "STOP";
+          if (elRuntime) elRuntime.textContent = runtimeText;
+          if (elRuntimeHud) elRuntimeHud.textContent = runtimeText;
+
+          let focusText = "-";
+          if ((ui.mode === "micro" || ui.mode === "meso") && ui.selection) {
+            if (ui.selection.uuid) {
+              focusText = (ui.selection.kind || "?") + "#" + ui.selection.uuid;
+            }
+          }
+          if (elFocus) elFocus.textContent = focusText;
+        }
+
+        function hudLoop() {
+          updateHUD();
+          requestAnimationFrame(hudLoop);
+        }
+        hudLoop();
+
+        // --- 再生制御 ---
+        const btnPlay = document.getElementById("btn-play");
+
+        function togglePlayback() {
+          if (!core || !core.runtime) return;
+          const playing = core.runtime.isPlaying();
+          if (playing) {
+            core.runtime.stopFramePlayback();
+          } else {
+            core.runtime.startFramePlayback();
+          }
+        }
+
+        if (btnPlay) {
+          btnPlay.addEventListener("click", () => {
+            togglePlayback();
+          });
+        }
+
+        // --- フィルタ UI ---
+        const chkPoints = document.getElementById("filter-points");
+        const chkLines  = document.getElementById("filter-lines");
+        const chkAux    = document.getElementById("filter-aux");
+
+        function syncFilterUI() {
+          if (!core || !core.filters || typeof core.filters.get !== "function") {
+            return;
+          }
+          const f = core.filters.get();
+          if (chkPoints) chkPoints.checked = !!f.points;
+          if (chkLines)  chkLines.checked  = !!f.lines;
+          if (chkAux)    chkAux.checked    = !!f.aux;
+        }
+
+        if (chkPoints) {
+          chkPoints.addEventListener("change", () => {
+            core.filters.setTypeEnabled("points", chkPoints.checked);
+          });
+        }
+        if (chkLines) {
+          chkLines.addEventListener("change", () => {
+            core.filters.setTypeEnabled("lines", chkLines.checked);
+          });
+        }
+        if (chkAux) {
+          chkAux.addEventListener("change", () => {
+            core.filters.setTypeEnabled("aux", chkAux.checked);
+          });
+        }
+
+        syncFilterUI();
+
+        // --- キー操作 (Space / F / Esc) ---
+        window.addEventListener("keydown", (ev) => {
+          if (!core) return;
+
+          const tag = (ev.target && ev.target.tagName) || "";
+          if (tag === "INPUT" || tag === "TEXTAREA") return;
+
+          if (ev.code === "Space") {
+            ev.preventDefault();
+            togglePlayback();
+            return;
+          }
+
+          if (ev.key === "f" || ev.key === "F") {
+            const sel = core.ui_state?.selection;
+            const uuid = sel?.uuid;
+            if (!uuid) return;
+            if (!core.canEnterMicro(uuid)) return;
+
+            const mode = core.ui_state.mode;
+            if (mode === "micro") {
+              core.mode.setMode("macro");
+            } else {
+              core.mode.setMode("micro", uuid);
+            }
+            return;
+          }
+
+          if (ev.key === "Escape") {
+            core.mode.setMode("macro");
+          }
+        });
+      }
+
+      window.addEventListener("load", boot);
+    </script>
+  </main>
+</Layout>

@@ -34,7 +34,7 @@ if (!item) {
     <span class="text-neutral-200">{item.title}</span>
   </nav>
 
-  <h1 class="mt-4 text-2xl font-semibold">{item.title}</h1>
+  <h1 class="mt-4 text-2xl font-medium">{item.title}</h1>
   {item.summary ? <p class="mt-2 text-neutral-200">{item.summary}</p> : null}
 
   {item.thumb ? (
@@ -49,7 +49,7 @@ if (!item) {
   <div class="mt-6 flex flex-wrap gap-3">
     <a
       href={item.viewer_url}
-      class="rounded-xl bg-neutral-100 px-4 py-2 text-sm font-semibold text-neutral-900"
+      class="rounded-xl bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900"
     >
       Viewerで操作して探索する
     </a>
@@ -63,7 +63,7 @@ if (!item) {
 
   {item.entry_points?.length ? (
     <section class="mt-8">
-      <h2 class="text-lg font-semibold">入口</h2>
+      <h2 class="text-lg font-medium">入口</h2>
       <div class="mt-3 flex flex-wrap gap-2">
         {item.entry_points.map((t) => (
           <span class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-neutral-200">
@@ -76,7 +76,7 @@ if (!item) {
 
   {item.tags?.length ? (
     <section class="mt-8">
-      <h2 class="text-lg font-semibold">タグ</h2>
+      <h2 class="text-lg font-medium">タグ</h2>
       <div class="mt-3 flex flex-wrap gap-2">
         {item.tags.map((t) => (
           <a
@@ -92,7 +92,7 @@ if (!item) {
 
   {item.pairs?.length ? (
     <section class="mt-8">
-      <h2 class="text-lg font-semibold">対概念</h2>
+      <h2 class="text-lg font-medium">対概念</h2>
       <ul class="mt-3 space-y-2 text-neutral-200">
         {item.pairs.map((p) => (
           <li>{p.a} ↔ {p.b}</li>
@@ -103,7 +103,7 @@ if (!item) {
 
   {item.rights ? (
     <section class="mt-10 rounded-2xl border border-white/10 bg-white/5 p-4">
-      <h2 class="text-lg font-semibold">出典と権利表記</h2>
+      <h2 class="text-lg font-medium">出典と権利表記</h2>
       {item.rights.notice_short ? (
         <p class="mt-2 text-sm text-neutral-300">{item.rights.notice_short}</p>
       ) : null}
@@ -112,7 +112,7 @@ if (!item) {
         <ul class="mt-3 space-y-2 text-sm text-neutral-300">
           {item.rights.sources.map((s) => (
             <li>
-              <span class="font-semibold text-neutral-200">{s.title ?? "出典"}</span>
+              <span class="font-medium text-neutral-200">{s.title ?? "出典"}</span>
               {s.creator ? <span> / {s.creator}</span> : null}
               {s.year ? <span> ({s.year})</span> : null}
               {s.locator ? <span> — {s.locator}</span> : null}
@@ -137,11 +137,11 @@ if (!item) {
 
   {item.related?.length ? (
     <section class="mt-10">
-      <h2 class="text-lg font-semibold">関連</h2>
+      <h2 class="text-lg font-medium">関連</h2>
       <ul class="mt-3 grid gap-3 sm:grid-cols-2">
         {item.related.map((s) => (
           <li class="rounded-2xl border border-white/10 bg-white/5 p-4 hover:bg-white/10">
-            <a href={`/library/${s}`} class="font-semibold hover:underline">{s}</a>
+            <a href={`/library/${s}`} class="font-medium hover:underline">{s}</a>
           </li>
         ))}
       </ul>

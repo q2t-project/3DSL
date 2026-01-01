@@ -5,13 +5,14 @@
     "dev": "npm --prefix apps/site run dev",
     "build": "npm --prefix apps/site run build",
     "preview": "npm --prefix apps/site run preview",
-
     "sync:all": "npm --prefix apps/site run sync:all",
     "sync:schemas": "npm --prefix apps/site run sync:schemas",
     "sync:viewer": "npm --prefix apps/site run sync:viewer",
     "sync:vendor": "npm --prefix apps/site run sync:vendor",
-
     "check:ssot": "npm --prefix apps/site run check:ssot",
-    "check:phase7": "npm --prefix apps/site run check:phase7"
+    "check:phase7": "npm --prefix apps/site run check:phase7",
+    "check:guards": "npm --prefix apps/site run check:guards",
+    "fix:guards": "npm --prefix apps/site run fix:guards",
+    "build:site": "npm --prefix apps/site run build"
   }
 }
