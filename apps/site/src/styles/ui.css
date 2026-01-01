@@ -1,3 +1,6 @@
+/* apps/site/src/styles/ui.css */
+/* Tailwindの @apply に依存しない “業務UI” 基本部品 */
+
 :root{
   --ui-bg: #0b0f14;
   --ui-surface: rgba(255,255,255,0.04);
@@ -7,20 +10,29 @@
   --ui-text: rgba(255,255,255,0.92);
   --ui-muted: rgba(255,255,255,0.62);
   --ui-dim: rgba(255,255,255,0.45);
-  --ui-accent: rgba(56,189,248,1);
+
+  /* cyan accent */
+  --ui-accent: rgba(56,189,248,1);          /* sky-400 */
   --ui-accent-soft: rgba(56,189,248,0.14);
   --ui-accent-border: rgba(56,189,248,0.28);
-  --ui-radius-lg: 1rem;
+
+  --ui-radius-lg: 1rem;   /* ≒ rounded-2xl */
   --ui-radius-md: 0.75rem;
   --ui-shadow: 0 10px 30px rgba(0,0,0,0.35);
 }
+
+/* surfaces */
 .ui-surface{
   background: var(--ui-surface);
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-lg);
   box-shadow: var(--ui-shadow);
 }
-.ui-surface--flat{ box-shadow: none; }
+.ui-surface--flat{
+  box-shadow: none;
+}
+
+/* cards */
 .ui-card{
   display: block;
   background: var(--ui-surface);
@@ -35,6 +47,8 @@
   border-color: var(--ui-border-2);
   transform: translateY(-1px);
 }
+
+/* chips */
 .ui-chip{
   display: inline-flex;
   align-items: center;
@@ -60,6 +74,8 @@
   border-color: var(--ui-accent-border);
   color: rgba(224,247,255,0.95);
 }
+
+/* buttons */
 .ui-btn{
   display: inline-flex;
   align-items: center;
@@ -85,7 +101,11 @@
   color: rgba(0,0,0,0.92);
   border-color: rgba(255,255,255,0.90);
 }
-.ui-btn-primary:hover{ background: rgba(255,255,255,1); }
+.ui-btn-primary:hover{
+  background: rgba(255,255,255,1);
+}
+
+/* inputs */
 .ui-input{
   width: 100%;
   padding: .65rem .85rem;
@@ -101,4 +121,6 @@
   border-color: var(--ui-accent-border);
   box-shadow: 0 0 0 3px rgba(56,189,248,0.12);
 }
+
+/* text helpers */
 .ui-muted{ color: var(--ui-muted); }

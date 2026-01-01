@@ -1,5 +1,6 @@
-@import "tailwindcss";
 @import "./ui.css";
+@import "tailwindcss";
+
 
 /* ==============================
    Global foundation (SSOT)

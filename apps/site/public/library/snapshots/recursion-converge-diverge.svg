@@ -1,13 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
-  <rect width="1280" height="720" fill="#0b0b0f"/>
-  <text x="64" y="120" fill="#e5e7eb" font-size="48" font-family="system-ui, -apple-system, Segoe UI, Roboto">
-    3DSL Library Snapshot (placeholder)
-  </text>
-  <text x="64" y="190" fill="#9ca3af" font-size="24" font-family="system-ui, -apple-system, Segoe UI, Roboto">
-    recursion-converge-diverge
-  </text>
-  <line x1="64" y1="260" x2="1216" y2="260" stroke="#1f2937" stroke-width="2"/>
-  <circle cx="320" cy="420" r="10" fill="#e5e7eb"/>
-  <circle cx="960" cy="420" r="10" fill="#e5e7eb"/>
-  <line x1="320" y1="420" x2="960" y2="420" stroke="#e5e7eb" stroke-width="3"/>
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111827"/>
+      <stop offset="1" stop-color="#0b0f1a"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#g)"/>
+  <g fill="none" stroke="#e5e7eb" stroke-opacity="0.35" stroke-width="2">
+    <circle cx="640" cy="360" r="260"/>
+    <circle cx="640" cy="360" r="160"/>
+    <path d="M380 360 C 480 240, 800 240, 900 360"/>
+    <path d="M380 360 C 480 480, 800 480, 900 360"/>
+  </g>
+  <g font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto" fill="#e5e7eb">
+    <text x="64" y="88" font-size="42" font-weight="700">3DSL Library Snapshot</text>
+    <text x="64" y="132" font-size="22" opacity="0.85">往還 × 収束/発散（プレースホルダ）</text>
+    <text x="64" y="170" font-size="18" opacity="0.65">※ 実際のサムネは viewer のレンダリング画像に差し替え</text>
+  </g>
 </svg>
