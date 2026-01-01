@@ -19,7 +19,10 @@ body {
 }
 
 body {
-  font-family: Inter, "Noto Sans JP", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: "Inter", "Noto Sans JP", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Layout が body に付けるクラス（念のため） */
