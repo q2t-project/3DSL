@@ -1,0 +1,77 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import ViewerText from "../../content/text/viewer.md";
+
+const demoModel = "/3dss/sample/core_viewer_baseline.3dss.json";
+---
+
+<Layout
+  title="Viewer | 3DSL"
+  description="3DSL Viewer は、拡大縮小と視点操作で局面と総体を往復しながら図を読むための閲覧環境です。"
+>
+  <div class="prose prose-invert prose-neutral max-w-3xl">
+    <ViewerText />
+  </div>
+
+  <section class="mt-8 flex flex-wrap gap-3">
+    <a
+      href={`/app/viewer?model=${encodeURIComponent(demoModel)}&back=${encodeURIComponent('/viewer')}`}
+      class="rounded-full bg-white px-5 py-2 text-sm font-semibold text-neutral-950 hover:opacity-90"
+    >
+      デモを開く
+    </a>
+
+    <a
+      href="/library"
+      class="rounded-full border border-white/15 px-5 py-2 text-sm hover:bg-white/10"
+    >
+      Library を見る
+    </a>
+  </section>
+
+  <section class="mt-10 rounded-2xl border border-white/10 bg-white/5 p-5">
+    <h2 class="text-base font-semibold">補足</h2>
+    <p class="mt-2 text-sm text-neutral-300">
+      Library 内のスナップショットは閲覧用です。図をグリグリ操作して探索する場合は、各コンテンツの Viewer リンクから開いてください。
+    </p>
+  </section>
+</Layout>
+
+  <section class="mt-8 flex flex-wrap gap-3">
+    <a
+      href={`/app/viewer?model=${encodeURIComponent(demoModel)}&back=${encodeURIComponent('/viewer')}`}
+      class="rounded-full bg-white px-5 py-2 text-sm font-semibold text-neutral-950 hover:opacity-90"
+    >
+      デモを開く
+    </a>
+    <a
+      href="/library"
+      class="rounded-full border border-white/15 px-5 py-2 text-sm hover:bg-white/10"
+    >
+      Library を見る
+    </a>
+  </section>
+</Layout>
+      Library を見る
+    </a>
+    <a
+      href="/docs"
+      class="rounded-full border border-white/15 px-5 py-2 text-sm hover:bg-white/10"
+    >
+      Docs
+    </a>
+  </section>
+
+  <section class="mt-10 rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-neutral-300">
+    <div class="font-semibold text-neutral-100">メモ</div>
+    <ul class="mt-2 list-disc space-y-1 pl-5">
+      <li>Viewer は入力の 3DSS（.3dss.json）を変更しません（read-only）。</li>
+      <li>Library 内ではスナップショットのみを掲示し、操作は Viewer に誘導します。</li>
+    </ul>
+  </section>
+</Layout>
+      <li>Library 内ではスナップショット表示を基本とし、探索操作は Viewer に誘導します。</li>
+      <li>モデルの切替は <code>?model=</code> パラメータで行えます。</li>
+    </ul>
+  </section>
+</Layout>

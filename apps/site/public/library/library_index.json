@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "generated_at": "2025-12-31T09:00:00Z",
   "items": [
     {
       "id": "recursion-converge-diverge",
@@ -7,16 +8,38 @@
       "title": "往還 × 収束/発散",
       "summary": "理解が広がる瞬間と、追い込みで形になる瞬間を往復するための図。",
       "thumb": "/library/snapshots/recursion-converge-diverge.svg",
-      "viewer_url": "/app/viewer",
+      "viewer_url": "/app/viewer?id=recursion-converge-diverge",
       "tags": ["concept", "mapping"],
-      "entry_points": ["言葉にした瞬間に薄くなる", "全体は見えているのに説明できない"],
-      "pairs": [{ "a": "発散", "b": "収束" }],
+      "entry_points": [
+        "言葉にした瞬間に薄くなる",
+        "全体は見えているのに説明できない"
+      ],
+      "pairs": [
+        { "a": "発散", "b": "収束" },
+        { "a": "観察", "b": "制作" }
+      ],
+      "series": "3dsl-core",
+      "related": [],
       "rights": {
         "mode": "quotation",
-        "notice_short": "出典：◯◯（著作権は権利者に帰属）",
+        "purpose": "education_and_understanding",
+        "policy": {
+          "library": { "allow_snapshot": true, "allow_interaction": "none", "cta_open_viewer": true },
+          "viewer": { "allow_interaction": "full", "show_attribution": true }
+        },
         "sources": [
-          { "title": "出典資料タイトル", "creator": "著者名", "year": "2021", "type": "book", "locator": "p.12-15", "url": "https://example.com" }
-        ]
+          {
+            "title": "（例）出典資料タイトル",
+            "creator": "（例）著者名 / 権利者名",
+            "year": "2021",
+            "type": "book",
+            "locator": "p.12-15",
+            "url": "https://example.com",
+            "copyright_notice": "© 2021 著者名"
+          }
+        ],
+        "notice_short": "出典：（例）出典資料タイトル（著作権は権利者に帰属）",
+        "notice_long": "本コンテンツは正当な引用の範囲で、構造的理解を目的として再構成したスナップショットです。著作権は各権利者に帰属します。操作による探索はリンク先 Viewer で行ってください。"
       }
     }
   ]
