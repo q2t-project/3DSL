@@ -1,0 +1,15 @@
+{
+  "lines": [],
+  "points": [],
+  "aux": [],
+  "document_meta": {
+    "document_uuid": "00000000-0000-4000-8000-000000000000",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.0.1",
+    "author": "minimal-doc",
+    "version": "1.0.0",
+    "coordinate_system": "Z+up/freeXY",
+    "units": "mm",
+    "i18n": "ja",
+    "creator_memo": "minimal_document: 構造要素(lines/points/aux)をすべて空配列とし、document_meta だけを正しく満たした最小 3DSS。viewer/runtime の起動確認・ドキュメントメタ専用テスト用。"
+  }
+}

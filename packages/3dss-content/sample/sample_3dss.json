@@ -1,0 +1,24 @@
+{
+  "points": [
+    {
+      "meta": { "uuid": "P1" },
+      "appearance": { "position": [0,0,0], "color": "#ff5555" }
+    },
+    {
+      "meta": { "uuid": "P2" },
+      "appearance": { "position": [1,0,0], "color": "#55ff55" }
+    }
+  ],
+  "lines": [
+    {
+      "meta": { "uuid": "L1" },
+      "appearance": {
+        "end_a": { "ref": "P1" },
+        "end_b": { "ref": "P2" },
+        "color": "#55aaff",
+        "line_type": "straight"
+      }
+    }
+  ],
+  "aux": []
+}
