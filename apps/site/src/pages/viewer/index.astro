@@ -1,14 +1,27 @@
 ---
-const target = "/app/viewer";
+const TARGET = "/app/viewer";
 ---
+
 <html lang="ja">
   <head>
     <meta charset="utf-8" />
-    <meta http-equiv="refresh" content="0; url=/app/viewer" />
-    <link rel="canonical" href="/app/viewer" />
-    <title>Viewer</title>
+    <meta http-equiv="refresh" content={`0; url=${TARGET}`} />
+    <link rel="canonical" href={TARGET} />
+    <title>Viewer | 3DSL</title>
+    <meta
+      name="description"
+      content="3DSL Viewer（3DSSを読み取り専用で表示）。図を全体→局所で往復して理解するための閲覧環境。"
+    />
   </head>
-  <body>
-    <p>Redirecting to <a href="/app/viewer">/app/viewer</a>...</p>
+  <body style="font-family: system-ui, sans-serif; line-height: 1.6; padding: 24px;">
+    <h1>Viewer</h1>
+    <p>
+      3DSL Viewer は、3DSS（図データ）を<strong>読み取り専用</strong>で表示する閲覧環境や。
+      図は「眺める→気になった所へ寄る→また引いて全体を見る」を往復すると理解が早い。
+    </p>
+    <p>
+      自動的に <a href={TARGET}>{TARGET}</a> へ移動するで。
+      移動しない場合はリンクを押してな。
+    </p>
   </body>
 </html>

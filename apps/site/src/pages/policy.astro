@@ -1,6 +1,15 @@
 ---
 import Layout from "../layouts/Layout.astro";
 export const prerender = true;
+
+// Formspree endpoint (Cloudflare Pages env var 推奨)
+// 例: https://formspree.io/f/xxxxxxx
+const FORMSPREE_ENDPOINT = import.meta.env.PUBLIC_FORMSPREE_ENDPOINT ?? "";
+
+// AdSense / Cookie の参考リンク（表示用）
+const GOOGLE_ADS_SETTINGS = "https://adssettings.google.com/";
+const ABOUTADS = "https://optout.aboutads.info/";
+const GOOGLE_PRIVACY = "https://policies.google.com/technologies/ads";
 ---
 
 <Layout title="3DSL | ポリシー">
@@ -27,6 +36,48 @@ export const prerender = true;
         広告配信事業者は、ユーザーの興味に応じた広告を表示するため Cookie 等を使用することがあります。
       </p>
 
+      <h3>Cookie 等の扱い</h3>
+      <p>
+        広告配信やアクセス解析のため、ブラウザに保存される Cookie または同等の識別子が利用される場合があります。
+        これらは、閲覧傾向に基づく広告表示や、サイト改善のための統計取得に使われます。
+      </p>
+      <p>
+        Cookie を無効化すると、広告表示や一部機能に影響が出ることがあります。
+        パーソナライズ広告は、ユーザーの設定により無効化できる場合があります。
+      </p>
+
+      <h3>パーソナライズ広告の管理（オプトアウト）</h3>
+      <div class="not-prose mt-3 grid gap-2 text-sm">
+        <a
+          class="rounded-xl border border-white/10 bg-white/5 p-3 hover:bg-white/10"
+          href={GOOGLE_ADS_SETTINGS}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Google 広告設定（パーソナライズの管理）
+          <div class="mt-1 font-mono text-xs text-neutral-400">{GOOGLE_ADS_SETTINGS}</div>
+        </a>
+        <a
+          class="rounded-xl border border-white/10 bg-white/5 p-3 hover:bg-white/10"
+          href={ABOUTADS}
+          target="_blank"
+          rel="noreferrer"
+        >
+          AboutAds（広告のオプトアウト）
+          <div class="mt-1 font-mono text-xs text-neutral-400">{ABOUTADS}</div>
+        </a>
+        <a
+          class="rounded-xl border border-white/10 bg-white/5 p-3 hover:bg-white/10"
+          href={GOOGLE_PRIVACY}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Google 広告における Cookie 等の利用
+          <div class="mt-1 font-mono text-xs text-neutral-400">{GOOGLE_PRIVACY}</div>
+        </a>
+      </div>
+
+
       <h2>免責事項</h2>
       <p>
         掲載内容の正確性・最新性には注意しますが、完全性を保証するものではありません。
@@ -36,33 +87,80 @@ export const prerender = true;
       <h2>お問い合わせ</h2>
       <p>お問い合わせはフォームよりご連絡ください（内容により返信できない場合があります）。</p>
 
-      <form action="/api/contact" method="POST" class="not-prose mt-4 grid gap-3">
+      {!FORMSPREE_ENDPOINT && (
+        <p class="not-prose mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200">
+          設定不足：PUBLIC_FORMSPREE_ENDPOINT が未設定です（Cloudflare Pages の Environment Variables に追加してください）
+        </p>
+      )}
+
+      <form action={FORMSPREE_ENDPOINT || "#"} method="POST" class="not-prose mt-4 grid gap-3">
+        <input type="hidden" name="_subject" value="3DSL お問い合わせ" />
+        <input type="hidden" name="_next" value="https://3dsl.pages.dev/policy/#sent" />
+
+        <!-- honeypot（bot対策） -->
+        <label class="hidden" aria-hidden="true">
+          <span>Leave this field empty</span>
+          <input name="_gotcha" type="text" autocomplete="off" />
+        </label>
+
+        <label class="grid gap-1">
+          <span class="text-sm text-neutral-300">お名前（任意）</span>
+          <input
+            name="name"
+            type="text"
+            autocomplete="name"
+            class="rounded-md bg-neutral-900 border border-neutral-800 px-3 py-2"
+            placeholder="例：山田 太郎"
+          />
+        </label>
+
         <label class="grid gap-1">
           <span class="text-sm text-neutral-300">メールアドレス（返信が必要な場合）</span>
-          <input name="email" type="email" autocomplete="email"
+          <input
+            name="email"
+            type="email"
+            autocomplete="email"
             class="rounded-md bg-neutral-900 border border-neutral-800 px-3 py-2"
-            placeholder="you@example.com" />
+            placeholder="you@example.com"
+          />
         </label>
 
         <label class="grid gap-1">
           <span class="text-sm text-neutral-300">件名</span>
-          <input name="subject" type="text"
+          <input
+            name="subject"
+            type="text"
             class="rounded-md bg-neutral-900 border border-neutral-800 px-3 py-2"
-            placeholder="例：Viewer の不具合報告" />
+            placeholder="例：Viewer の不具合報告"
+          />
         </label>
 
         <label class="grid gap-1">
           <span class="text-sm text-neutral-300">本文</span>
-          <textarea name="message" required rows="6"
+          <textarea
+            name="message"
+            required
+            rows="6"
             class="rounded-md bg-neutral-900 border border-neutral-800 px-3 py-2"
-            placeholder="内容を書いてください"></textarea>
+            placeholder="内容を書いてください"
+          ></textarea>
         </label>
 
-        <button type="submit"
-          class="rounded-md bg-neutral-100 text-neutral-900 px-4 py-2 font-medium hover:opacity-90">
+        <button
+          type="submit"
+          class="rounded-md bg-neutral-100 text-neutral-900 px-4 py-2 font-medium hover:opacity-90"
+        >
           送信
         </button>
       </form>
+
+      <p class="not-prose mt-2 text-xs text-neutral-400">
+        ※ 送信先は PUBLIC_FORMSPREE_ENDPOINT で設定してください。
+      </p>
+
+      <p id="sent" class="not-prose mt-3 text-xs text-neutral-400">
+        送信後はこのページへ戻ります（#sent）。
+      </p>
     </div>
   </section>
 </Layout>
