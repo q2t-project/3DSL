@@ -1,4 +1,9 @@
 /viewer/dev*
   Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
 /viewer/run*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+
+/__deploy_probe.txt
   Cache-Control: no-store

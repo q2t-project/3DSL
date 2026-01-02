@@ -8,6 +8,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { execSync } from "node:child_process";
 
 function exists(p) {
   try { fs.accessSync(p); return true; } catch { return false; }
@@ -29,6 +30,11 @@ const pagesDisabled = path.join(siteRoot, "src", "pages_disabled");
 // Therefore we require: public/404.html and forbid: src/pages/404.html.astro
 const astro404 = path.join(siteRoot, "src", "pages", "404.html.astro");
 const public404 = path.join(siteRoot, "public", "404.html");
+
+// Deploy probe (helps verify Cloudflare Pages picked up the latest build)
+const deployProbe = path.join(siteRoot, "public", "__deploy_probe.txt");
+
+const publicDir = path.join(siteRoot, "public");
 
 // nested copy: apps/site/apps/site -> within siteRoot, "apps/site" exists
 const nestedSite = path.join(siteRoot, "apps", "site");
@@ -75,4 +81,42 @@ if (!exists(public404)) {
        `        Cloudflare Pages needs public/404.html to return proper 404 status.\n`);
 }
 
+function getGitSha() {
+  const envSha = process.env.CF_PAGES_COMMIT_SHA || process.env.GITHUB_SHA || process.env.COMMIT_SHA;
+  if (envSha && typeof envSha === "string" && envSha.length >= 7) return envSha.slice(0, 7);
+  try {
+    return execSync("git rev-parse --short HEAD", { cwd: repoRoot, stdio: ["ignore", "pipe", "ignore"] })
+      .toString()
+      .trim();
+  } catch {
+    return "unknown";
+  }
+}
+
+function writeDeployProbe() {
+  try {
+    const payload = {
+      sha: getGitSha(),
+      builtAt: new Date().toISOString(),
+    };
+    const json = JSON.stringify(payload, null, 2) + "\n";
+
+    // 1) public: always write (Astro copies public -> dist)
+    fs.mkdirSync(path.dirname(deployProbe), { recursive: true });
+    fs.writeFileSync(deployProbe, json, "utf8");
+
+    // 2) dist: if exists, keep it in sync (helps local verification without a rebuild)
+    const distProbe = path.join(siteRoot, "dist", "__deploy_probe.txt");
+    if (exists(path.join(siteRoot, "dist"))) {
+      try { fs.writeFileSync(distProbe, json, "utf8"); } catch {}
+    }
+
+    console.log(`[guard] wrote __deploy_probe.txt sha=${payload.sha}`);
+  } catch (e) {
+    // probe is best-effort; do not fail build
+  }
+}
+
 if (failed) process.exit(1);
+
+writeDeployProbe();

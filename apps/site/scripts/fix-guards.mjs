@@ -19,6 +19,14 @@ const canonicalViewer = path.join(canonicalDir, "index.astro");
 const pagesDisabled = path.join(siteRoot, "src", "pages_disabled");
 const nestedApps = path.join(siteRoot, "apps");
 
+// Cloudflare Pages wants a real top-level public/404.html (not an Astro route)
+const forbidden404Routes = [
+  path.join(siteRoot, "src", "pages", "404.astro"),
+  path.join(siteRoot, "src", "pages", "404.html.astro"),
+  path.join(siteRoot, "src", "pages", "404.html"),
+];
+const public404 = path.join(siteRoot, "public", "404.html");
+
 function rmrf(p) {
   if (!fs.existsSync(p)) return false;
   fs.rmSync(p, { recursive: true, force: true });
@@ -34,6 +42,22 @@ if (rmrf(legacyViewer)) {
 
 if (rmrf(pagesDisabled)) {
   console.log("[fix] removed forbidden folder:", pagesDisabled);
+  changed = true;
+}
+
+for (const p of forbidden404Routes) {
+  if (rmrf(p)) {
+    console.log("[fix] removed forbidden Astro 404 route:", p);
+    changed = true;
+  }
+}
+
+// ensure public/404.html exists (minimal) so Pages doesn't go into SPA fallback
+if (!fs.existsSync(public404)) {
+  fs.mkdirSync(path.dirname(public404), { recursive: true });
+  const html = `<!doctype html>\n<html lang=\"ja\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>404 | 3DSL</title>\n  <meta name=\"robots\" content=\"noindex\" />\n</head>\n<body>\n  <main style=\"max-width: 52rem; margin: 4rem auto; padding: 0 1rem; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;\">\n    <h1 style=\"font-size: 1.5rem;\">404</h1>\n    <p>ページが見つからへんかった。</p>\n    <p><a href=\"/\">トップへ戻る</a></p>\n  </main>\n</body>\n</html>\n`;
+  fs.writeFileSync(public404, html, "utf-8");
+  console.log("[fix] created:", public404);
   changed = true;
 }
 
