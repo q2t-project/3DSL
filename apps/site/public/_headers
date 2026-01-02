@@ -1,0 +1,4 @@
+/viewer/dev*
+  Cache-Control: no-store
+/viewer/run*
+  Cache-Control: no-store
