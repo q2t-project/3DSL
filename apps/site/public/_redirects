@@ -1,2 +1,6 @@
-/viewer/dev* /404 404
-/viewer/run* /404 404
+/viewer/dev    /viewer  301
+/viewer/dev/   /viewer  301
+/viewer/dev/*  /viewer  301
+/viewer/run    /viewer  301
+/viewer/run/   /viewer  301
+/viewer/run/*  /viewer  301
