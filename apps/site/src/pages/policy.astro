@@ -85,81 +85,8 @@ const GOOGLE_PRIVACY = "https://policies.google.com/technologies/ads";
       </p>
 
       <h2>お問い合わせ</h2>
-      <p>お問い合わせはフォームよりご連絡ください（内容により返信できない場合があります）。</p>
-
-      {!FORMSPREE_ENDPOINT && (
-        <p class="not-prose mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200">
-          設定不足：PUBLIC_FORMSPREE_ENDPOINT が未設定です（Cloudflare Pages の Environment Variables に追加してください）
-        </p>
-      )}
-
-      <form action={FORMSPREE_ENDPOINT || "#"} method="POST" class="not-prose mt-4 grid gap-3">
-        <input type="hidden" name="_subject" value="3DSL お問い合わせ" />
-        <input type="hidden" name="_next" value="https://3dsl.pages.dev/policy/#sent" />
-
-        <!-- honeypot（bot対策） -->
-        <label class="hidden" aria-hidden="true">
-          <span>Leave this field empty</span>
-          <input name="_gotcha" type="text" autocomplete="off" />
-        </label>
-
-        <label class="grid gap-1">
-          <span class="text-sm text-neutral-300">お名前（任意）</span>
-          <input
-            name="name"
-            type="text"
-            autocomplete="name"
-            class="rounded-md bg-neutral-900 border border-neutral-800 px-3 py-2"
-            placeholder="例：山田 太郎"
-          />
-        </label>
-
-        <label class="grid gap-1">
-          <span class="text-sm text-neutral-300">メールアドレス（返信が必要な場合）</span>
-          <input
-            name="email"
-            type="email"
-            autocomplete="email"
-            class="rounded-md bg-neutral-900 border border-neutral-800 px-3 py-2"
-            placeholder="you@example.com"
-          />
-        </label>
-
-        <label class="grid gap-1">
-          <span class="text-sm text-neutral-300">件名</span>
-          <input
-            name="subject"
-            type="text"
-            class="rounded-md bg-neutral-900 border border-neutral-800 px-3 py-2"
-            placeholder="例：Viewer の不具合報告"
-          />
-        </label>
-
-        <label class="grid gap-1">
-          <span class="text-sm text-neutral-300">本文</span>
-          <textarea
-            name="message"
-            required
-            rows="6"
-            class="rounded-md bg-neutral-900 border border-neutral-800 px-3 py-2"
-            placeholder="内容を書いてください"
-          ></textarea>
-        </label>
-
-        <button
-          type="submit"
-          class="rounded-md bg-neutral-100 text-neutral-900 px-4 py-2 font-medium hover:opacity-90"
-        >
-          送信
-        </button>
-      </form>
-
-      <p class="not-prose mt-2 text-xs text-neutral-400">
-        ※ 送信先は PUBLIC_FORMSPREE_ENDPOINT で設定してください。
-      </p>
-
-      <p id="sent" class="not-prose mt-3 text-xs text-neutral-400">
-        送信後はこのページへ戻ります（#sent）。
+      <p>
+        お問い合わせは <a href="/contact">Contact ページ</a> からご連絡ください。
       </p>
     </div>
   </section>

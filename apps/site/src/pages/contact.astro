@@ -1,0 +1,78 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const title = 'Contact';
+const sent = Astro.url.searchParams.get('sent') === '1';
+
+const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xnjnpgjp';
+const NEXT_URL = 'https://3dsl.jp/contact?sent=1';
+---
+
+<Layout title={title} description="Contact the 3DSL site owner.">
+  <section class="max-w-3xl mx-auto px-4 py-12">
+    <h1 class="text-2xl font-semibold text-white">Contact</h1>
+    <p class="mt-3 text-white/70">
+      ご意見・不具合報告・掲載依頼などは、下のフォームからお送りください。
+    </p>
+
+    {sent && (
+      <div class="mt-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-emerald-200">
+        送信ありがとう。内容確認して折り返すわ。
+      </div>
+    )}
+
+    <form
+      class="mt-8 space-y-4"
+      action={FORMSPREE_ENDPOINT}
+      method="POST"
+    >
+      <input type="hidden" name="_next" value={NEXT_URL} />
+
+      <div>
+        <label class="block text-sm text-white/70" for="email">Email</label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          required
+          class="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
+          placeholder="you@example.com"
+        />
+      </div>
+
+      <div>
+        <label class="block text-sm text-white/70" for="subject">Subject</label>
+        <input
+          id="subject"
+          name="subject"
+          type="text"
+          class="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
+          placeholder="(optional)"
+        />
+      </div>
+
+      <div>
+        <label class="block text-sm text-white/70" for="message">Message</label>
+        <textarea
+          id="message"
+          name="message"
+          required
+          rows={8}
+          class="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
+          placeholder="What's on your mind?"
+        ></textarea>
+      </div>
+
+      <button
+        type="submit"
+        class="inline-flex items-center justify-center rounded-xl bg-white text-neutral-900 px-5 py-2 text-sm font-medium hover:bg-white/90"
+      >
+        Send
+      </button>
+    </form>
+
+    <p class="mt-8 text-xs text-white/50">
+      送信内容は対応のためにのみ利用します。返信が必要な場合は、メールアドレスをご入力ください。
+    </p>
+  </section>
+</Layout>

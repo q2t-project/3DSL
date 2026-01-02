@@ -1,5 +1,7 @@
 ---
 import LayoutApp from "../../layouts/LayoutApp.astro";
+import AdSlot from "../../components/AdSlot.astro";
+import { ADSENSE_SLOTS } from "../../lib/adsense";
 
 const demoModel = "/3dss/sample/core_viewer_baseline.3dss.json";
 const sp = Astro.url.searchParams;
@@ -18,9 +20,11 @@ const iframeSrc = `/viewer?model=${encodeURIComponent(model)}&embed=1`;
     <div class="lg:hidden shrink-0 border-b border-white/10 bg-neutral-950">
       <div class="px-4 py-2">
         <div class="text-xs text-neutral-500">Sponsored</div>
-        <div class="mt-1 h-[100px] w-full rounded-xl border border-white/10 bg-white/5 grid place-items-center text-xs text-neutral-400">
-          Ad Slot (320×100)
-        </div>
+        <AdSlot
+          slot={ADSENSE_SLOTS.app_viewer_mobile_top}
+          class="mt-1 ad-slot ad-slot--mobile-banner100 rounded-xl border border-white/10 bg-white/5"
+          label="Mobile top (320×100)"
+        />
       </div>
     </div>
 
@@ -82,9 +86,11 @@ const iframeSrc = `/viewer?model=${encodeURIComponent(model)}&embed=1`;
         <aside class="hidden lg:block w-[300px] shrink-0 border-l border-white/10 bg-neutral-950">
           <div class="p-3">
             <div class="text-xs text-neutral-500">Sponsored</div>
-            <div class="mt-2 h-[600px] rounded-xl border border-white/10 bg-white/5 grid place-items-center text-xs text-neutral-400">
-              300×600 AD
-            </div>
+            <AdSlot
+              slot={ADSENSE_SLOTS.app_viewer_desktop_rail}
+              class="mt-2 ad-slot ad-slot--desktop-rail rounded-xl border border-white/10 bg-white/5"
+              label="300×600"
+            />
           </div>
         </aside>
       </div>

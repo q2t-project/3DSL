@@ -12,6 +12,42 @@
   color-scheme: dark;
 }
 
+/* ==============================
+   Ad containers
+   ============================== */
+
+.ad-slot {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Typical mobile banner (320x50 / 320x100). */
+
+.ad-slot--mobile-banner50 {
+  min-height: 50px;
+}
+
+.ad-slot--mobile-banner100 {
+  min-height: 100px;
+}
+
+/* Typical desktop sidebar (300x600). */
+.ad-slot--desktop-rail {
+  min-height: 600px;
+}
+
+/* In-article/responsive display units. */
+.ad-slot--inline {
+  min-height: 120px;
+}
+
+.ad-slot--leaderboard {
+  min-height: 90px;
+}
+
 html,
 body {
   background: var(--ui-bg);

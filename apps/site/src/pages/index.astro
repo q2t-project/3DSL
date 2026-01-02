@@ -1,6 +1,8 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import TopText from "../content/text/top.md";
+import AdSlot from "../components/AdSlot.astro";
+import { ADSENSE_SLOTS } from "../lib/adsense";
 
 const demoModel = "/3dss/sample/core_viewer_baseline.3dss.json";
 ---
@@ -76,6 +78,17 @@ const demoModel = "/3dss/sample/core_viewer_baseline.3dss.json";
       </div>
     </aside>
   </section>
+
+  <!-- Ad: between hero/quickstart and the rest (manual) -->
+  <div class="mt-6">
+    <AdSlot
+      slot={ADSENSE_SLOTS.home_inline}
+      class="rounded-xl border border-white/10 bg-white/5 p-3"
+      format="auto"
+      fullWidthResponsive={true}
+      minHeight={100}
+    />
+  </div>
 
   <!-- Entry cards: consistent UI components -->
   <section class="mt-10">

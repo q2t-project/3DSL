@@ -6,6 +6,13 @@ const {
   description = "3DSL は、概念や関係を三次元の座標に配置し、拡大縮小しながら局面と総体を行き来できる表現基盤です。",
 } = Astro.props;
 const pathname = Astro.url?.pathname ?? "/";
+
+// AdSense
+// - このレイアウト配下は「サイト側」(Home/Concept/Docs/Modeler/Library)。
+// - Library は軽量維持のため広告なし（方針を変えるなら enableAdsense の条件だけ変える）
+const ADSENSE_CLIENT = "ca-pub-3327629809463247";
+const enableAdsense = !pathname.startsWith("/library");
+
 const nav = [
   { href: "/", label: "Home" },
   { href: "/concept", label: "Concept" },
@@ -13,6 +20,7 @@ const nav = [
   { href: "/library", label: "Library" },
   { href: "/docs", label: "Docs" },
   { href: "/modeler", label: "Modeler" },
+  { href: "/contact", label: "Contact" },
 ];
 function isActive(href) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -24,6 +32,18 @@ function isActive(href) {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+    {enableAdsense && (
+      <meta name="google-adsense-account" content={ADSENSE_CLIENT} />
+    )}
+
+    {enableAdsense && (
+      <script
+        async
+        src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
+        crossorigin="anonymous"
+      ></script>
+    )}
 
     <!-- Fonts: readable, business-like UI (JP + Latin) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -122,6 +142,7 @@ function isActive(href) {
           <div>3DSL / 3DSS</div>
           <div class="flex flex-wrap gap-4">
             <a class="hover:text-neutral-200" href="/policy">Policy</a>
+            <a class="hover:text-neutral-200" href="/contact">Contact</a>
             <a class="hover:text-neutral-200" href="/docs">Docs</a>
             <a class="hover:text-neutral-200" href="/library">Library</a>
           </div>

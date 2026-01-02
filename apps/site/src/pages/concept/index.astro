@@ -1,6 +1,8 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import ConceptText from "../../content/text/concept.md";
+import AdSlot from "../../components/AdSlot.astro";
+import { ADSENSE_SLOTS } from "../../lib/adsense";
 ---
 
 <Layout
@@ -9,5 +11,14 @@ import ConceptText from "../../content/text/concept.md";
 >
   <div class="prose prose-invert prose-neutral max-w-3xl">
     <ConceptText />
+  </div>
+
+  <div class="mt-8 max-w-3xl">
+    <AdSlot
+      slot={ADSENSE_SLOTS.concept_inline}
+      class="rounded-xl border border-neutral-800 bg-neutral-950/40 p-3 min-h-[120px]"
+      format="auto"
+      fullWidthResponsive={true}
+    />
   </div>
 </Layout>

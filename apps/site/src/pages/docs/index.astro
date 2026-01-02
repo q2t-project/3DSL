@@ -1,8 +1,10 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import DocsText from "../../content/text/docs.md";
+import AdSlot from "../../components/AdSlot.astro";
+import { ADSENSE_SLOTS } from "../../lib/adsense";
 
-// ※ ここは “実在パス” に合わせて調整してな。
+// ※ ここは “実在パス” に合わせて調整してください。
 // いまのプランでは /3dss/3dss/release/... を想定してる。
 const links = [
   { label: "Latest schema", href: "/3dss/3dss/release/3DSS.schema.json" },
@@ -20,8 +22,11 @@ const links = [
     <DocsText />
   </div>
 
-  <div class="prose prose-invert prose-neutral max-w-3xl">
-    <DocsText />
+  <div class="mt-8 max-w-3xl">
+    <AdSlot
+      slot={ADSENSE_SLOTS.docs_inline}
+      className="rounded-2xl border border-white/10 bg-white/5 min-h-[120px]"
+    />
   </div>
 
   <div class="mt-10 grid gap-3">

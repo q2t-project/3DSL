@@ -1,0 +1,64 @@
+---
+import { ADSENSE_PUBLISHER_ID } from '../lib/adsense';
+
+type Props = {
+  /** Ad unit slot id from AdSense */
+  slot: string;
+  /** Wrapper classes (Tailwind) */
+  class?: string;
+  /**
+   * AdSense format. For most responsive display units: 'auto'
+   * (AdSense uses this together with data-full-width-responsive).
+   */
+  format?: string;
+  /** Reserve space to reduce layout shift */
+  minHeight?: number;
+};
+
+const { slot, class: className = '', format = 'auto', minHeight = 0 } = Astro.props;
+
+const isDev = import.meta.env.DEV;
+const hasSlot = typeof slot === 'string' && slot.trim().length > 0;
+const styleMinHeight = minHeight > 0 ? `min-height:${minHeight}px;` : '';
+---
+
+{(hasSlot || isDev) && (
+  <div class={`ad-slot ${className}`} style={styleMinHeight} data-ad-slot={slot || 'UNSET'}>
+    {hasSlot ? (
+      <>
+        <ins
+          class="adsbygoogle"
+          style="display:block"
+          data-ad-client={ADSENSE_PUBLISHER_ID}
+          data-ad-slot={slot}
+          data-ad-format={format}
+          data-full-width-responsive="true"
+        />
+        <script is:inline>
+          (adsbygoogle = window.adsbygoogle || []).push({});
+        </script>
+      </>
+    ) : (
+      <div class="ad-slot__placeholder">AdSlot (slot unset)</div>
+    )}
+  </div>
+)}
+
+<style>
+  .ad-slot {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .ad-slot__placeholder {
+    width: 100%;
+    border: 1px dashed rgba(255, 255, 255, 0.18);
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    text-align: center;
+    user-select: none;
+  }
+</style>

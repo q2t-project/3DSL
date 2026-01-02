@@ -2,6 +2,9 @@
 import "../styles/global.css";
 
 const { title = "3DSL" } = Astro.props;
+
+// AdSense (app 側で広告を出す場合に必要)
+const ADSENSE_CLIENT = "ca-pub-3327629809463247";
 ---
 
 <!doctype html>
@@ -9,6 +12,13 @@ const { title = "3DSL" } = Astro.props;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="google-adsense-account" content="ca-pub-3327629809463247" />
+
+    <script
+      async
+      src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
+      crossorigin="anonymous"
+    ></script>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
