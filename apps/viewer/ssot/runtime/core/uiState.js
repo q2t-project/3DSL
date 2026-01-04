@@ -1,5 +1,7 @@
 // viewer/runtime/core/uiState.js
 
+import { DEFAULT_INPUT_POINTER, DEFAULT_INPUT_KEYBOARD, resolveInputDefaults } from './inputDefaults.js';
+
 const DEFAULT_VIEW_PRESET_INDEX = 3; // iso_ne（方針がこれならここも合わせる）
 
 // ビュー・プリセット index 正規化（0〜6 に丸める）
@@ -70,35 +72,61 @@ function normalizeMicroProfile(v) {
   return v === "weak" || v === "normal" || v === "strong" ? v : "normal";
 }
 
-function normalizeInputSettings(v) {
+function normalizeInputSettings(v, defaults = null) {
   const src = v && typeof v === "object" ? v : {};
   const pointerSrc = src.pointer && typeof src.pointer === "object" ? src.pointer : {};
   const keyboardSrc = src.keyboard && typeof src.keyboard === "object" ? src.keyboard : {};
 
+  const dPointer =
+    defaults && typeof defaults === 'object' && defaults.pointer && typeof defaults.pointer === 'object'
+      ? defaults.pointer
+      : DEFAULT_INPUT_POINTER;
+  const dKeyboard =
+    defaults && typeof defaults === 'object' && defaults.keyboard && typeof defaults.keyboard === 'object'
+      ? defaults.keyboard
+      : DEFAULT_INPUT_KEYBOARD;
+
+  // --- pointer ---
+  const minDragPx = Math.max(0, int(pointerSrc.minDragPx, dPointer.minDragPx));
+  const clickMovePx = Math.max(0, num(pointerSrc.clickMovePx, dPointer.clickMovePx));
+
+  const rotateSpeed = num(pointerSrc.rotateSpeed, dPointer.rotateSpeed);
+  const rotateSpeedFast = num(pointerSrc.rotateSpeedFast, dPointer.rotateSpeedFast);
+
+  // orbit damping (0..1). Accept both 0..1 and 1..100(%) inputs.
+  let dampingFactor = num(pointerSrc.dampingFactor, dPointer.dampingFactor);
+  if (dampingFactor > 1) {
+    if (dampingFactor <= 100) dampingFactor = dampingFactor / 100;
+    else dampingFactor = dPointer.dampingFactor;
+  }
+  dampingFactor = Math.min(0.95, Math.max(0, dampingFactor));
+
+  const panSpeed = num(pointerSrc.panSpeed, dPointer.panSpeed);
+  const panSpeedFast = num(pointerSrc.panSpeedFast, dPointer.panSpeedFast);
+  const panFactor = num(pointerSrc.panFactor, dPointer.panFactor);
+
+  const wheelZoomSpeed = num(pointerSrc.wheelZoomSpeed, dPointer.wheelZoomSpeed);
+  const wheelZoomSpeedFast = num(pointerSrc.wheelZoomSpeedFast, dPointer.wheelZoomSpeedFast);
+
   const pointer = {
-    // pointer drag threshold (px)
-    minDragPx: Math.max(0, int(pointerSrc.minDragPx, 2)),
-    clickMovePx: Math.max(0, num(pointerSrc.clickMovePx, 2)),
-
-    // orbit sensitivity (unit: per px)
-    rotateSpeed: num(pointerSrc.rotateSpeed, 0.005),
-    rotateSpeedFast: num(pointerSrc.rotateSpeedFast, num(pointerSrc.rotateSpeed, 0.005) * 2),
-
-    // pan sensitivity (unit: per px) + distance factor
-    panSpeed: num(pointerSrc.panSpeed, 0.002),
-    panSpeedFast: num(pointerSrc.panSpeedFast, num(pointerSrc.panSpeed, 0.002) * 2),
-    panFactor: num(pointerSrc.panFactor, 0.02),
-
-    // wheel zoom sensitivity (unit: per deltaY)
-    wheelZoomSpeed: num(pointerSrc.wheelZoomSpeed, 0.001),
-    wheelZoomSpeedFast: num(pointerSrc.wheelZoomSpeedFast, num(pointerSrc.wheelZoomSpeed, 0.001) * 2),
+    minDragPx,
+    clickMovePx,
+    rotateSpeed,
+    rotateSpeedFast,
+    dampingFactor,
+    panSpeed,
+    panSpeedFast,
+    panFactor,
+    wheelZoomSpeed,
+    wheelZoomSpeedFast,
   };
 
+  // --- keyboard ---
   const keyboard = {
-    orbitStep: num(keyboardSrc.orbitStep, Math.PI / 90),
-    orbitStepFast: num(keyboardSrc.orbitStepFast, Math.PI / 45),
-    panFactor: num(keyboardSrc.panFactor, 0.02),
-    zoomStep: num(keyboardSrc.zoomStep, 0.1),
+    orbitStep: num(keyboardSrc.orbitStep, dKeyboard.orbitStep),
+    orbitStepFast: num(keyboardSrc.orbitStepFast, dKeyboard.orbitStepFast),
+    panFactor: num(keyboardSrc.panFactor, dKeyboard.panFactor),
+    zoomStep: num(keyboardSrc.zoomStep, dKeyboard.zoomStep),
   };
 
   return { pointer, keyboard };
@@ -148,6 +176,11 @@ export function createUiState(initial = {}) {
       ? initialFx.micro
       : {};
 
+  // input preset (SSOT)
+  const inputPresetRaw =
+    typeof initialViewerSettings.inputPreset === 'string' ? initialViewerSettings.inputPreset : null;
+  const resolvedInput = resolveInputDefaults(inputPresetRaw);
+
   const viewerSettings = {
     // もともとの任意項目は生かしたまま上書きしていく
     ...initialViewerSettings,
@@ -187,7 +220,8 @@ export function createUiState(initial = {}) {
     },
 
     // 入力設定（UI はここから読む）
-    input: normalizeInputSettings(initialViewerSettings.input),
+    inputPreset: resolvedInput.name,
+    input: normalizeInputSettings(initialViewerSettings.input, resolvedInput),
 
     // エフェクト系（既存の microFX 初期化を 5.2 の fx.micro に寄せる）
     fx: {

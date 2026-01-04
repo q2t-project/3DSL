@@ -1,4 +1,5 @@
 // viewer/runtime/viewerHub.js
+import { DEFAULT_INPUT_POINTER } from './core/inputDefaults.js';
 // NOTE: viewerHub loop uses requestAnimationFrame.
 // In Node (no rAF), start() becomes a no-op for the render loop (contract for hub-noop test).
 
@@ -491,6 +492,76 @@ const CAMERA_DELTA_APPLY = 'camera.applyInputDeltas';
 const _cameraDelta = { dTheta: 0, dPhi: 0, panX: 0, panY: 0, zoom: 0 };
 let _cameraDeltaScheduled = false;
 
+// OrbitControls 由来の“慣性/減衰”を hub 側で再現する
+// - 1フレーム分の input delta を適用し、残り(delta) を毎フレーム減衰させる
+// - dampingFactor は uiState.viewerSettings.input.pointer.dampingFactor で調整可能（未指定なら 0.10）
+const _cameraInertia = { dTheta: 0, dPhi: 0, panX: 0, panY: 0, zoom: 0 };
+let _cameraInertiaActive = false;
+
+function _getInputDampingFactor() {
+  const v = core?.uiState?.viewerSettings?.input?.pointer?.dampingFactor;
+  const n = Number(v);
+  // 0..1 を許容（0 は “慣性OFF”）
+  if (Number.isFinite(n) && n >= 0 && n < 1) return n;
+  return DEFAULT_INPUT_POINTER.dampingFactor;
+}
+
+function _applyCameraInertia(dt) {
+  if (!_cameraInertiaActive) return;
+
+  const a = _cameraInertia;
+  const sum0 = Math.abs(a.dTheta) + Math.abs(a.dPhi) + Math.abs(a.panX) + Math.abs(a.panY) + Math.abs(a.zoom);
+  if (sum0 < 1e-10) {
+    a.dTheta = 0; a.dPhi = 0; a.panX = 0; a.panY = 0; a.zoom = 0;
+    _cameraInertiaActive = false;
+    return;
+  }
+
+  // OrbitControls 互換：
+  // 1) “今の delta” をそのまま適用
+  // 2) 残り(delta) を (1 - damping) で減衰
+  let damp = _getInputDampingFactor();
+  if (!(damp >= 0 && damp < 1)) damp = 0.10;
+
+  // dt を考慮して 60fps 相当の damping をスケール
+  let f = damp;
+  if (typeof dt === 'number' && Number.isFinite(dt) && dt > 0) {
+    const frames = Math.max(1, Math.min(120, dt * 60));
+    f = 1 - Math.pow(1 - damp, frames);
+  }
+
+  const dTheta = a.dTheta;
+  const dPhi   = a.dPhi;
+  const panX   = a.panX;
+  const panY   = a.panY;
+  const zoom   = a.zoom;
+
+  if (dTheta || dPhi) opCameraRotate(dTheta, dPhi);
+  if (panX || panY) opCameraPan(panX, panY);
+  if (zoom) opCameraZoom(zoom);
+
+  // 慣性OFFなら即停止
+  if (!(f > 0)) {
+    a.dTheta = 0; a.dPhi = 0; a.panX = 0; a.panY = 0; a.zoom = 0;
+    _cameraInertiaActive = false;
+    return;
+  }
+
+  const m = 1 - f;
+  a.dTheta *= m;
+  a.dPhi   *= m;
+  a.panX   *= m;
+  a.panY   *= m;
+  a.zoom   *= m;
+
+  const sum = Math.abs(a.dTheta) + Math.abs(a.dPhi) + Math.abs(a.panX) + Math.abs(a.panY) + Math.abs(a.zoom);
+  if (sum < 1e-10) {
+    a.dTheta = 0; a.dPhi = 0; a.panX = 0; a.panY = 0; a.zoom = 0;
+    _cameraInertiaActive = false;
+  }
+}
+
+
 function _removeCameraApplyCmd() {
   for (let i = commandQueue.length - 1; i >= 0; i--) {
     if (commandQueue[i] && commandQueue[i].type === CAMERA_DELTA_APPLY) {
@@ -502,6 +573,14 @@ function _removeCameraApplyCmd() {
 }
 
 function _discardCameraDeltas() {
+  // drop both pending deltas and inertia (jump commands should not inherit drag momentum)
+  _cameraInertia.dTheta = 0;
+  _cameraInertia.dPhi = 0;
+  _cameraInertia.panX = 0;
+  _cameraInertia.panY = 0;
+  _cameraInertia.zoom = 0;
+  _cameraInertiaActive = false;
+
   _cameraDelta.dTheta = 0;
   _cameraDelta.dPhi = 0;
   _cameraDelta.panX = 0;
@@ -608,9 +687,22 @@ function opCameraApplyInputDeltas() {
   const a = _cameraDelta;
   if (!a) return;
   try {
-    if (a.dTheta || a.dPhi) opCameraRotate(a.dTheta, a.dPhi);
-    if (a.panX || a.panY) opCameraPan(a.panX, a.panY);
-    if (a.zoom) opCameraZoom(a.zoom);
+    // dampingFactor がある場合は inertia に積んで、render loop で少しずつ適用する
+    const damp = _getInputDampingFactor();
+    if (damp > 0 && damp < 1) {
+      if (a.dTheta || a.dPhi || a.panX || a.panY || a.zoom) {
+        _cameraInertia.dTheta += a.dTheta;
+        _cameraInertia.dPhi   += a.dPhi;
+        _cameraInertia.panX   += a.panX;
+        _cameraInertia.panY   += a.panY;
+        _cameraInertia.zoom   += a.zoom;
+        _cameraInertiaActive = true;
+      }
+    } else {
+      if (a.dTheta || a.dPhi) opCameraRotate(a.dTheta, a.dPhi);
+      if (a.panX || a.panY) opCameraPan(a.panX, a.panY);
+      if (a.zoom) opCameraZoom(a.zoom);
+    }
   } finally {
     a.dTheta = 0;
     a.dPhi = 0;
@@ -993,6 +1085,7 @@ function flushCommandQueue() {
       if (typeof cameraEngine.update === "function") {
         cameraEngine.update(dt);
       }
+      _applyCameraInertia(dt);
       // Phase2: frame playback は updatePlayback(dt) が正
       if (frameController && typeof frameController.updatePlayback === "function") {
         const wasPlaying = !!core.uiState?.runtime?.isFramePlaying;

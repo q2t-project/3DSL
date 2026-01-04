@@ -8,18 +8,15 @@ const {
 const pathname = Astro.url?.pathname ?? "/";
 
 // AdSense
-// - このレイアウト配下は「サイト側」(Home/Concept/Docs/Modeler/Library)。
+// - このレイアウト配下は「サイト側」(Home/Library/Concept/Contact)。
 // - Library は軽量維持のため広告なし（方針を変えるなら enableAdsense の条件だけ変える）
 const ADSENSE_CLIENT = "ca-pub-3327629809463247";
 const enableAdsense = !pathname.startsWith("/library");
 
 const nav = [
   { href: "/", label: "Home" },
-  { href: "/concept", label: "Concept" },
-  { href: "/viewer", label: "Viewer" },
   { href: "/library", label: "Library" },
-  { href: "/docs", label: "Docs" },
-  { href: "/modeler", label: "Modeler" },
+  { href: "/concept", label: "Concept" },
   { href: "/contact", label: "Contact" },
 ];
 function isActive(href) {

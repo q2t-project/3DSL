@@ -29,6 +29,11 @@ export type LibraryItem = {
   thumb?: string;
   viewer_url: string;
   tags?: string[];
+  // Optional: editorial meta (schema外 / index側で管理)
+  created_at?: string;
+  updated_at?: string;
+  recommended?: boolean;
+  recommended_rank?: number;
   entry_points?: string[];
   pairs?: { a: string; b: string }[];
   series?: string;
@@ -53,7 +58,9 @@ export function readLibraryIndex(): LibraryIndex {
 
 export function getLibraryItems(): LibraryItem[] {
   const { items } = readLibraryIndex();
-  return items.slice().sort((a, b) => (a.title || "").localeCompare(b.title || "", "ja"));
+  // Library は小規模運用を前提とし、一覧の並びは index 側の順序を SSOT とする。
+  //（必要なら UI 側で「新着」「おすすめ」等に並べ替える）
+  return items.slice();
 }
 
 export function getLibraryItemBySlug(slug: string): LibraryItem | undefined {

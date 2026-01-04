@@ -686,11 +686,29 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
    null;
 
   // 4) controllers
+  // input preset:
+  //   - options.viewerSettings.inputPreset
+  //   - options.inputPreset
+  //   - URL query: ?preset=
+  let inputPreset = options?.viewerSettings?.inputPreset ?? options?.inputPreset ?? null;
+  if (inputPreset == null) {
+    try {
+      inputPreset = new URL(window.location.href).searchParams.get('preset');
+    } catch (_eU) {}
+  }
+
+  const initialViewerSettings =
+    options?.viewerSettings && typeof options.viewerSettings === 'object' ? options.viewerSettings : {};
+
   const uiState = createUiState({
     view_preset_index: 3, // iso_ne
     frame: { current: frameRange.min, range: frameRange },
     runtime: { isFramePlaying: false, isCameraAuto: false },
     cameraState: { theta: 0, phi: 1, distance: 4, target: { x: 0, y: 0, z: 0 }, fov: 50 },
+    viewerSettings: {
+      ...initialViewerSettings,
+      inputPreset,
+    },
   });
 
  const initialCameraState =

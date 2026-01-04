@@ -1,17 +1,129 @@
 ---
-const TARGET = "/app/viewer";
+// 3DSL Viewer (runtime shell)
+// - Astro route (/viewer) は iframe から呼ぶ前提
+// - public/viewer/* をそのままブラウザで読み込む（バンドルしない）
+// - 操作（orbit/pan/zoom）は UI layer を attach して有効化する
 ---
 
-<html lang="ja">
+<!doctype html>
+<html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="refresh" content={`0;url=${TARGET}`} />
-    <title>Viewer</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>3DSL Viewer</title>
+
+    <script type="importmap" is:inline>
+      {
+        "imports": {
+          "three": "/vendor/three/build/three.module.js",
+          "three/addons/": "/vendor/three/examples/jsm/"
+        }
+      }
+    </script>
+
+    <style is:inline>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: #000;
+        overflow: hidden;
+      }
+      #viewer-canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+        background: #000;
+      }
+
+      /* prod_minimal でも DOM contract 的に gizmo-slot が要る */
+      #gizmo-slot {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        width: 150px;
+        height: 150px;
+        z-index: 10;
+      }
+
+      #fallback {
+        position: fixed;
+        left: 12px;
+        bottom: 10px;
+        right: 12px;
+        color: #fff;
+        font: 12px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        opacity: 0.85;
+        pointer-events: none;
+        white-space: pre-wrap;
+        z-index: 20;
+      }
+    </style>
   </head>
+
   <body>
-    <p>
-      Viewer ページへ自動的に移動します。移動しない場合は
-      <a href={TARGET}>こちら</a> をクリックしてください。
-    </p>
+    <canvas id="viewer-canvas" data-role="viewer-canvas"></canvas>
+    <div id="gizmo-slot" data-role="gizmo-slot"></div>
+    <div id="fallback"></div>
+    <noscript>JavaScript を有効にしてください。</noscript>
+
+    <script type="module" is:inline>
+      import { mountViewerHost } from "/viewer/viewerHost.js";
+
+      // 優先順位: model > src > default
+      const sp = new URLSearchParams(window.location.search);
+      let url = sp.get("model") ?? sp.get("src") ?? "/3dss/sample/core_viewer_baseline.3dss.json";
+
+      // `model=%2F3dss%2F...` も素の `/3dss/...` も許容
+      try {
+        url = decodeURIComponent(url);
+      } catch {
+        // noop
+      }
+
+      // `3dss/...` のように先頭スラッシュが無い指定も許容
+      if (url && !url.startsWith("/") && !url.startsWith("http://") && !url.startsWith("https://")) {
+        url = "/" + url;
+      }
+
+      // iframe 埋め込み時は UI を最小に（ただし操作は有効）
+      const embedFlag = sp.get("embed");
+      const isEmbed = embedFlag === "1" || embedFlag === "true";
+      // この Astro route は iframe / embed 前提で DOM を最小にしてる。
+      // prod_full / devHarness_* は必要 DOM が無いのでここでは受け付けない。
+      const profile = "prod_minimal";
+
+      const elFallback = document.getElementById("fallback");
+
+      try {
+        // dev/HMR/手動再実行でも二重マウントせんように
+        try {
+          window.__vh?.dispose?.();
+        } catch {
+          // noop
+        }
+        window.__vh = await mountViewerHost({
+          canvasId: "viewer-canvas",
+          modelUrl: url,
+          profile,
+          gizmoWrapperId: "gizmo-slot",
+          timelineRootId: "timeline-root",
+          devBootLog: false,
+        });
+      } catch (err) {
+        console.error("[viewer] mount failed", err);
+        if (elFallback) {
+          elFallback.textContent =
+            "Viewer の起動に失敗しました。\n" +
+            "model=" +
+            url +
+            "\n\n" +
+            String(err && (err.stack || err.message || err));
+        }
+      }
+    </script>
   </body>
 </html>

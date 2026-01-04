@@ -4,12 +4,12 @@ export const prerender = true;
 
 // Formspree endpoint (Cloudflare Pages env var 推奨)
 // 例: https://formspree.io/f/xxxxxxx
-const FORMSPREE_ENDPOINT = import.meta.env.PUBLIC_FORMSPREE_ENDPOINT ?? "";
-
-// AdSense / Cookie の参考リンク（表示用）
 const GOOGLE_ADS_SETTINGS = "https://adssettings.google.com/";
 const ABOUTADS = "https://optout.aboutads.info/";
-const GOOGLE_PRIVACY = "https://policies.google.com/technologies/ads";
+const GOOGLE_COOKIES = "https://policies.google.com/technologies/cookies";
+
+const FORMSPREE_PRIVACY = "https://formspree.io/legal/privacy-policy/";
+const CLOUDFLARE_PRIVACY = "https://www.cloudflare.com/privacypolicy/";
 ---
 
 <Layout title="3DSL | ポリシー">
@@ -17,33 +17,40 @@ const GOOGLE_PRIVACY = "https://policies.google.com/technologies/ads";
     <h1 class="text-2xl font-medium">ポリシー／プライバシー</h1>
 
     <div class="prose prose-invert mt-6 max-w-none">
-      <h2>このサイトについて</h2>
       <p>
-        本サイトは、3DSL / 3DSD に関する Viewer・サンプル（Library）・ドキュメントを提供します。
-        掲載内容は個人開発・研究目的の情報提供です。
+        【サイト名：3DSL】（以下「当サイト」）は、当サイトにおける利用者情報の取扱いについて、以下のとおり定めます。
       </p>
 
-      <h2>取得する情報と利用目的</h2>
+      <h2>1. 取得する情報</h2>
+
+      <h3>(1) お問い合わせフォームから取得する情報</h3>
       <ul>
-        <li>アクセス解析情報：閲覧ページ、参照元、概算の利用環境等（サイト改善・利用状況把握）</li>
-        <li>Cookie 等：利便性向上、アクセス解析、広告配信</li>
-        <li>お問い合わせフォーム入力情報：返信・対応（メールアドレス、本文など）</li>
+        <li>メールアドレス</li>
+        <li>お問い合わせ内容</li>
+        <li>（任意）フォームに入力された氏名等の情報</li>
+      </ul>
+      <p>
+        当サイトのお問い合わせフォームは、外部サービス「Formspree」を利用して送信処理を行う場合があります。
+        フォームに入力された情報は、Formspreeを経由して当サイトに送信されます。
+      </p>
+
+      <h3>(2) アクセスにより自動的に取得される情報</h3>
+      <ul>
+        <li>IPアドレス、閲覧日時、閲覧ページ、参照元URL、端末・ブラウザ情報（ユーザーエージェント）等のアクセスログ情報</li>
+        <li>Cookie等の識別子（広告配信に伴い利用される場合があります）</li>
       </ul>
 
-      <h2>広告配信について（Google AdSense）</h2>
-      <p>
-        本サイトは第三者配信の広告サービス（Google AdSense）を利用する場合があります。
-        広告配信事業者は、ユーザーの興味に応じた広告を表示するため Cookie 等を使用することがあります。
-      </p>
+      <h2>2. 利用目的</h2>
+      <ul>
+        <li>お問い合わせへの対応、必要な連絡</li>
+        <li>当サイトの運営・保守・改善</li>
+        <li>不正利用・スパム・不正アクセス等の防止および対応</li>
+      </ul>
 
-      <h3>Cookie 等の扱い</h3>
+      <h2>3. 広告配信について（Google AdSense）</h2>
       <p>
-        広告配信やアクセス解析のため、ブラウザに保存される Cookie または同等の識別子が利用される場合があります。
-        これらは、閲覧傾向に基づく広告表示や、サイト改善のための統計取得に使われます。
-      </p>
-      <p>
-        Cookie を無効化すると、広告表示や一部機能に影響が出ることがあります。
-        パーソナライズ広告は、ユーザーの設定により無効化できる場合があります。
+        当サイトは、第三者配信の広告サービス（Google AdSense）を利用します。
+        Google等の第三者配信事業者は、Cookie等を使用して、利用者の当サイトや他サイトへのアクセス情報等に基づき広告を配信することがあります。
       </p>
 
       <h3>パーソナライズ広告の管理（オプトアウト）</h3>
@@ -57,6 +64,7 @@ const GOOGLE_PRIVACY = "https://policies.google.com/technologies/ads";
           Google 広告設定（パーソナライズの管理）
           <div class="mt-1 font-mono text-xs text-neutral-400">{GOOGLE_ADS_SETTINGS}</div>
         </a>
+
         <a
           class="rounded-xl border border-white/10 bg-white/5 p-3 hover:bg-white/10"
           href={ABOUTADS}
@@ -66,27 +74,57 @@ const GOOGLE_PRIVACY = "https://policies.google.com/technologies/ads";
           AboutAds（広告のオプトアウト）
           <div class="mt-1 font-mono text-xs text-neutral-400">{ABOUTADS}</div>
         </a>
+
         <a
           class="rounded-xl border border-white/10 bg-white/5 p-3 hover:bg-white/10"
-          href={GOOGLE_PRIVACY}
+          href={GOOGLE_COOKIES}
           target="_blank"
           rel="noreferrer"
         >
-          Google 広告における Cookie 等の利用
-          <div class="mt-1 font-mono text-xs text-neutral-400">{GOOGLE_PRIVACY}</div>
+          Google の Cookie に関する情報
+          <div class="mt-1 font-mono text-xs text-neutral-400">{GOOGLE_COOKIES}</div>
         </a>
       </div>
 
+      <h2>4. 外部サービスの利用（Formspree / Cloudflare）</h2>
+      <p>当サイトは以下の外部サービスを利用しています。</p>
 
-      <h2>免責事項</h2>
+      <h3>Formspree（お問い合わせフォーム送信処理）</h3>
       <p>
-        掲載内容の正確性・最新性には注意しますが、完全性を保証するものではありません。
-        本サイトの情報利用により生じた損害について、当方は一切の責任を負いません。
+        Formspree のプライバシーポリシー：
+        <a href={FORMSPREE_PRIVACY} target="_blank" rel="noreferrer">{FORMSPREE_PRIVACY}</a>
       </p>
 
-      <h2>お問い合わせ</h2>
+      <h3>Cloudflare Pages（ホスティング / CDN）</h3>
       <p>
-        お問い合わせは <a href="/contact">Contact ページ</a> からご連絡ください。
+        当サイトはCloudflare Pagesにより配信されます。運用・セキュリティ等の目的で、アクセスログ等がCloudflareにより処理される場合があります。
+        Cloudflare のプライバシーポリシー：
+        <a href={CLOUDFLARE_PRIVACY} target="_blank" rel="noreferrer">{CLOUDFLARE_PRIVACY}</a>
+      </p>
+
+      <h2>5. 第三者提供</h2>
+      <p>
+        当サイトは、法令に基づく場合を除き、本人の同意なく個人情報を第三者に提供しません。
+        ただし、前項の外部サービスの利用に伴い、当該サービス提供者に情報が送信・処理される場合があります。
+      </p>
+
+      <h2>6. 保存期間</h2>
+      <p>
+        当サイトは、利用目的の達成に必要な範囲で情報を保持し、不要となった場合は合理的な方法で削除または匿名化等を行います。
+      </p>
+
+      <h2>7. 改定</h2>
+      <p>
+        本ポリシーは、必要に応じて改定することがあります。改定後の内容は当サイト上に掲載した時点から効力を生じます。
+      </p>
+      <ul>
+        <li>制定日：【YYYY年MM月DD日】</li>
+        <li>最終改定日：【YYYY年MM月DD日】</li>
+      </ul>
+
+      <h2>8. お問い合わせ窓口</h2>
+      <p>
+        本ポリシーに関するお問い合わせは <a href="/contact">Contact</a> からご連絡ください。
       </p>
     </div>
   </section>

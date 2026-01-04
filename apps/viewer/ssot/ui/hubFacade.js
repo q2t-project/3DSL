@@ -45,6 +45,29 @@ function wrapCamera(cam) {
   const proxy = new Proxy(cam, {
     get(target, prop) {
       switch (prop) {
+        // ---- camera input deltas (apply at hub loop boundary) -----
+        // NOTE: pointer/mouse input は event 発火タイミングが不規則やから、
+        // ここで delta を合算して次フレームでまとめて適用する。
+        // こうすると操作感（引っかかり/ガタつき）が減る。
+        case "rotateDelta":
+        case "rotate":
+          return (dTheta, dPhi) => {
+            if (enqueue({ type: "camera.delta", dTheta, dPhi })) return null;
+            return target.rotate?.(dTheta, dPhi);
+          };
+        case "panDelta":
+        case "pan":
+          return (panX, panY) => {
+            if (enqueue({ type: "camera.delta", panX, panY })) return null;
+            return target.pan?.(panX, panY);
+          };
+        case "zoomDelta":
+        case "zoom":
+          return (zoom) => {
+            if (enqueue({ type: "camera.delta", zoom })) return null;
+            return target.zoom?.(zoom);
+          };
+
         case "stopAutoOrbit":
           return () => {
             if (enqueue({ type: "camera.stopAutoOrbit" })) return;

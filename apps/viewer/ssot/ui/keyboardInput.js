@@ -1,6 +1,7 @@
 // viewer/ui/keyboardInput.js
 import { mapArrowKeyToOrbitDelta } from './orbitMapping.js';
 import { createHubFacade } from './hubFacade.js';
+import { DEFAULT_INPUT_KEYBOARD, resolveInputDefaults } from '../runtime/core/inputDefaults.js';
 
 const DEBUG_KEYBOARD = false;
 
@@ -52,6 +53,14 @@ export class KeyboardInput {
     }
     this.viewPresetIndex = 0;
 
+    // preset fallback (when uiState is not yet ready)
+    this._preset = null;
+    try {
+      const u = new URL((this.target?.location?.href) || window.location.href);
+      this._preset = u.searchParams.get('preset');
+    } catch (_eP) {}
+    this._presetResolved = resolveInputDefaults(this._preset);
+
     this.onKeyDown = this.onKeyDown.bind(this);
     this.target.addEventListener('keydown', this.onKeyDown);
 
@@ -89,6 +98,21 @@ export class KeyboardInput {
 
     const hf = this.hf;
     if (!hf) return;
+
+    // uiState.viewerSettings.input.keyboard を読む（無ければ fallback）
+    const ui = hf.getUiState?.() ?? null;
+    const kb =
+      ui?.viewerSettings?.input?.keyboard &&
+      typeof ui.viewerSettings.input.keyboard === 'object'
+        ? ui.viewerSettings.input.keyboard
+        : null;
+
+    const presetName = ui?.viewerSettings?.inputPreset || this._presetResolved?.name || this._preset;
+    const fallbackKeyboard = resolveInputDefaults(presetName).keyboard || DEFAULT_INPUT_KEYBOARD;
+
+    const ORBIT_STEP = Number.isFinite(Number(kb?.orbitStep)) ? Number(kb.orbitStep) : fallbackKeyboard.orbitStep;
+    const ORBIT_STEP_FAST = Number.isFinite(Number(kb?.orbitStepFast)) ? Number(kb.orbitStepFast) : fallbackKeyboard.orbitStepFast;
+    const ZOOM_STEP = Number.isFinite(Number(kb?.zoomStep)) ? Number(kb.zoomStep) : fallbackKeyboard.zoomStep;
 
     const hub = this.hub;
 
@@ -185,8 +209,6 @@ export class KeyboardInput {
     // カメラ Zoom（+ / -）
     // -----------------------------
     if (camera && (typeof camera.zoomDelta === 'function' || typeof camera.zoom === 'function')) {
-      const ZOOM_STEP = 0.1;
-
       const isPlus = key === '+' || (key === '=' && ev.shiftKey) || code === 'NumpadAdd';
       if (isPlus) {
         ev.preventDefault();
@@ -224,9 +246,7 @@ export class KeyboardInput {
       return;
     }
 
-    const BASE_STEP = Math.PI / 90; // ≒ 2°
-    const FAST_STEP = Math.PI / 45; // ≒ 4°
-    const step = ev.shiftKey ? FAST_STEP : BASE_STEP;
+    const step = ev.shiftKey ? ORBIT_STEP_FAST : ORBIT_STEP;
 
     const { dTheta, dPhi } = mapArrowKeyToOrbitDelta(code, step);
     if (dTheta !== 0 || dPhi !== 0) {

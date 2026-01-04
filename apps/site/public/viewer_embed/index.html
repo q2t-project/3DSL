@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3DSL Viewer (Embed)</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+        background: #000;
+      }
+      #viewer-root {
+        position: fixed;
+        inset: 0;
+      }
+      #viewer-canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      #fallback {
+        position: fixed;
+        left: 12px;
+        bottom: 10px;
+        right: 12px;
+        color: #fff;
+        font: 12px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        opacity: 0.8;
+        pointer-events: none;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="viewer-root">
+      <canvas id="viewer-canvas"></canvas>
+    </div>
+    <div id="fallback"></div>
+
+    <script type="module">
+      import { bootstrapViewerFromUrl } from "/viewer/runtime/bootstrapViewer.js";
+
+      const params = new URLSearchParams(location.search);
+      const modelUrl =
+        params.get("model") ||
+        params.get("src") ||
+        "/3dss/sample/core_viewer_baseline.3dss.json";
+
+      const elFallback = document.getElementById("fallback");
+
+      try {
+        const hub = await bootstrapViewerFromUrl("viewer-canvas", modelUrl, {
+          strictValidate: true,
+          devBootLog: false,
+          devLabel: "viewer_embed",
+          modelUrl,
+        });
+        hub.start();
+        // debug handle
+        window.__viewerHub = hub;
+      } catch (err) {
+        console.error("[viewer_embed] boot failed", err);
+        if (elFallback) {
+          elFallback.textContent =
+            "Viewer の起動に失敗しました。\n" +
+            "model=" +
+            modelUrl +
+            "\n\n" +
+            String(err && (err.stack || err.message || err));
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -38,7 +38,12 @@
     "sync:viewer": "node scripts/sync-viewer.mjs",
     "sync:schemas": "node scripts/sync-schemas.mjs",
     "sync:vendor": "node scripts/sync-vendor.mjs",
-    "sync:all": "npm run sync:schemas && npm run sync:3dss-content && npm run sync:viewer && npm run sync:vendor",
+    "gen:library-index": "node scripts/gen-library-index.mjs",
+    "new:library-item": "node scripts/new-library-item.mjs",
+    "check:library": "node scripts/check-library.mjs",
+    "rename:library-id": "node scripts/rename-library-id.mjs",
+    "sync:library-index": "npm run gen:library-index",
+    "sync:all": "npm run sync:schemas && npm run sync:3dss-content && npm run sync:library-index && npm run sync:viewer && npm run sync:vendor",
     "predev": "npm run sync:all",
     "prebuild": "node scripts/guard-prebuild.mjs && npm run sync:all",
     "precheck:ssot": "npm run sync:all",
@@ -55,6 +60,7 @@
     "tailwindcss": "^4.1.17"
   },
   "devDependencies": {
+    "@tailwindcss/typography": "^0.5.19",
     "ajv": "^8.17.1",
     "ajv-cli": "^5.0.0",
     "ajv-formats": "^3.0.1",
