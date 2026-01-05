@@ -1,0 +1,20 @@
+---
+import SiteLayout from '../layouts/SiteLayout.astro';
+
+// /viewer は public/viewer/index.html（実体の3D Viewerランタイム）に譲り、
+// ここは説明ページとして別URLに退避します。
+---
+
+<SiteLayout title="Viewer">
+  <main class="mx-auto max-w-3xl px-5 py-10">
+    <h1 class="text-3xl font-semibold">Viewer</h1>
+    <p class="mt-4 text-neutral-300">
+      3DSD Viewer は 3DSS（図データ）を読み取り専用で表示する閲覧環境です。
+      必要に応じて /app/viewer へ移動してください。
+    </p>
+
+    <div class="mt-6">
+      <a class="underline text-purple-300" href="/app/viewer">/app/viewer を開く</a>
+    </div>
+  </main>
+</SiteLayout>

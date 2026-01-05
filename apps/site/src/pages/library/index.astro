@@ -2,363 +2,224 @@
 import Layout from "../../layouts/Layout.astro";
 import { getLibraryItems } from "../../lib/libraryIndex";
 
-import Policy from "../../content/fragments/library_policy.md";
-import Copyright from "../../content/fragments/library_copyright.md";
-
 const items = getLibraryItems();
 
-const allTags = Array.from(
-  new Set(items.flatMap((it) => it.tags ?? []))
-).sort((a, b) => a.localeCompare(b, "ja"));
+const title = "Library | 3DSL";
+const description =
+  "3DSL Library：カードを眺めて入口を選び、詳細や Viewer で深掘りするための一覧です。";
 
-function viewerHref(raw: string) {
-  // Ensure `back=/library` so that the in-viewer back button always exists.
-  // Also keep other params as-is.
-  try {
-    const u = new URL(raw, "https://local.invalid");
-    if (!u.searchParams.get("back")) u.searchParams.set("back", "/library");
-    // Return as site-relative
-    return u.pathname + (u.search ? u.search : "") + (u.hash ? u.hash : "");
-  } catch {
-    return raw;
-  }
-}
+const allTags = Array.from(new Set(items.flatMap((it) => it.tags ?? []))).sort((a, b) =>
+  a.localeCompare(b, "ja")
+);
 
-function joinText(it) {
-  return [it.title, it.summary, ...(it.tags ?? [])]
-    .filter(Boolean)
+function joinText(it: any) {
+  return [
+    it.title ?? "",
+    it.summary ?? "",
+    ...(it.tags ?? []),
+    ...(it.entry_points ?? []),
+    ...((it.pairs ?? []).flatMap((p: any) => [p.a, p.b])),
+  ]
     .join(" ")
     .toLowerCase();
 }
 ---
 
-<Layout title="Library">
-  <!-- Minimal header: keep the page light and scannable -->
-  <header class="ui-surface ui-surface--flat p-4 sm:p-6">
-    <div class="flex items-start justify-between gap-3">
-      <!-- Left: title + counter, then filter row just under it -->
-      <div class="min-w-0 flex flex-col gap-1">
-        <!-- title row -->
-        <div class="flex items-baseline gap-2">
-          <h1 class="text-xl font-medium truncate">ライブラリ</h1>
-          <span class="text-sm text-neutral-300 whitespace-nowrap">
-            {items.length}/{items.length}
-          </span>
-        </div>
+<Layout title={title} description={description}>
+  <section class="ui-surface p-8">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-medium tracking-tight">Library</h1>
+        <p class="mt-2 text-sm text-neutral-300">
+          一覧をスワイプして、面白そうなカードを開いてください。目的がある場合は、共有リンク（/library/[slug]）から直接入れます。
+        </p>
+      </div>
 
-        <!-- filter row (検索 + すべて) -->
-        <div class="flex items-start gap-4">
-          <details class="min-w-0 flex-1">
-            <summary class="text-sm text-neutral-300 cursor-pointer select-none underline underline-offset-4 hover:text-neutral-100 marker:hidden list-none">
-              検索
-            </summary>
-            <div class="mt-2">
-              <input id="q" class="ui-input w-full" placeholder="タイトル / タグ / 要約" />
-            </div>
-          </details>
-          <button
-            id="btnClearFilters"
-            type="button"
-            class="hidden text-sm text-neutral-300 underline underline-offset-4 hover:text-neutral-100 whitespace-nowrap"
-            data-tag=""
+      <div class="text-xs text-neutral-400">
+        <span id="count">表示 {items.length} / {items.length}</span>
+      </div>
+    </div>
+
+    {/* controls: tags row + optional search */}
+    <div class="mt-5 flex flex-col gap-3">
+      {allTags.length > 0 && (
+        <div class="flex items-center gap-2">
+          <div
+            class="flex flex-1 gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            aria-label="タグ"
           >
-            すべて
-          </button>
-        </div>
-      </div>
-
-      <!-- Right: sort pills (stacked) -->
-      <div class="shrink-0 flex flex-col items-end gap-2">
-        <button class="ui-chip" data-sort-btn="new" data-active="true">新着</button>
-        <button class="ui-chip" data-sort-btn="rec" data-active="false">おすすめ</button>
-      </div>
-    </div>
-
-    <!-- Tags (「すべて」は上に移したのでここから外す) -->
-    <div class="mt-3 -mx-1 overflow-x-auto">
-      <div class="flex gap-2 px-1">
-        {allTags.map((t) => (
-          <button class="ui-chip" data-tag={t} data-active="false">{t}</button>
-        ))}
-      </div>
-    </div>
-  </header>
-
-  <!-- Cards: meta-first, mobile-first. Tap opens viewer immediately. -->
-  <section
-    id="grid"
-    class="mt-5 grid grid-cols-1 gap-2 sm:gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-    aria-live="polite"
-  >
-    {items.map((it, idx) => {
-      const href = viewerHref(it.viewer_url);
-      const tags = (it.tags ?? []).join(",");
-      // recommended_rank: smaller = higher. If missing, treat as "not recommended".
-      const rec = (it.recommended_rank ?? (it.recommended ? 100 : null)) ?? 9999;
-      return (
-        <article
-          class="ui-card p-3 sm:p-4 cursor-pointer"
-          role="link"
-          tabindex="0"
-          data-href={href}
-          data-idx={String(idx)}
-          data-rec={String(rec)}
-          data-tags={tags}
-          data-text={joinText(it)}
-        >
-          <div class="flex items-start gap-3">
-            <div class="min-w-0 flex-1">
-              <h2 class="text-sm sm:text-base font-medium truncate">{it.title}</h2>
-              {it.summary ? (
-                <p class="mt-1 text-xs sm:text-sm text-neutral-300 line-clamp-1 sm:line-clamp-2">{it.summary}</p>
-              ) : (
-                <p class="mt-1 text-xs sm:text-sm text-neutral-500">（要約なし）</p>
-              )}
-            </div>
-
-            <!-- Keep a separate permalink without adding routes to the main nav -->
-            <a
-              href={`/library/${it.slug}`}
-              class="shrink-0 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-neutral-200 hover:bg-white/10"
-              aria-label={`詳細: ${it.title}`}
-            >
-              詳細
-            </a>
+            {allTags.map((t) => (
+              <button
+                class="tag ui-chip shrink-0"
+                data-tag={t}
+                type="button"
+              >
+                {t}
+              </button>
+            ))}
           </div>
 
-          {it.tags?.length ? (
-            <div class="mt-3 flex flex-wrap gap-1">
-              {it.tags.slice(0, 6).map((t) => (
-                <span class="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-neutral-300">
+          <details class="relative">
+            <summary
+              class="list-none ui-chip px-4 py-1 cursor-pointer"
+              aria-label="検索を開く"
+            >
+              検索
+            </summary>
+
+            <div class="absolute right-0 mt-2 w-[min(24rem,90vw)] ui-surface p-4 bg-neutral-950/95 shadow-lg">
+              <div class="flex items-center gap-2">
+                <input
+                  id="q"
+                  class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-cyan-300/30"
+                  placeholder="タイトル/説明/入口/タグ"
+                />
+                <button
+                  id="clear"
+                  class="ui-btn shrink-0"
+                  type="button"
+                >
+                  クリア
+                </button>
+              </div>
+              <p class="mt-2 text-xs text-neutral-400">
+                基本はカード一覧の流し見でOKです。検索は「特定の言葉が含まれるものだけ見たい」場合に使えます。
+              </p>
+            </div>
+          </details>
+        </div>
+      )}
+    </div>
+  </section>
+
+  <section id="grid" class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {items.map((it) => (
+      <article
+        class="card ui-card"
+        data-tags={(it.tags ?? []).join(",")}
+        data-text={joinText(it)}
+      >
+        {it.thumb ? (
+          <img
+            src={it.thumb}
+            alt={it.title}
+            loading="lazy"
+            class="h-40 w-full border-b border-white/10 object-cover bg-white/5"
+          />
+        ) : (
+          <div class="h-40 w-full border-b border-white/10 bg-white/5" />
+        )}
+
+        <div class="p-4">
+          <div class="text-base font-medium leading-snug">{it.title}</div>
+
+          {it.summary && <p class="mt-2 text-sm text-neutral-300 leading-relaxed">{it.summary}</p>}
+
+          {/* show a few tags/entry points as small hints (not interactive) */}
+          {(it.entry_points?.length ?? 0) > 0 && (
+            <div class="mt-3 flex flex-wrap gap-2">
+              {it.entry_points.slice(0, 2).map((e: string) => (
+                <span class="ui-chip px-2 py-1 text-xs">
+                  {e}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {(it.tags?.length ?? 0) > 0 && (
+            <div class="mt-3 flex flex-wrap gap-2">
+              {it.tags.slice(0, 3).map((t: string) => (
+                <span class="ui-chip px-2 py-1 text-xs text-neutral-400">
                   {t}
                 </span>
               ))}
-              {it.tags.length > 6 ? (
-                <span class="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-neutral-400">
-                  +{it.tags.length - 6}
-                </span>
-              ) : null}
             </div>
-          ) : null}
-        </article>
-      );
-    })}
+          )}
+
+          {it.rights?.notice_short && (
+            <p class="mt-3 text-xs text-neutral-400 leading-relaxed">{it.rights.notice_short}</p>
+          )}
+
+          <div class="mt-4 flex gap-2">
+            <a class="ui-btn" href={`/library/${it.slug}`}>詳細</a>
+            <a class="ui-btn ui-btn-primary flex-1" href={it.viewer_url}>Viewer</a>
+          </div>
+        </div>
+      </article>
+    ))}
   </section>
 
-  <!-- Below the cards: operational notes (collapsed) + rights (footer) -->
-  <section class="mt-10">
-    <details class="ui-surface ui-surface--flat p-4 sm:p-5">
-      <summary class="cursor-pointer select-none text-sm font-medium text-neutral-100">掲載方針</summary>
-      <div class="prose prose-invert max-w-none mt-4 text-sm">
-        <Policy />
-      </div>
-    </details>
+  {items.length === 0 && (
+    <p class="mt-6 text-sm text-neutral-400">
+      まだ公開コンテンツがありません。（public/library/library_index.json を編集してください）
+    </p>
+  )}
+
+  <section class="mt-10 ui-surface p-5 text-xs text-neutral-300 leading-relaxed">
+    <strong class="text-neutral-100">著作権について：</strong>
+    Library のスナップショットは、構造理解を目的とした引用（またはライセンス許諾/オリジナル）に基づいて提示します。権利者表示や出典は各カードの詳細ページに記載します。操作による探索はリンク先 Viewer で行ってください。
   </section>
 
-  <footer class="mt-6 ui-surface ui-surface--flat p-4 sm:p-5">
-    <div class="prose prose-invert max-w-none text-sm opacity-90">
-      <h2>権利と利用</h2>
-      <Copyright />
-    </div>
-  </footer>
+  <script is:inline>
+    const q = document.getElementById("q");
+    const clear = document.getElementById("clear");
+    const count = document.getElementById("count");
+    const cards = Array.from(document.querySelectorAll(".card"));
+    const tagBtns = Array.from(document.querySelectorAll("button.tag"));
 
-  <script type="module" is:inline>
-    const state = {
-      sort: 'new',
-      tag: '',
-      q: '',
-    };
-
-    const sp = new URLSearchParams(location.search);
-    const initialTag = (sp.get('tag') || '').trim();
-    const initialQ = (sp.get('q') || '').trim();
-    if (initialTag) state.tag = initialTag;
-    if (initialQ) state.q = initialQ;
-
-    const grid = document.getElementById('grid');
-    const cards = Array.from(grid?.children || []);
-
-    // Card click -> viewer (but keep inner links working)
-    for (const el of cards) {
-      if (!(el instanceof HTMLElement)) continue;
-      const href = el.dataset.href;
-      if (!href) continue;
-      el.addEventListener('click', (e) => {
-        const t = e.target;
-        if (t && t instanceof Element && t.closest('a')) return;
-        location.href = href;
-      });
-      el.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          location.href = href;
-        }
-      });
-    }
-
-    const qInput = document.getElementById('q');
-    if (qInput instanceof HTMLInputElement) qInput.value = state.q;
-
-    function setChipActive(selector, value) {
-      document.querySelectorAll(selector).forEach((el) => {
-        if (!(el instanceof HTMLElement)) return;
-        const v = el.getAttribute('data-tag') ?? el.getAttribute('data-sort-btn') ?? '';
-        el.setAttribute('data-active', String(v === value));
-      });
-    }
-
-    function normalize(s) {
-      return (s || '').toString().toLowerCase();
-    }
-
-    function sortCards() {
-      const list = cards.slice();
-      if (state.sort === 'rec') {
-        list.sort((a, b) => {
-          const ra = Number((a instanceof HTMLElement && a.dataset.rec) || '9999');
-          const rb = Number((b instanceof HTMLElement && b.dataset.rec) || '9999');
-          if (ra !== rb) return ra - rb;
-          const ia = Number((a instanceof HTMLElement && a.dataset.idx) || '0');
-          const ib = Number((b instanceof HTMLElement && b.dataset.idx) || '0');
-          return ia - ib;
-        });
-      } else {
-        // 'new' is the index order from SSOT.
-        list.sort((a, b) => {
-          const ia = Number((a instanceof HTMLElement && a.dataset.idx) || '0');
-          const ib = Number((b instanceof HTMLElement && b.dataset.idx) || '0');
-          return ia - ib;
-        });
-      }
-      for (const el of list) grid.appendChild(el);
-    }
+    // Philosophy: cards-first. Tag filter is a lightweight narrowing.
+    const state = { tag: null, query: "" };
 
     function apply() {
-      const tag = state.tag;
-      const q = normalize(state.q);
+      const terms = (state.query || "")
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(Boolean);
 
       let shown = 0;
-      for (const el of cards) {
-        if (!(el instanceof HTMLElement)) continue;
-        const tags = (el.dataset.tags || '').split(',').filter(Boolean);
-        const text = normalize(el.dataset.text || '');
-        const okTag = !tag || tags.includes(tag);
-        const okQ = !q || text.includes(q);
-        const show = okTag && okQ;
-        el.style.display = show ? '' : 'none';
-        if (show) shown++;
+      for (const c of cards) {
+        const text = c.getAttribute("data-text") || "";
+        const tags = (c.getAttribute("data-tags") || "").split(",").filter(Boolean);
+
+        const okTag = !state.tag || tags.includes(state.tag);
+        const okQuery = terms.every((t) => text.includes(t));
+        const ok = okTag && okQuery;
+
+        c.style.display = ok ? "" : "none";
+        if (ok) shown++;
       }
-
-      // Update count in header (2nd line)
-      const countP = document.querySelector('header p');
-      if (countP) countP.textContent = `表示 ${shown} / ${cards.length}`;
+      if (count) count.textContent = `表示 ${shown} / ${cards.length}`;
     }
 
-    // Sort buttons
-    document.querySelectorAll('[data-sort-btn]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const v = btn.getAttribute('data-sort-btn') || 'new';
-        state.sort = v;
-        setChipActive('[data-sort-btn]', v);
-        sortCards();
-        apply();
+    function setActiveTag(next) {
+      state.tag = next;
+      tagBtns.forEach((btn) => {
+        const isActive = btn.dataset.tag === next;
+        btn.classList.toggle("ui-chip--active", isActive);
+      });
+      apply();
+    }
+
+    tagBtns.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const t = btn.dataset.tag;
+        if (!t) return;
+        setActiveTag(state.tag === t ? null : t);
       });
     });
 
-    // Tag buttons
-    document.querySelectorAll('[data-tag]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const v = btn.getAttribute('data-tag') || '';
-        state.tag = v;
-        setChipActive('[data-tag]', v);
-        apply();
-
-        // Keep URL shareable (without reloading)
-        const next = new URL(location.href);
-        if (v) next.searchParams.set('tag', v);
-        else next.searchParams.delete('tag');
-        history.replaceState({}, '', next);
-      });
+    q?.addEventListener("input", () => {
+      state.query = q.value || "";
+      apply();
     });
 
-    // Search
-    if (qInput instanceof HTMLInputElement) {
-      qInput.addEventListener('input', () => {
-        state.q = qInput.value || '';
-        apply();
+    clear?.addEventListener("click", () => {
+      state.query = "";
+      if (q) q.value = "";
+      setActiveTag(null);
+      apply();
+    });
 
-        const next = new URL(location.href);
-        if (state.q.trim()) next.searchParams.set('q', state.q.trim());
-        else next.searchParams.delete('q');
-        history.replaceState({}, '', next);
-      });
-    }
-
-    // init
-    if (state.tag) setChipActive('[data-tag]', state.tag);
-    if (state.q) {
-      // Auto-open search panel when q exists
-      const details = qInput?.closest?.('details');
-      if (details && details instanceof HTMLDetailsElement) details.open = true;
-    }
-    setChipActive('[data-sort-btn]', state.sort);
-    sortCards();
     apply();
-
-    const qEl = document.getElementById('q');
-    const clearEl = document.getElementById('btnClearFilters');
-
-    // 実装に合わせて「現在選択中のタグ」を取得する
-    // 例: data-active="true" の tag ボタンを探す（あなたの実装がこの形式なら）
-    function getActiveTagValue() {
-      const active = document.querySelector('[data-tag][data-active="true"]');
-      return active?.getAttribute('data-tag') ?? '';
-    }
-
-    function isFilteringNow() {
-      const q = (qEl?.value ?? '').trim();
-      const tag = getActiveTagValue(); // '' なら「すべて」扱い
-      return q.length > 0 || tag !== '';
-    }
-
-    function syncClearVisibility() {
-      if (!clearEl) return;
-      clearEl.classList.toggle('hidden', !isFilteringNow());
-    }
-
-    // 検索入力のたびに反映
-    qEl?.addEventListener('input', syncClearVisibility);
-
-    // タグ切替のたびに反映（あなたのタグボタンが data-tag を持ってる前提）
-    document.addEventListener('click', (e) => {
-      const btn = e.target?.closest?.('[data-tag]');
-      if (!btn) return;
-
-      // ここは既存の「タグをactiveにする処理」が走った“後”に visibility 更新したい
-      // 既存処理が同期ならこれでOK
-      queueMicrotask(syncClearVisibility);
-    });
-
-    // 「すべて」押下で解除 → 非表示
-    clearEl?.addEventListener('click', () => {
-      // 既存の解除ロジックに合わせてここは調整
-      // 例: 検索をクリア
-      if (qEl) qEl.value = '';
-
-      // 例: タグを「すべて」に戻す（data-tag="" を active にする想定）
-      const allBtn = document.querySelector('[data-tag=""]');
-      if (allBtn) {
-        // 既存のactive切替ロジックがあるならそれを呼ぶのが本筋
-        // 仮に data-active を直にいじってる場合だけ、このブロックを使う
-        document.querySelectorAll('[data-tag]').forEach(b => b.setAttribute('data-active', 'false'));
-        allBtn.setAttribute('data-active', 'true');
-      }
-
-      syncClearVisibility();
-    });
-
-    // 初期表示時にも反映
-    syncClearVisibility();
   </script>
-
 </Layout>

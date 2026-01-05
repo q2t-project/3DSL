@@ -14,10 +14,47 @@ const demoModel = "/3dss/sample/core_viewer_baseline.3dss.json";
   <!-- Hero: information-dense, business-like UI (surface + clear hierarchy) -->
   <section class="grid gap-6 lg:grid-cols-12">
     <div class="ui-surface p-6 sm:p-8 lg:col-span-7">
+      <div class="flex items-center gap-2">
+        <span class="ui-chip">3DSS / Viewer</span>
+        <span class="text-xs uppercase tracking-widest text-neutral-400">Three-Dimensional Structural Language</span>
+      </div>
+
       <div class="mt-4 max-w-[52ch] prose prose-invert prose-neutral prose-p:my-2">
           <TopText />
       </div>
+
+      <div class="mt-6 flex flex-wrap gap-3">
+        <a
+          href={`/app/viewer?model=${encodeURIComponent(demoModel)}&back=${encodeURIComponent('/')}`}
+          class="ui-btn ui-btn-primary"
+        >
+          デモを開く
+        </a>
+
+        <a href="/library" class="ui-btn">Library</a>
+        <a href="/viewer" class="ui-btn">Viewer</a>
+        <a href="/docs" class="ui-btn">Docs</a>
+        <a href="/concept" class="ui-btn">Concept</a>
+      </div>
     </div>
+
+    <aside class="lg:col-span-5 grid gap-4">
+      <div class="ui-surface p-6">
+        <h2 class="text-base font-medium">Quick start</h2>
+        <p class="mt-2 text-sm text-neutral-300">
+          まずは Viewer を開いて、拡大縮小と視点操作で「局面↔総体」を往復してみてください。
+        </p>
+        <div class="mt-4 grid gap-2">
+          <a
+            href={`/app/viewer?model=${encodeURIComponent(demoModel)}&back=${encodeURIComponent('/')}`}
+            class="ui-btn ui-btn-primary"
+          >
+            おすすめデモ
+          </a>
+          <a href="/library" class="ui-btn">公開コンテンツ（Library）</a>
+        </div>
+      </div>
+    </aside>
   </section>
 
   <!-- Entry cards: consistent UI components -->

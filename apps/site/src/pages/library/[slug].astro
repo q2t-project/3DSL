@@ -13,18 +13,6 @@ const item = getLibraryItemBySlug(slug);
 if (!item) {
   throw new Error(`Library item not found for slug=${slug}`);
 }
-
-function viewerHref(raw) {
-  try {
-    const u = new URL(raw, "https://local.invalid");
-    if (!u.searchParams.get("back")) u.searchParams.set("back", "/library");
-    return u.pathname + (u.search ? u.search : "") + (u.hash ? u.hash : "");
-  } catch {
-    return raw;
-  }
-}
-
-const viewerUrl = viewerHref(item.viewer_url);
 ---
 
 <Layout
@@ -60,7 +48,7 @@ const viewerUrl = viewerHref(item.viewer_url);
 
   <div class="mt-6 flex flex-wrap gap-3">
     <a
-      href={viewerUrl}
+      href={item.viewer_url}
       class="rounded-xl bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900"
     >
       Viewerで操作して探索する

@@ -15,11 +15,7 @@ function normalizeModelUrl(raw) {
 }
 
 // Canonical param is `model`; keep `src` alias.
-// Library convenience: `id` resolves to /3dss/library/<id>/model.3dss.json
-const id = (sp.get("id") || "").trim();
-const model = id
-  ? normalizeModelUrl(`/3dss/library/${id}/model.3dss.json`)
-  : normalizeModelUrl(sp.get("model") ?? sp.get("src"));
+const model = normalizeModelUrl(sp.get("model") ?? sp.get("src"));
 const back = (sp.get("back") || "/library").trim() || "/library";
 
 // /viewer stays pure; /app/viewer adds ads + simple top chrome.
@@ -120,10 +116,7 @@ const iframeSrc = `/viewer/?model=${encodeURIComponent(model)}&embed=1`;
     return `/${v}`;
   }
 
-  const id = (sp.get('id') || '').trim();
-  const model = id
-    ? normalizeModelUrl(`/3dss/library/${id}/model.3dss.json`)
-    : normalizeModelUrl(sp.get('model') || sp.get('src'));
+  const model = normalizeModelUrl(sp.get('model') || sp.get('src'));
   const back = (sp.get('back') || '/library').trim() || '/library';
 
   // Keep /viewer pure; host owns the chrome.
@@ -133,20 +126,7 @@ const iframeSrc = `/viewer/?model=${encodeURIComponent(model)}&embed=1`;
   if ($iframe) $iframe.src = iframeSrc;
 
   const $backBtn = document.getElementById('app-btn-back');
-  if ($backBtn) {
-    $backBtn.href = back;
-    // Prefer history.back() so that Library can restore scroll position/state.
-    $backBtn.addEventListener('click', (e) => {
-      try {
-        if (history.length > 1) {
-          e.preventDefault();
-          history.back();
-        }
-      } catch (_err) {
-        // noop: fall back to normal link
-      }
-    });
-  }
+  if ($backBtn) $backBtn.href = back;
   const $title = document.getElementById('app-doc-title');
   const $author = document.getElementById('app-doc-author');
   const $path = document.getElementById('app-doc-path');

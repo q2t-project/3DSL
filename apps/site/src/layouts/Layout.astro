@@ -58,7 +58,8 @@ function isActive(href) {
     <meta name="twitter:card" content="summary" />
   </head>
 
-  <body class="min-h-screen text-neutral-100 antialiased app-shell">
+  <body class="min-h-screen text-neutral-100 antialiased">
+    <div id="app-shell" class="min-h-screen text-neutral-100 antialiased app-shell">
     <header class="sticky top-0 z-50 border-b border-white/10 bg-neutral-950/60 backdrop-blur">
       <div class="mx-auto max-w-6xl px-4 py-3">
         {/* Mobile top bar (hamburger + centered logo) */}
@@ -146,31 +147,129 @@ function isActive(href) {
         </div>
       </div>
     </footer>
+    </div>
 
-    <!-- Mobile: horizontal swipe to navigate main pages (Home/Library/Concept/Contact) -->
+    <!-- swipe stage (behind app-shell) -->
+    <div id="swipe-stage" aria-hidden="true"></div>
+
+    <!-- Mobile: horizontal swipe to navigate main pages (Home/Library/Concept/Contact)
+         - drag follows finger
+         - next page is shown as a blurred iframe behind (preview only)
+    -->
     <script is:inline>
       (() => {
         try {
           const ROUTES = ["/", "/library", "/concept", "/contact"];
           const path = location.pathname || "/";
-          const matchIndex = () => {
+          const getIndex = () => {
             for (let i = 0; i < ROUTES.length; i++) {
               const r = ROUTES[i];
               if (r === "/" ? path === "/" : path.startsWith(r)) return i;
             }
             return -1;
           };
-          let startX = 0, startY = 0, t0 = 0, active = false;
-          const THRESH_X = 70;   // px
-          const THRESH_Y = 55;   // px
-          const MAX_DT = 700;    // ms
+
+          // enable only on these 4 public pages
+          if (getIndex() < 0) return;
+
+          const app = document.getElementById("app-shell");
+          const stage = document.getElementById("swipe-stage");
+          if (!app || !stage) return;
 
           const isInteractive = (el) => {
             if (!el) return false;
             const tag = (el.tagName || "").toLowerCase();
             if (tag === "input" || tag === "textarea" || tag === "select" || tag === "button") return true;
+            // avoid fighting with embedded viewers / canvases
+            if (tag === "iframe" || tag === "canvas") return true;
             if (el.isContentEditable) return true;
             return !!el.closest?.("[data-swipe-ignore]");
+          };
+
+          // config
+          const LOCK_X = 12; // start considering horizontal
+          const LOCK_BIAS = 6; // |dx| > |dy| + bias => lock
+          const COMMIT_X = 0.22; // 22% of viewport width => commit
+          const MAX_DT = 800;
+          const DRAG_RESIST = 0.92;
+          const BLUR_PX = 2.5;
+
+          let startX = 0,
+            startY = 0,
+            t0 = 0;
+          let dragging = false;
+          let locked = false;
+          let dir = 0; // -1 prev (right), +1 next (left)
+          let target = "";
+          let iframe = null;
+
+          const vw = () => Math.max(1, window.innerWidth || document.documentElement.clientWidth || 1);
+
+          const resetStage = () => {
+            stage.innerHTML = "";
+            stage.style.display = "none";
+            iframe = null;
+          };
+
+          const setupStage = (url, d) => {
+            stage.style.display = "block";
+            stage.innerHTML = "";
+
+            const f = document.createElement("iframe");
+            f.src = url;
+            f.setAttribute("loading", "eager");
+            f.setAttribute("tabindex", "-1");
+            f.setAttribute("aria-hidden", "true");
+            f.style.position = "absolute";
+            f.style.inset = "0";
+            f.style.width = "100%";
+            f.style.height = "100%";
+            f.style.border = "0";
+            f.style.pointerEvents = "none";
+            f.style.filter = `blur(${BLUR_PX}px)`;
+            f.style.opacity = "0.95";
+            f.style.transform = `translate3d(${d === 1 ? 100 : -100}%,0,0)`;
+            f.style.willChange = "transform";
+            stage.appendChild(f);
+            iframe = f;
+          };
+
+          const setDrag = (dx) => {
+            const w = vw();
+            const x = Math.max(-w, Math.min(w, dx)) * DRAG_RESIST;
+            app.style.transition = "none";
+            app.style.transform = `translate3d(${x}px,0,0)`;
+            if (iframe) {
+              iframe.style.transition = "none";
+              iframe.style.transform = `translate3d(${dir === 1 ? 100 : -100}%,0,0) translate3d(${x}px,0,0)`;
+            }
+          };
+
+          const animateTo = (xPx, onDone) => {
+            const w = vw();
+            const dur = 180;
+            app.style.transition = `transform ${dur}ms ease`;
+            app.style.transform = `translate3d(${xPx}px,0,0)`;
+
+            if (iframe) {
+              iframe.style.transition = `transform ${dur}ms ease, filter ${dur}ms ease, opacity ${dur}ms ease`;
+              if (xPx === 0) {
+                iframe.style.transform = `translate3d(${dir === 1 ? 100 : -100}%,0,0)`;
+                iframe.style.filter = `blur(${BLUR_PX}px)`;
+                iframe.style.opacity = "0.95";
+              } else {
+                // slide complete: show preview sharply for a moment
+                iframe.style.transform = "translate3d(0,0,0)";
+                iframe.style.filter = "blur(0px)";
+                iframe.style.opacity = "1";
+              }
+            }
+
+            const done = () => {
+              app.removeEventListener("transitionend", done);
+              onDone?.();
+            };
+            app.addEventListener("transitionend", done);
           };
 
           window.addEventListener(
@@ -178,37 +277,111 @@ function isActive(href) {
             (e) => {
               if (!e || e.touches.length !== 1) return;
               if (isInteractive(e.target)) return;
-              const idx = matchIndex();
-              if (idx < 0) return;
+              if (getIndex() < 0) return;
               const t = e.touches[0];
               startX = t.clientX;
               startY = t.clientY;
               t0 = Date.now();
-              active = true;
+              dragging = true;
+              locked = false;
+              dir = 0;
+              target = "";
+              resetStage();
             },
             { passive: true }
           );
 
           window.addEventListener(
+            "touchmove",
+            (e) => {
+              if (!dragging) return;
+              if (!e || e.touches.length !== 1) return;
+              const dt = Date.now() - t0;
+              if (dt > MAX_DT) {
+                dragging = false;
+                return;
+              }
+
+              const t = e.touches[0];
+              const dx = t.clientX - startX;
+              const dy = t.clientY - startY;
+
+              if (!locked) {
+                if (Math.abs(dx) < LOCK_X) return;
+                if (Math.abs(dx) <= Math.abs(dy) + LOCK_BIAS) return;
+
+                // lock horizontal
+                locked = true;
+                e.preventDefault();
+
+                const idx = getIndex();
+                if (idx < 0) {
+                  dragging = false;
+                  locked = false;
+                  return;
+                }
+                dir = dx < 0 ? 1 : -1;
+                const next = idx + dir;
+                if (next < 0 || next >= ROUTES.length) {
+                  dragging = false;
+                  locked = false;
+                  return;
+                }
+                target = ROUTES[next];
+                setupStage(target, dir);
+              } else {
+                e.preventDefault();
+              }
+
+              if (locked) setDrag(dx);
+            },
+            { passive: false }
+          );
+
+          window.addEventListener(
             "touchend",
             (e) => {
-              if (!active) return;
-              active = false;
-              const dt = Date.now() - t0;
-              if (dt > MAX_DT) return;
-              const c = e.changedTouches && e.changedTouches[0];
-              if (!c) return;
-              const dx = c.clientX - startX;
-              const dy = c.clientY - startY;
-              if (Math.abs(dy) > THRESH_Y) return;
-              if (Math.abs(dx) < THRESH_X) return;
+              if (!dragging) return;
+              dragging = false;
+              if (!locked) return;
 
-              const idx = matchIndex();
-              if (idx < 0) return;
-              const dir = dx < 0 ? 1 : -1; // left swipe => next
-              const next = idx + dir;
-              if (next < 0 || next >= ROUTES.length) return;
-              location.href = ROUTES[next];
+              const c = e.changedTouches && e.changedTouches[0];
+              if (!c) {
+                animateTo(0, () => {
+                  app.style.transform = "";
+                  resetStage();
+                });
+                return;
+              }
+              const dx = c.clientX - startX;
+              const w = vw();
+              const ratio = Math.abs(dx) / w;
+
+              if (ratio >= COMMIT_X && target) {
+                animateTo(dir === 1 ? -w : w, () => {
+                  location.href = target;
+                });
+              } else {
+                animateTo(0, () => {
+                  app.style.transform = "";
+                  resetStage();
+                });
+              }
+            },
+            { passive: true }
+          );
+
+          window.addEventListener(
+            "touchcancel",
+            () => {
+              if (!dragging) return;
+              dragging = false;
+              if (locked) {
+                animateTo(0, () => {
+                  app.style.transform = "";
+                  resetStage();
+                });
+              }
             },
             { passive: true }
           );
