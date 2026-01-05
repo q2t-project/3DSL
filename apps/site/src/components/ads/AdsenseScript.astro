@@ -1,0 +1,14 @@
+---
+// AdSense loader (single include).
+// Enable by setting: PUBLIC_ADSENSE_CLIENT="ca-pub-XXXXXXXXXXXXXXX"
+
+const client = import.meta.env.PUBLIC_ADSENSE_CLIENT;
+---
+
+{client ? (
+  <script
+    async
+    src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${client}`}
+    crossorigin="anonymous"
+  />
+) : null}

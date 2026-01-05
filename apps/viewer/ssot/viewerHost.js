@@ -1,6 +1,6 @@
 // viewerHost.js
 
-import { bootstrapViewerFromUrl } from "./runtime/bootstrapViewer.js";
+import { bootstrapViewerFromUrl, bootstrapViewer } from "./runtime/bootstrapViewer.js";
 import { attachUiProfile } from "./ui/attachUiProfile.js";
 import { resizeHub, startHub } from "./ui/hubOps.js";
 import { teardownPrev, setOwnedHandle } from "./ui/ownedHandle.js";
@@ -9,6 +9,8 @@ export async function mountViewerHost(opts) {
   const {
     canvasId = "viewer-canvas",
     modelUrl,
+    document3dss,
+    modelLabel,
     profile = "prod_full",
     gizmoWrapperId = "gizmo-slot",
     timelineRootId = "timeline-root",
@@ -50,10 +52,19 @@ export async function mountViewerHost(opts) {
   }
 
   try {
-    setOwnedHandle(owned, "hub", await bootstrapViewerFromUrl(canvasId, modelUrl, {
-      devBootLog,
-      devLabel: "viewer_host",
-    }));
+    if (document3dss && typeof document3dss === "object") {
+      setOwnedHandle(owned, "hub", await bootstrapViewer(canvasId, document3dss, {
+        devBootLog,
+        devLabel: "viewer_host",
+        modelUrl: modelLabel || "(local file)",
+      }));
+    } else {
+      if (!modelUrl) throw new Error('[viewerHost] modelUrl or document3dss required');
+      setOwnedHandle(owned, "hub", await bootstrapViewerFromUrl(canvasId, modelUrl, {
+        devBootLog,
+        devLabel: "viewer_host",
+      }));
+    }
     const hub = owned.hub;
 
     // attach（profile で分岐はここだけ）

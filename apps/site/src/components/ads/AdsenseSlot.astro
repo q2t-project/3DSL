@@ -1,0 +1,54 @@
+---
+// AdSense slot.
+// Props:
+//   slot: string (data-ad-slot)
+//   class?: string
+//   style?: string
+//   format?: string (default: "auto")
+//   fullWidthResponsive?: boolean (default: true)
+//
+// If PUBLIC_ADSENSE_CLIENT or slot is missing, renders a reserved placeholder box.
+
+const {
+  slot,
+  class: className = "",
+  style = "",
+  format = "auto",
+  fullWidthResponsive = true,
+  label = "Ad Slot",
+} = Astro.props;
+
+const client = import.meta.env.PUBLIC_ADSENSE_CLIENT;
+const enabled = !!client && typeof slot === 'string' && slot.trim().length > 0;
+---
+
+{enabled ? (
+  <>
+    <ins
+      class={`adsbygoogle ${className}`}
+      style={style}
+      data-ad-client={client}
+      data-ad-slot={slot}
+      data-ad-format={format}
+      data-full-width-responsive={fullWidthResponsive ? "true" : "false"}
+    />
+    <script is:inline>
+      // Avoid noisy errors on localhost.
+      (function () {
+        try {
+          const h = location.hostname;
+          if (h === 'localhost' || h === '127.0.0.1') return;
+          window.adsbygoogle = window.adsbygoogle || [];
+          window.adsbygoogle.push({});
+        } catch (e) {}
+      })();
+    </script>
+  </>
+) : (
+  <div
+    class={`rounded-xl border border-white/10 bg-white/5 grid place-items-center text-xs text-neutral-400 ${className}`}
+    style={style}
+  >
+    {label}
+  </div>
+)}
