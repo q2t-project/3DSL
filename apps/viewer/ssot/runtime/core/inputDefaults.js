@@ -22,6 +22,11 @@ export const DEFAULT_INPUT_POINTER = Object.freeze({
   // wheel zoom sensitivity (unit: per deltaY)
   wheelZoomSpeed: 0.00035,
   wheelZoomSpeedFast: 0.0007,
+
+  // touch gestures (unit: per px)
+  // pinchZoomSpeed: pinch distance delta (px) -> zoomDelta
+  pinchZoomSpeed: 0.0007,
+  pinchZoomSpeedFast: 0.0014,
 });
 
 export const DEFAULT_INPUT_KEYBOARD = Object.freeze({

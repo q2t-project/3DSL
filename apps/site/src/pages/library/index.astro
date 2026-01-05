@@ -35,37 +35,52 @@ function joinText(it) {
 <Layout title="Library">
   <!-- Minimal header: keep the page light and scannable -->
   <header class="ui-surface ui-surface--flat p-4 sm:p-6">
-    <div class="flex items-start justify-between gap-4">
-      <div class="min-w-0">
-        <h1 class="text-xl font-medium">Library</h1>
-        <p class="mt-1 text-sm text-neutral-300">表示 {items.length} / {items.length}</p>
+    <div class="flex items-start justify-between gap-3">
+      <!-- Left: title + counter, then filter row just under it -->
+      <div class="min-w-0 flex flex-col gap-1">
+        <!-- title row -->
+        <div class="flex items-baseline gap-2">
+          <h1 class="text-xl font-medium truncate">ライブラリ</h1>
+          <span class="text-sm text-neutral-300 whitespace-nowrap">
+            {items.length}/{items.length}
+          </span>
+        </div>
+
+        <!-- filter row (検索 + すべて) -->
+        <div class="flex items-start gap-4">
+          <details class="min-w-0 flex-1">
+            <summary class="text-sm text-neutral-300 cursor-pointer select-none underline underline-offset-4 hover:text-neutral-100 marker:hidden list-none">
+              検索
+            </summary>
+            <div class="mt-2">
+              <input id="q" class="ui-input w-full" placeholder="タイトル / タグ / 要約" />
+            </div>
+          </details>
+          <button
+            id="btnClearFilters"
+            type="button"
+            class="hidden text-sm text-neutral-300 underline underline-offset-4 hover:text-neutral-100 whitespace-nowrap"
+            data-tag=""
+          >
+            すべて
+          </button>
+        </div>
       </div>
 
-      <!-- Sort (curation-first). New: index order / Recommended: recommended_rank -->
-      <div class="shrink-0 flex items-center gap-2">
+      <!-- Right: sort pills (stacked) -->
+      <div class="shrink-0 flex flex-col items-end gap-2">
         <button class="ui-chip" data-sort-btn="new" data-active="true">新着</button>
         <button class="ui-chip" data-sort-btn="rec" data-active="false">おすすめ</button>
       </div>
     </div>
 
-    <div class="mt-4 flex flex-col gap-3">
-      <!-- Tags: horizontal scroll on mobile -->
-      <div class="-mx-1 overflow-x-auto">
-        <div class="flex gap-2 px-1">
-          <button class="ui-chip" data-tag="" data-active="true">すべて</button>
-          {allTags.map((t) => (
-            <button class="ui-chip" data-tag={t} data-active="false">{t}</button>
-          ))}
-        </div>
+    <!-- Tags (「すべて」は上に移したのでここから外す) -->
+    <div class="mt-3 -mx-1 overflow-x-auto">
+      <div class="flex gap-2 px-1">
+        {allTags.map((t) => (
+          <button class="ui-chip" data-tag={t} data-active="false">{t}</button>
+        ))}
       </div>
-
-      <!-- Search: compact, optional -->
-      <details>
-        <summary class="text-sm text-neutral-300 cursor-pointer select-none">検索</summary>
-        <div class="mt-3">
-          <input id="q" class="ui-input" placeholder="タイトル / タグ / 要約" />
-        </div>
-      </details>
     </div>
   </header>
 
@@ -289,5 +304,61 @@ function joinText(it) {
     setChipActive('[data-sort-btn]', state.sort);
     sortCards();
     apply();
+
+    const qEl = document.getElementById('q');
+    const clearEl = document.getElementById('btnClearFilters');
+
+    // 実装に合わせて「現在選択中のタグ」を取得する
+    // 例: data-active="true" の tag ボタンを探す（あなたの実装がこの形式なら）
+    function getActiveTagValue() {
+      const active = document.querySelector('[data-tag][data-active="true"]');
+      return active?.getAttribute('data-tag') ?? '';
+    }
+
+    function isFilteringNow() {
+      const q = (qEl?.value ?? '').trim();
+      const tag = getActiveTagValue(); // '' なら「すべて」扱い
+      return q.length > 0 || tag !== '';
+    }
+
+    function syncClearVisibility() {
+      if (!clearEl) return;
+      clearEl.classList.toggle('hidden', !isFilteringNow());
+    }
+
+    // 検索入力のたびに反映
+    qEl?.addEventListener('input', syncClearVisibility);
+
+    // タグ切替のたびに反映（あなたのタグボタンが data-tag を持ってる前提）
+    document.addEventListener('click', (e) => {
+      const btn = e.target?.closest?.('[data-tag]');
+      if (!btn) return;
+
+      // ここは既存の「タグをactiveにする処理」が走った“後”に visibility 更新したい
+      // 既存処理が同期ならこれでOK
+      queueMicrotask(syncClearVisibility);
+    });
+
+    // 「すべて」押下で解除 → 非表示
+    clearEl?.addEventListener('click', () => {
+      // 既存の解除ロジックに合わせてここは調整
+      // 例: 検索をクリア
+      if (qEl) qEl.value = '';
+
+      // 例: タグを「すべて」に戻す（data-tag="" を active にする想定）
+      const allBtn = document.querySelector('[data-tag=""]');
+      if (allBtn) {
+        // 既存のactive切替ロジックがあるならそれを呼ぶのが本筋
+        // 仮に data-active を直にいじってる場合だけ、このブロックを使う
+        document.querySelectorAll('[data-tag]').forEach(b => b.setAttribute('data-active', 'false'));
+        allBtn.setAttribute('data-active', 'true');
+      }
+
+      syncClearVisibility();
+    });
+
+    // 初期表示時にも反映
+    syncClearVisibility();
   </script>
+
 </Layout>

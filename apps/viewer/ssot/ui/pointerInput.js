@@ -47,6 +47,13 @@ export class PointerInput {
     this._useMouseFallback = false;
     this._startButtonsMask = 0;
 
+    // touch gesture state (pinch / two-finger pan)
+    /** @type {Map<number,{x:number,y:number}>} */
+    this._touchPts = new Map();
+    this._gestureMode = null; // 'pinch' | null
+    this._pinchLastDist = 0;
+    this._pinchLastMid = { x: 0, y: 0 };
+
     // debug (enable with ?inputDebug=1)
     this._debug = false;
     this._dbgSeq = 0;
@@ -121,6 +128,70 @@ export class PointerInput {
     // mouse fallback (only used when pointercancel happens for mouse)
     this._winMouseMove = (e) => this.onMouseMove(e);
     this._winMouseUp = (e) => this.onMouseUp(e);
+  }
+
+  // ------------------------------------------------------------
+  // Touch helpers (pinch zoom + 2-finger pan)
+  // ------------------------------------------------------------
+  _touchSet(e) {
+    if (!e) return;
+    this._touchPts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  }
+  _touchDel(e) {
+    if (!e) return;
+    this._touchPts.delete(e.pointerId);
+  }
+  _touchCount() {
+    return this._touchPts.size;
+  }
+  _touchFirst() {
+    for (const [id, p] of this._touchPts.entries()) return { id, p };
+    return null;
+  }
+  _calcPinch() {
+    const it = this._touchPts.values();
+    const a = it.next().value;
+    const b = it.next().value;
+    if (!a || !b) return null;
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const dist = Math.hypot(dx, dy);
+    const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    return { dist, mid };
+  }
+  _enterPinchMode() {
+    const pb = this._calcPinch();
+    if (!pb) return false;
+    this._gestureMode = 'pinch';
+    this._pinchLastDist = pb.dist;
+    this._pinchLastMid = pb.mid;
+
+    // pinch開始時点で auto camera を止める
+    this.stopAutoCamera();
+
+    // pinch中は「単一pointer」前提のドラッグ状態を無効化
+    this._activePointerId = null;
+    this.activeMode = null;
+    this.clickPending = false;
+    this._dragging = true; // pinch は即ドラッグ扱い
+    this.isPointerDown = true;
+    return true;
+  }
+  _enterSingleTouchRotate() {
+    const first = this._touchFirst();
+    if (!first) return false;
+    const { id, p } = first;
+    this._gestureMode = null;
+    this._activePointerId = id;
+    this.isPointerDown = true;
+    this.activeMode = 'rotate';
+    this.lastX = p.x;
+    this.lastY = p.y;
+    this.downX = p.x;
+    this.downY = p.y;
+    this._dragging = false;
+    this.clickPending = false;
+    return true;
   }
 
   _resolveCamera() {
@@ -202,6 +273,13 @@ export class PointerInput {
       fast ? fallbackPointer.wheelZoomSpeedFast : fallbackPointer.wheelZoomSpeed
     );
 
+    const pinchZoomSpeed = _num(
+      fast ? src.pinchZoomSpeedFast : src.pinchZoomSpeed,
+      fast
+        ? (fallbackPointer.pinchZoomSpeedFast ?? fallbackPointer.wheelZoomSpeedFast)
+        : (fallbackPointer.pinchZoomSpeed ?? fallbackPointer.wheelZoomSpeed)
+    );
+
     return {
       minDragPx,
       clickMovePx,
@@ -209,6 +287,7 @@ export class PointerInput {
       panSpeed,
       panFactor,
       wheelZoomSpeed,
+      pinchZoomSpeed,
     };
   }
 
@@ -328,6 +407,19 @@ export class PointerInput {
       this.win?.addEventListener?.('mouseup', this._winMouseUp, true);
     } catch (_eWm) {}
 
+    // --- touch: multi-touch gesture handling ---
+    if (event.pointerType === 'touch') {
+      this._touchSet(event);
+      // 2本目が来たら pinch モードへ
+      if (this._touchCount() >= 2) {
+        this._enterPinchMode();
+        return;
+      }
+      // 1本目は rotate として扱う
+      this._enterSingleTouchRotate();
+      return;
+    }
+
     // pointercancel(mouse) が起きたら mouse へ切り替える
     this._useMouseFallback = false;
     this._startButtonsMask =
@@ -352,6 +444,60 @@ export class PointerInput {
 
   onPointerMove(event) {
     try { event.preventDefault?.(); } catch (_eP) {}
+
+    // --- touch: pinch zoom + 2-finger pan ---
+    if (event.pointerType === 'touch') {
+      // pointerdown を取りこぼしても move が来ることがあるので必ず更新
+      this._touchSet(event);
+
+      // 2本以上なら pinch
+      if (this._touchCount() >= 2) {
+        if (this._gestureMode !== 'pinch') this._enterPinchMode();
+        const pb = this._calcPinch();
+        if (!pb) return;
+
+        const settings = this._getPointerSettings(event);
+        // _getPointerSettings 内で fast(shiftKey) も反映済み
+        const pinchZoomSpeed = settings.pinchZoomSpeed;
+
+        // dist が増える(指を広げる) = zoom in (distance down) なので符号を反転
+        const dDist = pb.dist - this._pinchLastDist;
+        const zoomDelta = -dDist * pinchZoomSpeed;
+
+        // 2-finger pan: midpoint drag
+        const dmx = pb.mid.x - this._pinchLastMid.x;
+        const dmy = pb.mid.y - this._pinchLastMid.y;
+
+        // pinch 操作が入った時点で auto camera を停止
+        this.stopAutoCamera();
+
+        if (Number.isFinite(zoomDelta) && zoomDelta !== 0) {
+          if (!this.dispatch('zoomDelta', zoomDelta)) this.dispatch('zoom', zoomDelta);
+        }
+
+        // pan は既存の距離スケール計算を流用
+        if ((dmx || dmy) && Number.isFinite(dmx) && Number.isFinite(dmy)) {
+          const camState = this.getCameraState();
+          const distance = camState && typeof camState.distance === 'number' ? camState.distance : 1;
+          const panScale = distance * settings.panFactor;
+          const panX = dmx * settings.panSpeed * panScale;
+          const panY = dmy * settings.panSpeed * panScale;
+          if (!this.dispatch('panDelta', panX, panY)) this.dispatch('pan', panX, panY);
+        }
+
+        this._pinchLastDist = pb.dist;
+        this._pinchLastMid = pb.mid;
+        this.isPointerDown = true;
+        return;
+      }
+
+      // 1本だけに戻ったら rotate に戻す
+      if (this._touchCount() === 1) {
+        if (this._gestureMode === 'pinch') this._enterSingleTouchRotate();
+        // ここから先は通常の single-pointer rotate ロジックへ落とす
+      }
+    }
+
     if (!this.isPointerDown) {
       if (!this._rearmFromMove(event)) return;
     }
@@ -410,6 +556,26 @@ export class PointerInput {
 
   onPointerUp(e) {
     this._log('up', { pointerId: e?.pointerId, type: e?.pointerType, buttons: e?.buttons });
+
+    // --- touch: pointer bookkeeping ---
+    if (e && e.pointerType === 'touch') {
+      this._touchDel(e);
+
+      // still 2+ fingers: keep pinch
+      if (this._touchCount() >= 2) {
+        this._enterPinchMode();
+        return;
+      }
+
+      // back to 1 finger: resume rotate
+      if (this._touchCount() === 1) {
+        this._enterSingleTouchRotate();
+        return;
+      }
+
+      // no fingers left: fallthrough to full reset
+    }
+
     try {
       // pick → hub.set/mode.set など（未実装）
     } finally {
@@ -419,17 +585,21 @@ export class PointerInput {
       this._dragging = false;
       this._activePointerId = null;
       this.clickPending = false;
+      this._gestureMode = null;
       this._useMouseFallback = false;
       this._startButtonsMask = 0;
 
-      // window 側のハンドラを外す
-      try {
-        this.win?.removeEventListener?.('pointermove', this._winMove, true);
-        this.win?.removeEventListener?.('pointerup', this._winUp, true);
-        this.win?.removeEventListener?.('pointercancel', this._winCancel, true);
-        this.win?.removeEventListener?.('mousemove', this._winMouseMove, true);
-        this.win?.removeEventListener?.('mouseup', this._winMouseUp, true);
-      } catch (_eW2) {}
+      // window 側のハンドラを外す（touch は全指が離れた時だけ）
+      const canDetach = !e || e.pointerType !== 'touch' || this._touchCount() === 0;
+      if (canDetach) {
+        try {
+          this.win?.removeEventListener?.('pointermove', this._winMove, true);
+          this.win?.removeEventListener?.('pointerup', this._winUp, true);
+          this.win?.removeEventListener?.('pointercancel', this._winCancel, true);
+          this.win?.removeEventListener?.('mousemove', this._winMouseMove, true);
+          this.win?.removeEventListener?.('mouseup', this._winMouseUp, true);
+        } catch (_eW2) {}
+      }
 
       try {
         this.canvas?.releasePointerCapture?.(e.pointerId);
@@ -440,6 +610,9 @@ export class PointerInput {
 
 onPointerCancel(e) {
   this._log('cancel', { pointerId: e?.pointerId, type: e?.pointerType, buttons: e?.buttons });
+  if (e && e.pointerType === 'touch') {
+    this._touchDel(e);
+  }
   // touch/pen は素直に終了。mouse だけ cancel 時に mouse へフォールバックする。
   if (!this.isPointerDown) return;
   if (e && e.pointerType === 'mouse') {
