@@ -35,25 +35,26 @@ const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}&embed=1
 ---
 
 <LayoutApp title="Viewer">
-  <div class="flex h-[100dvh] flex-col overflow-hidden bg-black">
-    <!-- 1) Mobile: Top ad (320x100) -->
-    <div class="lg:hidden shrink-0 border-b border-white/10 bg-neutral-950">
-      <div class="px-4 py-2">
-        <div class="text-xs text-neutral-500">Sponsored</div>
-        <div class="mt-1 h-[100px] w-full rounded-xl border border-white/10 bg-white/5 grid place-items-center text-xs text-neutral-400">
+  <div id="appviewer-root" class="appviewer-root flex h-[100dvh] flex-col overflow-hidden bg-black">
+    <!-- iOS/Android safe-area (top) -->
+    <div class="app-safe-top lg:hidden" aria-hidden="true"></div>
+
+    <!-- 1) Mobile: Top ad (320x100) - fixed height -->
+    <div id="app-adbar" class="lg:hidden shrink-0 border-b border-white/10 bg-neutral-950">
+      <div class="app-ad-wrap app-chrome-pad">
+        <div class="app-ad-label" aria-hidden="true">Sponsored</div>
+        <div class="app-ad-box rounded-xl border border-white/10 bg-white/5 grid place-items-center text-xs text-neutral-400">
           Ad Slot (320×100)
         </div>
       </div>
     </div>
 
-    <!-- 2) Ticker (single line, marquee) -->
-    <div class="shrink-0 border-b border-white/10 bg-neutral-950">
-      <div class="px-4 py-2">
+    <!-- 2) Ticker (single line, marquee) - fixed height -->
+    <div id="app-tickerbar" class="shrink-0 border-b border-white/10 bg-neutral-950">
+      <div class="app-ticker-wrap app-chrome-pad">
         <div class="overflow-hidden whitespace-nowrap text-[11px] text-neutral-200/90">
           <div id="app-ticker" class="inline-block will-change-transform">
-            <span id="app-ticker-text" class="opacity-90">
-              Loading…
-            </span>
+            <span id="app-ticker-text" class="opacity-90">Loading…</span>
             <span class="mx-8 opacity-50">•</span>
             <span id="app-ticker-text-2" class="opacity-90">Loading…</span>
           </div>
@@ -61,33 +62,32 @@ const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}&embed=1
       </div>
     </div>
 
-    <!-- 3) Left: Back / Right: document_meta -->
-    <div class="shrink-0 border-b border-white/10 bg-neutral-950">
-      <div class="px-4 py-2 flex items-center justify-between gap-3">
-<div class="flex items-center gap-2 shrink-0">
-  <a
-    id="app-btn-back"
-    href={back}
-    class="shrink-0 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-neutral-100 hover:bg-white/10"
-    style="padding-top: calc(0.5rem + env(safe-area-inset-top) * 0.0);"
-  >
-    ← 戻る
-  </a>
-</div>
+    <!-- 3) Left: Back / Right: document_meta - fixed height -->
+    <div id="app-metabar" class="shrink-0 border-b border-white/10 bg-neutral-950">
+      <div class="app-meta-wrap app-chrome-pad flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2 shrink-0">
+          <a
+            id="app-btn-back"
+            href={back}
+            class="shrink-0 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-neutral-100 hover:bg-white/10"
+          >
+            ← 戻る
+          </a>
+        </div>
 
         <div class="min-w-0 text-right">
-                  <div id="app-doc-title" class="truncate text-sm font-medium text-neutral-100">(no title)</div>
-                  <div class="truncate text-xs text-neutral-400">
-                    <span id="app-doc-author">(no author)</span>
-                    <span class="mx-2 opacity-40">/</span>
-                    <span id="app-doc-path" class="opacity-80">{model}</span>
-      </div>
-    </div>
+          <div id="app-doc-title" class="truncate text-sm font-medium text-neutral-100">(no title)</div>
+          <div class="truncate text-xs text-neutral-400">
+            <span id="app-doc-author">(no author)</span>
+            <span class="mx-2 opacity-40">/</span>
+            <span id="app-doc-path" class="opacity-80">{model}</span>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Viewer area (no scroll) -->
-    <div class="min-h-0 flex-1">
+    <!-- 4) Viewer area (no scroll) -->
+    <div id="app-stage" class="min-h-0 flex-1">
       <div class="flex h-full">
         <div class="min-w-0 flex-1 bg-black">
           <iframe
@@ -111,6 +111,9 @@ const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}&embed=1
         </aside>
       </div>
     </div>
+
+    <!-- iOS/Android safe-area (bottom) -->
+    <div class="app-safe-bottom lg:hidden" aria-hidden="true"></div>
   </div>
 
   <script type="module" is:inline>
@@ -201,7 +204,74 @@ const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}&embed=1
       0%   { transform: translateX(0%); }
       100% { transform: translateX(-50%); }
     }
+
     /* Make the ticker content wide enough for looping */
     #app-ticker { padding-right: 100%; }
+
+    /* Mobile: fixed heights + safe-area */
+    @media (max-width: 1023px) {
+      .appviewer-root {
+        overscroll-behavior: none;
+        -webkit-overflow-scrolling: auto;
+      }
+
+      .app-safe-top {
+        height: env(safe-area-inset-top);
+        background: rgb(10 10 10);
+      }
+
+      .app-safe-bottom {
+        height: env(safe-area-inset-bottom);
+        background: rgb(0 0 0);
+      }
+
+      .app-chrome-pad {
+        padding-left: calc(16px + env(safe-area-inset-left));
+        padding-right: calc(16px + env(safe-area-inset-right));
+      }
+
+      /* Vertical stack heights */
+      #app-adbar { height: 100px; }
+      #app-tickerbar { height: 28px; }
+      #app-metabar { height: 44px; }
+
+      /* Ad: keep the 320x100 slot, overlay label (does not change height) */
+      #app-adbar .app-ad-wrap {
+        height: 100%;
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+      #app-adbar .app-ad-label {
+        position: absolute;
+        top: 6px;
+        left: calc(8px + env(safe-area-inset-left));
+        font-size: 11px;
+        line-height: 1;
+        color: rgba(163, 163, 163, 0.9);
+        pointer-events: none;
+      }
+      #app-adbar .app-ad-box {
+        height: 100%;
+      }
+
+      /* Ticker/meta rows: no vertical padding (height is fixed), center contents */
+      #app-tickerbar .app-ticker-wrap,
+      #app-metabar .app-meta-wrap {
+        height: 100%;
+        padding-top: 0;
+        padding-bottom: 0;
+        align-items: center;
+      }
+
+      /* Stage: keep iframe inside safe left/right on notch devices */
+      #app-stage {
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+      }
+      #app-stage iframe {
+        display: block;
+      }
+    }
   </style>
 </LayoutApp>

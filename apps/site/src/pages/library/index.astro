@@ -23,6 +23,32 @@ function joinText(it: any) {
     .join(" ")
     .toLowerCase();
 }
+function toAppViewerUrl(viewerUrl: string, back: string) {
+  if (!viewerUrl) return viewerUrl;
+  if (viewerUrl.startsWith("/app/viewer")) return viewerUrl;
+  try {
+    const u = new URL(viewerUrl, "http://x");
+    let model = u.searchParams.get("model") || "";
+    if (!model) {
+      const p = u.pathname || "";
+      if (/\.(json|3dss\.json)$/i.test(p)) model = p;
+    }
+    if (!model) return viewerUrl;
+
+    const q = new URLSearchParams();
+    q.set("model", model);
+    q.set("back", back);
+    const mode = u.searchParams.get("mode");
+    if (mode) q.set("mode", mode);
+    const src = u.searchParams.get("src");
+    if (src) q.set("src", src);
+
+    return `/app/viewer?${q.toString()}`;
+  } catch {
+    return viewerUrl;
+  }
+}
+
 ---
 
 <Layout title={title} description={description}>
@@ -142,7 +168,7 @@ function joinText(it: any) {
 
           <div class="mt-4 flex gap-2">
             <a class="ui-btn" href={`/library/${it.slug}`}>詳細</a>
-            <a class="ui-btn ui-btn-primary flex-1" href={it.viewer_url}>Viewer</a>
+            <a class="ui-btn ui-btn-primary flex-1" href={toAppViewerUrl(it.viewer_url, "/library")}>Viewer</a>
           </div>
         </div>
       </article>
