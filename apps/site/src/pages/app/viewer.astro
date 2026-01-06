@@ -18,7 +18,11 @@ function normalizeModelUrl(raw) {
 // Library pages use `id` (short) => /3dss/library/<id>/model.3dss.json
 const id = (sp.get("id") ?? "").trim();
 const model = normalizeModelUrl(
+  // canonical
   sp.get("model") ??
+  // legacy alias (typo in older links)
+  sp.get("mode") ??
+  // other legacy alias
   sp.get("src") ??
   (id ? `/3dss/library/${encodeURIComponent(id)}/model.3dss.json` : "")
 );
@@ -26,7 +30,8 @@ const back = (sp.get("back") || "/library").trim() || "/library";
 
 // /viewer stays pure; /app/viewer adds ads + simple top chrome.
 // embed=1: keep the embedded viewer free of its own chrome.
-const iframeSrc = `/viewer/?model=${encodeURIComponent(model)}&embed=1`;
+// Use explicit index.html to avoid any server differences around "/viewer/" resolution.
+const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}&embed=1`;
 ---
 
 <LayoutApp title="Viewer">
@@ -123,11 +128,17 @@ const iframeSrc = `/viewer/?model=${encodeURIComponent(model)}&embed=1`;
   }
 
   const id = (sp.get('id') || '').trim();
-  const model = normalizeModelUrl(sp.get('model') || sp.get('src') || (id ? `/3dss/library/${encodeURIComponent(id)}/model.3dss.json` : ''));
+  const model = normalizeModelUrl(
+    sp.get('model') ||
+    sp.get('mode') || // legacy alias (typo)
+    sp.get('src') ||
+    (id ? `/3dss/library/${encodeURIComponent(id)}/model.3dss.json` : '')
+  );
   const back = (sp.get('back') || '/library').trim() || '/library';
 
   // Keep /viewer pure; host owns the chrome.
-  const iframeSrc = `/viewer/?model=${encodeURIComponent(model)}&embed=1`;
+  // Use explicit index.html for stability (dev/prod behavior can differ for /viewer/).
+  const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}&embed=1`;
 
   const $iframe = document.getElementById('app-viewer-iframe');
   if ($iframe) $iframe.src = iframeSrc;

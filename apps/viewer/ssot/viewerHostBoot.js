@@ -16,8 +16,9 @@ function showFatal(e) {
   window.__vh = null;
 
   const p = new URLSearchParams(location.search);
+  // Some older site links used `mode=` by mistake; treat it as an alias.
   const modelUrl =
-    p.get("model") || "/3dss/sample/core_viewer_baseline.3dss.json";
+    p.get("model") || p.get("mode") || "/3dss/sample/core_viewer_baseline.3dss.json";
   const profile = p.get("profile") || "prod_full";
 
   // embed mode: hide UI chrome (viewer.css uses body.is-embed)
