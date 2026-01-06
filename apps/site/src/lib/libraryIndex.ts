@@ -22,22 +22,25 @@ export type LibraryRights = {
 };
 
 export type LibraryItem = {
-  id: string;
+  id?: string;
   slug: string;
   title: string;
   summary?: string;
-  thumb?: string;
+  thumb?: string | null;
   viewer_url: string;
   tags?: string[];
   entry_points?: string[];
   pairs?: { a: string; b: string }[];
   series?: string;
   related?: string[];
-  rights?: LibraryRights;
+  rights?: LibraryRights | null;
+  meta_title?: string;
+  meta_description?: string;
+  meta_og_image?: string | null;
 };
 
 type LibraryIndex = {
-  version: number;
+  version?: number;
   generated_at?: string;
   items: LibraryItem[];
 };
@@ -53,7 +56,7 @@ export function readLibraryIndex(): LibraryIndex {
 
 export function getLibraryItems(): LibraryItem[] {
   const { items } = readLibraryIndex();
-  return items.slice().sort((a, b) => (a.title || "").localeCompare(b.title || "", "ja"));
+  return items.slice();
 }
 
 export function getLibraryItemBySlug(slug: string): LibraryItem | undefined {

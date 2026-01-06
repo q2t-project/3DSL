@@ -18,23 +18,50 @@ const links = [
   title="Docs | 3DSL"
   description="3DSL の考え方、用語、設計のハブ。図の自由度問題、発散と収束、引用と表現の方針などをまとめます。"
 >
-  <div class="prose prose-invert prose-neutral max-w-3xl">
-    <DocsText />
-  </div>
+  <section class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
+    <div>
+      <div class="prose prose-invert prose-neutral max-w-3xl">
+        <DocsText />
+      </div>
 
-  <div class="mt-8 max-w-3xl">
-    <AdSlot
-      slot={ADSENSE_SLOTS.docs_inline}
-      className="rounded-2xl border border-white/10 bg-white/5 min-h-[120px]"
-    />
-  </div>
+      <!-- Mobile/inline: 300x250 -->
+      <div class="mt-8 max-w-3xl lg:hidden">
+        <div class="text-xs text-neutral-500">Sponsored</div>
+        <div class="mt-2">
+          <AdSlot
+            slot={ADSENSE_SLOTS.slot_300x250}
+            width={300}
+            height={250}
+            fullWidthResponsive={false}
+            minHeight={250}
+          />
+        </div>
+      </div>
 
-  <div class="mt-10 grid gap-3">
-    {links.map((x) => (
-      <a class="rounded-2xl border border-white/10 bg-white/5 p-4 hover:bg-white/10" href={x.href}>
-        <div class="text-sm font-medium">{x.label}</div>
-        <div class="mt-1 font-mono text-xs text-neutral-400">{x.href}</div>
-      </a>
-    ))}
-  </div>
+      <div class="mt-10 grid gap-3">
+        {links.map((x) => (
+          <a class="rounded-2xl border border-white/10 bg-white/5 p-4 hover:bg-white/10" href={x.href}>
+            <div class="text-sm font-medium">{x.label}</div>
+            <div class="mt-1 font-mono text-xs text-neutral-400">{x.href}</div>
+          </a>
+        ))}
+      </div>
+    </div>
+
+    <!-- Desktop rail: 300x600 -->
+    <aside class="hidden lg:block">
+      <div class="sticky top-24">
+        <div class="text-xs text-neutral-500">Sponsored</div>
+        <div class="mt-2">
+          <AdSlot
+            slot={ADSENSE_SLOTS.slot_300x600}
+            width={300}
+            height={600}
+            fullWidthResponsive={false}
+            minHeight={600}
+          />
+        </div>
+      </div>
+    </aside>
+  </section>
 </Layout>

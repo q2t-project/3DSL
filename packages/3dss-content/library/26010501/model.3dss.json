@@ -37,6 +37,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "Concept"
           }
         }
       },
@@ -65,6 +70,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "表現の限界と要請"
           }
         }
       },
@@ -92,6 +102,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "新しい表現の実験"
           }
         }
       },
@@ -119,6 +134,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "宣言"
           }
         }
       },
@@ -131,7 +151,7 @@
     },
     {
       "signification": {
-        "name": "言葉は世界を分節化"
+        "name": "世界を分節化"
       },
       "appearance": {
         "position": [
@@ -146,6 +166,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 2,
+            "content": "世界を分節化"
           }
         }
       },
@@ -159,7 +184,7 @@
     },
     {
       "signification": {
-        "name": "言語化=切断と再接続の検証"
+        "name": "切断と再接続の検証"
       },
       "appearance": {
         "position": [
@@ -174,6 +199,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "切断と再接続の検証"
           }
         }
       },
@@ -201,6 +231,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "複雑化で連結が増え読み手が脱落"
           }
         }
       },
@@ -213,7 +248,7 @@
     },
     {
       "signification": {
-        "name": "抽象ほど復元が技能/文脈依存"
+        "name": "文脈依存"
       },
       "appearance": {
         "position": [
@@ -228,6 +263,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "文脈依存"
           }
         }
       },
@@ -240,7 +280,7 @@
     },
     {
       "signification": {
-        "name": "共有が難しくコモンズが痩せる"
+        "name": "コモンズ"
       },
       "appearance": {
         "position": [
@@ -255,6 +295,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "コモンズ"
           }
         }
       },
@@ -267,7 +312,7 @@
     },
     {
       "signification": {
-        "name": "成果物が“完成”として固定されやすい"
+        "name": "成果物が“完成”として固定"
       },
       "appearance": {
         "position": [
@@ -282,6 +327,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "成果物が“完成”として固定"
           }
         }
       },
@@ -309,6 +359,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "留保を許容する代替表現が要る"
           }
         }
       },
@@ -336,6 +391,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "図:俯瞰は強いが座標が揃わない"
           }
         }
       },
@@ -363,6 +423,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "モデル:操作で理解、だが配布/検証が難しい"
           }
         }
       },
@@ -375,7 +440,41 @@
     },
     {
       "signification": {
-        "name": "デジタル:複製と視点/手順共有が可能"
+        "name": "視点/手順共有"
+      },
+      "appearance": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "visible": true,
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "box",
+          "size": [
+            4,
+            4,
+            4
+          ],
+          "text": {
+            "content": "視点/手順共有",
+            "plane": "zx",
+            "size": 8
+          }
+        }
+      },
+      "meta": {
+        "uuid": "2e7dd29f-e703-4987-a6e5-519476a9805f",
+        "tags": [],
+        "creator_memo": ""
+      }
+    },
+    {
+      "signification": {
+        "name": "デジタル:複製"
       },
       "appearance": {
         "position": [
@@ -390,6 +489,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "デジタル:複製"
           }
         }
       },
@@ -417,6 +521,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "表現=特性の束（複製性×操作性…）"
           }
         }
       },
@@ -444,6 +553,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "3DSL"
           }
         }
       },
@@ -472,6 +586,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "概念と関係を3Dに配置"
           }
         }
       },
@@ -499,6 +618,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "全体フレームを先に外部化"
           }
         }
       },
@@ -526,6 +650,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "関係中心・線の束で構造保持"
           }
         }
       },
@@ -553,6 +682,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "理解を復元→ナビゲーションへ"
           }
         }
       },
@@ -580,6 +714,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "回転/ズーム/俯瞰/探索"
           }
         }
       },
@@ -607,6 +746,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "同一モデルを複製・配布"
           }
         }
       },
@@ -634,6 +778,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "視点と手順を揃えて検証"
           }
         }
       },
@@ -661,6 +810,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "共通座標軸/スケール/層別"
           }
         }
       },
@@ -688,6 +842,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "テーマを一意固定しない"
           }
         }
       },
@@ -715,6 +874,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "分類はナビゲーション（タグ/将来ファセット）"
           }
         }
       },
@@ -742,6 +906,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "比較・接続・対立/併存/未決も同居"
           }
         }
       },
@@ -769,6 +938,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "状態と遷移、時間の扱いを明示"
           }
         }
       },
@@ -796,6 +970,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "留保を保持し、検証で更新"
           }
         }
       },
@@ -823,6 +1002,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "前提と手続きが明示された『もっともらしさ』"
           }
         }
       },
@@ -831,6 +1015,40 @@
         "tags": [
           "x:p_dsl_plausible"
         ]
+      }
+    },
+    {
+      "signification": {
+        "name": ""
+      },
+      "appearance": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "visible": true,
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "box",
+          "size": [
+            4,
+            4,
+            4
+          ],
+          "text": {
+            "content": "",
+            "plane": "zx",
+            "size": 8
+          }
+        }
+      },
+      "meta": {
+        "uuid": "b437f61d-8c31-4a71-b714-8a8104da0c9a",
+        "tags": [],
+        "creator_memo": ""
       }
     },
     {
@@ -850,6 +1068,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "公開実験として積み上げる"
           }
         }
       },
@@ -877,6 +1100,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "座標軸がコモンズになる"
           }
         }
       },
@@ -904,6 +1132,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "座標軸をコモンズとして開く"
           }
         }
       },
@@ -931,6 +1164,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "知を操作と検証の場へ引き戻す"
           }
         }
       },
@@ -958,6 +1196,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "理解を共有できるナビゲーションへ"
           }
         }
       },
@@ -985,6 +1228,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "未決/矛盾を留保し更新循環へ"
           }
         }
       },
@@ -997,7 +1245,7 @@
     },
     {
       "signification": {
-        "name": "この表現は公開実験として積む"
+        "name": "公開実験"
       },
       "appearance": {
         "position": [
@@ -1012,6 +1260,11 @@
             "opacity": 0.85,
             "emissive": false,
             "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "公開実験"
           }
         }
       },
@@ -1041,7 +1294,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "7a928352-e1fd-4162-8de4-bc068971996e",
@@ -1067,7 +1331,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "bdf41859-f40f-44d2-a1ba-24f9b3463b3d",
@@ -1093,7 +1368,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "59985c63-3d79-49a6-96cb-af09a3ee31c9",
@@ -1119,7 +1405,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "a6e7f513-a1f5-4f82-bdd9-241f73ff0859",
@@ -1145,7 +1442,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "9c01f327-3545-4dcb-9ff9-adef0f4c4e98",
@@ -1171,7 +1479,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "b22b3f23-4772-4240-80d3-3c1d93dc8105",
@@ -1197,7 +1516,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "6be1e6db-e9c8-4fc7-af2a-133bb88794d9",
@@ -1223,7 +1553,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "a35a520f-97ba-449a-aa23-a1643e4fad53",
@@ -1249,7 +1590,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "a4b75216-e1c9-4a9d-874a-cb2ff60c656b",
@@ -1275,7 +1627,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "a2bb2f08-a81d-4232-ab47-f73541038054",
@@ -1301,7 +1664,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "9e11846e-36e5-4594-91f7-d51c89e30a12",
@@ -1327,7 +1701,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "7d353f10-95a9-4129-bcdf-676f75e6406a",
@@ -1353,7 +1738,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "8a17a29a-996e-4ea2-bdc2-1d6cd15b2159",
@@ -1379,7 +1775,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "9e495720-866a-4a69-963e-69b27aec9ce9",
@@ -1405,7 +1812,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "347c80d0-da78-4fe0-b0b0-ef3a20e567b5",
@@ -1431,7 +1849,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "1a66b012-f09f-4a3a-80df-19b2190042ea",
@@ -1457,7 +1886,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "31cc7eb8-6244-401c-bf40-f1f87e831b34",
@@ -1483,7 +1923,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "4ddb64e1-3e97-42a1-97cb-f7ec0b9cd330",
@@ -1509,7 +1960,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "575da8d8-df6d-4de0-ab14-aa81d2f6b8a6",
@@ -1535,7 +1997,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "1053c646-fa5e-4118-8eb2-c1adf0803669",
@@ -1561,7 +2034,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "cc45644c-10f2-4b41-8452-e1a9464f5e98",
@@ -1587,7 +2071,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "2277d72a-acca-43ea-affe-25a9cb603f5c",
@@ -1613,7 +2108,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "f2089ed0-f690-4dd4-9df4-9028e3f12bf3",
@@ -1639,7 +2145,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "b57a64ff-2c04-4b62-b4a8-6bdb3634277d",
@@ -1665,7 +2182,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "fcec467c-2695-4299-b57b-1b39eee2f65f",
@@ -1691,7 +2219,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "c95770b6-2dfd-4e0f-9dad-5dd14dd28774",
@@ -1717,7 +2256,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "4128d380-90d9-4580-9574-ece0c7f44a27",
@@ -1743,7 +2293,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "dc22e351-5a19-4063-9a35-645cdc45bd03",
@@ -1769,7 +2330,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "8b22e745-b8fa-4359-91ea-14198910fbbf",
@@ -1795,7 +2367,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "acf3c673-aa22-496b-96dd-ee58a7affd35",
@@ -1821,7 +2404,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "41196013-87eb-47ad-a4a2-aa7b6aa75bdf",
@@ -1847,7 +2441,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "5680e4fe-c930-4a36-ac6a-a486e530fe8f",
@@ -1873,7 +2478,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "8c0106ee-c9ab-49b5-9ceb-38620099c19f",
@@ -1899,7 +2515,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "209f6df2-4a1d-44fa-9071-ec932826a390",
@@ -1925,7 +2552,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "2cb4c487-e01d-48bb-b730-3ac720a956b3",
@@ -1951,7 +2589,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "8634f61f-d031-43c9-bf1f-880dad35ef8c",
@@ -1977,7 +2626,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "61f82772-d7a3-4d3d-960b-b13cbdf7d36e",
@@ -2003,7 +2663,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "6cab0184-1d0b-405d-9c46-eae9638f3ba6",
@@ -2029,7 +2700,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "beca9d28-9855-4dbb-9ca4-07574fce1140",
@@ -2055,7 +2737,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "8c310e3b-9d1e-476c-a53e-65d6ea929860",
@@ -2081,7 +2774,18 @@
         },
         "line_style": "solid",
         "opacity": 0.4,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "align": "along_line_screen",
+          "keep_upright": true,
+          "offset": 0,
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
       },
       "meta": {
         "uuid": "89e2ea4d-c694-44bc-91a0-5f282f075a57",

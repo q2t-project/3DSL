@@ -1,0 +1,104 @@
+{
+  "profile": "sandbox-min",
+  "created_at": "2026-01-06T16:20:53",
+  "max_file_mb": 25,
+  "exclude_dirs": [
+    ".git",
+    ".github",
+    "node_modules",
+    "dist",
+    "build",
+    "out",
+    ".next",
+    ".nuxt",
+    ".astro",
+    ".turbo",
+    ".cache",
+    "coverage",
+    ".wrangler",
+    ".vercel",
+    "vendor",
+    "_ul_zips",
+    "_ul",
+    "_tmp",
+    "tmp",
+    "temp",
+    "apps/site/public/viewer/vendor",
+    "apps/site/public/vendor",
+    "apps/site/public/3dss",
+    "packages/3dss-content/dist"
+  ],
+  "exclude_files": [
+    "*.zip",
+    "*.7z",
+    "*.rar",
+    "*.log",
+    "*.tmp",
+    "*.bak",
+    "*.swp",
+    ".DS_Store",
+    "Thumbs.db",
+    ".env",
+    ".env.*",
+    "*.pem",
+    "*.key",
+    "*.pfx",
+    "id_rsa",
+    "id_ed25519",
+    "*.crt",
+    "*.psd",
+    "*.ai",
+    "*.blend",
+    "*.mp4",
+    "*.mov",
+    "*.mkv",
+    "*.glb",
+    "*.gltf",
+    "*.fbx",
+    "*.png",
+    "*.jpg",
+    "*.jpeg",
+    "*.webp",
+    "*.wav",
+    "*.mp3",
+    "*.ogg"
+  ],
+  "targets": [
+    "apps/viewer",
+    "apps/site/src",
+    "apps/site/scripts",
+    "packages/3dss-content/scripts",
+    "packages/3dss-content/library",
+    "packages/3dss-schema",
+    "DEVOPS_site.md",
+    "package.json",
+    "pnpm-workspace.yaml",
+    "turbo.json"
+  ],
+  "zips": [
+    {
+      "zip": "C:\\Users\\vrrrm\\projects\\3DSL\\_ul_zips\\apps_site_scripts.zip",
+      "sha256": "F7EB257591E53E4F0A891BB28A95A0F5CEF70E154591BA937AE570F8DB058660"
+    },
+    {
+      "zip": "C:\\Users\\vrrrm\\projects\\3DSL\\_ul_zips\\apps_site_src.zip",
+      "sha256": "A7F543EC7A82B0450517AF92350A639D5F4023E766D0DDF30323E183A3A7C596"
+    },
+    {
+      "zip": "C:\\Users\\vrrrm\\projects\\3DSL\\_ul_zips\\apps_viewer.zip",
+      "sha256": "78AB5D1AE2A6CD60749C57848A0E79998E7D61573A0FE599D44A0D7DAFF20762"
+    },
+    {
+      "zip": "C:\\Users\\vrrrm\\projects\\3DSL\\_ul_zips\\package.json.zip",
+      "sha256": "07649C0F58065DDA81F7138E571DA7B1FABF0BA011B591421E815FA59DCE3F26"
+    },
+    {
+      "zip": "C:\\Users\\vrrrm\\projects\\3DSL\\_ul_zips\\packages_3dss-content_library.zip",
+      "sha256": "81FCD71DA3613D299302B04778D0DA262B87FFD91898D4B4BC12267979E0269F"
+    },
+    {
+      "zip": "C:\\Users\\vrrrm\\projects\\3DSL\\_ul_zips\\packages_3dss-content_scripts.zip",
+      "sha256": "CEAEDE55F7F79F3C6C60BA097CC477214340ECCA0634A4DFBFA931FEEE8DC41F"
+    }
+  ]
+}

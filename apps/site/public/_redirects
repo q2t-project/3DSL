@@ -1,6 +1,1 @@
-/viewer/dev    /viewer  301
-/viewer/dev/   /viewer  301
-/viewer/dev/*  /viewer  301
-/viewer/run    /viewer  301
-/viewer/run/   /viewer  301
-/viewer/run/*  /viewer  301
+/viewer  /viewer/  301

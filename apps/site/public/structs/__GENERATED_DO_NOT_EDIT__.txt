@@ -1,1 +1,0 @@
-This directory is generated. Edit SSOT at packages/structs and run npm run sync:all.

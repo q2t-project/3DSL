@@ -4,8 +4,15 @@ import "../styles/global.css";
 const {
   title = "3DSL",
   description = "3DSL は、概念や関係を三次元の座標に配置し、拡大縮小しながら局面と総体を行き来できる表現基盤です。",
+  canonical = null,
+  canonicalUrl = null,
+  jsonLd = null,
+  ogImage = null,
+  ogType = "website",
+  twitterCard = "summary",
 } = Astro.props;
 const pathname = Astro.url?.pathname ?? "/";
+const canonicalFinal = canonicalUrl ?? canonical;
 
 // AdSense
 // - このレイアウト配下は「サイト側」(Home/Library/Concept/Contact)。
@@ -52,10 +59,21 @@ function isActive(href) {
 
     <title>{title}</title>
     <meta name="description" content={description} />
+    {canonicalFinal && <link rel="canonical" href={canonicalFinal} />}
+
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary" />
+    {ogImage && <meta property="og:image" content={ogImage} />}
+
+    <meta property="og:type" content={ogType} />
+    <meta name="twitter:card" content={twitterCard} />
+    {jsonLd && (
+      <script
+        type="application/ld+json"
+        set:html={typeof jsonLd === "string" ? jsonLd : JSON.stringify(jsonLd)}
+      />
+    )}
+    <slot name="head" />
   </head>
 
   <body class="min-h-screen text-neutral-100 antialiased">

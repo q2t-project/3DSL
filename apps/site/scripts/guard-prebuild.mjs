@@ -64,11 +64,55 @@ if (exists(pagesDisabled)) {
        `        Do not keep disabled pages inside src/. Move outside repo or delete.\n`);
 }
 
-// 4) require canonical viewer/index.astro
-if (!exists(canonicalViewer)) {
-  fail(`[guard] Missing canonical /viewer route: ${canonicalViewer}\n` +
-       `        Create src/pages/viewer/index.astro (redirect to /app/viewer is fine).\n`);
+// 4) require canonical /viewer route (Astro OR public-owned)
+const publicViewer = path.join(publicDir, "viewer", "index.html");
+
+if (!exists(canonicalViewer) && !exists(publicViewer)) {
+  fail(
+    `[guard] Missing canonical /viewer route: ${canonicalViewer}\n` +
+    `        Create src/pages/viewer/index.astro OR keep public/viewer/index.html (SSOT).\n`
+  );
 }
+
+// 4.5) /viewer is public-owned (SSOT) のときの必須物チェック
+const publicViewerDir = path.join(publicDir, "viewer");
+const ownedMarkerA = path.join(publicViewerDir, ".OWNED_BY_PUBLIC");
+const ownedMarkerB = path.join(publicViewerDir, ".public-owned");
+const publicViewerIndex = path.join(publicViewerDir, "index.html");
+
+if (exists(publicViewerDir)) {
+  if (!exists(publicViewerIndex)) {
+    fail(`[guard] Missing required viewer entry: ${publicViewerIndex}\n` +
+         `        /viewer SSOT is public/viewer. index.html is required.\n`);
+  }
+  if (!exists(ownedMarkerA) || !exists(ownedMarkerB)) {
+    fail(`[guard] Missing public ownership markers under ${publicViewerDir}\n` +
+         `        Required: .OWNED_BY_PUBLIC and .public-owned\n`);
+  }
+}
+
+// viewer runtime 依存（これが無いと「200出てるのに中身死ぬ」を起こす）
+const req = [
+  path.join(publicDir, "3dss", "3dss", "release", "3DSS.schema.json"),
+  path.join(publicDir, "3dss", "sample", "core_viewer_baseline.3dss.json"),
+  path.join(publicDir, "vendor", "three", "build", "three.module.js"),
+  path.join(publicDir, "vendor", "ajv", "dist", "ajv.bundle.js"),
+];
+
+for (const p of req) {
+  if (!exists(p)) {
+    fail(`[guard] Missing required runtime asset: ${p}\n` +
+         `        Fix: run sync:all (schemas/vendor/3dss-content) or restore the SSOT files.\n`);
+  }
+}
+
+// ノイズ潰し（任意だが、常に取りに行くなら置いとけ）
+const tuningCss = path.join(publicDir, "viewer_tuning.css");
+if (!exists(tuningCss)) {
+  fail(`[guard] Missing required file: ${tuningCss}\n` +
+       `        viewer/index.html references /viewer_tuning.css. Create an empty file if unused.\n`);
+}
+
 
 // 5) require proper Cloudflare Pages 404.html
 if (exists(astro404)) {

@@ -1,46 +1,22 @@
 <!doctype html>
 <html lang="ja">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="robots" content="noindex" />
-    <title>404 | 3DSL</title>
-    <style>
-      :root{color-scheme:dark;}
-      html,body{height:100%;}
-      body{margin:0;background:#0b0c0f;color:#e8edf2;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;}
-      .wrap{min-height:100%;display:flex;align-items:center;justify-content:center;padding:32px;}
-      .card{max-width:720px;width:100%;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);border-radius:16px;padding:22px 20px;box-shadow:0 10px 30px rgba(0,0,0,.35);}
-      .row{display:flex;gap:14px;align-items:center;flex-wrap:wrap;}
-      .logo{display:block;height:28px;width:auto;opacity:.95;}
-      h1{font-size:18px;margin:8px 0 6px 0;font-weight:650;}
-      p{margin:0 0 12px 0;line-height:1.55;color:rgba(232,237,242,.82);}
-      .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
-      a.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 12px;border-radius:12px;text-decoration:none;border:1px solid rgba(255,255,255,.14);color:#e8edf2;background:rgba(255,255,255,.06);}
-      a.btn:hover{background:rgba(255,255,255,.10);}
-      code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;}
-      .hint{font-size:13px;color:rgba(232,237,242,.65);}
-    </style>
-  </head>
-  <body>
-    <div class="wrap">
-      <main class="card">
-        <div class="row">
-          <img class="logo" src="/assets/logo/3DSL.svg" alt="3DSL" />
-          <div class="hint">Not Found</div>
-        </div>
-        <h1>ページが見つからへんかった</h1>
-        <p>指定されたURLが存在せんか、移動した可能性があるで。</p>
-        <p class="hint">URL: <code id="path"></code></p>
-        <div class="actions">
-          <a class="btn" href="/">トップへ戻る</a>
-          <a class="btn" href="/docs">Docs</a>
-          <a class="btn" href="/viewer">Viewer</a>
-        </div>
-      </main>
-    </div>
-    <script>
-      document.getElementById('path').textContent = location.pathname + location.search;
-    </script>
-  </body>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>404 Not Found</title>
+  <style>
+    html,body{margin:0;height:100%;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+    body{display:grid;place-items:center;background:#0b0b0b;color:#f2f2f2}
+    a{color:#9ad; text-decoration:none}
+    .box{max-width:720px;padding:24px}
+    .code{opacity:.7;font-family:ui-monospace,Menlo,Consolas,monospace}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>404 Not Found</h1>
+    <p class="code">/404.html</p>
+    <p><a href="/">トップへ戻る</a></p>
+  </div>
+</body>
 </html>

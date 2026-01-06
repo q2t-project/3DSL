@@ -13,21 +13,45 @@ const item = getLibraryItemBySlug(slug);
 if (!item) {
   throw new Error(`Library item not found for slug=${slug}`);
 }
+
+const pageTitle = (item.meta_title ?? `${item.title} | 3DSL Library`);
+const pageDescription = (item.meta_description ?? item.summary ?? "3DSL Library のコンテンツ詳細ページ。概要と出典を確認し、Viewer で操作して探索できます。");
+
+const canonical = Astro.url?.href ?? `/library/${item.slug}`;
+const origin = Astro.url?.origin ?? "";
+
+const ogImageRaw = (item.meta_og_image ?? item.thumb ?? null);
+const ogImage = (typeof ogImageRaw === "string" && ogImageRaw)
+  ? (ogImageRaw.startsWith("/") ? `${origin}${ogImageRaw}` : ogImageRaw)
+  : null;
+
+const jsonldBreadcrumb = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": `${origin}/` },
+    { "@type": "ListItem", "position": 2, "name": "Library", "item": `${origin}/library` },
+    { "@type": "ListItem", "position": 3, "name": item.title, "item": `${origin}/library/${item.slug}` }
+  ]
+};
 ---
 
 <Layout
-  title={`${item.title} | 3DSL Library`}
-  description={(item.summary ?? "3DSL Library のコンテンツ詳細ページ。概要と出典を確認し、Viewer で操作して探索できます。")}
+  title={pageTitle}
+  description={pageDescription}
+  canonical={canonical}
+  ogType="article"
+  ogImage={ogImage}
+  twitterCard="summary_large_image"
 >
-  <script type="application/ld+json" set:html={JSON.stringify({
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    "itemListElement": [
-      { "@type": "ListItem", "position": 1, "name": "Home", "item": "/" },
-      { "@type": "ListItem", "position": 2, "name": "Library", "item": "/library" },
-      { "@type": "ListItem", "position": 3, "name": item.title, "item": `/library/${item.slug}` }
-    ]
-  })}></script>
+  <Fragment slot="head">
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={pageDescription} />
+    {ogImage ? <meta name="twitter:image" content={ogImage} /> : null}
+    <script type="application/ld+json" set:html={JSON.stringify(jsonldBreadcrumb)}></script>
+  </Fragment>
+
   <nav class="text-sm text-neutral-400">
     <a href="/library" class="hover:underline">Library</a>
     <span class="mx-2">/</span>

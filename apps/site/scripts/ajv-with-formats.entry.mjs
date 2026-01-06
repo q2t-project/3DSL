@@ -1,4 +1,4 @@
-﻿import Ajv from "ajv/dist/2020.js";
+import Ajv from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 export default function createAjv(opts = {}) {
   const ajv = new Ajv(opts);

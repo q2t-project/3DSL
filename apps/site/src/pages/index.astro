@@ -32,7 +32,7 @@ const demoModel = "/3dss/sample/core_viewer_baseline.3dss.json";
         </a>
 
         <a href="/library" class="ui-btn">Library</a>
-        <a href="/viewer" class="ui-btn">Viewer</a>
+        <a href="/viewer/index.html" class="ui-btn">Viewer</a>
         <a href="/docs" class="ui-btn">Docs</a>
         <a href="/concept" class="ui-btn">Concept</a>
       </div>
@@ -54,6 +54,33 @@ const demoModel = "/3dss/sample/core_viewer_baseline.3dss.json";
           <a href="/library" class="ui-btn">公開コンテンツ（Library）</a>
         </div>
       </div>
+
+      <!-- AdSense (review): show ONE unit depending on breakpoint -->
+      <div class="ui-surface p-4 lg:hidden">
+        <div class="text-xs text-neutral-500">Sponsored</div>
+        <div class="mt-2">
+          <AdSlot
+            slot={ADSENSE_SLOTS.slot_300x250}
+            width={300}
+            height={250}
+            fullWidthResponsive={false}
+            minHeight={250}
+          />
+        </div>
+      </div>
+
+      <div class="ui-surface p-4 hidden lg:block">
+        <div class="text-xs text-neutral-500">Sponsored</div>
+        <div class="mt-2">
+          <AdSlot
+            slot={ADSENSE_SLOTS.slot_300x600}
+            width={300}
+            height={600}
+            fullWidthResponsive={false}
+            minHeight={600}
+          />
+        </div>
+      </div>
     </aside>
   </section>
 
@@ -65,7 +92,7 @@ const demoModel = "/3dss/sample/core_viewer_baseline.3dss.json";
     </div>
 
     <div class="mt-4 grid gap-4 md:grid-cols-2">
-      <a href="/viewer" class="ui-card p-6">
+      <a href="/viewer/index.html" class="ui-card p-6">
         <div class="flex items-center justify-between">
           <h3 class="text-base font-medium">Viewer</h3>
           <span class="ui-chip">触って理解</span>

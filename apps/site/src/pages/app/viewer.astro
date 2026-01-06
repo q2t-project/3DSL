@@ -15,7 +15,13 @@ function normalizeModelUrl(raw) {
 }
 
 // Canonical param is `model`; keep `src` alias.
-const model = normalizeModelUrl(sp.get("model") ?? sp.get("src"));
+// Library pages use `id` (short) => /3dss/library/<id>/model.3dss.json
+const id = (sp.get("id") ?? "").trim();
+const model = normalizeModelUrl(
+  sp.get("model") ??
+  sp.get("src") ??
+  (id ? `/3dss/library/${encodeURIComponent(id)}/model.3dss.json` : "")
+);
 const back = (sp.get("back") || "/library").trim() || "/library";
 
 // /viewer stays pure; /app/viewer adds ads + simple top chrome.
@@ -116,7 +122,8 @@ const iframeSrc = `/viewer/?model=${encodeURIComponent(model)}&embed=1`;
     return `/${v}`;
   }
 
-  const model = normalizeModelUrl(sp.get('model') || sp.get('src'));
+  const id = (sp.get('id') || '').trim();
+  const model = normalizeModelUrl(sp.get('model') || sp.get('src') || (id ? `/3dss/library/${encodeURIComponent(id)}/model.3dss.json` : ''));
   const back = (sp.get('back') || '/library').trim() || '/library';
 
   // Keep /viewer pure; host owns the chrome.

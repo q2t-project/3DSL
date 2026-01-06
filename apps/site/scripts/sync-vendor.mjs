@@ -1,4 +1,4 @@
-﻿import path from "node:path";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { mkdir, cp, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";

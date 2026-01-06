@@ -1,67 +1,35 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { access, cp, mkdir, rm } from 'node:fs/promises';
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-// Sync SSOT 3dss-content -> apps/site/public/3dss
-// - copies: fixtures/, sample/, canonical/, 3dss-prep/, library/ (if present)
-// - does NOT touch: public/3dss/3dss/release (schemas sync owns it)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(__dirname, '../../..');
+// repoRoot: apps/site/scripts -> apps/site -> apps -> repoRoot
+const repoRoot = path.resolve(__dirname, "..", "..", "..");
 
-const srcRoot = path.join(repoRoot, 'packages/3dss-content');
-const dstRoot = path.join(repoRoot, 'apps/site/public/3dss');
+const srcDist = path.join(repoRoot, "packages", "3dss-content", "dist");
+const dstPublic = path.join(repoRoot, "apps", "site", "public");
 
-async function exists(p) {
-  try {
-    await access(p);
-    return true;
-  } catch {
-    return false;
-  }
+function rmIfExists(p) {
+  fs.rmSync(p, { recursive: true, force: true });
 }
 
-if (!(await exists(srcRoot))) {
-  console.log('[sync] 3dss-content: skipped (no SSOT)');
-  process.exit(0);
+function ensureDir(p) {
+  fs.mkdirSync(p, { recursive: true });
 }
 
-await mkdir(dstRoot, { recursive: true });
-
-const entries = ['fixtures', 'sample', 'canonical', '3dss-prep', 'library'];
-for (const name of entries) {
-  const src = path.join(srcRoot, name);
-  if (!(await exists(src))) continue;
-
-  const dst = path.join(dstRoot, name);
-  await rm(dst, { recursive: true, force: true });
-
-  // library は公開したくない内部ドキュメント/管理ファイルを除外する
-  // - _docs/ や _meta.json 等（"_" 始まり）
-  // - *.md
-  if (name === 'library') {
-    const libRoot = src;
-    const filter = (p) => {
-      const base = path.basename(p);
-
-      // dotfile は除外（任意）
-      if (base.startsWith('.')) return false;
-
-      // md は除外（_docs/_README.md など）
-      if (base.toLowerCase().endsWith('.md')) return false;
-
-      // どこかの階層が "_" 始まりなら丸ごと除外
-      const rel = path.relative(libRoot, p);
-      if (rel && rel !== '') {
-        const parts = rel.split(path.sep);
-        if (parts.some((s) => s.startsWith('_'))) return false;
-      }
-      return true;
-    };
-    await cp(src, dst, { recursive: true, filter });
-  } else {
-    await cp(src, dst, { recursive: true });
-  }
+if (!fs.existsSync(srcDist)) {
+  console.error(`[sync] dist not found: ${srcDist}`);
+  process.exit(1);
 }
 
-console.log('[sync] 3dss-content -> site/public OK');
+// public の中で、この同期が責任持つ範囲だけ掃除（残骸事故防止）
+ensureDir(dstPublic);
+rmIfExists(path.join(dstPublic, "3dss", "library"));
+rmIfExists(path.join(dstPublic, "library"));
+
+// dist 直下（3dss/, library/）を public 直下にコピー
+fs.cpSync(srcDist, dstPublic, { recursive: true });
+
+console.log("[sync] 3dss-content(dist) -> site/public OK");

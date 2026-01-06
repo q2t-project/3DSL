@@ -2,14 +2,11 @@
 import Layout from "../layouts/Layout.astro";
 export const prerender = true;
 
-// Formspree endpoint (Cloudflare Pages env var 推奨)
-// 例: https://formspree.io/f/xxxxxxx
-const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xnjnpgjp';
-
-// AdSense / Cookie の参考リンク（表示用）
+// Third-party services
+const FORMSPREE_PRIVACY = "https://formspree.io/legal/privacy-policy/";
 const GOOGLE_ADS_SETTINGS = "https://adssettings.google.com/";
 const ABOUTADS = "https://optout.aboutads.info/";
-const GOOGLE_PRIVACY = "https://policies.google.com/technologies/ads";
+const GOOGLE_ADS_TECH = "https://policies.google.com/technologies/ads";
 ---
 
 <Layout title="3DSL | ポリシー">
@@ -23,27 +20,41 @@ const GOOGLE_PRIVACY = "https://policies.google.com/technologies/ads";
         掲載内容は個人開発・研究目的の情報提供です。
       </p>
 
+      <h2>第三者サービス</h2>
+      <ul>
+        <li>
+          <strong>Google AdSense</strong>：広告配信（Cookie 等を用いる場合があります）
+        </li>
+        <li>
+          <strong>Formspree</strong>：お問い合わせフォームの送信受付（入力内容が Formspree に送信されます）
+          <div class="text-xs opacity-80">{FORMSPREE_PRIVACY}</div>
+        </li>
+        <li>
+          <strong>Google Fonts</strong>：Web フォント配信
+        </li>
+      </ul>
+
       <h2>取得する情報と利用目的</h2>
       <ul>
-        <li>アクセス解析情報：閲覧ページ、参照元、概算の利用環境等（サイト改善・利用状況把握）</li>
-        <li>Cookie 等：利便性向上、アクセス解析、広告配信</li>
+        <li>Cookie 等：利便性向上、広告配信、アクセス状況の把握</li>
+        <li>ログ情報：閲覧ページ、参照元、概算の利用環境等（サイト改善・障害対応）</li>
         <li>お問い合わせフォーム入力情報：返信・対応（メールアドレス、本文など）</li>
       </ul>
 
       <h2>広告配信について（Google AdSense）</h2>
       <p>
         本サイトは第三者配信の広告サービス（Google AdSense）を利用する場合があります。
-        広告配信事業者は、ユーザーの興味に応じた広告を表示するため Cookie 等を使用することがあります。
+        第三者配信事業者（Google を含む）は、ユーザーの過去の閲覧履歴（本サイトまたは他サイト）にもとづいて広告を配信するため、Cookie 等を使用することがあります。
+        Google の広告 Cookie の利用により、Google とそのパートナーはユーザーの閲覧に応じた広告を配信できます。
       </p>
 
       <h3>Cookie 等の扱い</h3>
       <p>
-        広告配信やアクセス解析のため、ブラウザに保存される Cookie または同等の識別子が利用される場合があります。
-        これらは、閲覧傾向に基づく広告表示や、サイト改善のための統計取得に使われます。
+        広告配信やアクセス状況の把握のため、ブラウザに保存される Cookie または同等の識別子が利用される場合があります。
+        Cookie を無効化すると、広告表示や一部機能に影響が出ることがあります。
       </p>
       <p>
-        Cookie を無効化すると、広告表示や一部機能に影響が出ることがあります。
-        パーソナライズ広告は、ユーザーの設定により無効化できる場合があります。
+        EEA／英国／スイス等の対象地域では、法令・ポリシーに基づき同意取得のためのメッセージが表示される場合があります。
       </p>
 
       <h3>パーソナライズ広告の管理（オプトアウト）</h3>
@@ -68,15 +79,23 @@ const GOOGLE_PRIVACY = "https://policies.google.com/technologies/ads";
         </a>
         <a
           class="rounded-xl border border-white/10 bg-white/5 p-3 hover:bg-white/10"
-          href={GOOGLE_PRIVACY}
+          href={GOOGLE_ADS_TECH}
           target="_blank"
           rel="noreferrer"
         >
           Google 広告における Cookie 等の利用
-          <div class="mt-1 font-mono text-xs text-neutral-400">{GOOGLE_PRIVACY}</div>
+          <div class="mt-1 font-mono text-xs text-neutral-400">{GOOGLE_ADS_TECH}</div>
         </a>
       </div>
 
+      <h2>権利・引用</h2>
+      <p>
+        Library に掲載されるモデルは、研究・教育・理解促進を目的として、原著作物を正当に引用し、その関係構造を可視化したものです。
+        著作権はそれぞれの権利者に帰属します。
+      </p>
+      <p>
+        権利者からの申し立て等があれば、内容の修正・非公開を行います。<a href="/contact">Contact</a> からご連絡ください。
+      </p>
 
       <h2>免責事項</h2>
       <p>
@@ -86,7 +105,7 @@ const GOOGLE_PRIVACY = "https://policies.google.com/technologies/ads";
 
       <h2>お問い合わせ</h2>
       <p>
-        お問い合わせは <a href="/contact">Contact ページ</a> からご連絡ください。
+        お問い合わせは <a href="/contact">Contact</a> からご連絡ください。
       </p>
     </div>
   </section>

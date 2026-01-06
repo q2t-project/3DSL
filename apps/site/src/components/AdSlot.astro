@@ -13,29 +13,55 @@ type Props = {
   format?: string;
   /** Reserve space to reduce layout shift */
   minHeight?: number;
+
+  /** Fixed-size display ad (optional). If both are set, a fixed unit is rendered. */
+  width?: number;
+  height?: number;
+
+  /** For responsive units. Defaults to true unless fixed size is used. */
+  fullWidthResponsive?: boolean;
 };
 
-const { slot, class: className = '', format = 'auto', minHeight = 0 } = Astro.props;
+const {
+  slot,
+  class: className = '',
+  format = 'auto',
+  minHeight = 0,
+  width = 0,
+  height = 0,
+  fullWidthResponsive,
+} = Astro.props;
 
 const isDev = import.meta.env.DEV;
 const hasSlot = typeof slot === 'string' && slot.trim().length > 0;
+const isFixed = Number(width) > 0 && Number(height) > 0;
 const styleMinHeight = minHeight > 0 ? `min-height:${minHeight}px;` : '';
+const wrapperStyle = styleMinHeight;
+
+// For fixed-size units: set explicit ins size.
+const insStyle = isFixed
+  ? `display:inline-block;width:${Number(width)}px;height:${Number(height)}px;`
+  : 'display:block';
+
+const useFullWidthResponsive =
+  typeof fullWidthResponsive === 'boolean' ? fullWidthResponsive : !isFixed;
 ---
 
 {(hasSlot || isDev) && (
-  <div class={`ad-slot ${className}`} style={styleMinHeight} data-ad-slot={slot || 'UNSET'}>
+  <div class={`ad-slot ${className}`} style={wrapperStyle} data-ad-slot={slot || 'UNSET'}>
     {hasSlot ? (
       <>
         <ins
           class="adsbygoogle"
-          style="display:block"
+          style={insStyle}
           data-ad-client={ADSENSE_PUBLISHER_ID}
           data-ad-slot={slot}
-          data-ad-format={format}
-          data-full-width-responsive="true"
+          {...(!isFixed ? { 'data-ad-format': format } : {})}
+          {...(useFullWidthResponsive ? { 'data-full-width-responsive': 'true' } : {})}
         />
         <script is:inline>
-          (adsbygoogle = window.adsbygoogle || []).push({});
+          window.adsbygoogle = window.adsbygoogle || [];
+          window.adsbygoogle.push({});
         </script>
       </>
     ) : (

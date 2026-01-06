@@ -9,16 +9,41 @@ import { ADSENSE_SLOTS } from "../../lib/adsense";
   title="Concept | 3DSL"
   description="言語化だけでは取り落とされる構造を、関係の図として保持し、拡大縮小しながら理解を往復させるという 3DSL の考え方を説明します。"
 >
-  <div class="prose prose-invert prose-neutral max-w-3xl">
-    <ConceptText />
-  </div>
+  <section class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
+    <div>
+      <div class="prose prose-invert prose-neutral max-w-3xl">
+        <ConceptText />
+      </div>
 
-  <div class="mt-8 max-w-3xl">
-    <AdSlot
-      slot={ADSENSE_SLOTS.concept_inline}
-      class="rounded-xl border border-neutral-800 bg-neutral-950/40 p-3 min-h-[120px]"
-      format="auto"
-      fullWidthResponsive={true}
-    />
-  </div>
+      <!-- Mobile/inline: 300x250 -->
+      <div class="mt-8 max-w-3xl lg:hidden">
+        <div class="text-xs text-neutral-500">Sponsored</div>
+        <div class="mt-2">
+          <AdSlot
+            slot={ADSENSE_SLOTS.slot_300x250}
+            width={300}
+            height={250}
+            fullWidthResponsive={false}
+            minHeight={250}
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Desktop rail: 300x600 -->
+    <aside class="hidden lg:block">
+      <div class="sticky top-24">
+        <div class="text-xs text-neutral-500">Sponsored</div>
+        <div class="mt-2">
+          <AdSlot
+            slot={ADSENSE_SLOTS.slot_300x600}
+            width={300}
+            height={600}
+            fullWidthResponsive={false}
+            minHeight={600}
+          />
+        </div>
+      </div>
+    </aside>
+  </section>
 </Layout>
