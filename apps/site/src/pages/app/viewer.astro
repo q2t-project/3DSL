@@ -35,7 +35,12 @@ const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}&embed=1
 ---
 
 <LayoutApp title="Viewer">
-  <div id="appviewer-root" class="appviewer-root flex h-[100dvh] flex-col overflow-hidden bg-black">
+  <!--
+    Full-viewport fixed app shell:
+    - prevents browser scroll restoration from showing the UI "stuck" at the bottom
+    - makes the vertical stack (ad / ticker / viewer) deterministic
+  -->
+  <div id="appviewer-root" class="appviewer-root fixed inset-0 flex h-[100dvh] w-full flex-col overflow-hidden bg-black">
     <!-- iOS/Android safe-area (top) -->
     <div class="app-safe-top lg:hidden" aria-hidden="true"></div>
 
@@ -101,7 +106,7 @@ const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}&embed=1
         </div>
 
         <!-- Desktop: right rail ad 300x600 -->
-        <aside class="hidden lg:block w-[300px] shrink-0 border-l border-white/10 bg-neutral-950">
+	        <aside id="app-adrail" class="hidden lg:block w-[300px] shrink-0 border-l border-white/10 bg-neutral-950">
           <div class="p-3">
             <div class="text-xs text-neutral-500">Sponsored</div>
             <div class="mt-2 h-[600px] rounded-xl border border-white/10 bg-white/5 grid place-items-center text-xs text-neutral-400">
@@ -207,6 +212,24 @@ const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}&embed=1
 
     /* Make the ticker content wide enough for looping */
     #app-ticker { padding-right: 100%; }
+
+	    /* Layout invariants */
+	    #app-stage { min-height: 0; flex: 1 1 auto; }
+	    #app-stage iframe { width: 100%; height: 100%; border: 0; display: block; }
+
+	    /*
+	      Force ad placements by viewport width (do not rely on Tailwind breakpoints).
+	      - Mobile: top bar (320x100), no side rail
+	      - Desktop: side rail (300x600), no top bar
+	    */
+	    @media (max-width: 1023px) {
+	      #app-adbar { display: block !important; }
+	      #app-adrail { display: none !important; }
+	    }
+	    @media (min-width: 1024px) {
+	      #app-adbar { display: none !important; height: 0 !important; }
+	      #app-adrail { display: block !important; }
+	    }
 
     /* Mobile: fixed heights + safe-area */
     @media (max-width: 1023px) {
