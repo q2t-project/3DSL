@@ -760,7 +760,7 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
     emissive: 0x3355ff,
   });
 
-  const beamRadius = 0.03;
+  const beamRadius = 0.045; // v7: brighter/thicker beam
 
   const beamMatBase = createLitMaterial({
     color: 0x99bbff,
@@ -768,7 +768,15 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
     transparent: true,
     opacity: 0.0,
     depthWrite: false,
+    depthTest: false,
+    blending: THREE.AdditiveBlending,
   });
+
+  // v7: beam is a direction cue (make it clearly visible)
+  beamMatBase.blending = THREE.AdditiveBlending;
+  beamMatBase.depthTest = false;
+  beamMatBase.depthWrite = false;
+
 
   function createPresetCamera(def) {
     const group = new THREE.Group();
@@ -939,7 +947,8 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
       }
 
       const t = (timeSec * 2.0) % 1.0;
-      const pulse = 0.4 + 0.6 * Math.sin(t * Math.PI * 2) * 0.5 + 0.3;
+      // v7: make the beam clearly visible (but still subtle)
+      const pulse = 0.65 + 0.35 * (Math.sin(t * Math.PI * 2) * 0.5 + 0.5);
       mat.opacity = pulse;
     });
   }
@@ -1047,21 +1056,10 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
       camera.updateProjectionMatrix();
     }
 
-    // まず CameraEngine 側の preset index を優先
-    let presetKey = null;
-    if (
-      cam &&
-      typeof cam.getViewPresetIndex === 'function' &&
-      Array.isArray(CAMERA_VIEW_PRESET_SEQUENCE)
-    ) {
-      const idx = cam.getViewPresetIndex();
-      if (typeof idx === 'number' && idx >= 0 && idx < CAMERA_VIEW_PRESET_SEQUENCE.length) {
-        presetKey = CAMERA_VIEW_PRESET_SEQUENCE[idx];
-      }
-    }
+    // Orbit に追随して「画面側に近い」プリセットを角度から推定
 
-    // 取れなかったときだけ角度から最近傍を推定
-    activePresetKey = presetKey || findNearestPreset(theta, phi);
+    activePresetKey = findNearestPreset(theta, phi);
+
 
     // 視点に合わせてプリセットカメラの見た目を更新
     Object.entries(presetGroupsByKey).forEach(([key, group]) => {

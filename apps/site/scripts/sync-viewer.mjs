@@ -57,6 +57,12 @@ try {
   await fs.promises.writeFile(path.join(dst, ".OWNED_BY_SSOT"), "", "utf8");
 } catch {}
 
+// Guard markers expected by guard-prebuild (public/viewer is treated as deploy SSOT)
+try {
+  await fs.promises.writeFile(path.join(dst, ".OWNED_BY_PUBLIC"), "", "utf8");
+  await fs.promises.writeFile(path.join(dst, ".public-owned"), "", "utf8");
+} catch {}
+
 // /viewer/_generated/PORTS.md を manifest.yaml と一致させる
 try {
   const genPorts = path.join(dst, "scripts", "gen-ports.mjs");

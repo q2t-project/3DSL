@@ -1,6 +1,16 @@
 // viewerHostBoot.js
 import { mountViewerHost } from "./viewerHost.js";
 
+// Disable site-level tuning CSS when embedded in an iframe.
+// (Tuning is for top-level "/viewer" use; embedded "/app/viewer" should be SSOT-stable.)
+(() => {
+  let inIframe = false;
+  try { inIframe = window.self !== window.top; } catch (_e) { inIframe = true; }
+  if (!inIframe) return;
+  const el = document.getElementById("viewer-tuning-css");
+  if (el) el.remove();
+})();
+
 function showFatal(e) {
   try {
     const el = document.getElementById('fallback');

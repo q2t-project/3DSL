@@ -245,10 +245,10 @@ const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}`;
       --ticker-h: 26px;
       --rail-w: 0px;
 
-      position: absolute;
+      position: fixed;
       inset: 0;
-      width: 100%;
-      height: 100%;
+      width: 100vw;
+      height: 100dvh;
       display: grid;
       grid-template-rows: var(--safe-top) var(--adbar-h) var(--meta-h) var(--ticker-h) 1fr var(--safe-bottom);
       background: #000;
@@ -421,7 +421,9 @@ const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}`;
     }
     .app-viewer-iframe {
       width: 100%;
+      min-width: 0;
       height: 100%;
+      min-height: 0;
       border: 0;
       display: block;
     }
