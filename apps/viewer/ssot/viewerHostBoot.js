@@ -43,6 +43,13 @@ function applyFrameFit() {
   const dh = Math.abs(h - window.innerHeight);
   const need = dw > 8 || dh > 8;
 
+  // debug snapshot (query from parent as __VIEWER_FRAME_FIT_LAST)
+  const dbg = { iframeW: w, iframeH: h, innerW: window.innerWidth, innerH: window.innerHeight, dw, dh, need };
+  try { window.__FRAME_FIT_LAST = dbg; } catch (_e) {}
+  try {
+    if (window.parent && window.parent !== window) window.parent.__VIEWER_FRAME_FIT_LAST = dbg;
+  } catch (_e) {}
+
   if (!need) {
     clear();
     return;
@@ -73,7 +80,15 @@ function applyFrameFit() {
     try { document.body.classList.add("is-embed"); } catch (_e) {}
   }
 
-  window.__FRAME_FIT_V = "v13";
+  window.__FRAME_FIT_V = "v14";
+
+  // expose to parent for debugging (iframe embed)
+  try {
+    if (window.parent && window.parent !== window) {
+      window.parent.__VIEWER_FRAME_FIT_V = window.__FRAME_FIT_V;
+    }
+  } catch (_e) {}
+
   applyFrameFit();
   window.addEventListener("resize", applyFrameFit, { passive: true });
 

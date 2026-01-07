@@ -22,6 +22,7 @@ export async function mountViewerHost(opts) {
 
   const owned = { hub: null, ui: null };
   let ro = null;
+  let roFrame = null;
   let disposed = false;
 
   // 1フレームに1回だけ resize を流す（ResizeObserver の連打対策）
@@ -41,14 +42,19 @@ export async function mountViewerHost(opts) {
   }
 
   function readCanvasClientSize() {
-    // clientWidth/Height が 0 のケースがあるので rect も見る
-    const cw = canvas.clientWidth || 0;
-    const ch = canvas.clientHeight || 0;
-    if (cw > 0 && ch > 0) return { w: cw, h: ch };
-    const r = canvas.getBoundingClientRect?.();
-    const w = r ? Math.floor(r.width) : 0;
-    const h = r ? Math.floor(r.height) : 0;
-    return { w, h };
+    // Prefer the actual iframe box size when embedded.
+    // This fixes cases where CSS viewport units / layout metrics don't match the visible iframe area on mobile.
+    try {
+      const fe = window.frameElement;
+      if (fe && typeof fe.getBoundingClientRect === "function") {
+        const r = fe.getBoundingClientRect();
+        const w = Math.round(r.width);
+        const h = Math.round(r.height);
+        if (w > 0 && h > 0) return { w, h };
+      }
+    } catch (_e) {}
+
+    return { w: canvas.clientWidth || 0, h: canvas.clientHeight || 0 };
   }
 
   try {
@@ -86,6 +92,21 @@ export async function mountViewerHost(opts) {
     });
     ro.observe(canvas);
 
+    // Also observe the iframe element itself (when embedded).
+    // Some mobile/browser cases change the iframe box size without triggering a reliable in-frame resize.
+    try {
+      const fe = window.frameElement;
+      if (fe && typeof ResizeObserver !== "undefined") {
+        roFrame = new ResizeObserver(() => {
+          if (disposed) return;
+          const { w, h } = readCanvasClientSize();
+          if (w > 0 && h > 0) requestResize(w, h);
+        });
+        roFrame.observe(fe);
+      }
+    } catch (_e) {}
+
+
     // 初回は明示的に 1 回サイズ反映してから start（初期 0 サイズ事故を潰す）
     {
       const { w, h } = readCanvasClientSize();
@@ -99,6 +120,7 @@ export async function mountViewerHost(opts) {
       ui: owned.ui,
       dispose() {
         try { ro?.disconnect?.(); } catch (_e) {}
+        try { roFrame?.disconnect?.(); } catch (_e) {}
         teardownPrev(owned, "ui");
         teardownPrev(owned, "hub");
       },
@@ -109,6 +131,7 @@ export async function mountViewerHost(opts) {
         try { if (rafId) window.cancelAnimationFrame(rafId); } catch (_e) {}
         rafId = 0;
         try { ro?.disconnect?.(); } catch (_e) {}
+        try { roFrame?.disconnect?.(); } catch (_e) {}
     teardownPrev(owned, "ui");
     teardownPrev(owned, "hub");
     throw e;
