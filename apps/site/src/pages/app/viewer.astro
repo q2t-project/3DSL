@@ -20,281 +20,357 @@ const id = (sp.get("id") ?? "").trim();
 const model = normalizeModelUrl(
   // canonical
   sp.get("model") ??
-  // legacy alias (typo in older links)
-  sp.get("mode") ??
-  // other legacy alias
-  sp.get("src") ??
-  (id ? `/3dss/library/${encodeURIComponent(id)}/model.3dss.json` : "")
+    // legacy alias (typo in older links)
+    sp.get("mode") ??
+    // other legacy alias
+    sp.get("src") ??
+    (id ? `/3dss/library/${encodeURIComponent(id)}/model.3dss.json` : "")
 );
 const back = (sp.get("back") || "/library").trim() || "/library";
 
 // /viewer stays pure; /app/viewer adds ads + simple top chrome.
-// embed=1: keep the embedded viewer free of its own chrome.
+// NOTE: layout復旧を優先するため、viewer側のHUD(UIボタン配置)も表示する。
 // Use explicit index.html to avoid any server differences around "/viewer/" resolution.
-const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}&embed=1`;
+const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}`;
 ---
 
 <LayoutApp title="Viewer">
-  <!--
-    Full-viewport fixed app shell:
-    - prevents browser scroll restoration from showing the UI "stuck" at the bottom
-    - makes the vertical stack (ad / ticker / viewer) deterministic
-  -->
-  <div id="appviewer-root" class="appviewer-root fixed inset-0 flex h-[100dvh] w-full flex-col overflow-hidden bg-black">
+  <div id="appviewer-root" class="appviewer-root">
     <!-- iOS/Android safe-area (top) -->
-    <div class="app-safe-top lg:hidden" aria-hidden="true"></div>
+    <div class="app-safe-top" aria-hidden="true"></div>
 
     <!-- 1) Mobile: Top ad (320x100) - fixed height -->
-    <div id="app-adbar" class="lg:hidden shrink-0 border-b border-white/10 bg-neutral-950">
+    <div id="app-adbar" class="app-adbar">
       <div class="app-ad-wrap app-chrome-pad">
         <div class="app-ad-label" aria-hidden="true">Sponsored</div>
-        <div class="app-ad-box rounded-xl border border-white/10 bg-white/5 grid place-items-center text-xs text-neutral-400">
-          Ad Slot (320×100)
-        </div>
+        <div class="app-ad-box">Ad Slot (320×100)</div>
       </div>
     </div>
 
     <!-- 2) Ticker (single line, marquee) - fixed height -->
-    <div id="app-tickerbar" class="shrink-0 border-b border-white/10 bg-neutral-950">
+    <div id="app-tickerbar" class="app-tickerbar">
       <div class="app-ticker-wrap app-chrome-pad">
-        <div class="overflow-hidden whitespace-nowrap text-[11px] text-neutral-200/90">
-          <div id="app-ticker" class="inline-block will-change-transform">
-            <span id="app-ticker-text" class="opacity-90">Loading…</span>
-            <span class="mx-8 opacity-50">•</span>
-            <span id="app-ticker-text-2" class="opacity-90">Loading…</span>
+        <div class="app-ticker-viewport">
+          <div id="app-ticker" class="app-ticker">
+            <span id="app-ticker-text" class="app-ticker-text">Loading…</span>
+            <span class="app-ticker-sep">•</span>
+            <span id="app-ticker-text-2" class="app-ticker-text">Loading…</span>
           </div>
         </div>
       </div>
     </div>
 
     <!-- 3) Left: Back / Right: document_meta - fixed height -->
-    <div id="app-metabar" class="shrink-0 border-b border-white/10 bg-neutral-950">
-      <div class="app-meta-wrap app-chrome-pad flex items-center justify-between gap-3">
-        <div class="flex items-center gap-2 shrink-0">
-          <a
-            id="app-btn-back"
-            href={back}
-            class="shrink-0 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-neutral-100 hover:bg-white/10"
-          >
-            ← 戻る
-          </a>
-        </div>
-
-        <div class="min-w-0 text-right">
-          <div id="app-doc-title" class="truncate text-sm font-medium text-neutral-100">(no title)</div>
-          <div class="truncate text-xs text-neutral-400">
-            <span id="app-doc-author">(no author)</span>
-            <span class="mx-2 opacity-40">/</span>
-            <span id="app-doc-path" class="opacity-80">{model}</span>
-          </div>
-        </div>
+    <div id="app-metabar" class="app-metabar">
+      <div class="app-meta-wrap app-chrome-pad">
+        <a id="app-btn-back" href={back} class="app-btn-back">← 戻る</a>
+        <div class="app-docmeta">
+      <div id="app-doc-title" class="app-doc-title">(no title)</div>
+      <div class="app-doc-sub">
+        <span id="app-doc-file" class="app-doc-path" title="">(no file)</span>
+      </div>
+    </div>
       </div>
     </div>
 
     <!-- 4) Viewer area (no scroll) -->
-    <div id="app-stage" class="min-h-0 flex-1">
-      <div class="flex h-full">
-        <div class="min-w-0 flex-1 bg-black">
+    <div id="app-stage" class="app-stage">
+      <div class="app-stage-inner">
+        <div class="app-viewer-wrap">
           <iframe
             id="app-viewer-iframe"
             src={iframeSrc}
-            class="block h-full w-full"
-            loading="lazy"
+            class="app-viewer-iframe"
             referrerpolicy="no-referrer"
             allowfullscreen
-          />
+          ></iframe>
         </div>
 
         <!-- Desktop: right rail ad 300x600 -->
-	        <aside id="app-adrail" class="hidden lg:block w-[300px] shrink-0 border-l border-white/10 bg-neutral-950">
-          <div class="p-3">
-            <div class="text-xs text-neutral-500">Sponsored</div>
-            <div class="mt-2 h-[600px] rounded-xl border border-white/10 bg-white/5 grid place-items-center text-xs text-neutral-400">
-              300×600 AD
-            </div>
+        <aside id="app-adrail" class="app-adrail">
+          <div class="app-rail-pad">
+            <div class="app-rail-label">Sponsored</div>
+            <div class="app-rail-box">300×600 AD</div>
           </div>
         </aside>
       </div>
     </div>
 
     <!-- iOS/Android safe-area (bottom) -->
-    <div class="app-safe-bottom lg:hidden" aria-hidden="true"></div>
+    <div class="app-safe-bottom" aria-hidden="true"></div>
   </div>
 
   <script type="module" is:inline>
-  const DEFAULT_MODEL = '/3dss/sample/core_viewer_baseline.3dss.json';
+    const MODEL = {JSON.stringify(model)};
+    const BACK = {JSON.stringify(back)};
+    const IFRAME_SRC = {JSON.stringify(iframeSrc)};
 
-  const sp = new URLSearchParams(location.search);
+    const $iframe = document.getElementById('app-viewer-iframe');
+    if ($iframe && $iframe.getAttribute('src') !== IFRAME_SRC) $iframe.setAttribute('src', IFRAME_SRC);
 
-  function normalizeModelUrl(raw) {
-    const v = (raw ?? '').trim();
-    if (!v) return DEFAULT_MODEL;
-    if (/^https?:\/\//i.test(v)) return v;
-    if (v.startsWith('/')) return v;
-    if (v.startsWith('3dss/')) return `/${v}`;
-    return `/${v}`;
-  }
+    const $backBtn = document.getElementById('app-btn-back');
+    if ($backBtn && $backBtn.getAttribute('href') !== BACK) $backBtn.setAttribute('href', BACK);
 
-  const id = (sp.get('id') || '').trim();
-  const model = normalizeModelUrl(
-    sp.get('model') ||
-    sp.get('mode') || // legacy alias (typo)
-    sp.get('src') ||
-    (id ? `/3dss/library/${encodeURIComponent(id)}/model.3dss.json` : '')
-  );
-  const back = (sp.get('back') || '/library').trim() || '/library';
+    const $title = document.getElementById('app-doc-title');
+    const $file = document.getElementById('app-doc-file');
+    const $t1 = document.getElementById('app-ticker-text');
+    const $t2 = document.getElementById('app-ticker-text-2');
 
-  // Keep /viewer pure; host owns the chrome.
-  // Use explicit index.html for stability (dev/prod behavior can differ for /viewer/).
-  const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}&embed=1`;
+    const modelUrl = String(MODEL ?? '');
+    const fileName = modelUrl.split('?')[0].split('/').filter(Boolean).pop() || modelUrl;
+    if ($file) { $file.textContent = fileName; $file.title = modelUrl; }
 
-  const $iframe = document.getElementById('app-viewer-iframe');
-  if ($iframe) $iframe.src = iframeSrc;
-
-  const $backBtn = document.getElementById('app-btn-back');
-  if ($backBtn) $backBtn.href = back;
-  const $title = document.getElementById('app-doc-title');
-  const $author = document.getElementById('app-doc-author');
-  const $path = document.getElementById('app-doc-path');
-  const $t1 = document.getElementById('app-ticker-text');
-  const $t2 = document.getElementById('app-ticker-text-2');
-
-  if ($path) $path.textContent = model;
-
-  function pick(obj, paths, fallback = '') {
-    for (const p of paths) {
-      let cur = obj;
-      let ok = true;
-      for (const k of p) {
-        if (!cur || typeof cur !== 'object' || !(k in cur)) { ok = false; break; }
-        cur = cur[k];
+    function pick(obj, paths, fallback = '') {
+      for (const p of paths) {
+        let cur = obj;
+        let ok = true;
+        for (const k of p) {
+          if (!cur || typeof cur !== 'object' || !(k in cur)) { ok = false; break; }
+          cur = cur[k];
+        }
+        if (ok && typeof cur === 'string' && cur.trim()) return cur;
       }
-      if (ok && typeof cur === 'string' && cur.trim()) return cur;
+      return fallback;
     }
-    return fallback;
-  }
 
-  async function loadMeta() {
-    try {
-      const res = await fetch(model, { cache: 'no-store' });
-      if (!res.ok) throw new Error(String(res.status));
-      const json = await res.json();
+    async function loadMeta() {
+      try {
+        const res = await fetch(MODEL, { cache: 'no-store' });
+        if (!res.ok) throw new Error(String(res.status));
+        const json = await res.json();
 
-      const title = pick(json, [[ 'document_meta', 'document_title' ]], '(no title)');
-      const author = pick(json, [[ 'document_meta', 'author' ]], '(no author)');
-      const summary = pick(json, [[ 'document_meta', 'document_summary' ]], title);
+        const title = pick(json, [[ 'document_meta', 'document_title' ]], '(no title)');
+        const summary = pick(json, [[ 'document_meta', 'document_summary' ]], title);
 
-      if ($title) $title.textContent = title;
-      if ($author) $author.textContent = author;
-      if ($t1) $t1.textContent = summary;
-      if ($t2) $t2.textContent = summary;
+        if ($title) $title.textContent = title;
+        if ($t1) $t1.textContent = summary;
+        if ($t2) $t2.textContent = summary;
 
-      // simple marquee: translateX loop
-      const ticker = document.getElementById('app-ticker');
-      if (ticker) {
-        const dur = Math.max(12, Math.min(30, (summary.length / 6)));
-        ticker.style.animation = `appTickerMarquee ${dur}s linear infinite`;
+        const ticker = document.getElementById('app-ticker');
+        if (ticker) {
+          const dur = Math.max(12, Math.min(30, (summary.length / 6)));
+          ticker.style.animation = `appTickerMarquee ${dur}s linear infinite`;
+        }
+      } catch (e) {
+        if ($title) $title.textContent = '(failed to load meta)';
+        if ($file) $file.textContent = fileName;
       }
-    } catch (e) {
-      if ($title) $title.textContent = '(failed to load meta)';
     }
-  }
 
-
-  loadMeta();
-</script>
+    loadMeta();
+  </script>
 
   <style is:inline>
+    :root {
+      color-scheme: dark;
+    }
+
+    /* Marquee */
     @keyframes appTickerMarquee {
       0%   { transform: translateX(0%); }
       100% { transform: translateX(-50%); }
     }
 
-    /* Make the ticker content wide enough for looping */
-    #app-ticker { padding-right: 100%; }
+    /* Root: deterministic vertical stack (safe-area + fixed heights) */
+    #appviewer-root {
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+      --adbar-h: 100px;
+      --ticker-h: 28px;
+      --meta-h: 44px;
+      --rail-w: 0px;
 
-	    /* Layout invariants */
-	    #app-stage { min-height: 0; flex: 1 1 auto; }
-	    #app-stage iframe { width: 100%; height: 100%; border: 0; display: block; }
-
-	    /*
-	      Force ad placements by viewport width (do not rely on Tailwind breakpoints).
-	      - Mobile: top bar (320x100), no side rail
-	      - Desktop: side rail (300x600), no top bar
-	    */
-	    @media (max-width: 1023px) {
-	      #app-adbar { display: block !important; }
-	      #app-adrail { display: none !important; }
-	    }
-	    @media (min-width: 1024px) {
-	      #app-adbar { display: none !important; height: 0 !important; }
-	      #app-adrail { display: block !important; }
-	    }
-
-    /* Mobile: fixed heights + safe-area */
-    @media (max-width: 1023px) {
-      .appviewer-root {
-        overscroll-behavior: none;
-        -webkit-overflow-scrolling: auto;
-      }
-
-      .app-safe-top {
-        height: env(safe-area-inset-top);
-        background: rgb(10 10 10);
-      }
-
-      .app-safe-bottom {
-        height: env(safe-area-inset-bottom);
-        background: rgb(0 0 0);
-      }
-
-      .app-chrome-pad {
-        padding-left: calc(16px + env(safe-area-inset-left));
-        padding-right: calc(16px + env(safe-area-inset-right));
-      }
-
-      /* Vertical stack heights */
-      #app-adbar { height: 100px; }
-      #app-tickerbar { height: 28px; }
-      #app-metabar { height: 44px; }
-
-      /* Ad: keep the 320x100 slot, overlay label (does not change height) */
-      #app-adbar .app-ad-wrap {
-        height: 100%;
-        position: relative;
-        display: flex;
-        align-items: center;
-      }
-      #app-adbar .app-ad-label {
-        position: absolute;
-        top: 6px;
-        left: calc(8px + env(safe-area-inset-left));
-        font-size: 11px;
-        line-height: 1;
-        color: rgba(163, 163, 163, 0.9);
-        pointer-events: none;
-      }
-      #app-adbar .app-ad-box {
-        height: 100%;
-      }
-
-      /* Ticker/meta rows: no vertical padding (height is fixed), center contents */
-      #app-tickerbar .app-ticker-wrap,
-      #app-metabar .app-meta-wrap {
-        height: 100%;
-        padding-top: 0;
-        padding-bottom: 0;
-        align-items: center;
-      }
-
-      /* Stage: keep iframe inside safe left/right on notch devices */
-      #app-stage {
-        padding-left: env(safe-area-inset-left);
-        padding-right: env(safe-area-inset-right);
-      }
-      #app-stage iframe {
-        display: block;
-      }
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-rows: var(--safe-top) var(--adbar-h) var(--ticker-h) var(--meta-h) 1fr var(--safe-bottom);
+      background: #000;
+      overflow: hidden;
+      overscroll-behavior: none;
     }
+
+    .app-safe-top { grid-row: 1; height: var(--safe-top); background: rgb(10 10 10); }
+    .app-safe-bottom { grid-row: 6; height: var(--safe-bottom); background: rgb(0 0 0); }
+
+    #app-adbar { grid-row: 2; height: var(--adbar-h); }
+    #app-tickerbar { grid-row: 3; height: var(--ticker-h); }
+    #app-metabar { grid-row: 4; height: var(--meta-h); }
+    #app-stage { grid-row: 5; min-height: 0; }
+
+    /* Desktop switches */
+    @media (min-width: 1024px) {
+      #appviewer-root {
+        --safe-top: 0px;
+        --safe-bottom: 0px;
+        --adbar-h: 0px;
+        --rail-w: 300px;
+      }
+      .app-safe-top, .app-safe-bottom { display: none; }
+      #app-adbar { display: none; }
+    }
+
+    /* Chrome padding with safe-area (mobile) */
+    .app-chrome-pad {
+      padding-left: calc(16px + env(safe-area-inset-left));
+      padding-right: calc(16px + env(safe-area-inset-right));
+    }
+
+    /* Bars */
+    .app-adbar,
+    .app-tickerbar,
+    .app-metabar {
+      background: #0a0a0a;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+    }
+
+    /* Ad (mobile) */
+    .app-ad-wrap {
+      height: 100%;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .app-ad-label {
+      position: absolute;
+      top: 6px;
+      left: calc(8px + env(safe-area-inset-left));
+      font-size: 11px;
+      line-height: 1;
+      color: rgba(163, 163, 163, 0.9);
+      pointer-events: none;
+    }
+    .app-ad-box {
+      width: 100%;
+      height: 100%;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      background: rgba(255, 255, 255, 0.04);
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      color: rgba(163, 163, 163, 0.9);
+    }
+
+    /* Ticker */
+    .app-ticker-wrap {
+      height: 100%;
+      display: flex;
+      align-items: center;
+    }
+    .app-ticker-viewport {
+      width: 100%;
+      overflow: hidden;
+      white-space: nowrap;
+      font-size: 11px;
+      color: rgba(229, 229, 229, 0.92);
+    }
+    #app-ticker {
+      display: inline-flex;
+      align-items: center;
+      gap: 32px;
+      padding-right: 100%;
+      will-change: transform;
+    }
+    .app-ticker-sep { opacity: 0.55; }
+
+    /* Meta */
+    .app-meta-wrap {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .app-btn-back {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(245, 245, 245, 0.98);
+      text-decoration: none;
+      font-size: 14px;
+      line-height: 1;
+    }
+    .app-btn-back:hover { background: rgba(255, 255, 255, 0.10); }
+
+    .app-docmeta {
+      min-width: 0;
+      flex: 1 1 auto;
+      text-align: right;
+    }
+    .app-doc-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: rgba(245, 245, 245, 0.98);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .app-doc-sub {
+      margin-top: 2px;
+      font-size: 12px;
+      color: rgba(163, 163, 163, 0.95);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .app-doc-sep { margin: 0 8px; opacity: 0.45; }
+    .app-doc-path { opacity: 0.85; }
+
+    /* Stage: keep iframe deterministic */
+    #app-stage {
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+    .app-stage-inner {
+      height: 100%;
+      min-width: 0;
+      display: grid;
+      grid-template-columns: 1fr var(--rail-w);
+    }
+    .app-viewer-wrap {
+      min-width: 0;
+      background: #000;
+    }
+    .app-viewer-iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+    }
+
+    /* Right rail (desktop) */
+    .app-adrail {
+      width: var(--rail-w);
+      border-left: 1px solid rgba(255, 255, 255, 0.10);
+      background: #0a0a0a;
+      overflow: hidden;
+      display: none;
+    }
+    @media (min-width: 1024px) {
+      .app-adrail { display: block; }
+    }
+    .app-rail-pad { padding: 12px; }
+    .app-rail-label { font-size: 12px; color: rgba(163, 163, 163, 0.9); }
+    .app-rail-box {
+      margin-top: 8px;
+      height: 600px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      background: rgba(255, 255, 255, 0.04);
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      color: rgba(163, 163, 163, 0.9);
+    }
+
+    /* If something outside forces scroll, still keep app isolated */
+    body.app-shell { overscroll-behavior: none; }
   </style>
 </LayoutApp>

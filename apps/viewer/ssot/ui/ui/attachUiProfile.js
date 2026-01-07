@@ -107,18 +107,35 @@ export function attachUiProfile(hub, opts) {
     } catch (_e) {}
   };
 
-  const toast = (text, o) => {
+  const toast = (text, o = {}) => {
+    // Prefer injected toast implementation (dev harness)
     if (toastOpt) {
       try {
         toastOpt(text, o);
       } catch (_e) {}
       return;
     }
-    // fallback（devHarness だけ許可。prodで HUD を破壊しない）
-    if (!DEBUG && profile !== 'devHarness_full') return;
-    const hudEl = el('hudToast');
+
+    // In prod: use viewerHud as a top-center toast (HUD == toast only)
+    const hudEl = el('viewerHud');
     if (!hudEl) return;
+
+    const level = String(o?.level ?? 'info');
+    hudEl.classList.remove('hud-info', 'hud-warn', 'hud-error', 'hud-hidden', 'hud-visible');
+    if (level === 'warn') hudEl.classList.add('hud-warn');
+    else if (level === 'error') hudEl.classList.add('hud-error');
+    else hudEl.classList.add('hud-info');
+
     hudEl.textContent = String(text ?? '');
+    hudEl.classList.add('hud-visible');
+
+    const duration = Number.isFinite(Number(o?.duration)) ? Number(o?.duration) : 1400;
+    win.setTimeout(() => {
+      try {
+        hudEl.classList.remove('hud-visible');
+        hudEl.classList.add('hud-hidden');
+      } catch (_e) {}
+    }, Math.max(300, duration));
   };
 
   let detached = false;

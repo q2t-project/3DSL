@@ -11,7 +11,8 @@ const ADSENSE_CLIENT = "ca-pub-3327629809463247";
 <html lang="ja" class="h-full overflow-hidden">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <!-- viewport-fit=cover: enable safe-area env() on iOS notch devices -->
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <meta name="google-adsense-account" content="ca-pub-3327629809463247" />
 
     <script
@@ -29,6 +30,28 @@ const ADSENSE_CLIENT = "ca-pub-3327629809463247";
     />
     <title>{title}</title>
     <slot name="head" />
+
+    <style>
+      html, body {
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      body.app-shell {
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
+        overscroll-behavior: none;
+      }
+    </style>
+
+	    <!-- Critical app-shell invariants (do not rely on utility CSS being present) -->
+	    <style is:global>
+	      html, body { height: 100%; margin: 0; }
+	      body { overflow: hidden; }
+	    </style>
   </head>
 
   <!-- app screen: fixed viewport, no page scroll -->

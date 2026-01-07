@@ -1,0 +1,62 @@
+{
+  "document_meta": {
+    "document_title": "Untitled",
+    "document_uuid": "7dfc9f9d-bbb3-45e8-93a9-8c185823cb3e",
+    "schema_uri": "（ここは運用に合わせて固定）",
+    "author": "unknown",
+    "version": "1.0.0",
+    "tags": []
+  },
+  "points": [
+    {
+      "signification": {
+        "name": "a"
+      },
+      "appearance": {
+        "position": [
+          2,
+          3,
+          5
+        ],
+        "marker": {
+          "text": {
+            "size": 16,
+            "plane": "yz",
+            "content": "a"
+          },
+          "primitive": "none"
+        }
+      },
+      "meta": {
+        "uuid": "2e041caf-cdb9-4da4-b5a2-7cf34920dd32",
+        "tags": []
+      }
+    },
+    {
+      "signification": {
+        "name": "b"
+      },
+      "appearance": {
+        "position": [
+          5,
+          6,
+          1
+        ],
+        "marker": {
+          "text": {
+            "size": 64,
+            "plane": "zx",
+            "content": "b"
+          },
+          "primitive": "none"
+        }
+      },
+      "meta": {
+        "uuid": "4fddf2fc-a3aa-4cac-aba1-130547993ee5",
+        "tags": []
+      }
+    }
+  ],
+  "lines": [],
+  "aux": []
+}

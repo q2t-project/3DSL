@@ -1106,3 +1106,244 @@ body.is-embed #doc-caption {
     transform-origin: bottom right;
   }
 }
+
+
+/* =====================================================================
+   UI Layout override (2026-01-07)
+   - Left-bottom: filters (vertical) + frame buttons (row) + slider (bottom)
+   - Right-bottom: gizmo + autoOrbit
+   - HUD: toast only (top-center)
+   ===================================================================== */
+
+#viewer-hud {
+  position: fixed;
+  left: 50%;
+  top: 10px;
+  transform: translateX(-50%);
+  max-width: min(92vw, 520px);
+  width: auto;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.72);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  font-size: 13px;
+  line-height: 1.4;
+  pointer-events: none;
+  z-index: 60;
+}
+
+#viewer-hud.hud-hidden {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-6px);
+}
+#viewer-hud.hud-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.viewer-dock {
+  position: fixed;
+  z-index: 40;
+  pointer-events: auto;
+  display: flex;
+  gap: 8px;
+}
+
+#viewer-leftdock {
+  left: 12px;
+  bottom: 12px;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+#viewer-rightdock {
+  right: 12px;
+  bottom: 12px;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+/* Move legacy containers into docks */
+#viewer-topbar {
+  position: static;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+#viewer-toolbar {
+  position: static;
+  left: auto;
+  bottom: auto;
+  transform: none;
+}
+
+/* Filters: vertical stack */
+.filter-stack .filter-toggle {
+  justify-content: flex-start;
+  width: 120px;
+}
+
+.filter-stack .filter-label {
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+/* Frame controls row: 5 buttons in one line */
+.frame-controls {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-start;
+}
+
+.frame-icon-img {
+  width: 18px;
+  height: 18px;
+  display: block;
+  filter: invert(1) brightness(1.4);
+}
+
+/* Slider under buttons */
+.frame-slider {
+  width: 260px;
+}
+
+.frame-labels {
+  opacity: 0.75;
+}
+
+/* Doc meta: no frame/background */
+.doc-caption {
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+}
+
+#doc-caption {
+  right: 12px;
+  top: 10px;
+  text-align: right;
+}
+
+.doc-caption-title {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0.1rem;
+}
+
+/* Gizmo frame & overlay */
+#gizmo-wrapper {
+  position: static;
+  width: 160px;
+  height: 160px;
+  pointer-events: auto;
+}
+
+.gizmo-frame {
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(0,0,0,0.55);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  overflow: hidden;
+}
+
+#gizmo-slot {
+  position: absolute;
+  inset: 0;
+}
+
+.gizmo-ui {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.world-axes-toggle {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  pointer-events: auto;
+  padding: 4px 6px;
+}
+
+.gizmo-presets-toggle {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  pointer-events: auto;
+  font-size: 11px;
+  padding: 4px 6px;
+  opacity: 0.9;
+}
+
+.gizmo-mode {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  pointer-events: none;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.gizmo-mode-label {
+  display: none;
+}
+
+.mode-pill {
+  font-size: 12px;
+  opacity: 0.45;
+  text-shadow: 0 0 10px rgba(0,0,0,0.9);
+}
+
+.mode-pill.mode-pill-active {
+  opacity: 0.95;
+}
+
+/* AutoOrbit: 3 controls (CW / autoOrbit / CCW) */
+.auto-orbit-slot {
+  width: 172px;
+  height: 32px;
+}
+
+.auto-orbit-pill {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.65);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.auto-orbit-center {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.auto-orbit-btn-dir {
+  width: 28px;
+  height: 28px;
+}
+
+.auto-orbit-btn-dir.is-running.is-speed-1 {
+  background: rgba(255, 80, 80, 0.28);
+}
+
+.auto-orbit-btn-dir.is-running.is-speed-2 {
+  background: rgba(255, 80, 80, 0.50);
+}
+
+.auto-orbit-btn-dir.is-running.is-speed-4 {
+  background: rgba(255, 80, 80, 0.75);
+}

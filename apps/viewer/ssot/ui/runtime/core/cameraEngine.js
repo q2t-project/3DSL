@@ -14,12 +14,7 @@ const MAX_DISTANCE = 1000;
 const MAX_COORD = 1e4;
 
 // AutoOrbit 用の速度テーブル（段階：1〜N）
-const AUTO_ORBIT_SPEED_TABLE = [
-  0,                 // 0 は未使用
-  Math.PI / 24,      // level 1: ゆっくり
-  Math.PI / 16,      // level 2
-  Math.PI / 12,      // level 3: そこそこ速い
-];
+const AUTO_ORBIT_SPEED_TABLE = [0, Math.PI / 24, Math.PI / 12, Math.PI / 6]; // 1x, 2x, 4x
 
 const MAX_AUTO_ORBIT_SPEED_LEVEL = AUTO_ORBIT_SPEED_TABLE.length - 1;
 

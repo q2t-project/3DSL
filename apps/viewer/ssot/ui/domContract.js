@@ -3,7 +3,7 @@
 // SOURCE OF TRUTH: viewer_dom_contract.md (SSOT)
 // This file is the executable mirror of that spec.
 
-export const DOM_CONTRACT_VERSION = '2025-12-20';
+export const DOM_CONTRACT_VERSION = '2026-01-07';
 
 /**
  * @typedef {Object} RoleSpec
@@ -48,11 +48,28 @@ const ROLE_SPECS = /** @type {Record<string, RoleSpec>} */ ({
   frameZeroLine: { name: 'frameZeroLine', preferred: '[data-role="frame-zero-line"]', fallback: '#frame-zero-line', tag: null },
 
   // optional UI knobs (prod_full optional)
-  vsLineWidthMode: { name: 'vsLineWidthMode', preferred: '[data-role="vs-line-width-mode"]', fallback: '#vs-line-width-mode', tag: 'SELECT' },
+  vsLineWidthMode: { name: 'vsLineWidthMode', preferred: '[data-role="vs-linewidth-mode"]', fallback: '#vs-linewidth-mode', tag: 'SELECT' },
   vsMicroProfile: { name: 'vsMicroProfile', preferred: '[data-role="vs-micro-profile"]', fallback: '#vs-micro-profile', tag: 'SELECT' },
   vsPointSize: { name: 'vsPointSize', preferred: '[data-role="vs-point-size"]', fallback: '#vs-point-size', tag: 'INPUT' },
   vsPointAlpha: { name: 'vsPointAlpha', preferred: '[data-role="vs-point-alpha"]', fallback: '#vs-point-alpha', tag: 'INPUT' },
 
+
+
+  // gizmo extras / camera (optional)
+  worldAxesToggle: { name: 'worldAxesToggle', preferred: '[data-role="world-axes-toggle"]', fallback: '#world-axes-toggle', tag: 'BUTTON' },
+  gizmoPresetsToggle: { name: 'gizmoPresetsToggle', preferred: '[data-role="gizmo-presets-toggle"]', fallback: '#gizmo-presets-toggle', tag: 'BUTTON' },
+  gizmoModeLabel: { name: 'gizmoModeLabel', preferred: '[data-role="gizmo-mode-label"]', fallback: '#gizmo-mode-label', tag: null },
+  modePillMacro: { name: 'modePillMacro', preferred: '[data-role="mode-pill-macro"]', fallback: '#mode-pill-macro', tag: null },
+  modePillMicro: { name: 'modePillMicro', preferred: '[data-role="mode-pill-micro"]', fallback: '#mode-pill-micro', tag: null },
+
+  // autoOrbit controls (optional)
+  autoOrbitSlot: { name: 'autoOrbitSlot', preferred: '[data-role="auto-orbit-slot"]', fallback: '#auto-orbit-slot', tag: 'DIV' },
+  autoOrbitToggle: { name: 'autoOrbitToggle', preferred: '[data-role="auto-orbit-toggle"]', fallback: '#auto-orbit-toggle', tag: 'BUTTON' },
+  autoOrbitCW: { name: 'autoOrbitCW', preferred: '.auto-orbit-btn-dir[data-dir="cw"]', fallback: '.auto-orbit-btn-dir[data-dir="cw"]', tag: 'BUTTON' },
+  autoOrbitCCW: { name: 'autoOrbitCCW', preferred: '.auto-orbit-btn-dir[data-dir="ccw"]', fallback: '.auto-orbit-btn-dir[data-dir="ccw"]', tag: 'BUTTON' },
+
+  // detail view mount (optional)
+  detailRoot: { name: 'detailRoot', preferred: '[data-role="viewer-detail"]', fallback: '#viewer-detail', tag: null },
   // dev harness meta (devHarness_* required)
   metaFile: { name: 'metaFile', preferred: '[data-role="meta-file"]', fallback: '#meta-file', tag: null },
   metaModel: { name: 'metaModel', preferred: '[data-role="meta-model"]', fallback: '#meta-model', tag: null },
