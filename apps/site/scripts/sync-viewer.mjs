@@ -12,29 +12,21 @@ const siteRoot = path.resolve(__dirname, "..");
 // apps/site -> repo root
 const repoRoot = path.resolve(siteRoot, "..", "..");
 
-// public-owned viewer path
 const publicDir = path.join(siteRoot, "public");
 const PUBLIC_VIEWER = path.join(publicDir, "viewer");
 
-// ownership markers（両対応）
-const marker = path.join(PUBLIC_VIEWER, ".public-owned");
-const ownedMarkerFile = path.join(PUBLIC_VIEWER, ".OWNED_BY_PUBLIC");
-
-const force = process.env.SYNC_VIEWER_FORCE === "1";
-
-// publicが所有してる限り、通常 sync:viewer は絶対に触らない
-if (!force && (fs.existsSync(marker) || fs.existsSync(ownedMarkerFile))) {
-  console.log(
-    `[sync] viewer: SKIP (public owns /viewer) marker=${fs.existsSync(marker)} owned=${fs.existsSync(ownedMarkerFile)}`
-  );
-  process.exit(0);
-}
-
+// SSOT candidates (first match wins)
 const candidates = [
   path.join(repoRoot, "apps/viewer/ssot"),
   path.join(repoRoot, "apps/viewer/public"),
   path.join(repoRoot, "apps/viewer/viewer"), // legacy (before rename)
 ];
+
+// Optional: allow users to skip syncing explicitly
+if (process.env.SYNC_VIEWER_SKIP === "1") {
+  console.log("[sync] viewer: SKIP (SYNC_VIEWER_SKIP=1)");
+  process.exit(0);
+}
 
 let src = null;
 for (const p of candidates) {
@@ -55,17 +47,14 @@ if (!src) {
 
 const dst = PUBLIC_VIEWER;
 
-// force時だけ上書き（rm→cp）
+// Always mirror SSOT -> public/viewer
 await rm(dst, { recursive: true, force: true });
 await mkdir(path.dirname(dst), { recursive: true });
 await cp(src, dst, { recursive: true });
 
-// public-owned を復元（rmで消えるから）
+// Marker to make intent explicit
 try {
-  await fs.promises.writeFile(marker, "", "utf8");
-} catch {}
-try {
-  await fs.promises.writeFile(ownedMarkerFile, "", "utf8");
+  await fs.promises.writeFile(path.join(dst, ".OWNED_BY_SSOT"), "", "utf8");
 } catch {}
 
 // /viewer/_generated/PORTS.md を manifest.yaml と一致させる

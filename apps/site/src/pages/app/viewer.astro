@@ -47,7 +47,29 @@ const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}`;
       </div>
     </div>
 
-    <!-- 2) Ticker (single line, marquee) - fixed height -->
+    <!-- 2) Back + file (row1) + title (row2) - fixed height -->
+    <div id="app-metabar" class="app-metabar">
+      <div class="app-meta-wrap app-chrome-pad">
+        <div class="app-meta-row1">
+          <a id="app-btn-back" href={back} class="app-btn-back">← 戻る</a>
+          <div class="app-docfile">
+            <span id="app-doc-file" class="app-doc-path" title="">(no file)</span>
+          </div>
+        </div>
+
+        <button
+          id="app-doc-titleline"
+          class="app-doc-titleline"
+          type="button"
+          title=""
+          aria-label="Document title"
+        >
+          (no title)
+        </button>
+      </div>
+    </div>
+
+    <!-- 3) Summary ticker (single line, marquee) - fixed height -->
     <div id="app-tickerbar" class="app-tickerbar">
       <div class="app-ticker-wrap app-chrome-pad">
         <div class="app-ticker-viewport">
@@ -57,19 +79,6 @@ const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}`;
             <span id="app-ticker-text-2" class="app-ticker-text">Loading…</span>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- 3) Left: Back / Right: document_meta - fixed height -->
-    <div id="app-metabar" class="app-metabar">
-      <div class="app-meta-wrap app-chrome-pad">
-        <a id="app-btn-back" href={back} class="app-btn-back">← 戻る</a>
-        <div class="app-docmeta">
-      <div id="app-doc-title" class="app-doc-title">(no title)</div>
-      <div class="app-doc-sub">
-        <span id="app-doc-file" class="app-doc-path" title="">(no file)</span>
-      </div>
-    </div>
       </div>
     </div>
 
@@ -100,25 +109,40 @@ const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}`;
     <div class="app-safe-bottom" aria-hidden="true"></div>
   </div>
 
-  <script type="module" is:inline>
-    const MODEL = {JSON.stringify(model)};
-    const BACK = {JSON.stringify(back)};
-    const IFRAME_SRC = {JSON.stringify(iframeSrc)};
+  <!-- Title popup (tap title line) -->
+  <dialog id="app-doc-dialog" class="app-doc-dialog">
+    <div class="app-doc-dialog-body">
+      <div id="app-doc-dialog-title" class="app-doc-dialog-title"></div>
+      <div id="app-doc-dialog-summary" class="app-doc-dialog-summary"></div>
+      <div class="app-doc-dialog-actions">
+        <button id="app-doc-dialog-close" class="app-doc-dialog-close" type="button">閉じる</button>
+      </div>
+    </div>
+  </dialog>
 
+  <script type="module" is:inline define:vars={{ MODEL: model, BACK: back, IFRAME_SRC: iframeSrc }}>
     const $iframe = document.getElementById('app-viewer-iframe');
     if ($iframe && $iframe.getAttribute('src') !== IFRAME_SRC) $iframe.setAttribute('src', IFRAME_SRC);
 
     const $backBtn = document.getElementById('app-btn-back');
     if ($backBtn && $backBtn.getAttribute('href') !== BACK) $backBtn.setAttribute('href', BACK);
 
-    const $title = document.getElementById('app-doc-title');
     const $file = document.getElementById('app-doc-file');
+    const $titleLine = document.getElementById('app-doc-titleline');
     const $t1 = document.getElementById('app-ticker-text');
     const $t2 = document.getElementById('app-ticker-text-2');
+
+    const $dlg = document.getElementById('app-doc-dialog');
+    const $dlgTitle = document.getElementById('app-doc-dialog-title');
+    const $dlgSummary = document.getElementById('app-doc-dialog-summary');
+    const $dlgClose = document.getElementById('app-doc-dialog-close');
 
     const modelUrl = String(MODEL ?? '');
     const fileName = modelUrl.split('?')[0].split('/').filter(Boolean).pop() || modelUrl;
     if ($file) { $file.textContent = fileName; $file.title = modelUrl; }
+
+    let lastTitle = '(no title)';
+    let lastSummary = '';
 
     function pick(obj, paths, fallback = '') {
       for (const p of paths) {
@@ -133,26 +157,67 @@ const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}`;
       return fallback;
     }
 
+    function openDialog() {
+      if (!$dlg) {
+        const text = [lastTitle, lastSummary].filter(Boolean).join('\n\n');
+        alert(text);
+        return;
+      }
+      try {
+        if (typeof $dlg.showModal === 'function') $dlg.showModal();
+      } catch (_e) {
+        const text = [lastTitle, lastSummary].filter(Boolean).join('\n\n');
+        alert(text);
+      }
+    }
+
+    if ($titleLine) {
+      $titleLine.addEventListener('click', (ev) => {
+        ev.preventDefault?.();
+        openDialog();
+      });
+    }
+    if ($dlgClose && $dlg) {
+      $dlgClose.addEventListener('click', () => $dlg.close());
+      $dlg.addEventListener('click', (ev) => {
+        if (ev.target === $dlg) $dlg.close();
+      });
+    }
+
     async function loadMeta() {
       try {
         const res = await fetch(MODEL, { cache: 'no-store' });
         if (!res.ok) throw new Error(String(res.status));
         const json = await res.json();
 
-        const title = pick(json, [[ 'document_meta', 'document_title' ]], '(no title)');
-        const summary = pick(json, [[ 'document_meta', 'document_summary' ]], title);
+        const title = pick(json, [[ 'scene_meta', 'title' ], [ 'document_meta', 'document_title' ]], '(no title)');
+        const summary = pick(
+          json,
+          [[ 'scene_meta', 'summary' ], [ 'scene_meta', 'description' ], [ 'document_meta', 'document_summary' ]],
+          ''
+        );
 
-        if ($title) $title.textContent = title;
-        if ($t1) $t1.textContent = summary;
-        if ($t2) $t2.textContent = summary;
+        lastTitle = title;
+        lastSummary = summary;
+
+        if ($titleLine) {
+          $titleLine.textContent = title;
+          $titleLine.title = title;
+        }
+        if ($dlgTitle) $dlgTitle.textContent = title;
+        if ($dlgSummary) $dlgSummary.textContent = summary || '';
+
+        const tickerText = summary || title;
+        if ($t1) $t1.textContent = tickerText;
+        if ($t2) $t2.textContent = tickerText;
 
         const ticker = document.getElementById('app-ticker');
         if (ticker) {
-          const dur = Math.max(12, Math.min(30, (summary.length / 6)));
+          const dur = Math.max(12, Math.min(30, (tickerText.length / 6)));
           ticker.style.animation = `appTickerMarquee ${dur}s linear infinite`;
         }
-      } catch (e) {
-        if ($title) $title.textContent = '(failed to load meta)';
+      } catch (_e) {
+        if ($titleLine) $titleLine.textContent = '(failed to load meta)';
         if ($file) $file.textContent = fileName;
       }
     }
@@ -176,8 +241,8 @@ const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}`;
       --safe-top: env(safe-area-inset-top);
       --safe-bottom: env(safe-area-inset-bottom);
       --adbar-h: 100px;
-      --ticker-h: 28px;
-      --meta-h: 44px;
+      --meta-h: 52px;
+      --ticker-h: 26px;
       --rail-w: 0px;
 
       position: absolute;
@@ -185,7 +250,7 @@ const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}`;
       width: 100%;
       height: 100%;
       display: grid;
-      grid-template-rows: var(--safe-top) var(--adbar-h) var(--ticker-h) var(--meta-h) 1fr var(--safe-bottom);
+      grid-template-rows: var(--safe-top) var(--adbar-h) var(--meta-h) var(--ticker-h) 1fr var(--safe-bottom);
       background: #000;
       overflow: hidden;
       overscroll-behavior: none;
@@ -195,8 +260,8 @@ const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}`;
     .app-safe-bottom { grid-row: 6; height: var(--safe-bottom); background: rgb(0 0 0); }
 
     #app-adbar { grid-row: 2; height: var(--adbar-h); }
-    #app-tickerbar { grid-row: 3; height: var(--ticker-h); }
-    #app-metabar { grid-row: 4; height: var(--meta-h); }
+    #app-metabar { grid-row: 3; height: var(--meta-h); }
+    #app-tickerbar { grid-row: 4; height: var(--ticker-h); }
     #app-stage { grid-row: 5; min-height: 0; }
 
     /* Desktop switches */
@@ -219,8 +284,8 @@ const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}`;
 
     /* Bars */
     .app-adbar,
-    .app-tickerbar,
-    .app-metabar {
+    .app-metabar,
+    .app-tickerbar {
       background: #0a0a0a;
       border-bottom: 1px solid rgba(255, 255, 255, 0.10);
     }
@@ -253,6 +318,69 @@ const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}`;
       color: rgba(163, 163, 163, 0.9);
     }
 
+    /* Meta */
+    .app-meta-wrap {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+      padding-top: 6px;
+      padding-bottom: 6px;
+    }
+
+    .app-meta-row1 {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .app-btn-back {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(245, 245, 245, 0.98);
+      text-decoration: none;
+      font-size: 14px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .app-btn-back:hover { background: rgba(255, 255, 255, 0.10); }
+
+    .app-docfile {
+      min-width: 0;
+      flex: 1 1 auto;
+      text-align: right;
+      font-size: 12px;
+      color: rgba(163, 163, 163, 0.95);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .app-doc-titleline {
+      width: 100%;
+      padding: 0;
+      border: none;
+      background: transparent;
+      text-align: right;
+      font-size: 14px;
+      line-height: 1.1;
+      color: rgba(245, 245, 245, 0.98);
+      font-family: "Yu Mincho", "Hiragino Mincho ProN", "MS Mincho", serif;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+    }
+
     /* Ticker */
     .app-ticker-wrap {
       height: 100%;
@@ -274,54 +402,6 @@ const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}`;
       will-change: transform;
     }
     .app-ticker-sep { opacity: 0.55; }
-
-    /* Meta */
-    .app-meta-wrap {
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-    .app-btn-back {
-      flex: 0 0 auto;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 14px;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      background: rgba(255, 255, 255, 0.05);
-      color: rgba(245, 245, 245, 0.98);
-      text-decoration: none;
-      font-size: 14px;
-      line-height: 1;
-    }
-    .app-btn-back:hover { background: rgba(255, 255, 255, 0.10); }
-
-    .app-docmeta {
-      min-width: 0;
-      flex: 1 1 auto;
-      text-align: right;
-    }
-    .app-doc-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: rgba(245, 245, 245, 0.98);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .app-doc-sub {
-      margin-top: 2px;
-      font-size: 12px;
-      color: rgba(163, 163, 163, 0.95);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .app-doc-sep { margin: 0 8px; opacity: 0.45; }
-    .app-doc-path { opacity: 0.85; }
 
     /* Stage: keep iframe deterministic */
     #app-stage {
@@ -368,6 +448,51 @@ const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}`;
       place-items: center;
       font-size: 12px;
       color: rgba(163, 163, 163, 0.9);
+    }
+
+    /* Dialog */
+    .app-doc-dialog {
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 16px;
+      padding: 0;
+      background: rgba(10, 10, 10, 0.98);
+      color: rgba(245, 245, 245, 0.98);
+      max-width: min(92vw, 520px);
+    }
+    .app-doc-dialog::backdrop {
+      background: rgba(0, 0, 0, 0.6);
+    }
+    .app-doc-dialog-body {
+      padding: 14px 14px 12px;
+    }
+    .app-doc-dialog-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      font-family: "Yu Mincho", "Hiragino Mincho ProN", "MS Mincho", serif;
+    }
+    .app-doc-dialog-summary {
+      font-size: 13px;
+      line-height: 1.5;
+      color: rgba(229, 229, 229, 0.92);
+      white-space: pre-wrap;
+    }
+    .app-doc-dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 12px;
+    }
+    .app-doc-dialog-close {
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(245, 245, 245, 0.98);
+      padding: 8px 12px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .app-doc-dialog-close:hover {
+      background: rgba(255, 255, 255, 0.14);
     }
 
     /* If something outside forces scroll, still keep app isolated */

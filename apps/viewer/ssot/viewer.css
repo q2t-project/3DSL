@@ -347,8 +347,8 @@ body {
 .filter-icon-img {
   width: 20px;
   height: 20px;
-  display: block;
-  filter: invert(1) brightness(1.4);
+  display: block !important;
+  filter: none !important;
 }
 
 /* デフォルトは「on アイコンだけ表示」 */
@@ -415,7 +415,7 @@ body {
 }
 
 .frame-slider {
-  width: 260px;                /* ← バーの長さを固定 */
+  width: 195px;                /* ← バーの長さを固定 */
   --frame-track-height: 12px;
 
   -webkit-appearance: none;
@@ -703,8 +703,8 @@ body {
 .coordinate-icon-img {
   width: 20px;
   height: 20px;
-  display: block;
-  filter: invert(1) brightness(1.4); /* 黒SVG → 明るい白 */
+  display: block !important;
+  filter: none !important; /* icons are authored for dark UI */
 }
 
 /* world-axis pill 自体を少し大きめに */
@@ -792,8 +792,8 @@ body {
 .auto-orbit-icon-img {
   width: 24px;
   height: 24px;
-  display: block;
-  filter: invert(1) brightness(1.4);
+  display: block !important;
+  filter: none !important;
 }
 
 /* 中央の autoOrbit ボタン */
@@ -840,8 +840,8 @@ html, body {
 #viewer-canvas {
   position: fixed;
   inset: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   display: block;
   outline: none;
   z-index: 0;
@@ -946,8 +946,8 @@ html, body {
 #viewer-canvas {
   position: fixed;
   inset: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   display: block;
   outline: none;
   z-index: 0;
@@ -1117,13 +1117,19 @@ body.is-embed #doc-caption {
 /* Filters: vertical stack */
 .filter-stack .filter-toggle {
   justify-content: flex-start;
-  width: 120px;
+  width: 60px;
+  padding: 6px 10px;
+  gap: 6px;
 }
 
+
 .filter-stack .filter-label {
+  display: inline;
   font-size: 12px;
-  letter-spacing: 0.02em;
+  line-height: 1;
+  opacity: 0.85;
 }
+
 
 /* Frame controls row: 5 buttons in one line */
 .frame-controls {
@@ -1135,13 +1141,13 @@ body.is-embed #doc-caption {
 .frame-icon-img {
   width: 18px;
   height: 18px;
-  display: block;
-  filter: invert(1) brightness(1.4);
+  display: block !important;
+  filter: none !important;
 }
 
 /* Slider under buttons */
 .frame-slider {
-  width: 260px;
+  width: 150px;
 }
 
 .frame-labels {
@@ -1224,14 +1230,17 @@ body.is-embed #doc-caption {
 }
 
 .gizmo-mode-label {
-  display: none;
+  display: inline;
+  font-size: 11px;
+  opacity: 0.6;
+  text-transform: lowercase;
+  letter-spacing: 0.12em;
 }
 
 .mode-pill {
-  font-size: 12px;
-  opacity: 0.45;
-  text-shadow: 0 0 10px rgba(0,0,0,0.9);
+  display: none;
 }
+
 
 .mode-pill.mode-pill-active {
   opacity: 0.95;
@@ -1280,4 +1289,56 @@ body.is-embed #doc-caption {
 
 .auto-orbit-btn-dir.is-running.is-speed-4 {
   background: rgba(255, 80, 80, 0.75);
+}
+
+
+/* === layout tweak (2026-01-07): compact filter + shorter frame bar === */
+.filter-stack .filter-toggle {
+  justify-content: flex-start;
+  width: 62px;
+  padding: 6px 10px;
+  gap: 6px;
+}
+.filter-stack .filter-label {
+  display: inline;
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.85;
+}
+.filter-toggle{
+  gap: 0;
+}
+/* =====================
+ *  SSOT override: ensure SVG img are visible (tuning CSS should not hide)
+ * ===================== */
+.filter-icon-img,
+.frame-icon-img,
+.auto-orbit-icon-img,
+.coordinate-icon-img {
+  display: block !important;
+  filter: none !important;
+}
+
+@media (max-width: 767px){
+  /* Mobile: meta is shown in host chrome; hide viewer caption */
+  #doc-caption{ display: none !important; }
+}
+
+
+/* === SSOT enforce: icon-only UI bits === */
+.filter-label{ display:none !important; }
+.frame-icon-img,
+.filter-icon-img,
+.auto-orbit-icon-img,
+.coordinate-icon-img{
+  display:block !important;
+  visibility:visible !important;
+  opacity:0.92 !important;
+  filter:none !important;
+}
+/* filter state: off shows grey via opacity on button */
+.filter-toggle[aria-pressed="false"]{ opacity:0.38; }
+/* hide doc-caption on mobile (meta is hosted by /app/viewer) */
+@media (max-width: 767px){
+  #doc-caption{ display:none !important; }
 }
