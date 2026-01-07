@@ -317,9 +317,9 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
   const btnCCW = getEl?.('autoOrbitCCW') || null;
 
   let autoRunning = false;
-  let autoDir = 'cw';
-  let autoSpeedLevel = 1;
-  const AUTO_MAX_SPEED_LEVEL = 3; // 1x/2x/4x
+  let autoDir = 'ccw';
+  let autoSpeed = 1;
+  const AUTO_MAX_SPEED = 2;
 
   const readAuto = () => {
     if (camCtrl && typeof camCtrl.isAutoOrbiting === 'function') {
@@ -339,18 +339,13 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
     return 'macro';
   };
 
-  const speedClass = (level) => {
-    if (level === 1) return 'is-speed-1';
-    if (level === 2) return 'is-speed-2';
-    return 'is-speed-4'; // level 3
-  };
-
   const uiAuto = () => {
     if (!btnCW || !btnCCW) return;
-    [btnCW, btnCCW].forEach((b) => b.classList.remove('is-running', 'is-speed-1', 'is-speed-2', 'is-speed-4'));
+    [btnCW, btnCCW].forEach((b) => b.classList.remove('is-running', 'is-fast'));
     if (!autoRunning) return;
     const b = autoDir === 'cw' ? btnCW : btnCCW;
-    b.classList.add('is-running', speedClass(autoSpeedLevel));
+    b.classList.add('is-running');
+    if (autoSpeed === 2) b.classList.add('is-fast');
   };
 
   const applyAuto = () => {
@@ -360,8 +355,7 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
       return;
     }
     const dirSign = autoDir === 'cw' ? -1 : 1;
-    const lvl = Math.max(1, Math.min(AUTO_MAX_SPEED_LEVEL, autoSpeedLevel));
-    const opts = { direction: dirSign, speedLevel: lvl };
+    const opts = { direction: dirSign, speedLevel: autoSpeed };
     if (readAuto() && typeof camCtrl.updateAutoOrbitSettings === 'function') {
       camCtrl.updateAutoOrbitSettings(opts);
     } else {
@@ -394,64 +388,53 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
     };
   };
 
-  const cycleSpeedLevel = () => {
-    const next = (autoSpeedLevel % AUTO_MAX_SPEED_LEVEL) + 1;
-    autoSpeedLevel = next;
-  };
-
-  // Center: toggle start/stop. Start always CW 1x.
   const offAutoToggle = on(btnAutoToggle, 'click', (ev) => {
     ev.preventDefault?.();
-    if (autoRunning) {
-      autoRunning = false;
+    autoRunning = !autoRunning;
+    if (!autoRunning) {
       uiAuto();
       applyAuto();
       return;
     }
-    autoRunning = true;
-    autoDir = 'cw';
-    autoSpeedLevel = 1;
+    autoDir = autoDir || 'ccw';
+    autoSpeed = autoSpeed || 1;
     uiAuto();
     applyAuto();
   });
 
-  // Left: CW. If already CW+running, cycle speed 1->2->4->1.
   const offCW = on(btnCW, 'click', (ev) => {
     ev.preventDefault?.();
     if (!autoRunning) {
       autoRunning = true;
       autoDir = 'cw';
-      autoSpeedLevel = 1;
+      autoSpeed = 1;
       uiAuto();
       applyAuto();
       return;
     }
-    if (autoDir === 'cw') {
-      cycleSpeedLevel();
-    } else {
+    if (autoDir === 'cw') autoSpeed = autoSpeed === 1 ? AUTO_MAX_SPEED : 1;
+    else {
       autoDir = 'cw';
-      autoSpeedLevel = 1;
+      autoSpeed = 1;
     }
     uiAuto();
     applyAuto();
   });
 
-  // Right: CCW. If already CCW+running, cycle speed 1->2->4->1.
   const offCCW = on(btnCCW, 'click', (ev) => {
     ev.preventDefault?.();
     if (!autoRunning) {
       autoRunning = true;
       autoDir = 'ccw';
-      autoSpeedLevel = 1;
+      autoSpeed = 1;
       uiAuto();
       applyAuto();
       return;
     }
-    if (autoDir === 'ccw') {
-      cycleSpeedLevel();
-    } else {
+    if (autoDir === 'ccw') autoSpeed = autoSpeed === 1 ? AUTO_MAX_SPEED : 1;
+    else {
       autoDir = 'ccw';
-      autoSpeedLevel = 1;
+      autoSpeed = 1;
     }
     uiAuto();
     applyAuto();

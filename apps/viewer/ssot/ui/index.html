@@ -29,113 +29,68 @@
 </head>
 
 <body>
+  <!-- canvas (required) -->
+  <canvas id="viewer-canvas" data-role="viewer-canvas" style="touch-action: none;"></canvas>
 
-  <canvas id="viewer-canvas" data-role="viewer-canvas" tabindex="0" style="touch-action: none;"></canvas>
+  <!-- HUD / toast (optional, but attachUiProfile uses it as a fallback in dev) -->
+  <div id="viewer-hud" data-role="viewer-hud"></div>
 
-  <!-- HUD = toast only (top-center) -->
-  <div id="viewer-hud" data-role="viewer-hud" class="hud-hidden"></div>
-
-  <!-- Document meta (top-right, no frame) -->
-  <div id="doc-caption" class="doc-caption" aria-hidden="true">
-    <div id="doc-caption-title" data-role="doc-caption-title" class="doc-caption-title">(title)</div>
-    <div id="doc-caption-body" data-role="doc-caption-body" class="doc-caption-body">(summary)</div>
+  <!-- doc caption (optional in contract, but harmless and used by some demos) -->
+  <div id="doc-caption" class="doc-caption">
+    <div id="doc-caption-title" data-role="doc-caption-title" class="doc-caption-title"></div>
+    <div id="doc-caption-body" data-role="doc-caption-body" class="doc-caption-body"></div>
   </div>
 
-  <!-- Left-bottom dock: filters (vertical) + frame controls (row) + frame slider (bottom) -->
-  <div id="viewer-leftdock" class="viewer-dock viewer-leftdock">
-    <div id="viewer-topbar" class="filter-stack" aria-label="Filters">
-      <button id="filter-lines" data-role="filter-lines" class="keycap filter-toggle" type="button" aria-pressed="true" title="Toggle lines">
-        <span class="filter-icon-on"><img class="filter-icon-img" src="assets/icons/visibility-on.svg" alt="" /></span>
-        <span class="filter-icon-off"><img class="filter-icon-img" src="assets/icons/visibility-off.svg" alt="" /></span>
-        <span class="filter-label">線</span>
-      </button>
-      <button id="filter-points" data-role="filter-points" class="keycap filter-toggle" type="button" aria-pressed="true" title="Toggle points">
-        <span class="filter-icon-on"><img class="filter-icon-img" src="assets/icons/visibility-on.svg" alt="" /></span>
-        <span class="filter-icon-off"><img class="filter-icon-img" src="assets/icons/visibility-off.svg" alt="" /></span>
-        <span class="filter-label">点</span>
-      </button>
-      <button id="filter-aux" data-role="filter-aux" class="keycap filter-toggle" type="button" aria-pressed="true" title="Toggle aux">
-        <span class="filter-icon-on"><img class="filter-icon-img" src="assets/icons/visibility-on.svg" alt="" /></span>
-        <span class="filter-icon-off"><img class="filter-icon-img" src="assets/icons/visibility-off.svg" alt="" /></span>
-        <span class="filter-label">他</span>
-      </button>
-    </div>
+  <!-- topbar: filters (required for prod_full) -->
+  <div id="viewer-topbar">
+    <button id="filter-lines" data-role="filter-lines" class="keycap filter-toggle" type="button" title="toggle lines">Lines</button>
+    <button id="filter-points" data-role="filter-points" class="keycap filter-toggle" type="button" title="toggle points">Points</button>
+    <button id="filter-aux" data-role="filter-aux" class="keycap filter-toggle" type="button" title="toggle aux">Aux</button>
+  </div>
 
-    <div id="viewer-toolbar" aria-label="Frame controls">
-      <div class="frame-block" aria-label="Timeline">
-        <div class="frame-controls" aria-label="Frame buttons">
-          <button id="btn-rew" data-role="btn-rew" class="keycap" type="button" title="First">
-            <img class="frame-icon-img" src="assets/icons/frame-first.svg" alt="" />
-          </button>
-          <button id="btn-step-back" data-role="btn-step-back" class="keycap" type="button" title="Prev">
-            <img class="frame-icon-img" src="assets/icons/frame-prev.svg" alt="" />
-          </button>
-          <button id="btn-play" data-role="btn-play" class="keycap" type="button" title="Play/Pause">
-            <span class="frame-play-icon"><img class="frame-icon-img" src="assets/icons/frame-play.svg" alt="" /></span>
-            <span class="frame-pause-icon"><img class="frame-icon-img" src="assets/icons/frame-pause.svg" alt="" /></span>
-          </button>
-          <button id="btn-step-forward" data-role="btn-step-forward" class="keycap" type="button" title="Next">
-            <img class="frame-icon-img" src="assets/icons/frame-next.svg" alt="" />
-          </button>
-          <button id="btn-ff" data-role="btn-ff" class="keycap" type="button" title="Last">
-            <img class="frame-icon-img" src="assets/icons/frame-last.svg" alt="" />
-          </button>
-        </div>
+  <!-- toolbar: frame controls (required for prod_full) -->
+  <div id="viewer-toolbar" data-role="frame-block" class="frame-block">
+    <div data-role="frame-controls" class="frame-controls">
+      <button id="btn-rew" data-role="btn-rew" class="keycap" type="button" title="rew">⏮</button>
+      <button id="btn-step-back" data-role="btn-step-back" class="keycap" type="button" title="step back">◀</button>
+      <button id="btn-play" data-role="btn-play" class="keycap" type="button" title="play/pause">⏵</button>
+      <button id="btn-step-forward" data-role="btn-step-forward" class="keycap" type="button" title="step forward">▶</button>
+      <button id="btn-ff" data-role="btn-ff" class="keycap" type="button" title="ff">⏭</button>
 
-        <div class="frame-slider-wrapper" aria-label="Frame slider">
-          <input id="frame-slider" data-role="frame-slider" class="frame-slider" type="range" min="-1" max="2" value="-1" step="1" />
-          <div id="frame-zero-line" data-role="frame-zero-line" class="frame-zero-line" aria-hidden="true"></div>
-          <div class="frame-labels" aria-hidden="true">
-            <span id="frame-label-min" data-role="frame-label-min" class="frame-label frame-label-min">-1</span>
-            <span id="frame-label-zero" data-role="frame-label-zero" class="frame-label frame-label-zero">0</span>
-            <span id="frame-label-max" data-role="frame-label-max" class="frame-label frame-label-max">2</span>
-          </div>
-          <div id="frame-label-current" data-role="frame-label-current" class="frame-label-current">-1</div>
+      <div data-role="frame-slider-wrapper" class="frame-slider-wrapper">
+        <input id="frame-slider" data-role="frame-slider" class="frame-slider" type="range" min="0" max="0" value="0" step="1" />
+        <div id="frame-zero-line" data-role="frame-zero-line" class="frame-zero-line" aria-hidden="true"></div>
+        <div class="frame-labels" aria-hidden="true">
+          <span id="frame-label-min" data-role="frame-label-min" class="frame-label-min">0</span>
+          <span id="frame-label-zero" data-role="frame-label-zero" class="frame-label-zero">0</span>
+          <span id="frame-label-max" data-role="frame-label-max" class="frame-label-max">0</span>
         </div>
+        <div id="frame-label-current" data-role="frame-label-current" class="frame-label-current">0</div>
       </div>
     </div>
   </div>
 
-  <!-- Right-bottom dock: Gizmo + AutoOrbit -->
-  <div id="viewer-rightdock" class="viewer-dock viewer-rightdock">
-    <div id="gizmo-wrapper" class="gizmo-frame" aria-label="Gizmo">
-      <div id="gizmo-slot" data-role="gizmo-slot" aria-hidden="true"></div>
-
-      <!-- Gizmo overlay UI (inside the frame) -->
-      <div id="gizmo-ui" data-role="gizmo-ui" class="gizmo-ui" aria-hidden="false">
-        <div class="gizmo-mode" aria-hidden="true">
-          <span id="gizmo-mode-label" data-role="gizmo-mode-label" class="gizmo-mode-label">macro</span>
-        </div>
-
-        <button id="world-axes-toggle" data-role="world-axes-toggle" class="keycap world-axes-toggle" type="button" aria-pressed="false" title="World axes">
-          <span data-icon="on"><img class="coordinate-icon-img" src="assets/icons/coordinate-on.svg" alt="" /></span>
-          <span data-icon="off"><img class="coordinate-icon-img" src="assets/icons/coordinate-off.svg" alt="" /></span>
-        </button>
-
-        <button id="gizmo-presets-toggle" data-role="gizmo-presets-toggle" class="keycap gizmo-presets-toggle" type="button" title="Preset view">
-          <span class="preset-label">preset<br />view</span>
-        </button>
-      </div>
-    </div>
-
-    <div id="auto-orbit-slot" data-role="auto-orbit-slot" class="auto-orbit-slot" aria-label="Auto orbit">
-      <div class="auto-orbit-pill">
-        <button class="auto-orbit-btn auto-orbit-btn-dir" data-dir="cw" type="button" title="Rotate CW">
-          <img class="auto-orbit-icon-img" src="assets/icons/360-cw.svg" alt="" />
-        </button>
-        <button id="auto-orbit-toggle" data-role="auto-orbit-toggle" class="auto-orbit-btn auto-orbit-center" type="button" title="Toggle autoOrbit">
-          autoOrbit
-        </button>
-        <button class="auto-orbit-btn auto-orbit-btn-dir" data-dir="ccw" type="button" title="Rotate CCW">
-          <img class="auto-orbit-icon-img" src="assets/icons/360-ccw.svg" alt="" />
-        </button>
-      </div>
+  <!-- gizmo: mount slot (required) -->
+  <div id="gizmo-wrapper">
+    <div id="gizmo-slot" data-role="gizmo-slot"></div>
+    <!-- optional overlay UI (safe even if unused) -->
+    <div id="gizmo-ui" aria-hidden="true">
+      <div class="gizmo-axis-row" data-role="gizmo-axis-row"></div>
+      <div class="gizmo-view-row" data-role="gizmo-view-row"></div>
     </div>
   </div>
 
-  <div id="fallback" aria-live="polite"></div>
+  <div id="fallback"></div>
+  <noscript>JavaScript を有効にしてください。</noscript>
 
-  <script type="module" src="./viewerHostBoot.js"></script>
+  <script type="module">
+    // normalize /viewer (no trailing slash) to /viewer/
+    if (location.pathname === '/viewer') {
+      location.replace('/viewer/' + location.search + location.hash);
+    }
+
+    import './viewerHostBoot.js';
+  </script>
 </body>
 
 </html>
