@@ -412,7 +412,8 @@ const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}`;
       height: 100%;
       min-width: 0;
       display: grid;
-      grid-template-columns: 1fr var(--rail-w);
+      /* Mobile: viewer takes full width (no hidden rail column) */
+      grid-template-columns: 1fr;
     }
     .app-viewer-wrap {
       min-width: 0;
@@ -434,6 +435,7 @@ const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}`;
       display: none;
     }
     @media (min-width: 1024px) {
+      .app-stage-inner { grid-template-columns: 1fr var(--rail-w); }
       .app-adrail { display: block; }
     }
     .app-rail-pad { padding: 12px; }

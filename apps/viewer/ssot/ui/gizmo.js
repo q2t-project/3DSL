@@ -795,8 +795,10 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
     lens.rotation.y = Math.PI; // 法線を -Z（原点向き）へ
     group.add(lens);
 
-    // 視線ビーム（アイソメ4方のみ）
-    if (def.kind === 'iso') {
+    // 視線ビーム（アクティブな preset のみ点灯させる）
+    // NOTE: 以前の UI では「手前に来たカメラ → gizmo 中心」へビームで向きを示していたため、
+    //       iso 限定ではなく全 preset にビームを持たせ、表示は activePresetKey で 1 本だけにする。
+    {
       const beamLength = CAM_DISTANCE - LENS_OFFSET; // レンズ中心〜原点
       const beamGeom = new THREE.CylinderGeometry(
         beamRadius,
