@@ -1297,9 +1297,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -1334,9 +1331,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -1371,9 +1365,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -1408,9 +1399,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -1445,9 +1433,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -1482,9 +1467,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -1519,9 +1501,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -1556,9 +1535,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -1593,9 +1569,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -1630,9 +1603,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -1667,9 +1637,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -1704,9 +1671,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -1741,9 +1705,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -1778,9 +1739,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -1815,9 +1773,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -1852,9 +1807,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -1889,9 +1841,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -1926,9 +1875,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -1963,9 +1909,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -2000,9 +1943,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -2037,9 +1977,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -2074,9 +2011,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -2111,9 +2045,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -2148,9 +2079,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -2185,9 +2113,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -2222,9 +2147,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -2259,9 +2181,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -2296,9 +2215,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -2333,9 +2249,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -2370,9 +2283,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -2407,9 +2317,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -2444,9 +2351,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -2481,9 +2385,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -2518,9 +2419,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -2555,9 +2453,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -2592,9 +2487,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -2629,9 +2521,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -2666,9 +2555,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -2703,9 +2589,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -2740,9 +2623,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",
@@ -2777,9 +2657,6 @@
         "color": "#ffffff",
         "caption_text": {
           "plane": "billboard",
-          "align": "along_line_screen",
-          "keep_upright": true,
-          "offset": 0,
           "font_size": 8
         },
         "line_type": "straight",

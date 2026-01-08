@@ -1,6 +1,6 @@
 {
   "profile": "sandbox-min",
-  "created_at": "2026-01-07T07:19:19",
+  "created_at": "2026-01-08T18:47:17",
   "max_file_mb": 25,
   "exclude_dirs": [
     ".git",
@@ -78,15 +78,15 @@
   "zips": [
     {
       "zip": "C:\\Users\\vrrrm\\projects\\3DSL\\_ul_zips\\apps_site_scripts.zip",
-      "sha256": "F7EB257591E53E4F0A891BB28A95A0F5CEF70E154591BA937AE570F8DB058660"
+      "sha256": "8E82EDF6DE6B6D1B3972081039A115888E2C4094DFD875F5CF6C1F4297C3D08C"
     },
     {
       "zip": "C:\\Users\\vrrrm\\projects\\3DSL\\_ul_zips\\apps_site_src.zip",
-      "sha256": "3B2CDCC6B7350819037B8FFB125BA98EC5949E7A5D3916DAF1B49C94128EEB5B"
+      "sha256": "D226815D4FA2442388BBDFAB22BEC4E84D6A9CA954965BC223CD11DB655B3861"
     },
     {
       "zip": "C:\\Users\\vrrrm\\projects\\3DSL\\_ul_zips\\apps_viewer.zip",
-      "sha256": "C507F57146F8FBC5456606B1EC0A2DCFF078B5CF0B357FA718BB6B77C6B018F1"
+      "sha256": "08F3D21624EA2038163999EAD5FAC7278625B4F3129F9C99A247A0B9A079D099"
     },
     {
       "zip": "C:\\Users\\vrrrm\\projects\\3DSL\\_ul_zips\\package.json.zip",
@@ -98,7 +98,7 @@
     },
     {
       "zip": "C:\\Users\\vrrrm\\projects\\3DSL\\_ul_zips\\packages_3dss-content_scripts.zip",
-      "sha256": "042D29F43B4151ECC5B1D93FBF8BA1E9B4EDC24189F18902AC7AE0A542EA48CD"
+      "sha256": "0C50BCE28FCCF7B48432A6501024F1C1D3013F009494742891C3E0F8F7980AA0"
     }
   ]
 }
