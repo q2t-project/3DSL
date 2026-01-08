@@ -354,8 +354,8 @@ body {
 .filter-icon-img {
   width: 20px;
   height: 20px;
-  display: block;
-  filter: invert(1) brightness(1.4);
+  display: block !important;
+  filter: none !important;
 }
 
 /* デフォルトは「on アイコンだけ表示」 */
@@ -422,7 +422,7 @@ body {
 }
 
 .frame-slider {
-  width: 260px;                /* ← バーの長さを固定 */
+  width: 195px;                /* ← バーの長さを固定 */
   --frame-track-height: 12px;
 
   -webkit-appearance: none;
@@ -710,8 +710,8 @@ body {
 .coordinate-icon-img {
   width: 20px;
   height: 20px;
-  display: block;
-  filter: invert(1) brightness(1.4); /* 黒SVG → 明るい白 */
+  display: block !important;
+  filter: none !important; /* icons are authored for dark UI */
 }
 
 /* world-axis pill 自体を少し大きめに */
@@ -799,8 +799,8 @@ body {
 .auto-orbit-icon-img {
   width: 24px;
   height: 24px;
-  display: block;
-  filter: invert(1) brightness(1.4);
+  display: block !important;
+  filter: none !important;
 }
 
 /* 中央の autoOrbit ボタン */
@@ -847,8 +847,8 @@ html, body {
 #viewer-canvas {
   position: fixed;
   inset: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   display: block;
   outline: none;
   z-index: 0;
@@ -953,8 +953,8 @@ html, body {
 #viewer-canvas {
   position: fixed;
   inset: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   display: block;
   outline: none;
   z-index: 0;
@@ -1105,4 +1105,438 @@ body.is-embed #doc-caption {
     transform: scale(0.9);
     transform-origin: bottom right;
   }
+}
+
+
+/* =====================================================================
+   UI Layout override (2026-01-07)
+   - Left-bottom: filters (vertical) + frame buttons (row) + slider (bottom)
+   - Right-bottom: gizmo + autoOrbit
+   - HUD: toast only (top-center)
+   ===================================================================== */
+
+#viewer-hud {
+  position: fixed;
+  left: 50%;
+  top: 10px;
+  transform: translateX(-50%);
+  max-width: min(92vw, 520px);
+  width: auto;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.72);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  font-size: 13px;
+  line-height: 1.4;
+  pointer-events: none;
+  z-index: 60;
+}
+
+#viewer-hud.hud-hidden {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-6px);
+}
+#viewer-hud.hud-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.viewer-dock {
+  position: fixed;
+  z-index: 40;
+  pointer-events: auto;
+  display: flex;
+  gap: 8px;
+}
+
+#viewer-leftdock {
+  left: 12px;
+  bottom: 12px;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+#viewer-rightdock {
+  right: 12px;
+  bottom: 12px;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+/* Move legacy containers into docks */
+#viewer-topbar {
+  position: static;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+#viewer-toolbar {
+  position: static;
+  left: auto;
+  bottom: auto;
+  transform: none;
+}
+
+/* Filters: vertical stack */
+.filter-stack .filter-toggle {
+  justify-content: flex-start;
+  width: 60px;
+  padding: 6px 10px;
+  gap: 6px;
+}
+
+
+.filter-stack .filter-label {
+  display: inline;
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.85;
+}
+
+
+/* Frame controls row: 5 buttons in one line */
+.frame-controls {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-start;
+}
+
+.frame-icon-img {
+  width: 18px;
+  height: 18px;
+  display: block !important;
+  filter: none !important;
+}
+
+/* Slider under buttons */
+.frame-slider {
+  width: 150px;
+}
+
+.frame-labels {
+  opacity: 0.75;
+}
+
+/* Doc meta: no frame/background */
+.doc-caption {
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+}
+
+#doc-caption {
+  right: 12px;
+  top: 10px;
+  text-align: right;
+}
+
+.doc-caption-title {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0.1rem;
+}
+
+/* Gizmo frame & overlay */
+#gizmo-wrapper {
+  position: relative !important;
+  width: 160px;
+  height: 160px;
+  pointer-events: auto;
+}
+
+.gizmo-frame {
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(0,0,0,0.55);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  overflow: hidden;
+}
+
+#gizmo-slot {
+  position: absolute;
+  inset: 0;
+}
+
+.gizmo-ui {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* world-axis: always bottom-left inside gizmo (defensive against overrides) */
+.world-axes-toggle,
+#world-axes-toggle {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  top: auto;
+  right: auto;
+  pointer-events: auto;
+  padding: 4px 6px;
+}
+
+/* preset view: pill at bottom-right, label as "preset\nview" */
+.gizmo-presets-toggle,
+#gizmo-presets-toggle {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  left: auto;
+  top: auto;
+  pointer-events: auto;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  min-width: 64px;
+  height: 28px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.0;
+  opacity: 0.9;
+}
+
+.gizmo-presets-toggle .preset-label,
+.gizmo-presets-toggle .preset-view-label {
+  display: block;
+  text-align: center;
+}
+
+.gizmo-mode {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  pointer-events: none;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.gizmo-mode-label {
+  display: inline;
+  font-size: 11px;
+  opacity: 0.6;
+  text-transform: lowercase;
+  letter-spacing: 0.12em;
+}
+
+.mode-pill {
+  display: none;
+}
+
+
+.mode-pill.mode-pill-active {
+  opacity: 0.95;
+}
+
+/* AutoOrbit: 3 controls (CW / autoOrbit / CCW) */
+.auto-orbit-slot {
+  width: 172px;
+  height: 32px;
+}
+
+.auto-orbit-pill {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.65);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.auto-orbit-center {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.auto-orbit-btn-dir {
+  width: 28px;
+  height: 28px;
+}
+
+.auto-orbit-btn-dir.is-running.is-speed-1 {
+  background: rgba(255, 80, 80, 0.28);
+}
+
+.auto-orbit-btn-dir.is-running.is-speed-2 {
+  background: rgba(255, 80, 80, 0.50);
+}
+
+.auto-orbit-btn-dir.is-running.is-speed-4 {
+  background: rgba(255, 80, 80, 0.75);
+}
+
+
+/* === layout tweak (2026-01-07): compact filter + shorter frame bar === */
+.filter-stack .filter-toggle {
+  justify-content: flex-start;
+  width: 62px;
+  padding: 6px 10px;
+  gap: 6px;
+}
+.filter-stack .filter-label {
+  display: inline;
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.85;
+}
+.filter-toggle{
+  gap: 0;
+}
+/* =====================
+ *  SSOT override: ensure SVG img are visible (tuning CSS should not hide)
+ * ===================== */
+.filter-icon-img,
+.frame-icon-img,
+.auto-orbit-icon-img,
+.coordinate-icon-img {
+  display: block !important;
+  filter: none !important;
+}
+
+@media (max-width: 767px){
+  /* Mobile: meta is shown in host chrome; hide viewer caption */
+  #doc-caption{ display: none !important; }
+}
+
+
+/* === SSOT enforce: icon-only UI bits === */
+.filter-label{ display:none !important; }
+.frame-icon-img,
+.filter-icon-img,
+.auto-orbit-icon-img,
+.coordinate-icon-img{
+  display:block !important;
+  visibility:visible !important;
+  opacity:0.92 !important;
+  filter:none !important;
+}
+/* filter state: off shows grey via opacity on button */
+.filter-toggle[aria-pressed="false"]{ opacity:0.38; }
+/* hide doc-caption on mobile (meta is hosted by /app/viewer) */
+@media (max-width: 767px){
+  #doc-caption{ display:none !important; }
+}
+
+/* =========================================================
+ *  2026-01-07 (v6) UI tweaks (SSOT hardening)
+ *   - prevent iframe/canvas width drift (only-left-half on mobile)
+ *   - show filter labels (線/点/他)
+ *   - make filter toggles + frame buttons icon-only (no pill frame)
+ *   - keep doc-caption as plain text (no card)
+ *   - enforce correct frame min/max label alignment
+ * ======================================================= */
+
+/* harden canvas sizing against any external tuning css */
+html, body {
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+#viewer-canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* doc caption: plain text, no background/frame */
+.doc-caption {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  padding: 0 !important;
+}
+.doc-caption-title {
+  font-family: "Yu Mincho", "Hiragino Mincho ProN", "Hiragino Mincho Pro", "MS Mincho", serif !important;
+}
+.doc-caption-body {
+  font-family: "Yu Mincho", "Hiragino Mincho ProN", "Hiragino Mincho Pro", "MS Mincho", serif !important;
+}
+
+/* show labels (override old icon-only rule) */
+.filter-label {
+  display: inline !important;
+}
+
+/* filters: no pill background/border */
+.filter-stack .filter-toggle.keycap {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.filter-stack .filter-toggle {
+  padding: 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  justify-content: flex-start;
+  gap: 6px;
+}
+
+/* frame buttons: no pill background/border */
+.frame-controls .keycap {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 4px !important;
+}
+.frame-controls {
+  gap: 8px;
+}
+
+/* frame slider: shorter (about 3/4) */
+.frame-slider-wrapper {
+  width: 150px !important;
+}
+
+/* ensure min/max labels sit at ends (avoid bunching left) */
+.frame-labels {
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  display: flex !important;
+  justify-content: space-between !important;
+}
+.frame-label-min { text-align: left !important; }
+.frame-label-max { text-align: right !important; }
+
+
+/* =========================================================
+ *  2026-01-07 v7: enforce gizmo overlay positions
+ * ======================================================= */
+#gizmo-wrapper { position: relative !important; }
+#world-axes-toggle{
+  position:absolute !important;
+  left:6px !important;
+  bottom:6px !important;
+  top:auto !important;
+  right:auto !important;
+}
+#gizmo-presets-toggle{
+  position:absolute !important;
+  right:6px !important;
+  bottom:6px !important;
+  top:auto !important;
+  left:auto !important;
+  border-radius:999px !important;
+  padding:4px 10px !important;
+  min-width:64px !important;
+  height:28px !important;
+  display:inline-flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  line-height:1.0 !important;
 }

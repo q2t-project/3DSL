@@ -1,65 +1,23 @@
 // viewerHostBoot.js
 import { mountViewerHost } from "./viewerHost.js";
 
+// Disable site-level tuning CSS when embedded in an iframe.
+// (Tuning is for top-level "/viewer" use; embedded "/app/viewer" should be SSOT-stable.)
+(() => {
+  let inIframe = false;
+  try { inIframe = window.self !== window.top; } catch (_e) { inIframe = true; }
+  if (!inIframe) return;
+  const el = document.getElementById("viewer-tuning-css");
+  if (el) el.remove();
+})();
+
 function showFatal(e) {
   try {
-    const el = document.getElementById("fallback");
+    const el = document.getElementById('fallback');
     if (!el) return;
     const msg = e && (e.stack || e.message) ? String(e.stack || e.message) : String(e);
     el.textContent = `[viewer] boot failed\n${msg}`;
   } catch (_err) {}
-}
-
-function applyFrameFit() {
-  // When this viewer runs inside an iframe (/app/viewer), some environments
-  // report an inflated layout viewport (e.g. 980px) compared to the iframe box
-  // (e.g. 430px). That makes 100vw/fixed UI render wider and get clipped.
-
-  const root = document.documentElement;
-  const body = document.body;
-
-  const clear = () => {
-    try { body?.classList?.remove("frame-fit"); } catch (_e) {}
-    try {
-      root?.style?.removeProperty("--frame-w");
-      root?.style?.removeProperty("--frame-h");
-    } catch (_e) {}
-  };
-
-  const fe = window.frameElement;
-  if (!fe || !root || !body) {
-    clear();
-    return;
-  }
-
-  let rect = null;
-  try { rect = fe.getBoundingClientRect(); } catch (_e) { rect = null; }
-
-  const w = rect?.width ? Math.round(rect.width) : 0;
-  const h = rect?.height ? Math.round(rect.height) : 0;
-  if (!w || !h) return;
-
-  const dw = Math.abs(w - window.innerWidth);
-  const dh = Math.abs(h - window.innerHeight);
-  const need = dw > 8 || dh > 8;
-
-  // debug snapshot (query from parent as __VIEWER_FRAME_FIT_LAST)
-  const dbg = { iframeW: w, iframeH: h, innerW: window.innerWidth, innerH: window.innerHeight, dw, dh, need };
-  try { window.__FRAME_FIT_LAST = dbg; } catch (_e) {}
-  try {
-    if (window.parent && window.parent !== window) window.parent.__VIEWER_FRAME_FIT_LAST = dbg;
-  } catch (_e) {}
-
-  if (!need) {
-    clear();
-    return;
-  }
-
-  try {
-    root.style.setProperty("--frame-w", `${w}px`);
-    root.style.setProperty("--frame-h", `${h}px`);
-    body.classList.add("frame-fit");
-  } catch (_e) {}
 }
 
 (async () => {
@@ -68,35 +26,24 @@ function applyFrameFit() {
   window.__vh = null;
 
   const p = new URLSearchParams(location.search);
-
-  // allow small boot toggles for debugging
-  const mode = p.get("mode") || "prod"; // "prod" | "dev"
-
-  // simple model selection
-  const modelUrl = p.get("model") || "";
+  // Some older site links used `mode=` by mistake; treat it as an alias.
+  const modelUrl =
+    p.get("model") || p.get("mode") || "/3dss/sample/core_viewer_baseline.3dss.json";
+  const profile = p.get("profile") || "prod_full";
 
   // embed mode: hide UI chrome (viewer.css uses body.is-embed)
   if (p.get("embed") === "1") {
     try { document.body.classList.add("is-embed"); } catch (_e) {}
   }
 
-  window.__FRAME_FIT_V = "v14";
-
-  // expose to parent for debugging (iframe embed)
-  try {
-    if (window.parent && window.parent !== window) {
-      window.parent.__VIEWER_FRAME_FIT_V = window.__FRAME_FIT_V;
-    }
-  } catch (_e) {}
-
-  applyFrameFit();
-  window.addEventListener("resize", applyFrameFit, { passive: true });
-
-  const host = await mountViewerHost({
-    mode,
+  window.__vh = await mountViewerHost({
+    canvasId: "viewer-canvas",
     modelUrl,
-    qs: p,
+    profile,
+    gizmoWrapperId: "gizmo-slot",
+    devBootLog: false,
   });
-
-  window.__vh = host;
-})().catch(showFatal);
+})().catch((e) => {
+  console.error("[viewerHostBoot] mount failed:", e);
+  try { showFatal(e); } catch (_err) {}
+});

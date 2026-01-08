@@ -230,6 +230,26 @@ const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}`;
       color-scheme: dark;
     }
 
+    /* Make /app/viewer truly fullscreen (LayoutApp may constrain main) */
+    :global(html, body) {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+    :global(#__astro) {
+      width: 100%;
+      height: 100%;
+    }
+    :global(main) {
+      max-width: none !important;
+      width: 100% !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+
     /* Marquee */
     @keyframes appTickerMarquee {
       0%   { transform: translateX(0%); }
@@ -246,9 +266,14 @@ const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}`;
       --rail-w: 0px;
 
       position: fixed;
+
       inset: 0;
+
       width: 100vw;
+
       height: 100dvh;
+
+      min-height: 100vh;
       display: grid;
       grid-template-rows: var(--safe-top) var(--adbar-h) var(--meta-h) var(--ticker-h) 1fr var(--safe-bottom);
       background: #000;
@@ -262,7 +287,13 @@ const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}`;
     #app-adbar { grid-row: 2; height: var(--adbar-h); }
     #app-metabar { grid-row: 3; height: var(--meta-h); }
     #app-tickerbar { grid-row: 4; height: var(--ticker-h); }
-    #app-stage { grid-row: 5; min-height: 0; }
+    #app-stage {
+      grid-row: 5;
+      min-height: 0;
+      min-width: 0;
+      max-width: 100%;
+      overflow: hidden;
+    }
 
     /* Desktop switches */
     @media (min-width: 1024px) {
@@ -407,23 +438,31 @@ const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}`;
     #app-stage {
       padding-left: env(safe-area-inset-left);
       padding-right: env(safe-area-inset-right);
+      min-width: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
     }
     .app-stage-inner {
       height: 100%;
       min-width: 0;
+      width: 100%;
+      max-width: 100%;
+      overflow: hidden;
       display: grid;
       /* Mobile: viewer takes full width (no hidden rail column) */
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
     .app-viewer-wrap {
       min-width: 0;
       background: #000;
     }
     .app-viewer-iframe {
+      display: block;
       width: 100%;
       min-width: 0;
+      max-width: 100%;
       height: 100%;
-      min-height: 0;
       border: 0;
       display: block;
     }
@@ -437,7 +476,7 @@ const iframeSrc = `/viewer/index.html?model=${encodeURIComponent(model)}`;
       display: none;
     }
     @media (min-width: 1024px) {
-      .app-stage-inner { grid-template-columns: 1fr var(--rail-w); }
+      .app-stage-inner { grid-template-columns: minmax(0, 1fr) var(--rail-w); }
       .app-adrail { display: block; }
     }
     .app-rail-pad { padding: 12px; }

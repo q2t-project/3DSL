@@ -13,3 +13,6 @@ public/viewer*.zip
 
 _ulzip/
 __PATCH_NOTES__*.txt
+# Excel lock/temp
+~$*.xls*
+*.tmp
