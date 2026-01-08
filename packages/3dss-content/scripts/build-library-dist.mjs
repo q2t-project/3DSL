@@ -62,10 +62,54 @@ function uniq(arr) {
 }
 
 function buildViewerUrl(modelUrl) {
-  return `/viewer/index.html?open=${encodeURIComponent(modelUrl)}`;
+  // Contract: viewer entry takes `model=`. (Legacy `open=` is supported only for backward links.)
+  return `/viewer/index.html?model=${encodeURIComponent(modelUrl)}`;
 }
 
-function pickSeo(meta, titleFallback, descFallback, ogImageFallback) {
+function resolveOgImage(meta, srcDir, outDir, id, thumbUrl) {
+  const seo = meta?.seo && typeof meta.seo === "object" ? meta.seo : {};
+  const raw =
+    (typeof seo.og_image === "string" && seo.og_image.trim()) ||
+    (typeof meta.og_image === "string" && meta.og_image.trim()) ||
+    null;
+
+  if (!raw) return thumbUrl ?? null;
+
+  const v = raw.trim();
+  if (/^https?:\/\//i.test(v)) return v;
+
+  const prefix = `/3dss/library/${id}/`;
+
+  // If the author points to an asset under the library item folder, verify + copy it.
+  // Accept either full URL form (/3dss/library/<id>/file.webp) or short form (file.webp).
+  let rel = null;
+  if (v.startsWith(prefix)) rel = v.slice(prefix.length);
+  else if (!v.startsWith("/")) rel = v;
+  else {
+    // Unknown absolute path (/img/og.webp etc). We can't validate here.
+    return v;
+  }
+
+  // reject traversal
+  if (!rel || rel.includes("..") || path.isAbsolute(rel)) {
+    console.warn(`[build:dist] WARN invalid og_image in ${id}: ${v}`);
+    return thumbUrl ?? null;
+  }
+
+  const src = path.join(srcDir, rel);
+  if (!existsFile(src)) {
+    console.warn(`[build:dist] WARN og_image not found in ${id}: ${rel}`);
+    return thumbUrl ?? null;
+  }
+
+  const dst = path.join(outDir, rel);
+  ensureDir(path.dirname(dst));
+  fs.copyFileSync(src, dst);
+
+  return v.startsWith(prefix) ? v : `${prefix}${rel}`;
+}
+
+function pickSeo(meta, titleFallback, descFallback, ogImageResolved) {
   // ultra-minimal: accept either top-level or meta.seo.* if present
   const seo = meta?.seo && typeof meta.seo === "object" ? meta.seo : {};
 
@@ -79,15 +123,10 @@ function pickSeo(meta, titleFallback, descFallback, ogImageFallback) {
     (typeof meta.description === "string" && meta.description.trim()) ||
     null;
 
-  const metaOgImage =
-    (typeof seo.og_image === "string" && seo.og_image.trim()) ||
-    (typeof meta.og_image === "string" && meta.og_image.trim()) ||
-    null;
-
   return {
     meta_title: metaTitle ?? titleFallback ?? null,
     meta_description: metaDescription ?? descFallback ?? null,
-    meta_og_image: metaOgImage ?? ogImageFallback ?? null
+    meta_og_image: ogImageResolved ?? null
   };
 }
 
@@ -167,8 +206,16 @@ function main() {
 
     const model_url = `/3dss/library/${id}/model.3dss.json`;
     const viewer_url = buildViewerUrl(model_url);
-    // minimal SEO fields (optional but generated deterministically)
-    const seo = pickSeo(meta, title, summary, thumb);
+
+    // SEO: og image is validated and copied if it targets a local library asset.
+    // Fallback: use thumb.webp when present.
+    const ogImage = resolveOgImage(meta, srcDir, outDir, id, thumb);
+    const seo = pickSeo(meta, title, summary, ogImage);
+
+    const published = meta?.published !== false;
+    if (!published) {
+      console.warn(`[build:dist] NOTE unpublished item (excluded from index): ${id}`);
+    } else {
 
     items.push({
       slug: id,
@@ -184,6 +231,8 @@ function main() {
       // optional seo keys (do not break current readers)
       ...seo
     });
+    }
+
   }
 
   writeJson(path.join(OUT_LIBRARY_DIR, "library_index.json"), { items });
