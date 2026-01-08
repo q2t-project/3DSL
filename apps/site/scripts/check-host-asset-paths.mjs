@@ -1,14 +1,24 @@
 // SSOT check: Host (Astro) viewer page must reference viewer assets via /viewer/* only.
-// - Disallow /assets/* and ../assets/* within src/pages/viewer.astro (and viewer routes).
+// - Disallow /assets/* and ../assets/* within the viewer host page(s).
+//
+// NOTE:
+// Viewer host route was moved to /app/viewer (src/pages/app/viewer.astro).
+// Keep legacy targets too, so refactors don't silently disable this check.
 
 import fs from 'node:fs';
 import path from 'node:path';
 
 const ROOT = process.cwd();
+
 const TARGETS = [
+  // current
+  'src/pages/app/viewer.astro',
+  'src/pages/app/viewer/index.astro',
+
+  // legacy (keep for safety)
   'src/pages/viewer.astro',
   'src/pages/viewer/index.astro',
-].map(p => path.join(ROOT, p));
+].map((p) => path.join(ROOT, p));
 
 const forbidden = [
   { re: /\b(?:src|href)\s*=\s*"\/assets\//g, msg: 'Use /viewer/assets/... instead of /assets/...' },
@@ -38,7 +48,7 @@ for (const file of TARGETS) {
 }
 
 if (checked === 0) {
-  console.warn('[host-asset-paths] skipped (no viewer.astro found)');
+  console.warn('[host-asset-paths] skipped (no viewer host page found)');
   process.exit(0);
 }
 
