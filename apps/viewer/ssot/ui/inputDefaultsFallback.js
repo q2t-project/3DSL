@@ -1,5 +1,10 @@
-// viewer/runtime/core/inputDefaults.js
-// SSOT: input defaults live here (import from uiState + input adapters)
+// viewer/ui/inputDefaultsFallback.js
+// UI-local fallback for input defaults.
+//
+// NOTE:
+// - The SSOT for input defaults lives in runtime/core/inputDefaults.js.
+// - UI layer must not import core directly (dependency rules).
+// - These values are a compatibility fallback for cases where uiState is not yet ready.
 
 export const DEFAULT_INPUT_POINTER = Object.freeze({
   // pointer drag threshold (px)
@@ -37,10 +42,7 @@ export const DEFAULT_INPUT_KEYBOARD = Object.freeze({
 });
 
 // ------------------------------------------------------------
-// Presets
-//   - Enable with: ?preset=<name>
-//   - These are *delta overrides* over DEFAULT_INPUT_*.
-//   - SSOT: preset defs are also kept here.
+// Presets (fallback)
 // ------------------------------------------------------------
 
 export const INPUT_PRESETS = Object.freeze({
