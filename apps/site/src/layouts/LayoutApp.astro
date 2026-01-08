@@ -1,10 +1,10 @@
 ---
 import "../styles/global.css";
+import { ADSENSE_PUBLISHER_ID, shouldEnableAdsense } from "../lib/adsense";
 
 const { title = "3DSL" } = Astro.props;
-
-// AdSense (app 側で広告を出す場合に必要)
-const ADSENSE_CLIENT = "ca-pub-3327629809463247";
+const pathname = Astro.url?.pathname ?? "/";
+const enableAdsense = shouldEnableAdsense(pathname);
 ---
 
 <!doctype html>
@@ -13,14 +13,17 @@ const ADSENSE_CLIENT = "ca-pub-3327629809463247";
     <meta charset="utf-8" />
     <!-- viewport-fit=cover: enable safe-area env() on iOS notch devices -->
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-    <meta name="google-adsense-account" content="ca-pub-3327629809463247" />
+    {enableAdsense && (
+      <meta name="google-adsense-account" content={ADSENSE_PUBLISHER_ID} />
+    )}
 
-    <script
-      async
-      src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
-      crossorigin="anonymous"
-    ></script>
-
+    {enableAdsense && (
+      <script
+        async
+        src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_PUBLISHER_ID}`}
+        crossorigin="anonymous"
+      ></script>
+    )}
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

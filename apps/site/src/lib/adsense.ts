@@ -10,10 +10,17 @@ export const ADSENSE_PUBLISHER_ID = 'ca-pub-3327629809463247';
 export type AdSlotKey = keyof typeof ADSENSE_SLOTS;
 
 // --- Application-time (review) plan ---
-// We keep the application-time plan intentionally simple:
+// Keep the plan intentionally simple (stable for AdSense review):
 // - Ads ON:  /, /concept, /docs
-// - Ads OFF: /library, /viewer, /app/*, /modeler, /canonical, /policy, /contact, etc.
-//
+// - Ads OFF: everything else (including /library, /viewer, /app/*, /modeler, /canonical, /policy, /contact, etc.)
+export function shouldEnableAdsense(pathname: string): boolean {
+  const p = (pathname || '/').split('#')[0].split('?')[0];
+  if (p === '/') return true;
+  if (p === '/concept' || p.startsWith('/concept/')) return true;
+  if (p === '/docs' || p.startsWith('/docs/')) return true;
+  return false;
+}
+
 // Create TWO display units in AdSense and set their slot IDs via env:
 // - 300x250 (mobile/inline)
 // - 300x600 (desktop rail)

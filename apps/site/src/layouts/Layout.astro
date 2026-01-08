@@ -1,5 +1,6 @@
 ---
 import "../styles/global.css";
+import { ADSENSE_PUBLISHER_ID, shouldEnableAdsense } from "../lib/adsense";
 
 const {
   title = "3DSL",
@@ -15,10 +16,8 @@ const pathname = Astro.url?.pathname ?? "/";
 const canonicalFinal = canonicalUrl ?? canonical;
 
 // AdSense
-// - このレイアウト配下は「サイト側」(Home/Library/Concept/Contact)。
-// - Library は軽量維持のため広告なし（方針を変えるなら enableAdsense の条件だけ変える）
-const ADSENSE_CLIENT = "ca-pub-3327629809463247";
-const enableAdsense = !pathname.startsWith("/library");
+// - Central policy: ads only on /, /concept, /docs (see lib/adsense.ts)
+const enableAdsense = shouldEnableAdsense(pathname);
 
 const nav = [
   { href: "/", label: "Home" },
@@ -38,13 +37,13 @@ function isActive(href) {
     <meta name="viewport" content="width=device-width,initial-scale=1" />
 
     {enableAdsense && (
-      <meta name="google-adsense-account" content={ADSENSE_CLIENT} />
+      <meta name="google-adsense-account" content={ADSENSE_PUBLISHER_ID} />
     )}
 
     {enableAdsense && (
       <script
         async
-        src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
+        src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_PUBLISHER_ID}`}
         crossorigin="anonymous"
       ></script>
     )}
