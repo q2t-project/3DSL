@@ -1,4 +1,13 @@
 {
-  "title": "3DSLのコンセプトの諸概念の関係モデル",
-  "description": "3DSLのコンセプトを、言語や図などの既存表現との対比にしながら、概念間の関係をつないで全体を構築します。"
+  "title": "3DSL Concept",
+  "summary": "3DSLのコンセプトの諸概念の関係をモデル",
+  "description": "3DSLのコンセプトの諸概念の関係をモデル",
+  "tags": [
+    "s:3dsl",
+    "s:concept",
+    "m:top"
+  ],
+  "published": false,
+  "created_at": "2026-01-05T00:00:00+09:00",
+  "updated_at": "2026-01-09T00:00:00+09:00"
 }

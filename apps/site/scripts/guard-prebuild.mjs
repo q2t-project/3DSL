@@ -161,6 +161,38 @@ function writeDeployProbe() {
   }
 }
 
+
+function isCiLike() {
+  return !!(process.env.CI || process.env.CF_PAGES || process.env.GITHUB_ACTIONS || process.env.GITHUB_SHA);
+}
+
+function runLibraryMetaCheck() {
+  // CI only (default): enforce minimum _meta.json keys to prevent "published-but-broken" items from shipping.
+  // Override:
+  //   - set LIBRARY_META_POLICY=warn|error to force a specific policy
+  //   - set LIBRARY_META_POLICY=off to skip the check explicitly
+  const raw = (process.env.LIBRARY_META_POLICY || "").trim().toLowerCase();
+  if (raw === "off") return;
+
+  const policy = raw || (isCiLike() ? "error" : "");
+  if (!policy) return;
+
+  const script = path.join(repoRoot, "packages", "3dss-content", "scripts", "check-library.mjs");
+  if (!exists(script)) return;
+
+  try {
+    execSync(`node "${script}" --policy=${policy}`, {
+      cwd: repoRoot,
+      stdio: "inherit",
+      env: { ...process.env, LIBRARY_META_POLICY: policy },
+    });
+  } catch {
+    fail(`[guard] Library meta check failed (policy=${policy}). Fix packages/3dss-content/library/*/_meta.json (or mark as published:false).`);
+  }
+}
+
+runLibraryMetaCheck();
+
 if (failed) process.exit(1);
 
 writeDeployProbe();

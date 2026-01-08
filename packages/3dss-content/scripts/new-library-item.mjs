@@ -21,24 +21,34 @@ function todayPrefixYYMMDD() {
   return `${yy}${mm}${dd}`;
 }
 
+function getFlagValue(args, name) {
+  const key = `--${name}`;
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (a === key) return args[i + 1] ?? null;
+    if (a.startsWith(`${key}=`)) return a.slice(key.length + 1) || null;
+  }
+  return null;
+}
+
 function pickNextId(prefix) {
   const dirs = fs.readdirSync(LIBRARY_DIR, { withFileTypes: true })
     .filter((d) => d.isDirectory() && !d.name.startsWith('_'))
     .map((d) => d.name);
 
-  const re = new RegExp(`^${prefix}(\\d{2})$`);
-  let max = 0;
+  const re = new RegExp(`^${prefix}([0-9a-z]{2})$`);
+  let max = 0; // keep 01-start semantics (max defaults to 0 -> next=1)
   for (const name of dirs) {
     const m = name.match(re);
     if (!m) continue;
-    const n = Number(m[1]);
+    const n = parseInt(m[1], 36);
     if (Number.isFinite(n)) max = Math.max(max, n);
   }
   const next = max + 1;
-  if (next > 99) {
-    throw new Error(`too many items for prefix ${prefix} (00-99 exhausted)`);
+  if (next > 36 * 36 - 1) {
+    throw new Error(`too many items for prefix ${prefix} (00-zz exhausted)`);
   }
-  return `${prefix}${pad2(next)}`;
+  return `${prefix}${String(next.toString(36)).padStart(2, '0')}`;
 }
 
 function writeJson(file, obj) {
@@ -51,12 +61,20 @@ function main() {
   }
 
   const args = process.argv.slice(2);
-  const givenId = args[0] && !args[0].startsWith('--') ? args[0] : null;
-  const title = args[1] ?? (givenId ? givenId : 'untitled');
 
-  const id = givenId ?? pickNextId(todayPrefixYYMMDD());
-  if (!/^[0-9]{8}$/.test(id)) {
-    throw new Error(`invalid id: ${id} (expected 8 digits, e.g. 26010503)`);
+  const idFromFlag = getFlagValue(args, 'id');
+  const titleFromFlag = getFlagValue(args, 'title');
+
+  const givenId = idFromFlag ?? (args[0] && !args[0].startsWith('--') ? args[0] : null);
+  const title = titleFromFlag ?? args[1] ?? (givenId ? givenId : 'untitled');
+
+  const rawId = givenId ? String(givenId).trim() : null;
+  const id = String(rawId ?? pickNextId(todayPrefixYYMMDD())).toLowerCase();
+  if (rawId && rawId !== id) {
+    console.warn(`[warn] normalized id to lowercase: ${rawId} -> ${id}`);
+  }
+  if (!/^\d{6}[0-9a-z]{2}$/.test(id)) {
+    throw new Error(`invalid id: ${id} (expected YYMMDDxx, e.g. 26010501 or 2601050a)`);
   }
 
   const dir = path.join(LIBRARY_DIR, id);
@@ -67,16 +85,23 @@ function main() {
 
   const now = new Date().toISOString();
 
-  // required file: _meta.json (build script assumes it exists)
+  // required file: _meta.json
+  // NOTE: keys here are aligned with build-library-dist.mjs expectations (meta.seo.* supported)
   const meta = {
     title,
     summary: '',
+    description: '',
     tags: [],
+    entry_points: [],
     pairs: [],
-    // optional SEO overrides (fallbacks exist)
-    seo_title: '',
-    seo_description: '',
-    og_image: '',
+    rights: null,
+    related: [],
+    published: true,
+    seo: {
+      title: '',
+      description: '',
+      og_image: '',
+    },
     // editorial flags (optional)
     recommended: false,
     hidden: false,
