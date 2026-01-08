@@ -1,13 +1,14 @@
 ---
-// Fullscreen viewer host page (no site layout) to avoid flex/min-width/transform side effects.
-const sp = new URLSearchParams(Astro.url.search);
-
-// Defaults
-if (!sp.has('embed')) sp.set('embed', '0');
-if (!sp.has('mode')) sp.set('mode', 'prod');
-
-// Pass through (model/profile/etc.) as-is.
-const iframeSrc = `/viewer/index.html?${sp.toString()}`;
+/**
+ * Viewer Embed Contract (SSOT)
+ * - /app/viewer はサイト共通レイアウトから隔離（flex/grid配下に置かない）
+ * - iframe は viewport 固定（position:fixed; inset:0; width:100vw; height:100dvh）
+ * - 親要素由来の min-width/overflow/transform 等で幅が膨らむ余地を作らない
+ *
+ * NOTE:
+ *   Astro は static build のため、ビルド時に `Astro.url.search` は常に空。
+ *   query (model/open/back 等) の受け渡しはブラウザ側で行う。
+ */
 ---
 
 <!doctype html>
@@ -22,14 +23,48 @@ const iframeSrc = `/viewer/index.html?${sp.toString()}`;
     <iframe
       id="app-viewer-iframe"
       class="app-viewer-iframe"
-      src={iframeSrc}
+      src="about:blank"
       title="3DSL Viewer"
       allow="fullscreen"
       loading="eager"
       referrerpolicy="no-referrer"
     ></iframe>
 
-    <button class="app-viewer-back" type="button" aria-label="戻る" onclick="history.back()">← 戻る</button>
+    <button id="app-viewer-back" class="app-viewer-back" type="button" aria-label="戻る">← 戻る</button>
+
+    <script is:inline>
+      (() => {
+        const iframe = document.getElementById("app-viewer-iframe");
+        const backBtn = document.getElementById("app-viewer-back");
+        if (!iframe) return;
+
+        const sp = new URLSearchParams(window.location.search);
+
+        // defaults
+        if (!sp.has("embed")) sp.set("embed", "0");
+        if (!sp.has("mode")) sp.set("mode", "prod");
+
+        // compat: legacy `open=`
+        if (!sp.has("model") && sp.has("open")) {
+          const v = sp.get("open");
+          if (v) sp.set("model", v);
+        }
+
+        const back = sp.get("back");
+
+        iframe.src = `/viewer/index.html?${sp.toString()}`;
+
+        if (backBtn) {
+          backBtn.addEventListener("click", () => {
+            if (back && typeof back === "string" && back.length) {
+              window.location.assign(back);
+            } else {
+              history.back();
+            }
+          });
+        }
+      })();
+    </script>
   </body>
 </html>
 
@@ -44,7 +79,6 @@ const iframeSrc = `/viewer/index.html?${sp.toString()}`;
     background: #000;
   }
 
-  /* iframe must always be viewport-bound (no flex/max-width side effects) */
   .app-viewer-iframe {
     position: fixed;
     inset: 0;
@@ -58,7 +92,6 @@ const iframeSrc = `/viewer/index.html?${sp.toString()}`;
     background: #000;
   }
 
-  /* Minimal host chrome (doesn't affect iframe layout) */
   .app-viewer-back {
     position: fixed;
     top: calc(env(safe-area-inset-top) + 10px);

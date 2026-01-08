@@ -39,7 +39,8 @@ function toAppViewerUrl(viewerUrl: string, back: string) {
   if (viewerUrl.startsWith("/app/viewer")) return viewerUrl;
   try {
     const u = new URL(viewerUrl, "http://x");
-    let model = u.searchParams.get("model") ?? "";
+    // contract: prefer `model`, accept legacy `open`
+    let model = u.searchParams.get("model") ?? u.searchParams.get("open") ?? "";
     if (!model) {
       const p = u.pathname;
       if (/\.(json|3dss\.json)$/i.test(p)) model = p;
