@@ -204,3 +204,36 @@ git push origin main
 ---
 
 以上を守れば、「デプロイされたか分からん」「Pagesの404で沼る」「余計なルートが残る」系の事故は潰せる。
+
+
+## Viewer Embed Contract（/app/viewer 安定表示の契約）
+
+### 目的
+`/app/viewer` は 3DSL Viewer を **サイト側レイアウトから隔離して**表示するための専用ホストページ。
+ここがサイトの wrapper / flex / grid / 余白 / overflow / 広告枠 などの影響を受けると、
+iframe が「縮められない状態」になり、**左半分が空く**など致命的な崩れが再発する。
+
+### 代表的な症状（致命）
+- `window.innerWidth` と `iframe.getBoundingClientRect().width` が一致しない  
+  例: `innerW=430` なのに `iframeW=946` のように膨らむ／縮まらない  
+- viewer が左半分に押し込まれる／余白が固定化される
+
+### 契約（破ったらバグ扱い）
+1. `/app/viewer` はサイト共通レイアウトから隔離する  
+   - wrapper の flex/grid 配下に置かない  
+   - 広告枠・2カラム・コンテナ幅の影響を受けないこと
+2. iframe は viewport 固定（親CSS非依存）  
+   - `position: fixed; inset: 0; width: 100vw; height: 100dvh; border:0;`
+   - `100dvh` 非対応環境の fallback として `100vh` を許容
+3. 親要素由来の幅膨張要因を作らない  
+   - flex item 化する場合は必ず `min-width: 0` を保証  
+   - 親に `overflow`, `transform`, `zoom` 等を入れない（入れるなら契約更新）
+4. "frame-fit" 等の JS 吸収策は持ち込まない  
+   - その場しのぎの倍率/変形ロジックは環境依存で再発要因になる
+
+### 監視（手動チェック）
+DevTools Console で以下を実行し、差分が 1px 以内であること。
+
+```js
+const f = document.getElementById('app-viewer-iframe');
+({ innerW: window.innerWidth, iframeW: f?.getBoundingClientRect()?.width })
