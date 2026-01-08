@@ -122,7 +122,6 @@ function main() {
     points: [],
     lines: [],
     aux: [],
-    frames: [],
   };
   writeJson(path.join(dir, 'model.3dss.json'), model);
 
