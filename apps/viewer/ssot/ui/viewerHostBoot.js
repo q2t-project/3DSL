@@ -1,38 +1,55 @@
-// viewerHostBoot.js
+// ui/viewerHostBoot.js
+// Boot entry for /viewer/ui/index.html
+//
+// NOTE:
+// Historically, some links used ?mode=<modelUrl> by mistake.
+// We only accept that legacy alias when it actually looks like a URL/path.
+
 import { mountViewerHost } from "./viewerHost.js";
 
 function showFatal(e) {
-  try {
-    const el = document.getElementById('fallback');
-    if (!el) return;
-    const msg = e && (e.stack || e.message) ? String(e.stack || e.message) : String(e);
-    el.textContent = `[viewer] boot failed\n${msg}`;
-  } catch (_err) {}
+  const msg = e?.stack || String(e);
+  console.error("[viewer] boot failed", e);
+  const el = document.getElementById("boot-error");
+  if (el) el.textContent = `[viewer] boot failed\n${msg}`;
+}
+
+function looksLikeModelUrl(s) {
+  if (!s) return false;
+  if (s.startsWith("/") || s.startsWith("./") || s.startsWith("../")) return true;
+  if (/^https?:\/\//i.test(s)) return true;
+  if (s.includes(".json")) return true;
+  return false;
 }
 
 (async () => {
-  // dev/HMR/手動再実行でも二重マウントせんように
-  try { window.__vh?.dispose?.(); } catch (_e) {}
+  try {
+    window.__vh?.dispose?.();
+  } catch (_e) {}
   window.__vh = null;
 
   const p = new URLSearchParams(location.search);
-  const modelUrl =
-    p.get("model") || "/3dss/sample/core_viewer_baseline.3dss.json";
+
   const profile = p.get("profile") || "prod_full";
 
-  // embed mode: hide UI chrome (viewer.css uses body.is-embed)
+  let modelUrl = p.get("model") || "";
+  if (!modelUrl) {
+    const legacy = p.get("mode");
+    if (looksLikeModelUrl(legacy)) modelUrl = legacy;
+  }
+  if (!modelUrl) modelUrl = "/3dss/sample/core_viewer_baseline.3dss.json";
+
   if (p.get("embed") === "1") {
-    try { document.body.classList.add("is-embed"); } catch (_e) {}
+    try {
+      document.body.classList.add("is-embed");
+    } catch (_e) {}
   }
 
-  window.__vh = await mountViewerHost({
+  const host = await mountViewerHost({
     canvasId: "viewer-canvas",
     modelUrl,
     profile,
-    gizmoWrapperId: "gizmo-slot",
-    devBootLog: false,
   });
-})().catch((e) => {
-  console.error("[viewerHostBoot] mount failed:", e);
-  try { showFatal(e); } catch (_err) {}
-});
+
+  window.__vh = host;
+})().catch(showFatal);
