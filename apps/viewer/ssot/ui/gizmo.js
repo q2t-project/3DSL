@@ -307,8 +307,13 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
   // HUD controls（gizmo関連のボタン初期化はここが唯一の正規ルート）
   // ------------------------------------------------------------
   // camera proxy can be unavailable at attach-time depending on boot order.
-  // Always resolve lazily so HUD buttons still work.
-  const getCam = () => hf.getCamera?.() ?? null;
+  // Resolve lazily, but keep the last known proxy so handlers don't crash.
+  let camCtrl = hf.getCamera?.() ?? null;
+  const getCam = () => {
+    const cam = hf.getCamera?.() ?? null;
+    if (cam) camCtrl = cam;
+    return camCtrl;
+  };
   const viewState = hf.getUiState?.() ?? null;
   const modeAPI = hf.getMode?.() ?? null;
 
@@ -1030,7 +1035,8 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
   const vPos = new THREE.Vector3();
 
   function syncCameraFromHub() {
-    const cam = camCtrl || null;
+    // refresh the proxy (boot order can be late)
+    const cam = getCam() || null;
     const hasSnap =
       !!cam &&
       (typeof cam.getCurrentSnapshot === 'function' ||
