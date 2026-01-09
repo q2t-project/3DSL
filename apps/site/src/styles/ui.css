@@ -2,10 +2,7 @@
 /* Tailwindの @apply に依存しない “業務UI” 基本部品 */
 
 :root{
-  /* Background: subtle depth (tech-like, not flashy) */
-  --ui-bg: radial-gradient(1200px circle at 12% 8%, rgba(56,189,248,0.10), transparent 55%),
-           radial-gradient(900px circle at 82% 16%, rgba(255,255,255,0.06), transparent 58%),
-           #0b0f14;
+  --ui-bg: #0b0f14;
   --ui-surface: rgba(255,255,255,0.04);
   --ui-surface-2: rgba(255,255,255,0.06);
   --ui-border: rgba(255,255,255,0.10);
@@ -106,6 +103,62 @@
 }
 .ui-btn-primary:hover{
   background: rgba(255,255,255,1);
+}
+
+/* header nav links */
+.ui-navlink{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: .35rem .75rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgba(255,255,255,0.78);
+  text-decoration: none;
+  line-height: 1;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.ui-navlink:hover{
+  background: rgba(255,255,255,0.06);
+  border-color: var(--ui-border);
+  color: rgba(255,255,255,0.92);
+}
+.ui-navlink--active{
+  background: var(--ui-accent-soft);
+  border-color: var(--ui-accent-border);
+  color: rgba(224,247,255,0.95);
+}
+
+/* header brand + navbar: keep layout stable without relying on utility CSS */
+.ui-brand-logo{
+  display: block;
+  /* Logo-only change: 2x size (keep nav unchanged) */
+  height: 48px;
+  width: auto;
+  max-height: 48px;
+  filter: brightness(1.9);
+  /* subtle technical glow */
+  filter: brightness(1.9) drop-shadow(0 0 10px rgba(56,189,248,0.18));
+}
+
+.ui-navbar{
+  margin-left: auto;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  font-size: 12px;
+}
+
+.ui-navbar::-webkit-scrollbar{ display:none; }
+
+@media (min-width: 640px){
+  .ui-navbar{ font-size: 14px; }
 }
 
 /* inputs */
