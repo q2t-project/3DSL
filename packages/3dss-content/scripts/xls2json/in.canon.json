@@ -1,0 +1,128 @@
+{
+  "aux": [
+    {
+      "appearance": {
+        "module": {
+          "grid": {}
+        }
+      },
+      "meta": {
+        "tags": [
+          "s:aux"
+        ],
+        "uuid": "44444444-4444-4444-8444-444444444444"
+      }
+    }
+  ],
+  "document_meta": {
+    "author": "unknown",
+    "creator_memo": "minimal schema-valid sample",
+    "document_title": "3DSS Excel IO sample",
+    "document_uuid": "00000000-0000-4000-8000-000000000001",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.1.1",
+    "tags": [
+      "s:excel",
+      "s:sample"
+    ],
+    "version": "1.0.0"
+  },
+  "lines": [
+    {
+      "appearance": {
+        "arrow": {
+          "primitive": "none"
+        },
+        "color": "#00ff00",
+        "end_a": {
+          "ref": "11111111-1111-4111-8111-111111111111"
+        },
+        "end_b": {
+          "ref": "22222222-2222-4222-8222-222222222222"
+        },
+        "line_style": "solid",
+        "line_type": "straight",
+        "opacity": 0.4
+      },
+      "meta": {
+        "tags": [
+          "s:l1"
+        ],
+        "uuid": "33333333-3333-4333-8333-333333333333"
+      },
+      "signification": {
+        "caption": {
+          "en": "relation",
+          "ja": "ŠÖ˜A"
+        },
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b"
+      }
+    }
+  ],
+  "points": [
+    {
+      "appearance": {
+        "marker": {
+          "common": {
+            "color": "#ff0000",
+            "opacity": 0.6
+          },
+          "primitive": "sphere",
+          "radius": 1
+        },
+        "position": [
+          0,
+          0,
+          0
+        ]
+      },
+      "meta": {
+        "tags": [
+          "s:p1"
+        ],
+        "uuid": "11111111-1111-4111-8111-111111111111"
+      },
+      "signification": {
+        "name": {
+          "en": "Point A",
+          "ja": "“_A"
+        }
+      }
+    },
+    {
+      "appearance": {
+        "marker": {
+          "common": {
+            "color": "#0000ff",
+            "opacity": 0.6
+          },
+          "primitive": "box",
+          "size": [
+            1,
+            1,
+            1
+          ]
+        },
+        "position": [
+          10,
+          0,
+          0
+        ]
+      },
+      "meta": {
+        "tags": [
+          "s:p2"
+        ],
+        "uuid": "22222222-2222-4222-8222-222222222222"
+      },
+      "signification": {
+        "name": {
+          "en": "Point B",
+          "ja": "“_B"
+        }
+      }
+    }
+  ]
+}
