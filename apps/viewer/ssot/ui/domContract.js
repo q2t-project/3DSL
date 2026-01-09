@@ -25,14 +25,9 @@ const ROLE_SPECS = /** @type {Record<string, RoleSpec>} */ ({
   gizmoModeLabel: { name: 'gizmoModeLabel', preferred: '[data-role="gizmo-mode-label"]', fallback: '#gizmo-mode-label', tag: null },
   worldAxesToggle: { name: 'worldAxesToggle', preferred: '[data-role="world-axes-toggle"]', fallback: '#world-axes-toggle', tag: 'BUTTON' },
   presetViewToggle: { name: 'presetViewToggle', preferred: '[data-role="gizmo-presets-toggle"]', fallback: '#gizmo-presets-toggle', tag: 'BUTTON' },
-  // alias: legacy role name (kept for backward compatibility)
+
+  // legacy alias (keep for back-compat with older UI code)
   gizmoPresetsToggle: { name: 'gizmoPresetsToggle', preferred: '[data-role="gizmo-presets-toggle"]', fallback: '#gizmo-presets-toggle', tag: 'BUTTON' },
-
-  // optional rows (if present)
-  gizmoAxisRow: { name: 'gizmoAxisRow', preferred: '[data-role="gizmo-axis-row"]', fallback: null, tag: 'DIV' },
-  gizmoViewRow: { name: 'gizmoViewRow', preferred: '[data-role="gizmo-view-row"]', fallback: null, tag: 'DIV' },
-
-
 
   // auto orbit
   autoOrbitSlot: { name: 'autoOrbitSlot', preferred: '[data-role="auto-orbit-slot"]', fallback: '#auto-orbit-slot', tag: 'DIV' },

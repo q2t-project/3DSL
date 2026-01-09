@@ -1085,15 +1085,15 @@ body.is-embed #doc-caption {
 }
 
 #viewer-leftdock {
-  left: 12px;
-  bottom: 12px;
+  left: calc(12px + env(safe-area-inset-left));
+  bottom: calc(12px + env(safe-area-inset-bottom));
   flex-direction: column;
   align-items: flex-start;
 }
 
 #viewer-rightdock {
-  right: 12px;
-  bottom: 12px;
+  right: calc(12px + env(safe-area-inset-right));
+  bottom: calc(12px + env(safe-area-inset-bottom));
   flex-direction: column;
   align-items: flex-end;
 }
@@ -1383,6 +1383,13 @@ html, body {
 #viewer-canvas {
   width: 100% !important;
   height: 100% !important;
+}
+
+/* ホストページに埋め込まれた時でも常に最前面で操作できるようにする */
+#viewer-root {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
 }
 
 /* doc caption: plain text, no background/frame */

@@ -41,6 +41,10 @@ export function createTimeline(hub, opts = {}) {
   let onClickStepForward = null;
   let onClickRew = null;
   let onClickFF = null;
+  let onClickPlay = null;
+
+  // host 側のグローバルハンドラ（メニュー/スワイプ等）への誤伝播を避ける
+  let onPointerDownStop = null;
 
   function log(...a) {
     if (DEBUG) console.log('[timeline]', ...a);
@@ -242,6 +246,9 @@ export function createTimeline(hub, opts = {}) {
   // イベントハンドラ
   // -------------------------
   function onSliderInput(ev) {
+    ev?.stopPropagation?.();
+    ev?.stopImmediatePropagation?.();
+
     const frameAPI = getFrameAPI();
     const range = readRange(frameAPI);
 
@@ -257,6 +264,9 @@ export function createTimeline(hub, opts = {}) {
   }
 
   function onSliderChange() {
+    // change は UI だけなので、念のため伝播を止めておく
+    // （click が別レイヤに吸われる系の事故回避）
+    // ※ 引数が無いので current event は取れないが、bubble は input 側で遮断済み
     const frameAPI = getFrameAPI();
     toast(`Frame: ${getActive(frameAPI, readRange(frameAPI))}`, { duration: 800 });
   }
@@ -317,6 +327,18 @@ export function createTimeline(hub, opts = {}) {
     }
     const el = (roleName) => getEl(roleName);
 
+    const stopAndPrevent = (ev) => {
+      ev?.preventDefault?.();
+      ev?.stopPropagation?.();
+      ev?.stopImmediatePropagation?.();
+    };
+    const stopBubble = (ev) => {
+      ev?.stopPropagation?.();
+      ev?.stopImmediatePropagation?.();
+    };
+
+    onPointerDownStop = stopBubble;
+
     // DOM: 新UI / 旧UI両対応
     slider = el('frameSlider');
     sliderWrapper = el('frameSliderWrapper');
@@ -356,9 +378,12 @@ export function createTimeline(hub, opts = {}) {
     if (slider) {
       slider.addEventListener('input', onSliderInput);
       slider.addEventListener('change', onSliderChange);
+      // swipe 等の誤検知を避ける
+      slider.addEventListener('pointerdown', onPointerDownStop, { capture: true });
     }
 
-    onClickStepBack = () => {
+    onClickStepBack = (ev) => {
+      stopAndPrevent(ev);
       const f = getFrameAPI();
       const r = readRange(f);
       step(f, -1);
@@ -366,7 +391,8 @@ export function createTimeline(hub, opts = {}) {
       setFrameUiMode('gauge');
       toast(`Frame: ${getActive(f, r)}`, { duration: 800 });
     };
-    onClickStepForward = () => {
+    onClickStepForward = (ev) => {
+      stopAndPrevent(ev);
       const f = getFrameAPI();
       const r = readRange(f);
       step(f, +1);
@@ -374,7 +400,8 @@ export function createTimeline(hub, opts = {}) {
       setFrameUiMode('gauge');
       toast(`Frame: ${getActive(f, r)}`, { duration: 800 });
     };
-    onClickRew = () => {
+    onClickRew = (ev) => {
+      stopAndPrevent(ev);
       const f = getFrameAPI();
       const r = readRange(f);
       setActive(f, r.min);
@@ -382,7 +409,8 @@ export function createTimeline(hub, opts = {}) {
       setFrameUiMode('gauge');
       toast(`Frame: ${getActive(f, r)}`, { duration: 800 });
     };
-    onClickFF = () => {
+    onClickFF = (ev) => {
+      stopAndPrevent(ev);
       const f = getFrameAPI();
       const r = readRange(f);
       setActive(f, r.max);
@@ -396,7 +424,17 @@ export function createTimeline(hub, opts = {}) {
     if (btnRew) btnRew.addEventListener('click', onClickRew);
     if (btnFF) btnFF.addEventListener('click', onClickFF);
 
-    if (btnPlay) btnPlay.addEventListener('click', togglePlayback);
+    onClickPlay = (ev) => {
+      stopAndPrevent(ev);
+      togglePlayback();
+    };
+    if (btnPlay) btnPlay.addEventListener('click', onClickPlay);
+
+    // pointerdown を先に遮断（click 前にホスト側が拾う事故回避）
+    [btnStepBack, btnStepForward, btnRew, btnPlay, btnFF].forEach((b) => {
+      if (!b) return;
+      b.addEventListener('pointerdown', onPointerDownStop, { capture: true });
+    });
 
     win.addEventListener('keydown', onKeyDown);
 
@@ -420,8 +458,9 @@ export function createTimeline(hub, opts = {}) {
     if (slider) {
       slider.removeEventListener('input', onSliderInput);
       slider.removeEventListener('change', onSliderChange);
+      if (onPointerDownStop) slider.removeEventListener('pointerdown', onPointerDownStop, { capture: true });
     }
-    if (btnPlay) btnPlay.removeEventListener('click', togglePlayback);
+    if (btnPlay && onClickPlay) btnPlay.removeEventListener('click', onClickPlay);
 
     if (btnStepBack && onClickStepBack) btnStepBack.removeEventListener('click', onClickStepBack);
     if (btnStepForward && onClickStepForward)
@@ -429,12 +468,21 @@ export function createTimeline(hub, opts = {}) {
     if (btnRew && onClickRew) btnRew.removeEventListener('click', onClickRew);
     if (btnFF && onClickFF) btnFF.removeEventListener('click', onClickFF);
 
+    if (onPointerDownStop) {
+      [btnStepBack, btnStepForward, btnRew, btnPlay, btnFF].forEach((b) => {
+        if (!b) return;
+        b.removeEventListener('pointerdown', onPointerDownStop, { capture: true });
+      });
+    }
+
     if (win) win.removeEventListener('keydown', onKeyDown);
 
     onClickStepBack = null;
     onClickStepForward = null;
     onClickRew = null;
     onClickFF = null;
+    onClickPlay = null;
+    onPointerDownStop = null;
 
     // DOM refs clear
     doc = null;

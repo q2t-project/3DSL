@@ -80,11 +80,13 @@ Tailwind の class / レイアウト構造は自由だが、以下の **アン�
 | role | preferred | fallback | required | type/attrs |
 |---|---|---|---|---|
 | worldAxesToggle | `[data-role="world-axes-toggle"]` | `#world-axes-toggle` | NO | `<button aria-pressed>` |
-| gizmoPresetsToggle | `[data-role="gizmo-presets-toggle"]` | `#gizmo-presets-toggle` | NO | `<button>` |
+| presetViewToggle | `[data-role="gizmo-presets-toggle"]` | `#gizmo-presets-toggle` | NO | `<button>` |
 | autoOrbitSlot | `[data-role="auto-orbit-slot"]` | `#auto-orbit-slot` | NO | `<div>` |
 | autoOrbitToggle | `[data-role="auto-orbit-toggle"]` | `#auto-orbit-toggle` | NO | `<button>` |
+| autoOrbitSpeedDown | `[data-role="auto-orbit-speed-down"]` | `#auto-orbit-speed-down` | NO | `<button>` |
 | autoOrbitCW | `.auto-orbit-btn-dir[data-dir="cw"]` | 同左 | NO | `<button data-dir="cw">` |
 | autoOrbitCCW | `.auto-orbit-btn-dir[data-dir="ccw"]` | 同左 | NO | `<button data-dir="ccw">` |
+| autoOrbitSpeedUp | `[data-role="auto-orbit-speed-up"]` | `#auto-orbit-speed-up` | NO | `<button>` |
 
 ### Detail view
 | role | preferred | fallback | required | type/attrs |

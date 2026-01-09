@@ -262,7 +262,9 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
 
   // HUD controls（gizmo関連のボタン初期化はここが唯一の正規ルート）
   // ...
-  const presetToggleBtn = getEl?.('presetViewToggle') || getEl?.('gizmoPresetsToggle') || null;
+  // NOTE: role name is SSOT in domContract.js (presetViewToggle). Keep legacy alias for safety.
+  const presetToggleBtn =
+    getEl?.('presetViewToggle') || getEl?.('gizmoPresetsToggle') || null;
 
   // ★ row-only HUD buttons（X/Y/Z + NE/NW/SW/SE）をここで初期化
   const hudBtnHandle = initGizmoButtons(hub, { doc, el: getEl });
@@ -304,7 +306,9 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
   // ------------------------------------------------------------
   // HUD controls（gizmo関連のボタン初期化はここが唯一の正規ルート）
   // ------------------------------------------------------------
-  const camCtrl = hf.getCamera?.() ?? null;
+  // camera proxy can be unavailable at attach-time depending on boot order.
+  // Always resolve lazily so HUD buttons still work.
+  const getCam = () => hf.getCamera?.() ?? null;
   const viewState = hf.getUiState?.() ?? null;
   const modeAPI = hf.getMode?.() ?? null;
 
@@ -319,11 +323,13 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
   let autoRunning = false;
   let autoDir = 'ccw';
   let autoSpeed = 1;
-  const AUTO_MAX_SPEED = 2;
+  // runtime/core/cameraEngine.js speedLevel is 1..N (N=3 currently)
+  const AUTO_MAX_SPEED = 3;
 
   const readAuto = () => {
-    if (camCtrl && typeof camCtrl.isAutoOrbiting === 'function') {
-      return !!camCtrl.isAutoOrbiting();
+    const cam = getCam();
+    if (cam && typeof cam.isAutoOrbiting === 'function') {
+      return !!cam.isAutoOrbiting();
     }
     return !!viewState?.runtime?.isCameraAuto;
   };
@@ -341,26 +347,38 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
 
   const uiAuto = () => {
     if (!btnCW || !btnCCW) return;
-    [btnCW, btnCCW].forEach((b) => b.classList.remove('is-running', 'is-fast'));
+    [btnCW, btnCCW].forEach((b) =>
+      b.classList.remove(
+        'is-running',
+        'is-fast',
+        'is-speed-1',
+        'is-speed-2',
+        'is-speed-3'
+      )
+    );
     if (!autoRunning) return;
     const b = autoDir === 'cw' ? btnCW : btnCCW;
     b.classList.add('is-running');
-    if (autoSpeed === 2) b.classList.add('is-fast');
+    // CSS variants exist in the wild; set both.
+    b.classList.add(`is-speed-${autoSpeed}`);
+    if (autoSpeed >= 2) b.classList.add('is-fast');
   };
 
   const applyAuto = () => {
-    if (!camCtrl) return;
+    const cam = getCam();
     if (!autoRunning) {
-      camCtrl.stopAutoOrbit?.();
+      stopAuto(cam, hf);
       return;
     }
     const dirSign = autoDir === 'cw' ? -1 : 1;
     const opts = { direction: dirSign, speedLevel: autoSpeed };
-    if (readAuto() && typeof camCtrl.updateAutoOrbitSettings === 'function') {
-      camCtrl.updateAutoOrbitSettings(opts);
-    } else {
-      camCtrl.startAutoOrbit?.(opts);
+    if (readAuto()) {
+      if (typeof cam?.updateAutoOrbitSettings === 'function') cam.updateAutoOrbitSettings(opts);
+      else hf?.commands?.updateAutoOrbitSettings?.(opts);
+      return;
     }
+    if (typeof cam?.startAutoOrbit === 'function') cam.startAutoOrbit(opts);
+    else hf?.commands?.startAutoOrbit?.(opts);
   };
 
   const syncHudFromHub = () => {
@@ -388,7 +406,27 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
     };
   };
 
+  // prevent host (Astro) chrome from receiving HUD button clicks
+  const stopEvent = (ev) => {
+    try { ev.stopPropagation?.(); } catch (_e) {}
+    try { ev.stopImmediatePropagation?.(); } catch (_e) {}
+  };
+
+  const stopEventPassiveSafe = (ev) => {
+    // do NOT preventDefault here (mobile click synthesis relies on it)
+    stopEvent(ev);
+  };
+
+  // stop propagation on pointer + click (best effort)
+  on(btnAutoToggle, 'pointerdown', stopEventPassiveSafe, { passive: true });
+  on(btnAutoToggle, 'pointerup', stopEventPassiveSafe, { passive: true });
+  on(btnCW, 'pointerdown', stopEventPassiveSafe, { passive: true });
+  on(btnCW, 'pointerup', stopEventPassiveSafe, { passive: true });
+  on(btnCCW, 'pointerdown', stopEventPassiveSafe, { passive: true });
+  on(btnCCW, 'pointerup', stopEventPassiveSafe, { passive: true });
+
   const offAutoToggle = on(btnAutoToggle, 'click', (ev) => {
+    stopEvent(ev);
     ev.preventDefault?.();
     autoRunning = !autoRunning;
     if (!autoRunning) {
@@ -403,6 +441,7 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
   });
 
   const offCW = on(btnCW, 'click', (ev) => {
+    stopEvent(ev);
     ev.preventDefault?.();
     if (!autoRunning) {
       autoRunning = true;
@@ -412,7 +451,7 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
       applyAuto();
       return;
     }
-    if (autoDir === 'cw') autoSpeed = autoSpeed === 1 ? AUTO_MAX_SPEED : 1;
+    if (autoDir === 'cw') autoSpeed = autoSpeed < AUTO_MAX_SPEED ? autoSpeed + 1 : 1;
     else {
       autoDir = 'cw';
       autoSpeed = 1;
@@ -422,6 +461,7 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
   });
 
   const offCCW = on(btnCCW, 'click', (ev) => {
+    stopEvent(ev);
     ev.preventDefault?.();
     if (!autoRunning) {
       autoRunning = true;
@@ -431,7 +471,7 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
       applyAuto();
       return;
     }
-    if (autoDir === 'ccw') autoSpeed = autoSpeed === 1 ? AUTO_MAX_SPEED : 1;
+    if (autoDir === 'ccw') autoSpeed = autoSpeed < AUTO_MAX_SPEED ? autoSpeed + 1 : 1;
     else {
       autoDir = 'ccw';
       autoSpeed = 1;
@@ -851,13 +891,17 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
   // ★ リスナを外せるように名前付き関数に
   function handlePresetToggle(ev) {
     if (isDisposed) return;
-    ev.preventDefault();
+    try { stopEvent?.(ev); } catch (_e) {}
+    ev.preventDefault?.();
     presetsVisible = !presetsVisible;
     updatePresetVisibility();
     requestRender();
   }
 
   if (presetToggleBtn) {
+    // best-effort isolation from host chrome
+    on(presetToggleBtn, 'pointerdown', stopEventPassiveSafe, { passive: true });
+    on(presetToggleBtn, 'pointerup', stopEventPassiveSafe, { passive: true });
     presetToggleBtn.addEventListener('click', handlePresetToggle);
   }
 
