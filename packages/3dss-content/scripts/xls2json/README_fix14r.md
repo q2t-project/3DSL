@@ -1,151 +1,91 @@
-# fix14r
+# 3DSS Excel IO（fix14r）使い方メモ（凍結版）
 
-## 変更点
-- **Export 時の Runtime error 450**（`ApplyLocalizedGroup` 内 `curV = JsonGetByPath(...)` で停止）を修正。
-  - `JsonGetByPath(...)` が Dictionary/Object を返すケースで、Variant への `=` 代入が 450 を起こすことがあるため、
-    **`JsonGetByPathAny(...)` 経由で Set/Let を自動分岐**するように統一。
+このフォルダ一式は **「下書き用のExcelテンプレ ↔ 3DSS JSON」** の往復を、最低限“変なデータを下流へ流さん”こと最優先で回すためのやつや。
 
-## 影響
-- Import はそのまま。
-- Export で localized object（`name`, `caption` 等）のマージ処理が安定。
-
-## 反映手順（いつもの）
-1. zip 展開
-2. Excel（xlsm）を開く → VBE
-3. 既存の IO モジュール（`3dss_xlsx_io_*`）を Remove
-4. `3dss_xlsx_io_v4_fix14r.bas` を Import
-5. デバッガで **VBAProject をコンパイル**
-6. Import/Export 実行
-
-## メモ
-- fix14o で出ていた「構文エラー」はこの版では含まない（`Private` 行の混入を避ける）。
-3. 既存の IO モジュール（`3dss_xlsx_io_*`）を Remove
-4. `3dss_xlsx_io_v4_fix14r.bas` を Import
-5. デバッグ → **VBAProject のコンパイル**（構文エラーが無いことを確認）
-6. Import/Export を実行
-
-## 既知の注意
-- AJV 2020-12 の CLI 検証は、手元の `ajv-cli` 環境に依存する。手元で通っているコマンド：
-  - `npx ajv-cli@5 validate --spec=draft2020 --strict=false -s .\3DSS.schema.json -d .\out.3dss.json --all-errors`
-
-
-````md
-# 3DSS Excel IO（xls2json）
-
-3DSS（3D Structural Schema）用の **Excel ⇄ JSON 変換ツール**。  
-この Excel（.xlsm）は **下書き・編集用**であり、最終的な正当性はスキーマ検証で担保する。
+- Import（JSON → Excel）/ Export（Excel → JSON）とも **fix14r で安定**
+- `xls2json` 周り（VBA本体/仕様）は **ここで凍結**（以後は不具合以外いじらん）
 
 ---
 
-## 位置づけ
+## 1. 同梱物
 
-- 本ツールは **制作途中データの入出力補助**
-- 厳密な正規化・最適化・自動補完は目的外
-- 「おかしな情報を下流（viewer / library）に流さない」ことを最優先
-
----
-
-## 基本フロー
-
-1. `in.3dss.json` を **Import**
-2. Excel 上で編集
-3. **Export** → `out.3dss.json`
-4. 必要に応じて AJV で schema validate
-
-```sh
-npx ajv-cli@5 validate --spec=draft2020 --strict=false \
-  -s 3DSS.schema.json -d out.3dss.json --all-errors
-````
+- `3dss_xlsx_io_v4_fix14r.bas`  
+  Excel（xlsm）に Import するVBAモジュール本体
+- `3dss_xlsx_template_v3_fix14r_text.xlsm`  
+  fix14r向けテンプレ（points に text 表示系カラム追加済）
+- `README_fix14r.md`（このファイル）
 
 ---
 
-## ラウンドトリップ保証
+## 2. 反映手順（いつもの）
 
-以下が満たされていれば **IO として問題なし**：
+1) テンプレ（`3dss_xlsx_template_v3_fix14r_text.xlsm`）を開く  
+2) `Alt+F11` → VBE を開く  
+3) 既存IOモジュールを Remove（同名が残らんように）  
+4) `3dss_xlsx_io_v4_fix14r.bas` を Import  
+5) デバッグ → `VBAProject` をコンパイル  
+6) `Alt+F8` から  
+   - `Import3DSSJson_Run`（in.3dss.json 読み込み）  
+   - `Export3DSSJson_Run`（out.3dss.json 書き出し）
 
-```sh
-py -c "import json;print(json.dumps(json.load(open('in.3dss.json','r',encoding='utf-8-sig')),ensure_ascii=False,indent=2,sort_keys=True))" > in.canon.json
-py -c "import json;print(json.dumps(json.load(open('out.3dss.json','r',encoding='utf-8-sig')),ensure_ascii=False,indent=2,sort_keys=True))" > out.canon.json
-git diff --no-index -- in.canon.json out.canon.json
+---
+
+## 3. 重要ポリシー（“下流を汚さない”）
+
+### 3.1 既知の落とし穴：Excelセルの「JSONっぽい文字」
+- セルに `[...]` / `{...}` が入ってると、VBA-JSONが Dictionary/Collection を返す
+- それを `cur(name)=v` みたいに **代入（Let）** すると 450 が出る
+- fix14r では **ObjectはSet / ScalarはLet** に寄せて、Import/Exportとも 450 を潰してる
+
+### 3.2 “空欄”の扱い
+- 空欄は「消す」扱いにすると、意図せず情報が落ちる  
+- fix14r は基本 **空欄＝触らない（raw維持）** 寄り
+- 明示的に消したい場合は、対応してるカラムでは `__UNSET__` を使う（※対応してない所は触らん）
+
+### 3.3 Warning と touch_audit
+- **warning はメッセージ表示**はする  
+- ただし **touch_audit には“変更”だけ記録**する（warningだけは記録しない）
+  - 理由：audit を「差分ログ」として汚さないため  
+  - warning の内容は export ダイアログに残るので、そっちで確認する運用
+
+---
+
+## 4. points: “TEXT表示”のためのカラム追加（今回の要点）
+
+「意味（signification.name）」と「表示（marker.text）」は別物や。  
+ビューア側で **文字をどう出すか** は `appearance.marker.text` を見に行く想定になる。
+
+points シートに以下を追加してある：
+
+- `marker_text_content` → `appearance.marker.text.content`（string）
+- `marker_text_font` → `appearance.marker.text.font`（string）
+- `marker_text_size` → `appearance.marker.text.size`（number）
+- `marker_text_align` → `appearance.marker.text.align`（string）
+- `marker_text_plane` → `appearance.marker.text.plane`（string）
+
+運用のコツ：
+- `marker_text_content` を空欄なら、ビューア側は `signification.name` をフォールバックにしてもええ（実装側判断）
+- `font/align/plane` も未指定（空）なら、ビューア側デフォルトでOK
+
+---
+
+## 5. JSON検証（Ajv）
+
+手元の `ajv-cli@5` で draft2020 を使うとき、環境によって strict が噛むことがある。  
+とりあえず動かすならこれでええ：
+
+```powershell
+npx ajv-cli@5 validate --spec=draft2020 --strict=false -s .\3DSS.schema.json -d .\out.3dss.json --all-errors
 ```
 
-* diff = 0 → 完全一致
-* diff が出る場合も **意図した編集のみ**であること
-
 ---
 
-## 設計方針（重要）
+## 6. いま残ってること（凍結前提で“運用側”に寄せる）
 
-### 1. 空欄の扱い
+- **テンプレ側のカラム整備**（必要なものだけ増やす）
+  - 今回：points の text 表示系を追加（完了）
+  - 逆に gltf 系は低頻度なので、当面は空欄運用 or aux/raw_json で直書きでOK
+- **サンプルデータ**（frames入り等）を増やして往復diffゼロを確認（運用タスク）
 
-* 空欄 = **未指定**
-* 勝手に null / default を入れない
-* 意図的に消したい場合は `__UNSET__`
+※ VBA（xls2json）自体は凍結。追加要望はまず「テンプレの列＋mappingで吸えるか」で対応する。
 
-### 2. partial データ
-
-* relation kind / value などが片方だけの場合：
-
-  * **raw_json を維持**
-  * warning を出すが、破壊しない
-
-### 3. warning の扱い
-
-* warning は **UI 表示のみ**
-* JSON 本体には影響させない
-* 下流に異常データを流さないための注意喚起
-
-### 4. touch_audit
-
-* JSON 構造に実際の変更が入った場合のみ記録
-* warning のみの場合は記録されない（仕様）
-
----
-
-## frames / aux について
-
-* `frames_json` / `aux` は **raw JSON 行単位**
-* Import → Export で **diff が 0 になることを確認済**
-* 解釈や意味付けは viewer / modeler 側の責務
-
----
-
-## このツールでやらないこと
-
-* schema の完全修復
-* viewer 表示用の最適化
-* 高度な自動補完
-* 意味的な正誤判定
-
----
-
-## 想定用途
-
-* 3DSS コンテンツの下書き作成
-* JSON を直接触りたくないケースの編集補助
-* modeler / viewer に渡す前段階の素材生成
-
----
-
-## 状態
-
-* Import / Export：安定
-* ラウンドトリップ：保証済
-* **仕様凍結（これ以上手を入れない）**
-
----
-
-## 注意
-
-この Excel は **完成品を作る場所ではない**。
-「下書きを安全に作るための作業台」である。
-
-最終判断は必ず：
-
-* schema
-* modeler
-* viewer
-
-で行うこと。
-
-```

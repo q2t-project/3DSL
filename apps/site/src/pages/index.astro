@@ -13,24 +13,32 @@ const demoModel = "/3dss/sample/3dsl_concept.3dss.json";
 >
   <!-- Hero: information-dense, business-like UI (surface + clear hierarchy) -->
   <section class="grid gap-6 lg:grid-cols-12">
-    <div class="ui-surface p-6 sm:p-8 lg:col-span-7">
-      <!-- keep the top of the hero calm: copy starts after a bit of air -->
-      <div class="mt-4 max-w-[52ch] prose prose-invert prose-neutral prose-p:my-3 hero-copy">
+    <div class="ui-surface p-6 sm:p-8 lg:col-span-7 flex flex-col min-h-[86vh]">
+      <!-- keep the top calm: copy starts after a bit of air -->
+      <div class="mt-4 max-w-[52ch] prose prose-invert prose-neutral prose-p:my-3 hero-copy home-poem">
           <TopText />
       </div>
 
-      <div class="mt-6 flex flex-wrap gap-3">
-        <a
-          href={`/app/viewer?model=${encodeURIComponent(demoModel)}&back=${encodeURIComponent('/')}`}
-          class="ui-btn ui-btn-primary"
-        >
-          デモを開く
-        </a>
+      <div class="mt-auto pt-7">
+        <div class="home-peek ui-border ui-shadow" aria-hidden="true">
+          <div class="home-peek__hint">Scroll</div>
+          <iframe
+            class="home-peek__frame"
+            src={`/viewer/index.html?embed=1&mode=peek&model=${encodeURIComponent(demoModel)}`}
+            loading="lazy"
+            title="3DSL demo preview"
+            tabindex="-1"
+            aria-hidden="true"
+          ></iframe>
+          <div class="home-peek__fade"></div>
+        </div>
 
-        <a href="/library" class="ui-btn">Library</a>
-        <a href="/app/viewer" class="ui-btn">Viewer</a>
-        <a href="/docs" class="ui-btn">Docs</a>
-        <a href="/concept" class="ui-btn">Concept</a>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <a href="/library" class="ui-btn ui-btn-ghost">Library</a>
+          <a href="/docs" class="ui-btn ui-btn-ghost">Docs</a>
+          <a href="/concept" class="ui-btn ui-btn-ghost">Concept</a>
+          <a href={`/app/viewer?model=${encodeURIComponent(demoModel)}`} class="ui-btn ui-btn">全画面で開く →</a>
+        </div>
       </div>
     </div>
 
@@ -42,12 +50,14 @@ const demoModel = "/3dss/sample/3dsl_concept.3dss.json";
         </p>
         <div class="mt-4 grid gap-2">
           <a
-            href={`/app/viewer?model=${encodeURIComponent(demoModel)}&back=${encodeURIComponent('/')}`}
-            class="ui-btn ui-btn-primary"
+            href={
+              `/app/viewer?model=${encodeURIComponent(demoModel)}&back=${encodeURIComponent('/')}`
+            }
+            class="ui-btn ui-btn"
           >
-            おすすめデモ
+            Viewer（全画面）
           </a>
-          <a href="/library" class="ui-btn">公開コンテンツ（Library）</a>
+          <a href="/library" class="ui-btn ui-btn-ghost">Library</a>
         </div>
       </div>
 
@@ -133,4 +143,71 @@ const demoModel = "/3dss/sample/3dsl_concept.3dss.json";
       </a>
     </div>
   </section>
+
+  <style>
+    /* Home-only typography (poetic tone) */
+    .home-poem {
+      font-family: "Noto Serif JP", "Noto Serif", ui-serif, Georgia, serif;
+      letter-spacing: 0.01em;
+      font-weight: 300;
+      text-rendering: geometricPrecision;
+    }
+    .home-poem :is(h1, h2, h3, strong) {
+      font-weight: 400;
+    }
+    .home-poem p {
+      line-height: 1.95;
+      margin: 0 0 0.85em;
+    }
+    .home-poem p:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Demo peek: show part of the viewer to invite scrolling */
+    .home-peek {
+      position: relative;
+      height: min(52vh, 520px);
+      overflow: hidden;
+      border-radius: 18px;
+      background: #0b0f14;
+    }
+    .home-peek__frame {
+      position: absolute;
+      inset: -12px;
+      width: calc(100% + 24px);
+      height: calc(100% + 24px);
+      border: 0;
+      pointer-events: none; /* preview only; user scrolls to open full viewer */
+      transform: translateY(-18%);
+      filter: saturate(0.9) contrast(1.05);
+    }
+    .home-peek__fade {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.7) 0%,
+        rgba(0, 0, 0, 0.15) 22%,
+        rgba(0, 0, 0, 0) 45%,
+        rgba(0, 0, 0, 0.25) 78%,
+        rgba(0, 0, 0, 0.75) 100%
+      );
+    }
+    .home-peek__hint {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 2;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+  </style>
+
 </Layout>

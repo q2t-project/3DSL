@@ -101,6 +101,14 @@ export async function mountViewerHost(opts) {
 
     startHub(hub);
 
+    // Peek mode: decorative, non-interactive, auto-orbit enabled.
+    // (input/UI/gizmo are suppressed by profile + domContract)
+    try {
+      if (profile === "peek") {
+        hub?.camera?.startAutoOrbit?.({});
+      }
+    } catch (_e) {}
+
     return {
       hub,
       ui: owned.ui,

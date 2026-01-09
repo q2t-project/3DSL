@@ -14,10 +14,11 @@ const DEV =
 
 const _handles = new WeakMap();
 
+const NEED_POINTER = (p) => p === 'devHarness_full' || p === 'prod_full';
 const NEED_KEYBOARD = (p) => p === 'devHarness_full' || p === 'prod_full';
 const NEED_PICKER = (p) => p === 'devHarness_full' || p === 'prod_full';
 const NEED_TIMELINE = (p) => p === 'devHarness_full' || p === 'prod_full';
-const NEED_GIZMO = (_p) => true; // 最小/フル問わず表示したいなら true 固定でOK
+const NEED_GIZMO = (p) => p === 'devHarness_full' || p === 'prod_full';
 const NEED_CONTROLS = (p) => p === 'devHarness_full' || p === 'prod_full';
 
 
@@ -137,12 +138,14 @@ export function attachUiProfile(hub, opts) {
   // inputs
   // -----------------------------
   {
-    handle.pointerInput = new PointerInput(canvas, hub);
-    add(() => {
-      try {
-        handle.pointerInput?.dispose?.();
-      } catch (_e) {}
-    });
+    if (NEED_POINTER(profile)) {
+      handle.pointerInput = new PointerInput(canvas, hub);
+      add(() => {
+        try {
+          handle.pointerInput?.dispose?.();
+        } catch (_e) {}
+      });
+    }
 
     if (NEED_KEYBOARD(profile)) {
       handle.keyboardInput = new KeyboardInput(win, hub);

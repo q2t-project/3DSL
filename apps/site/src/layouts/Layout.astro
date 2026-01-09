@@ -13,6 +13,7 @@ const {
   twitterCard = "summary",
 } = Astro.props;
 const pathname = Astro.url?.pathname ?? "/";
+const isHome = pathname === "/";
 const canonicalFinal = canonicalUrl ?? canonical;
 
 // AdSense
@@ -54,7 +55,7 @@ function isActive(href) {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Noto+Sans+JP:wght@300;400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Noto+Sans+JP:wght@300;400;500&family=Noto+Serif+JP:wght@300;400&display=swap"
     />
 
     <title>{title}</title>
@@ -76,25 +77,25 @@ function isActive(href) {
     <slot name="head" />
   </head>
 
-  <body class="min-h-screen text-neutral-100 antialiased">
+  <body class={`min-h-screen text-neutral-100 antialiased${isHome ? " is-home" : ""}`}>
     <div id="app-shell" class="min-h-screen text-neutral-100 antialiased app-shell">
     <header class="sticky top-0 z-50 border-b border-white/10 bg-neutral-950/60 backdrop-blur">
-      <div class="mx-auto max-w-6xl px-4 py-3">
-        <div class="flex items-center gap-3">
+    <div class="mx-auto max-w-6xl px-4 py-2">
+      <div class="ui-headerbar flex items-start gap-3">
           <a href="/" class="flex items-center shrink-0" aria-label="3DSL Home">
             <!-- Keep logo size stable even if utility CSS is missing -->
             <img
               src="/assets/logo/3DSL.svg"
               alt="3DSL"
               class="ui-brand-logo"
-              width="192"
-              height="48"
+              width="144"
+              height="36"
               loading="eager"
               decoding="async"
             />
           </a>
 
-          <nav class="ui-navbar" aria-label="Primary">
+          <nav class="ui-navbar ui-navbar--mecha" aria-label="Primary">
             {nav.map((i) => (
               <a
                 href={i.href}

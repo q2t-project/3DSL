@@ -113,7 +113,7 @@ function showFatal(err) {
   const p = new URLSearchParams(location.search);
 
   // allow small boot toggles for debugging
-  const mode = p.get("mode") || "prod"; // "prod" | "dev"
+  const mode = p.get("mode") || "prod"; // "prod" | "dev" | "peek"
 
   // model selection
   let modelUrl = p.get("model") || "";
@@ -121,9 +121,17 @@ function showFatal(err) {
   if (!modelUrl) modelUrl = await pickDefaultModelUrl();
 
   // embed mode: hide host UI chrome (viewer.css uses body.is-embed)
-  if (p.get("embed") === "1") {
+  // - peek implies embed
+  if (p.get("embed") === "1" || mode === "peek") {
     try {
       document.body.classList.add("is-embed");
+    } catch {}
+  }
+
+  // peek mode: non-interactive decorative view
+  if (mode === "peek") {
+    try {
+      document.body.classList.add("is-peek");
     } catch {}
   }
 
@@ -131,7 +139,7 @@ function showFatal(err) {
   // attachUiProfile() is strict: profile is required.
   // default by mode unless explicitly provided.
   let profile = p.get("profile") || "";
-  if (!profile) profile = (mode === "dev") ? "devHarness_full" : "prod_full";
+  if (!profile) profile = (mode === "dev") ? "devHarness_full" : (mode === "peek") ? "peek" : "prod_full";
 
   const host = await mountViewerHost({
     mode,
