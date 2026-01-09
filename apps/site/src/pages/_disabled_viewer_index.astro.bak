@@ -1,5 +1,5 @@
 ---
-const DEFAULT_MODEL = "/3dss/sample/core_viewer_baseline.3dss.json";
+const DEFAULT_MODEL = "/3dss/sample/3dsl_concept.3dss.json";
 const sp = Astro.url.searchParams;
 const embed = sp.get("embed") === "1" || sp.get("embed") === "true";
 const model = sp.get("model") || sp.get("src") || DEFAULT_MODEL;

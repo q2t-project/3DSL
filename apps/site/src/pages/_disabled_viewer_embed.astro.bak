@@ -1,6 +1,6 @@
 ---
 // Lightweight embed route: full-bleed iframe to the static viewer.
-const demoModel = "/3dss/sample/core_viewer_baseline.3dss.json";
+const demoModel = "/3dss/sample/3dsl_concept.3dss.json";
 const sp = Astro.url.searchParams;
 const model = sp.get("model") || sp.get("src") || demoModel;
 const iframeSrc = `/viewer/?embed=1&model=${encodeURIComponent(model)}`;

@@ -14,7 +14,7 @@
 
 - SSOT (authoritative)
   - sample
-    - `C:\Users\vrrrm\projects\3DSL\packages\3dss-content\sample\core_viewer_baseline.3dss.json`
+    - `C:\Users\vrrrm\projects\3DSL\packages\3dss-content\sample\3dsl_concept.3dss.json`
   - canonical
     - valid
       - `C:\Users\vrrrm\projects\3DSL\packages\3dss-content\canonical\valid\sample02_mixed_basic.3dss.json`
@@ -23,7 +23,7 @@
 
 - Public mirror (served from http://.../3dss/**)
   - sample
-    - `C:\Users\vrrrm\projects\3DSL\apps\site\public\3dss\sample\core_viewer_baseline.3dss.json`
+    - `C:\Users\vrrrm\projects\3DSL\apps\site\public\3dss\sample\3dsl_concept.3dss.json`
   - canonical
     - valid
       - `C:\Users\vrrrm\projects\3DSL\apps\site\public\3dss\canonical\valid\sample02_mixed_basic.3dss.json`
@@ -37,8 +37,8 @@
 
 ## Viewer URL
 
-- Site container: `/app/viewer?model=/3dss/sample/core_viewer_baseline.3dss.json`
-- Viewer runtime: `/viewer?model=/3dss/sample/core_viewer_baseline.3dss.json`
+- Site container: `/app/viewer?model=/3dss/sample/3dsl_concept.3dss.json`
+- Viewer runtime: `/viewer?model=/3dss/sample/3dsl_concept.3dss.json`
 
 ## Sync (PowerShell robocopy examples)
 

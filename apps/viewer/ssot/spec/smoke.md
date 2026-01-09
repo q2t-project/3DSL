@@ -7,7 +7,7 @@
 ## 対象モデル
 
 ### baseline（E2Eの固定）
-- /public/3dss/sample/core_viewer_baseline.3dss.json
+- /public/3dss/sample/3dsl_concept.3dss.json
 
 ### canonical（回帰用：仕様どおりに通る/落ちるを固定）
 - valid:
