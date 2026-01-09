@@ -22,6 +22,24 @@ const ROLE_SPECS = /** @type {Record<string, RoleSpec>} */ ({
   // core
   viewerCanvas: { name: 'viewerCanvas', preferred: '[data-role="viewer-canvas"]', fallback: '#viewer-canvas', tag: 'CANVAS' },
   gizmoSlot: { name: 'gizmoSlot', preferred: '[data-role="gizmo-slot"]', fallback: '#gizmo-slot', tag: 'DIV' },
+  gizmoModeLabel: { name: 'gizmoModeLabel', preferred: '[data-role="gizmo-mode-label"]', fallback: '#gizmo-mode-label', tag: null },
+  worldAxesToggle: { name: 'worldAxesToggle', preferred: '[data-role="world-axes-toggle"]', fallback: '#world-axes-toggle', tag: 'BUTTON' },
+  presetViewToggle: { name: 'presetViewToggle', preferred: '[data-role="gizmo-presets-toggle"]', fallback: '#gizmo-presets-toggle', tag: 'BUTTON' },
+  // alias: legacy role name (kept for backward compatibility)
+  gizmoPresetsToggle: { name: 'gizmoPresetsToggle', preferred: '[data-role="gizmo-presets-toggle"]', fallback: '#gizmo-presets-toggle', tag: 'BUTTON' },
+
+  // optional rows (if present)
+  gizmoAxisRow: { name: 'gizmoAxisRow', preferred: '[data-role="gizmo-axis-row"]', fallback: null, tag: 'DIV' },
+  gizmoViewRow: { name: 'gizmoViewRow', preferred: '[data-role="gizmo-view-row"]', fallback: null, tag: 'DIV' },
+
+
+
+  // auto orbit
+  autoOrbitSlot: { name: 'autoOrbitSlot', preferred: '[data-role="auto-orbit-slot"]', fallback: '#auto-orbit-slot', tag: 'DIV' },
+  autoOrbitToggle: { name: 'autoOrbitToggle', preferred: '[data-role="auto-orbit-toggle"]', fallback: '#auto-orbit-toggle', tag: 'BUTTON' },
+  autoOrbitCW: { name: 'autoOrbitCW', preferred: '[data-role="auto-orbit-cw"]', fallback: '#auto-orbit-cw', tag: 'BUTTON' },
+  autoOrbitCCW: { name: 'autoOrbitCCW', preferred: '[data-role="auto-orbit-ccw"]', fallback: '#auto-orbit-ccw', tag: 'BUTTON' },
+
   viewerHud: { name: 'viewerHud', preferred: '[data-role="viewer-hud"]', fallback: '#viewer-hud', tag: 'DIV' },
 
   // doc caption (optional)

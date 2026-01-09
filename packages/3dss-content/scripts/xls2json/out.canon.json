@@ -41,16 +41,7 @@
         },
         "line_style": "solid",
         "line_type": "straight",
-        "marker": {
-          "primitive": "sphere",
-          "radius": 1
-        },
-        "opacity": 0.4,
-        "position": [
-          0,
-          0,
-          0
-        ]
+        "opacity": 0.4
       },
       "meta": {
         "tags": [
@@ -73,8 +64,6 @@
   "points": [
     {
       "appearance": {
-        "line_style": "solid",
-        "line_type": "straight",
         "marker": {
           "common": {
             "color": "#ff0000",
@@ -90,6 +79,14 @@
         ]
       },
       "meta": {
+        "__unknown_test": {
+          "a": 1,
+          "b": [
+            true,
+            null,
+            "x"
+          ]
+        },
         "tags": [
           "s:p1"
         ],
@@ -97,22 +94,23 @@
       },
       "signification": {
         "name": {
-          "en": "Point A",
           "ja": "“_A"
         }
       }
     },
     {
       "appearance": {
-        "line_style": "solid",
-        "line_type": "straight",
         "marker": {
           "common": {
             "color": "#0000ff",
             "opacity": 0.6
           },
           "primitive": "box",
-          "size": "[\r\n1,\r\n1,\r\n1\r\n]"
+          "size": [
+            1,
+            1,
+            1
+          ]
         },
         "position": [
           10,

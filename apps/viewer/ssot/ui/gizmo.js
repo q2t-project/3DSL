@@ -262,7 +262,7 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
 
   // HUD controls（gizmo関連のボタン初期化はここが唯一の正規ルート）
   // ...
-  const presetToggleBtn = getEl?.('gizmoPresetsToggle') || null;
+  const presetToggleBtn = getEl?.('presetViewToggle') || getEl?.('gizmoPresetsToggle') || null;
 
   // ★ row-only HUD buttons（X/Y/Z + NE/NW/SW/SE）をここで初期化
   const hudBtnHandle = initGizmoButtons(hub, { doc, el: getEl });

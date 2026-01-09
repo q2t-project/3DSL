@@ -79,6 +79,14 @@
         ]
       },
       "meta": {
+        "__unknown_test": {
+          "a": 1,
+          "b": [
+            true,
+            null,
+            "x"
+          ]
+        },
         "tags": [
           "s:p1"
         ],
