@@ -24,6 +24,13 @@ export async function mountViewerHost(opts) {
   let ro = null;
   let disposed = false;
 
+  // devicePixelRatio はユーザー操作（ブラウザズーム等）で変わり得るので
+  // resize のたびに取得する（極端な値は抑える）
+  function getDpr() {
+    const dpr = Number(globalThis.devicePixelRatio) || 1;
+    return Math.max(1, Math.min(2, dpr));
+  }
+
   // 1フレームに1回だけ resize を流す（ResizeObserver の連打対策）
   let rafId = 0;
   let pendingW = 0;
@@ -36,7 +43,7 @@ export async function mountViewerHost(opts) {
       rafId = 0;
       const hub = owned.hub;
       if (!hub) return;
-      if (pendingW > 0 && pendingH > 0) resizeHub(hub, pendingW, pendingH);
+      if (pendingW > 0 && pendingH > 0) resizeHub(hub, pendingW, pendingH, getDpr());
     });
   }
 
@@ -89,7 +96,7 @@ export async function mountViewerHost(opts) {
     // 初回は明示的に 1 回サイズ反映してから start（初期 0 サイズ事故を潰す）
     {
       const { w, h } = readCanvasClientSize();
-      if (w > 0 && h > 0) resizeHub(hub, w, h);
+      if (w > 0 && h > 0) resizeHub(hub, w, h, getDpr());
     }
 
     startHub(hub);

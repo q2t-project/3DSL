@@ -344,6 +344,33 @@ async function loadJSON(url) {
   return json;
 }
 
+
+// ------------------------------------------------------------
+// legacy normalization
+//   - Some older templates emitted a top-level "frames" (often empty array).
+//     This key is not part of the current 3DSS root schema, and will fail strict validation.
+//     When it is empty/null, we can safely strip it as a no-op canonicalization.
+// ------------------------------------------------------------
+function normalizeLegacyTopLevelFrames(doc, options = {}) {
+  if (!doc || typeof doc !== "object") return doc;
+  if (Object.prototype.hasOwnProperty.call(doc, "frames")) {
+    const v = doc.frames;
+    const isEmptyArray = Array.isArray(v) && v.length === 0;
+    const isNullish = v == null;
+    if (isEmptyArray || isNullish) {
+      const out = { ...doc };
+      delete out.frames;
+      try {
+        if (options?.warnLegacy !== false) {
+          console.warn('[bootstrap] stripped empty legacy top-level "frames"');
+        }
+      } catch (_e) {}
+      return out;
+    }
+  }
+  return doc;
+}
+
 // ------------------------------------------------------------
 // document_meta / version 整合チェック
 //   - schema_uri === schema.$id
@@ -636,9 +663,23 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     const isValid = validate3DSS(document3dss);
     if (!isValid) {
       const errors = getErrors() || [];
+      const formatAjvError = (e) => {
+        const path = (e && typeof e.instancePath === "string" && e.instancePath.length) ? e.instancePath : "/";
+        let msg = (e && typeof e.message === "string" && e.message.length) ? e.message : (e?.keyword || "validation error");
+        const p = e?.params || {};
+        if (e?.keyword === "additionalProperties" && typeof p.additionalProperty === "string") {
+          msg += ` (additionalProperty: ${p.additionalProperty})`;
+        } else if (e?.keyword === "required" && typeof p.missingProperty === "string") {
+          msg += ` (missing: ${p.missingProperty})`;
+        } else if (e?.keyword === "type" && typeof p.type === "string") {
+          msg += ` (expected: ${p.type})`;
+        }
+        return `${path} ${msg}`.trim();
+      };
+
       const msg =
         "3DSS validation failed:\n" +
-        errors.map((e) => `${e.instancePath || ""} ${e.message || e.keyword || "validation error"}`).join("\n");
+        errors.map(formatAjvError).join("\n");
       const err = new Error(msg);
       err.kind = "VALIDATION_ERROR";
       throw err;
@@ -981,6 +1022,7 @@ export async function bootstrapViewerFromUrl(canvasOrId, url, options = {}) {
   let doc;
   try {
     doc = await loadJSON(url);
+    doc = normalizeLegacyTopLevelFrames(doc, options);
   } catch (e) {
     const err = e instanceof Error ? e : new Error(String(e));
     if (!("kind" in err)) {

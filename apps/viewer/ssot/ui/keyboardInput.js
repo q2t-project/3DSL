@@ -1,7 +1,7 @@
 // viewer/ui/keyboardInput.js
 import { mapArrowKeyToOrbitDelta } from './orbitMapping.js';
 import { createHubFacade } from './hubFacade.js';
-import { DEFAULT_INPUT_KEYBOARD, resolveInputDefaults } from './inputDefaultsFallback.js';
+import { DEFAULT_INPUT_KEYBOARD, resolveInputDefaults } from '../runtime/core/inputDefaults.js';
 
 const DEBUG_KEYBOARD = false;
 

@@ -116,8 +116,7 @@ function showFatal(err) {
   const mode = p.get("mode") || "prod"; // "prod" | "dev"
 
   // model selection
-  // contract: prefer `model`, accept legacy `open` for compatibility
-  let modelUrl = p.get("model") || p.get("open") || "";
+  let modelUrl = p.get("model") || "";
   if (modelUrl && !isProbablyUrlish(modelUrl)) modelUrl = "";
   if (!modelUrl) modelUrl = await pickDefaultModelUrl();
 
