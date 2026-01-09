@@ -1,36 +1,6 @@
 {
   "items": [
     {
-      "slug": "2601080a",
-      "title": "tmp2",
-      "summary": "",
-      "tags": [],
-      "thumb": null,
-      "viewer_url": "/viewer/index.html?model=%2F3dss%2Flibrary%2F2601080a%2Fmodel.3dss.json",
-      "entry_points": [],
-      "pairs": [],
-      "rights": null,
-      "related": [],
-      "meta_title": "tmp2",
-      "meta_description": "",
-      "meta_og_image": null
-    },
-    {
-      "slug": "26010801",
-      "title": "tmp",
-      "summary": "",
-      "tags": [],
-      "thumb": null,
-      "viewer_url": "/viewer/index.html?model=%2F3dss%2Flibrary%2F26010801%2Fmodel.3dss.json",
-      "entry_points": [],
-      "pairs": [],
-      "rights": null,
-      "related": [],
-      "meta_title": "tmp",
-      "meta_description": "",
-      "meta_og_image": null
-    },
-    {
       "slug": "26010502",
       "title": "26010502-test",
       "summary": "一覧にも使う短い説明",
