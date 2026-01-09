@@ -2,7 +2,10 @@
 /* Tailwindの @apply に依存しない “業務UI” 基本部品 */
 
 :root{
-  --ui-bg: #0b0f14;
+  /* Background: subtle depth (tech-like, not flashy) */
+  --ui-bg: radial-gradient(1200px circle at 12% 8%, rgba(56,189,248,0.10), transparent 55%),
+           radial-gradient(900px circle at 82% 16%, rgba(255,255,255,0.06), transparent 58%),
+           #0b0f14;
   --ui-surface: rgba(255,255,255,0.04);
   --ui-surface-2: rgba(255,255,255,0.06);
   --ui-border: rgba(255,255,255,0.10);

@@ -73,6 +73,67 @@ body {
   color: var(--ui-text);
 }
 
+/* =========================================================
+   Typography polish
+   - keep it subtle: hierarchy by spacing + hairlines
+   - applies to all prose blocks (Docs/Concept/Policy/Home hero)
+   ========================================================= */
+
+@layer base {
+  /* Prevent small horizontal layout shifts on scrollbars */
+  html {
+    scrollbar-gutter: stable;
+  }
+
+  /* Tailwind Typography plugin uses :where() + not-prose; match its selector shape */
+  .prose :where(h1, h2, h3, h4):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+    scroll-margin-top: 6rem;
+    letter-spacing: -0.01em;
+  }
+
+  .prose :where(p):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+    line-height: 1.8;
+  }
+
+  .prose :where(h2):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+    margin-top: 2.6rem;
+    margin-bottom: 1.1rem;
+  }
+  .prose :where(h2):not(:where([class~="not-prose"], [class~="not-prose"] *))::after {
+    content: "";
+    display: block;
+    height: 1px;
+    margin-top: 0.75rem;
+    background: rgba(255, 255, 255, 0.10);
+  }
+
+  .prose :where(h3):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+    margin-top: 2.0rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .prose :where(a):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+
+  .prose :where(code):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+    border-radius: 0.35rem;
+    background: rgba(255, 255, 255, 0.06);
+    padding: 0.15rem 0.35rem;
+  }
+
+  .prose :where(pre):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    background: rgba(0, 0, 0, 0.35);
+  }
+
+  .prose :where(blockquote):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+    border-left-color: rgba(255, 255, 255, 0.16);
+  }
+}
+
 /* Swipe navigation stage (behind #app-shell) */
 #app-shell {
   position: relative;
