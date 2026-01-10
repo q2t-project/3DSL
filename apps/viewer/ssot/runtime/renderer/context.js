@@ -5,7 +5,7 @@ import { applyMicroFX as applyMicroFXImpl, clearMicroFX as clearMicroFXImpl } fr
 import { microFXConfig } from "./microFX/config.js";
 // NOTE: microFXConfig は profile 切替の“状態置き場”としても使える（存在すれば）
 import { buildPointLabelIndex } from "./labels/labelIndex.js";
-import { createLabelRuntime } from "./labels/labelRuntime.js";
+import { LabelLayer } from "./labels/LabelLayer.js";
 import { createWorldAxesLayer } from "./worldAxes.js";
 import { createLineEffectsRuntime } from "./effects/lineEffects.js";
 import {
@@ -379,8 +379,25 @@ function maybeForceContextLoss(renderer, enabled) {
   let lineEffectsRuntime = null;
   let _suppressLineEffects = false;
 
-  // selectionHighlight に渡す bundles（labels は今は未接続なら null のままでOK）
-  const bundles = { points: maps.points, lines: maps.lines, aux: maps.aux, labels: null };
+  const labelLayer = new LabelLayer(scene, { renderOrder: 900 });
+  const labelObjects = new Map();
+
+  function refreshLabelObjects() {
+    labelObjects.clear();
+    const src = labelLayer.runtime?.labels;
+    if (!src || typeof src.entries !== "function") return;
+    for (const [uuid, entry] of src.entries()) {
+      if (entry?.obj) labelObjects.set(uuid, entry.obj);
+    }
+  }
+
+  // selectionHighlight に渡す bundles（labels は LabelLayer で管理）
+  const bundles = {
+    points: maps.points,
+    lines: maps.lines,
+    aux: maps.aux,
+    labels: labelObjects,
+  };
 
   // microFX/highlight 用：UUID から描画 Object3D を引く。
   // renderer 側で生成した points/lines/aux の描画物は maps.* に登録される前提。
@@ -635,6 +652,13 @@ function maybeForceContextLoss(renderer, enabled) {
       addPickTarget(mesh);
     }
 
+    // labels: points marker.text
+    try {
+      const labelIndex = buildPointLabelIndex(struct);
+      labelLayer.sync(labelIndex, maps.points);
+      refreshLabelObjects();
+    } catch (_e) {}
+
     // lines: LineSegments(2pts)
     if (lns.length) {
       debugRenderer("[renderer] line[0] shape", {
@@ -866,6 +890,7 @@ function maybeForceContextLoss(renderer, enabled) {
       }
       if (kind === "aux") groups.aux.visible = true;
     }
+    try { labelLayer.setVisibleSet(vs); } catch (_e) {}
   };
 
   ctx.updateCamera = (camState) => {
@@ -895,6 +920,7 @@ function maybeForceContextLoss(renderer, enabled) {
     if (pos) camera.position.set(pos[0], pos[1], pos[2]);
     camera.lookAt(tgt[0], tgt[1], tgt[2]);
     camera.updateProjectionMatrix();
+    try { labelLayer.setCameraState(st); } catch (_e) {}
   };
 
   ctx.resize = (w, h, dpr = 1) => {
@@ -916,6 +942,7 @@ function maybeForceContextLoss(renderer, enabled) {
       try { lineEffectsRuntime?.updateLineEffects?.(); } catch (_e) {}
     }
 
+    try { labelLayer.update(); } catch (_e) {}
     renderer.render(scene, camera);
   };
 
@@ -1022,6 +1049,7 @@ function maybeForceContextLoss(renderer, enabled) {
         intensity,
       });
     } catch (_e) {}
+    try { labelLayer.applyMicroFX(microState || null, intensity); } catch (_e) {}
 
     // fade-out 終了後に microFX の残骸を確実に掃除（microFX 実装が clear しない場合の安全弁）
     if (!microState && !suppressed) {
@@ -1175,6 +1203,7 @@ function maybeForceContextLoss(renderer, enabled) {
   ctx._cleanup = () => {
     try { clearSelectionHighlightImpl(scene); } catch (_e) {}
     try { clearMicroFXImpl(scene); } catch (_e) {}
+    try { labelLayer.dispose(); } catch (_e) {}
   };
 
   _canvasContexts.set(canvas, ctx);

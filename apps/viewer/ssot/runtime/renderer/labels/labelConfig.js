@@ -1,5 +1,7 @@
 // viewer/runtime/renderer/labelConfig.js
 
+import { LABEL_FONT_DEFAULT_FAMILY } from "./labelSpec.js";
+
 // ラベル描画全般のチューニング用パラメータ
 export const labelConfig = {
   // 3DSS の label.size=8 を「論理サイズ 1.0」の基準とみなす
@@ -23,8 +25,7 @@ export const labelConfig = {
     // 文字周りの padding(px)
     padding: 4,
     // フォントファミリ
-    fontFamily:
-      'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    fontFamily: LABEL_FONT_DEFAULT_FAMILY,
   },
 
   // 文字色

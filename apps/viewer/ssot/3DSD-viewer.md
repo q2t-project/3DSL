@@ -856,6 +856,26 @@ viewer は構造チE�Eタに対して次を一刁E��わなぁE��E
 これら�E **表示ロジチE��** であり、構造チE�Eタの変更ではなぁE��E 
 viewer は `appearance.visible` などを参照しても、値を書き換えたり上書きしたりしなぁE��E
 
+### 2.4.3 marker.text の viewer 解釈仕様
+
+viewer は `points.appearance.marker.text` を **唯一の解釈層**（labelIndex）で正規化し、Renderer はその結果だけを参照して描画する。  
+以下の規則は viewer 内で固定とし、public / dist などのミラーには重複定義を置かない。
+
+- `content`：非空文字列なら最優先で使用。空なら `signification.name` を言語順（`document_meta.i18n` → `ja` → `en` → 最初の文字列キー）でフォールバックする。  
+  両方空ならラベル自体を生成しない。
+- `size`：**world 単位の論理サイズ**。`labelConfig.baseLabelSize=8` を基準に world 高さへ変換する。  
+  `number` 以外、または 0 以下は `8` にフォールバック。
+- `plane`：`xy` / `yz` / `zx` / `billboard`。  
+  `billboard` はカメラ正面固定、`xy` は +Z 正面、`yz` は +X 正面、`zx` は +Y 正面を向く。  
+  無効値は `zx` にフォールバック。
+- `align`：`left/center/right` × `top/middle/baseline` を `left&top` の形式で指定する。  
+  基準点（point 座標）に対するアンカー位置であり、`baseline` は **文字領域の下端**として扱う。  
+  無効値は `center&middle` にフォールバック。
+- `font`：`string` を受け付ける。  
+  - `helvetiker_regular` または空文字は viewer の既定フォントにフォールバック。  
+  - それ以外は **CSS font-family 文字列**として扱う。  
+  - 先頭に `italic/oblique/normal` や `100..900/bold` などのトークンが含まれる場合は style / weight として解釈し、残りを family とする。
+
 
 ## 2.5 frame / frames の扱ぁE
 
