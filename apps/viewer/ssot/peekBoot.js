@@ -29,6 +29,7 @@ function installOrbitInput(canvas, hub) {
   const ROTATE_SPEED = 0.008; // radians per px
   const PAN_SPEED = 0.0025;   // world-ish scale factor (cameraEngine handles scaling internally)
   const WHEEL_ZOOM = 0.0012;  // zoom per wheel deltaY px
+  const PINCH_ZOOM = 0.0030;  // zoom per pinch px (distance delta)
 
   let activeId = null;
   let mode = "rotate"; // rotate|pan
@@ -126,6 +127,32 @@ function installOrbitInput(canvas, hub) {
     }
   }
 
+  function onPointerUp(e) {
+    try { e.preventDefault?.(); } catch (_e) {}
+    if (e.pointerType === "touch") {
+      if (touches.has(e.pointerId)) delTouch(e);
+      // if one finger remains, re-arm single-finger rotate
+      if (touches.size === 1) {
+        const only = Array.from(touches.entries())[0];
+        activeId = only[0];
+        mode = "rotate";
+        lastX = only[1].x;
+        lastY = only[1].y;
+        pinchArmed = false;
+      } else if (touches.size < 2) {
+        pinchArmed = false;
+      }
+      if (touches.size === 0) {
+        activeId = null;
+      }
+      return;
+    }
+
+    if (activeId === e.pointerId) {
+      activeId = null;
+    }
+  }
+
   function onWheel(e) {
     try { e.preventDefault(); } catch (_e) {}
     // normalize: positive deltaY => zoom out
@@ -137,8 +164,8 @@ function installOrbitInput(canvas, hub) {
 
   canvas.addEventListener("pointerdown", onPointerDown, { passive: false });
   canvas.addEventListener("pointermove", onPointerMove, { passive: false });
-  canvas.addEventListener("pointerup", onPointerUp, { passive: true });
-  canvas.addEventListener("pointercancel", onPointerUp, { passive: true });
+  canvas.addEventListener("pointerup", onPointerUp, { passive: false });
+  canvas.addEventListener("pointercancel", onPointerUp, { passive: false });
   canvas.addEventListener("wheel", onWheel, { passive: false });
   canvas.addEventListener("contextmenu", onContextMenu);
 

@@ -34,6 +34,7 @@
 </head>
 <body class="is-embed is-peek">
   <canvas id="viewer-canvas" data-role="viewer-canvas"></canvas>
-  <script type="module" src="./peekBoot.js"></script>
+  <!-- cache-bust to avoid stale peekBoot on some clients -->
+  <script type="module" src="./peekBoot.js?v=20260110a"></script>
 </body>
 </html>
