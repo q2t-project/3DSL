@@ -1,179 +1,122 @@
-# 3DSS Excel IO (xlsm <-> json) — fix15
+# xls2json (3DSS Excel IO) — fix15
 
-Excel（.xlsm）で 3DSS を「下書き」編集し、`in.3dss.json` をシートに展開（Import）、編集後に `out.3dss.json` を生成（Export）するための最小ツール。
+3DSS の **下書き用** Excel テンプレ（.xlsm）と、VBA の Import/Export（JSON ↔ Excel）を同梱します。
 
-このディレクトリ（`packages/3dss-content/scripts/xls2json/`）は **凍結（fix15）** とし、運用保守で迷わんように、使い方・制約・検証手順だけをここに集約する。
-
----
-
-## できること
-
-- **Import**: `in.3dss.json` → `document_meta / points / lines / aux` シートに展開
-- **Export**: シート → `out.3dss.json` 生成
-- **touch_audit**: Export 時に、シート編集が JSON にどう反映されたか（差分）をログ（1行=1レコードの生JSON）
-
-※ これは「下書き」用。スキーマの全項目をスプレッドシートで完全網羅する思想ではない（重要項目は順次追加していく）。
+- 目的：point/line/aux の主要項目を Excel で編集し、JSON に戻しても **おかしな記録（型崩れ・配列→文字列化など）が下流に流れない** ことを最優先にする
+- 方針：スキーマ全項目の網羅は狙わず、**運用で使う頻度が高い項目に寄せる**
+- xls2json 周りは **凍結（freeze）**：以後は仕様追加が必要になった時だけ、fix を切って更新する
 
 ---
 
 ## 同梱物
 
-- `3dss_xlsx_template_v3_fix15.xlsm` : テンプレート（シート・見出し込み）
-- `3dss_xlsx_io_v4_fix15.bas` : IO 本体（Import/Export）
-- `JsonConverter.bas` : VBA-JSON（依存）
-- `3DSS.schema.json` : 検証用スキーマ（同梱版）
-- `samples/in.3dss.json` : 最小サンプル
+- `3dss_xlsx_template_v3_fix15.xlsm`  
+  Excel テンプレ（points / lines / aux / document_meta / touch_audit / mapping）
+- `3dss_xlsx_io_v4_fix15.bas`  
+  VBA モジュール（Import/Export 本体）
+- `tools/headers_fix15.json`  
+  シート列ヘッダ（VBA 側のマッピング用）
+- `tools/JsonConverter.bas`  
+  VBA-JSON（Tim Hall） ※同梱するが、既存環境に合わせて差し替え可
+- `tools/3DSS.schema.json`  
+  参照用（AJV 検証に使う場合）
+- `tools/validate_3dss_json.py`  
+  JSON の簡易チェック用（任意）
+- `tools/in.3dss.json`  
+  最小サンプル（Import/Export の往復確認用）
 
 ---
 
-## 反映手順（Excel側）
+## セットアップ（Excel 側）
 
-### 1) Excel（.xlsm）を開く
-
-`3dss_xlsx_template_v3_fix15.xlsm` を開く。
-
-### 2) VBE でモジュールを入れる
-
-1. `Alt+F11` → VBE
-2. 既存の同名モジュールがあれば Remove
-3. `JsonConverter.bas` を Import
-4. `3dss_xlsx_io_v4_fix15.bas` を Import
-5. `Debug > Compile VBAProject` でコンパイル
-
-### 3) Import
-
-マクロ:
-
-- `Import3DSSJson_Run` … 既定: **ブックと同じフォルダ**の `in.3dss.json`
-- `Import3DSSJson_PickFile` … ファイル選択して Import
-
-### 4) Export
-
-マクロ:
-
-- `Export3DSSJson_Run` … 既定: **ブックと同じフォルダ**に `out.3dss.json`
-- `Export3DSSJson_PickFile` … **保存先を選んで** `*.json` として出力
+1. `3dss_xlsx_template_v3_fix15.xlsm` を開く
+2. VBE（Alt+F11）→ 既存の IO モジュールが入っていたら Remove
+3. `3dss_xlsx_io_v4_fix15.bas` を Import
+4. `JsonConverter.bas`（VBA-JSON）を Import
+5. Debug → Compile VBAProject（コンパイルが通ること）
 
 ---
 
-## シート構成
+## 使い方
 
-- `document_meta`
-  - 1列目=key、2列目=value
-  - value は文字列/数値/null/JSON（`{...}` や `[...]`）を許容
+### Import（JSON → Excel）
+- マクロ：`Import3DSSJson_Run`
+- 既定入力：**xlsm と同じフォルダの** `in.3dss.json`
 
-- `points`
-  - 1行目=ヘッダキー、4行目以降=データ
+### Export（Excel → JSON）
+- マクロ：`Export3DSSJson_Run`
+- 既定出力：**xlsm と同じフォルダの** `out.3dss.json`
 
-- `lines`
-  - 1行目=ヘッダキー、4行目以降=データ
-
-- `aux`
-  - A列 `json` に **1行1要素の生JSON**（ここはスプレッドシートで構造化しない）
-
-- `touch_audit`
-  - Export 時に追記されるログ
+> Export は保存ダイアログを出しません（意図しない “Excel保存” を誘発するため）。
 
 ---
 
-## points の text 表示（重要）
+## シート仕様（要点）
 
-point のマーカーとしてテキストを使う場合、以下の列で制御する。
+### document_meta
+- 1行目=key / 2列目=value の簡易表
+- 文字列 / 数値 / true/false / null / JSON（`{...}` or `[...]`）を受け付ける
 
-- `marker_text_content` : 表示文字列
-- `marker_text_font` : フォント名
-- `marker_text_size` : フォントサイズ（数値）
-- `marker_text_align` : 例 `left/center/right`（実装が許す範囲）
-- `marker_text_plane` : 例 `xy/yz/zx`（実装が許す範囲）
+### points / lines
+- 1行目=列キー（スネークケース）
+- 4行目以降=データ行
+- `tags_json` など `*_json` 列は **JSON を文字で入れる**（例：`["s:p1"]`）
 
-※ このツールは「列が空なら出力しない」を基本にしてる。空欄は勝手に既定値で埋めん。
+### aux
+- A列 `json` に **1行=1要素の生JSON**
 
----
+### touch_audit
+- Export 時に **実際に “変更（touch）した項目” のみ**を追記する
+- **warning は記録しない**（下書き用途でノイズになるため）
 
-## __UNSET__ と null と空欄
-
-- 空欄: **そのフィールドは触らない/出力しない**（= 下流に余計な値を流さない）
-- `null`（文字列）: JSON の `null` として出力
-- `__UNSET__`: そのフィールドを **削除**（存在してたものを消したい時）
-
-※ localized（`name.ja` / `name.en` など）は「部分更新」。空欄は消さない。
-
----
-
-## warnings について（partial relation 等）
-
-`lines` の relation が片側だけ（kind/value のどちらか欠け）など、スキーマ的に危ない状態は:
-
-- Export は止めずに **raw_json を維持**（勝手に解釈して改変しない）
-- 画面に Warning を出す
-
-`touch_audit` は「値の反映ログ」優先のため、Warning そのものは記録対象外。
-（ログを肥大化させず、下流に変な値を流さない方を優先）
+### mapping
+- 列→JSONパスの対応表（テンプレ付属、通常は編集不要）
 
 ---
 
-## バリデーション（AJV）
+## fix15 の変更点（重要）
 
-このリポジトリのスキーマは draft 2020-12。`ajv-cli@5` で検証する場合の例:
+### 1) text 系の列を追加
+points の marker 用に以下を追加（頻出用途優先）：
+
+- `marker_text_content`
+- `marker_text_font`
+- `marker_text_size`
+- `marker_text_align`
+- `marker_text_plane`
+
+### 2) gltf 系の列をテンプレから削除
+points から以下を削除：
+
+- `gltf_url`
+- `gltf_scale_json`
+- `gltf_rotation_json`
+- `gltf_offset_json`
+
+理由：出番が少なく、運用では JSON 直編集で十分という判断。
+
+---
+
+## AJV での検証（draft2020）
+
+Ajv v8 系の draft2020 を使う場合、strict 周りで引っかかることがあるため、まずは以下で確認する：
 
 ```powershell
 npx ajv-cli@5 validate --spec=draft2020 --strict=false -s .\3DSS.schema.json -d .\out.3dss.json --all-errors
 ```
 
-`--strict=false` は `$anchor` 等で strict に引っかかるのを避けるため。
+---
+
+## 掲載用（サイトで “コード紹介” するための体裁）
+
+- この zip は「配布物」というより **実装例（コード紹介）**の体裁で整理している
+- 入口はこの README と `3dss_xlsx_io_v4_fix15.bas`（上から読むと全体像が追える）
+- 仕様の “SSOT” は 3DSS schema / spec 側で、ここは **IO 実装の一例**に留める
 
 ---
 
-## 運用メモ
+## 制約・割り切り
 
-- これは「下書き」用。`aux` は raw json で逃がす（= 重要）
-- まずは **「変な記録が下流に流れない」** を最優先にする
-- diff は、canon 化して `git diff --no-index` で確認するのが一番早い
-
----
-
-## 既知の制約
-
-- Excel の UI / 互換性の都合で、すべてのスキーマ項目を列に展開してない
-- `gltf_*` 系は頻度が低いので、当面は raw json（aux）や直編集で十分
-
----
-
-## ディレクトリ方針（凍結）
-
-- **fix15 以外の過去ファイルは `history/` に隔離**（作業中に間違って掴まんため）
-- 生成物（`out.3dss.json` / `*.canon.json` など）は **コミットしない**（必要なら手元で管理）
-
----
-
-## 付属ツール（任意）
-
-`tools/` は補助スクリプト置き場（運用必須ではない）。
-
-- `validate_3dss_json.py`: Python で軽く JSON として読めるかチェック
-- `xlsx_to_3dss*.py` / `json_to_xlsx.py`: 旧実験（現状は VBA ルートが本線）
-
-
-
-## points: marker_text_*（Text表示）
-
-`marker_primitive = "text"` のときに使う列。
-
-- `marker_text_content` : 表示文字列
-- `marker_text_font` : フォント名（例: `Noto Sans JP`）
-- `marker_text_size` : 文字サイズ（数値）
-- `marker_text_align` : 揃え（例: `left`/`center`/`right`）
-- `marker_text_plane` : 配置面（例: `xy`/`yz`/`zx`）
-
-※ これらは `appearance.marker.text.*` に対応。
-
-## 出力先を変えたい場合（Export）
-
-`Export3DSSJson` は **引数にパスを渡せる**。
-
-- 既定: `Export3DSSJson_Run` → ブックと同じフォルダに `out.3dss.json`
-- 任意パス: VBE のイミディエイトで
-
-`Call Export3DSSJson("C:\\path\\to\\scene.3dss.json")`
-
-（Excelの SaveAs ダイアログは JSON のフィルタ制御が効きにくく事故りやすいので、この版では外した）
+- スキーマ全項目を網羅しない（下書き用途優先）
+- `*_json` 列に JSON を入れる場合、Excel の改行・nbsp 等で壊れないように正規化するが、
+  **複雑な JSON 編集は外部エディタ推奨**

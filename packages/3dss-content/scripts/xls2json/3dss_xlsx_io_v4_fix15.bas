@@ -97,18 +97,6 @@ Public Sub Export3DSSJson_Run()
 End Sub
 
 ' ---- Pick file wrappers (also shown in Macro dialog) ----
-Public Sub Import3DSSJson_PickFile()
-  Dim fd As Object
-  Set fd = Application.FileDialog(3) ' 3 = msoFileDialogFilePicker
-  With fd
-    .Title = "Select 3DSS JSON to import"
-    .AllowMultiSelect = False
-    .Filters.Clear
-    .Filters.Add "JSON", "*.json"
-    If .Show <> -1 Then Exit Sub
-    Call Import3DSSJson(.SelectedItems(1))
-  End With
-End Sub
 
 Public Sub Import3DSSJson(Optional ByVal jsonPath As String = "")
   Dim baseDir As String: baseDir = ThisWorkbook.Path
