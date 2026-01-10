@@ -33,3 +33,18 @@ rmIfExists(path.join(dstPublic, "library"));
 fs.cpSync(srcDist, dstPublic, { recursive: true });
 
 console.log("[sync] 3dss-content(dist) -> site/public OK");
+
+// --- fixtures/phase7 -> site/public (for check:phase7) ---
+const srcPhase7 = path.join(repoRoot, "packages", "3dss-content", "fixtures", "phase7");
+const dstPhase7 = path.join(dstPublic, "3dss", "fixtures", "phase7");
+
+if (!fs.existsSync(srcPhase7)) {
+  console.error(`[sync] fixtures/phase7 not found: ${srcPhase7}`);
+  process.exit(1);
+}
+
+rmIfExists(dstPhase7);
+ensureDir(path.dirname(dstPhase7));
+fs.cpSync(srcPhase7, dstPhase7, { recursive: true });
+
+console.log("[sync] fixtures/phase7 -> site/public OK");
