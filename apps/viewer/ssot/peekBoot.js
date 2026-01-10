@@ -96,47 +96,34 @@ function installOrbitInput(canvas, hub) {
         const dist = getDist(pts[0], pts[1]);
         const mid = getMid(pts[0], pts[1]);
 
-        // pinch zoom (dist increase => zoom in => negative zoom delta)
+        // pinch => zoom
         const dd = dist - pinchLastDist;
         pinchLastDist = dist;
+        ce.zoom(-dd * PINCH_ZOOM);
 
-        // 2-finger pan by midpoint move
-        const mdx = mid.x - pinchLastMid.x;
-        const mdy = mid.y - pinchLastMid.y;
+        // 2-finger move => pan
+        const dxm = mid.x - pinchLastMid.x;
+        const dym = mid.y - pinchLastMid.y;
         pinchLastMid = mid;
-
-        // apply
-        ce.zoom(-dd * 0.01); // cameraEngine interprets zoom scalar; keep gentle
-        ce.pan(-mdx * PAN_SPEED, mdy * PAN_SPEED);
+        ce.pan(-dxm * PAN_SPEED, dym * PAN_SPEED);
         return;
       }
-
       return;
     }
 
-    if (activeId == null || e.pointerId !== activeId) return;
+    // mouse/pen: drag => rotate or pan
+    if (activeId !== e.pointerId) return;
     try { e.preventDefault(); } catch (_e) {}
 
     const dx = e.clientX - lastX;
     const dy = e.clientY - lastY;
-    lastX = e.clientX;
-    lastY = e.clientY;
+    lastX = e.clientX; lastY = e.clientY;
 
     if (mode === "pan") {
       ce.pan(-dx * PAN_SPEED, dy * PAN_SPEED);
     } else {
       ce.rotate(-dx * ROTATE_SPEED, -dy * ROTATE_SPEED);
     }
-  }
-
-  function onPointerUp(e) {
-    if (e.pointerType === "touch") {
-      delTouch(e);
-      if (activeId === e.pointerId) activeId = null;
-      if (touches.size < 2) pinchArmed = false;
-      return;
-    }
-    if (e.pointerId === activeId) activeId = null;
   }
 
   function onWheel(e) {
@@ -163,16 +150,11 @@ function installOrbitInput(canvas, hub) {
 function getModelUrlOrThrow() {
   const qs = new URLSearchParams(globalThis.location?.search ?? "");
   const raw = (qs.get("model") || qs.get("scene") || qs.get("src") || "").trim();
-
-  // Defensive default: if the embedding page fails to pass a query (e.g. due to caching),
-  // fall back to a known sample model instead of trying to fetch "undefined".
-  // This keeps the peek experience resilient across caches / route variants.
-  const fallback = "/3dss/sample/3dsl_concept.3dss.json";
-  const chosen = raw || fallback;
+  if (!raw) throw new Error('[peekBoot] missing query "?model=..."');
   // absolute URL
-  if (/^https?:\/\//i.test(chosen)) return chosen;
+  if (/^https?:\/\//i.test(raw)) return raw;
   // resolve relative to this page
-  return new URL(chosen, globalThis.location.href).toString();
+  return new URL(raw, globalThis.location.href).toString();
 }
 
 (async function main() {
