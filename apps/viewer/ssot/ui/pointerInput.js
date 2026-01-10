@@ -4,7 +4,7 @@
 // hubFacade(camera/selection/mode) を操作する UI 入力アダプタ。
 import { mapDragToOrbitDelta } from './orbitMapping.js';
 import { createHubFacade } from './hubFacade.js';
-import { DEFAULT_INPUT_POINTER, resolveInputDefaults } from '../runtime/core/inputDefaults.js';
+import { DEFAULT_INPUT_POINTER, resolveInputDefaults } from './inputDefaults.js';
 
 
 function _num(v, fallback) {

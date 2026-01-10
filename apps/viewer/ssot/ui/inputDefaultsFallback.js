@@ -2,7 +2,7 @@
 // UI-local fallback for input defaults.
 //
 // NOTE:
-// - The SSOT for input defaults lives in runtime/core/inputDefaults.js.
+// - The SSOT for input defaults lives in ui/inputDefaults.js.
 // - UI layer must not import core directly (dependency rules).
 // - These values are a compatibility fallback for cases where uiState is not yet ready.
 
