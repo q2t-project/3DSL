@@ -15,8 +15,10 @@ function showFatal(err) {
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
 function installOrbitInput(canvas, hub) {
-  const ce = hub?.core?.cameraEngine;
-  if (!ce) throw new Error("[peekBoot] hub.core.cameraEngine is missing");
+  // NOTE: Use hub.camera (command pipeline) instead of core.cameraEngine direct mutation.
+  // Direct mutation can render only the initial frame on some devices/builds.
+  const cam = hub?.camera;
+  if (!cam) throw new Error("[peekBoot] hub.camera is missing");
 
   // prevent browser gestures (critical on mobile)
   try {
@@ -88,7 +90,7 @@ function installOrbitInput(canvas, hub) {
         const dx = e.clientX - lastX;
         const dy = e.clientY - lastY;
         lastX = e.clientX; lastY = e.clientY;
-        ce.rotate(-dx * ROTATE_SPEED, -dy * ROTATE_SPEED);
+        cam.rotate(-dx, -dy);
         return;
       }
 
@@ -100,13 +102,13 @@ function installOrbitInput(canvas, hub) {
         // pinch => zoom
         const dd = dist - pinchLastDist;
         pinchLastDist = dist;
-        ce.zoom(-dd * PINCH_ZOOM);
+        cam.zoom(-dd);
 
         // 2-finger move => pan
         const dxm = mid.x - pinchLastMid.x;
         const dym = mid.y - pinchLastMid.y;
         pinchLastMid = mid;
-        ce.pan(-dxm * PAN_SPEED, dym * PAN_SPEED);
+        cam.pan(-dxm, dym);
         return;
       }
       return;
@@ -121,9 +123,9 @@ function installOrbitInput(canvas, hub) {
     lastX = e.clientX; lastY = e.clientY;
 
     if (mode === "pan") {
-      ce.pan(-dx * PAN_SPEED, dy * PAN_SPEED);
+      cam.pan(-dx, dy);
     } else {
-      ce.rotate(-dx * ROTATE_SPEED, -dy * ROTATE_SPEED);
+      cam.rotate(-dx, -dy);
     }
   }
 
@@ -157,7 +159,7 @@ function installOrbitInput(canvas, hub) {
     try { e.preventDefault(); } catch (_e) {}
     // normalize: positive deltaY => zoom out
     const dy = clamp(Number(e.deltaY) || 0, -1200, 1200);
-    ce.zoom(dy * WHEEL_ZOOM);
+    cam.zoom(dy);
   }
 
   function onContextMenu(e) { try { e.preventDefault(); } catch (_e) {} }
@@ -168,16 +170,13 @@ function installOrbitInput(canvas, hub) {
   canvas.addEventListener("pointercancel", onPointerUp, { passive: false });
   canvas.addEventListener("wheel", onWheel, { passive: false });
   canvas.addEventListener("contextmenu", onContextMenu);
-
-  // avoid page scroll while touching inside (Safari/Android quirks)
-  canvas.addEventListener("touchstart", (e) => { try { e.preventDefault(); } catch (_e) {} }, { passive: false });
-  canvas.addEventListener("touchmove", (e) => { try { e.preventDefault(); } catch (_e) {} }, { passive: false });
 }
+
 
 function getModelUrlOrThrow() {
   const qs = new URLSearchParams(globalThis.location?.search ?? "");
   const raw = (qs.get("model") || qs.get("scene") || qs.get("src") || "").trim();
-  if (!raw) throw new Error('[peekBoot] missing query "?model=..."');
+  if (!raw) return new URL("/3dss/sample/3dsl_concept.3dss.json", globalThis.location.origin).toString();
   // absolute URL
   if (/^https?:\/\//i.test(raw)) return raw;
   // resolve relative to this page
