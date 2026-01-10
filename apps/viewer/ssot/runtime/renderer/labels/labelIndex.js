@@ -5,6 +5,12 @@
 // three.js など描画実装には依存しない。
 // Renderer 側はここで作った index を見て、どう表示するかだけを決めればよい。
 
+import {
+  normalizeTextAlign,
+  normalizeTextFont,
+  normalizeTextPlane,
+  normalizeTextSize,
+} from "./labelSpec.js";
 /**
  * signification.name を現在の言語設定から 1 本の string にする。
  *
@@ -59,6 +65,8 @@ export function normalizePointName(rawName, lang = "ja") {
  *
  * size / align / plane / font は marker.text 側を優先し、
  * 無ければ 3DSS 仕様のデフォルトに合わせる。
+ *
+ * align / font は viewer 内部仕様に沿って正規化されたオブジェクトを返す。
  */
 export function buildPointLabelFromPoint(point, lang = "ja") {
   if (!point || typeof point !== "object") return null;
@@ -90,28 +98,14 @@ export function buildPointLabelFromPoint(point, lang = "ja") {
   if (!content) return null;
 
   // 3) size / align / plane / font の決定
-  const size =
-    typeof textCfg.size === "number" || typeof textCfg.size === "bigint"
-      ? Number(textCfg.size)
-      : 8; // 3DSS schema default
-
-  const font =
-    typeof textCfg.font === "string" && textCfg.font
-      ? textCfg.font
-      : "helvetiker_regular"; // schema default
-
-  const align =
-    typeof textCfg.align === "string" && textCfg.align
-      ? textCfg.align
-      : "center&middle"; // enum_constraint.text_align の default
-
-  const plane =
-    typeof textCfg.plane === "string" && textCfg.plane
-      ? textCfg.plane
-      : "zx"; // enum: ['xy','yz','zx','billboard'], default: 'zx'（billboard はメタ用途）
+  const size = normalizeTextSize(textCfg.size);
+  const font = normalizeTextFont(textCfg.font);
+  const align = normalizeTextAlign(textCfg.align);
+  const plane = normalizeTextPlane(textCfg.plane);
 
   return {
     uuid,
+    kind: "points",
     text: content,
     size,
     font,
@@ -129,7 +123,7 @@ export function buildPointLabelFromPoint(point, lang = "ja") {
  * - content / signification.name が何も無い点は index に含めない
  *
  * @param {object} document3dss
- * @returns {Map<string, {uuid,text,size,font,align,plane}>}
+ * @returns {Map<string, {uuid,text,size,font,align,plane,kind}>}
  */
 export function buildPointLabelIndex(document3dss) {
   const result = new Map();
@@ -145,9 +139,26 @@ export function buildPointLabelIndex(document3dss) {
       document3dss.document_meta.i18n) ||
     "ja";
 
-  const points = Array.isArray(document3dss.points)
-    ? document3dss.points
+  const frames = Array.isArray(document3dss.frames)
+    ? document3dss.frames
     : [];
+
+  const points = [];
+  const seen = new Set();
+  const push = (point) => {
+    const uuid = point?.meta?.uuid;
+    if (!uuid || seen.has(uuid)) return;
+    seen.add(uuid);
+    points.push(point);
+  };
+
+  if (Array.isArray(document3dss.points)) {
+    for (const point of document3dss.points) push(point);
+  }
+  for (const frame of frames) {
+    if (!Array.isArray(frame?.points)) continue;
+    for (const point of frame.points) push(point);
+  }
 
   for (const point of points) {
     const label = buildPointLabelFromPoint(point, lang);

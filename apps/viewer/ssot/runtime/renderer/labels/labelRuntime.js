@@ -120,8 +120,8 @@ export function createLabelRuntime(scene, { renderOrder = 900 } = {}) {
       const entryKey = [
         entry.text ?? "",
         `s=${Number(entry.size) || 8}`,
-        `f=${entry.font ?? ""}`,
-        `a=${entry.align ?? ""}`,
+        `f=${entry.font?.key ?? entry.font ?? ""}`,
+        `a=${entry.align?.key ?? entry.align ?? ""}`,
         `p=${entry.plane ?? ""}`,
       ].join("|");
 
@@ -250,6 +250,21 @@ export function createLabelRuntime(scene, { renderOrder = 900 } = {}) {
       }
 
       obj.scale.set(h * aspect * scaleMul, h * scaleMul, 1);
+
+      const align = entry?.align;
+      if (align && !obj.isSprite) {
+        const ax = Number(align.x);
+        const ay = Number(align.y);
+        const alignX = Number.isFinite(ax) ? ax : 0.5;
+        const alignY = Number.isFinite(ay) ? ay : 0.5;
+        const dx = (0.5 - alignX) * obj.scale.x;
+        const dy = (0.5 - alignY) * obj.scale.y;
+        if (dx || dy) {
+          const offset = new THREE.Vector3(dx, dy, 0);
+          offset.applyQuaternion(obj.quaternion);
+          obj.position.add(offset);
+        }
+      }
 
       const mat = obj.material;
       if (mat && "opacity" in mat) {

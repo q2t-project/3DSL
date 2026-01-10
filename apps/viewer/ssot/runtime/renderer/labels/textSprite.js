@@ -7,6 +7,7 @@
 
 import * as THREE from "/viewer/vendor/three/build/three.module.js";
 import { labelConfig } from "./labelConfig.js";
+import { buildCanvasFont, normalizeTextFont } from "./labelSpec.js";
 import { createHtmlCanvas, getDevicePixelRatio } from "../env.js";
 
 function clamp(v, min, max) {
@@ -30,6 +31,7 @@ function buildRasterSpecFromLabel(label, cfg = labelConfig) {
   const fontFamily =
     (typeof raster.fontFamily === "string" && raster.fontFamily) ||
     "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+  const fontSpec = normalizeTextFont(label?.font, fontFamily);
 
   const dpr = getDpr();
   const fontPx = clamp(supersamplePx * sizeFactor, minFontPx, maxFontPx) * dpr;
@@ -50,7 +52,7 @@ function buildRasterSpecFromLabel(label, cfg = labelConfig) {
 
   return {
     dpr,
-    fontFamily,
+    fontSpec,
     fontPx,
     pad,
     fillStyle,
@@ -72,7 +74,7 @@ function rasterizeTextToCanvas(text, rasterSpec) {
   const t = text == null ? "" : String(text);
 
   // measure
-  ctx.font = `${rasterSpec.fontPx}px ${rasterSpec.fontFamily}`;
+  ctx.font = buildCanvasFont(rasterSpec.fontSpec, rasterSpec.fontPx);
   const metrics = ctx.measureText(t);
   const textWidth = Number(metrics.width) || 0;
   const textHeight = rasterSpec.fontPx * 1.2;
@@ -83,7 +85,7 @@ function rasterizeTextToCanvas(text, rasterSpec) {
   canvas.height = Math.max(1, ch);
 
   // reset after resize
-  ctx.font = `${rasterSpec.fontPx}px ${rasterSpec.fontFamily}`;
+  ctx.font = buildCanvasFont(rasterSpec.fontSpec, rasterSpec.fontPx);
   ctx.textBaseline = "middle";
   ctx.textAlign = "center";
 
@@ -140,7 +142,9 @@ export function makeTextTextureKey(text, label, cfg = labelConfig) {
 
   return [
     "t", t,
-    "ff", rasterSpec.fontFamily,
+    "ff", rasterSpec.fontSpec?.family ?? "",
+    "fw", rasterSpec.fontSpec?.weight ?? "",
+    "fs", rasterSpec.fontSpec?.style ?? "",
     "fp", fp,
     "pad", pad,
     "fill", rasterSpec.fillStyle,
@@ -206,6 +210,12 @@ export function createTextLabelObjectFromTexture(texture, label, meta = {}) {
       depthWrite: false,
     });
     obj = new THREE.Sprite(material);
+    const align = label?.align;
+    const ax = Number(align?.x);
+    const ay = Number(align?.y);
+    if (Number.isFinite(ax) && Number.isFinite(ay)) {
+      obj.center.set(ax, ay);
+    }
   } else {
     const material = new THREE.MeshBasicMaterial({
       map: texture,

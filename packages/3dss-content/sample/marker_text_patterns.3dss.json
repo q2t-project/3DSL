@@ -1,0 +1,249 @@
+{
+  "document_meta": {
+    "document_uuid": "b0fcb0e2-66a6-4f7b-92c4-0c6e86b4b1f1",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.1.1",
+    "author": "viewer-spec",
+    "version": "1.0.0",
+    "coordinate_system": "Z+up/freeXY",
+    "units": "mm",
+    "i18n": "ja",
+    "creator_memo": "marker.text の解釈確認用サンプル（align/plane/size/font/content の全パターンを含む）"
+  },
+  "points": [
+    {
+      "meta": { "uuid": "MT_ALIGN_LT" },
+      "appearance": {
+        "position": [0, 0, 0],
+        "color": "#ff7766",
+        "marker": {
+          "primitive": "none",
+          "text": { "content": "align left&top", "align": "left&top", "plane": "billboard" }
+        }
+      }
+    },
+    {
+      "meta": { "uuid": "MT_ALIGN_CT" },
+      "appearance": {
+        "position": [2, 0, 0],
+        "color": "#ffbb66",
+        "marker": {
+          "primitive": "none",
+          "text": { "content": "align center&top", "align": "center&top", "plane": "billboard" }
+        }
+      }
+    },
+    {
+      "meta": { "uuid": "MT_ALIGN_RT" },
+      "appearance": {
+        "position": [4, 0, 0],
+        "color": "#ffee66",
+        "marker": {
+          "primitive": "none",
+          "text": { "content": "align right&top", "align": "right&top", "plane": "billboard" }
+        }
+      }
+    },
+    {
+      "meta": { "uuid": "MT_ALIGN_LM" },
+      "appearance": {
+        "position": [0, 2, 0],
+        "color": "#aaff66",
+        "marker": {
+          "primitive": "none",
+          "text": { "content": "align left&middle", "align": "left&middle", "plane": "billboard" }
+        }
+      }
+    },
+    {
+      "meta": { "uuid": "MT_ALIGN_CM" },
+      "appearance": {
+        "position": [2, 2, 0],
+        "color": "#66ff88",
+        "marker": {
+          "primitive": "none",
+          "text": { "content": "align center&middle", "align": "center&middle", "plane": "billboard" }
+        }
+      }
+    },
+    {
+      "meta": { "uuid": "MT_ALIGN_RM" },
+      "appearance": {
+        "position": [4, 2, 0],
+        "color": "#66ffcc",
+        "marker": {
+          "primitive": "none",
+          "text": { "content": "align right&middle", "align": "right&middle", "plane": "billboard" }
+        }
+      }
+    },
+    {
+      "meta": { "uuid": "MT_ALIGN_LB" },
+      "appearance": {
+        "position": [0, 4, 0],
+        "color": "#66ccff",
+        "marker": {
+          "primitive": "none",
+          "text": { "content": "align left&baseline", "align": "left&baseline", "plane": "billboard" }
+        }
+      }
+    },
+    {
+      "meta": { "uuid": "MT_ALIGN_CB" },
+      "appearance": {
+        "position": [2, 4, 0],
+        "color": "#6688ff",
+        "marker": {
+          "primitive": "none",
+          "text": { "content": "align center&baseline", "align": "center&baseline", "plane": "billboard" }
+        }
+      }
+    },
+    {
+      "meta": { "uuid": "MT_ALIGN_RB" },
+      "appearance": {
+        "position": [4, 4, 0],
+        "color": "#9966ff",
+        "marker": {
+          "primitive": "none",
+          "text": { "content": "align right&baseline", "align": "right&baseline", "plane": "billboard" }
+        }
+      }
+    },
+    {
+      "meta": { "uuid": "MT_PLANE_BILLBOARD" },
+      "appearance": {
+        "position": [0, 6, 0],
+        "color": "#ff99cc",
+        "marker": {
+          "primitive": "none",
+          "text": { "content": "plane billboard", "plane": "billboard" }
+        }
+      }
+    },
+    {
+      "meta": { "uuid": "MT_PLANE_XY" },
+      "appearance": {
+        "position": [2, 6, 0],
+        "color": "#ff6699",
+        "marker": {
+          "primitive": "none",
+          "text": { "content": "plane xy", "plane": "xy" }
+        }
+      }
+    },
+    {
+      "meta": { "uuid": "MT_PLANE_YZ" },
+      "appearance": {
+        "position": [4, 6, 0],
+        "color": "#ff6677",
+        "marker": {
+          "primitive": "none",
+          "text": { "content": "plane yz", "plane": "yz" }
+        }
+      }
+    },
+    {
+      "meta": { "uuid": "MT_PLANE_ZX" },
+      "appearance": {
+        "position": [6, 6, 0],
+        "color": "#ff6644",
+        "marker": {
+          "primitive": "none",
+          "text": { "content": "plane zx", "plane": "zx" }
+        }
+      }
+    },
+    {
+      "meta": { "uuid": "MT_SIZE_4" },
+      "appearance": {
+        "position": [0, 8, 0],
+        "color": "#ffaa55",
+        "marker": {
+          "primitive": "none",
+          "text": { "content": "size 4", "size": 4 }
+        }
+      }
+    },
+    {
+      "meta": { "uuid": "MT_SIZE_8" },
+      "appearance": {
+        "position": [2, 8, 0],
+        "color": "#ffdd55",
+        "marker": {
+          "primitive": "none",
+          "text": { "content": "size 8", "size": 8 }
+        }
+      }
+    },
+    {
+      "meta": { "uuid": "MT_SIZE_16" },
+      "appearance": {
+        "position": [4, 8, 0],
+        "color": "#ffff55",
+        "marker": {
+          "primitive": "none",
+          "text": { "content": "size 16", "size": 16 }
+        }
+      }
+    },
+    {
+      "meta": { "uuid": "MT_FONT_DEFAULT" },
+      "appearance": {
+        "position": [0, 10, 0],
+        "color": "#99ff77",
+        "marker": {
+          "primitive": "none",
+          "text": { "content": "font default", "font": "helvetiker_regular" }
+        }
+      }
+    },
+    {
+      "meta": { "uuid": "MT_FONT_SERIF" },
+      "appearance": {
+        "position": [2, 10, 0],
+        "color": "#66ff99",
+        "marker": {
+          "primitive": "none",
+          "text": { "content": "font serif", "font": "serif" }
+        }
+      }
+    },
+    {
+      "meta": { "uuid": "MT_FONT_STYLE" },
+      "appearance": {
+        "position": [4, 10, 0],
+        "color": "#55ffcc",
+        "marker": {
+          "primitive": "none",
+          "text": { "content": "font italic 700 monospace", "font": "italic 700 monospace" }
+        }
+      }
+    },
+    {
+      "meta": { "uuid": "MT_CONTENT_FALLBACK" },
+      "signification": { "name": { "ja": "content fallback", "en": "content fallback" } },
+      "appearance": {
+        "position": [0, 12, 0],
+        "color": "#66ccff",
+        "marker": {
+          "primitive": "none",
+          "text": { "content": "" }
+        }
+      }
+    },
+    {
+      "meta": { "uuid": "MT_CONTENT_OVERRIDE" },
+      "signification": { "name": { "ja": "ignored name", "en": "ignored name" } },
+      "appearance": {
+        "position": [2, 12, 0],
+        "color": "#6699ff",
+        "marker": {
+          "primitive": "none",
+          "text": { "content": "content override" }
+        }
+      }
+    }
+  ],
+  "lines": [],
+  "aux": []
+}
