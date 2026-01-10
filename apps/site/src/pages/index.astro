@@ -176,6 +176,10 @@ const demoModel = "/3dss/sample/3dsl_concept.3dss.json";
       height: calc(100% + 24px);
       border: 0;
       pointer-events: auto; /* interactive (orbit) */
+      touch-action: none;
+      overscroll-behavior: contain;
+      user-select: none;
+      -webkit-user-select: none;
       transform: translateY(-18%);
       filter: saturate(0.9) contrast(1.05);
     }

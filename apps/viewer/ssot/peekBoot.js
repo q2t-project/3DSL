@@ -160,12 +160,29 @@ function installOrbitInput(canvas, hub) {
   canvas.addEventListener("touchmove", (e) => { try { e.preventDefault(); } catch (_e) {} }, { passive: false });
 }
 
+function getModelUrlOrThrow() {
+  const qs = new URLSearchParams(globalThis.location?.search ?? "");
+  const raw = (qs.get("model") || qs.get("scene") || qs.get("src") || "").trim();
+
+  // Defensive default: if the embedding page fails to pass a query (e.g. due to caching),
+  // fall back to a known sample model instead of trying to fetch "undefined".
+  // This keeps the peek experience resilient across caches / route variants.
+  const fallback = "/3dss/sample/3dsl_concept.3dss.json";
+  const chosen = raw || fallback;
+  // absolute URL
+  if (/^https?:\/\//i.test(chosen)) return chosen;
+  // resolve relative to this page
+  return new URL(chosen, globalThis.location.href).toString();
+}
+
 (async function main() {
   const canvas = /** @type {HTMLCanvasElement} */ (document.getElementById("viewer-canvas"));
   if (!canvas) throw new Error("[peekBoot] #viewer-canvas not found");
 
-  const hub = await bootstrapViewerFromUrl({
-    canvas,
+  const modelUrl = getModelUrlOrThrow();
+
+  // NOTE: runtime/bootstrapViewer.js signature is (canvasOrId, url, options)
+  const hub = await bootstrapViewerFromUrl(canvas, modelUrl, {
     devBootLog: false,
     devLabel: "peek",
   });
