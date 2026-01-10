@@ -1,8 +1,8 @@
-# 3DSS Excel IO (xlsm <-> json) — fix14r
+# 3DSS Excel IO (xlsm <-> json) — fix15
 
 Excel（.xlsm）で 3DSS を「下書き」編集し、`in.3dss.json` をシートに展開（Import）、編集後に `out.3dss.json` を生成（Export）するための最小ツール。
 
-このディレクトリ（`packages/3dss-content/scripts/xls2json/`）は **凍結（fix14r）** とし、運用保守で迷わんように、使い方・制約・検証手順だけをここに集約する。
+このディレクトリ（`packages/3dss-content/scripts/xls2json/`）は **凍結（fix15）** とし、運用保守で迷わんように、使い方・制約・検証手順だけをここに集約する。
 
 ---
 
@@ -18,8 +18,8 @@ Excel（.xlsm）で 3DSS を「下書き」編集し、`in.3dss.json` をシー�
 
 ## 同梱物
 
-- `3dss_xlsx_template_v3_fix14r.xlsm` : テンプレート（シート・見出し込み）
-- `3dss_xlsx_io_v4_fix14r.bas` : IO 本体（Import/Export）
+- `3dss_xlsx_template_v3_fix15.xlsm` : テンプレート（シート・見出し込み）
+- `3dss_xlsx_io_v4_fix15.bas` : IO 本体（Import/Export）
 - `JsonConverter.bas` : VBA-JSON（依存）
 - `3DSS.schema.json` : 検証用スキーマ（同梱版）
 - `samples/in.3dss.json` : 最小サンプル
@@ -30,14 +30,14 @@ Excel（.xlsm）で 3DSS を「下書き」編集し、`in.3dss.json` をシー�
 
 ### 1) Excel（.xlsm）を開く
 
-`3dss_xlsx_template_v3_fix14r.xlsm` を開く。
+`3dss_xlsx_template_v3_fix15.xlsm` を開く。
 
 ### 2) VBE でモジュールを入れる
 
 1. `Alt+F11` → VBE
 2. 既存の同名モジュールがあれば Remove
 3. `JsonConverter.bas` を Import
-4. `3dss_xlsx_io_v4_fix14r.bas` を Import
+4. `3dss_xlsx_io_v4_fix15.bas` を Import
 5. `Debug > Compile VBAProject` でコンパイル
 
 ### 3) Import
@@ -141,7 +141,7 @@ npx ajv-cli@5 validate --spec=draft2020 --strict=false -s .\3DSS.schema.json -d 
 
 ## ディレクトリ方針（凍結）
 
-- **fix14r 以外の過去ファイルは `history/` に隔離**（作業中に間違って掴まんため）
+- **fix15 以外の過去ファイルは `history/` に隔離**（作業中に間違って掴まんため）
 - 生成物（`out.3dss.json` / `*.canon.json` など）は **コミットしない**（必要なら手元で管理）
 
 ---
@@ -154,3 +154,26 @@ npx ajv-cli@5 validate --spec=draft2020 --strict=false -s .\3DSS.schema.json -d 
 - `xlsx_to_3dss*.py` / `json_to_xlsx.py`: 旧実験（現状は VBA ルートが本線）
 
 
+
+## points: marker_text_*（Text表示）
+
+`marker_primitive = "text"` のときに使う列。
+
+- `marker_text_content` : 表示文字列
+- `marker_text_font` : フォント名（例: `Noto Sans JP`）
+- `marker_text_size` : 文字サイズ（数値）
+- `marker_text_align` : 揃え（例: `left`/`center`/`right`）
+- `marker_text_plane` : 配置面（例: `xy`/`yz`/`zx`）
+
+※ これらは `appearance.marker.text.*` に対応。
+
+## 出力先を変えたい場合（Export）
+
+`Export3DSSJson` は **引数にパスを渡せる**。
+
+- 既定: `Export3DSSJson_Run` → ブックと同じフォルダに `out.3dss.json`
+- 任意パス: VBE のイミディエイトで
+
+`Call Export3DSSJson("C:\\path\\to\\scene.3dss.json")`
+
+（Excelの SaveAs ダイアログは JSON のフィルタ制御が効きにくく事故りやすいので、この版では外した）

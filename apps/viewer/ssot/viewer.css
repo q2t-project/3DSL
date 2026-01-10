@@ -838,6 +838,7 @@ html, body {
 
 /* Fullscreen canvas underlay */
 #viewer-canvas {
+  touch-action: none; /* allow pointer-events preventDefault on mobile */
   position: fixed;
   inset: 0;
   width: 100%;
@@ -1593,3 +1594,13 @@ body {
 #doc-caption {
   position: absolute !important;
 }
+
+
+/* prevent first-frame flash: also honor html.is-peek */
+html.is-peek #viewer-topbar,
+html.is-peek #viewer-toolbar,
+html.is-peek #viewer-rightdock,
+html.is-peek #gizmo-wrapper,
+html.is-peek #gizmo-ui,
+html.is-peek #auto-orbit-slot,
+html.is-peek #doc-caption { display:none !important; }

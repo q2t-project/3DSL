@@ -113,7 +113,7 @@ function showFatal(err) {
   const p = new URLSearchParams(location.search);
 
   // allow small boot toggles for debugging
-  const mode = p.get("mode") || "prod"; // "prod" | "dev"
+    const mode = p.get("mode") || "prod"; // "prod" | "dev" | "peek"
 
   // model selection
   let modelUrl = p.get("model") || "";
