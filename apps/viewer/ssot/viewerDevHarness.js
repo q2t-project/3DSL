@@ -8,7 +8,7 @@ import { teardownPrev, setOwnedHandle } from "./ui/ownedHandle.js";
 
 
 // baseline 起動時のデフォルト 3DSS
-const DEFAULT_MODEL = "/3dss/sample/3dsl_concept.3dss.json";
+const DEFAULT_MODEL = "/3dss/scene/default/default.3dss.json";
 // const DEFAULT_MODEL = "/3dss/sample/glb_lefthand_righthand.3dss.json";
 
 let viewerHub = null;

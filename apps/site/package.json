@@ -7,7 +7,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
-    "validate:3dss:baseline": "npx ajv validate -c ajv-formats -s ../../packages/schemas/3DSS.schema.json -d \"public/3dss/sample/3dsl_concept.3dss.json\" --spec=draft2020",
+    "validate:3dss:baseline": "npx ajv validate -c ajv-formats -s ../../packages/schemas/3DSS.schema.json -d \"public/3dss/scene/default/default.3dss.json\" --spec=draft2020",
     "check:invariants": "node scripts/check-invariants.mjs",
     "check:phase0": "npm run validate:3dss:baseline && npm run validate:3dss:samples && npm run check:invariants",
     "validate:3dss:samples": "node scripts/validate-3dss-samples.mjs",

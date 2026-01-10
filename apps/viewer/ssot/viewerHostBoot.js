@@ -95,7 +95,7 @@ async function pickDefaultModelUrl() {
   } catch {}
 
   // 2) known historical sample path (if present)
-  return "/3dss/sample/3dsl_concept.3dss.json";
+  return "/3dss/scene/default/default.3dss.json";
 }
 
 function showFatal(err) {

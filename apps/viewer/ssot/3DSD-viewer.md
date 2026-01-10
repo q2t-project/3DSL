@@ -539,7 +539,7 @@ dev viewer の起動時、viewerDevHarness.js は概�E次のように動く�
 2. boot() 冁E��
  - メタパネル / HUD / frame スライダ / filter ボタン等�E DOM を取得する、E
  - const canvasId = "viewer-canvas";
- - const jsonUrl = "../3dss/sample/3dsl_concept.3dss.json";�E�Easeline 確認時�E�E
+ - const jsonUrl = "../3dss/scene/default/default.3dss.json";�E�Easeline 確認時�E�E
  - bootstrapViewerFromUrl(canvasId, jsonUrl, { devBootLog:true, devLabel:"viewer_dev", modelUrl:jsonUrl, logger:devLogger }) を呼ぶ、E
 3. devLogger(line) は
  - console.log(line) + メタパネルへの追記！EppendModelLog(line)�E�を行う、E
@@ -582,13 +582,13 @@ hub.start()          �E�レンダーループ開始！E
 ## 1.9 baseline 起動時の固定条件
 
 本節では、dev viewer�E�Eiewer_dev.html�E�において
-3dsl_concept.3dss.json を読み込んだときに
+default.3dss.json を読み込んだときに
 「毎回同じ初期画面」が再現されるよぁE��するための条件を定義する、E
 
 ### 1.9.1 入力ファイルの固宁E
 
 1. dev 起動時の baseline 入力�E、常に
-../3dss/sample/3dsl_concept.3dss.json とする�E�実パスはリポジトリ構�Eに追従）、E
+../3dss/scene/default/default.3dss.json とする�E�実パスはリポジトリ構�Eに追従）、E
 
 2. 他�EサンプルをロードすめEUI があっても、E
 「起動直後に自動でロードされるファイル」�E上訁E1 本に限定する、E
@@ -597,7 +597,7 @@ hub.start()          �E�レンダーループ開始！E
 
 ### 1.9.2 カメラ初期状態�E固宁E
 
-3dsl_concept.3dss.json 読み込み直後�Eカメラ状態�E、E
+default.3dss.json 読み込み直後�Eカメラ状態�E、E
 シーン墁E���E�Eounding sphere�E�から算�EされめE決定的な初期値 として固定する、E
 
 - 投影方弁E PerspectiveCamera
@@ -653,7 +653,7 @@ dev viewer�E�Eiewer_dev.html�E�では通常、E
 
 ```text
 BOOT  viewer_dev
-MODEL ../3dss/sample/3dsl_concept.3dss.json
+MODEL ../3dss/scene/default.3dss.json
 CAMERA {...}
 LAYERS points=on lines=on aux=on
 FRAME  frame_id=0

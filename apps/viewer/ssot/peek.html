@@ -8,9 +8,35 @@
       html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; }
       canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     </style>
+
+    <!-- ★追加：three の import 解決を固定 -->
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "/vendor/three/build/three.module.js",
+        "three/addons/": "/vendor/three/examples/jsm/"
+      }
+    }
+    </script>
   </head>
   <body>
     <canvas id="viewer-canvas"></canvas>
-    <script type="module" src="/viewer/peekBoot.js"></script>
+    <script type="module">
+      import("/viewer/peekBoot.js").catch((err) => {
+        console.error(err);
+        const pre = document.createElement("pre");
+        pre.style.position = "fixed";
+        pre.style.inset = "12px";
+        pre.style.zIndex = "99999";
+        pre.style.padding = "12px";
+        pre.style.background = "rgba(0,0,0,.85)";
+        pre.style.color = "#fff";
+        pre.style.font = "12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace";
+        pre.style.whiteSpace = "pre-wrap";
+        pre.textContent = String(err?.stack || err);
+        document.body.appendChild(pre);
+      });
+    </script>
+
   </body>
 </html>
