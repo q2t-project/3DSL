@@ -17,7 +17,8 @@ const _handles = new WeakMap();
 const NEED_KEYBOARD = (p) => p === 'devHarness_full' || p === 'prod_full';
 const NEED_PICKER = (p) => p === 'devHarness_full' || p === 'prod_full';
 const NEED_TIMELINE = (p) => p === 'devHarness_full' || p === 'prod_full';
-const NEED_GIZMO = (p) => p === 'devHarness_full' || p === 'prod_full';
+const NEED_GIZMO = (p) => p === 'devHarness_full' || p === 'prod_full'; // peek/min は非表示
+const NEED_AUTOORBIT_UI = (p) => p === 'devHarness_full' || p === 'prod_full';
 const NEED_CONTROLS = (p) => p === 'devHarness_full' || p === 'prod_full';
 
 

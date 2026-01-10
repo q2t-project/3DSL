@@ -18,13 +18,9 @@ const demoModel = "/3dss/sample/3dsl_concept.3dss.json";
       <div class="mt-4 max-w-[52ch] prose prose-invert prose-neutral prose-p:my-3 hero-copy home-poem">
           <TopText />
       </div>
-
-      <div class="mt-5 text-xs text-neutral-400">下へスクロールして、デモを覗く ↓</div>
-
-      <div class="mt-auto pt-7">
-        <div class="home-peek ui-border ui-shadow" aria-hidden="true" data-swipe-ignore>
-          <div class="home-peek__hint">Scroll</div>
-          <iframe
+<div class="mt-auto pt-7">
+        <div class="home-peek ui-border ui-shadow" data-swipe-ignore aria-hidden="true">
+<iframe
             class="home-peek__frame"
             src={`/viewer/index.html?embed=1&mode=peek&model=${encodeURIComponent(demoModel)}`}
             loading="lazy"
@@ -32,8 +28,7 @@ const demoModel = "/3dss/sample/3dsl_concept.3dss.json";
             tabindex="-1"
             aria-hidden="true"
           ></iframe>
-          <div class="home-peek__fade"></div>
-        </div>
+</div>
 
         <div class="mt-3 flex flex-wrap gap-2">
           <a href="/library" class="ui-btn ui-btn-ghost">Library</a>
@@ -179,7 +174,7 @@ const demoModel = "/3dss/sample/3dsl_concept.3dss.json";
       width: calc(100% + 24px);
       height: calc(100% + 24px);
       border: 0;
-      pointer-events: auto; /* interactive orbit in peek */
+      pointer-events: none; /* preview only; user scrolls to open full viewer */
       transform: translateY(-18%);
       filter: saturate(0.9) contrast(1.05);
     }

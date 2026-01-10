@@ -921,6 +921,23 @@ body.is-embed #doc-caption {
   display: none !important;
 }
 
+
+/* Peek mode (Home viewport): keep orbit input but remove all UI chrome */
+body.is-peek #viewer-topbar,
+body.is-peek #viewer-toolbar,
+body.is-peek #viewer-rightdock,
+body.is-peek #gizmo-wrapper,
+body.is-peek #gizmo-ui,
+body.is-peek #auto-orbit-slot,
+body.is-peek #doc-caption {
+  display: none !important;
+}
+/* ensure nothing overlays the canvas */
+body.is-peek .viewer-dock,
+body.is-peek .gizmo-frame,
+body.is-peek .auto-orbit-slot {
+  pointer-events: none !important;
+}
 /* Make key UI controls visible even on dark background */
 .keycap { color: #f5f5f5; }
 .frame-label { color: #f5f5f5; }

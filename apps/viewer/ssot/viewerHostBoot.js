@@ -113,7 +113,7 @@ function showFatal(err) {
   const p = new URLSearchParams(location.search);
 
   // allow small boot toggles for debugging
-  const mode = p.get("mode") || "prod"; // "prod" | "dev" | "peek"
+  const mode = p.get("mode") || "prod"; // "prod" | "dev"
 
   // model selection
   let modelUrl = p.get("model") || "";
@@ -121,10 +121,15 @@ function showFatal(err) {
   if (!modelUrl) modelUrl = await pickDefaultModelUrl();
 
   // embed mode: hide host UI chrome (viewer.css uses body.is-embed)
-  if (p.get("embed") === "1") {
-    try { if (mode === "peek") document.body.classList.add("is-peek"); } catch (_e) {}
+  // mode=peek implies embed + extra hiding
+  if (p.get("embed") === "1" || mode === "peek") {
     try {
       document.body.classList.add("is-embed");
+    } catch {}
+  }
+  if (mode === "peek") {
+    try {
+      document.body.classList.add("is-peek");
     } catch {}
   }
 
