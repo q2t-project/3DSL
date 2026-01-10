@@ -8,7 +8,7 @@
 // いまのところカメラ依存の処理は入れず、
 // context 側から渡される sceneRadius に応じてだけ伸ばす。
 
-import * as THREE from "/vendor/three/build/three.module.js";
+import * as THREE from "/viewer/vendor/three/build/three.module.js";
 
 export function createWorldAxesLayer(scene) {
   const group = new THREE.Group();

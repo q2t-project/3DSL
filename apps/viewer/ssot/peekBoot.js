@@ -17,8 +17,10 @@ function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 function installOrbitInput(canvas, hub) {
   // NOTE: Use hub.camera (command pipeline) instead of core.cameraEngine direct mutation.
   // Direct mutation can render only the initial frame on some devices/builds.
-  const cam = hub?.camera;
-  if (!cam) throw new Error("[peekBoot] hub.camera is missing");
+  // Current hub contract exposes camera commands via `hub.core.camera`.
+  // Keep backward compatibility with older `hub.camera`.
+  const cam = hub?.camera ?? hub?.core?.camera;
+  if (!cam) throw new Error('[peekBoot] camera is missing');
 
   // prevent browser gestures (critical on mobile)
   try {

@@ -7,7 +7,7 @@
 //     （three.js 側の src.position / src.quaternion / src.scale をそのままコピー）
 //   - 長さ単位は「元 geometry の座標系」に丸投げし、カメラ距離や sceneRadius には踏み込まない。
 
-import * as THREE from "/vendor/three/build/three.module.js";
+import * as THREE from "/viewer/vendor/three/build/three.module.js";
 import { microFXConfig } from "./config.js";
 import { clamp01, normalizeIntensity } from "./utils.js";
 

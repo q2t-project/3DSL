@@ -1,5 +1,5 @@
 // viewer/runtime/renderer/microFX/marker.js
-import * as THREE from "/vendor/three/build/three.module.js";
+import * as THREE from "/viewer/vendor/three/build/three.module.js";
 import { microFXConfig } from "./config.js";
 import { clampScale, normalizeIntensity, sanitizePosition } from "./utils.js";
 

@@ -1,6 +1,6 @@
 // viewer/runtime/renderer/context.js
 
-import * as THREE from "/vendor/three/build/three.module.js";
+import * as THREE from "/viewer/vendor/three/build/three.module.js";
 import { applyMicroFX as applyMicroFXImpl, clearMicroFX as clearMicroFXImpl } from "./microFX/index.js";
 import { microFXConfig } from "./microFX/config.js";
 // NOTE: microFXConfig は profile 切替の“状態置き場”としても使える（存在すれば）
