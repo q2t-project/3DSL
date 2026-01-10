@@ -111,14 +111,14 @@ Public Sub Import3DSSJson_PickFile()
 End Sub
 
 Public Sub Export3DSSJson_PickFile()
-  Dim fd As Object
-  Set fd = Application.FileDialog(2) ' 2 = msoFileDialogSaveAs
-  With fd
-    .Title = "Save 3DSS JSON as"
-    .InitialFileName = ThisWorkbook.Path & Application.PathSeparator & "out.3dss.json"
-    If .Show <> -1 Then Exit Sub
-    Call Export3DSSJson(.SelectedItems(1))
-  End With
+  ' NOTE: Excel's FileDialog(msoFileDialogSaveAs) often forces Excel workbook formats.
+  ' Use GetSaveAsFilename with an explicit JSON filter so the user can pick a .json path.
+  Dim p As Variant
+  p = Application.GetSaveAsFilename(
+        InitialFileName:=ThisWorkbook.Path & Application.PathSeparator & "out.3dss.json", 
+        FileFilter:="JSON (*.json),*.json")
+  If p = False Then Exit Sub
+  Call Export3DSSJson(CStr(p))
 End Sub
 Public Sub Import3DSSJson(Optional ByVal jsonPath As String = "")
   Dim baseDir As String: baseDir = ThisWorkbook.Path

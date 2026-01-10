@@ -19,8 +19,10 @@ const demoModel = "/3dss/sample/3dsl_concept.3dss.json";
           <TopText />
       </div>
 
+      <div class="mt-5 text-xs text-neutral-400">下へスクロールして、デモを覗く ↓</div>
+
       <div class="mt-auto pt-7">
-        <div class="home-peek ui-border ui-shadow" aria-hidden="true">
+        <div class="home-peek ui-border ui-shadow" aria-hidden="true" data-swipe-ignore>
           <div class="home-peek__hint">Scroll</div>
           <iframe
             class="home-peek__frame"
@@ -177,7 +179,7 @@ const demoModel = "/3dss/sample/3dsl_concept.3dss.json";
       width: calc(100% + 24px);
       height: calc(100% + 24px);
       border: 0;
-      pointer-events: none; /* preview only; user scrolls to open full viewer */
+      pointer-events: auto; /* interactive orbit in peek */
       transform: translateY(-18%);
       filter: saturate(0.9) contrast(1.05);
     }

@@ -14,7 +14,6 @@ const DEV =
 
 const _handles = new WeakMap();
 
-const NEED_POINTER = (p) => p === 'devHarness_full' || p === 'prod_full';
 const NEED_KEYBOARD = (p) => p === 'devHarness_full' || p === 'prod_full';
 const NEED_PICKER = (p) => p === 'devHarness_full' || p === 'prod_full';
 const NEED_TIMELINE = (p) => p === 'devHarness_full' || p === 'prod_full';
@@ -138,14 +137,12 @@ export function attachUiProfile(hub, opts) {
   // inputs
   // -----------------------------
   {
-    if (NEED_POINTER(profile)) {
-      handle.pointerInput = new PointerInput(canvas, hub);
-      add(() => {
-        try {
-          handle.pointerInput?.dispose?.();
-        } catch (_e) {}
-      });
-    }
+    handle.pointerInput = new PointerInput(canvas, hub);
+    add(() => {
+      try {
+        handle.pointerInput?.dispose?.();
+      } catch (_e) {}
+    });
 
     if (NEED_KEYBOARD(profile)) {
       handle.keyboardInput = new KeyboardInput(win, hub);

@@ -118,14 +118,15 @@ const PROFILE_REQUIRED = /** @type {Record<string, string[]>} */ ({
     'metaModelLog',
   ],
 
+  // peek (Home preview): canvas only
+  peek: ['viewerCanvas'],
+
+
   // dev harness: minimal boot
   devHarness_min: ['viewerCanvas', 'metaFile', 'metaModel', 'metaModelLog'],
 
   // dev harness: hub-only (no file picker)
   devHarness_hub: ['viewerCanvas', 'metaModel', 'metaModelLog'],
-
-  // embed peek: canvas only (non-interactive decorative view)
-  peek: ['viewerCanvas'],
 });
 
 function normalizeProfile(profile) {
