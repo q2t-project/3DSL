@@ -123,9 +123,6 @@ const PROFILE_REQUIRED = /** @type {Record<string, string[]>} */ ({
 
   // dev harness: hub-only (no file picker)
   devHarness_hub: ['viewerCanvas', 'metaModel', 'metaModelLog'],
-
-  // production: peek (Home viewport)
-  peek: ['viewerCanvas'],
 });
 
 function normalizeProfile(profile) {

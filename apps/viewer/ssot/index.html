@@ -23,28 +23,7 @@
     }
   </script>
 
-  
-  <script data-peek-boot>
-    (function(){
-      try{
-        var p=new URLSearchParams(location.search);
-        if(p.get('embed')==='1') document.documentElement.classList.add('is-embed');
-        var mode=p.get('mode')||'';
-        if(mode==='peek') document.documentElement.classList.add('is-peek');
-      }catch(e){}
-    })();
-  </script>
-
-  <style data-peek-hide>
-    html.is-peek #viewer-topbar,
-    html.is-peek #viewer-toolbar,
-    html.is-peek #viewer-rightdock,
-    html.is-peek #gizmo-wrapper,
-    html.is-peek #gizmo-ui,
-    html.is-peek #auto-orbit-slot,
-    html.is-peek #doc-caption { display:none !important; }
-  </style>
-<link rel="stylesheet" href="./viewer.css" />
+  <link rel="stylesheet" href="./viewer.css" />
   <!-- site-level override: keep outside /viewer so it can be tuned without touching SSOT -->
   <link rel="stylesheet" href="/viewer_tuning.css" />
 </head>

@@ -838,7 +838,6 @@ html, body {
 
 /* Fullscreen canvas underlay */
 #viewer-canvas {
-  touch-action: none; /* allow pointer-events preventDefault on mobile */
   position: fixed;
   inset: 0;
   width: 100%;
@@ -922,23 +921,6 @@ body.is-embed #doc-caption {
   display: none !important;
 }
 
-
-/* Peek mode (Home viewport): keep orbit input but remove all UI chrome */
-body.is-peek #viewer-topbar,
-body.is-peek #viewer-toolbar,
-body.is-peek #viewer-rightdock,
-body.is-peek #gizmo-wrapper,
-body.is-peek #gizmo-ui,
-body.is-peek #auto-orbit-slot,
-body.is-peek #doc-caption {
-  display: none !important;
-}
-/* ensure nothing overlays the canvas */
-body.is-peek .viewer-dock,
-body.is-peek .gizmo-frame,
-body.is-peek .auto-orbit-slot {
-  pointer-events: none !important;
-}
 /* Make key UI controls visible even on dark background */
 .keycap { color: #f5f5f5; }
 .frame-label { color: #f5f5f5; }
@@ -1594,13 +1576,3 @@ body {
 #doc-caption {
   position: absolute !important;
 }
-
-
-/* prevent first-frame flash: also honor html.is-peek */
-html.is-peek #viewer-topbar,
-html.is-peek #viewer-toolbar,
-html.is-peek #viewer-rightdock,
-html.is-peek #gizmo-wrapper,
-html.is-peek #gizmo-ui,
-html.is-peek #auto-orbit-slot,
-html.is-peek #doc-caption { display:none !important; }
