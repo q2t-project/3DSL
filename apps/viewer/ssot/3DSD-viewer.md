@@ -868,9 +868,9 @@ viewer は `points.appearance.marker.text` を **唯一の解釈層**（labelInd
 - `plane`：`xy` / `yz` / `zx` / `billboard`。  
   `billboard` はカメラ正面固定、`xy` は +Z 正面、`yz` は +X 正面、`zx` は +Y 正面を向く。  
   無効値は `zx` にフォールバック。
-- `align`：`left/center/right` × `top/middle/baseline` を `left&top` の形式で指定する。  
+- `align`：`left/center/right` × `top/middle/baseline` を `left top` の形式で指定する。  
   基準点（point 座標）に対するアンカー位置であり、`baseline` は **文字領域の下端**として扱う。  
-  無効値は `center&middle` にフォールバック。
+  無効値は `center middle` にフォールバック。
 - `font`：`string` を受け付ける。  
   - `helvetiker_regular` または空文字は viewer の既定フォントにフォールバック。  
   - それ以外は **CSS font-family 文字列**として扱う。  

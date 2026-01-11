@@ -213,6 +213,30 @@ git push origin main
 ここがサイトの wrapper / flex / grid / 余白 / overflow / 広告枠 などの影響を受けると、
 iframe が「縮められない状態」になり、**左半分が空く**など致命的な崩れが再発する。
 
+### ホスト分類（固定）
+- Full App Host: `/viewer/index.html` などの UI 付き通常ホスト（UI 層を含む）
+- Minimal Host: `/viewer/peekBoot.js` を唯一の入口とする UI なしホスト（renderer + orbit input）
+- Embed Host: `/app/viewer` のように site 側から iframe 経由で埋め込むホスト（DOM 契約あり）
+- Dev Host: `/viewer/viewer_dev.html` や `viewerDevHarness.js`（開発専用、prod での利用禁止）
+
+### Minimal Host（peekBoot）の位置づけ
+- 目的: UI を持たない “最小ホスト” を **例外として許可**（増殖防止のため入口固定）
+- 入口: `/viewer/peekBoot.js` のみ（新規追加は契約更新が必須）
+- 起動 API: `bootstrapViewerFromUrl(canvasOrId, url, options?)` を使用（`bootstrapViewer` 直叩きは例外扱い）
+- 依存方向: **entry 以外に依存しない**（UI/hub/core/renderer を直接 import しない）
+- DOM 契約: UI の DOM 契約は不要、必須なのは
+  - `<canvas data-role="viewer-canvas">` または `#viewer-canvas` を 1 つ置くこと
+  - canvas 以外の UI レイヤは持ち込まない
+
+#### peekBoot import 連鎖（entry 起点）
+```
+peekBoot.js
+└─ runtime/bootstrapViewer.js
+   ├─ runtime/core/* (internal)
+   ├─ runtime/renderer/* (internal)
+   └─ runtime/viewerHub.js (internal)
+```
+
 ### 代表的な症状（致命）
 - `window.innerWidth` と `iframe.getBoundingClientRect().width` が一致しない  
   例: `innerW=430` なのに `iframeW=946` のように膨らむ／縮まらない  
@@ -237,3 +261,28 @@ DevTools Console で以下を実行し、差分が 1px 以内であること。
 ```js
 const f = document.getElementById('app-viewer-iframe');
 ({ innerW: window.innerWidth, iframeW: f?.getBoundingClientRect()?.width })
+
+## Peek viewer（Home 埋め込み）: 最小ホスト契約
+
+Home 等に埋め込む “UI なし” の Viewer は、`peekBoot.js` を **最小ホスト**として扱う。
+
+### ルール（固定）
+- `peekBoot.js` が import してよいのは **`runtime/bootstrapViewer.js` のみ**
+- UI レイヤ（例: `ui/*`）や、その他の任意モジュールの import は禁止
+- 違反した場合、SSOT チェックで `MINIMAL_HOST_FORBIDDEN_IMPORT` として検出される
+
+### 目的
+- 埋め込み用途で **UI/DOM を引き込まない**こと（ゾンビUI再発の封じ込め）
+- “最小ホスト → runtime に委譲” の一本化で、構造の汚染を防ぐ
+
+### 変更が必要になったら
+- `peekBoot.js` に import を増やすのではなく、
+  - `runtime/bootstrapViewer.js` 側へ機能を寄せる
+  - どうしても例外が必要なら、SSOT の最小ホスト許可リスト（`minimalHostEntries`）を更新する
+
+
+### check-forbidden-imports.mjs は manifest.yaml の依存ルール＋グローバル参照禁止を検査する
+
+### peekBoot.js は “minimal host entry” として特別扱い
+ - 許可 import: runtime/bootstrapViewer.js のみ
+ - UI レイヤや他モジュールを直接 import したら CI で落ちる（ホストを最小に保つため）

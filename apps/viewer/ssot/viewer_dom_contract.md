@@ -1,6 +1,6 @@
 
 # 3DSL Viewer DOM Contract
-version: 2025-12-20
+version: 2026-01-09
 
 この文書は Viewer UI（public/viewer/ui/*）が依存する DOM の契約である。
 Tailwind の class / レイアウト構造は自由だが、以下の **アンカー属性**は固定する：
@@ -31,8 +31,11 @@ Tailwind の class / レイアウト構造は自由だが、以下の **アン�
 ## 共通（全 profile）必須
 | role | selector (preferred) | selector (fallback) | required | type/attrs |
 |---|---|---|---|---|
-| canvas | `[data-role="viewer-canvas"]` | `#viewer-canvas` | YES | `<canvas>` |
++| viewerCanvas | `[data-role="viewer-canvas"]` | `#viewer-canvas` | YES | `<canvas>` |
 | hudToast | `[data-role="viewer-hud"]` | `#viewer-hud` | NO | `<div>`（toast表示） |
+| orbitHint | `[data-role="orbit-hint"]` | `#orbit-hint` | NO | `<div>`（Orbit操作ヒント） |
+| perfHud | `[data-role="perf-hud"]` | `#perf-hud` | NO | `<div>`（debug/perf表示。dev限定で使用） |
+
 
 ---
 
