@@ -1,6 +1,23 @@
 // viewer/runtime/bootstrapViewer.js
 
 /**
+ * @typedef {Object} PeekCamera
+ * @property {(dx:number, dy:number)=>void} rotate
+ * @property {(dx:number, dy:number)=>void} pan
+ * @property {(delta:number)=>void} zoom
+ * @property {()=>any} [getState]
+ */
+
+/**
+ * @typedef {Object} PeekHandle
+ * @property {PeekCamera} camera
+ * @property {()=>void} [start]
+ * @property {()=>void} [stop]
+ * @property {()=>void} [dispose]
+ * @property {(w:number, h:number, dpr?:number)=>void} [resize]
+ */
+
+/**
  * @typedef {string} ViewerLogLine
  */
 
@@ -27,6 +44,12 @@
  *   default: false（重いので任意。trueならref整合も落とす）
  */
 
+/**
+ * @property {number} [dpr]
+ *   optional: renderer pixelRatio の上限用（peek 等）
+ * @property {boolean} [autoStart]
+ *   peek 系のときに entry 側で hub.start() を自動実行する（default: true）
+ */
 
 /**
  * NOTE: Public runtime entrypoints
@@ -40,6 +63,12 @@
  * - bootstrapViewer(canvasOrId, document3dss, options?)
  *     すでに strict validation 済みの 3DSS オブジェクトを直接渡すための低レベル入口。
  *     テストコードやツール用途を想定しており、通常の Astro 埋め込みからは使わない。
+ *
+ * - bootstrapPeekFromUrl(canvasOrId, url, options?) -> Promise<PeekHandle>
+ *     A分類（No-UI Host）向けの最小入口。Hub を返さず PeekHandle を返す。
+ *     Host は hub/core/renderer を一切触らず、PeekHandle.camera のみ使用する。
+ *
+ * - bootstrapPeek(canvasOrId, document3dss, options?) -> Promise<PeekHandle>
  *
  * ▼ 禁止事項
  *   - Core / Renderer / CameraEngine など runtime 配下のモジュールを
@@ -714,6 +743,21 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   const canvasEl = resolveCanvas(canvasOrId);
   const renderer = createRendererContext(canvasEl);
 
+  // optional DPR clamp (host が renderer 内部を触らなくて済むように entry 側で吸収)
+  try {
+    const raw = options?.dpr;
+    const dpr =
+      (typeof raw === "number" && Number.isFinite(raw))
+        ? Math.max(0.5, Math.min(raw, 2))
+        : null;
+    if (dpr != null) {
+      const r = renderer?.renderer ?? renderer ?? null;
+      if (r && typeof r.setPixelRatio === "function") {
+        r.setPixelRatio(dpr);
+      }
+    }
+  } catch (_e) {}
+
   // 3) index/range
   const structIndex = buildUUIDIndex(struct);
   const frameRange = detectFrameRange(struct);
@@ -944,6 +988,54 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
 
 
   return hub;
+}
+
+function createPeekHandle(hub, options = {}) {
+  if (!hub) throw new Error("[bootstrapPeek] hub is missing");
+
+  // 可能なら core.camera façade を優先（autoOrbit停止などがここで担保される）
+  const camSrc =
+    hub?.core?.camera ??
+    hub?.camera ??
+    null;
+
+  if (!camSrc) throw new Error("[bootstrapPeek] camera is missing");
+
+  const missing = ["rotate", "pan", "zoom"].filter((k) => typeof camSrc?.[k] !== "function");
+  if (missing.length) throw new Error(`[bootstrapPeek] camera missing methods: ${missing.join(", ")}`);
+
+  /** @type {PeekCamera} */
+  const camera = {
+    rotate: (dx, dy) => camSrc.rotate(dx, dy),
+    pan: (dx, dy) => camSrc.pan(dx, dy),
+    zoom: (delta) => camSrc.zoom(delta),
+    getState: typeof camSrc.getState === "function" ? () => camSrc.getState() : undefined,
+  };
+
+  /** @type {PeekHandle} */
+  const handle = {
+    camera,
+    dispose: typeof hub.dispose === "function" ? () => hub.dispose() : undefined,
+    resize: typeof hub.resize === "function" ? (w, h, dpr) => hub.resize(w, h, dpr) : undefined,
+  };
+
+  // peek は entry 側で自動 start（host が hub を触る必要を消す）
+  const autoStart = options.autoStart !== false;
+  if (autoStart && typeof hub.start === "function") {
+    try { hub.start(); } catch (_e) {}
+  }
+
+  return handle;
+}
+
+export async function bootstrapPeek(canvasOrId, document3dss, options = {}) {
+  const hub = await bootstrapViewer(canvasOrId, document3dss, options);
+  return createPeekHandle(hub, options);
+}
+
+export async function bootstrapPeekFromUrl(canvasOrId, url, options = {}) {
+  const hub = await bootstrapViewerFromUrl(canvasOrId, url, options);
+  return createPeekHandle(hub, options);
 }
 
 /**

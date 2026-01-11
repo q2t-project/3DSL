@@ -1,26 +1,29 @@
 <!doctype html>
 <html lang="en">
+  <!-- SSOT_EXCEPTION_HOST: A. UI無し (No-UI Host) -->
+  <!-- Purpose: Minimal host shell for peekBoot (renderer + orbit, no UI layer) -->
+  <!-- Forbidden: ui/* import, hub/core/renderer internal modules -->
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>3DSL Peek</title>
     <style>
       html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; }
-      canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+      canvas { display: block; width: 100%; height: 100%; touch-action: none; user-select:none; -webkit-user-select:none; }
     </style>
 
     <!-- ★追加：three の import 解決を固定 -->
     <script type="importmap">
     {
       "imports": {
-        "three": "/vendor/three/build/three.module.js",
-        "three/addons/": "/vendor/three/examples/jsm/"
+        "three": "/viewer/vendor/three/build/three.module.js",
+        "three/addons/": "/viewer/vendor/three/examples/jsm/"
       }
     }
     </script>
   </head>
   <body>
-    <canvas id="viewer-canvas"></canvas>
+    <canvas id="viewer-canvas" data-role="viewer-canvas"></canvas>
     <script type="module">
       import("/viewer/peekBoot.js").catch((err) => {
         console.error(err);

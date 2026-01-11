@@ -10,6 +10,8 @@
 
 | id | surface | stability |
 |---|---|---|
+| entry.bootstrapPeek | bootstrapPeek(canvasOrId, document3dss, options?) -> Promise<PeekHandle> | experimental |
+| entry.bootstrapPeekFromUrl | bootstrapPeekFromUrl(canvasOrId, url, options?) -> Promise<PeekHandle> | stable |
 | entry.bootstrapViewer | bootstrapViewer(canvasOrId, document3dss, options?) -> hub | stable |
 | entry.bootstrapViewerFromUrl | bootstrapViewerFromUrl(canvasOrId, url, options?) -> Promise<hub> | stable |
 

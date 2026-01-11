@@ -1,8 +1,10 @@
-// peekBoot.js
-// Minimal host for Home "peek viewer": renderer + orbit input only (NO UI chrome)
+// SSOT_EXCEPTION_HOST: A. UI無し (No-UI Host)
+// Purpose: Minimal host for Home "peek viewer" (renderer + orbit input, NO UI chrome)
+// Allowed: entry bootstrap (bootstrapPeekFromUrl) + PeekHandle.camera operations
+// Forbidden: ui/* import, hub/core/renderer internal modules
 // NOTE: This is intentionally standalone (no UI layer modules) to avoid "zombie UI" reappearing.
 
-import { bootstrapViewerFromUrl } from "./runtime/bootstrapViewer.js";
+import { bootstrapPeekFromUrl } from "./runtime/bootstrapViewer.js";
 
 function showFatal(err) {
   console.error(err);
@@ -54,15 +56,8 @@ function getModelUrlOrThrow() {
   return new URL(raw, globalThis.location.href).toString();
 }
 
-function installOrbitInput(canvas, hub) {
-  // NOTE: prefer hub.camera (command pipeline) over direct cameraEngine mutation.
-  const cam =
-    hub?.camera ??
-    hub?.core?.camera ??
-    hub?.core?.cameraEngine ??
-    hub?.renderer?.camera ??
-    null;
-
+function installOrbitInput(canvas, cam) {
+  // cam is PeekHandle.camera (public surface)
   if (!cam) throw new Error("[peekBoot] camera is missing");
 
   const missing = ["rotate", "pan", "zoom"].filter((k) => typeof cam?.[k] !== "function");
@@ -232,20 +227,6 @@ function installOrbitInput(canvas, hub) {
   canvas.addEventListener("contextmenu", onContextMenu);
 }
 
-async function bootstrapCompat({ canvas, modelUrl }) {
-  // まずは object 版を試して、ダメなら positional に落とす（署名違い吸収）
-  try {
-    return await bootstrapViewerFromUrl({ canvas, modelUrl, url: modelUrl, src: modelUrl, dpr: DPR });
-  } catch (e1) {
-    try {
-      return await bootstrapViewerFromUrl(canvas, modelUrl);
-    } catch (e2) {
-      e1.cause = e2;
-      throw e1;
-    }
-  }
-}
-
 (async function main() {
   const canvas =
     /** @type {HTMLCanvasElement|null} */ (
@@ -262,20 +243,15 @@ async function bootstrapCompat({ canvas, modelUrl }) {
 
   const modelUrl = getModelUrlOrThrow();
 
-  const hub = await bootstrapCompat({ canvas, modelUrl });
-  if (!hub) throw new Error("[peekBoot] bootstrap returned null hub");
+ const peek = await bootstrapPeekFromUrl(canvas, modelUrl, { dpr: DPR, autoStart: true });
+  if (!peek) throw new Error("[peekBoot] bootstrap returned null peek handle");
 
-  // 可能なら renderer の pixelRatio をクランプ
-  const r = hub?.renderer?.renderer ?? hub?.renderer ?? null;
-  if (r && typeof r.setPixelRatio === "function") {
-    try {
-      r.setPixelRatio(DPR);
-    } catch (_e) {}
-  }
+  installOrbitInput(canvas, peek.camera);
 
-  if (typeof hub.start === "function") hub.start();
+  // debug: ?dbgPeek=1 の時だけ露出（Hubは露出しない）
+  try {
+    const sp = new URLSearchParams(globalThis.location?.search ?? "");
+    if (sp.get("dbgPeek") === "1") globalThis.__peek = { peek, modelUrl, DPR };
+  } catch (_e) {}
 
-  installOrbitInput(canvas, hub);
-
-  window.__peek = { hub, modelUrl, DPR };
 })().catch(showFatal);

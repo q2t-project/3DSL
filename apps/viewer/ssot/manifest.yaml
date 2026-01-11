@@ -71,6 +71,18 @@ ports:
     surface: "bootstrapViewerFromUrl(canvasOrId, url, options?) -> Promise<hub>"
     stability: "stable"
 
+  - id: "entry.bootstrapPeekFromUrl"
+    caller: "host"
+    callee: "entry"
+    surface: "bootstrapPeekFromUrl(canvasOrId, url, options?) -> Promise<PeekHandle>"
+    stability: "stable"
+
+  - id: "entry.bootstrapPeek"
+    caller: "host"
+    callee: "entry"
+    surface: "bootstrapPeek(canvasOrId, document3dss, options?) -> Promise<PeekHandle>"
+    stability: "experimental"
+
   # -----------------------------
   # 2) ui -> hub (public runtime API)
   # -----------------------------
@@ -194,6 +206,10 @@ docs:
       path: "/viewer/viewer_dom_contract.md"
       role: "DOM skeleton contract (human)"
       status: "authoritative"
+    - id: "hosting-policy"
+      path: "/viewer/SSOT_HOSTING_POLICY.md"
+      role: "exception host classification + import boundaries (human)"
+      status: "authoritative"
     - id: "host-asset-policy"
       path: "/viewer/host/SSOT_HOST_ASSET_POLICY.md"
       role: "Astro host integration + asset path SSOT (human)"
@@ -206,6 +222,10 @@ docs:
       path: "/viewer/spec/runtime_spec.viewer.yaml"
       role: "legacy runtime spec (human)"
       status: "deprecated"
+    - id: "viewer-interpretation-spec"
+      path: "/viewer/spec/viewer_interpretation_spec.md"
+      role: "implementation-derived interpretation table (human)"
+      status: "authoritative"
 
   generated:
     - id: "ports"

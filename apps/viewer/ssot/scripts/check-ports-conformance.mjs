@@ -79,7 +79,7 @@ function main() {
   const files = walkUiFiles();
   const violations = [];
 
-  const re = /\bhub\.([A-Za-z0-9_]+)/g;
+  const re = /\bhub(?:\?\.|\.)\s*([A-Za-z0-9_]+)/g;
 
   for (const f of files) {
     const rel = path.relative(repoRoot, f).replace(/\\/g, '/');
@@ -89,7 +89,7 @@ function main() {
       const line = lines[i];
       const t = line.trim();
       if (t.startsWith('//') || t.startsWith('/*') || t.startsWith('*') || t.startsWith('*/')) continue;
-      if (!line.includes('hub.')) continue;
+      if (!line.includes('hub.') && !line.includes('hub?.')) continue;
       let m;
       while ((m = re.exec(line))) {
         const prop = m[1];
@@ -103,7 +103,7 @@ function main() {
 
   // Host must not call hub.* at all (host -> hub is forbidden).
   {
-    const hostFiles = ['viewerHost.js', 'viewerDevHarness.js', 'viewerHostBoot.js'];
+    const hostFiles = ['viewerHost.js', 'viewerDevHarness.js', 'viewerHostBoot.js', 'peekBoot.js'];
     const reHost = /\bhub\.([A-Za-z0-9_]+)/g;
     for (const rel of hostFiles) {
       const f = path.join(repoRoot, rel);
