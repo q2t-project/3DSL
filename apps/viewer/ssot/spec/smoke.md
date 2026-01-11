@@ -2,6 +2,10 @@
 
 目的：自動チェック（AJV / invariants）では拾えない「起動・操作・見た目」の破綻を最短で検出する。
 
+注:
+- 原則は `/app/viewer`（site 本番導線）でスモークする
+- `/viewer/index.html` は dev harness / 低レイヤ切り分け用途（必要な時だけ）
+
 ---
 
 ## 対象モデル
@@ -24,7 +28,34 @@
 1. npm install
 2. npm run dev
 3. dev harness を開く（DEFAULT_MODEL が自動ロードされる）
+   - 例: `/viewer/index.html`
 4. 別モデルは `?model=...`（harnessの仕様に従う）
+
+---
+
+## Fast Smoke（半自動・短時間）
+目的：UI消失/片側表示/入力不能などの「1日溶ける系」を即切り分ける。
+
+### 実行方法（ブラウザ）
+1. `/app/viewer?model=/3dss/scene/default/default.3dss.json&dbgHub=1` を開く
+2. DevTools Console で以下を実行
+   ```js
+   const { runSmoke } = await import("/viewer/test/smokeViewerRunner.js?ts=" + Date.now());
+   await runSmoke();
+   ```
+3. 画面サイズを変えて再実行（`runSmoke()` だけ再度呼ぶ）
+4. `/app/viewer?model=/3dss/canonical/valid/sample02_mixed_basic.3dss.json&dbgHub=1` でも同様に実行
+5. 失敗したら `apps/viewer/ssot/spec/repro_cases.md` に最短手順とログ（smoke出力）を貼る
+
+この `runSmoke()` はブラウザ自動化（Playwright 等）からもそのまま呼べる前提の最小スモークです。
+
+### 観測点（OK/NG）
+- canvas が DOM 上に存在し、表示領域が 0x0 になっていない
+- UI ロール要素が「存在する場合」display:none になっていない（存在しない場合は skip）
+- canvas の CSS サイズと実描画サイズの比率が極端でない（例: 0.5倍/2倍など）
+- elementFromPoint で canvas 周辺が取得できる（全面オーバーレイに奪われてない）
+- viewerHub が初期化済み（`dbgHub=1` で露出している場合）
+- 失敗した観測点は `incident_patterns.md` の該当章（CSS/Canvas/Layout/Input/Runtime）で切り分ける
 
 ---
 
@@ -70,3 +101,5 @@
 - どのモデルで落ちたか（URL/ファイル）
 - console の先頭エラー（1〜3行で十分）
 - 再現手順（最短）
+- `runSmoke()` の NG 行（そのままコピペ）
+- 可能なら環境（OS/Browser/画面幅/DPR/ズーム）

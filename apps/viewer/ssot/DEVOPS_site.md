@@ -286,3 +286,197 @@ Home 等に埋め込む “UI なし” の Viewer は、`peekBoot.js` を **最
 ### peekBoot.js は “minimal host entry” として特別扱い
  - 許可 import: runtime/bootstrapViewer.js のみ
  - UI レイヤや他モジュールを直接 import したら CI で落ちる（ホストを最小に保つため）
+
+
+ # 3DSL Viewer: Codex反映分 実施記録（2026-01-11）
+
+## 状況（開始時点）
+- 対象: `apps/viewer/ssot` を中心とした Viewer 実装・SSOT統治・site同期・schema更新
+- 目的:
+  - Peek（No-UI Host）を SSOT ルールに沿った形へ整理（host が hub を触らない）
+  - marker.text / label 表示の改善（品質・パフォーマンス）
+  - SSOTドキュメント整備（hosting分類、解釈表、検証メモ）
+  - schema v1.1.2 反映＋サンプル更新
+  - site 側 docs 追加・viewer ページ同期
+
+---
+
+## 変更概要（成果物の塊）
+この作業でローカル `main` は **origin/main より 6 commits ahead**。
+
+直近コミット（新しい順）:
+1. `15e59d8` viewer: fix spec path for viewer_interpretation_spec
+2. `0486e68` schema: update 3DSS + refresh samples
+3. `01aa3bf` site: sync viewer + update viewer page/docs
+4. `e4e4a21` viewer: add/update SSOT docs
+5. `db01e29` viewer: improve label rendering + perf/orbit HUD
+6. `832915a` viewer: add PeekHandle entry APIs (bootstrapPeek*)
+
+---
+
+## A) PeekHandle 化（最重要・設計統治）
+### ねらい
+- host が `hub.*` を直接触らない（`host -> hub` 禁止を守る）
+- Peek（UI無しホスト）向けに **返り値を Hub ではなく PeekHandle** にする
+- entry が `hub.start()` を自動実行できるようにして host を非特権化
+
+### 実装（entry）
+- `runtime/bootstrapViewer.js`
+  - `bootstrapPeekFromUrl(canvasOrId, url, options?) -> Promise<PeekHandle>`
+  - `bootstrapPeek(canvasOrId, document3dss, options?) -> Promise<PeekHandle>`
+  - `createPeekHandle(hub, options?)` を追加
+    - `PeekHandle.camera.rotate/pan/zoom` を提供
+    - `autoStart`（default true）で entry 側が `hub.start()` を呼ぶ
+
+### manifest ports 追加（越境口の明文化）
+- `apps/viewer/ssot/manifest.yaml`
+  - `entry.bootstrapPeekFromUrl`（stable）
+  - `entry.bootstrapPeek`（experimental）
+  - ※既存 `entry.bootstrapViewer*` と並ぶ host->entry の公開口として追加
+
+### ports generated 更新
+- `apps/viewer/ssot/_generated/PORTS.md` を `gen-ports.mjs` で再生成し差分反映
+
+### host 側の規約強化（静的監査）
+- `scripts/check-ports-conformance.mjs`
+  - Host ファイルに `peekBoot.js` を追加し、
+    - `hub.*` を触ったら即違反（HOST_TOUCHED_HUB）
+  - UI 側は `hub.<prop>` トークンスキャンで ports 許可リストと突合
+
+### host shell コメントの明確化
+- `peek.html` / `peek/index.html`
+  - `SSOT_EXCEPTION_HOST: A. UI無し (No-UI Host)` を明記
+  - 禁止事項（ui import / hub/core/renderer 直参照）をコメント化
+
+### コミット
+- `832915a viewer: add PeekHandle entry APIs (bootstrapPeek*)`
+
+---
+
+## B) Label 描画改善 + HUD（操作・性能の体感改善）
+### ねらい
+- marker.text 系の見た目・安定性改善
+- label 増加時の体感劣化に対するパフォーマンス監視導線
+- Orbit の誤解（モデルが回る/カメラが回る）を UI で最小ヒント化
+
+### 変更範囲（主要）
+- runtime:
+  - `runtime/renderer/context.js`
+  - `runtime/renderer/labels/*`（LabelLayer / labelConfig / labelRuntime / labelSpec / textSprite 等）
+  - `runtime/viewerHub.js`
+  - `runtime/core/contracts.js`
+- ui:
+  - `ui/domContract.js`
+  - `ui/attachUiProfile.js`
+  - 新規: `ui/orbitHint.js`
+  - 新規: `ui/perfHud.js`
+- css:
+  - `viewer.css`
+
+### コミット
+- `db01e29 viewer: improve label rendering + perf/orbit HUD`
+
+---
+
+## C) SSOTドキュメント整備（統治の文章化）
+### 追加/更新
+- `apps/viewer/ssot/SSOT_HOSTING_POLICY.md`（例外ホスト分類・境界）
+- `apps/viewer/ssot/MARKER_TEXT_INTERP.md`（marker.text の解釈表）
+- `apps/viewer/ssot/violations.md`（違反サンプル/運用メモ）
+- `apps/viewer/ssot/test/viewer_label_performance.md`（性能確認メモ）
+- `apps/viewer/ssot/DEVOPS_site.md` / `viewer_dom_contract.md` など更新
+
+### manifest docs 参照追加
+- `docs.human_specs` に以下を追記:
+  - hosting-policy: `/viewer/SSOT_HOSTING_POLICY.md`
+  - viewer-interpretation-spec: `/viewer/spec/viewer_interpretation_spec.md`
+
+### コミット
+- `e4e4a21 viewer: add/update SSOT docs`
+
+---
+
+## D) site 同期（viewerページ + docs 追加）
+### 変更
+- `apps/site/scripts/sync-viewer.mjs`
+- `apps/site/src/pages/app/viewer.astro`
+- `apps/site/src/content/text/viewer.md`
+- 新規 docs:
+  - `apps/site/src/docs/README.md`
+  - `apps/site/src/docs/text-orientation.md`
+  - `apps/site/src/docs/label-placement.md`
+  - `apps/site/src/docs/renderer-text.md`
+  - `.frontmatter`
+
+### コミット
+- `01aa3bf site: sync viewer + update viewer page/docs`
+
+---
+
+## E) schema v1.1.2 更新 + サンプル更新
+### 変更
+- `packages/schemas/3DSS.schema.json` / `3DSS_spec.md`
+- `packages/schemas/releases/v1.1.1/*` 更新
+- 新規: `packages/schemas/releases/v1.1.2/*`
+  - `3DSS.schema.json`
+  - `3DSS_spec.v1.1.2.pose.md`
+- `packages/3dss-content` サンプル類更新
+  - canonical/valid, sample など
+
+
+---
+
+### コミット
+- `0486e68 schema: update 3DSS + refresh samples`
+
+---
+
+## F) spec パスの修正（迷子解消）
+### 背景
+- `viewer_interpretation_spec.md` が誤って深いパスに置かれていた
+  - `apps/viewer/ssot/spec/apps/viewer/ssot/spec/viewer_interpretation_spec.md`
+
+### 対応
+- 正しい位置へ移動:
+  - `apps/viewer/ssot/spec/viewer_interpretation_spec.md`
+- `manifest.yaml` 参照:
+  - `path: "/viewer/spec/viewer_interpretation_spec.md"`（整合確認済）
+
+### コミット
+- `15e59d8 viewer: fix spec path for viewer_interpretation_spec`
+
+---
+
+## 実行したチェック（最終確認）
+- `node apps/viewer/ssot/scripts/check-forbidden-imports.mjs` -> OK
+- `node apps/viewer/ssot/scripts/check-single-writer.mjs` -> OK
+- `node apps/viewer/ssot/scripts/check-ports-conformance.mjs` -> OK
+- `node apps/viewer/ssot/scripts/gen-ports.mjs` -> _generated/PORTS.md 更新
+- `node apps/viewer/ssot/scripts/check-generated-clean.mjs` -> 差分なし
+- `node apps/viewer/ssot/scripts/check-host-asset-paths.mjs` -> OK
+
+---
+
+## 既知の残作業（git status 由来）
+push 前に整理が必要なもの。
+
+### 未ステージの変更
+- `apps/viewer/ssot/scripts/check-forbidden-imports.mjs`
+- `apps/viewer/ssot/viewerDevHarness.js`
+- `apps/viewer/ssot/viewer_dev.html`
+
+→ 意図した変更なら追加コミット、不要なら restore。
+
+### Untracked
+- `"(bootstrapPeek※)・"`（文字化けしたゴミっぽいファイル/フォルダ）
+
+→ 削除推奨（意図が無ければ確実にノイズ）。
+
+---
+
+## push 前の推奨手順
+1. 未ステージ3ファイルの扱い決定（commit するか捨てる）
+2. 文字化け untracked を削除
+3. `git status` が clean になったら
+4. `git push`（6 commits を publish）
+
