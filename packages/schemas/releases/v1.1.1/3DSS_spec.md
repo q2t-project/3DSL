@@ -712,7 +712,7 @@ points
 | `content` | string       | `""`                   | 表示テキスト。                                                  |
 | `font`    | string       | `"helvetiker_regular"` | 使用フォント。                                                  |
 | `size`    | number       | `8`                    | テキストサイズ。                                                 |
-| `align`   | string(enum) | `"center&middle"`      | 水平／垂直アライン。9 通り（left/center/right × top/middle/baseline）。 |
+| `align`   | string(enum) | `"center middle"`      | 水平／垂直アライン。9 通り（left/center/right × top/middle/baseline）。 |
 | `plane`   | string(enum) | `"zx"`                 | 表示面。`xy` / `yz` / `zx` / `billboard`（カメラ正面固定）。           |
 
 > `billboard` は独立プロパティではなく、`plane` の列挙値の一つとして扱う。

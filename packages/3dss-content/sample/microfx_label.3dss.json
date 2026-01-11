@@ -68,7 +68,7 @@
             "content": "marker優先",
             "size": 64,
             "font": "helvetiker_regular",
-            "align": "center&middle",
+            "align": "center middle",
             "plane": "billboard"
           }
         }
@@ -84,7 +84,7 @@
             "content": "markerのみ",
             "size": 20,
             "font": "helvetiker_regular",
-            "align": "center&middle",
+            "align": "center middle",
             "plane": "zx"
           }
         }
@@ -100,7 +100,7 @@
             "content": "markerのみ",
             "size": 20,
             "font": "helvetiker_regular",
-            "align": "center&middle",
+            "align": "center middle",
             "plane": "yz"
           }
         }

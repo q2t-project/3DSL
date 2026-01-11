@@ -54,7 +54,7 @@
             "content": "A",
             "font": "helvetiker_regular",
             "size": 8,
-            "align": "center&middle",
+            "align": "center middle",
             "plane": "billboard"
           }
         },
@@ -97,7 +97,7 @@
             "content": "B",
             "font": "helvetiker_regular",
             "size": 8,
-            "align": "center&middle",
+            "align": "center middle",
             "plane": "billboard"
           }
         },
@@ -140,7 +140,7 @@
             "content": "C",
             "font": "helvetiker_regular",
             "size": 8,
-            "align": "center&middle",
+            "align": "center middle",
             "plane": "billboard"
           }
         },
@@ -183,7 +183,7 @@
             "content": "D",
             "font": "helvetiker_regular",
             "size": 8,
-            "align": "center&middle",
+            "align": "center middle",
             "plane": "billboard"
           }
         },

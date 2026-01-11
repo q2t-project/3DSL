@@ -68,7 +68,7 @@
             "content": "testtesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttest",
             "size": 0.5,
             "font": "helvetiker_regular",
-            "align": "center&middle",
+            "align": "center middle",
             "plane": "xy"
           }
         }
@@ -84,7 +84,7 @@
             "content": "markerのみ",
             "size": 2,
             "font": "helvetiker_regular",
-            "align": "center&middle",
+            "align": "center middle",
             "plane": "zx"
           }
         }

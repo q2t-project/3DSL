@@ -26,7 +26,7 @@
             "content": "P01",
             "size": 16,
             "plane": "billboard",
-            "align": "center&middle"
+            "align": "center middle"
           }
         }
       },

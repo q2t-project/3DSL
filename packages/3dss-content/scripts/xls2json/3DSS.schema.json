@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#",
-  "$anchor": "v1.1.1",
-  "title": "3DSS Schema v1.1.1",
+  "$id": "https://q2t-project.github.io/3dsl/schemas/release/v1.1.2/3DSS.schema.json",
+  "$anchor": "v1.1.2",
+  "title": "3DSS Schema v1.1.2",
   "type": "object",
   "properties": {
     "lines": {
@@ -840,17 +840,17 @@
           "align": {
             "type": "string",
             "enum": [
-              "left&top",
-              "left&middle",
-              "left&baseline",
-              "center&top",
-              "center&middle",
-              "center&baseline",
-              "right&top",
-              "right&middle",
-              "right&baseline"
+              "left top",
+              "left middle",
+              "left baseline",
+              "center top",
+              "center middle",
+              "center baseline",
+              "right top",
+              "right middle",
+              "right baseline"
             ],
-            "default": "center&middle"
+            "default": "center middle"
           },
           "plane": {
             "type": "string",

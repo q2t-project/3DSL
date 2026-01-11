@@ -840,17 +840,17 @@
           "align": {
             "type": "string",
             "enum": [
-              "left&top",
-              "left&middle",
-              "left&baseline",
-              "center&top",
-              "center&middle",
-              "center&baseline",
-              "right&top",
-              "right&middle",
-              "right&baseline"
+              "left top",
+              "left middle",
+              "left baseline",
+              "center top",
+              "center middle",
+              "center baseline",
+              "right top",
+              "right middle",
+              "right baseline"
             ],
-            "default": "center&middle"
+            "default": "center middle"
           },
           "plane": {
             "type": "string",

@@ -34,7 +34,7 @@
           "radius": 2.0,
           "height": 5.0,
           "common": { "color": "#6666ff" },
-          "text": { "content": "B", "size": 14, "plane": "billboard", "align": "center&middle" }
+          "text": { "content": "B", "size": 14, "plane": "billboard", "align": "center middle" }
         }
       },
       "meta": { "uuid": "22222222-2222-4222-8222-222222222202", "tags": ["s:node"] }

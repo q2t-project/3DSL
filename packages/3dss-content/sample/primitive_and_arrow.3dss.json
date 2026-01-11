@@ -57,7 +57,7 @@
           "text": {
             "content": "BOX",
             "size": 10,
-            "align": "center&middle",
+            "align": "center middle",
             "plane": "xy"
           }
         },
@@ -86,7 +86,7 @@
           "text": {
             "content": "CONE",
             "size": 10,
-            "align": "center&middle",
+            "align": "center middle",
             "plane": "yz"
           }
         },
@@ -115,7 +115,7 @@
           "text": {
             "content": "PYR",
             "size": 10,
-            "align": "center&middle",
+            "align": "center middle",
             "plane": "zx"
           }
         },
@@ -144,7 +144,7 @@
           "text": {
             "content": "CORONA",
             "size": 10,
-            "align": "center&middle",
+            "align": "center middle",
             "plane": "billboard"
           }
         },
@@ -171,7 +171,7 @@
           "text": {
             "content": "BILLBOARD LABEL",
             "size": 12,
-            "align": "center&middle",
+            "align": "center middle",
             "plane": "billboard"
           }
         },

@@ -17,7 +17,7 @@
         "color": "#ff7766",
         "marker": {
           "primitive": "none",
-          "text": { "content": "align left&top", "align": "left&top", "plane": "billboard" }
+          "text": { "content": "align left top", "align": "left top", "plane": "billboard" }
         }
       }
     },
@@ -28,7 +28,7 @@
         "color": "#ffbb66",
         "marker": {
           "primitive": "none",
-          "text": { "content": "align center&top", "align": "center&top", "plane": "billboard" }
+          "text": { "content": "align center top", "align": "center top", "plane": "billboard" }
         }
       }
     },
@@ -39,7 +39,7 @@
         "color": "#ffee66",
         "marker": {
           "primitive": "none",
-          "text": { "content": "align right&top", "align": "right&top", "plane": "billboard" }
+          "text": { "content": "align right top", "align": "right top", "plane": "billboard" }
         }
       }
     },
@@ -50,7 +50,7 @@
         "color": "#aaff66",
         "marker": {
           "primitive": "none",
-          "text": { "content": "align left&middle", "align": "left&middle", "plane": "billboard" }
+          "text": { "content": "align left middle", "align": "left middle", "plane": "billboard" }
         }
       }
     },
@@ -61,7 +61,7 @@
         "color": "#66ff88",
         "marker": {
           "primitive": "none",
-          "text": { "content": "align center&middle", "align": "center&middle", "plane": "billboard" }
+          "text": { "content": "align center middle", "align": "center middle", "plane": "billboard" }
         }
       }
     },
@@ -72,7 +72,7 @@
         "color": "#66ffcc",
         "marker": {
           "primitive": "none",
-          "text": { "content": "align right&middle", "align": "right&middle", "plane": "billboard" }
+          "text": { "content": "align right middle", "align": "right middle", "plane": "billboard" }
         }
       }
     },
@@ -83,7 +83,7 @@
         "color": "#66ccff",
         "marker": {
           "primitive": "none",
-          "text": { "content": "align left&baseline", "align": "left&baseline", "plane": "billboard" }
+          "text": { "content": "align left baseline", "align": "left baseline", "plane": "billboard" }
         }
       }
     },
@@ -94,7 +94,7 @@
         "color": "#6688ff",
         "marker": {
           "primitive": "none",
-          "text": { "content": "align center&baseline", "align": "center&baseline", "plane": "billboard" }
+          "text": { "content": "align center baseline", "align": "center baseline", "plane": "billboard" }
         }
       }
     },
@@ -105,7 +105,7 @@
         "color": "#9966ff",
         "marker": {
           "primitive": "none",
-          "text": { "content": "align right&baseline", "align": "right&baseline", "plane": "billboard" }
+          "text": { "content": "align right baseline", "align": "right baseline", "plane": "billboard" }
         }
       }
     },
