@@ -104,6 +104,18 @@ await rm(dst, { recursive: true, force: true });
 await mkdir(path.dirname(dst), { recursive: true });
 await cp(src, dst, { recursive: true });
 
+// Inject vendor/three into /public/viewer (viewer runtime imports /viewer/vendor/three/...)
+try {
+  const vendorThreeSrc = path.join(repoRoot, "packages/vendor/three");
+  const vendorThreeDst = path.join(dst, "vendor/three");
+  await access(vendorThreeSrc);
+  await mkdir(path.dirname(vendorThreeDst), { recursive: true });
+  await cp(vendorThreeSrc, vendorThreeDst, { recursive: true });
+  console.log("[sync] viewer: injected vendor/three");
+} catch (e) {
+  console.warn("[sync] viewer: vendor/three injection skipped:", e?.message ?? e);
+}
+
 // Remove accidental duplicated viewer tree under public/viewer/ui/* (ui/runtime, ui/scripts, etc.)
 // These duplicates break viewer layer checks (ui-layer must not contain runtime/core).
 try {

@@ -5,6 +5,19 @@
  * - iframe は viewport 固定（position:fixed; inset:0; width:100vw; height:100dvh）
  * - 親要素由来の min-width/overflow/transform 等で幅が膨らむ余地を作らない
  *
+ * Host categories (fixed):
+ * - Full App Host: /viewer/index.html (UI付き)
+ * - Minimal Host: /viewer/peek.html (UIなし/entryのみ; entry module = /viewer/peekBoot.js)
+ * - Embed Host: /app/viewer (this file)
+ * - Dev Host: /viewer/viewer_dev.html (dev限定)
+ *
+ * Minimal Host rules (summary):
+ * - 入口は /viewer/peek.html（entry module は /viewer/peekBoot.js）に固定（例外追加は契約更新）
+ * - import は viewer/runtime・viewer/renderer 等の基盤のみ（viewer/ui/** は禁止）
+ * - DOM 必須は canvas ([data-role="viewer-canvas"] or #viewer-canvas) のみ
+ *
+ * SSOT: apps/site/DEVOPS_site.md (Viewer Embed Contract)
+ *
  * NOTE:
  *   Astro は static build のため、ビルド時に `Astro.url.search` は常に空。
  *   query (model/open/back 等) の受け渡しはブラウザ側で行う。
