@@ -6,6 +6,8 @@ import { createPicker } from './picker.js';
 import { createTimeline } from './timeline.js';
 import { assertDomContract, validateDomContract, getRoleEl } from './domContract.js';
 import { createHubFacade } from './hubFacade.js';
+import { attachOrbitHint } from './orbitHint.js';
+import { attachPerfHud } from './perfHud.js';
 
 const DEV =
   typeof import.meta !== 'undefined' &&
@@ -87,18 +89,21 @@ export function attachUiProfile(hub, opts) {
   const rafLoop = (fn) => {
     let alive = true;
     let id = 0;
+    let stopped = false;
     const step = () => {
       if (!alive) return;
       fn();
       id = win.requestAnimationFrame(step);
     };
     id = win.requestAnimationFrame(step);
-    add(() => {
+    const stop = () => {
+      if (stopped) return;
+      stopped = true;
       alive = false;
-      try {
-        win.cancelAnimationFrame(id);
-      } catch (_e) {}
-    });
+      try { win.cancelAnimationFrame(id); } catch (_e) {}
+    };
+    add(stop);
+    return stop;
   };
 
   const log = (...a) => {
@@ -116,7 +121,8 @@ export function attachUiProfile(hub, opts) {
     }
     // fallback（devHarness だけ許可。prodで HUD を破壊しない）
     if (!DEBUG && profile !== 'devHarness_full') return;
-    const hudEl = el('hudToast');
+    // 旧名(hudToast)と現行(viewerHud)どっちでも拾う
+    const hudEl = el('hudToast') || el('viewerHud');
     if (!hudEl) return;
     hudEl.textContent = String(text ?? '');
   };
@@ -204,6 +210,20 @@ export function attachUiProfile(hub, opts) {
     });
   }
 
+  // -----------------------------
+  // overlays (orbit hint / perf HUD)
+  // -----------------------------
+  {
+    // 操作ヒント（profile問わず。DOMが無ければ何もしない）
+    const hintHandle = attachOrbitHint({ doc, win, el });
+    if (hintHandle?.detach) add(() => hintHandle.detach());
+
+    // perf HUD（DEV+debugのみ）
+    if (DEBUG) {
+      const perfHandle = attachPerfHud(hf, { doc, win, el, rafLoop });
+      if (perfHandle?.detach) add(() => perfHandle.detach());
+    }
+  }
   // -----------------------------
   // full controls（ここで全部 bind）
   // -----------------------------

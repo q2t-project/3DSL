@@ -379,8 +379,32 @@ function maybeForceContextLoss(renderer, enabled) {
   let lineEffectsRuntime = null;
   let _suppressLineEffects = false;
 
-  const labelLayer = new LabelLayer(scene, { renderOrder: 900 });
+  const labelLayer = new LabelLayer(scene, { renderOrder: 900, camera });
+  // viewport is CSS pixels (NOT device pixels). dpr is provided separately.
+  const labelViewport = { width: 0, height: 0, dpr: 1 };
+  const labelCameraState = { viewport: labelViewport };
   const labelObjects = new Map();
+
+  const debugMetrics = {
+    fps: 0,
+    frameMs: 0,
+    labelCount: 0,
+    labelVisible: 0,
+    labelUpdates: 0,
+    labelTextRebuilds: 0,
+    labelCulledDistance: 0,
+    labelCulledScreen: 0,
+    labelCulledFrustum: 0,
+    labelThrottleSkips: 0,
+    calls: 0,
+    triangles: 0,
+    geometries: 0,
+    textures: 0,
+  };
+  let _lastFrameAt = 0;
+  let _fpsAvg = 0;
+  let _frameAvg = 0;
+  const _avgAlpha = 0.12;
 
   function refreshLabelObjects() {
     labelObjects.clear();
@@ -920,7 +944,10 @@ function maybeForceContextLoss(renderer, enabled) {
     if (pos) camera.position.set(pos[0], pos[1], pos[2]);
     camera.lookAt(tgt[0], tgt[1], tgt[2]);
     camera.updateProjectionMatrix();
-    try { labelLayer.setCameraState(st); } catch (_e) {}
+    try {
+      Object.assign(labelCameraState, st, { viewport: labelViewport });
+      labelLayer.setCameraState(labelCameraState);
+    } catch (_e) {}
   };
 
   ctx.resize = (w, h, dpr = 1) => {
@@ -930,6 +957,10 @@ function maybeForceContextLoss(renderer, enabled) {
     const pr = Math.max(1, Math.min(4, Number(dpr) || 1));
     renderer.setPixelRatio(pr);
     renderer.setSize(cw, ch, false);
+    // CSS px unified: screen-size culling uses CSS pixels.
+    labelViewport.width = cw;
+    labelViewport.height = ch;
+    labelViewport.dpr = pr;
     camera.aspect = cw / ch;
     camera.updateProjectionMatrix();
   };
@@ -944,6 +975,38 @@ function maybeForceContextLoss(renderer, enabled) {
 
     try { labelLayer.update(); } catch (_e) {}
     renderer.render(scene, camera);
+
+    const now = (globalThis.performance?.now?.() ?? Date.now());
+    if (_lastFrameAt > 0) {
+      const dt = Math.max(0.001, now - _lastFrameAt);
+      const fps = 1000 / dt;
+      _fpsAvg = _fpsAvg ? (_fpsAvg + (fps - _fpsAvg) * _avgAlpha) : fps;
+      _frameAvg = _frameAvg ? (_frameAvg + (dt - _frameAvg) * _avgAlpha) : dt;
+      debugMetrics.fps = _fpsAvg;
+      debugMetrics.frameMs = _frameAvg;
+    }
+    _lastFrameAt = now;
+
+    const info = renderer.info || {};
+    const renderInfo = info.render || {};
+    const memoryInfo = info.memory || {};
+    debugMetrics.calls = renderInfo.calls || 0;
+    debugMetrics.triangles = renderInfo.triangles || 0;
+    debugMetrics.geometries = memoryInfo.geometries || 0;
+    debugMetrics.textures = memoryInfo.textures || 0;
+
+    const labelStats = labelLayer.getStats?.();
+    if (labelStats) {
+      debugMetrics.labelCount = labelStats.labelCount || 0;
+      debugMetrics.labelVisible = labelStats.labelVisible || 0;
+      debugMetrics.labelUpdates = labelStats.updateCalls || 0;
+      debugMetrics.labelTextRebuilds = labelStats.textRebuilds || 0;
+      debugMetrics.labelCulledDistance = labelStats.labelCulledDistance || 0;
+      debugMetrics.labelCulledScreen = labelStats.labelCulledScreen || 0;
+      debugMetrics.labelCulledFrustum = labelStats.labelCulledFrustum || 0;
+      debugMetrics.labelThrottleSkips = labelStats.throttleSkips || 0;
+    }
+
   };
 
   // ------------------------------------------------------------
@@ -1010,6 +1073,7 @@ function maybeForceContextLoss(renderer, enabled) {
   ctx.setLineWidthMode = setLineWidthMode;
   ctx.setMicroFXProfile = setMicroFXProfile;
   ctx.setFov = setFov;
+  ctx.getDebugMetrics = () => debugMetrics;
 
   // micro/selection/viewerSettings
   ctx.applyMicroFX = (microState, camState, visibleSet) => {

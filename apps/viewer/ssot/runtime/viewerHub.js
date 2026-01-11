@@ -612,6 +612,8 @@ const CAMERA_JUMP_TYPES = new Set([
   'camera.focusOn',
   'camera.focusOn.position',
   'camera.startAutoOrbit',
+  'camera.reset',
+  'camera.snapToAxis',
   'camera.setState',
 ]);
 
@@ -768,6 +770,16 @@ function opCameraSetState(partial) {
   }
 }
 
+function opCameraReset() {
+  // camera jump: do NOT inherit pending drag momentum
+  core?.camera?.reset?.();
+}
+
+function opCameraSnapToAxis(axis) {
+  if (!axis) return;
+  // camera jump: do NOT inherit pending drag momentum
+  core?.camera?.snapToAxis?.(axis);
+}
 
 function opCameraFocusOn(uuid, kind) {
   if (!uuid) return;
@@ -798,8 +810,8 @@ function opCameraFocusOnPosition(position, opts) {
   const next = ce.computeFocusState(p3, mergedOpts);
   if (next) cam.setState(next);
 
-  // visibleSet recompute is unnecessary here; keep only the reason.
-  _pushCommitReason("camera.focusOn.position");
+  // NOTE: visibleSet recompute is unnecessary here.
+  // Do NOT push commit reason without dirty flag, or reasons will "leak" into later commits.
 }
 
 function opFrameStep(delta) {
@@ -965,6 +977,12 @@ function applyCommand(cmd) {
       return;
     case "camera.setState":
       opCameraSetState(cmd.partial);
+      return;
+    case "camera.reset":
+      opCameraReset();
+      return;
+    case "camera.snapToAxis":
+      opCameraSnapToAxis(cmd.axis);
       return;
     case "camera.focusOn.position":
       opCameraFocusOnPosition(cmd.position, cmd.opts);
@@ -1388,12 +1406,18 @@ function flushCommandQueue() {
 
         reset: () => {
           if (!assertAlive()) return;
-          core?.camera?.reset?.();
+          if (raf) { enqueueCommand({ type: "camera.reset" }); return; }
+          // Node/no-rAF: drop pending deltas too (safety)
+          _discardCameraDeltas();
+          opCameraReset();
         },
 
         snapToAxis: (axis) => {
           if (!assertAlive()) return;
-          core?.camera?.snapToAxis?.(axis);
+          if (raf) { enqueueCommand({ type: "camera.snapToAxis", axis }); return; }
+          // Node/no-rAF: drop pending deltas too (safety)
+          _discardCameraDeltas();
+          opCameraSnapToAxis(axis);
         },
 
         // 位置 or uuid の統一API

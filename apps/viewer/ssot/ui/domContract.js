@@ -3,7 +3,7 @@
 // SOURCE OF TRUTH: viewer_dom_contract.md (SSOT)
 // This file is the executable mirror of that spec.
 
-export const DOM_CONTRACT_VERSION = '2025-12-20';
+export const DOM_CONTRACT_VERSION = '2026-01-09';
 
 /**
  * @typedef {Object} RoleSpec
@@ -21,6 +21,8 @@ export const DOM_CONTRACT_VERSION = '2025-12-20';
 const ROLE_SPECS = /** @type {Record<string, RoleSpec>} */ ({
   // core
   viewerCanvas: { name: 'viewerCanvas', preferred: '[data-role="viewer-canvas"]', fallback: '#viewer-canvas', tag: 'CANVAS' },
+  // legacy alias (older UI code)
+  hudToast: { name: 'hudToast', preferred: '[data-role="viewer-hud"]', fallback: '#viewer-hud', tag: 'DIV' },
   gizmoSlot: { name: 'gizmoSlot', preferred: '[data-role="gizmo-slot"]', fallback: '#gizmo-slot', tag: 'DIV' },
   gizmoModeLabel: { name: 'gizmoModeLabel', preferred: '[data-role="gizmo-mode-label"]', fallback: '#gizmo-mode-label', tag: null },
   worldAxesToggle: { name: 'worldAxesToggle', preferred: '[data-role="world-axes-toggle"]', fallback: '#world-axes-toggle', tag: 'BUTTON' },
@@ -36,6 +38,8 @@ const ROLE_SPECS = /** @type {Record<string, RoleSpec>} */ ({
   autoOrbitCCW: { name: 'autoOrbitCCW', preferred: '[data-role="auto-orbit-ccw"]', fallback: '#auto-orbit-ccw', tag: 'BUTTON' },
 
   viewerHud: { name: 'viewerHud', preferred: '[data-role="viewer-hud"]', fallback: '#viewer-hud', tag: 'DIV' },
+  orbitHint: { name: 'orbitHint', preferred: '[data-role="orbit-hint"]', fallback: '#orbit-hint', tag: 'DIV' },
+  perfHud: { name: 'perfHud', preferred: '[data-role="perf-hud"]', fallback: '#perf-hud', tag: 'DIV' },
 
   // doc caption (optional)
   docCaptionTitle: { name: 'docCaptionTitle', preferred: '[data-role="doc-caption-title"]', fallback: '#doc-caption-title', tag: 'DIV' },
@@ -172,11 +176,14 @@ export function getRoleEl(roleName, doc) {
 export function validateDomContract(profile, doc) {
   const p = normalizeProfile(profile);
   const required = PROFILE_REQUIRED[p] || PROFILE_REQUIRED.prod_full;
+  const requiredSet = new Set(required);
 
   /** @type {string[]} */
   const missing = [];
   /** @type {Array<{role:string, expectedTag:string, actualTag:string}>} */
   const tagMismatches = [];
+  /** @type {Array<{role:string, expectedTag:string, actualTag:string}>} */
+  const optionalTagMismatches = [];
 
   for (const roleName of required) {
     const spec = ROLE_SPECS[roleName];
@@ -194,6 +201,22 @@ export function validateDomContract(profile, doc) {
     }
   }
 
+  // optional roles: if present, validate tag (do not affect ok)
+  for (const roleName of Object.keys(ROLE_SPECS)) {
+    if (requiredSet.has(roleName)) continue;
+    const spec = ROLE_SPECS[roleName];
+    if (!spec?.tag) continue;
+    const el = getRoleEl(roleName, doc);
+    if (!el) continue;
+    if (!validateTag(el, spec.tag)) {
+      optionalTagMismatches.push({
+        role: roleName,
+        expectedTag: spec.tag,
+        actualTag: String(el.tagName || ''),
+      });
+    }
+  }
+
   const ok = missing.length === 0 && tagMismatches.length === 0;
 
   return {
@@ -202,6 +225,7 @@ export function validateDomContract(profile, doc) {
     profile: p,
     missingRequiredRoles: missing,
     tagMismatches,
+    optionalTagMismatches,
   };
 }
 

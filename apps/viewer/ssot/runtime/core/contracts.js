@@ -8,6 +8,19 @@
 /** @typedef {'weak'|'normal'|'strong'} MicroFXProfile */
 
 /**
+ * viewer が解釈する際の「デフォルト/無効値」ポリシー（ドキュメント用）。
+ * 実際の値は各実装の default を参照すること。
+ *
+ * @typedef {Object} ViewerInterpretationPolicy
+ * @property {boolean} visibleFalseHides
+ * @property {boolean} framesInvalidIgnored
+ * @property {boolean} unresolvedLineEndpointsSkip
+ * @property {boolean} lineStyleNoneSkips
+ * @property {{size:number, align:string, plane:string, fontToken:string}} labelTextDefaults
+ * @property {string} labelFontDefaultFamily
+ */
+
+/**
  * VisibleSet は「いま描画対象の UUID 集合」。
  * - recomputeVisibleSet(factory) が生成し、uiState.visibleSet に置く
  * - renderer はこれだけを見て applyFrame する

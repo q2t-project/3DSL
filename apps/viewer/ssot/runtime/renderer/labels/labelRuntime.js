@@ -5,6 +5,10 @@
 // - 表示/非表示: visibleSet
 // - 位置/スケール: cameraState.distance + labelConfig.world
 // - microState は「ラベルの見え方調整」にだけ使う（越権しない）
+//
+// NOTE:
+// - viewport は CSS px（context 側で統一）
+// - dpr は cameraState.viewport.dpr として別で渡せるが、ここでは現状未使用
 
 import * as THREE from "/viewer/vendor/three/build/three.module.js";
 import { labelConfig } from "./labelConfig.js";
@@ -19,6 +23,11 @@ function clamp01(v) {
 function normalizeIntensity(v, fallback = 1) {
   const n = Number(v);
   return clamp01(Number.isFinite(n) ? n : fallback);
+}
+
+function readScalar(v, fallback = 0) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
 }
 
 function hasIn(setLike, uuid) {
@@ -60,7 +69,7 @@ function getDegree(degreeByUuid, uuid) {
   return null;
 }
 
-export function createLabelRuntime(scene, { renderOrder = 900 } = {}) {
+export function createLabelRuntime(scene, { renderOrder = 900, camera = null } = {}) {
   const group = new THREE.Group();
   group.name = "label-layer";
   group.renderOrder = renderOrder;
@@ -81,12 +90,133 @@ export function createLabelRuntime(scene, { renderOrder = 900 } = {}) {
     degreeByUuid: null,
   };
 
+  // stats（in-place 更新。getStats は同一参照を返す）
+  const stats = {
+    labelCount: 0,
+    labelVisible: 0,
+    updateCalls: 0,
+    textRebuilds: 0,
+    labelCulledDistance: 0,
+    labelCulledScreen: 0,
+    labelCulledFrustum: 0,
+    throttleSkips: 0,
+  };
+
+  // throttle / moving 判定
+  let lastUpdateAt = 0;
+  let hasLastSnap = false;
+  const lastSnap = { cx: 0, cy: 0, cz: 0, tx: 0, ty: 0, tz: 0, dist: 0, fov: 0 };
+
+  // frustum
+  const frustum = new THREE.Frustum();
+  const projScreenMatrix = new THREE.Matrix4();
+
+  // plane-fixed label helpers (avoid mirrored text from backside)
+  const planeNormals = new Map([
+    ["xy", new THREE.Vector3(0, 0, 1)],
+    ["yz", new THREE.Vector3(1, 0, 0)],
+    ["zx", new THREE.Vector3(0, 1, 0)],
+  ]);
+  const flipQuatLocalY = new THREE.Quaternion().setFromAxisAngle(
+    new THREE.Vector3(0, 1, 0),
+    Math.PI,
+  );
+
+  const tmpCamPos = new THREE.Vector3();
+  const tmpToCam = new THREE.Vector3();
+  const tmpTarget = new THREE.Vector3();
+  const tmpAlignOffset = new THREE.Vector3();
+
+  function readVec3(input, out) {
+    if (Array.isArray(input) && input.length >= 3) {
+      out.set(Number(input[0]) || 0, Number(input[1]) || 0, Number(input[2]) || 0);
+      return true;
+    }
+    if (input && typeof input === "object") {
+      if ("x" in input || "y" in input || "z" in input) {
+        out.set(Number(input.x) || 0, Number(input.y) || 0, Number(input.z) || 0);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function getTargetPosition(cameraState, out) {
+    const src = cameraState?.target ?? cameraState?.lookAt ?? null;
+    if (readVec3(src, out)) return true;
+    out.set(0, 0, 0);
+    return false;
+  }
+
+  function getCameraPositionFromState(cameraState, out) {
+    if (!cameraState || typeof cameraState !== "object") return false;
+
+    // direct
+    if (readVec3(cameraState.position, out)) return true;
+    if (readVec3(cameraState.eye, out)) return true;
+    if (readVec3(cameraState.cameraPosition, out)) return true;
+
+    // fallback: orbit params (Z-up)
+    const theta = Number(cameraState.theta);
+    const phi = Number(cameraState.phi);
+    const dist = Number(cameraState.distance);
+    if (!Number.isFinite(theta) || !Number.isFinite(phi) || !Number.isFinite(dist)) return false;
+
+    getTargetPosition(cameraState, tmpTarget);
+
+    const sinPhi = Math.sin(phi);
+    const cosPhi = Math.cos(phi);
+
+    out.set(
+      tmpTarget.x + dist * sinPhi * Math.cos(theta),
+      tmpTarget.y + dist * sinPhi * Math.sin(theta),
+      tmpTarget.z + dist * cosPhi,
+    );
+    return true;
+  }
+
+  function snapshotCamera(camPos, tgtPos, camDist, fov) {
+    const cx = camPos?.x ?? 0, cy = camPos?.y ?? 0, cz = camPos?.z ?? 0;
+    const tx = tgtPos?.x ?? 0, ty = tgtPos?.y ?? 0, tz = tgtPos?.z ?? 0;
+    const d = Number.isFinite(Number(camDist)) ? Number(camDist) : 0;
+    const fv = Number.isFinite(Number(fov)) ? Number(fov) : 0;
+
+    if (!hasLastSnap) {
+      hasLastSnap = true;
+      lastSnap.cx = cx; lastSnap.cy = cy; lastSnap.cz = cz;
+      lastSnap.tx = tx; lastSnap.ty = ty; lastSnap.tz = tz;
+      lastSnap.dist = d;
+      lastSnap.fov = fv;
+      return false;
+    }
+
+    const eps = 1e-4;
+    const moved =
+      Math.abs(cx - lastSnap.cx) > eps ||
+      Math.abs(cy - lastSnap.cy) > eps ||
+      Math.abs(cz - lastSnap.cz) > eps ||
+      Math.abs(tx - lastSnap.tx) > eps ||
+      Math.abs(ty - lastSnap.ty) > eps ||
+      Math.abs(tz - lastSnap.tz) > eps ||
+      Math.abs(d  - lastSnap.dist) > eps ||
+      Math.abs(fv - lastSnap.fov)  > eps;
+
+    lastSnap.cx = cx; lastSnap.cy = cy; lastSnap.cz = cz;
+    lastSnap.tx = tx; lastSnap.ty = ty; lastSnap.tz = tz;
+    lastSnap.dist = d;
+    lastSnap.fov = fv;
+
+    return moved;
+  }
+
   function clear() {
     for (const { obj } of labels.values()) {
       group.remove(obj);
       disposeTextLabelObject(obj);
     }
     labels.clear();
+    stats.labelCount = 0;
+    stats.labelVisible = 0;
   }
 
   function dispose() {
@@ -140,12 +270,16 @@ export function createLabelRuntime(scene, { renderOrder = 900 } = {}) {
       const obj = createTextLabelObject(entry.text, entry, labelConfig);
       if (!obj) continue;
 
+      stats.textRebuilds += 1;
+
       obj.name = `label:${uuid}`;
       obj.visible = false;
 
       group.add(obj);
       labels.set(uuid, { obj, entry, entryKey });
     }
+
+    stats.labelCount = labels.size;
   }
 
   function applyMicroFX(microState, intensity = 1) {
@@ -165,18 +299,93 @@ export function createLabelRuntime(scene, { renderOrder = 900 } = {}) {
     fx.degreeByUuid = microState.degreeByUuid || null;
   }
 
+  function getStats() {
+    stats.labelCount = labels.size;
+    return stats;
+  }
+
   function update(cameraState, visibleSet) {
     if (!pointObjects || !cameraState) return;
 
-    const isVisible = buildVisiblePredicate(visibleSet);
+    const lod = labelConfig?.lod || {};
+    const lodEnabled = lod.enabled !== false;
+    const throttleMs = readScalar(lod.throttleMs, 0);
+
+    // camera pos（優先: three camera）
+    let hasCameraPos = false;
+    if (camera?.position) {
+      tmpCamPos.copy(camera.position);
+      hasCameraPos = true;
+    } else {
+      hasCameraPos = getCameraPositionFromState(cameraState, tmpCamPos);
+    }
+
+    // target（snapshot用）
+    getTargetPosition(cameraState, tmpTarget);
 
     const camDist = Math.max(Number(cameraState.distance) || 1, 0.1);
+    const fov = readScalar(cameraState.fov, 50);
+
+    if (lodEnabled && throttleMs > 0) {
+      const now = (globalThis.performance?.now?.() ?? Date.now());
+      const moving = snapshotCamera(tmpCamPos, tmpTarget, camDist, fov);
+      if (moving && now - lastUpdateAt < throttleMs) {
+        stats.throttleSkips += 1;
+        return;
+      }
+      lastUpdateAt = now;
+    } else {
+      snapshotCamera(tmpCamPos, tmpTarget, camDist, fov);
+    }
+
+    stats.updateCalls += 1;
+    stats.labelVisible = 0;
+    stats.labelCulledDistance = 0;
+    stats.labelCulledScreen = 0;
+    stats.labelCulledFrustum = 0;
+
+    const isVisible = buildVisiblePredicate(visibleSet);
+
+    // viewport(CSS px)
+    const viewportH = readScalar(cameraState.viewport?.height, 0);
+
+    // LOD: distance / fade / screen-size（ループ外で確定）
+    const distCfg = lod.distance || {};
+    let maxDist = readScalar(distCfg.maxDistance, NaN);
+    if (!Number.isFinite(maxDist)) {
+      const factor = readScalar(distCfg.maxDistanceFactor, NaN);
+      if (Number.isFinite(factor) && factor > 0) maxDist = camDist * factor;
+    }
+
+    let fadeStart = readScalar(distCfg.fadeStart, NaN);
+    if (!Number.isFinite(fadeStart) && Number.isFinite(maxDist)) {
+      const factor = readScalar(distCfg.fadeStartFactor, NaN);
+      if (Number.isFinite(factor) && factor > 0) fadeStart = maxDist * factor;
+    }
+
+    const minPx = readScalar(lod.screenSize?.minPixels, 0);
+    const useScreenCull = lodEnabled && minPx > 0 && viewportH > 0 && hasCameraPos;
+
+    const fovRad = (fov * Math.PI) / 180;
+    const tanHalfFov = Math.tan(fovRad / 2);
+
+    // frustum cull（camera が渡されてる時だけ）
+    let useFrustum = false;
+    if (lodEnabled && camera && lod?.frustum?.enabled) {
+      try {
+        camera.updateMatrixWorld?.();
+        camera.updateProjectionMatrix?.();
+        projScreenMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+        frustum.setFromProjectionMatrix(projScreenMatrix);
+        useFrustum = true;
+      } catch (_e) {
+        useFrustum = false;
+      }
+    }
 
     const wcfg = labelConfig.world || {};
     const baseLabelSize = Number(labelConfig.baseLabelSize) || 8;
 
-    // 「計算式」をここに置くのは renderer の責務（ラベル見た目は描画側で決める）
-    // ただし固定値を散らかさず、labelConfig に寄せてある。
     const baseHeight = Number.isFinite(Number(wcfg.scalePerCameraDistance))
       ? camDist * Number(wcfg.scalePerCameraDistance)
       : (Number(wcfg.baseHeight) || 0.2);
@@ -205,7 +414,8 @@ export function createLabelRuntime(scene, { renderOrder = 900 } = {}) {
         continue;
       }
 
-      obj.visible = true;
+      obj.visible = false; // cull を通ったら最後に true
+
       obj.position.copy(pointObj.position);
 
       // size factor
@@ -219,6 +429,31 @@ export function createLabelRuntime(scene, { renderOrder = 900 } = {}) {
       obj.position.y += h * offsetYFactor;
 
       const aspect = Number(obj.userData?.__labelAspect) || 1;
+
+      // LOD: distance / screen-size / frustum（なるべく早めに落とす）
+      let distToCam = null;
+      if (lodEnabled && hasCameraPos) {
+        distToCam = tmpCamPos.distanceTo(obj.position);
+
+        if (Number.isFinite(maxDist) && Number.isFinite(distToCam) && distToCam > maxDist) {
+          stats.labelCulledDistance += 1;
+          continue;
+        }
+
+        if (useScreenCull && Number.isFinite(distToCam) && distToCam > 0 && tanHalfFov > 0) {
+          const denom = 2 * tanHalfFov * distToCam;
+          const approxPx = denom > 0 ? (h * viewportH) / denom : Infinity;
+          if (approxPx < minPx) {
+            stats.labelCulledScreen += 1;
+            continue;
+          }
+        }
+      }
+
+      if (useFrustum && !frustum.containsPoint(obj.position)) {
+        stats.labelCulledFrustum += 1;
+        continue;
+      }
 
       // microFX（opacity/scale だけ。位置や可視判定を勝手に弄らん）
       let alpha = 1;
@@ -249,8 +484,32 @@ export function createLabelRuntime(scene, { renderOrder = 900 } = {}) {
         alpha *= s;
       }
 
+      // LOD: fade-out near maxDist（距離が取れてる時だけ）
+      if (lodEnabled && Number.isFinite(maxDist) && Number.isFinite(fadeStart) && maxDist > fadeStart) {
+        if (distToCam == null && hasCameraPos) distToCam = tmpCamPos.distanceTo(obj.position);
+        if (Number.isFinite(distToCam) && distToCam > fadeStart) {
+          const t = (distToCam - fadeStart) / (maxDist - fadeStart);
+          alpha *= clamp01(1 - t);
+        }
+      }
+
       obj.scale.set(h * aspect * scaleMul, h * scaleMul, 1);
 
+      // plane fixed: flip 180deg (local-Y) when camera is behind the plane
+      if (hasCameraPos && !obj.isSprite) {
+        const plane = obj.userData?.__labelPlane;
+        const baseQuat = obj.userData?.__labelBaseQuat;
+        const normal = planeNormals.get(plane);
+        if (normal && baseQuat && typeof baseQuat === "object") {
+          tmpToCam.copy(tmpCamPos).sub(obj.position);
+          const dot = normal.dot(tmpToCam);
+          obj.quaternion.copy(baseQuat);
+          // small epsilon to avoid jitter around edge-on
+          if (dot < -1e-6) obj.quaternion.multiply(flipQuatLocalY);
+        }
+      }
+
+      // align offset（allocation なし）
       const align = entry?.align;
       if (align && !obj.isSprite) {
         const ax = Number(align.x);
@@ -260,9 +519,9 @@ export function createLabelRuntime(scene, { renderOrder = 900 } = {}) {
         const dx = (0.5 - alignX) * obj.scale.x;
         const dy = (0.5 - alignY) * obj.scale.y;
         if (dx || dy) {
-          const offset = new THREE.Vector3(dx, dy, 0);
-          offset.applyQuaternion(obj.quaternion);
-          obj.position.add(offset);
+          tmpAlignOffset.set(dx, dy, 0);
+          tmpAlignOffset.applyQuaternion(obj.quaternion);
+          obj.position.add(tmpAlignOffset);
         }
       }
 
@@ -272,6 +531,9 @@ export function createLabelRuntime(scene, { renderOrder = 900 } = {}) {
         mat.opacity = clamp01(alpha);
         mat.depthWrite = false;
       }
+
+      obj.visible = true;
+      stats.labelVisible += 1;
     }
   }
 
@@ -284,6 +546,7 @@ export function createLabelRuntime(scene, { renderOrder = 900 } = {}) {
 
     applyMicroFX,
     update,
+    getStats,
 
     clear,
     dispose,

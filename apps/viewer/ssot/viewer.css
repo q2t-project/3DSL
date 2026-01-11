@@ -1540,6 +1540,99 @@ html, body {
   transform: translateX(-50%) translateY(-8px) !important;
 }
 
+/* orbit hint (small overlay) */
+#orbit-hint,
+[data-role="orbit-hint"] {
+  position: absolute !important;
+
+  /* fallback -> safe-area対応 */
+  left: 12px !important;
+  left: calc(env(safe-area-inset-left) + 12px) !important;
+  top: 12px !important;
+  top: calc(env(safe-area-inset-top) + 12px) !important;
+
+  max-width: min(320px, calc(100vw - 24px)) !important;
+  padding: 6px 8px !important;
+  display: flex !important;
+  gap: 6px !important;
+  align-items: flex-start !important;
+
+  font-size: 12px !important;
+  line-height: 1.3 !important;
+  color: rgba(255, 255, 255, 0.86) !important;
+  background: rgba(0, 0, 0, 0.45) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  border-radius: 10px !important;
+
+  z-index: 80 !important;
+  pointer-events: auto !important;
+
+  opacity: 1 !important;
+  transition: opacity 160ms ease !important;
+}
+
+#orbit-hint.orbit-hint-hidden,
+[data-role="orbit-hint"].orbit-hint-hidden {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* text: data-role優先 + classも互換 */
+#orbit-hint [data-role="orbit-hint-text"],
+[data-role="orbit-hint"] [data-role="orbit-hint-text"],
+#orbit-hint .orbit-hint__text,
+[data-role="orbit-hint"] .orbit-hint__text {
+  white-space: pre-line !important;
+}
+
+/* close: data-role優先 + classも互換 */
+#orbit-hint [data-role="orbit-hint-close"],
+[data-role="orbit-hint"] [data-role="orbit-hint-close"],
+#orbit-hint .orbit-hint__close,
+[data-role="orbit-hint"] .orbit-hint__close {
+  border: 0 !important;
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.75) !important;
+  cursor: pointer !important;
+
+  /* タップしやすく */
+  font-size: 14px !important;
+  line-height: 1 !important;
+  padding: 4px 6px !important;
+  border-radius: 8px !important;
+}
+
+/* perf HUD (debug only) */
+#perf-hud,
+[data-role="perf-hud"] {
+  position: absolute !important;
+
+  left: 12px !important;
+  left: calc(env(safe-area-inset-left) + 12px) !important;
+  bottom: 12px !important;
+  bottom: calc(env(safe-area-inset-bottom) + 12px) !important;
+
+  padding: 6px 8px !important;
+  font-size: 11px !important;
+  line-height: 1.35 !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  background: rgba(0, 0, 0, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 8px !important;
+
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+  white-space: pre !important;
+
+  max-width: min(360px, calc(100vw - 24px)) !important;
+  z-index: 80 !important;
+  pointer-events: none !important;
+}
+
+#perf-hud:empty,
+[data-role="perf-hud"]:empty {
+  display: none !important;
+}
+
 @media (max-width: 767px) {
   #viewer-hud {
     top: 52px !important;

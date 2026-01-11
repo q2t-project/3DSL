@@ -50,4 +50,19 @@ export const labelConfig = {
     // アウトラインが切れないように追加の余白
     extraPaddingPx: 4,
   },
+  // LOD / culling / throttle
+  lod: {
+    enabled: true,
+    distance: {
+      maxDistanceFactor: 6.0,
+      fadeStartFactor: 0.85,
+    },
+    screenSize: {
+      minPixels: 10,
+    },
+    throttleMs: 80,
+    frustum: {
+      enabled: true,
+    },
+  },
 };

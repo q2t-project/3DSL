@@ -2,9 +2,28 @@
 //
 // marker.text の解釈仕様（viewer 側）
 
+/**
+ * @typedef {Object} MarkerTextFontSpec
+ * @property {string} [family]
+ * @property {"normal"|"italic"|"oblique"} [style]
+ * @property {(
+ *   "normal"|"bold"|"bolder"|"lighter"|
+ *   "100"|"200"|"300"|"400"|"500"|"600"|"700"|"800"|"900"
+ * )} [weight]
+ */
+
+/**
+ * @typedef {Object} MarkerTextSpec
+ * @property {string} [content]
+ * @property {number} [size]
+ * @property {string} [align]
+ * @property {string} [plane]
+ * @property {string|MarkerTextFontSpec} [font]
+ */
+
 export const LABEL_TEXT_DEFAULTS = {
   size: 8,
-  align: "center&middle",
+  align: "center middle",
   plane: "zx",
   fontToken: "helvetiker_regular",
 };

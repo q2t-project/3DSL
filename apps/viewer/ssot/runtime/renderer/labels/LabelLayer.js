@@ -6,8 +6,8 @@
 import { createLabelRuntime } from "./labelRuntime.js";
 
 export class LabelLayer {
-  constructor(scene, { renderOrder = 900 } = {}) {
-    this.runtime = createLabelRuntime(scene, { renderOrder });
+  constructor(scene, { renderOrder = 900, camera = null } = {}) {
+    this.runtime = createLabelRuntime(scene, { renderOrder, camera });
     this.visibleSet = null;
     this.cameraState = null;
   }
@@ -32,6 +32,10 @@ export class LabelLayer {
   update() {
     if (!this.cameraState) return;
     this.runtime.update(this.cameraState, this.visibleSet);
+  }
+
+  getStats() {
+    return this.runtime.getStats?.() ?? null;
   }
 
   dispose() {
