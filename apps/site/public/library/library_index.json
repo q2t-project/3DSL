@@ -1,6 +1,9 @@
 {
+  "version": 3,
+  "generated_at": "2026-01-12T14:15:25.186Z",
   "items": [
     {
+      "id": "2601080a",
       "slug": "2601080a",
       "title": "tmp2",
       "summary": "",
@@ -12,10 +15,10 @@
       "rights": null,
       "related": [],
       "meta_title": "tmp2",
-      "meta_description": "",
-      "meta_og_image": null
+      "meta_description": ""
     },
     {
+      "id": "26010801",
       "slug": "26010801",
       "title": "tmp",
       "summary": "",
@@ -27,10 +30,10 @@
       "rights": null,
       "related": [],
       "meta_title": "tmp",
-      "meta_description": "",
-      "meta_og_image": null
+      "meta_description": ""
     },
     {
+      "id": "26010502",
       "slug": "26010502",
       "title": "26010502-test",
       "summary": "一覧にも使う短い説明",
@@ -42,10 +45,10 @@
       "rights": null,
       "related": [],
       "meta_title": "26010502-test",
-      "meta_description": "一覧にも使う短い説明",
-      "meta_og_image": "/3dss/library/26010502/thumb.webp"
+      "meta_description": "一覧にも使う短い説明"
     },
     {
+      "id": "26010501",
       "slug": "26010501",
       "title": "3DSL Concept",
       "summary": "3DSLのコンセプトの諸概念の関係をモデル",
@@ -61,8 +64,7 @@
       "rights": null,
       "related": [],
       "meta_title": "3DSL Concept",
-      "meta_description": "3DSLのコンセプトの諸概念の関係をモデル",
-      "meta_og_image": null
+      "meta_description": "3DSLのコンセプトの諸概念の関係をモデル"
     }
   ]
 }

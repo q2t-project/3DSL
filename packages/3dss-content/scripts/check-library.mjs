@@ -61,7 +61,7 @@ function validateMeta(meta, policy) {
   // In strict (policy=error), we still want drafts to be iteratable.
   // If an item explicitly marks itself unpublished, downgrade minimal-key
   // violations to warnings.
-    const pub = isPlainObject(meta) ? meta.published : null;
+  const pub = isPlainObject(meta) ? meta.published : null;
   const isUnpublished = (pub === false || pub === 0 || pub === 'false' || pub === '0');
   const minPolicy = isUnpublished ? 'warn' : policy;
 
@@ -191,6 +191,7 @@ function main() {
       continue;
     }
 
+    
     // Model basic sanity (non-optional for runtime)
     const dm = model?.document_meta ?? null;
     if (!isPlainObject(dm)) {
