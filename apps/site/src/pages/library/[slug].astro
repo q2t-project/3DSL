@@ -20,11 +20,6 @@ const pageDescription = (item.meta_description ?? item.summary ?? "3DSL Library 
 const canonical = Astro.url?.href ?? `/library/${item.slug}`;
 const origin = Astro.url?.origin ?? "";
 
-const ogImageRaw = (item.meta_og_image ?? null);
-const ogImage = (typeof ogImageRaw === "string" && ogImageRaw)
-  ? (ogImageRaw.startsWith("/") ? `${origin}${ogImageRaw}` : ogImageRaw)
-  : null;
-
 const jsonldBreadcrumb = {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
@@ -67,14 +62,12 @@ function toAppViewerUrl(viewerUrl: string, back: string) {
   description={pageDescription}
   canonical={canonical}
   ogType="article"
-  ogImage={ogImage}
   twitterCard="summary_large_image"
 >
   <Fragment slot="head">
     <meta property="og:url" content={canonical} />
     <meta name="twitter:title" content={pageTitle} />
     <meta name="twitter:description" content={pageDescription} />
-    {ogImage ? <meta name="twitter:image" content={ogImage} /> : null}
     <script type="application/ld+json" set:html={JSON.stringify(jsonldBreadcrumb)}></script>
   </Fragment>
 

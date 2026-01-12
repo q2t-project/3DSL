@@ -36,7 +36,6 @@ export type LibraryItem = {
   rights?: LibraryRights | null;
   meta_title?: string;
   meta_description?: string;
-  meta_og_image?: string | null;
 };
 
 type LibraryIndex = {
