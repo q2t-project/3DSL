@@ -3,7 +3,7 @@
     "document_title": "canonical: line effects",
     "document_summary": "pulse / flow / glow effects gate.",
     "document_uuid": "55555555-5555-4555-8555-555555555555",
-    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.1.3",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
     "author": "canonical",
     "version": "1.1.0",
     "tags": ["s:canonical", "m:effects"],

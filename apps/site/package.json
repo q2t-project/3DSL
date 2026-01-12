@@ -10,6 +10,7 @@
     "validate:3dss:baseline": "node scripts/validate/3dss.mjs public/3dss/scene/default/default.3dss.json public/3dss/3dss/release/3DSS.schema.json",
     "validate:3dss:samples": "node scripts/validate/3dss-samples.mjs",
     "validate:3dss:fixtures:ref": "node scripts/validate/3dss-fixtures.mjs --ref",
+    "validate:3dss:canonical": "node scripts/validate/3dss-canonical.mjs",
     "check:invariants": "node scripts/check/invariants.mjs",
     "check:baseline": "npm run validate:3dss:baseline && npm run check:invariants",
     "check:hub:contract": "node scripts/check/hub-contract.mjs",
@@ -50,7 +51,7 @@
     "prebuild": "npm run check:boundary && npm run sync:all && node scripts/guard/prebuild.mjs",
     "precheck:ssot": "npm run sync:all",
     "precheck:viewer:regression": "npm run sync:all",
-    "ci:build": "npm run check:ssot && npm run check:viewer:regression && npm run build",
+    "ci:build": "npm run check:ssot && npm run check:viewer:regression && npm run validate:3dss:canonical && npm run build",
     "astro": "astro",
     "build:site": "npm --prefix apps/site run build"
   },
