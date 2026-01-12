@@ -12,11 +12,13 @@ const ROOT = path.resolve(__dirname, "..");
 
 const LIBRARY_DIR = path.join(ROOT, "library");
 const SAMPLE_DIR = path.join(ROOT, "sample");
+const CANONICAL_DIR = path.join(ROOT, "canonical");
 const DIST_DIR = path.join(ROOT, "dist");
 
 const OUT_3DSS_DIR = path.join(DIST_DIR, "3dss");
-const OUT_3DSS_LIBRARY_DIR = path.join(OUT_3DSS_DIR, "library");
 const OUT_3DSS_SAMPLE_DIR = path.join(OUT_3DSS_DIR, "sample");
+const OUT_3DSS_CANONICAL_DIR = path.join(OUT_3DSS_DIR, "canonical");
+const OUT_3DSS_LIBRARY_DIR = path.join(OUT_3DSS_DIR, "library");
 const OUT_LIBRARY_DIR = path.join(DIST_DIR, "library");
 
 const ID_RE = /^\d{6}[0-9a-z]{2}$/;
@@ -118,6 +120,8 @@ function main() {
   cleanDist();
   ensureDir(OUT_3DSS_LIBRARY_DIR);
   ensureDir(OUT_LIBRARY_DIR);
+  ensureDir(OUT_3DSS_CANONICAL_DIR);
+  ensureDir(OUT_3DSS_SAMPLE_DIR);
 
   const ids = fs
     .readdirSync(LIBRARY_DIR, { withFileTypes: true })
@@ -213,6 +217,10 @@ function main() {
     fs.cpSync(SAMPLE_DIR, OUT_3DSS_SAMPLE_DIR, { recursive: true });
   }
 
+  // copy canonical (site expects /3dss/canonical/...)
+  if (fs.existsSync(CANONICAL_DIR)) {
+    fs.cpSync(CANONICAL_DIR, OUT_3DSS_CANONICAL_DIR, { recursive: true });
+  }
 
   // optional editorial mirroring (if you choose to place SSOT here)
   const editorialSrc = path.join(ROOT, "editorial", "library.editorial.json");
@@ -225,3 +233,4 @@ function main() {
 }
 
 main();
+
