@@ -19,7 +19,7 @@
     "creator_memo": "minimal schema-valid sample",
     "document_title": "3DSS Excel IO sample",
     "document_uuid": "00000000-0000-4000-8000-000000000001",
-    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.1.1",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.1.3",
     "tags": [
       "s:excel",
       "s:sample"
@@ -52,7 +52,7 @@
       "signification": {
         "caption": {
           "en": "relation",
-          "ja": "ŠÖ˜A"
+          "ja": "ï¿½Ö˜A"
         },
         "relation": {
           "structural": "association"
@@ -95,7 +95,7 @@
       "signification": {
         "name": {
           "en": "Point A",
-          "ja": "“_A"
+          "ja": "ï¿½_A"
         }
       }
     },
@@ -128,7 +128,7 @@
       "signification": {
         "name": {
           "en": "Point B",
-          "ja": "“_B"
+          "ja": "ï¿½_B"
         }
       }
     }

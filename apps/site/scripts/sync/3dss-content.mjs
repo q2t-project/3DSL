@@ -35,8 +35,8 @@ fs.cpSync(srcDist, dstPublic, { recursive: true });
 console.log("[sync] 3dss-content(dist) -> site/public OK");
 
 // --- fixtures suite -> site/public (for regression/fixtures validation) ---
-const srcFixturesSuite = path.join(repoRoot, "packages", "3dss-content", "fixtures", "phase7");
-const dstFixturesSuite = path.join(dstPublic, "3dss", "fixtures", "phase7");
+const srcFixturesSuite = path.join(repoRoot, "packages", "3dss-content", "fixtures", "regression");
+const dstFixturesSuite = path.join(dstPublic, "3dss", "fixtures", "regression");
 
 if (!fs.existsSync(srcFixturesSuite)) {
   console.error(`[sync] fixtures suite not found: ${srcFixturesSuite}`);

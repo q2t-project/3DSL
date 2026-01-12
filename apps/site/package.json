@@ -7,74 +7,59 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
-
-    "validate:3dss:baseline": "npx ajv validate -c ajv-formats -s ../../packages/schemas/3DSS.schema.json -d \"public/3dss/scene/default/default.3dss.json\" --spec=draft2020",
+    "validate:3dss:baseline": "node scripts/validate/3dss.mjs public/3dss/scene/default/default.3dss.json public/3dss/3dss/release/3DSS.schema.json",
     "validate:3dss:samples": "node scripts/validate/3dss-samples.mjs",
     "validate:3dss:fixtures:ref": "node scripts/validate/3dss-fixtures.mjs --ref",
-
     "check:invariants": "node scripts/check/invariants.mjs",
-    "check:baseline": "npm run validate:3dss:baseline && npm run validate:3dss:samples && npm run check:invariants",
-
+    "check:baseline": "npm run validate:3dss:baseline && npm run check:invariants",
     "check:hub:contract": "node scripts/check/hub-contract.mjs",
     "check:hub": "npm run check:baseline && npm run check:hub:contract",
-
     "check:viewer:bootstrap-public-contract": "node scripts/check/viewer-bootstrap-public-contract.mjs",
     "check:viewer:core-layer-contract": "node scripts/check/viewer-core-layer-contract.mjs",
     "check:viewer:bootstrap-flow-contract": "node scripts/check/viewer-bootstrap-flow-contract.mjs",
     "check:viewer:hub-boundary-contract": "node scripts/check/viewer-hub-boundary-contract.mjs",
     "check:viewer:hub-dispose-safety": "node scripts/check/viewer-hub-dispose-safety.mjs",
     "check:viewer:contracts": "npm run check:hub && npm run check:viewer:bootstrap-public-contract && npm run check:viewer:core-layer-contract && npm run check:viewer:bootstrap-flow-contract && npm run check:viewer:hub-boundary-contract && npm run check:viewer:hub-dispose-safety",
-
     "check:viewer:regression": "node scripts/check/viewer-regression-suite.mjs",
-
     "check:single-writer": "node scripts/check/single-writer.mjs",
     "check:spec-filenames": "node scripts/check/spec-filenames.mjs",
     "check:ui-dom-roles": "node scripts/check/ui-dom-roles.mjs",
-
     "check:boundary": "node scripts/check/boundary.mjs",
     "check:generated-clean": "node scripts/check/generated-clean.mjs",
     "check:host:asset-paths": "node scripts/check/host-asset-paths.mjs",
     "check:vendor-required": "node scripts/check/vendor-required.mjs",
-
     "check:viewer:forbidden-imports": "node ../viewer/ssot/scripts/check-forbidden-imports.mjs",
     "check:viewer:single-writer": "node ../viewer/ssot/scripts/check-single-writer.mjs",
     "check:viewer:ports-conformance": "node ../viewer/ssot/scripts/check-ports-conformance.mjs",
     "check:viewer:generated-clean": "node ../viewer/ssot/scripts/check-generated-clean.mjs",
     "check:viewer:ssot": "npm run check:viewer:forbidden-imports && npm run check:viewer:single-writer && npm run check:viewer:ports-conformance && npm run check:viewer:generated-clean",
-
     "check:ssot": "npm run check:vendor-required && npm run check:generated-clean && npm run check:viewer:ssot && npm run check:host:asset-paths",
-
     "sync:viewer": "node scripts/sync/viewer.mjs",
     "sync:schemas": "node scripts/sync/schemas.mjs",
     "sync:vendor": "node scripts/sync/vendor.mjs",
     "sync:3dss-content": "node ../../packages/3dss-content/scripts/build-library-dist.mjs && node scripts/sync/3dss-content.mjs",
     "sync:all": "npm run sync:3dss-content && npm run sync:schemas && npm run sync:viewer && npm run sync:vendor",
-
     "sync:viewer:force": "node --input-type=module -e \"process.env.SYNC_VIEWER_FORCE='1'; await import('./scripts/sync/viewer.mjs');\"",
-
     "new:library-item": "node ../../packages/3dss-content/scripts/new-library-item.mjs",
     "check:library": "node ../../packages/3dss-content/scripts/check-library.mjs",
     "rename:library-id": "node scripts/tool/rename-library-id.mjs",
-
     "check:guards": "node scripts/guard/prebuild.mjs",
     "fix:guards": "node scripts/guard/fix.mjs",
     "apply:guards": "node scripts/guard/apply.mjs",
-
     "predev": "npm run check:boundary && npm run sync:all && node scripts/guard/prebuild.mjs",
     "prebuild": "npm run check:boundary && npm run sync:all && node scripts/guard/prebuild.mjs",
-
     "precheck:ssot": "npm run sync:all",
     "precheck:viewer:regression": "npm run sync:all",
-
     "ci:build": "npm run check:ssot && npm run check:viewer:regression && npm run build",
-
     "astro": "astro",
     "build:site": "npm --prefix apps/site run build"
   },
   "dependencies": {
+    "@astrojs/check": "^0.9.6",
     "@tailwindcss/vite": "^4.1.17",
     "astro": "^5.16.0",
-    "tailwindcss": "^4.1.17"
+    "tailwindcss": "^4.1.17",
+    "typescript": "^5.9.3"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.19",

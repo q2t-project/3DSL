@@ -12,6 +12,8 @@ const allTags = Array.from(new Set(items.flatMap((it) => it.tags ?? []))).sort((
   a.localeCompare(b, "ja")
 );
 
+const dateFormatter = new Intl.DateTimeFormat("ja-JP", { dateStyle: "medium" });
+
 function joinText(it: any) {
   return [
     it.title ?? "",
@@ -23,7 +25,13 @@ function joinText(it: any) {
     .join(" ")
     .toLowerCase();
 }
-function toAppViewerUrl(viewerUrl: string, back: string) {
+function formatUpdatedAt(raw?: string | null) {
+  if (!raw) return null;
+  const t = Date.parse(raw);
+  if (!Number.isFinite(t)) return null;
+  return dateFormatter.format(new Date(t));
+}
+function toAppViewerUrl(viewerUrl: string) {
   if (!viewerUrl) return viewerUrl;
   if (viewerUrl.startsWith("/app/viewer")) return viewerUrl;
   try {
@@ -38,7 +46,6 @@ function toAppViewerUrl(viewerUrl: string, back: string) {
 
     const q = new URLSearchParams();
     q.set("model", model);
-    q.set("back", back);
     const mode = u.searchParams.get("mode");
     if (mode) q.set("mode", mode);
     const src = u.searchParams.get("src");
@@ -62,7 +69,7 @@ function toAppViewerUrl(viewerUrl: string, back: string) {
         </p>
       </div>
 
-      <div class="text-xs text-neutral-400">
+    <div class="text-xs text-neutral-400">
         <span id="count">表示 {items.length} / {items.length}</span>
       </div>
     </div>
@@ -119,61 +126,54 @@ function toAppViewerUrl(viewerUrl: string, back: string) {
     </div>
   </section>
 
-  <section id="grid" class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-    {items.map((it) => (
-      <article
-        class="card ui-card"
-        data-tags={(it.tags ?? []).join(",")}
-        data-text={joinText(it)}
-      >
-        {it.thumb ? (
-          <img
-            src={it.thumb}
-            alt={it.title}
-            loading="lazy"
-            class="h-40 w-full border-b border-white/10 object-cover bg-white/5"
-          />
-        ) : (
-          <div class="h-40 w-full border-b border-white/10 bg-white/5" />
-        )}
+  <section id="grid" class="mt-6 flex flex-col gap-3">
+    {items.map((it) => {
+      const updated = formatUpdatedAt(it.updated_at);
+      const viewerBase = toAppViewerUrl(it.viewer_url);
+      return (
+        <article
+          class="card ui-card p-5 hover:bg-white/5 focus-within:ring-2 focus-within:ring-cyan-300/30"
+          data-tags={(it.tags ?? []).join(",")}
+          data-text={joinText(it)}
+          data-viewer-url={viewerBase}
+          tabindex="0"
+          role="link"
+          aria-label={`${it.title} を Viewer で開く`}
+        >
+          <div class="flex flex-col gap-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="text-lg font-semibold leading-snug">{it.title}</div>
 
-        <div class="p-4">
-          <div class="text-base font-medium leading-snug">{it.title}</div>
+              <div class="flex items-center gap-3">
+                {updated && (
+                  <span class="text-xs text-neutral-400">更新 {updated}</span>
+                )}
 
-          {it.summary && <p class="mt-2 text-sm text-neutral-300 leading-relaxed">{it.summary}</p>}
-
-          {/* show a few tags/entry points as small hints (not interactive) */}
-          {(it.entry_points?.length ?? 0) > 0 && (
-            <div class="mt-3 flex flex-wrap gap-2">
-              {it.entry_points.slice(0, 2).map((e: string) => (
-                <span class="ui-chip px-2 py-1 text-xs">
-                  {e}
-                </span>
-              ))}
+                <a
+                  class="text-xs text-neutral-300 underline decoration-white/20 hover:decoration-white/60"
+                  href={`/library/${it.slug}`}
+                  data-role="detail-link"
+                >
+                  詳細
+                </a>
+              </div>
             </div>
-          )}
 
-          {(it.tags?.length ?? 0) > 0 && (
-            <div class="mt-3 flex flex-wrap gap-2">
-              {it.tags.slice(0, 3).map((t: string) => (
-                <span class="ui-chip px-2 py-1 text-xs text-neutral-400">
-                  {t}
-                </span>
-              ))}
-            </div>
-          )}
+            {it.summary && (
+              <p class="library-summary text-sm text-neutral-300 leading-relaxed">{it.summary}</p>
+            )}
 
-          {it.rights?.notice_short && (
-            <p class="mt-3 text-xs text-neutral-400 leading-relaxed">{it.rights.notice_short}</p>
-          )}
-
-          <div class="mt-4 flex gap-2">
-            <a class="ui-btn" href={`/library/${it.slug}`}>詳細</a>
-            <a class="ui-btn ui-btn-primary flex-1" href={toAppViewerUrl(it.viewer_url, "/library")}>Viewer</a>
+            {(it.tags?.length ?? 0) > 0 && (
+              <div class="flex flex-wrap gap-2">
+                {it.tags.map((t: string) => (
+                  <span class="ui-chip px-2 py-1 text-xs text-neutral-400">{t}</span>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
-      </article>
-    ))}
+        </article>
+      );
+    })}
   </section>
 
   {items.length === 0 && (
@@ -188,6 +188,20 @@ function toAppViewerUrl(viewerUrl: string, back: string) {
   </section>
 
   <script is:inline>
+    const sp = new URLSearchParams(window.location.search);
+    const scrollRaw = sp.get("scroll");
+    if (scrollRaw) {
+      const n = Number(scrollRaw);
+      const scroll = Number.isFinite(n) ? Math.max(0, Math.floor(n)) : null;
+      if (scroll !== null) {
+        requestAnimationFrame(() => window.scrollTo(0, scroll));
+      }
+      sp.delete("scroll");
+      if (sp.get("from") === "library") sp.delete("from");
+      const next = sp.toString();
+      history.replaceState(null, "", `${window.location.pathname}${next ? `?${next}` : ""}`);
+    }
+
     const q = document.getElementById("q");
     const clear = document.getElementById("clear");
     const count = document.getElementById("count");
@@ -235,6 +249,56 @@ function toAppViewerUrl(viewerUrl: string, back: string) {
       });
     });
 
+  function buildViewerUrl(base) {
+    if (!base) return base;
+    try {
+      const u = new URL(base, window.location.origin);
+      const scroll = Math.max(0, Math.round(window.scrollY || 0));
+      u.searchParams.set("from", "library");
+      u.searchParams.set("return", "/library");
+      u.searchParams.set("scroll", String(scroll));
+      // legacy compat (optional)
+      u.searchParams.set("back", "/library");
+      return `${u.pathname}?${u.searchParams.toString()}${u.hash}`;
+    } catch {
+      return base;
+    }
+  }
+
+  cards.forEach((card) => {
+    const base = card.dataset.viewerUrl;
+    if (!base) return;
+
+    // 詳細リンクは親のクリックを止める
+    const detail = card.querySelector('[data-role="detail-link"]');
+    detail?.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+    });
+
+  // カードクリックでViewerへ
+  card.addEventListener("click", (ev) => {
+    if (ev.defaultPrevented) return;
+    if (ev.button !== 0) return;
+    if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;
+
+    const next = buildViewerUrl(base);
+    if (!next) return;
+
+    ev.preventDefault();
+    window.location.assign(next);
+  });
+
+  // Enter/Spaceでも開ける（アクセシビリティ）
+  card.addEventListener("keydown", (ev) => {
+    if (ev.key !== "Enter" && ev.key !== " ") return;
+    const next = buildViewerUrl(base);
+    if (!next) return;
+    ev.preventDefault();
+    window.location.assign(next);
+  });
+});
+
+
     q?.addEventListener("input", () => {
       state.query = q.value || "";
       apply();
@@ -251,3 +315,11 @@ function toAppViewerUrl(viewerUrl: string, back: string) {
   </script>
 </Layout>
 
+<style>
+  .library-summary {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>

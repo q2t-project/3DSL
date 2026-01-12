@@ -27,7 +27,7 @@ const nav = [
   { href: "/docs", label: "Docs" },
   { href: "/policy", label: "Policy" },
 ];
-function isActive(href) {
+function isActive(href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
 }
 ---

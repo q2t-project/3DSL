@@ -47,6 +47,30 @@ function cleanDist() {
   fs.rmSync(DIST_DIR, { recursive: true, force: true });
 }
 
+function toEpoch(s) {
+  if (!s) return 0;
+  const t = Date.parse(String(s));
+  return Number.isFinite(t) ? t : 0;
+}
+
+function deriveUpdatedAt(meta, dm, modelPath) {
+  const m =
+    (typeof meta?.updated_at === "string" && meta.updated_at.trim()) ||
+    (typeof dm?.updated_at === "string" && dm.updated_at.trim()) ||
+    (typeof dm?.updatedAt === "string" && dm.updatedAt.trim()) ||
+    "";
+
+  if (m && toEpoch(m)) return m;
+
+  // fallback: file mtime
+  try {
+    const st = fs.statSync(modelPath);
+    return st?.mtime ? new Date(st.mtime).toISOString() : null;
+  } catch {
+    return null;
+  }
+}
+
 function uniq(arr) {
   const out = [];
   const seen = new Set();
@@ -66,14 +90,14 @@ function buildViewerUrl(modelUrl) {
   return `/viewer/index.html?model=${encodeURIComponent(modelUrl)}`;
 }
 
-function resolveOgImage(meta, srcDir, outDir, id, thumbUrl) {
+function resolveOgImage(meta, srcDir, outDir, id) {
   const seo = meta?.seo && typeof meta.seo === "object" ? meta.seo : {};
   const raw =
     (typeof seo.og_image === "string" && seo.og_image.trim()) ||
     (typeof meta.og_image === "string" && meta.og_image.trim()) ||
     null;
 
-  if (!raw) return thumbUrl ?? null;
+  if (!raw) return null;
 
   const v = raw.trim();
   if (/^https?:\/\//i.test(v)) return v;
@@ -93,13 +117,13 @@ function resolveOgImage(meta, srcDir, outDir, id, thumbUrl) {
   // reject traversal
   if (!rel || rel.includes("..") || path.isAbsolute(rel)) {
     console.warn(`[build:dist] WARN invalid og_image in ${id}: ${v}`);
-    return thumbUrl ?? null;
+    return null;
   }
 
   const src = path.join(srcDir, rel);
   if (!existsFile(src)) {
     console.warn(`[build:dist] WARN og_image not found in ${id}: ${rel}`);
-    return thumbUrl ?? null;
+    return null;
   }
 
   const dst = path.join(outDir, rel);
@@ -153,8 +177,6 @@ function main() {
     const srcDir = path.join(LIBRARY_DIR, id);
     const modelPath = path.join(srcDir, "model.3dss.json");
     const metaPath = path.join(srcDir, "_meta.json");
-    const thumbPath = path.join(srcDir, "thumb.webp");
-
     if (!existsFile(modelPath)) {
       throw new Error(`missing model.3dss.json: ${modelPath}`);
     }
@@ -197,45 +219,40 @@ function main() {
     // copy model
     fs.copyFileSync(modelPath, path.join(outDir, "model.3dss.json"));
 
-    // copy thumb if exists
-    let thumb = null;
-    if (existsFile(thumbPath)) {
-      fs.copyFileSync(thumbPath, path.join(outDir, "thumb.webp"));
-      thumb = `/3dss/library/${id}/thumb.webp`;
-    }
-
     const model_url = `/3dss/library/${id}/model.3dss.json`;
     const viewer_url = buildViewerUrl(model_url);
 
     // SEO: og image is validated and copied if it targets a local library asset.
-    // Fallback: use thumb.webp when present.
-    const ogImage = resolveOgImage(meta, srcDir, outDir, id, thumb);
+    const ogImage = resolveOgImage(meta, srcDir, outDir, id);
     const seo = pickSeo(meta, title, summary, ogImage);
 
     const published = meta?.published !== false;
     if (!published) {
       console.warn(`[build:dist] NOTE unpublished item (excluded from index): ${id}`);
     } else {
-
-    items.push({
-      slug: id,
-      title,
-      summary: summary ?? "",
-      tags,
-      thumb,
-      viewer_url,
-      entry_points,
-      pairs,
-      rights,
-      related,
-      // optional seo keys (do not break current readers)
-      ...seo
-    });
+      items.push({
+        id,
+        slug: id,
+        title,
+        summary: summary ?? "",
+        updated_at: deriveUpdatedAt(meta, dm, modelPath),
+        tags,
+        viewer_url,
+        entry_points,
+        pairs,
+        rights,
+        related,
+        // optional seo keys (do not break current readers)
+        ...seo
+      });
     }
-
   }
 
-  writeJson(path.join(OUT_LIBRARY_DIR, "library_index.json"), { items });
+  writeJson(path.join(OUT_LIBRARY_DIR, "library_index.json"), {
+    version: 3,
+    generated_at: new Date().toISOString(),
+    items,
+  });
   // copy 3dss sample (viewer default expects /3dss/sample/...)
   if (fs.existsSync(SAMPLE_DIR)) {
     fs.cpSync(SAMPLE_DIR, OUT_3DSS_SAMPLE_DIR, { recursive: true });

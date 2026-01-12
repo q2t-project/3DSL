@@ -4,8 +4,8 @@
       "slug": "2601080a",
       "title": "tmp2",
       "summary": "",
+      "updated_at": "2026-01-08T16:17:31.9192902Z",
       "tags": [],
-      "thumb": null,
       "viewer_url": "/viewer/index.html?model=%2F3dss%2Flibrary%2F2601080a%2Fmodel.3dss.json",
       "entry_points": [],
       "pairs": [],
@@ -19,8 +19,8 @@
       "slug": "26010801",
       "title": "tmp",
       "summary": "",
+      "updated_at": "2026-01-08T16:17:31.7564352Z",
       "tags": [],
-      "thumb": null,
       "viewer_url": "/viewer/index.html?model=%2F3dss%2Flibrary%2F26010801%2Fmodel.3dss.json",
       "entry_points": [],
       "pairs": [],
@@ -34,8 +34,8 @@
       "slug": "26010502",
       "title": "26010502-test",
       "summary": "一覧にも使う短い説明",
+      "updated_at": "2026-01-09T00:00:00+09:00",
       "tags": [],
-      "thumb": "/3dss/library/26010502/thumb.webp",
       "viewer_url": "/viewer/index.html?model=%2F3dss%2Flibrary%2F26010502%2Fmodel.3dss.json",
       "entry_points": [],
       "pairs": [],
@@ -49,12 +49,12 @@
       "slug": "26010501",
       "title": "3DSL Concept",
       "summary": "3DSLのコンセプトの諸概念の関係をモデル",
+      "updated_at": "2026-01-09T00:00:00+09:00",
       "tags": [
         "s:3dsl",
         "s:concept",
         "m:top"
       ],
-      "thumb": "/3dss/library/26010501/thumb.webp",
       "viewer_url": "/viewer/index.html?model=%2F3dss%2Flibrary%2F26010501%2Fmodel.3dss.json",
       "entry_points": [],
       "pairs": [],
@@ -62,7 +62,7 @@
       "related": [],
       "meta_title": "3DSL Concept",
       "meta_description": "3DSLのコンセプトの諸概念の関係をモデル",
-      "meta_og_image": "/3dss/library/26010501/thumb.webp"
+      "meta_og_image": null
     }
   ]
 }

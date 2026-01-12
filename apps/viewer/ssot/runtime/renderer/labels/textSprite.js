@@ -77,7 +77,11 @@ function rasterizeTextToCanvas(text, rasterSpec) {
   ctx.font = buildCanvasFont(rasterSpec.fontSpec, rasterSpec.fontPx);
   const metrics = ctx.measureText(t);
   const textWidth = Number(metrics.width) || 0;
-  const textHeight = rasterSpec.fontPx * 1.2;
+  // better height: avoid clipping for italic/descenders/etc.
+  const ascent = Number(metrics.actualBoundingBoxAscent);
+  const descent = Number(metrics.actualBoundingBoxDescent);
+  const hasABBox = Number.isFinite(ascent) && Number.isFinite(descent);
+  const textHeight = hasABBox ? (ascent + descent) : (rasterSpec.fontPx * 1.2);
 
   const cw = Math.ceil(textWidth + rasterSpec.pad * 2);
   const ch = Math.ceil(textHeight + rasterSpec.pad * 2);
@@ -86,7 +90,8 @@ function rasterizeTextToCanvas(text, rasterSpec) {
 
   // reset after resize
   ctx.font = buildCanvasFont(rasterSpec.fontSpec, rasterSpec.fontPx);
-  ctx.textBaseline = "middle";
+  // draw using alphabetic baseline so ascent/descent math is meaningful
+  ctx.textBaseline = "alphabetic";
   ctx.textAlign = "center";
 
   if (rasterSpec.bgEnabled) {
@@ -95,7 +100,9 @@ function rasterizeTextToCanvas(text, rasterSpec) {
   }
 
   const cx = canvas.width / 2;
-  const cy = canvas.height / 2;
+  const cy = hasABBox
+    ? (rasterSpec.pad + ascent) // baseline position
+    : (canvas.height / 2);
 
   if (rasterSpec.outlineEnabled && rasterSpec.outlineWidthPx > 0) {
     ctx.lineJoin = rasterSpec.outlineLineJoin;
@@ -117,6 +124,14 @@ function canvasToTexture(canvas) {
   texture.magFilter = THREE.LinearFilter;
   texture.generateMipmaps = false;
   texture.needsUpdate = true;
+  // color space (three r152+ uses colorSpace; older uses encoding)
+  try {
+    if ("colorSpace" in texture && THREE.SRGBColorSpace) {
+      texture.colorSpace = THREE.SRGBColorSpace;
+    } else if ("encoding" in texture && THREE.sRGBEncoding) {
+      texture.encoding = THREE.sRGBEncoding;
+    }
+  } catch (_e) {}
   return texture;
 }
 
@@ -187,18 +202,46 @@ export function releaseTextTexture(key) {
 // Mesh label 用 PlaneGeometry を共有（大量ラベルで alloc 減）
 const _sharedPlaneGeom = new THREE.PlaneGeometry(1, 1);
 
-function applyPlaneOrientation(obj, plane) {
-  const p = (typeof plane === "string" ? plane : "billboard").toLowerCase();
-  if (p === "xy") obj.rotation.set(0, 0, 0);
-  else if (p === "yz") obj.rotation.set(0, Math.PI / 2, 0);
-  else if (p === "zx") obj.rotation.set(-Math.PI / 2, 0, 0);
+const _tmpFront = new THREE.Vector3();
+const _tmpUp = new THREE.Vector3();
+const _tmpRight = new THREE.Vector3();
+const _tmpMat = new THREE.Matrix4();
+
+function axisToVector(axis, out) {
+  switch (axis) {
+    case "+x": out.set(1, 0, 0); return true;
+    case "-x": out.set(-1, 0, 0); return true;
+    case "+y": out.set(0, 1, 0); return true;
+    case "-y": out.set(0, -1, 0); return true;
+    case "+z": out.set(0, 0, 1); return true;
+    case "-z": out.set(0, 0, -1); return true;
+    default: return false;
+  }
+}
+
+function applyPoseOrientation(obj, pose) {
+  if (!pose || pose.mode !== "fixed") return null;
+  if (!axisToVector(pose.front, _tmpFront) || !axisToVector(pose.up, _tmpUp)) {
+    return null;
+  }
+
+  _tmpFront.normalize();
+  _tmpUp.normalize();
+
+  _tmpRight.crossVectors(_tmpUp, _tmpFront).normalize();
+  if (_tmpRight.lengthSq() <= 1e-6) return null;
+
+  _tmpUp.crossVectors(_tmpFront, _tmpRight).normalize();
+  _tmpMat.makeBasis(_tmpRight, _tmpUp, _tmpFront);
+  obj.quaternion.setFromRotationMatrix(_tmpMat);
+  return _tmpFront.clone();
 }
 
 export function createTextLabelObjectFromTexture(texture, label, meta = {}) {
   if (!texture) return null;
 
-  const plane = (typeof label?.plane === "string" ? label.plane : "billboard").toLowerCase();
-  const isBillboard = plane === "billboard";
+  const pose = label?.pose;
+  const isBillboard = !pose || pose.mode !== "fixed";
   const aspect = Number(meta.aspect) || 1;
 
   let obj;
@@ -209,6 +252,12 @@ export function createTextLabelObjectFromTexture(texture, label, meta = {}) {
       depthTest: true,
       depthWrite: false,
     });
+    if (pose && pose.mode === "billboard") {
+      const roll = Number(pose.roll);
+      if (Number.isFinite(roll) && roll !== 0) {
+        material.rotation = (roll * Math.PI) / 180;
+      }
+    }
     obj = new THREE.Sprite(material);
     const align = label?.align;
     const ax = Number(align?.x);
@@ -226,15 +275,16 @@ export function createTextLabelObjectFromTexture(texture, label, meta = {}) {
     });
     obj = new THREE.Mesh(_sharedPlaneGeom, material);
     obj.userData.__labelSharedGeom = true;
-    applyPlaneOrientation(obj, plane);
+    const normal = applyPoseOrientation(obj, pose);
 
-    // plane fixed label: keep base orientation for runtime flip (avoid mirrored text from backside)
+    // fixed label: keep base orientation for runtime flip (avoid mirrored text from backside)
     obj.userData.__labelBaseQuat = obj.quaternion.clone();
+    if (normal) obj.userData.__labelNormal = normal;
   }
 
   obj.userData.__labelAspect = aspect;
   obj.userData.__labelRasterPx = { w: Number(meta.w) || 0, h: Number(meta.h) || 0 };
-  obj.userData.__labelPlane = plane;
+  obj.userData.__labelPose = pose || null;
 
   // 初期は aspect だけ合わせる（絶対スケールは runtime 側で決める）
   obj.scale.set(aspect, 1, 1);
@@ -282,7 +332,7 @@ export function disposeTextLabelObject(obj) {
 export function createTextSprite(text, opts = {}) {
   const label = {
     size: opts.fontSize ? (Number(opts.fontSize) / 1.5) : 8,
-    plane: "billboard",
+    pose: { mode: "billboard", up: "+z", roll: 0 },
   };
 
   const tmpCfg = {

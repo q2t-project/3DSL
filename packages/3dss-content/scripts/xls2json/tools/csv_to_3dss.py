@@ -162,7 +162,7 @@ def _read_csv(path: Optional[str]) -> List[Dict[str, Any]]:
     return out
 
 def _default_document_meta(schema: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    schema_uri = "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.1.1"
+    schema_uri = "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.1.3"
     if schema and isinstance(schema, dict):
         sid = schema.get("$id") or ""
         anch = schema.get("$anchor") or ""

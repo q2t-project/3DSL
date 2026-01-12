@@ -14,5 +14,8 @@
     "check:guards": "npm --prefix apps/site run check:guards",
     "fix:guards": "npm --prefix apps/site run fix:guards",
     "build:site": "npm --prefix apps/site run build"
+  },
+  "devDependencies": {
+    "esprima": "^4.0.1"
   }
 }

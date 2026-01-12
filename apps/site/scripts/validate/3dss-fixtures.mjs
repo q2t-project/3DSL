@@ -80,7 +80,7 @@ function isExpectedInvalid(filepath) {
   const base = path.basename(filepath).toLowerCase();
   if (base.startsWith("invalid_")) return true;
   // backward-compat (old prefix)
-  if (base.startsWith("phase7_invalid_")) return true;
+  if (base.startsWith("/regression_invalid_")) return true;
   // 予備：invalid/ 配下に置いた場合
   const parts = filepath.split(path.sep).map((s) => s.toLowerCase());
   if (parts.includes("invalid")) return true;
@@ -130,8 +130,8 @@ function existsDir(p) {
 }
 
 const defaultFixturesDirCandidates = [
-  path.resolve(siteRoot, "public/3dss/fixtures"),
-  path.resolve(siteRoot, "public/3dss/fixtures/phase7"), // backward-compat
+  path.resolve(siteRoot, "public/3dss/fixtures/regression"),
+  path.resolve(siteRoot, "public/3dss/fixtures"), // fallback
 ];
 const defaultFixturesDir =
   defaultFixturesDirCandidates.find((d) => existsDir(d)) ?? defaultFixturesDirCandidates[0];

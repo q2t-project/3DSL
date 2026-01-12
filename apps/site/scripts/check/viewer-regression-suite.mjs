@@ -26,11 +26,14 @@ function runNodeIfExists(scriptPath, extraArgs = [], cwd = siteRoot) {
 let okAll = true;
 
 // 1) fixtures validate (schema + optional ref-integrity)
-okAll = runNodeIfExists(
-  path.join(siteRoot, "scripts", "validate", "3dss-fixtures.mjs"),
-  ["--ref", ...passthruArgs],
-  siteRoot
-) && okAll;
+{
+  const hasDir = passthruArgs.includes("--dir");
+  const defaultDir = path.join("public", "3dss", "fixtures", "regression");
+  const args = ["--ref", ...(hasDir ? [] : ["--dir", defaultDir]), ...passthruArgs];
+  okAll =
+    runNodeIfExists(path.join(siteRoot, "scripts", "validate", "3dss-fixtures.mjs"), args, siteRoot) &&
+    okAll;
+}
 
 // 2) viewer runtime contract-ish checks under site/public/viewer (only those that exist)
 okAll = runNodeIfExists(path.join(siteRoot, "scripts", "check", "single-writer.mjs")) && okAll;

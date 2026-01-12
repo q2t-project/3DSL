@@ -202,7 +202,7 @@ PointerInput / KeyboardInput は `ui/pointerInput.js` / `ui/keyboardInput.js` �
 
 
 
-### 1.1.1 存在しなぁE��ジュール�E��E確に禁止�E�E
+### 1.1.3 存在しなぁE��ジュール�E��E確に禁止�E�E
 
 viewer には次のモジュールは存在しなぁE��追加も禁止�E�！E
 

@@ -8,13 +8,7 @@ import { buildPointLabelIndex } from "./labels/labelIndex.js";
 import { LabelLayer } from "./labels/LabelLayer.js";
 import { createWorldAxesLayer } from "./worldAxes.js";
 import { createLineEffectsRuntime } from "./effects/lineEffects.js";
-import {
-  getUuid,
-  getPointPosition,
-  getColor,
-  getOpacity,
-  clamp01,
-} from "./shared.js";
+// (removed) shared.js dependency
 import {
   updateSelectionHighlight as updateSelectionHighlightImpl,
   clearSelectionHighlight as clearSelectionHighlightImpl,

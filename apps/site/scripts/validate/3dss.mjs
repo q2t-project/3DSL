@@ -25,7 +25,7 @@ const idWithHash = `${schemaBase}#`;             // .../3DSS.schema.json#
 
 // schema を clone して $id を “このドキュメントが要求してる base” に合わせる
 const schema = structuredClone(schemaRaw);
-schema.$id = idWithHash; // ←アンカー(#v1.1.1)を安定させるため、末尾 # 付きに寄せる
+schema.$id = idWithHash; // ←アンカー(#v1.1.3)を安定させるため、末尾 # 付きに寄せる
 
 const ajv = new Ajv2020({
   allErrors: true,

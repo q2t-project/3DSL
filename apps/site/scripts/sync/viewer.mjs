@@ -106,7 +106,6 @@ const shouldSkipScripts = canPruneSource;
 await cp(src, dst, {
   recursive: true,
   filter: (entry) => {
-    if (!shouldSkipScripts) return true;
     const rel = path.relative(src, entry);
     if (!rel) return true;
     const [top] = rel.split(path.sep);
@@ -158,8 +157,9 @@ try {
 
 // /viewer/_generated/PORTS.md を manifest.yaml と一致させる
 try {
-  const genPorts = path.join(dst, "scripts", "gen-ports.mjs");
-  execFileSync(process.execPath, [genPorts], { stdio: "inherit" });
+  const ssotViewerRoot = path.join(repoRoot, "apps/viewer/ssot");
+  const genPorts = path.join(ssotViewerRoot, "scripts", "gen-ports.mjs");
+  execFileSync(process.execPath, [genPorts], { stdio: "inherit", cwd: ssotViewerRoot });
 } catch (e) {
   throw new Error(`[sync] gen-ports failed after viewer sync: ${e?.message ?? e}`);
 }

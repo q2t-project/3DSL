@@ -17,14 +17,14 @@
  * @property {string} [content]
  * @property {number} [size]
  * @property {string} [align]
- * @property {string} [plane]
+ * @property {{mode:string, front?:string, up?:string, roll?:number}} [pose]
  * @property {string|MarkerTextFontSpec} [font]
  */
 
 export const LABEL_TEXT_DEFAULTS = {
   size: 8,
-  align: "center middle",
-  plane: "zx",
+  align: "center&middle",
+  pose: { mode: "billboard", up: "+z", roll: 0 },
   fontToken: "helvetiker_regular",
 };
 
@@ -43,7 +43,7 @@ const ALIGN_VERTICAL = new Map([
   ["baseline", 0],
 ]);
 
-const VALID_PLANES = new Set(["xy", "yz", "zx", "billboard"]);
+const AXIS_SIGNED = new Set(["+x", "-x", "+y", "-y", "+z", "-z"]);
 
 const FONT_STYLES = new Set(["normal", "italic", "oblique"]);
 const FONT_WEIGHTS = new Set([
@@ -67,12 +67,20 @@ function toToken(str) {
 }
 
 export function normalizeTextAlign(raw) {
-  const s = toToken(raw);
+  const s = typeof raw === "string"
+    ? raw
+        .trim()
+        .toLowerCase()
+        .replace(/\s*&\s*/g, "&") // "left & top" -> "left&top"
+        .replace(/\s+/g, " ")    // normalize spaces
+    : "";
   let h = null;
   let v = null;
 
   if (s) {
-    const direct = s.includes("&") ? s.split("&") : [s];
+    const direct = s.includes("&")
+      ? s.split("&").map((t) => t.trim()).filter(Boolean)
+      : s.split(" ").map((t) => t.trim()).filter(Boolean);
     if (direct.length === 1) {
       const hv = direct[0];
       if (ALIGN_HORIZONTAL.has(hv)) {
@@ -103,9 +111,93 @@ export function normalizeTextAlign(raw) {
   };
 }
 
-export function normalizeTextPlane(raw) {
+function normalizeAxisSigned(raw, fallback = null) {
   const s = toToken(raw);
-  return VALID_PLANES.has(s) ? s : LABEL_TEXT_DEFAULTS.plane;
+  return AXIS_SIGNED.has(s) ? s : fallback;
+}
+
+function isAxisPairValid(front, up) {
+  if (!front || !up) return false;
+  return front[1] !== up[1];
+}
+
+export function normalizeTextPose(raw) {
+  const FIXED_DEFAULT = {
+    mode: "fixed",
+    front: "+z",
+    up: "+y",
+    key: "fixed|+z|+y",
+  };
+  if (typeof raw === "string") {
+    const plane = toToken(raw);
+    if (plane === "billboard") {
+      return {
+        mode: "billboard",
+        up: "+z",
+        roll: 0,
+        key: "billboard|+z|0",
+      };
+    }
+    if (plane === "xy") {
+      return {
+        mode: "fixed",
+        front: "+z",
+        up: "+y",
+        key: "fixed|+z|+y",
+      };
+    }
+    if (plane === "yz") {
+      return {
+        mode: "fixed",
+        front: "+x",
+        up: "+y",
+        key: "fixed|+x|+y",
+      };
+    }
+    if (plane === "zx") {
+      return {
+        mode: "fixed",
+        front: "+y",
+        up: "+z",
+        key: "fixed|+y|+z",
+      };
+    }
+  }
+
+  if (raw && typeof raw === "object") {
+    const mode = toToken(raw.mode);
+    if (mode === "fixed") {
+      const front = normalizeAxisSigned(raw.front, FIXED_DEFAULT.front);
+      const up = normalizeAxisSigned(raw.up, FIXED_DEFAULT.up);
+      if (!isAxisPairValid(front, up)) return FIXED_DEFAULT;
+      return {
+        mode: "fixed",
+        front,
+        up,
+        key: `fixed|${front}|${up}`,
+      };
+    }
+
+    if (mode === "billboard") {
+      const up = normalizeAxisSigned(raw.up, "+z");
+      const roll = Number(raw.roll);
+      // key の揺れを抑えて無駄な貼り替えを減らす
+      const safeRoll = Number.isFinite(roll) ? Math.round(roll * 1000) / 1000 : 0;
+      return {
+        mode: "billboard",
+        up,
+        roll: safeRoll,
+        key: `billboard|${up}|${safeRoll}`,
+      };
+    }
+  }
+
+  return {
+    mode: "billboard",
+    up: "+z",
+    roll: 0,
+    key: "billboard|+z|0",
+  };
 }
 
 export function normalizeTextSize(raw) {

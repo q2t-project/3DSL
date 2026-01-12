@@ -22,13 +22,13 @@ export type LibraryRights = {
 };
 
 export type LibraryItem = {
-  id?: string;
+  id: string;
   slug: string;
   title: string;
   summary?: string;
-  thumb?: string | null;
   viewer_url: string;
   tags?: string[];
+  updated_at?: string;
   entry_points?: string[];
   pairs?: { a: string; b: string }[];
   series?: string;

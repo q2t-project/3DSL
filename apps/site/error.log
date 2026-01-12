@@ -1,0 +1,13 @@
+2026-01-12T04:25:50.909Z - Failed to resolve import: /vendor/ajv/dist/ajv.bundle.js from C:\Users\vrrrm\projects\3DSL\apps\viewer\ssot\runtime\core\validator.js. Target does not exist.
+2026-01-12T04:25:50.914Z - Failed to resolve import: /viewer/vendor/three/build/three.module.js from C:\Users\vrrrm\projects\3DSL\apps\viewer\ssot\runtime\renderer\context.js. Target does not exist.
+2026-01-12T04:25:50.919Z - Failed to resolve import: /viewer/vendor/three/build/three.module.js from C:\Users\vrrrm\projects\3DSL\apps\viewer\ssot\runtime\renderer\effects\lineEffects.js. Target does not exist.
+2026-01-12T04:25:50.923Z - Failed to resolve import: /viewer/vendor/three/build/three.module.js from C:\Users\vrrrm\projects\3DSL\apps\viewer\ssot\runtime\renderer\labels\labelRuntime.js. Target does not exist.
+2026-01-12T04:25:50.926Z - Failed to resolve import: /viewer/vendor/three/build/three.module.js from C:\Users\vrrrm\projects\3DSL\apps\viewer\ssot\runtime\renderer\labels\textSprite.js. Target does not exist.
+2026-01-12T04:25:50.927Z - Failed to resolve import: /viewer/vendor/three/build/three.module.js from C:\Users\vrrrm\projects\3DSL\apps\viewer\ssot\runtime\renderer\microFX\axes.js. Target does not exist.
+2026-01-12T04:25:50.929Z - Failed to resolve import: /viewer/vendor/three/build/three.module.js from C:\Users\vrrrm\projects\3DSL\apps\viewer\ssot\runtime\renderer\microFX\bounds.js. Target does not exist.
+2026-01-12T04:25:50.930Z - Failed to resolve import: /viewer/vendor/three/build/three.module.js from C:\Users\vrrrm\projects\3DSL\apps\viewer\ssot\runtime\renderer\microFX\glow.js. Target does not exist.
+2026-01-12T04:25:50.932Z - Failed to resolve import: /viewer/vendor/three/build/three.module.js from C:\Users\vrrrm\projects\3DSL\apps\viewer\ssot\runtime\renderer\microFX\highlight.js. Target does not exist.
+2026-01-12T04:25:50.936Z - Failed to resolve import: /viewer/vendor/three/build/three.module.js from C:\Users\vrrrm\projects\3DSL\apps\viewer\ssot\runtime\renderer\microFX\marker.js. Target does not exist.
+2026-01-12T04:25:50.937Z - Failed to resolve import: /viewer/vendor/three/build/three.module.js from C:\Users\vrrrm\projects\3DSL\apps\viewer\ssot\runtime\renderer\selectionHighlight.js. Target does not exist.
+2026-01-12T04:25:50.938Z - Failed to resolve import: /viewer/vendor/three/build/three.module.js from C:\Users\vrrrm\projects\3DSL\apps\viewer\ssot\runtime\renderer\worldAxes.js. Target does not exist.
+2026-01-12T04:25:50.941Z - Failed to resolve import: /vendor/three/build/three.module.js from C:\Users\vrrrm\projects\3DSL\apps\viewer\ssot\ui\gizmo.js. Target does not exist.

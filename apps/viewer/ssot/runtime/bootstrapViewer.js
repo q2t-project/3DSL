@@ -42,13 +42,11 @@
  *   default: true（AJV + meta compatibility を実行）
  * @property {boolean} [validateRefIntegrity]
  *   default: false（重いので任意。trueならref整合も落とす）
- */
-
-/**
+ *
  * @property {number} [dpr]
  *   optional: renderer pixelRatio の上限用（peek 等）
  * @property {boolean} [autoStart]
- *   peek 系のときに entry 側で hub.start() を自動実行する（default: true）
+ *   peek 系のときに entry 側で start を host 側で自動実行
  */
 
 /**
@@ -74,7 +72,7 @@
  *   - Core / Renderer / CameraEngine など runtime 配下のモジュールを
  *     Host / Astro 側から直接 import / new してはならない。
  *   - 必ず上記 2 関数のどちらかを経由して ViewerHub を取得し、
- *     レンダーループ開始は Host 側で hub.start() を呼ぶことで制御する。
+ *     レンダーループ開始は Host 側で hub の start を host 側で呼ぶ。
  */
 
 import { createRendererContext } from "./renderer/context.js";
@@ -103,6 +101,16 @@ function debugBoot(...args) {
   console.log(...args);
 }
 
+const _warnOnceSet = new Set();
+
+function warnOnce(key, message) {
+  if (_warnOnceSet.has(key)) return;
+  _warnOnceSet.add(key);
+  try {
+    console.warn(message);
+  } catch (_e) {}
+}
+
 // ------------------------------------------------------------
 // schema / version 情報
 // ------------------------------------------------------------
@@ -121,14 +129,30 @@ function extractSchemaInfo(schemaJson) {
       ? schemaJson.$id
       : null;
 
+  const anchor =
+    typeof schemaJson.$anchor === "string" && schemaJson.$anchor.length > 0
+      ? schemaJson.$anchor
+      : null;
+
   let version = null;
   let major = null;
 
-  if (id) {
+  // 優先: $anchor = "v1.1.3"
+  if (anchor) {
+    const m = anchor.match(/^v(\d+\.\d+\.\d+)$/);
+    if (m) version = m[1];
+  }
+
+  // 次: $id に "/v1.1.3/" が含まれるケース（現在の release パス想定）
+  if (!version && id) {
+    const m = id.match(/\/v(\d+\.\d+\.\d+)\//);
+    if (m) version = m[1];
+  }
+
+  // 旧: $id の末尾 "#v1.0.2"
+  if (!version && id) {
     const m = id.match(/#v(\d+\.\d+\.\d+)$/);
-    if (m) {
-      version = m[1];
-    }
+    if (m) version = m[1];
   }
 
   if (version) {
@@ -401,6 +425,193 @@ function normalizeLegacyTopLevelFrames(doc, options = {}) {
 }
 
 // ------------------------------------------------------------
+// legacy canonicalization (strictValidate=false only)
+// ------------------------------------------------------------
+function canonicalizeLegacyDoc(doc, options = {}) {
+  if (!doc || typeof doc !== "object") return doc;
+
+  let didUuid = false;
+  let didPosition = false;
+  let didPose = false;
+  let didI18n = false;
+
+  const legacyWarnEnabled = options?.warnLegacy !== false;
+
+  const warnIfNeeded = () => {
+    if (!legacyWarnEnabled) return;
+    if (didUuid) {
+      warnOnce("[legacy.uuid]", "[bootstrap] legacy uuid moved to meta.uuid");
+    }
+    if (didPosition) {
+      warnOnce("[legacy.position]", "[bootstrap] legacy position moved to appearance.position");
+    }
+    if (didPose) {
+      warnOnce("[legacy.textPose]", "[bootstrap] legacy marker.text.plane moved to marker.text.pose");
+    }
+    if (didI18n) {
+      warnOnce("[legacy.i18n]", "[bootstrap] legacy document_meta.i18n object normalized to string");
+    }
+  };
+
+  const isVec3Like = (v) => {
+    if (Array.isArray(v) && v.length >= 3) return true;
+    if (v && typeof v === "object") {
+      return "x" in v || "y" in v || "z" in v;
+    }
+    return false;
+  };
+
+  const pickLegacyPosition = (p) =>
+    p?.position ??
+    p?.pos ??
+    p?.xyz ??
+    p?.geometry?.position ??
+    p?.geometry?.pos ??
+    p?.meta?.position ??
+    p?.meta?.pos ??
+    null;
+
+  const ensureMetaUuid = (entity) => {
+    if (!entity || typeof entity !== "object") return entity;
+    const metaUuid = entity?.meta?.uuid;
+    if (typeof metaUuid === "string" && metaUuid.trim()) return entity;
+    const rawUuid = entity?.uuid;
+    if (typeof rawUuid !== "string" || !rawUuid.trim()) return entity;
+    const nextMeta = entity.meta && typeof entity.meta === "object"
+      ? { ...entity.meta, uuid: rawUuid }
+      : { uuid: rawUuid };
+    didUuid = true;
+    return { ...entity, meta: nextMeta };
+  };
+
+  const ensureAppearancePosition = (point) => {
+    if (!point || typeof point !== "object") return point;
+    if (point.appearance && typeof point.appearance === "object" && "position" in point.appearance) {
+      return point;
+    }
+    const legacyPos = pickLegacyPosition(point);
+    if (!isVec3Like(legacyPos)) return point;
+    const nextAppearance = point.appearance && typeof point.appearance === "object"
+      ? { ...point.appearance, position: legacyPos }
+      : { position: legacyPos };
+    didPosition = true;
+    return { ...point, appearance: nextAppearance };
+  };
+
+  const planeToPose = (planeRaw) => {
+    if (typeof planeRaw !== "string") return null;
+    const plane = planeRaw.trim().toLowerCase();
+    if (plane === "billboard") return { mode: "billboard" };
+    if (plane === "xy") return { mode: "fixed", front: "+z", up: "+y" };
+    if (plane === "yz") return { mode: "fixed", front: "+x", up: "+y" };
+    if (plane === "zx") return { mode: "fixed", front: "+y", up: "+z" };
+    return null;
+  };
+
+  const ensureTextPose = (point) => {
+    if (!point || typeof point !== "object") return point;
+    const marker = point?.appearance?.marker;
+    const text = marker?.text;
+    if (!text || typeof text !== "object") return point;
+    if (text.pose && typeof text.pose === "object") return point;
+    const pose = planeToPose(text.plane);
+    if (!pose) return point;
+    const nextText = { ...text, pose };
+    if ("plane" in nextText) delete nextText.plane;
+    const nextMarker = { ...(marker || {}), text: nextText };
+    const nextAppearance = point.appearance && typeof point.appearance === "object"
+      ? { ...point.appearance, marker: nextMarker }
+      : { marker: nextMarker };
+    didPose = true;
+    return { ...point, appearance: nextAppearance };
+  };
+
+  const normalizePoint = (point) => {
+    let next = point;
+    const nextUuid = ensureMetaUuid(next);
+    if (nextUuid !== next) next = nextUuid;
+    const nextPos = ensureAppearancePosition(next);
+    if (nextPos !== next) next = nextPos;
+    const nextPose = ensureTextPose(next);
+    if (nextPose !== next) next = nextPose;
+    return next;
+  };
+
+  const normalizeLine = (line) => ensureMetaUuid(line);
+  const normalizeAux = (aux) => ensureMetaUuid(aux);
+
+  const mapArrayIfChanged = (arr, mapper) => {
+    if (!Array.isArray(arr)) return arr;
+    let changed = false;
+    const nextArr = arr.map((item, i) => {
+      const nextItem = mapper(item, i);
+      if (nextItem !== item) changed = true;
+      return nextItem;
+    });
+    return changed ? nextArr : arr;
+  };
+
+  let nextDoc = doc;
+
+  const nextPoints = mapArrayIfChanged(doc.points, normalizePoint);
+  if (nextPoints !== doc.points) {
+    nextDoc = { ...nextDoc, points: nextPoints };
+  }
+
+  const nextLines = mapArrayIfChanged(doc.lines, normalizeLine);
+  if (nextLines !== doc.lines) {
+    nextDoc = { ...nextDoc, lines: nextLines };
+  }
+
+  const nextAux = mapArrayIfChanged(doc.aux, normalizeAux);
+  if (nextAux !== doc.aux) {
+    nextDoc = { ...nextDoc, aux: nextAux };
+  }
+
+  const nextFrames = mapArrayIfChanged(doc.frames, (frame) => {
+    if (!frame || typeof frame !== "object") return frame;
+    let nextFrame = frame;
+    const framePoints = mapArrayIfChanged(frame.points, normalizePoint);
+    const frameLines = mapArrayIfChanged(frame.lines, normalizeLine);
+    const frameAux = mapArrayIfChanged(frame.aux, normalizeAux);
+    if (framePoints !== frame.points) nextFrame = { ...nextFrame, points: framePoints };
+    if (frameLines !== frame.lines) nextFrame = { ...nextFrame, lines: frameLines };
+    if (frameAux !== frame.aux) nextFrame = { ...nextFrame, aux: frameAux };
+    return nextFrame;
+  });
+  if (nextFrames !== doc.frames) {
+    nextDoc = { ...nextDoc, frames: nextFrames };
+  }
+
+  const documentMeta = nextDoc.document_meta;
+  if (documentMeta && typeof documentMeta === "object") {
+    const i18n = documentMeta.i18n;
+    if (i18n && typeof i18n === "object" && !Array.isArray(i18n)) {
+      let nextLang = null;
+      if (typeof i18n.default_language === "string" && i18n.default_language.trim()) {
+        nextLang = i18n.default_language.trim();
+      } else if (typeof i18n.ja === "string") {
+        nextLang = "ja";
+      } else if (typeof i18n.en === "string") {
+        nextLang = "en";
+      } else {
+        nextLang = "ja";
+      }
+      if (nextLang) {
+        didI18n = true;
+        nextDoc = {
+          ...nextDoc,
+          document_meta: { ...documentMeta, i18n: nextLang },
+        };
+      }
+    }
+  }
+
+  warnIfNeeded();
+  return nextDoc;
+}
+
+// ------------------------------------------------------------
 // document_meta / version 整合チェック
 //   - schema_uri === schema.$id
 //   - document_meta.version.major === schemaVersion.major
@@ -577,14 +788,29 @@ function applyInitialCameraFromMetrics(uiState, cameraEngine, metrics, fovFallba
   if (cameraEngine?.setState) cameraEngine.setState(st);
 }
 
-function validateRefIntegrityMinimal(struct) {
+function validateRefIntegrityMinimal(struct, options = {}) {
   const errors = [];
 
   const points = Array.isArray(struct?.points) ? struct.points : [];
   const lines  = Array.isArray(struct?.lines)  ? struct.lines  : [];
   const aux    = Array.isArray(struct?.aux)    ? struct.aux    : [];
+  const allowLegacyUuid = options.allowLegacyUuid === true;
 
-// --- uuid set（重複＆存在チェック用）---
+  const pickUuidWithPath = (obj, basePath) => {
+    const metaUuid = obj?.meta?.uuid;
+    if (typeof metaUuid === "string" && metaUuid.trim()) {
+      return { uuid: metaUuid.trim(), path: `${basePath}.meta.uuid` };
+    }
+    if (allowLegacyUuid) {
+      const raw = obj?.uuid;
+      if (typeof raw === "string" && raw.trim()) {
+        return { uuid: raw.trim(), path: `${basePath}.uuid` };
+      }
+    }
+    return { uuid: null, path: `${basePath}.meta.uuid` };
+  };
+
+  // --- uuid set（重複＆存在チェック用）---
 
 const seen = new Map(); // uuid -> first path
 const pointUuid = new Set();
@@ -604,15 +830,21 @@ const addUuid = (u, path) => {
 };
 
   points.forEach((p, i) => {
-    const u = p?.uuid;
-    addUuid(u, `points[${i}].uuid`);
-    if (typeof u === "string" && u.trim()) pointUuid.add(u.trim());
+    const got = pickUuidWithPath(p, `points[${i}]`);
+    addUuid(got.uuid, got.path);
+    if (got.uuid) pointUuid.add(got.uuid);
   });
 
-  lines.forEach((l, i) => addUuid(l?.uuid, `lines[${i}].uuid`));
-  aux.forEach((a, i) => addUuid(a?.uuid, `aux[${i}].uuid`));
+  lines.forEach((l, i) => {
+    const got = pickUuidWithPath(l, `lines[${i}]`);
+    addUuid(got.uuid, got.path);
+  });
+  aux.forEach((a, i) => {
+    const got = pickUuidWithPath(a, `aux[${i}]`);
+    addUuid(got.uuid, got.path);
+  });
 
-  // --- line endpoint ref ---
+// --- line endpoint ref ---
   const extractRefUuid = (v) => {
     if (typeof v === "string") return v.trim() || null;
     if (v && typeof v === "object") {
@@ -633,6 +865,11 @@ const addUuid = (u, path) => {
   };
 
   const pickEndpoint = (line, keys) => {
+    // 実データは appearance.* が基本。念のため直下も見る。
+    const a = (line && typeof line === "object") ? line.appearance : null;
+    for (const k of keys) {
+      if (a && Object.prototype.hasOwnProperty.call(a, k)) return a[k];
+    }
     for (const k of keys) {
       if (line && Object.prototype.hasOwnProperty.call(line, k)) return line[k];
     }
@@ -681,6 +918,8 @@ const addUuid = (u, path) => {
 export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   resolveSceneMetricsPre();
   debugBoot("[bootstrap] bootstrapViewer: start");
+  // bootstrapViewer() 直叩きでも safe canonicalization を効かせる
+  document3dss = normalizeLegacyTopLevelFrames(document3dss, options);
   debugBoot("[bootstrap] received 3DSS keys =", Object.keys(document3dss || {}));
 
   const strictValidate = options.strictValidate !== false;
@@ -717,7 +956,10 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     assertDocumentMetaCompatibility(document3dss);
   }
 
-  // 1) freeze
+  // 1) legacy canonicalize (strictValidate=false only) + freeze
+  if (!strictValidate) {
+    document3dss = canonicalizeLegacyDoc(document3dss, options);
+  }
   const struct = deepFreeze(document3dss);
 
   // meta/caption
@@ -727,7 +969,9 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   const sceneMeta = documentCaption;
 
   if (validateRefIntegrity) {
-    const refErrors = validateRefIntegrityMinimal(struct);
+    const refErrors = validateRefIntegrityMinimal(struct, {
+      allowLegacyUuid: !strictValidate,
+    });
     if (refErrors.length) {
       const msg =
         "3DSS ref integrity failed:\n" +
@@ -888,7 +1132,8 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     dropSelectionIfHidden: true,
   });
 
-
+  // 初期可視集合を確定（契約チェック用＆初回描画の安定化）
+  recomputeVisibleSet?.();
 
   // ------------------------------------------------------------------
   // Phase2: recompute handler injection（これが無いと mode/micro が絶対に動かん）
@@ -1015,15 +1260,11 @@ function createPeekHandle(hub, options = {}) {
   /** @type {PeekHandle} */
   const handle = {
     camera,
-    dispose: typeof hub.dispose === "function" ? () => hub.dispose() : undefined,
-    resize: typeof hub.resize === "function" ? (w, h, dpr) => hub.resize(w, h, dpr) : undefined,
+    start: typeof hub.start === "function" ? hub.start.bind(hub) : undefined,
+    stop: typeof hub.stop === "function" ? hub.stop.bind(hub) : undefined,
+    dispose: typeof hub.dispose === "function" ? hub.dispose.bind(hub) : undefined,
+    resize: typeof hub.resize === "function" ? hub.resize.bind(hub) : undefined,
   };
-
-  // peek は entry 側で自動 start（host が hub を触る必要を消す）
-  const autoStart = options.autoStart !== false;
-  if (autoStart && typeof hub.start === "function") {
-    try { hub.start(); } catch (_e) {}
-  }
 
   return handle;
 }

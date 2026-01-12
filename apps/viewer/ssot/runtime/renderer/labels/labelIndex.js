@@ -8,9 +8,28 @@
 import {
   normalizeTextAlign,
   normalizeTextFont,
-  normalizeTextPlane,
+  normalizeTextPose,
   normalizeTextSize,
 } from "./labelSpec.js";
+
+function normalizeLangCode(raw) {
+  // accept legacy-ish shapes too (string or {default_language,...})
+  let s = null;
+  if (typeof raw === "string") s = raw;
+  else if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    if (typeof raw.default_language === "string") s = raw.default_language;
+    else if (typeof raw.ja === "string") s = "ja";
+    else if (typeof raw.en === "string") s = "en";
+  }
+  s = typeof s === "string" ? s.trim().toLowerCase() : "";
+  // viewer currently expects ja/en (schema too). clamp for safety.
+  return (s === "ja" || s === "en") ? s : "ja";
+}
+
+function asPlainObject(v) {
+  return (v && typeof v === "object" && !Array.isArray(v)) ? v : null;
+}
+
 /**
  * signification.name を現在の言語設定から 1 本の string にする。
  *
@@ -25,7 +44,7 @@ export function normalizePointName(rawName, lang = "ja") {
     return trimmed.length > 0 ? trimmed : null;
   }
 
-  if (typeof rawName === "object") {
+  if (rawName && typeof rawName === "object" && !Array.isArray(rawName)) {
     // まず指定言語
     const fromLang = rawName[lang];
     if (typeof fromLang === "string" && fromLang.trim().length > 0) {
@@ -63,7 +82,7 @@ export function normalizePointName(rawName, lang = "ja") {
  *   1) marker.text.content が non-empty ならそれを採用
  *   2) そうでなければ signification.name を normalize したもの
  *
- * size / align / plane / font は marker.text 側を優先し、
+ * size / align / pose / font は marker.text 側を優先し、
  * 無ければ 3DSS 仕様のデフォルトに合わせる。
  *
  * align / font は viewer 内部仕様に沿って正規化されたオブジェクトを返す。
@@ -71,14 +90,15 @@ export function normalizePointName(rawName, lang = "ja") {
 export function buildPointLabelFromPoint(point, lang = "ja") {
   if (!point || typeof point !== "object") return null;
 
-  const uuid = point?.meta?.uuid;
+  const uuidRaw = point?.meta?.uuid;
+  const uuid = (typeof uuidRaw === "string" ? uuidRaw.trim() : "");
   if (!uuid) return null;
 
-  const signification = point.signification || {};
-  const appearance = point.appearance || {};
+  const signification = asPlainObject(point.signification) || {};
+  const appearance = asPlainObject(point.appearance) || {};
 
-  const marker = appearance.marker || {};
-  const textCfg = marker.text || {};
+  const marker = asPlainObject(appearance.marker) || {};
+  const textCfg = asPlainObject(marker.text) || {};
 
   // 1) content
   let content = null;
@@ -97,11 +117,11 @@ export function buildPointLabelFromPoint(point, lang = "ja") {
   // 両方空ならラベル無し扱い
   if (!content) return null;
 
-  // 3) size / align / plane / font の決定
+  // 3) size / align / pose / font の決定
   const size = normalizeTextSize(textCfg.size);
   const font = normalizeTextFont(textCfg.font);
   const align = normalizeTextAlign(textCfg.align);
-  const plane = normalizeTextPlane(textCfg.plane);
+  const pose = normalizeTextPose(textCfg.pose);
 
   return {
     uuid,
@@ -110,20 +130,20 @@ export function buildPointLabelFromPoint(point, lang = "ja") {
     size,
     font,
     align,
-    plane,
+    pose,
   };
 }
 
 /**
  * 3DSS ドキュメント全体から
- *   uuid → { text, size, font, align, plane }
+ *   uuid → { text, size, font, align, pose }
  * の Map を構成する。
  *
  * - 対象は points 配列のみ
  * - content / signification.name が何も無い点は index に含めない
  *
  * @param {object} document3dss
- * @returns {Map<string, {uuid,text,size,font,align,plane,kind}>}
+ * @returns {Map<string, {uuid,text,size,font,align,pose,kind}>}
  */
 export function buildPointLabelIndex(document3dss) {
   const result = new Map();
@@ -133,11 +153,8 @@ export function buildPointLabelIndex(document3dss) {
   }
 
   // document_meta.i18n があればそれを優先（schema では 'ja'|'en', default 'ja'）
-  const lang =
-    (document3dss.document_meta &&
-      typeof document3dss.document_meta.i18n === "string" &&
-      document3dss.document_meta.i18n) ||
-    "ja";
+  const meta = asPlainObject(document3dss.document_meta) || null;
+  const lang = normalizeLangCode(meta?.i18n);
 
   const frames = Array.isArray(document3dss.frames)
     ? document3dss.frames

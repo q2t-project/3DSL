@@ -5,7 +5,7 @@ import path from "node:path";
 
 const publicDir = path.join(process.cwd(), "public");
 
-function listJson(dirPublicPath) {
+function listJson(dirPublicPath: string) {
   const absDir = path.join(publicDir, ...dirPublicPath.split("/").filter(Boolean));
   if (!fs.existsSync(absDir)) return [];
   const ents = fs.readdirSync(absDir, { withFileTypes: true });
@@ -22,10 +22,10 @@ function listJson(dirPublicPath) {
 const valid = listJson("/3dss/canonical/valid");
 const invalid = listJson("/3dss/canonical/invalid");
 
-function viewerLink(modelPath) {
+function viewerLink(modelPath: string) {
   return `/viewer?model=${encodeURIComponent(modelPath)}`;
 }
-function embedLink(modelPath) {
+function embedLink(modelPath: string) {
   return `/app/viewer?model=${encodeURIComponent(modelPath)}`;
 }
 ---

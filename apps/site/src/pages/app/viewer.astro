@@ -46,37 +46,71 @@
     <button id="app-viewer-back" class="app-viewer-back" type="button" aria-label="戻る">← 戻る</button>
 
     <script is:inline>
-      (() => {
-        const iframe = document.getElementById("app-viewer-iframe");
-        const backBtn = document.getElementById("app-viewer-back");
-        if (!iframe) return;
+    (() => {
+      const iframe = document.getElementById("app-viewer-iframe");
+      const backBtn = document.getElementById("app-viewer-back");
+      if (!iframe) return;
 
-        const sp = new URLSearchParams(window.location.search);
+      const sp = new URLSearchParams(window.location.search);
 
-        // defaults
-        if (!sp.has("embed")) sp.set("embed", "0");
-        if (!sp.has("mode")) sp.set("mode", "prod");
+      // defaults for inner viewer
+      const inner = new URLSearchParams(sp);
+      if (!inner.has("embed")) inner.set("embed", "0");
+      if (!inner.has("mode")) inner.set("mode", "prod");
 
-        // compat: legacy `open=`
-        if (!sp.has("model") && sp.has("open")) {
-          const v = sp.get("open");
-          if (v) sp.set("model", v);
-        }
+      // compat: legacy `open=`
+      if (!inner.has("model") && inner.has("open")) {
+        const v = inner.get("open");
+        if (v) inner.set("model", v);
+      }
 
-        const back = sp.get("back");
+      // host-only params (do not pass into iframe)
+      const back = sp.get("back");
+      const returnTo = sp.get("return");
+      const scrollRaw = sp.get("scroll");
 
-        iframe.src = `/viewer/index.html?${sp.toString()}`;
+      inner.delete("back");
+      inner.delete("return");
+      inner.delete("scroll");
 
-        if (backBtn) {
-          backBtn.addEventListener("click", () => {
-            if (back && typeof back === "string" && back.length) {
-              window.location.assign(back);
-            } else {
-              history.back();
+      iframe.src = `/viewer/index.html?${inner.toString()}`;
+
+      function sameOriginPath(urlLike) {
+        const u = new URL(urlLike, window.location.origin);
+        if (u.origin !== window.location.origin) return "";
+        return `${u.pathname}${u.search}${u.hash}`;
+      }
+
+      function normalizeScroll(s) {
+        const y = Number(s);
+        if (!Number.isFinite(y) || y < 0) return "";
+        return String(Math.floor(y));
+      }
+
+      if (backBtn) {
+        backBtn.addEventListener("click", () => {
+          const y = normalizeScroll(scrollRaw);
+          let target = "";
+
+          if (returnTo && returnTo.length) {
+            const p = sameOriginPath(returnTo);
+            if (p) {
+              const u = new URL(p, window.location.origin);
+              if (y) u.searchParams.set("scroll", y);
+              target = `${u.pathname}${u.search}${u.hash}`;
             }
-          });
-        }
-      })();
+          }
+
+          if (!target && back && back.length) {
+            // legacy back= : allow only same-origin
+            target = sameOriginPath(back);
+          }
+
+          if (target) window.location.assign(target);
+          else history.back();
+        });
+      }
+    })();
     </script>
   </body>
 </html>

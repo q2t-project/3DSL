@@ -22,7 +22,6 @@ const demoModel = "/3dss/scene/default/default.3dss.json";
         <div class="home-peek ui-border ui-shadow" aria-hidden="true" data-swipe-ignore>
           <iframe
             class="home-peek__frame"
-            // cache-bust to avoid stale viewer assets (Cloudflare + browser cache)
             src={`/viewer/peek.html?embed=1&model=${encodeURIComponent(demoModel)}&v=20260110b`}
             loading="lazy"
             title="3DSL demo preview"

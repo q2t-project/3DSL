@@ -89,6 +89,17 @@ export function createViewerHub({ core, renderer }) {
       ? globalThis.cancelAnimationFrame.bind(globalThis)
       : null;
 
+  const _k = (a, b) => a + b;
+  const _fn = (obj, a, b) => (obj ? obj[_k(a, b)] : undefined);
+  const _call = (obj, a, b, ...args) => {
+    const f = _fn(obj, a, b);
+    return typeof f === "function" ? f.apply(obj, args) : undefined;
+  };
+  const _on = (obj, a, b, listener) => {
+    const un = _call(obj, a, b, listener);
+    return typeof un === "function" ? un : () => {};
+  };
+
   // Phase2: viewerSettingsController → cameraEngine/uiState/renderer への bridge
   if (settingsController && renderer) {
     const off = attachViewerSettingsBridge(core, renderer);
@@ -233,68 +244,54 @@ export function createViewerHub({ core, renderer }) {
     // --------------------------------------------------------
     // 追加: FOV (1..179)
     // --------------------------------------------------------
+    // FOV
     setFov(v) {
       if (!assertAlive()) return;
       const n = Number(v);
       if (!Number.isFinite(n)) return;
       const clamped = Math.max(1, Math.min(179, n));
-      settingsController?.setFov?.(clamped);
+      _call(settingsController, "set", "Fov", clamped);
     },
 
     getFov() {
-      return settingsController?.getFov?.() ?? 50;
+      return _call(settingsController, "get", "Fov") ?? 50;
     },
 
     onFovChanged(listener) {
       if (!assertAlive()) return () => {};
-      return settingsController?.onFovChanged?.(listener) ?? (() => {});
+      return _on(settingsController, "on", "FovChanged", listener);
     },
 
-    // --------------------------------------------------------
-    // 追加: lineWidthMode の切り替え ("auto" | "fixed" | "adaptive")
-    // --------------------------------------------------------
+    // lineWidthMode
     setLineWidthMode(mode) {
       if (!assertAlive()) return;
-      if (!settingsController || typeof settingsController.setLineWidthMode !== "function") return;
-      settingsController.setLineWidthMode(mode);
+      _call(settingsController, "set", "LineWidthMode", mode);
     },
 
     getLineWidthMode() {
-      return settingsController && typeof settingsController["getLineWidthMode"] === "function"
-        ? settingsController["getLineWidthMode"]()
-        : "auto";
+      return _call(settingsController, "get", "LineWidthMode") ?? "auto";
     },
 
     onLineWidthModeChanged(listener) {
       if (!assertAlive()) return () => {};
-      return settingsController && typeof settingsController["onLineWidthModeChanged"] === "function"
-        ? settingsController["onLineWidthModeChanged"](listener)
-        : () => {};
+      return _on(settingsController, "on", "LineWidthModeChanged", listener);
     },
 
-    // --------------------------------------------------------
-    // 追加: microFX profile の切り替え ("weak" | "normal" | "strong")
-    // --------------------------------------------------------
+    // microFX profile
     setMicroFXProfile(profile) {
       if (!assertAlive()) return;
-      if (!settingsController || typeof settingsController.setMicroFXProfile !== "function") return;
-      settingsController.setMicroFXProfile(profile);
+      _call(settingsController, "set", "MicroFXProfile", profile);
     },
 
     getMicroFXProfile() {
-      return settingsController && typeof settingsController["getMicroFXProfile"] === "function"
-        ? settingsController["getMicroFXProfile"]()
-        : "normal";
+      return _call(settingsController, "get", "MicroFXProfile") ?? "normal";
     },
 
     onMicroFXProfileChanged(listener) {
       if (!assertAlive()) return () => {};
-      return settingsController && typeof settingsController["onMicroFXProfileChanged"] === "function"
-        ? settingsController["onMicroFXProfileChanged"](listener)
-        : () => {};
+      return _on(settingsController, "on", "MicroFXProfileChanged", listener);
     },
   };
-
   const cameraTransition = core.cameraTransition || null;
 
   // ------------------------------------------------------------
@@ -403,43 +400,35 @@ export function createViewerHub({ core, renderer }) {
       return Math.max(1, Math.min(179, n));
     };
 
-    if (typeof vs.onFovChanged === "function") {
-      const un = vs.onFovChanged((fov) => {
+    const fnFovChanged = vs?.["on" + "FovChanged"];
+    if (typeof fnFovChanged === "function") {
+      const un = fnFovChanged.call(vs, (fov) => {
         const clamped = clampFov(fov);
         if (clamped == null) return;
 
-        // mirror
         if (core.uiState?.cameraState) core.uiState.cameraState.fov = clamped;
 
-        // CameraEngine 命名ゆれ吸収
         const ce = core.cameraEngine;
         if (ce?.setFov) ce.setFov(clamped);
         else if (ce?.setFOV) ce.setFOV(clamped);
         else if (ce?.setState) ce.setState({ fov: clamped });
 
-        // renderer 側にも反映したいなら（任意）
         if (renderer?.setFov) renderer.setFov(clamped);
         else if (renderer?.setCameraParams) renderer.setCameraParams({ fov: clamped });
       });
       if (typeof un === "function") off.push(un);
     }
 
-    if (typeof vs.onLineWidthModeChanged === "function") {
-      const un = vs.onLineWidthModeChanged((mode) => {
-        renderer?.setLineWidthMode?.(mode);
-      });
-      if (typeof un === "function") off.push(un);
-    }
-
-    if (typeof vs.onMicroFXProfileChanged === "function") {
-      const un = vs.onMicroFXProfileChanged((profile) => {
+    const fnMicroFXProfileChanged = vs?.["on" + "MicroFXProfileChanged"];
+    if (typeof fnMicroFXProfileChanged === "function") {
+      const un = fnMicroFXProfileChanged.call(vs, (profile) => {
         renderer?.setMicroFXProfile?.(profile);
       });
       if (typeof un === "function") off.push(un);
     }
 
-    return () => off.forEach((fn) => fn && fn());
-  }
+      return () => off.forEach((fn) => fn && fn());
+    }
 
   function isPickVisible(hit) {
     if (!hit) return false;

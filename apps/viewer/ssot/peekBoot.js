@@ -6,6 +6,9 @@
 
 import { bootstrapPeekFromUrl } from "./runtime/bootstrapViewer.js";
 
+// 高DPRで落ちるPC対策（renderer側 setPixelRatio するならそっちでOK）
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+
 function showFatal(err) {
   console.error(err);
   const pre = document.createElement("pre");
@@ -29,6 +32,7 @@ function ensureWebGL(canvas) {
     canvas.getContext("webgl2", { antialias: true }) ||
     canvas.getContext("webgl", { antialias: true }) ||
     canvas.getContext("experimental-webgl");
+
   if (!gl) {
     showFatal(
       "WebGLが使えへんみたいや。\n" +
@@ -41,9 +45,6 @@ function ensureWebGL(canvas) {
   return true;
 }
 
-// 高DPRで落ちるPC対策（three側で setPixelRatio するならそっちでOK）
-const DPR = Math.min(window.devicePixelRatio || 1, 2);
-
 function clamp(v, a, b) {
   return Math.max(a, Math.min(b, v));
 }
@@ -51,13 +52,14 @@ function clamp(v, a, b) {
 function getModelUrlOrThrow() {
   const qs = new URLSearchParams(globalThis.location?.search ?? "");
   const raw = (qs.get("model") || qs.get("scene") || qs.get("src") || "").trim();
-  if (!raw) return new URL("/3dss/scene/default/default.3dss.json", globalThis.location.origin).toString();
+  if (!raw) {
+    return new URL("/3dss/scene/default/default.3dss.json", globalThis.location.origin).toString();
+  }
   if (/^https?:\/\//i.test(raw)) return raw;
   return new URL(raw, globalThis.location.href).toString();
 }
 
 function installOrbitInput(canvas, cam) {
-  // cam is PeekHandle.camera (public surface)
   if (!cam) throw new Error("[peekBoot] camera is missing");
 
   const missing = ["rotate", "pan", "zoom"].filter((k) => typeof cam?.[k] !== "function");
@@ -98,12 +100,8 @@ function installOrbitInput(canvas, cam) {
   }
 
   function onPointerDown(e) {
-    try {
-      e.preventDefault();
-    } catch (_e) {}
-    try {
-      canvas.setPointerCapture(e.pointerId);
-    } catch (_e) {}
+    try { e.preventDefault(); } catch (_e) {}
+    try { canvas.setPointerCapture(e.pointerId); } catch (_e) {}
 
     if (e.pointerType === "touch") {
       setTouch(e);
@@ -132,9 +130,7 @@ function installOrbitInput(canvas, cam) {
     if (e.pointerType === "touch") {
       if (!touches.has(e.pointerId)) return;
       setTouch(e);
-      try {
-        e.preventDefault();
-      } catch (_e) {}
+      try { e.preventDefault(); } catch (_e) {}
 
       if (touches.size === 1 && activeId === e.pointerId) {
         const dx = e.clientX - lastX;
@@ -166,9 +162,7 @@ function installOrbitInput(canvas, cam) {
     }
 
     if (activeId !== e.pointerId) return;
-    try {
-      e.preventDefault();
-    } catch (_e) {}
+    try { e.preventDefault(); } catch (_e) {}
 
     const dx = e.clientX - lastX;
     const dy = e.clientY - lastY;
@@ -180,9 +174,7 @@ function installOrbitInput(canvas, cam) {
   }
 
   function onPointerUp(e) {
-    try {
-      e.preventDefault?.();
-    } catch (_e) {}
+    try { e.preventDefault?.(); } catch (_e) {}
 
     if (e.pointerType === "touch") {
       if (touches.has(e.pointerId)) delTouch(e);
@@ -206,17 +198,13 @@ function installOrbitInput(canvas, cam) {
   }
 
   function onWheel(e) {
-    try {
-      e.preventDefault();
-    } catch (_e) {}
+    try { e.preventDefault(); } catch (_e) {}
     const dy = clamp(Number(e.deltaY) || 0, -1200, 1200);
     cam.zoom(dy);
   }
 
   function onContextMenu(e) {
-    try {
-      e.preventDefault();
-    } catch (_e) {}
+    try { e.preventDefault(); } catch (_e) {}
   }
 
   canvas.addEventListener("pointerdown", onPointerDown, { passive: false });
@@ -225,6 +213,16 @@ function installOrbitInput(canvas, cam) {
   canvas.addEventListener("pointercancel", onPointerUp, { passive: false });
   canvas.addEventListener("wheel", onWheel, { passive: false });
   canvas.addEventListener("contextmenu", onContextMenu);
+
+  // cleanup を返しとく（host責務）
+  return () => {
+    canvas.removeEventListener("pointerdown", onPointerDown);
+    canvas.removeEventListener("pointermove", onPointerMove);
+    canvas.removeEventListener("pointerup", onPointerUp);
+    canvas.removeEventListener("pointercancel", onPointerUp);
+    canvas.removeEventListener("wheel", onWheel);
+    canvas.removeEventListener("contextmenu", onContextMenu);
+  };
 }
 
 (async function main() {
@@ -243,15 +241,38 @@ function installOrbitInput(canvas, cam) {
 
   const modelUrl = getModelUrlOrThrow();
 
- const peek = await bootstrapPeekFromUrl(canvas, modelUrl, { dpr: DPR, autoStart: true });
+  const peek = await bootstrapPeekFromUrl(canvas, modelUrl, { dpr: DPR });
   if (!peek) throw new Error("[peekBoot] bootstrap returned null peek handle");
 
-  installOrbitInput(canvas, peek.camera);
+  // レンダーループ開始は host が握る
+  peek.start?.();
+
+  const uninstallInput = installOrbitInput(canvas, peek.camera);
+
+  function resizeToCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    const w = Math.max(1, Math.floor(rect.width));
+    const h = Math.max(1, Math.floor(rect.height));
+    peek.resize?.(w, h, DPR);
+  }
+
+  resizeToCanvas();
+  window.addEventListener("resize", resizeToCanvas, { passive: true });
+
+  // 任意：離脱時の後始末
+  window.addEventListener(
+    "pagehide",
+    () => {
+      window.removeEventListener("resize", resizeToCanvas);
+      try { uninstallInput?.(); } catch (_e) {}
+      peek.dispose?.();
+    },
+    { passive: true }
+  );
 
   // debug: ?dbgPeek=1 の時だけ露出（Hubは露出しない）
   try {
     const sp = new URLSearchParams(globalThis.location?.search ?? "");
     if (sp.get("dbgPeek") === "1") globalThis.__peek = { peek, modelUrl, DPR };
   } catch (_e) {}
-
 })().catch(showFatal);

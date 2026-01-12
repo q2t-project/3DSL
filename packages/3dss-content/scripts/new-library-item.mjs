@@ -115,7 +115,7 @@ function main() {
       document_title: title,
       document_summary: '',
       document_uuid: crypto.randomUUID(),
-      schema_uri: 'https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.1.1',
+      schema_uri: 'https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.1.3',
       author: process.env.USERNAME || process.env.USER || 'unknown',
       version: '1.0.0',
     },

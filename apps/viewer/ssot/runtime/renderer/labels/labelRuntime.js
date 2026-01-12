@@ -111,12 +111,7 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
   const frustum = new THREE.Frustum();
   const projScreenMatrix = new THREE.Matrix4();
 
-  // plane-fixed label helpers (avoid mirrored text from backside)
-  const planeNormals = new Map([
-    ["xy", new THREE.Vector3(0, 0, 1)],
-    ["yz", new THREE.Vector3(1, 0, 0)],
-    ["zx", new THREE.Vector3(0, 1, 0)],
-  ]);
+  // fixed label helpers (avoid mirrored text from backside)
   const flipQuatLocalY = new THREE.Quaternion().setFromAxisAngle(
     new THREE.Vector3(0, 1, 0),
     Math.PI,
@@ -246,13 +241,13 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
     for (const [uuid, entry] of pointLabelIndex.entries()) {
       if (!entry || entry.kind !== "points") continue;
 
-      // entry が変わったら貼り替え（text/size/font/align/plane）
+      // entry が変わったら貼り替え（text/size/font/align/pose）
       const entryKey = [
         entry.text ?? "",
         `s=${Number(entry.size) || 8}`,
         `f=${entry.font?.key ?? entry.font ?? ""}`,
         `a=${entry.align?.key ?? entry.align ?? ""}`,
-        `p=${entry.plane ?? ""}`,
+        `p=${entry.pose?.key ?? ""}`,
       ].join("|");
 
       const cur = labels.get(uuid);
@@ -305,7 +300,12 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
   }
 
   function update(cameraState, visibleSet) {
-    if (!pointObjects || !cameraState) return;
+    // pointObjects / cameraState が無いとき、前回の visible が残るのを防ぐ
+    if (!pointObjects || !cameraState) {
+      for (const { obj } of labels.values()) obj.visible = false;
+      stats.labelVisible = 0;
+      return;
+    }
 
     const lod = labelConfig?.lod || {};
     const lodEnabled = lod.enabled !== false;
@@ -386,6 +386,13 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
     const wcfg = labelConfig.world || {};
     const baseLabelSize = Number(labelConfig.baseLabelSize) || 8;
 
+    // up axis: 既定は Z（3DSL の "Z+up/freeXY" 前提）
+    // 互換のため設定で 'y' も選べるようにしておく
+    const upAxis =
+      (wcfg.upAxis === "y" || wcfg.upAxis === "z")
+        ? wcfg.upAxis
+        : "z";
+
     const baseHeight = Number.isFinite(Number(wcfg.scalePerCameraDistance))
       ? camDist * Number(wcfg.scalePerCameraDistance)
       : (Number(wcfg.baseHeight) || 0.2);
@@ -426,7 +433,9 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
       if (minH != null) h = Math.max(h, minH);
       if (maxH != null) h = Math.min(h, maxH);
 
-      obj.position.y += h * offsetYFactor;
+      const lift = h * offsetYFactor;
+      if (upAxis === "y") obj.position.y += lift;
+      else obj.position.z += lift;
 
       const aspect = Number(obj.userData?.__labelAspect) || 1;
 
@@ -495,11 +504,10 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
 
       obj.scale.set(h * aspect * scaleMul, h * scaleMul, 1);
 
-      // plane fixed: flip 180deg (local-Y) when camera is behind the plane
+      // fixed pose: flip 180deg (local-Y) when camera is behind the plane
       if (hasCameraPos && !obj.isSprite) {
-        const plane = obj.userData?.__labelPlane;
         const baseQuat = obj.userData?.__labelBaseQuat;
-        const normal = planeNormals.get(plane);
+        const normal = obj.userData?.__labelNormal;
         if (normal && baseQuat && typeof baseQuat === "object") {
           tmpToCam.copy(tmpCamPos).sub(obj.position);
           const dot = normal.dot(tmpToCam);

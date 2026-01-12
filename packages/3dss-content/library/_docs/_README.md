@@ -21,9 +21,10 @@ Each item folder must contain:
 - `_meta.json` (editorial + SEO metadata)
 - `model.3dss.json` (3DSS content)
 
-Optional files (recommended):
+ Optional files:
 
-- `thumb.webp` (card thumb / OGP fallback)
+- Any assets referenced by `_meta.json` SEO fields (e.g. `seo.og_image`).
+  If you use a local file, place it under the same item folder so it can be published together.
 
 ## `_meta.json`
 

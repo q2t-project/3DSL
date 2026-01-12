@@ -20,7 +20,7 @@ const pageDescription = (item.meta_description ?? item.summary ?? "3DSL Library 
 const canonical = Astro.url?.href ?? `/library/${item.slug}`;
 const origin = Astro.url?.origin ?? "";
 
-const ogImageRaw = (item.meta_og_image ?? item.thumb ?? null);
+const ogImageRaw = (item.meta_og_image ?? null);
 const ogImage = (typeof ogImageRaw === "string" && ogImageRaw)
   ? (ogImageRaw.startsWith("/") ? `${origin}${ogImageRaw}` : ogImageRaw)
   : null;
@@ -49,6 +49,7 @@ function toAppViewerUrl(viewerUrl: string, back: string) {
     const q = new URLSearchParams();
     q.set("model", model);
     q.set("back", back);
+    q.set("return", back);
     const mode = u.searchParams.get("mode");
     if (mode) q.set("mode", mode);
     const src = u.searchParams.get("src");
@@ -85,15 +86,6 @@ function toAppViewerUrl(viewerUrl: string, back: string) {
 
   <h1 class="mt-4 text-2xl font-medium">{item.title}</h1>
   {item.summary ? <p class="mt-2 text-neutral-200">{item.summary}</p> : null}
-
-  {item.thumb ? (
-    <img
-      src={item.thumb}
-      alt={item.title}
-      class="mt-6 w-full rounded-2xl border border-white/10"
-      loading="lazy"
-    />
-  ) : null}
 
   <div class="mt-6 flex flex-wrap gap-3">
     <a

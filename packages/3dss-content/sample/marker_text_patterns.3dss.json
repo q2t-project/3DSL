@@ -1,245 +1,319 @@
 {
   "document_meta": {
-    "document_uuid": "b0fcb0e2-66a6-4f7b-92c4-0c6e86b4b1f1",
-    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.1.1",
-    "author": "viewer-spec",
+    "document_title": "marker.text patterns (schema-valid)",
+    "document_summary": "Viewer fallback default sample (v1.1.3). Minimal primitives + text + lines.",
+    "document_uuid": "265b2df4-0357-44a0-a796-ab7b62534609",
     "version": "1.0.0",
+    "updated_at": "2026-01-11T00:00:00Z",
+    "tags": [
+      "s:3dsl",
+      "s:sample",
+      "m:default"
+    ],
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
+    "generator": "https://q2t-project.github.io/3dsl/",
+    "reference": "default scene",
     "coordinate_system": "Z+up/freeXY",
-    "units": "mm",
+    "units": "non_si:px",
     "i18n": "ja",
-    "creator_memo": "marker.text の解釈確認用サンプル（align/plane/size/font/content の全パターンを含む）"
+    "author": "q2t-project",
+    "creator_memo": "marker.text の解釈確認用（align/size/font/content）"
   },
   "points": [
     {
-      "meta": { "uuid": "MT_ALIGN_LT" },
+      "meta": {
+        "uuid": "d88d188a-e88b-426c-a754-f4c58199cb20"
+      },
       "appearance": {
-        "position": [0, 0, 0],
-        "color": "#ff7766",
+        "position": [
+          0,
+          0,
+          0
+        ],
         "marker": {
-          "primitive": "none",
-          "text": { "content": "align left top", "align": "left top", "plane": "billboard" }
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "opacity": 0.9,
+            "emissive": false,
+            "wireframe": false,
+            "color": "#ffffff"
+          },
+          "text": {
+            "content": "left&top",
+            "pose": {
+              "mode": "billboard",
+              "up": "+z",
+              "roll": 0
+            },
+            "size": 0.6,
+            "align": "left&top",
+            "font": "italic 700 serif"
+          }
         }
       }
     },
     {
-      "meta": { "uuid": "MT_ALIGN_CT" },
+      "meta": {
+        "uuid": "f027efde-cc40-4e20-adb8-5c6a153e1f9b"
+      },
       "appearance": {
-        "position": [2, 0, 0],
-        "color": "#ffbb66",
+        "position": [
+          3,
+          0,
+          0
+        ],
         "marker": {
-          "primitive": "none",
-          "text": { "content": "align center top", "align": "center top", "plane": "billboard" }
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "opacity": 0.9,
+            "emissive": false,
+            "wireframe": false,
+            "color": "#ffffff"
+          },
+          "text": {
+            "content": "center&top",
+            "pose": {
+              "mode": "billboard",
+              "up": "+z",
+              "roll": 0
+            },
+            "size": 0.6,
+            "align": "center&top",
+            "font": "700 monospace"
+          }
         }
       }
     },
     {
-      "meta": { "uuid": "MT_ALIGN_RT" },
+      "meta": {
+        "uuid": "6b5cb87f-8c85-4bd8-81d2-c83b3e8cb308"
+      },
       "appearance": {
-        "position": [4, 0, 0],
-        "color": "#ffee66",
+        "position": [
+          6,
+          0,
+          0
+        ],
         "marker": {
-          "primitive": "none",
-          "text": { "content": "align right top", "align": "right top", "plane": "billboard" }
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "opacity": 0.9,
+            "emissive": false,
+            "wireframe": false,
+            "color": "#ffffff"
+          },
+          "text": {
+            "content": "right&top",
+            "pose": {
+              "mode": "billboard",
+              "up": "+z",
+              "roll": 0
+            },
+            "size": 0.6,
+            "align": "right&top",
+            "font": "italic 700 serif"
+          }
         }
       }
     },
     {
-      "meta": { "uuid": "MT_ALIGN_LM" },
+      "meta": {
+        "uuid": "06924223-4015-4813-aac0-af9b98ad2902"
+      },
       "appearance": {
-        "position": [0, 2, 0],
-        "color": "#aaff66",
+        "position": [
+          0,
+          2.2,
+          0
+        ],
         "marker": {
-          "primitive": "none",
-          "text": { "content": "align left middle", "align": "left middle", "plane": "billboard" }
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "opacity": 0.9,
+            "emissive": false,
+            "wireframe": false,
+            "color": "#ffffff"
+          },
+          "text": {
+            "content": "left&middle",
+            "pose": {
+              "mode": "billboard",
+              "up": "+z",
+              "roll": 0
+            },
+            "size": 0.6,
+            "align": "left&middle",
+            "font": "700 monospace"
+          }
         }
       }
     },
     {
-      "meta": { "uuid": "MT_ALIGN_CM" },
+      "meta": {
+        "uuid": "4a707437-3f9c-4a2a-b301-f3f07e60281e"
+      },
       "appearance": {
-        "position": [2, 2, 0],
-        "color": "#66ff88",
+        "position": [
+          3,
+          2.2,
+          0
+        ],
         "marker": {
-          "primitive": "none",
-          "text": { "content": "align center middle", "align": "center middle", "plane": "billboard" }
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "opacity": 0.9,
+            "emissive": false,
+            "wireframe": false,
+            "color": "#ffffff"
+          },
+          "text": {
+            "content": "center&middle",
+            "pose": {
+              "mode": "billboard",
+              "up": "+z",
+              "roll": 0
+            },
+            "size": 0.6,
+            "align": "center&middle",
+            "font": "italic 700 serif"
+          }
         }
       }
     },
     {
-      "meta": { "uuid": "MT_ALIGN_RM" },
+      "meta": {
+        "uuid": "c0d7da1e-8672-4525-b87a-70793d06f74a"
+      },
       "appearance": {
-        "position": [4, 2, 0],
-        "color": "#66ffcc",
+        "position": [
+          6,
+          2.2,
+          0
+        ],
         "marker": {
-          "primitive": "none",
-          "text": { "content": "align right middle", "align": "right middle", "plane": "billboard" }
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "opacity": 0.9,
+            "emissive": false,
+            "wireframe": false,
+            "color": "#ffffff"
+          },
+          "text": {
+            "content": "right&middle",
+            "pose": {
+              "mode": "billboard",
+              "up": "+z",
+              "roll": 0
+            },
+            "size": 0.6,
+            "align": "right&middle",
+            "font": "700 monospace"
+          }
         }
       }
     },
     {
-      "meta": { "uuid": "MT_ALIGN_LB" },
+      "meta": {
+        "uuid": "6709f594-9aa1-4e5a-8b17-9ff1a0801a49"
+      },
       "appearance": {
-        "position": [0, 4, 0],
-        "color": "#66ccff",
+        "position": [
+          0,
+          4.4,
+          0
+        ],
         "marker": {
-          "primitive": "none",
-          "text": { "content": "align left baseline", "align": "left baseline", "plane": "billboard" }
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "opacity": 0.9,
+            "emissive": false,
+            "wireframe": false,
+            "color": "#ffffff"
+          },
+          "text": {
+            "content": "left&baseline",
+            "pose": {
+              "mode": "billboard",
+              "up": "+z",
+              "roll": 0
+            },
+            "size": 0.6,
+            "align": "left&baseline",
+            "font": "italic 700 serif"
+          }
         }
       }
     },
     {
-      "meta": { "uuid": "MT_ALIGN_CB" },
+      "meta": {
+        "uuid": "fa54e428-9915-43bc-a913-45f913003eca"
+      },
       "appearance": {
-        "position": [2, 4, 0],
-        "color": "#6688ff",
+        "position": [
+          3,
+          4.4,
+          0
+        ],
         "marker": {
-          "primitive": "none",
-          "text": { "content": "align center baseline", "align": "center baseline", "plane": "billboard" }
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "opacity": 0.9,
+            "emissive": false,
+            "wireframe": false,
+            "color": "#ffffff"
+          },
+          "text": {
+            "content": "center&baseline",
+            "pose": {
+              "mode": "billboard",
+              "up": "+z",
+              "roll": 0
+            },
+            "size": 0.6,
+            "align": "center&baseline",
+            "font": "700 monospace"
+          }
         }
       }
     },
     {
-      "meta": { "uuid": "MT_ALIGN_RB" },
+      "meta": {
+        "uuid": "ba6e6086-2751-448a-b319-db21eab96959"
+      },
       "appearance": {
-        "position": [4, 4, 0],
-        "color": "#9966ff",
+        "position": [
+          6,
+          4.4,
+          0
+        ],
         "marker": {
-          "primitive": "none",
-          "text": { "content": "align right baseline", "align": "right baseline", "plane": "billboard" }
-        }
-      }
-    },
-    {
-      "meta": { "uuid": "MT_PLANE_BILLBOARD" },
-      "appearance": {
-        "position": [0, 6, 0],
-        "color": "#ff99cc",
-        "marker": {
-          "primitive": "none",
-          "text": { "content": "plane billboard", "plane": "billboard" }
-        }
-      }
-    },
-    {
-      "meta": { "uuid": "MT_PLANE_XY" },
-      "appearance": {
-        "position": [2, 6, 0],
-        "color": "#ff6699",
-        "marker": {
-          "primitive": "none",
-          "text": { "content": "plane xy", "plane": "xy" }
-        }
-      }
-    },
-    {
-      "meta": { "uuid": "MT_PLANE_YZ" },
-      "appearance": {
-        "position": [4, 6, 0],
-        "color": "#ff6677",
-        "marker": {
-          "primitive": "none",
-          "text": { "content": "plane yz", "plane": "yz" }
-        }
-      }
-    },
-    {
-      "meta": { "uuid": "MT_PLANE_ZX" },
-      "appearance": {
-        "position": [6, 6, 0],
-        "color": "#ff6644",
-        "marker": {
-          "primitive": "none",
-          "text": { "content": "plane zx", "plane": "zx" }
-        }
-      }
-    },
-    {
-      "meta": { "uuid": "MT_SIZE_4" },
-      "appearance": {
-        "position": [0, 8, 0],
-        "color": "#ffaa55",
-        "marker": {
-          "primitive": "none",
-          "text": { "content": "size 4", "size": 4 }
-        }
-      }
-    },
-    {
-      "meta": { "uuid": "MT_SIZE_8" },
-      "appearance": {
-        "position": [2, 8, 0],
-        "color": "#ffdd55",
-        "marker": {
-          "primitive": "none",
-          "text": { "content": "size 8", "size": 8 }
-        }
-      }
-    },
-    {
-      "meta": { "uuid": "MT_SIZE_16" },
-      "appearance": {
-        "position": [4, 8, 0],
-        "color": "#ffff55",
-        "marker": {
-          "primitive": "none",
-          "text": { "content": "size 16", "size": 16 }
-        }
-      }
-    },
-    {
-      "meta": { "uuid": "MT_FONT_DEFAULT" },
-      "appearance": {
-        "position": [0, 10, 0],
-        "color": "#99ff77",
-        "marker": {
-          "primitive": "none",
-          "text": { "content": "font default", "font": "helvetiker_regular" }
-        }
-      }
-    },
-    {
-      "meta": { "uuid": "MT_FONT_SERIF" },
-      "appearance": {
-        "position": [2, 10, 0],
-        "color": "#66ff99",
-        "marker": {
-          "primitive": "none",
-          "text": { "content": "font serif", "font": "serif" }
-        }
-      }
-    },
-    {
-      "meta": { "uuid": "MT_FONT_STYLE" },
-      "appearance": {
-        "position": [4, 10, 0],
-        "color": "#55ffcc",
-        "marker": {
-          "primitive": "none",
-          "text": { "content": "font italic 700 monospace", "font": "italic 700 monospace" }
-        }
-      }
-    },
-    {
-      "meta": { "uuid": "MT_CONTENT_FALLBACK" },
-      "signification": { "name": { "ja": "content fallback", "en": "content fallback" } },
-      "appearance": {
-        "position": [0, 12, 0],
-        "color": "#66ccff",
-        "marker": {
-          "primitive": "none",
-          "text": { "content": "" }
-        }
-      }
-    },
-    {
-      "meta": { "uuid": "MT_CONTENT_OVERRIDE" },
-      "signification": { "name": { "ja": "ignored name", "en": "ignored name" } },
-      "appearance": {
-        "position": [2, 12, 0],
-        "color": "#6699ff",
-        "marker": {
-          "primitive": "none",
-          "text": { "content": "content override" }
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "opacity": 0.9,
+            "emissive": false,
+            "wireframe": false,
+            "color": "#ffffff"
+          },
+          "text": {
+            "content": "right&baseline",
+            "pose": {
+              "mode": "billboard",
+              "up": "+z",
+              "roll": 0
+            },
+            "size": 0.6,
+            "align": "right&baseline",
+            "font": "italic 700 serif"
+          }
         }
       }
     }

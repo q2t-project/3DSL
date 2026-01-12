@@ -10,7 +10,7 @@
       "s:concept",
       "m:top"
     ],
-    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.1.1",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.1.3",
     "generator": "https://q2t-project.github.io/3dsl/",
     "reference": "26010501 3dsl-concept",
     "coordinate_system": "Z+up/freeXY",

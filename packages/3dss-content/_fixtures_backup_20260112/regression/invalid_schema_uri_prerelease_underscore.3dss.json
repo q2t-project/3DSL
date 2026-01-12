@@ -1,0 +1,12 @@
+{
+  "document_meta": {
+    "document_title": "schema_uri invalid prerelease underscore",
+    "document_uuid": "550e8400-e29b-41d4-a716-446655440000",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.1.3-alpha_1",
+    "author": "tester@example.com",
+    "version": "1.0.0"
+  },
+  "points": [],
+  "lines": [],
+  "aux": []
+}
