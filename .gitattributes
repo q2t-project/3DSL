@@ -1,2 +1,3 @@
 apps/viewer/ssot/_generated/*.md text eol=lf
 .gitattributes text eol=lf
+packages/3dss-content/library/_docs/_META_TEMPLATE.json text eol=lf
