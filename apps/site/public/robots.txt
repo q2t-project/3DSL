@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /app/
+Disallow: /viewer/
+Disallow: /canonical/
+Disallow: /modeler/
+Sitemap: https://3dsl.jp/sitemap-index.xml
