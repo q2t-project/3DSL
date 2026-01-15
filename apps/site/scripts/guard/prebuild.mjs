@@ -94,7 +94,7 @@ if (exists(publicViewerDir)) {
 // viewer runtime 依存（これが無いと「200出てるのに中身死ぬ」を起こす）
 const req = [
   path.join(publicDir, "3dss", "3dss", "release", "3DSS.schema.json"),
-  path.join(publicDir, "3dss", "sample", "3dsl_concept.3dss.json"),
+  path.join(publicDir, "3dss", "scenes", "default", "dafault.3dss.json"),
   path.join(publicDir, "vendor", "three", "build", "three.module.js"),
   path.join(publicDir, "3dss", "scenes", "default", "default.3dss.json"),
 ];
