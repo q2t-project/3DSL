@@ -1,5 +1,10 @@
-// apps/site/scripts/check-boundary.mjs
-// apps/site/src/** must never reference packages/3dss-content (even read-only).
+// apps/site/scripts/check/boundary.mjs
+// apps/site/src/** must never *import* or otherwise depend on packages/3dss-content.
+//
+// NOTE:
+// - apps/site/src/content/** contains Markdown content mirrored from SSOT docs.
+//   Those files may mention "packages/..." as plain text and must NOT be treated
+//   as dependency edges.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -11,7 +16,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const siteRoot = path.resolve(__dirname, "..", "..");
 
 const SRC_ROOT = path.resolve(siteRoot, "src"); // apps/site/src
-const EXT_OK = new Set([".astro", ".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx", ".json", ".md", ".mdx", ".css"]);
+
+// Scan only code-like source files. Do NOT scan Markdown/MDX content.
+const EXT_OK = new Set([".astro", ".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx", ".json"]);
 
 const FORBIDDEN = [
   { name: "packages/3dss-content", re: /packages[\\/]+3dss-content/ig },
@@ -22,8 +29,15 @@ const FORBIDDEN = [
 function walk(dir, out = []) {
   for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, ent.name);
-    if (ent.isDirectory()) walk(p, out);
-    else if (EXT_OK.has(path.extname(ent.name))) out.push(p);
+    if (ent.isDirectory()) {
+      // Content collections live under src/content/** and must not be scanned.
+      if (p.includes(`${path.sep}src${path.sep}content${path.sep}`)) continue;
+      walk(p, out);
+      continue;
+    }
+
+    if (!EXT_OK.has(path.extname(ent.name))) continue;
+    out.push(p);
   }
   return out;
 }
