@@ -1,6 +1,8 @@
 // packages/3dss-content/scripts/build-library-dist.mjs
 // SSOT: packages/3dss-content/library/<ID>/
-// Output payload root: packages/3dss-content/dist/**  (to be mirrored into apps/site/public/**)
+// Output payload root:
+// - default: packages/3dss-content/dist/**
+// - --out <path>: <path>/**  (intended: apps/site/public/**)
 
 import fs from "node:fs";
 import path from "node:path";
@@ -8,18 +10,41 @@ import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const ROOT = path.resolve(__dirname, "..");
+const ROOT = path.resolve(__dirname, "..");                 // packages/3dss-content
+const REPO_ROOT = path.resolve(ROOT, "..", "..");          // repo root
+
+function readArg(name) {
+  const i = process.argv.indexOf(name);
+  if (i >= 0 && process.argv[i + 1]) return String(process.argv[i + 1]);
+  return null;
+}
+
+function resolveOutRoot(repoRoot, outArg) {
+  if (!outArg) return null;
+  // absolute path is respected; relative path is resolved from repo root
+  if (path.isAbsolute(outArg)) return path.resolve(outArg);
+  return path.resolve(repoRoot, outArg);
+}
+
+const outArg = readArg("--out");
+const outRoot = resolveOutRoot(REPO_ROOT, outArg);
 
 const LIBRARY_DIR = path.join(ROOT, "library");
 const SAMPLE_DIR = path.join(ROOT, "sample");
 const CANONICAL_DIR = path.join(ROOT, "canonical");
-const DIST_DIR = path.join(ROOT, "dist");
-
+const SCENES_DIR = path.join(ROOT, "scenes");
+const DIST_DIR = outRoot ? outRoot : path.join(ROOT, "dist");
 const OUT_3DSS_DIR = path.join(DIST_DIR, "3dss");
+
+const OUT_3DSS_RELEASE_DIR = path.join(OUT_3DSS_DIR, "release");
+
+const OUT_3DSS_SCENE_DIR = path.join(OUT_3DSS_DIR, "scene");
 const OUT_3DSS_SAMPLE_DIR = path.join(OUT_3DSS_DIR, "sample");
 const OUT_3DSS_CANONICAL_DIR = path.join(OUT_3DSS_DIR, "canonical");
 const OUT_3DSS_LIBRARY_DIR = path.join(OUT_3DSS_DIR, "library");
 const OUT_LIBRARY_DIR = path.join(DIST_DIR, "library");
+
+const SCHEMAS_RELEASE_DIR = path.join(ROOT, "..", "schemas", "release");
 
 const ID_RE = /^\d{6}[0-9a-z]{2}$/;
 
@@ -46,7 +71,11 @@ function existsFile(p) {
 }
 
 function cleanDist() {
-  fs.rmSync(DIST_DIR, { recursive: true, force: true });
+  // IMPORTANT:
+  // Never delete DIST_DIR itself because it may be apps/site/public.
+  // Only remove our output subtrees.
+  rmIfExists(OUT_3DSS_DIR);
+  rmIfExists(OUT_LIBRARY_DIR);
 }
 
 function toEpoch(s) {
@@ -112,16 +141,48 @@ function pickSeo(meta, titleFallback, descFallback) {
   };
 }
 
+function newestVersionDir(root) {
+  if (!fs.existsSync(root)) return null;
+  const dirs = fs
+    .readdirSync(root, { withFileTypes: true })
+    .filter((d) => d.isDirectory() && /^v\d+\.\d+\.\d+$/.test(d.name))
+    .map((d) => d.name)
+    .sort(); // lex sort works for v1.1.3 style (same digit width); good enough here
+  return dirs.length ? dirs[dirs.length - 1] : null;
+}
+
+function copySchemasRelease(srcReleaseDir, dstReleaseDir) {
+  if (!fs.existsSync(srcReleaseDir)) return;
+
+  rmIfExists(dstReleaseDir);
+  ensureDir(dstReleaseDir);
+  fs.cpSync(srcReleaseDir, dstReleaseDir, { recursive: true });
+
+  // latest alias: release/3DSS.schema.json -> release/vX.Y.Z/3DSS.schema.json
+  const latest = newestVersionDir(dstReleaseDir);
+  if (latest) {
+    const latestSchema = path.join(dstReleaseDir, latest, "3DSS.schema.json");
+    const aliasSchema = path.join(dstReleaseDir, "3DSS.schema.json");
+    if (existsFile(latestSchema)) fs.copyFileSync(latestSchema, aliasSchema);
+  }
+}
+
+function rmIfExists(p) {
+  fs.rmSync(p, { recursive: true, force: true });
+}
+
 function main() {
   if (!fs.existsSync(LIBRARY_DIR)) {
     throw new Error(`library dir not found: ${LIBRARY_DIR}`);
   }
 
   cleanDist();
+  ensureDir(OUT_3DSS_SCENE_DIR);
   ensureDir(OUT_3DSS_LIBRARY_DIR);
   ensureDir(OUT_LIBRARY_DIR);
   ensureDir(OUT_3DSS_CANONICAL_DIR);
   ensureDir(OUT_3DSS_SAMPLE_DIR);
+  ensureDir(OUT_3DSS_RELEASE_DIR);
 
   const ids = fs
     .readdirSync(LIBRARY_DIR, { withFileTypes: true })
@@ -222,6 +283,16 @@ function main() {
     fs.cpSync(CANONICAL_DIR, OUT_3DSS_CANONICAL_DIR, { recursive: true });
   }
 
+  // copy scenes (site expects /3dss/scene/...)
+  if (fs.existsSync(SCENES_DIR)) {
+    fs.cpSync(SCENES_DIR, OUT_3DSS_SCENE_DIR, { recursive: true });
+  }
+
+// copy schemas release (viewer runtime expects /3dss/release/...)
+copySchemasRelease(SCHEMAS_RELEASE_DIR, OUT_3DSS_RELEASE_DIR);
+
+  // compat: some paths may be prefixed twice (/3dss/release/...)
+
   // optional editorial mirroring (if you choose to place SSOT here)
   const editorialSrc = path.join(ROOT, "editorial", "library.editorial.json");
   if (existsFile(editorialSrc)) {
@@ -229,7 +300,7 @@ function main() {
     fs.copyFileSync(editorialSrc, path.join(OUT_LIBRARY_DIR, "editorial.json"));
   }
 
-  console.log(`[build:dist] OK items=${items.length}`);
+  console.log(`[build:${outArg ? "out" : "dist"}] OK out=${DIST_DIR} items=${items.length}`);
 }
 
 main();
