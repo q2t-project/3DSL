@@ -14,7 +14,7 @@
 
 - SSOT (authoritative)
   - sample
-    - `C:\Users\vrrrm\projects\3DSL\packages\3dss-content\sample\3dsl_concept.3dss.json`
+    - `C:\Users\vrrrm\projects\3DSL\packages\3dss-content\scenes\default/default.3dss.json`
   - canonical
     - valid
       - `C:\Users\vrrrm\projects\3DSL\packages\3dss-content\canonical\valid\sample02_mixed_basic.3dss.json`
@@ -37,8 +37,8 @@
 
 ## Viewer URL
 
-- Site container: `/app/viewer?model=/3dss/sample/3dsl_concept.3dss.json`
-- Viewer runtime: `/viewer?model=/3dss/sample/3dsl_concept.3dss.json`
+- Site container: `/app/viewer?model=/3dss/scenes/default/default.3dss.json`
+- Viewer runtime: `/viewer?model=/3dss/scenes/default/default.3dss.json`
 
 ## Sync (PowerShell robocopy examples)
 

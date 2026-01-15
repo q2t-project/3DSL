@@ -96,7 +96,7 @@ const req = [
   path.join(publicDir, "3dss", "3dss", "release", "3DSS.schema.json"),
   path.join(publicDir, "3dss", "sample", "3dsl_concept.3dss.json"),
   path.join(publicDir, "vendor", "three", "build", "three.module.js"),
-  path.join(publicDir, "vendor", "ajv", "dist", "ajv.bundle.js"),
+  path.join(publicDir, "3dss", "scenes", "default", "default.3dss.json"),
 ];
 
 for (const p of req) {

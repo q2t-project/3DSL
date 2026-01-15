@@ -12,11 +12,13 @@ const ROOT = path.resolve(__dirname, "..");
 
 const LIBRARY_DIR = path.join(ROOT, "library");
 const SAMPLE_DIR = path.join(ROOT, "sample");
+const SCENES_DIR = path.join(ROOT, "scenes");
 const CANONICAL_DIR = path.join(ROOT, "canonical");
 const DIST_DIR = path.join(ROOT, "dist");
 
 const OUT_3DSS_DIR = path.join(DIST_DIR, "3dss");
 const OUT_3DSS_SAMPLE_DIR = path.join(OUT_3DSS_DIR, "sample");
+const OUT_3DSS_SCENES_DIR = path.join(OUT_3DSS_DIR, "scenes");
 const OUT_3DSS_CANONICAL_DIR = path.join(OUT_3DSS_DIR, "canonical");
 const OUT_3DSS_LIBRARY_DIR = path.join(OUT_3DSS_DIR, "library");
 const OUT_LIBRARY_DIR = path.join(DIST_DIR, "library");
@@ -122,6 +124,7 @@ function main() {
   ensureDir(OUT_LIBRARY_DIR);
   ensureDir(OUT_3DSS_CANONICAL_DIR);
   ensureDir(OUT_3DSS_SAMPLE_DIR);
+  ensureDir(OUT_3DSS_SCENES_DIR);
 
   const ids = fs
     .readdirSync(LIBRARY_DIR, { withFileTypes: true })
@@ -212,9 +215,19 @@ function main() {
     generated_at: new Date().toISOString(),
     items,
   });
-  // copy 3dss sample (viewer default expects /3dss/sample/...)
+  // copy 3dss sample (legacy: /3dss/sample/...)
   if (fs.existsSync(SAMPLE_DIR)) {
     fs.cpSync(SAMPLE_DIR, OUT_3DSS_SAMPLE_DIR, { recursive: true });
+  }
+
+  // copy 3dss scenes (default entry: /3dss/scenes/...)
+  if (!fs.existsSync(SCENES_DIR)) {
+    throw new Error(`[build:dist] Missing SSOT dir: ${SCENES_DIR}`);
+  }
+  fs.cpSync(SCENES_DIR, OUT_3DSS_SCENES_DIR, { recursive: true });
+  const scenesProbe = path.join(OUT_3DSS_SCENES_DIR, "default", "default.3dss.json");
+  if (!fs.existsSync(scenesProbe)) {
+    throw new Error(`[build:dist] scenes copy failed: ${scenesProbe}`);
   }
 
   // copy canonical (site expects /3dss/canonical/...)
@@ -233,4 +246,3 @@ function main() {
 }
 
 main();
-
