@@ -68,5 +68,13 @@
     "ajv-cli": "^5.0.0",
     "ajv-formats": "^3.0.1",
     "esbuild": "^0.27.2"
+  },
+  "overrides": {
+    "remark-rehype": "11.1.2"
+  },
+  "engines": {
+    "node": ">=22.12.0 <23"
   }
+
+
 }
