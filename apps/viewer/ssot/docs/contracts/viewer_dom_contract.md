@@ -13,6 +13,7 @@ Tailwind の class / レイアウト構造は自由だが、以下の **アン�
 - UI layer は **state を読む → DOM 更新**のみ行う
 - state 書き込みは **hub/core の公開 API 経由**のみ（single-writer）
 - DOM が欠けても落とさず、該当機能だけ disable し warn を出す（robust）
+- エラー表示は ERROR_HANDLING.md に従う
 
 ## 例外（fail-fast）
 - **prod_full / devHarness_full は「フレーム＋フィルタ必須」固定**

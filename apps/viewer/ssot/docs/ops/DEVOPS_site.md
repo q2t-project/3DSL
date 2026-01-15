@@ -170,6 +170,16 @@ npm --prefix apps/site run build
 npm --prefix apps/site run fix:guards
 ```
 
+### CI の失敗条件（Viewer SSOT checks）
+
+Viewer 側の checks は `apps/viewer/ssot/manifest.yaml` を SSOT とし、`checks.severity` に従う。
+
+- **error**: CI を失敗させる（落ちる）
+- **warn**: CI は失敗させない（ただしログに残し、修正対象として扱う）
+
+CI の失敗条件は **severity=error のみ**とする（warn は許容する）。  
+例：library meta の `recommended` 欠如は warn として検知するが、CI を失敗させない。
+
 ---
 
 ## 7) ローカル → デプロイまでの手順（最短ルート）
@@ -629,3 +639,5 @@ push 前に整理が必要なもの。
 
 ```
 
+sync/3dss-content.mjs が責任持つのは public/3dss と public/library のみ
+その配下は “手で置く” の禁止（置いても次 sync で消える）

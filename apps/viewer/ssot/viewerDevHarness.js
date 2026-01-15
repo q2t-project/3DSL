@@ -41,7 +41,7 @@ function stopHub() {
 function exposeDevGlobals(hub, handle) {
   window.viewerHub = hub || null;
   window.hub = hub || null; // 互換
-  window.__viewerHub = hub || null; // phase7 runner 固定名
+  window.__viewerHub = hub || null; // dev harness hook (stable)
   window.pointerInput  = handle?.pointerInput  || null;
   window.keyboardInput = handle?.keyboardInput || null;
   window.picker        = handle?.picker        || null;

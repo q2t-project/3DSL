@@ -76,7 +76,7 @@
  */
 
 import { createRendererContext } from "./renderer/context.js";
-import { createViewerHub } from "./viewerHub.js";
+import { createViewerHub, createPublicUiBridge } from "./viewerHub.js";
 import { createModeController } from "./core/modeController.js";
 import { createCameraEngine } from "./core/cameraEngine.js";
 import { createCameraTransition } from "./core/cameraTransition.js";
@@ -90,6 +90,23 @@ import { createViewerSettingsController } from "./core/viewerSettingsController.
 import { createRecomputeVisibleSet } from "./core/recomputeVisibleSet.js";
 import { deepFreeze } from "./core/deepFreeze.js";
 import { init as initValidator, validate3DSS, getErrors } from "./core/validator.js";
+
+const IS_BROWSER =
+  typeof window !== "undefined" &&
+  typeof window.location !== "undefined" &&
+  typeof document !== "undefined";
+
+export const publicUi = IS_BROWSER
+  ? await createPublicUiBridge({
+      debug:
+        window.location.hostname === "localhost" ||
+        window.location.search.includes("dev=1"),
+    })
+  : {
+      t: (key, o) => (o && typeof o === "object" && "defaultValue" in o ? o.defaultValue : key),
+      base: "/",
+      renderErrorOverlay: null,
+    };
 
 // ------------------------------------------------------------
 // logging
@@ -333,8 +350,8 @@ function ensureValidatorInitialized() {
   }
 
   if (!validatorInitPromise) {
-    // public/3dss/3dss/release/3DSS.schema.json
-    const schemaUrl = "/3dss/3dss/release/3DSS.schema.json";
+    // public/3dss/release/3DSS.schema.json
+    const schemaUrl = "/3dss/release/3DSS.schema.json";
 
 validatorInitPromise = fetch(schemaUrl)
       .then((res) => {
@@ -397,6 +414,73 @@ async function loadJSON(url) {
   return json;
 }
 
+// ------------------------------------------------------------
+// error overlay helpers (entry responsibility)
+// ------------------------------------------------------------
+
+function resolveOverlayRoot(canvasOrId) {
+  try {
+    const el =
+      typeof canvasOrId === "string"
+        ? document.getElementById(canvasOrId)
+        : canvasOrId;
+
+    // viewer の wrapper があるならそれを優先（無ければ body）
+    return el?.closest?.("[data-3dsl-viewer-root]") ?? document.body;
+  } catch (_e) {
+    return (typeof document !== "undefined" && document.body) ? document.body : null;
+  }
+}
+
+function classifyOverlayCategory(err) {
+  const kind = String(err?.kind ?? "");
+  if (kind === "FETCH_ERROR") return "PUBLIC_LOAD_ERROR";
+  if (kind === "JSON_ERROR") return "PUBLIC_LOAD_ERROR";
+  if (kind === "VALIDATION_ERROR") return "PUBLIC_INVALID_ERROR";
+  if (kind === "REF_INTEGRITY_ERROR") return "PUBLIC_INVALID_ERROR";
+
+  const msg = String(err?.message ?? "");
+  if (/schema_uri|schema|Unsupported schema_uri/i.test(msg)) return "PUBLIC_SCHEMA_ERROR";
+  if (/validation|ajv|invalid/i.test(msg)) return "PUBLIC_INVALID_ERROR";
+
+  return "PUBLIC_UNEXPECTED_ERROR";
+}
+
+function buildDevDetails(err) {
+  const v = (() => {
+    try { return getErrors?.() ?? []; } catch { return []; }
+  })();
+
+  // validator の配列は短くして投げる（overlay が重くならんように）
+  const vv = Array.isArray(v) ? v.slice(0, 3).map((x) => String(x)) : [];
+
+  return {
+    errorCode: err?.errorCode ?? "",
+    schemaUri: err?.schemaUri ?? "",
+    schemaVersion: err?.schemaVersion ?? "",
+    validation: vv.length ? vv : "",
+    errorName: err?.name ?? "Error",
+    where: err?.where ?? "",
+  };
+}
+
+function showPublicErrorOverlay(canvasOrId, err, options = {}) {
+  const root = resolveOverlayRoot(canvasOrId);
+  if (!root) return;
+
+  const t = publicUi?.t;
+  const base = publicUi?.base ?? "/";
+  const publicCategory = classifyOverlayCategory(err);
+  const devDetails = buildDevDetails(err);
+
+  publicUi?.renderErrorOverlay?.(root, {
+    publicCategory,
+    devDetails,
+    t,
+    urls: { base }, // base=/3dsl/ 対応は i18n 側から注入
+    dev: options?.dev ?? undefined,
+  });
+}
 
 // ------------------------------------------------------------
 // legacy normalization
@@ -918,42 +1002,60 @@ const addUuid = (u, path) => {
 export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   resolveSceneMetricsPre();
   debugBoot("[bootstrap] bootstrapViewer: start");
-  // bootstrapViewer() 直叩きでも safe canonicalization を効かせる
-  document3dss = normalizeLegacyTopLevelFrames(document3dss, options);
+  try {
+    // bootstrapViewer() 直叩きでも safe canonicalization を効かせる
+    document3dss = normalizeLegacyTopLevelFrames(document3dss, options);
+  } catch (e) {
+    const err = e instanceof Error ? e : new Error(String(e));
+    try { showPublicErrorOverlay(canvasOrId, err, options); } catch (_e2) {}
+    throw err;
+  }
   debugBoot("[bootstrap] received 3DSS keys =", Object.keys(document3dss || {}));
 
   const strictValidate = options.strictValidate !== false;
   const validateRefIntegrity = options.validateRefIntegrity === true;
 
-  if (strictValidate) {
-    await ensureValidatorInitialized();
+  try {
+    if (strictValidate) {
+      await ensureValidatorInitialized();
 
-    const isValid = validate3DSS(document3dss);
-    if (!isValid) {
-      const errors = getErrors() || [];
-      const formatAjvError = (e) => {
-        const path = (e && typeof e.instancePath === "string" && e.instancePath.length) ? e.instancePath : "/";
-        let msg = (e && typeof e.message === "string" && e.message.length) ? e.message : (e?.keyword || "validation error");
-        const p = e?.params || {};
-        if (e?.keyword === "additionalProperties" && typeof p.additionalProperty === "string") {
-          msg += ` (additionalProperty: ${p.additionalProperty})`;
-        } else if (e?.keyword === "required" && typeof p.missingProperty === "string") {
-          msg += ` (missing: ${p.missingProperty})`;
-        } else if (e?.keyword === "type" && typeof p.type === "string") {
-          msg += ` (expected: ${p.type})`;
-        }
-        return `${path} ${msg}`.trim();
-      };
+      const isValid = validate3DSS(document3dss);
+      if (!isValid) {
+        const errors = getErrors() || [];
+        const formatAjvError = (e) => {
+          const path = (e && typeof e.instancePath === "string" && e.instancePath.length) ? e.instancePath : "/";
+          let msg = (e && typeof e.message === "string" && e.message.length) ? e.message : (e?.keyword || "validation error");
+          const p = e?.params || {};
+          if (e?.keyword === "additionalProperties" && typeof p.additionalProperty === "string") {
+            msg += ` (additionalProperty: ${p.additionalProperty})`;
+          } else if (e?.keyword === "required" && typeof p.missingProperty === "string") {
+            msg += ` (missing: ${p.missingProperty})`;
+          } else if (e?.keyword === "type" && typeof p.type === "string") {
+            msg += ` (expected: ${p.type})`;
+          }
+          return `${path} ${msg}`.trim();
+        };
 
-      const msg =
-        "3DSS validation failed:\n" +
-        errors.map(formatAjvError).join("\n");
-      const err = new Error(msg);
-      err.kind = "VALIDATION_ERROR";
-      throw err;
+        const msg =
+          "3DSS validation failed:\n" +
+          errors.map(formatAjvError).join("\n");
+        const err = new Error(msg);
+        err.kind = "VALIDATION_ERROR";
+        throw err;
+      }
+
+      assertDocumentMetaCompatibility(document3dss);
     }
-
-    assertDocumentMetaCompatibility(document3dss);
+  } catch (e) {
+    const err = e instanceof Error ? e : new Error(String(e));
+    if (!("kind" in err)) {
+      const m = String(err?.message ?? "");
+      if (/schema_uri|Unsupported schema_uri/i.test(m)) err.kind = "SCHEMA_ERROR";
+      else if (/validation failed|ajv|invalid/i.test(m)) err.kind = "VALIDATION_ERROR";
+      else err.kind = "RUNTIME_ERROR";
+    }
+    try { showPublicErrorOverlay(canvasOrId, err, options); } catch (_e2) {}
+    throw err;
   }
 
   // 1) legacy canonicalize (strictValidate=false only) + freeze
@@ -979,6 +1081,7 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
       const err = new Error(msg);
       err.kind = "REF_INTEGRITY_ERROR";
       err.details = refErrors;
+      try { showPublicErrorOverlay(canvasOrId, err, options); } catch (_e2) {}
       throw err;
     }
   }
@@ -1364,6 +1467,21 @@ export async function bootstrapViewerFromUrl(canvasOrId, url, options = {}) {
     throw err;
   }
 
-  const mergedOptions = { ...options, modelUrl: options.modelUrl || url };
-  return await bootstrapViewer(canvasOrId, doc, mergedOptions);
+  try {
+    const mergedOptions = { ...options, modelUrl: options.modelUrl || url };
+    return await bootstrapViewer(canvasOrId, doc, mergedOptions);
+  } catch (e) {
+    const err = e instanceof Error ? e : new Error(String(e));
+
+    // bootstrapViewer 内の throw を public category 用に分類するため kind を補助
+    if (!("kind" in err)) {
+      const m = String(err?.message ?? "");
+      if (/Unsupported schema_uri|schema_uri/i.test(m)) err.kind = "SCHEMA_ERROR";
+      else if (/validation failed|ref integrity failed/i.test(m)) err.kind = "VALIDATION_ERROR";
+      else err.kind = "RUNTIME_ERROR";
+    }
+
+    try { showPublicErrorOverlay(canvasOrId, err, options); } catch (_e2) {}
+    throw err;
+  }
 }

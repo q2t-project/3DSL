@@ -3,7 +3,7 @@ manifest_schema_version: "1.0"
 app:
   name: "viewer"
   ssot_root: "/viewer/manifest.yaml"
-  ssot_policy: "/viewer/SSOT_POLICY.md"
+  ssot_policy: "/viewer/docs/policy/SSOT_POLICY.md"
 
 # 方針A：この manifest は「境界と統治（ports/layers/checks）」の SSOT。
 # 詳細な仕様本文（長文）は docs.human_specs 側に置き、manifest から参照する。
@@ -168,34 +168,55 @@ deprecated:
       until: "2026-01-30"
       exit_criteria: "drop legacy fallbacks and delete this adapter"
 
+ci:
+  fail_on:
+    - "error"   # warn はCIを落とさない（契約）
+
 checks:
-  # 4本は "落ちる"（enforced: true）前提。
+  # enforced: true ＝常時実行（CI/ローカルで強制） / false ＝任意（監視用途）
+  # CI の失敗条件は ci.fail_on と severity に従う（warn は落とさない）
+
   - id: "forbidden-imports"
-    purpose: "dependency_rules.forbidden の静的強制 + core/renderer の window/document 直参照禁止（env隔離）"
     command: "node scripts/check-forbidden-imports.mjs"
+    severity: "error"
     enforced: true
+
   - id: "single-writer"
-    purpose: "UI から canonical state 直書きを禁止"
     command: "node scripts/check-single-writer.mjs"
+    severity: "error"
     enforced: true
+
   - id: "ports-conformance"
-    purpose: "越境呼び出しが ports 以外で起きないこと"
     command: "node scripts/check-ports-conformance.mjs"
+    severity: "error"
     enforced: true
+
   - id: "generated-clean"
-    purpose: "_generated が最新（差分なし）"
     command: "node scripts/check-generated-clean.mjs"
+    severity: "error"
     enforced: true
 
   - id: "host-asset-paths"
-    purpose: "host/ の viewer 公開資産参照が /viewer/ 配下の絶対参照に統一されていること"
     command: "node scripts/check-host-asset-paths.mjs"
+    severity: "error"
     enforced: true
+
+  - id: "forbidden-imports"
+    purpose: "dependency_rules.forbidden の静的強制 + core/renderer の window/document 直参照禁止（env隔離）"
+    command: "node scripts/check-forbidden-imports.mjs"
+    severity: "error"
+    enforced: true
+
+  # Commit A の本丸（まだ実装しない）
+  - id: "library-meta-recommended"
+    command: "node scripts/check-library-meta-recommended.mjs"
+    severity: "warn"
+    enforced: false
 
 docs:
   human_specs:
     - id: "ssot-policy"
-      path: "/viewer/SSOT_POLICY.md"
+      path: "/viewer/docs/policy/SSOT_POLICY.md"
       role: "meta governance rules (human)"
       status: "authoritative"
     - id: "3dsd-viewer"
@@ -205,10 +226,6 @@ docs:
     - id: "dom-contract"
       path: "/viewer/viewer_dom_contract.md"
       role: "DOM skeleton contract (human)"
-      status: "authoritative"
-    - id: "hosting-policy"
-      path: "/viewer/SSOT_HOSTING_POLICY.md"
-      role: "exception host classification + import boundaries (human)"
       status: "authoritative"
     - id: "host-asset-policy"
       path: "/viewer/host/SSOT_HOST_ASSET_POLICY.md"
