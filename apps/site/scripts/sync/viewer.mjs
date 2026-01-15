@@ -56,31 +56,58 @@ async function pruneUiDuplicateTree(rootDir, label) {
   // Only prune when we are sure this is an accidental mirror of the whole viewer under /ui
   if (!fs.existsSync(dupRuntime) || !fs.existsSync(realRuntime)) return false;
 
-  const targets = [
-    "runtime",
-    "scripts",
-    "assets",
-    "spec",
-    "test",
-    "_generated",
-    "ui",
-    "index.html",
-    "manifest.yaml",
-    "viewer.css",
-    "viewerDevHarness.js",
-    "viewerHost.js",
-    "viewerHostBoot.js",
-    "viewer_dev.html",
-    "3DSD-viewer.md",
-    "DEVOPS_site.md",
-    "SSOT_POLICY.md",
-    "skeltonForCodex.md",
-    "viewer_dom_contract.md",
-    "viewer_spec_forCodex.md",
-  ].map((p) => path.join(uiRoot, p));
+  // We keep UI-owned subtrees that are expected to live under /ui.
+  const KEEP_DIRS = new Set(["icons", "locale", "locales", "devHarnessControls"]);
 
-  for (const t of targets) {
-    await rm(t, { recursive: true, force: true });
+  const nestedUi = path.join(uiRoot, "ui");
+
+  // If ui/ui exists, it is almost certainly the "real ui" from the mirrored viewer root.
+  // We can flatten it and drop the mirrored root artifacts safely.
+  if (fs.existsSync(nestedUi) && fs.statSync(nestedUi).isDirectory()) {
+    const entries = await fs.promises.readdir(uiRoot);
+
+    for (const name of entries) {
+      if (name === "ui") continue;
+      if (KEEP_DIRS.has(name)) continue;
+      await rm(path.join(uiRoot, name), { recursive: true, force: true });
+    }
+
+    const inner = await fs.promises.readdir(nestedUi);
+    for (const name of inner) {
+      const from = path.join(nestedUi, name);
+      const to = path.join(uiRoot, name);
+      await rm(to, { recursive: true, force: true });
+      await fs.promises.rename(from, to);
+    }
+    await rm(nestedUi, { recursive: true, force: true });
+
+    console.log(`[sync] viewer: pruned ui-duplicate tree (${label})`);
+    return true;
+  }
+
+  // Otherwise, prune by structure: drop anything under /ui that also exists at viewer root.
+  // This avoids fragile "fixed filename lists".
+  const entries = await fs.promises.readdir(uiRoot);
+  for (const name of entries) {
+    if (KEEP_DIRS.has(name)) continue;
+
+    const inUi = path.join(uiRoot, name);
+    const inRoot = path.join(rootDir, name);
+
+    if (fs.existsSync(inRoot)) {
+      await rm(inUi, { recursive: true, force: true });
+      continue;
+    }
+
+    // Also remove unexpected directories (ui should not carry viewer-root-ish subtrees).
+    try {
+      const st = await fs.promises.stat(inUi);
+      if (st.isDirectory()) {
+        await rm(inUi, { recursive: true, force: true });
+      }
+    } catch {
+      // ignore
+    }
   }
 
   console.log(`[sync] viewer: pruned ui-duplicate tree (${label})`);
@@ -113,17 +140,7 @@ await cp(src, dst, {
   },
 });
 
-// Inject vendor/three into /public/viewer (viewer runtime imports /viewer/vendor/three/...)
-try {
-  const vendorThreeSrc = path.join(repoRoot, "packages/vendor/three");
-  const vendorThreeDst = path.join(dst, "vendor/three");
-  await access(vendorThreeSrc);
-  await mkdir(path.dirname(vendorThreeDst), { recursive: true });
-  await cp(vendorThreeSrc, vendorThreeDst, { recursive: true });
-  console.log("[sync] viewer: injected vendor/three");
-} catch (e) {
-  console.warn("[sync] viewer: vendor/three injection skipped:", e?.message ?? e);
-}
+// Vendor dependencies are served from /public/vendor via sync:vendor.
 
 // Remove accidental duplicated viewer tree under public/viewer/ui/* (ui/runtime, ui/scripts, etc.)
 // These duplicates break viewer layer checks (ui-layer must not contain runtime/core).

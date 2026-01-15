@@ -1,10 +1,11 @@
 ---
 import "../styles/global.css";
-import { ADSENSE_PUBLISHER_ID, shouldEnableAdsense } from "../lib/adsense";
+import { ADSENSE_PUBLISHER_ID, shouldEnableAdsense, isNoAdsRequest } from "../lib/adsense";
 
 const { title = "3DSL" } = Astro.props;
 const pathname = Astro.url?.pathname ?? "/";
-const enableAdsense = shouldEnableAdsense(pathname);
+const noAds = isNoAdsRequest(Astro.url);
+const enableAdsense = !noAds && shouldEnableAdsense(pathname);
 ---
 
 <!doctype html>

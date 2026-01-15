@@ -139,6 +139,25 @@ function canvasToTexture(canvas) {
 // Texture cache (shared by identical raster result)
 // ------------------------------------------------------------
 
+// SSOT (cache scope policy)
+//
+// This module maintains **page-wide** caches (module singletons) for label rendering.
+// The scope is intentionally broader than a renderer ctx:
+//
+// - When multiple 3DSS scenes/viewers are mounted in the same page, identical labels
+//   should share the same GPU texture/geometry to reduce allocations and memory.
+// - Cache entries are reference-counted; callers MUST release (via
+//   disposeTextLabelObject → releaseTextTexture) or the cache will retain textures.
+// - Eviction policy is purely refcount-based (refs==0 → dispose & delete). There is
+//   no LRU/timeout; this keeps behavior deterministic and easy to reason about.
+//
+// If per-viewer isolation is ever required, move caches into renderer ctx and thread
+// ctx through acquire/release APIs. (selectionHighlight already uses ctx-scoped state.)
+//
+// If an isolated cache per viewer instance is ever required, the cache must move
+// under renderer ctx (e.g. ctx._textSpriteCache) and the ctx dispose path must
+// explicitly evict remaining entries.
+
 /** @type {Map<string, {texture:THREE.Texture, w:number, h:number, aspect:number, refs:number}>} */
 const _textTexCache = new Map();
 
@@ -200,6 +219,9 @@ export function releaseTextTexture(key) {
 }
 
 // Mesh label 用 PlaneGeometry を共有（大量ラベルで alloc 減）
+// - same scope as _textTexCache (page-wide module singleton)
+// - disposed only when the JS realm is torn down; this is acceptable because
+//   geometry is tiny and shared across all label objects.
 const _sharedPlaneGeom = new THREE.PlaneGeometry(1, 1);
 
 const _tmpFront = new THREE.Vector3();

@@ -11,14 +11,23 @@ export type AdSlotKey = keyof typeof ADSENSE_SLOTS;
 
 // --- Application-time (review) plan ---
 // Keep the plan intentionally simple (stable for AdSense review):
-// - Ads ON:  /, /concept, /docs
+// - Ads ON:  /concept
 // - Ads OFF: everything else (including /library, /viewer, /app/*, /modeler, /canonical, /policy, /contact, etc.)
 export function shouldEnableAdsense(pathname: string): boolean {
   const p = (pathname || '/').split('#')[0].split('?')[0];
-  if (p === '/') return true;
   if (p === '/concept' || p.startsWith('/concept/')) return true;
-  if (p === '/docs' || p.startsWith('/docs/')) return true;
   return false;
+}
+
+export function isNoAdsRequest(url?: URL | null): boolean {
+  if (!url) return false;
+  const sp = url.searchParams;
+  const isTruthy = (k: string) => {
+    const v = (sp.get(k) ?? '').toLowerCase();
+    return v === '1' || v === 'true' || v === 'yes';
+  };
+  // `swipe=1` is used by the behind-the-scenes preview iframe.
+  return isTruthy('noads') || isTruthy('embed') || isTruthy('swipe');
 }
 
 // Create TWO display units in AdSense and set their slot IDs via env:

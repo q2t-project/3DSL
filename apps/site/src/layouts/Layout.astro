@@ -1,6 +1,6 @@
 ---
 import "../styles/global.css";
-import { ADSENSE_PUBLISHER_ID, shouldEnableAdsense } from "../lib/adsense";
+import { ADSENSE_PUBLISHER_ID, shouldEnableAdsense, isNoAdsRequest } from "../lib/adsense";
 
 const {
   title = "3DSL",
@@ -14,11 +14,12 @@ const {
 } = Astro.props;
 const pathname = Astro.url?.pathname ?? "/";
 const isHome = pathname === "/";
+const noAds = isNoAdsRequest(Astro.url);
 const canonicalFinal = canonicalUrl ?? canonical;
 
 // AdSense
-// - Central policy: ads only on /, /concept, /docs (see lib/adsense.ts)
-const enableAdsense = shouldEnableAdsense(pathname);
+// - Central policy: ads only on /, /concept (see lib/adsense.ts)
+const enableAdsense = !noAds && shouldEnableAdsense(pathname);
 
 // Header nav: keep it minimal (no hamburger)
 const nav = [
@@ -124,7 +125,9 @@ function isActive(href: string) {
             <a class="hover:text-neutral-200" href="/policy">Policy</a>
             <a class="hover:text-neutral-200" href="/contact">Contact</a>
             <a class="hover:text-neutral-200" href="/docs">Docs</a>
+            <a class="hover:text-neutral-200" href="/faq">FAQ</a>
             <a class="hover:text-neutral-200" href="/library">Library</a>
+            <a class="hover:text-neutral-200" href="/viewer">Viewer</a>
           </div>
         </div>
       </div>
@@ -141,6 +144,9 @@ function isActive(href: string) {
     <script is:inline>
       (() => {
         try {
+          const sp = new URLSearchParams(location.search || "");
+          if (sp.get("swipe") === "1") return;
+
           const ROUTES = ["/", "/library", "/concept", "/contact"];
           const path = location.pathname || "/";
           const getIndex = () => {
@@ -150,6 +156,18 @@ function isActive(href: string) {
             }
             return -1;
           };
+
+          const withNoAds = (url) => {
+            try {
+              const u = new URL(url, location.origin);
+              u.searchParams.set("noads", "1");
+              u.searchParams.set("swipe", "1");
+              return u.pathname + u.search + u.hash;
+            } catch (_e) {
+              return url + (url.includes("?") ? "&" : "?") + "noads=1&swipe=1";
+            }
+          };
+
 
           // enable only on these 4 public pages
           if (getIndex() < 0) return;
@@ -310,7 +328,7 @@ function isActive(href: string) {
                   return;
                 }
                 target = ROUTES[next];
-                setupStage(target, dir);
+                setupStage(withNoAds(target), dir);
               } else {
                 e.preventDefault();
               }

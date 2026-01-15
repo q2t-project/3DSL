@@ -58,7 +58,7 @@
   border: 1px solid var(--ui-border);
   background: rgba(255,255,255,0.03);
   color: var(--ui-muted);
-  font-size: 12px;
+  font-size: 11.5px;
   line-height: 1;
   white-space: nowrap;
   cursor: pointer;
@@ -70,6 +70,12 @@
   border-color: var(--ui-border-2);
 }
 .ui-chip[data-active="true"]{
+  background: var(--ui-accent-soft);
+  border-color: var(--ui-accent-border);
+  color: rgba(224,247,255,0.95);
+}
+
+.ui-chip--active{
   background: var(--ui-accent-soft);
   border-color: var(--ui-accent-border);
   color: rgba(224,247,255,0.95);
@@ -195,7 +201,7 @@
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none; /* Firefox */
-  font-size: 12px;
+  font-size: 11.5px;
 }
 
 .ui-navbar::-webkit-scrollbar{ display:none; }
@@ -223,3 +229,187 @@
 
 /* text helpers */
 .ui-muted{ color: var(--ui-muted); }
+
+/* ==============================
+   Library cards (no-thumb UI)
+   - dense grid, but each card must read as a separate surface
+   - 2-row: top meta (fixed slots) + bottom title (full width)
+   ============================== */
+
+/* grid: mobile = full width, desktop = finite-width cards tiled in both axes */
+.lib-grid{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 7px;
+  padding-inline: 10px;
+}
+
+@media (min-width: 640px){
+  .lib-grid{
+    gap: 8px;
+    padding-inline: 0;
+    /* finite card width: do NOT stretch to full row on wide screens */
+    grid-template-columns: repeat(auto-fill, minmax(300px, 420px));
+    justify-content: start;
+  }
+}
+
+.lib-card{
+  position: relative;
+  display: block;
+  text-decoration: none;
+  color: inherit;
+
+  cursor: pointer;
+
+  /* separate surface from background (subtle, but clearly distinct) */
+  background:
+    radial-gradient(260px 140px at 18% 0%, rgba(255,255,255,0.050), transparent 62%),
+    linear-gradient(180deg, rgba(255,255,255,0.082), rgba(255,255,255,0.030));
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 10px;
+  box-shadow:
+    0 8px 22px rgba(0,0,0,0.40),
+    inset 0 1px 0 rgba(255,255,255,0.10);
+
+  transition: background .15s ease, border-color .15s ease;
+}
+
+.lib-card:hover{
+  background:
+    radial-gradient(260px 140px at 18% 0%, rgba(255,255,255,0.065), transparent 62%),
+    linear-gradient(180deg, rgba(255,255,255,0.098), rgba(255,255,255,0.036));
+  border-color: rgba(255,255,255,0.20);
+}
+
+.lib-card:focus-within,
+.lib-card:focus-visible{
+  outline: none;
+  box-shadow:
+    0 8px 22px rgba(0,0,0,0.40),
+    inset 0 1px 0 rgba(255,255,255,0.10),
+    0 0 0 3px rgba(56,189,248,0.18);
+}
+
+/* top meta row: 4 fixed slots */
+.lib-top{
+  display: grid;
+  font-size: 0;
+  align-items: center;
+  gap: 3px;
+  grid-template-columns: 56px 62px 62px 1fr;
+  padding: 2px 6px 1px;
+}
+@media (min-width: 640px){
+  .lib-top{
+    gap: 4px;
+    grid-template-columns: 62px 64px 64px 1fr;
+    padding: 3px 8px 2px;
+  }
+}
+
+/* UUID badge: existence > readability */
+.lib-uuid-badge{
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 0 5px;
+  height: 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.52);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 10px;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lib-created,
+.lib-updated{
+  font-size: 10.5px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.lib-created{ color: rgba(255,255,255,0.70); }
+.lib-updated{ color: rgba(224,247,255,0.84); font-style: italic; }
+
+/* ticker */
+.lib-ticker{
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  color: rgba(255,255,255,0.62);
+  font-size: 11.5px;
+  line-height: 1.1;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* fade edges (less noisy) */
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10px, #000 calc(100% - 10px), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 10px, #000 calc(100% - 10px), transparent);
+}
+
+.lib-ticker-track{
+  display: inline-flex;
+  align-items: center;
+  will-change: transform;
+  transform: translate3d(0,0,0);
+}
+
+.lib-ticker-gap{
+  display: inline-block;
+  width: var(--lib-ticker-gap, 64px);
+}
+
+/* animate only when JS marks it */
+.lib-ticker[data-scroll="true"] .lib-ticker-track{
+  animation: libTicker var(--lib-ticker-dur, 14s) linear infinite;
+  animation-delay: var(--lib-ticker-delay, 0s);
+}
+
+/* reduce motion: never scroll */
+@media (prefers-reduced-motion: reduce){
+  .lib-ticker[data-scroll="true"] .lib-ticker-track{ animation: none; }
+}
+
+/* pause on hover/focus (pointer devices) */
+@media (pointer: fine){
+  .lib-card:hover .lib-ticker[data-scroll="true"] .lib-ticker-track,
+  .lib-card:focus-within .lib-ticker[data-scroll="true"] .lib-ticker-track{
+    animation-play-state: paused;
+  }
+}
+
+@keyframes libTicker{
+  from{ transform: translate3d(0,0,0); }
+  to{ transform: translate3d(calc(-1 * var(--lib-ticker-dist, 240px)),0,0); }
+}
+
+/* bottom title row */
+.lib-title{
+  padding: 7px 10px 10px;
+  border-top: 1px solid rgba(255,255,255,0.075);
+
+  font-family: "Noto Sans JP", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-weight: 650;
+  letter-spacing: 0.005em;
+  font-size: 16px;
+  line-height: 1.22;
+
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (min-width: 640px){
+  .lib-title{
+    padding: 8px 12px 12px;
+    font-weight: 600;
+    font-size: 15px;
+  }
+}
+

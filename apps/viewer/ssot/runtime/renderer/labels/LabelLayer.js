@@ -42,6 +42,3 @@ export class LabelLayer {
     this.runtime.dispose();
   }
 }
-
-// 互換（typo の旧クラス名）
-export class labelabelLayer extends LabelLayer {}

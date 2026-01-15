@@ -37,7 +37,7 @@ addFormats(ajv);
 
 // スキーマ読み込み（必要ならパス調整）
 // ここでは astro/public/schemas/3DSS.schema.json 前提
-const schemaPath = path.resolve(__dirname, "../public/3dss/3dss/release/3DSS.schema.json");
+const schemaPath = path.resolve(__dirname, "../public/schemas/3DSS.schema.json");
 const schemaJson = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
 const validate = ajv.compile(schemaJson);
 

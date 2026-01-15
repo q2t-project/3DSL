@@ -23,7 +23,7 @@ const OUT_3DSS_CANONICAL_DIR = path.join(OUT_3DSS_DIR, "canonical");
 const OUT_3DSS_LIBRARY_DIR = path.join(OUT_3DSS_DIR, "library");
 const OUT_LIBRARY_DIR = path.join(DIST_DIR, "library");
 
-const ID_RE = /^\d{6}[0-9a-z]{2}$/;
+const ID_RE = /^\d{6}[0-9a-z]{2}$/i;
 
 function ensureDir(p) {
   fs.mkdirSync(p, { recursive: true });
@@ -57,13 +57,48 @@ function toEpoch(s) {
   return Number.isFinite(t) ? t : 0;
 }
 
-function deriveUpdatedAt(meta, dm, modelPath) {
-  const m =
-    (typeof meta?.updated_at === "string" && meta.updated_at.trim()) ||
-    (typeof dm?.updated_at === "string" && dm.updated_at.trim()) ||
-    (typeof dm?.updatedAt === "string" && dm.updatedAt.trim()) ||
-    "";
+function pad2(n) {
+  return String(n).padStart(2, "0");
+}
 
+function firstNonEmpty(...vals) {
+  for (const v of vals) {
+    if (typeof v !== "string") continue;
+    const s = v.trim();
+    if (s) return s;
+  }
+  return null;
+}
+
+function deriveCreatedAt(meta, dm, id, modelPath) {
+  const explicit = firstNonEmpty(meta?.created_at, dm?.created_at, dm?.createdAt);
+  if (explicit && toEpoch(explicit)) return explicit;
+
+  // fallback: id=YYMMDDxx
+  const sid = String(id ?? "");
+  if (ID_RE.test(sid)) {
+    const yy = Number(sid.slice(0, 2));
+    const mm = Number(sid.slice(2, 4));
+    const dd = Number(sid.slice(4, 6));
+    if (Number.isFinite(yy) && mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31) {
+      const y = 2000 + yy;
+      return `${y}-${pad2(mm)}-${pad2(dd)}`;
+    }
+  }
+
+  // last resort: file timestamps
+  try {
+    const st = fs.statSync(modelPath);
+    const d = st?.birthtime ?? st?.mtime;
+    if (d && !Number.isNaN(d.getTime())) return new Date(d).toISOString();
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+function deriveUpdatedAt(meta, dm, modelPath) {
+  const m = firstNonEmpty(meta?.updated_at, dm?.updated_at, dm?.updatedAt);
   if (m && toEpoch(m)) return m;
 
   // fallback: file mtime
@@ -95,23 +130,62 @@ function buildViewerUrl(modelUrl) {
 }
 
 function pickSeo(meta, titleFallback, descFallback) {
-  // ultra-minimal: accept either top-level or meta.seo.* if present
   const seo = meta?.seo && typeof meta.seo === "object" ? meta.seo : {};
 
-  const metaTitle =
-    (typeof seo.title === "string" && seo.title.trim()) ||
-    (typeof meta.title === "string" && meta.title.trim()) ||
-    null;
+  const metaTitle = firstNonEmpty(
+    seo.title,
+    meta?.meta_title,
+    meta?.seo_title,
+    meta?.title,
+  );
 
-  const metaDescription =
-    (typeof seo.description === "string" && seo.description.trim()) ||
-    (typeof meta.description === "string" && meta.description.trim()) ||
-    null;
+  const metaDescription = firstNonEmpty(
+    seo.description,
+    meta?.meta_description,
+    meta?.seo_description,
+    meta?.description,
+  );
 
   return {
     meta_title: metaTitle ?? titleFallback ?? null,
     meta_description: metaDescription ?? descFallback ?? null,
   };
+}
+
+function ensureMeta(metaPath, model, id, modelPath) {
+  if (existsFile(metaPath)) return readJson(metaPath);
+
+  const dm = model?.document_meta ?? {};
+  const rawTitle = firstNonEmpty(dm.title, dm.document_title);
+  const title = rawTitle ?? String(id);
+
+  const modelSummary = firstNonEmpty(dm.summary, dm.document_summary) ?? "";
+  const modelTags = Array.isArray(dm.tags) ? dm.tags : [];
+
+  const created_at = deriveCreatedAt({}, dm, id, modelPath);
+  const updated_at = deriveUpdatedAt({}, dm, modelPath) ?? created_at;
+
+  const meta = {
+    // safety default: do not publish automatically
+    published: false,
+    summary: modelSummary,
+    tags: uniq(modelTags),
+    created_at,
+    updated_at,
+    entry_points: [],
+    pairs: [],
+    rights: null,
+    related: [],
+    // optional seo skeleton
+    seo: {
+      title,
+      description: modelSummary,
+    },
+  };
+
+  writeJson(metaPath, meta);
+  console.warn(`[build:dist] NOTE generated _meta.json (published:false): ${metaPath}`);
+  return meta;
 }
 
 function main() {
@@ -131,8 +205,8 @@ function main() {
     .filter((d) => d.isDirectory())
     .map((d) => d.name)
     .filter((name) => ID_RE.test(name))
-    .sort() // ascending
-    .reverse(); // descending (newest first)
+    .sort()
+    .reverse();
 
   const items = [];
 
@@ -140,33 +214,27 @@ function main() {
     const srcDir = path.join(LIBRARY_DIR, id);
     const modelPath = path.join(srcDir, "model.3dss.json");
     const metaPath = path.join(srcDir, "_meta.json");
+
     if (!existsFile(modelPath)) {
       throw new Error(`missing model.3dss.json: ${modelPath}`);
     }
-    if (!existsFile(metaPath)) {
-      throw new Error(`missing _meta.json (required): ${metaPath}`);
-    }
 
     const model = readJson(modelPath);
-    const meta = readJson(metaPath);
-
     const dm = model?.document_meta ?? {};
 
-    // Support both legacy keys (title/summary) and current keys (document_title/document_summary).
-    const rawTitle = dm.title ?? dm.document_title;
-    if (typeof rawTitle !== "string" || !rawTitle.trim()) {
+    // title is required
+    const rawTitle = firstNonEmpty(dm.title, dm.document_title);
+    if (!rawTitle) {
       throw new Error(`missing document_meta.(title|document_title) in ${modelPath}`);
     }
-    const title = rawTitle.trim();
+    const title = rawTitle;
 
-    const modelSummary = typeof dm.summary === "string" ? dm.summary : (typeof dm.document_summary === "string" ? dm.document_summary : "");
+    const meta = ensureMeta(metaPath, model, id, modelPath);
+
+    const modelSummary = firstNonEmpty(dm.summary, dm.document_summary) ?? "";
 
     // summary is primarily for UI; allow _meta.summary, then _meta.description, then model document summary.
-    const summary =
-      (typeof meta?.summary === "string" ? meta.summary : null) ??
-      (typeof meta?.description === "string" ? meta.description : null) ??
-      (typeof modelSummary === "string" ? modelSummary : "") ??
-      "";
+    const summary = firstNonEmpty(meta?.summary, meta?.description, modelSummary) ?? "";
 
     const modelTags = Array.isArray(dm.tags) ? dm.tags : [];
     const tags = uniq([...(Array.isArray(meta?.tags) ? meta.tags : []), ...modelTags]);
@@ -185,29 +253,33 @@ function main() {
     const model_url = `/3dss/library/${id}/model.3dss.json`;
     const viewer_url = buildViewerUrl(model_url);
 
+    const created_at = deriveCreatedAt(meta, dm, id, modelPath);
+    const updated_at = deriveUpdatedAt(meta, dm, modelPath);
+
     // SEO: minimal title/description only (no per-item og image).
     const seo = pickSeo(meta, title, summary);
 
     const published = meta?.published !== false;
     if (!published) {
       console.warn(`[build:dist] NOTE unpublished item (excluded from index): ${id}`);
-    } else {
-      items.push({
-        id,
-        slug: id,
-        title,
-        summary: summary ?? "",
-        updated_at: deriveUpdatedAt(meta, dm, modelPath),
-        tags,
-        viewer_url,
-        entry_points,
-        pairs,
-        rights,
-        related,
-        // optional seo keys (do not break current readers)
-        ...seo
-      });
+      continue;
     }
+
+    items.push({
+      id,
+      slug: id,
+      title,
+      summary,
+      created_at,
+      updated_at,
+      tags,
+      viewer_url,
+      entry_points,
+      pairs,
+      rights,
+      related,
+      ...seo,
+    });
   }
 
   writeJson(path.join(OUT_LIBRARY_DIR, "library_index.json"), {
@@ -215,6 +287,7 @@ function main() {
     generated_at: new Date().toISOString(),
     items,
   });
+
   // copy 3dss sample (legacy: /3dss/sample/...)
   if (fs.existsSync(SAMPLE_DIR)) {
     fs.cpSync(SAMPLE_DIR, OUT_3DSS_SAMPLE_DIR, { recursive: true });

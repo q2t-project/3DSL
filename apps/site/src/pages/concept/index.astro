@@ -1,8 +1,10 @@
 ---
 import Layout from "../../layouts/Layout.astro";
-import ConceptText from "../../content/text/concept.md";
+import ConceptText from "../../content/pages/concept.md";
 import AdSlot from "../../components/AdSlot.astro";
-import { ADSENSE_SLOTS } from "../../lib/adsense";
+import { ADSENSE_SLOTS, isNoAdsRequest } from "../../lib/adsense";
+
+const noAds = isNoAdsRequest(Astro.url);
 ---
 
 <Layout
@@ -16,34 +18,38 @@ import { ADSENSE_SLOTS } from "../../lib/adsense";
       </div>
 
       <!-- Mobile/inline: 300x250 -->
-      <div class="mt-8 max-w-3xl lg:hidden">
-        <div class="text-xs text-neutral-500">Sponsored</div>
-        <div class="mt-2">
-          <AdSlot
-            slot={ADSENSE_SLOTS.slot_300x250}
-            width={300}
-            height={250}
-            fullWidthResponsive={false}
-            minHeight={250}
-          />
+            {!noAds && (
+        <div class="mt-8 max-w-3xl lg:hidden">
+          <div class="text-xs text-neutral-500">広告</div>
+          <div class="mt-2">
+            <AdSlot
+              slot={ADSENSE_SLOTS.slot_300x250}
+              width={300}
+              height={250}
+              fullWidthResponsive={false}
+              minHeight={250}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </div>
 
     <!-- Desktop rail: 300x600 -->
-    <aside class="hidden lg:block">
-      <div class="sticky top-24">
-        <div class="text-xs text-neutral-500">Sponsored</div>
-        <div class="mt-2">
-          <AdSlot
-            slot={ADSENSE_SLOTS.slot_300x600}
-            width={300}
-            height={600}
-            fullWidthResponsive={false}
-            minHeight={600}
-          />
+        {!noAds && (
+      <aside class="hidden lg:block">
+        <div class="sticky top-24">
+          <div class="text-xs text-neutral-500">広告</div>
+          <div class="mt-2">
+            <AdSlot
+              slot={ADSENSE_SLOTS.slot_300x600}
+              width={300}
+              height={600}
+              fullWidthResponsive={false}
+              minHeight={600}
+            />
+          </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+    )}
   </section>
 </Layout>

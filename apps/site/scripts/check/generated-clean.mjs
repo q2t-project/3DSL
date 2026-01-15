@@ -16,14 +16,14 @@ const repoRoot = path.resolve(siteRoot, "..", "..");
 const GENERATED_DIRS = [
   "apps/site/public/viewer",
   "apps/site/public/vendor",
-  "apps/site/public/3dss/3dss/release",
+  "apps/site/public/schemas",
 ];
 
 // Allow tracked placeholders (optional)
 const ALLOWLIST = new Set([
   "apps/site/public/viewer/.gitkeep",
   "apps/site/public/vendor/.gitkeep",
-  "apps/site/public/3dss/3dss/release/.gitkeep",
+  "apps/site/public/schemas/.gitkeep",
 ]);
 const NO_MJS_DIRS = [
   "apps/site/public/viewer",
@@ -82,7 +82,7 @@ if (bad.length > 0) {
   console.error("[generated-clean] NG: tracked files found under generated directories:");
   for (const f of bad) console.error("  - " + f);
   console.error("\nFix: remove from git index (keep working tree if needed):");
-  console.error("  git rm -r --cached apps/site/public/viewer apps/site/public/vendor apps/site/public/3dss/3dss/release");
+  console.error("  git rm -r --cached apps/site/public/viewer apps/site/public/vendor apps/site/public/schemas");
   console.error("  (optionally add .gitkeep only, if you want placeholders)\n");
   process.exit(1);
 }

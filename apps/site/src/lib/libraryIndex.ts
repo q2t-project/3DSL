@@ -29,6 +29,7 @@ export type LibraryItem = {
   viewer_url: string;
   tags?: string[];
   updated_at?: string;
+  created_at?: string;
   entry_points?: string[];
   pairs?: { a: string; b: string }[];
   series?: string;

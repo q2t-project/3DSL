@@ -1,5 +1,5 @@
 ---
-import { ADSENSE_PUBLISHER_ID } from '../lib/adsense';
+import { ADSENSE_PUBLISHER_ID, isNoAdsRequest } from '../lib/adsense';
 
 type Props = {
   /** Ad unit slot id from AdSense */
@@ -32,6 +32,8 @@ const {
   fullWidthResponsive,
 } = Astro.props;
 
+const noAds = isNoAdsRequest(Astro.url);
+
 const isDev = import.meta.env.DEV;
 const hasSlot = typeof slot === 'string' && slot.trim().length > 0;
 const isFixed = Number(width) > 0 && Number(height) > 0;
@@ -47,7 +49,7 @@ const useFullWidthResponsive =
   typeof fullWidthResponsive === 'boolean' ? fullWidthResponsive : !isFixed;
 ---
 
-{(hasSlot || isDev) && (
+{!noAds && (hasSlot || isDev) && (
   <div class={`ad-slot ${className}`} style={wrapperStyle} data-ad-slot={slot || 'UNSET'}>
     {hasSlot ? (
       <>

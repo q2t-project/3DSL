@@ -1,0 +1,27 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { getCollection } from "astro:content";
+
+export async function getStaticPaths() {
+  const entries = await getCollection("faq");
+  return entries.map((entry) => ({ params: { slug: entry.slug }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await entry.render();
+
+const pageTitle = `${entry.data?.title ?? entry.slug} | FAQ | 3DSL`;
+const pageDescription = "FAQ（SSOT: packages/docs/faq）";
+---
+
+<Layout title={pageTitle} description={pageDescription}>
+  <nav class="text-sm text-neutral-400">
+    <a href="/faq" class="hover:underline">FAQ</a>
+    <span class="mx-2">/</span>
+    <span class="text-neutral-200">{entry.slug}</span>
+  </nav>
+
+  <article class="mt-6 prose prose-invert prose-neutral max-w-3xl">
+    <Content />
+  </article>
+</Layout>

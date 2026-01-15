@@ -12,8 +12,6 @@ const allTags = Array.from(new Set(items.flatMap((it) => it.tags ?? []))).sort((
   a.localeCompare(b, "ja")
 );
 
-const dateFormatter = new Intl.DateTimeFormat("ja-JP", { dateStyle: "medium" });
-
 function joinText(it: any) {
   return [
     it.title ?? "",
@@ -25,12 +23,71 @@ function joinText(it: any) {
     .join(" ")
     .toLowerCase();
 }
-function formatUpdatedAt(raw?: string | null) {
-  if (!raw) return null;
-  const t = Date.parse(raw);
-  if (!Number.isFinite(t)) return null;
-  return dateFormatter.format(new Date(t));
+
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
 }
+
+function formatYmd(raw?: string | null) {
+  if (!raw) return null;
+  const str = String(raw);
+
+  // Prefer stable YYYY-MM-DD extraction (avoid timezone day-shift)
+  const m = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[1]}/${m[2]}/${m[3]}`;
+
+  // Fallback: Date parse
+  const t = Date.parse(str);
+  if (!Number.isFinite(t)) return null;
+  const d = new Date(t);
+  const y = d.getFullYear();
+  const mm = d.getMonth() + 1;
+  const day = d.getDate();
+  return `${y}/${pad2(mm)}/${pad2(day)}`;
+}
+
+function deriveCreatedYmd(it: any) {
+  // prefer explicit created_at
+  const c = formatYmd(it.created_at);
+  if (c) return c;
+
+  // fallback: id=YYMMDDxx
+  const id = String(it.id ?? "");
+  if (/^\d{6}[0-9a-z]{2}$/i.test(id)) {
+    const yy = Number(id.slice(0, 2));
+    const mm = Number(id.slice(2, 4));
+    const dd = Number(id.slice(4, 6));
+    if (Number.isFinite(yy) && mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31) {
+      const y = 2000 + yy;
+      return `${y}/${pad2(mm)}/${pad2(dd)}`;
+    }
+  }
+
+  // last resort: updated
+  return formatYmd(it.updated_at);
+}
+
+function deriveUpdatedYmd(it: any) {
+  const created = deriveCreatedYmd(it);
+  // Some pipelines encode "no update" as a zero-date.
+  const raw = String(it.updated_at ?? "");
+  if (!raw) return null;
+  if (/^0{4}[-\/]0{2}[-\/]0{2}/.test(raw)) return null;
+
+  const updated = formatYmd(raw);
+  if (!updated) return null;
+  if (/^0{4}\/0{2}\/0{2}$/.test(updated)) return null;
+  if (created && updated === created) return null; // "更新ゼロ"扱い
+  return updated;
+}
+
+function uuidBadgeText(id: string) {
+  const s = String(id ?? "");
+  if (!s) return "";
+  // existence > readability: show tail
+  return s.length <= 10 ? s : `…${s.slice(-8)}`;
+}
+
 function toAppViewerUrl(viewerUrl: string) {
   if (!viewerUrl) return viewerUrl;
   if (viewerUrl.startsWith("/app/viewer")) return viewerUrl;
@@ -56,20 +113,17 @@ function toAppViewerUrl(viewerUrl: string) {
     return viewerUrl;
   }
 }
-
 ---
 
 <Layout title={title} description={description}>
+  <div class="lib-page overflow-x-hidden">
   <section class="ui-surface p-8">
     <div class="flex flex-wrap items-end justify-between gap-4">
       <div>
         <h1 class="text-2xl font-medium tracking-tight">Library</h1>
-        <p class="mt-2 text-sm text-neutral-300">
-          一覧をスワイプして、面白そうなカードを開いてください。目的がある場合は、共有リンク（/library/[slug]）から直接入れます。
-        </p>
       </div>
 
-    <div class="text-xs text-neutral-400">
+      <div class="w-full sm:w-auto text-xs text-neutral-400 text-right">
         <span id="count">表示 {items.length} / {items.length}</span>
       </div>
     </div>
@@ -83,21 +137,14 @@ function toAppViewerUrl(viewerUrl: string) {
             aria-label="タグ"
           >
             {allTags.map((t) => (
-              <button
-                class="tag ui-chip shrink-0"
-                data-tag={t}
-                type="button"
-              >
+              <button class="tag ui-chip shrink-0" data-tag={t} type="button">
                 {t}
               </button>
             ))}
           </div>
 
-          <details class="relative">
-            <summary
-              class="list-none ui-chip px-4 py-1 cursor-pointer"
-              aria-label="検索を開く"
-            >
+          <details class="relative" data-swipe-ignore>
+            <summary class="list-none ui-chip px-4 py-1 cursor-pointer" aria-label="検索を開く">
               検索
             </summary>
 
@@ -108,11 +155,7 @@ function toAppViewerUrl(viewerUrl: string) {
                   class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-cyan-300/30"
                   placeholder="タイトル/説明/入口/タグ"
                 />
-                <button
-                  id="clear"
-                  class="ui-btn shrink-0"
-                  type="button"
-                >
+                <button id="clear" class="ui-btn shrink-0" type="button">
                   クリア
                 </button>
               </div>
@@ -126,51 +169,53 @@ function toAppViewerUrl(viewerUrl: string) {
     </div>
   </section>
 
-  <section id="grid" class="mt-6 flex flex-col gap-3">
-    {items.map((it) => {
-      const updated = formatUpdatedAt(it.updated_at);
+  <section
+    id="grid"
+    class="mt-6 lib-grid"
+  >
+    {items.map((it, idx) => {
+      const created = deriveCreatedYmd(it);
+      const updated = deriveUpdatedYmd(it);
       const viewerBase = toAppViewerUrl(it.viewer_url);
+      const summary = String(it.summary ?? "");
+      const badge = uuidBadgeText(it.id);
+
       return (
         <article
-          class="card ui-card p-5 hover:bg-white/5 focus-within:ring-2 focus-within:ring-cyan-300/30"
+          class="card lib-card"
           data-tags={(it.tags ?? []).join(",")}
           data-text={joinText(it)}
           data-viewer-url={viewerBase}
+          data-idx={String(idx)}
           tabindex="0"
           role="link"
           aria-label={`${it.title} を Viewer で開く`}
         >
-          <div class="flex flex-col gap-3">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <div class="text-lg font-semibold leading-snug">{it.title}</div>
-
-              <div class="flex items-center gap-3">
-                {updated && (
-                  <span class="text-xs text-neutral-400">更新 {updated}</span>
-                )}
-
-                <a
-                  class="text-xs text-neutral-300 underline decoration-white/20 hover:decoration-white/60"
-                  href={`/library/${it.slug}`}
-                  data-role="detail-link"
-                >
-                  詳細
-                </a>
-              </div>
+          <div class="lib-top">
+            <div title={String(it.id ?? "")}>
+              <span class="lib-uuid-badge">{badge}</span>
             </div>
 
-            {it.summary && (
-              <p class="library-summary text-sm text-neutral-300 leading-relaxed">{it.summary}</p>
-            )}
+            <time class="lib-created" datetime={String(it.created_at ?? "")}>{created}</time>
 
-            {(it.tags?.length ?? 0) > 0 && (
-              <div class="flex flex-wrap gap-2">
-                {it.tags.map((t: string) => (
-                  <span class="ui-chip px-2 py-1 text-xs text-neutral-400">{t}</span>
-                ))}
+            {/* slot is kept even when hidden */}
+            <time
+              class={`lib-updated ${updated ? "" : "invisible"}`}
+              datetime={String(it.updated_at ?? "")}
+            >
+              {updated ?? ""}
+            </time>
+
+            <div class="lib-ticker" data-role="ticker" data-scroll="false">
+              <div class="lib-ticker-track" data-role="ticker-track">
+                <span class="lib-ticker-text" data-role="ticker-text">{summary}</span>
+                <span class="lib-ticker-gap" aria-hidden="true"></span>
+                <span class="lib-ticker-text" aria-hidden="true">{summary}</span>
               </div>
-            )}
+            </div>
           </div>
+
+          <div class="lib-title" title={it.title}>{it.title}</div>
         </article>
       );
     })}
@@ -186,6 +231,8 @@ function toAppViewerUrl(viewerUrl: string) {
     <strong class="text-neutral-100">著作権について：</strong>
     Library のスナップショットは、構造理解を目的とした引用（またはライセンス許諾/オリジナル）に基づいて提示します。権利者表示や出典は各カードの詳細ページに記載します。操作による探索はリンク先 Viewer で行ってください。
   </section>
+
+  </div>
 
   <script is:inline>
     const sp = new URLSearchParams(window.location.search);
@@ -207,6 +254,8 @@ function toAppViewerUrl(viewerUrl: string) {
     const count = document.getElementById("count");
     const cards = Array.from(document.querySelectorAll(".card"));
     const tagBtns = Array.from(document.querySelectorAll("button.tag"));
+
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
 
     // Philosophy: cards-first. Tag filter is a lightweight narrowing.
     const state = { tag: null, query: "" };
@@ -230,13 +279,17 @@ function toAppViewerUrl(viewerUrl: string) {
         if (ok) shown++;
       }
       if (count) count.textContent = `表示 ${shown} / ${cards.length}`;
+
+      // update tickers for visible cards
+      requestAnimationFrame(updateTickers);
     }
 
     function setActiveTag(next) {
       state.tag = next;
       tagBtns.forEach((btn) => {
         const isActive = btn.dataset.tag === next;
-        btn.classList.toggle("ui-chip--active", isActive);
+        btn.dataset.active = isActive ? "true" : "false";
+        btn.classList.toggle("ui-chip--active", isActive); // compat
       });
       apply();
     }
@@ -249,55 +302,97 @@ function toAppViewerUrl(viewerUrl: string) {
       });
     });
 
-  function buildViewerUrl(base) {
-    if (!base) return base;
-    try {
-      const u = new URL(base, window.location.origin);
-      const scroll = Math.max(0, Math.round(window.scrollY || 0));
-      u.searchParams.set("from", "library");
-      u.searchParams.set("return", "/library");
-      u.searchParams.set("scroll", String(scroll));
-      // legacy compat (optional)
-      u.searchParams.set("back", "/library");
-      return `${u.pathname}?${u.searchParams.toString()}${u.hash}`;
-    } catch {
-      return base;
+    function buildViewerUrl(base) {
+      if (!base) return base;
+      try {
+        const u = new URL(base, window.location.origin);
+        const scroll = Math.max(0, Math.round(window.scrollY || 0));
+        u.searchParams.set("from", "library");
+        u.searchParams.set("return", "/library");
+        u.searchParams.set("scroll", String(scroll));
+        // legacy compat (optional)
+        u.searchParams.set("back", "/library");
+        return `${u.pathname}?${u.searchParams.toString()}${u.hash}`;
+      } catch {
+        return base;
+      }
     }
-  }
 
-  cards.forEach((card) => {
-    const base = card.dataset.viewerUrl;
-    if (!base) return;
+    cards.forEach((card) => {
+      const base = card.dataset.viewerUrl;
+      if (!base) return;
 
-    // 詳細リンクは親のクリックを止める
-    const detail = card.querySelector('[data-role="detail-link"]');
-    detail?.addEventListener("click", (ev) => {
-      ev.stopPropagation();
+      // カードクリックでViewerへ
+      card.addEventListener("click", (ev) => {
+        if (ev.defaultPrevented) return;
+        if (ev.button !== 0) return;
+        if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;
+
+        const next = buildViewerUrl(base);
+        if (!next) return;
+
+        ev.preventDefault();
+        window.location.assign(next);
+      });
+
+      // Enter/Spaceでも開ける（アクセシビリティ）
+      card.addEventListener("keydown", (ev) => {
+        if (ev.key !== "Enter" && ev.key !== " ") return;
+        const next = buildViewerUrl(base);
+        if (!next) return;
+        ev.preventDefault();
+        window.location.assign(next);
+      });
     });
 
-  // カードクリックでViewerへ
-  card.addEventListener("click", (ev) => {
-    if (ev.defaultPrevented) return;
-    if (ev.button !== 0) return;
-    if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;
+    // ticker: animate only when overflow, and de-sync across cards
+    function updateTickers() {
+      if (reduceMotion) return;
 
-    const next = buildViewerUrl(base);
-    if (!next) return;
+      let visibleIndex = 0;
+      for (const card of cards) {
+        if (card.style.display === "none") continue;
 
-    ev.preventDefault();
-    window.location.assign(next);
-  });
+        const ticker = card.querySelector('[data-role="ticker"]');
+        const text = card.querySelector('[data-role="ticker-text"]');
+        if (!ticker || !text) continue;
 
-  // Enter/Spaceでも開ける（アクセシビリティ）
-  card.addEventListener("keydown", (ev) => {
-    if (ev.key !== "Enter" && ev.key !== " ") return;
-    const next = buildViewerUrl(base);
-    if (!next) return;
-    ev.preventDefault();
-    window.location.assign(next);
-  });
-});
+        const w = ticker.clientWidth || 0;
+        const tw = text.scrollWidth || 0;
 
+        const shouldScroll = tw > w + 6;
+        ticker.dataset.scroll = shouldScroll ? "true" : "false";
+
+        if (!shouldScroll) {
+          ticker.style.removeProperty("--lib-ticker-gap");
+          ticker.style.removeProperty("--lib-ticker-dist");
+          ticker.style.removeProperty("--lib-ticker-dur");
+          ticker.style.removeProperty("--lib-ticker-delay");
+          continue;
+        }
+
+        const gap = 72; // px: interval between loops
+        const speed = 34; // px/sec: readable but not noisy
+        const dist = tw + gap;
+        const dur = Math.max(8, Math.min(28, dist / speed));
+
+        ticker.style.setProperty("--lib-ticker-gap", `${gap}px`);
+        ticker.style.setProperty("--lib-ticker-dist", `${dist}px`);
+        ticker.style.setProperty("--lib-ticker-dur", `${dur}s`);
+
+        // stagger starts (avoid synchronized motion)
+        const delay = (visibleIndex * 0.37) % dur;
+        ticker.style.setProperty("--lib-ticker-delay", `${-delay}s`);
+
+        visibleIndex++;
+      }
+    }
+
+    let t = 0;
+    window.addEventListener("resize", () => {
+      window.clearTimeout(t);
+      t = window.setTimeout(updateTickers, 120);
+    });
 
     q?.addEventListener("input", () => {
       state.query = q.value || "";
@@ -311,15 +406,28 @@ function toAppViewerUrl(viewerUrl: string) {
       apply();
     });
 
+    // init
+    setActiveTag(null);
     apply();
   </script>
-</Layout>
 
-<style>
-  .library-summary {
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-</style>
+  <style>
+    /* library page backdrop: subtle contrast + a touch of sheen (not loud) */
+    .lib-page{
+      position: relative;
+    }
+    .lib-page::before{
+      content: "";
+      position: absolute;
+      inset: -36px -24px;
+      pointer-events: none;
+      background:
+        radial-gradient(600px 280px at 18% 0%, rgba(56,189,248,0.10), transparent 60%),
+        radial-gradient(520px 240px at 82% 10%, rgba(255,255,255,0.06), transparent 62%),
+        linear-gradient(180deg, rgba(255,255,255,0.02), transparent 55%);
+      opacity: 0.85;
+    }
+    .lib-page > *{ position: relative; }
+  </style>
+
+</Layout>

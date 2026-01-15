@@ -3,7 +3,7 @@
 // SOURCE OF TRUTH: viewer_dom_contract.md (SSOT)
 // This file is the executable mirror of that spec.
 
-export const DOM_CONTRACT_VERSION = '2026-01-09';
+export const DOM_CONTRACT_VERSION = '2026-01-14';
 
 /**
  * @typedef {Object} RoleSpec
@@ -63,6 +63,12 @@ const ROLE_SPECS = /** @type {Record<string, RoleSpec>} */ ({
   frameLabelMax: { name: 'frameLabelMax', preferred: '[data-role="frame-label-max"]', fallback: '#frame-label-max', tag: null },
   frameLabelZero: { name: 'frameLabelZero', preferred: '[data-role="frame-label-zero"]', fallback: '#frame-label-zero', tag: null },
   frameZeroLine: { name: 'frameZeroLine', preferred: '[data-role="frame-zero-line"]', fallback: '#frame-zero-line', tag: null },
+
+  // timeline optional containers (NOT required by any profile)
+  // - Used by timeline.js when present, but the UI must work without them.
+  frameSliderWrapper: { name: 'frameSliderWrapper', preferred: '[data-role="frame-slider-wrapper"]', fallback: '#frame-slider-wrapper', tag: 'DIV' },
+  frameBlock: { name: 'frameBlock', preferred: '[data-role="frame-block"]', fallback: '#frame-block', tag: 'DIV' },
+  frameControls: { name: 'frameControls', preferred: '[data-role="frame-controls"]', fallback: '#frame-controls', tag: 'DIV' },
 
   // optional UI knobs (prod_full optional)
   vsLineWidthMode: { name: 'vsLineWidthMode', preferred: '[data-role="vs-line-width-mode"]', fallback: '#vs-line-width-mode', tag: 'SELECT' },

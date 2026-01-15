@@ -1,6 +1,7 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import { getLibraryItems, getLibraryItemBySlug } from "../../lib/libraryIndex";
+import LibraryDetailIntro from "../../content/pages/library_detail_intro.md";
 
 export function getStaticPaths() {
   const items = getLibraryItems();
@@ -79,6 +80,12 @@ function toAppViewerUrl(viewerUrl: string, back: string) {
 
   <h1 class="mt-4 text-2xl font-medium">{item.title}</h1>
   {item.summary ? <p class="mt-2 text-neutral-200">{item.summary}</p> : null}
+
+  <div class="mt-4 max-w-3xl">
+    <div class="prose prose-sm prose-invert prose-neutral text-neutral-300">
+      <LibraryDetailIntro />
+    </div>
+  </div>
 
   <div class="mt-6 flex flex-wrap gap-3">
     <a

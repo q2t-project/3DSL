@@ -22,11 +22,14 @@ const REQUIRED = [
   "packages/vendor/three/build/three.module.js",
   // Ajv bundle used by viewer validator (browser import)
   "packages/vendor/ajv/dist/ajv.bundle.js",
+  // i18next browser build (used by viewer UI)
+  "packages/vendor/i18next/i18next.js",
 ];
 
 const REQUIRED_GENERATED = [
   "apps/site/public/vendor/three/build/three.module.js",
   "apps/site/public/vendor/ajv/dist/ajv.bundle.js",
+  "apps/site/public/vendor/i18next/i18next.js",
 ];
 
 async function exists(absPath) {

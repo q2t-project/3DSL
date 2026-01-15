@@ -7,7 +7,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
-    "validate:3dss:baseline": "node scripts/validate/3dss.mjs public/3dss/scene/default/default.3dss.json public/3dss/3dss/release/3DSS.schema.json",
+    "validate:3dss:baseline": "node scripts/validate/3dss.mjs public/3dss/scene/default/default.3dss.json public/schemas/3DSS.schema.json",
     "validate:3dss:samples": "node scripts/validate/3dss-samples.mjs",
     "validate:3dss:fixtures:ref": "node scripts/validate/3dss-fixtures.mjs --ref",
     "validate:3dss:canonical": "node scripts/validate/3dss-canonical.mjs",
@@ -39,7 +39,7 @@
     "sync:schemas": "node scripts/sync/schemas.mjs",
     "sync:vendor": "node scripts/sync/vendor.mjs",
     "sync:3dss-content": "node ../../packages/3dss-content/scripts/build-library-dist.mjs && node scripts/sync/3dss-content.mjs",
-    "sync:all": "npm run sync:3dss-content && npm run sync:schemas && npm run sync:viewer && npm run sync:vendor",
+    "sync:all": "npm run sync:docs && npm run sync:3dss-content && npm run sync:schemas && npm run sync:viewer && npm run sync:vendor",
     "sync:viewer:force": "node --input-type=module -e \"process.env.SYNC_VIEWER_FORCE='1'; await import('./scripts/sync/viewer.mjs');\"",
     "new:library-item": "node ../../packages/3dss-content/scripts/new-library-item.mjs",
     "check:library": "node ../../packages/3dss-content/scripts/check-library.mjs",
@@ -53,7 +53,8 @@
     "precheck:viewer:regression": "npm run sync:all",
     "ci:build": "npm run check:ssot && npm run check:viewer:regression && npm run validate:3dss:canonical && npm run build",
     "astro": "astro",
-    "build:site": "npm --prefix apps/site run build"
+    "build:site": "npm --prefix apps/site run build",
+    "sync:docs": "node scripts/sync/docs.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.6",
@@ -75,6 +76,4 @@
   "engines": {
     "node": ">=22.12.0 <23"
   }
-
-
 }

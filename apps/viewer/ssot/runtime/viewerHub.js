@@ -1,71 +1,436 @@
 // viewer/runtime/viewerHub.js
-import { DEFAULT_INPUT_POINTER } from './core/inputDefaults.js';
-// NOTE: viewerHub loop uses requestAnimationFrame.
-// In Node (no rAF), start() becomes a no-op for the render loop (contract for hub-noop test).
+// ADD: minimal public UI bridge (i18n + error overlay) with no external deps.
+// - No bare specifiers
+// - Safe in Node (no document/window): returns fallback bridge
+// - Designed to be re-exported and used by bootstrapViewer.js via "./viewerHub.js" only.
 
 // ------------------------------------------------------------
-// logging
+// Public UI Bridge (minimal i18n + overlay)
+// ------------------------------------------------------------
+
+const _PUBUI_DEFAULT_LANG = "ja";
+
+// ultra-min i18n store: { [lang]: { [key]: string | ((params)=>string) } }
+const _PUBUI_DICT = Object.create(null);
+
+// built-in minimal phrases (keep small; caller may override by loading JSON)
+_PUBUI_DICT.ja = {
+  "overlay.title.PUBLIC_LOAD_ERROR": "読み込みに失敗しました",
+  "overlay.title.PUBLIC_INVALID_ERROR": "データが不正です",
+  "overlay.title.PUBLIC_SCHEMA_ERROR": "スキーマが未対応です",
+  "overlay.title.PUBLIC_UNEXPECTED_ERROR": "予期しないエラーが発生しました",
+
+  "overlay.body.PUBLIC_LOAD_ERROR":
+    "ネットワーク、URL、または JSON 形式を確認してください。",
+  "overlay.body.PUBLIC_INVALID_ERROR":
+    "3DSS の内容が仕様に合っていません。生成元を確認してください。",
+  "overlay.body.PUBLIC_SCHEMA_ERROR":
+    "この Viewer が対応していない schema_uri の可能性があります。",
+  "overlay.body.PUBLIC_UNEXPECTED_ERROR":
+    "再読み込みしても直らない場合はログを確認してください。",
+
+  "overlay.action.reload": "再読み込み",
+  "overlay.action.openDocs": "仕様 / Docs を開く",
+};
+
+_PUBUI_DICT.en = {
+  "overlay.title.PUBLIC_LOAD_ERROR": "Failed to load",
+  "overlay.title.PUBLIC_INVALID_ERROR": "Invalid data",
+  "overlay.title.PUBLIC_SCHEMA_ERROR": "Unsupported schema",
+  "overlay.title.PUBLIC_UNEXPECTED_ERROR": "Unexpected error",
+
+  "overlay.body.PUBLIC_LOAD_ERROR":
+    "Check network, URL, or JSON format.",
+  "overlay.body.PUBLIC_INVALID_ERROR":
+    "The 3DSS content does not conform to the schema/spec.",
+  "overlay.body.PUBLIC_SCHEMA_ERROR":
+    "This viewer may not support the schema_uri.",
+  "overlay.body.PUBLIC_UNEXPECTED_ERROR":
+    "If reloading does not help, inspect logs for details.",
+
+  "overlay.action.reload": "Reload",
+  "overlay.action.openDocs": "Open Docs / Spec",
+};
+
+function _pubuiIsBrowser() {
+  return (
+    typeof globalThis !== "undefined" &&
+    typeof globalThis.window !== "undefined" &&
+    typeof globalThis.document !== "undefined"
+  );
+}
+
+function _pubuiSafeGetSearch() {
+  try {
+    return String(globalThis?.location?.search ?? "");
+  } catch (_e) {
+    return "";
+  }
+}
+
+function _pubuiDetectLang(opts = {}) {
+  const allow = (lng) => (lng === "ja" || lng === "en" ? lng : null);
+
+  // 1) explicit
+  const o = allow(opts.lang);
+  if (o) return o;
+
+  // 2) URL query (?lng=ja|en)
+  try {
+    const sp = new URLSearchParams(_pubuiSafeGetSearch());
+    const q = allow(sp.get("lng"));
+    if (q) return q;
+  } catch (_e) {}
+
+  // 3) localStorage
+  if (_pubuiIsBrowser()) {
+    try {
+      const v = allow(globalThis.localStorage?.getItem?.("3dsl.lang"));
+      if (v) return v;
+    } catch (_e) {}
+  }
+
+  // 4) navigator language
+  if (_pubuiIsBrowser()) {
+    try {
+      const nav = globalThis.navigator;
+      const raw = String(nav?.language ?? nav?.languages?.[0] ?? "");
+      if (/^ja\b/i.test(raw)) return "ja";
+      if (/^en\b/i.test(raw)) return "en";
+    } catch (_e) {}
+  }
+
+  return _PUBUI_DEFAULT_LANG;
+}
+
+function _pubuiGetBase(opts = {}) {
+  // Prefer explicit base. Otherwise derive from location.pathname like "/3dsl/" if hosted under subpath.
+  if (typeof opts.base === "string" && opts.base.trim()) return opts.base.trim();
+
+  if (_pubuiIsBrowser()) {
+    try {
+      // If you mount viewer under "/3dsl/", you can set <base href="/3dsl/"> on the site.
+      // Fallback: detect common prefixes.
+      const p = String(globalThis.location?.pathname ?? "/");
+      if (p.startsWith("/3dsl/")) return "/3dsl/";
+      return "/";
+    } catch (_e) {}
+  }
+  return "/";
+}
+
+function _pubuiInterpolate(template, params) {
+  if (typeof template !== "string") return "";
+  if (!params || typeof params !== "object") return template;
+  // "{name}" -> params.name
+  return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (_m, k) => {
+    const v = params[k];
+    return v == null ? "" : String(v);
+  });
+}
+
+function _pubuiMakeT({ lang }) {
+  const get = (lng, key) => {
+    const d = _PUBUI_DICT[lng];
+    if (!d) return undefined;
+    return d[key];
+  };
+
+  return function t(key, opts) {
+    const o = opts && typeof opts === "object" ? opts : {};
+    const defaultValue =
+      typeof o.defaultValue === "string" ? o.defaultValue : undefined;
+
+    // 1) exact lang
+    let val = get(lang, key);
+
+    // 2) fallback to ja/en
+    if (val == null && lang !== "ja") val = get("ja", key);
+    if (val == null && lang !== "en") val = get("en", key);
+
+    // 3) defaultValue or key
+    if (val == null) val = defaultValue != null ? defaultValue : key;
+
+    if (typeof val === "function") {
+      try {
+        return String(val(o));
+      } catch (_e) {
+        return defaultValue != null ? defaultValue : key;
+      }
+    }
+    return _pubuiInterpolate(String(val), o);
+  };
+}
+
+function _pubuiEnsureStyleOnce() {
+  if (!_pubuiIsBrowser()) return;
+  try {
+    if (globalThis.__PUBUI_STYLE_INSTALLED__) return;
+    globalThis.__PUBUI_STYLE_INSTALLED__ = true;
+
+    const css = `
+/* 3DSL public error overlay (minimal) */
+._3dsl_overlay_root{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.72);backdrop-filter:blur(2px);}
+._3dsl_overlay_card{max-width:780px;width:min(92vw,780px);background:#111;color:#f2f2f2;border:1px solid rgba(255,255,255,.12);border-radius:14px;box-shadow:0 20px 80px rgba(0,0,0,.45);padding:18px 18px 14px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;}
+._3dsl_overlay_title{font-size:18px;font-weight:700;margin:0 0 6px;}
+._3dsl_overlay_body{font-size:13px;opacity:.9;line-height:1.5;margin:0 0 10px;white-space:pre-wrap;}
+._3dsl_overlay_meta{font-size:12px;opacity:.75;line-height:1.45;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px;overflow:auto;max-height:35vh;}
+._3dsl_overlay_actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+._3dsl_overlay_btn{appearance:none;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#f2f2f2;border-radius:10px;padding:8px 10px;font-size:13px;cursor:pointer;}
+._3dsl_overlay_btn:hover{background:rgba(255,255,255,.12);}
+._3dsl_overlay_btn_primary{background:rgba(120,180,255,.18);border-color:rgba(120,180,255,.35);}
+._3dsl_overlay_btn_primary:hover{background:rgba(120,180,255,.26);}
+`;
+    const style = document.createElement("style");
+    style.setAttribute("data-3dsl-public-ui", "1");
+    style.textContent = css;
+    document.head.appendChild(style);
+  } catch (_e) {}
+}
+
+function _pubuiRemoveOverlay(rootEl) {
+  try {
+    if (!rootEl) return;
+    const el = rootEl.querySelector("._3dsl_overlay_root");
+    if (el) el.remove();
+  } catch (_e) {}
+}
+
+function _pubuiRenderOverlay(rootEl, payload) {
+  if (!_pubuiIsBrowser()) return;
+  if (!rootEl) return;
+
+  _pubuiEnsureStyleOnce();
+
+  // remove previous overlay under the same root
+  _pubuiRemoveOverlay(rootEl);
+
+  const p = payload && typeof payload === "object" ? payload : {};
+  const t = typeof p.t === "function" ? p.t : (k, o) => (o && o.defaultValue) || k;
+
+  const category =
+    typeof p.publicCategory === "string" && p.publicCategory
+      ? p.publicCategory
+      : "PUBLIC_UNEXPECTED_ERROR";
+
+  const titleKey = `overlay.title.${category}`;
+  const bodyKey = `overlay.body.${category}`;
+
+  const title = t(titleKey, { defaultValue: category });
+  const body = t(bodyKey, { defaultValue: String(p?.message ?? "") });
+
+  const urls = p.urls && typeof p.urls === "object" ? p.urls : {};
+  const base = typeof urls.base === "string" && urls.base ? urls.base : "/";
+
+  const dev = p.dev === true || p.dev === 1 || p.dev === "1";
+  const devDetails = p.devDetails && typeof p.devDetails === "object" ? p.devDetails : null;
+
+  // build DOM
+  const wrap = document.createElement("div");
+  wrap.className = "_3dsl_overlay_root";
+  wrap.setAttribute("role", "dialog");
+  wrap.setAttribute("aria-modal", "true");
+
+  const card = document.createElement("div");
+  card.className = "_3dsl_overlay_card";
+
+  const h = document.createElement("h2");
+  h.className = "_3dsl_overlay_title";
+  h.textContent = title;
+
+  const b = document.createElement("p");
+  b.className = "_3dsl_overlay_body";
+  b.textContent = body;
+
+  card.appendChild(h);
+  card.appendChild(b);
+
+  if (dev && devDetails) {
+    const pre = document.createElement("pre");
+    pre.className = "_3dsl_overlay_meta";
+    try {
+      pre.textContent = JSON.stringify(devDetails, null, 2);
+    } catch (_e) {
+      pre.textContent = String(devDetails);
+    }
+    card.appendChild(pre);
+  }
+
+  const actions = document.createElement("div");
+  actions.className = "_3dsl_overlay_actions";
+
+  const btnReload = document.createElement("button");
+  btnReload.className = "_3dsl_overlay_btn _3dsl_overlay_btn_primary";
+  btnReload.type = "button";
+  btnReload.textContent = t("overlay.action.reload", { defaultValue: "Reload" });
+  btnReload.addEventListener("click", () => {
+    try {
+      globalThis.location?.reload?.();
+    } catch (_e) {}
+  });
+
+  const btnDocs = document.createElement("button");
+  btnDocs.className = "_3dsl_overlay_btn";
+  btnDocs.type = "button";
+  btnDocs.textContent = t("overlay.action.openDocs", { defaultValue: "Open Docs" });
+  btnDocs.addEventListener("click", () => {
+    try {
+      const u = base.endsWith("/") ? `${base}docs/` : `${base}/docs/`;
+      globalThis.open?.(u, "_blank", "noopener,noreferrer");
+    } catch (_e) {}
+  });
+
+  actions.appendChild(btnReload);
+  actions.appendChild(btnDocs);
+
+  card.appendChild(actions);
+  wrap.appendChild(card);
+
+  // click outside to close (optional; safe default: allow)
+  wrap.addEventListener("click", (ev) => {
+    try {
+      if (ev.target === wrap) _pubuiRemoveOverlay(rootEl);
+    } catch (_e) {}
+  });
+
+  rootEl.appendChild(wrap);
+}
+
+/**
+ * Load a locale JSON from public path.
+ * expected shape: { "key": "value", ... }
+ */
+async function _pubuiLoadLocaleJson(url) {
+  if (!_pubuiIsBrowser()) return null;
+  if (!url || typeof url !== "string") return null;
+
+  const res = await fetch(url, { cache: "no-cache" });
+  if (!res.ok) return null;
+
+  const json = await res.json();
+  if (!json || typeof json !== "object" || Array.isArray(json)) return null;
+  return json;
+}
+
+/**
+ * Merge locale dict into in-memory dict.
+ */
+function _pubuiMergeLocale(lang, dict) {
+  if (!lang || typeof lang !== "string") return;
+  if (!dict || typeof dict !== "object" || Array.isArray(dict)) return;
+  const dst = _PUBUI_DICT[lang] || (_PUBUI_DICT[lang] = {});
+  for (const [k, v] of Object.entries(dict)) {
+    if (typeof v === "string") dst[k] = v;
+    // ignore non-string values for safety
+  }
+}
+
+/**
+ * Public: create a minimal UI bridge used by bootstrapViewer.js.
+ *
+ * Usage (from bootstrap):
+ *   import { createPublicUiBridge } from "./viewerHub.js";
+ *   const publicUi = await createPublicUiBridge({ debug, base });
+ *
+ * Returned:
+ *   { lang, base, t, renderErrorOverlay(rootEl, payload), loadLocales(optional) }
+ */
+export async function createPublicUiBridge(opts = {}) {
+  const isBrowser = _pubuiIsBrowser();
+  const base = _pubuiGetBase(opts);
+  const lang = _pubuiDetectLang(opts);
+
+  const t = _pubuiMakeT({ lang });
+
+
+  // Optional: auto-load locale JSON (if present)
+  // SSOT: locales are shared at `${base}locales/{lang}/translation.json`
+  // - fallback (compat): `${base}viewer/locales/{lang}/translation.json`
+  // - you can disable by opts.autoLoadLocales=false
+  if (isBrowser && opts?.autoLoadLocales !== false) {
+    try {
+      const preferredPath =
+        typeof opts?.localePath === "string" && opts.localePath.trim()
+          ? opts.localePath.trim()
+          : (base.endsWith("/") ? `${base}locales/` : `${base}/locales/`);
+      const fallbackPath = base.endsWith("/") ? `${base}viewer/locales/` : `${base}/viewer/locales/`;
+
+      const tryLoad = async (p) => {
+        const url = `${p}${lang}/translation.json`;
+        const json = await _pubuiLoadLocaleJson(url).catch(() => null);
+        if (json) _pubuiMergeLocale(lang, json);
+        return !!json;
+      };
+
+      const ok = (await tryLoad(preferredPath)) || (await tryLoad(fallbackPath));
+      void ok;
+    } catch (_e) {}
+  }
+
+
+  const bridge = {
+    lang,
+    base,
+    t,
+
+    // Root: element to append overlay into (e.g. viewer wrapper or body)
+    // Payload: { publicCategory, devDetails, t, urls:{base}, dev }
+    renderErrorOverlay(rootEl, payload) {
+      try {
+        _pubuiRenderOverlay(rootEl, payload);
+      } catch (_e) {}
+    },
+
+
+    // Optional: caller can load extra dictionaries at runtime
+    async loadLocales(extra = {}) {
+      if (!isBrowser) return false;
+      try {
+        const lang2 = _pubuiDetectLang({ lang: extra.lang || lang });
+
+        const preferredPath =
+          typeof extra.localePath === "string" && extra.localePath.trim()
+            ? extra.localePath.trim()
+            : (base.endsWith("/") ? `${base}locales/` : `${base}/locales/`);
+        const fallbackPath = base.endsWith("/") ? `${base}viewer/locales/` : `${base}/viewer/locales/`;
+
+        const tryLoad = async (p) => {
+          const url = `${p}${lang2}/translation.json`;
+          const json = await _pubuiLoadLocaleJson(url).catch(() => null);
+          if (json) _pubuiMergeLocale(lang2, json);
+       
+// ------------------------------------------------------------
+// logging (hub)
 // ------------------------------------------------------------
 const DEBUG_HUB = false;
 let debugFrameCount = 0;
 function debugHub(...args) {
   if (!DEBUG_HUB) return;
-  // warn レベルにしておくと、ログレベル設定に関わらず表示されやすい。
+  // warn にしておくと、ログレベル設定に関わらず表示されやすい。
   console.warn(...args);
 }
 
-/**
- * viewerHub は runtime と renderer を束ねるハブ。
- *
- * - 外部から createViewerHub を直接呼び出さないでください。
- * - 必ず bootstrapViewer* から生成された hub を使用してください。
- */
+   return !!json;
+        };
 
-// pick debug（必要なときだけ true）
-const DEBUG_PICK = false;
+        return (await tryLoad(preferredPath)) || (await tryLoad(fallbackPath));
+      } catch (_e) {
+        return false;
+      }
+    },
 
-// ------------------------------------------------------------
-// helpers
-// ------------------------------------------------------------
-function _has(setLike, uuid) {
-  if (!setLike || !uuid) return false;
-  try {
-    return typeof setLike.has === "function" ? !!setLike.has(uuid) : false;
-  } catch (_e) {
-    return false;
+  };
+
+  // Optional: persist chosen lang
+  if (isBrowser && opts?.persistLang !== false) {
+    try {
+      globalThis.localStorage?.setItem?.("3dsl.lang", lang);
+    } catch (_e) {}
   }
+
+  return bridge;
 }
 
-// visibleSet の形揺れ吸収:
-// - Set<string>
-// - { points:SetLike, lines:SetLike, aux:SetLike }
-// - SetLike(has)
-function _isHitVisible(uiVisibleSet, hit) {
-  const uuid = hit?.uuid;
-  const kind = hit?.kind;
-  if (!uuid) return true;
-  if (!uiVisibleSet) return true; // 初期化順/互換の安全弁
-
-  if (uiVisibleSet instanceof Set) return uiVisibleSet.has(uuid);
-  if (typeof uiVisibleSet.has === "function") return !!uiVisibleSet.has(uuid);
-
-  if (typeof uiVisibleSet === "object") {
-    if (kind === "points" || kind === "lines" || kind === "aux") {
-      return (
-        _has(uiVisibleSet[kind], uuid) ||
-        _has(uiVisibleSet.points, uuid) ||
-        _has(uiVisibleSet.lines, uuid) ||
-        _has(uiVisibleSet.aux, uuid)
-      );
-    }
-    return (
-      _has(uiVisibleSet.points, uuid) ||
-      _has(uiVisibleSet.lines, uuid) ||
-      _has(uiVisibleSet.aux, uuid)
-    );
-  }
-  return true;
-}
 
 export function createViewerHub({ core, renderer }) {
   let animationId = null;

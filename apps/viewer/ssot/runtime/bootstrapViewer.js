@@ -333,8 +333,8 @@ function ensureValidatorInitialized() {
   }
 
   if (!validatorInitPromise) {
-    // public/3dss/3dss/release/3DSS.schema.json
-    const schemaUrl = "/3dss/3dss/release/3DSS.schema.json";
+    // public/schemas/3DSS.schema.json
+    const schemaUrl = "/schemas/3DSS.schema.json";
 
 validatorInitPromise = fetch(schemaUrl)
       .then((res) => {
