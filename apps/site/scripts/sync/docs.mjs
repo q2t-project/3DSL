@@ -1,13 +1,13 @@
 // apps/site/scripts/sync/docs.mjs
-// Mirror docs SSOT (packages/docs) into site content collections.
-//
+// SSOT: packages/docs/** -> apps/site/src/content/**
+// Mirrors:
 // - packages/docs/docs   -> apps/site/src/content/docs
 // - packages/docs/faq    -> apps/site/src/content/faq
 // - packages/docs/policy -> apps/site/src/content/policy
 //
-// NOTE:
-// - Site builds should never read packages/docs directly.
-// - This mirror is the only distribution path.
+// Robustness:
+// - If "docs" gets nested (src/content/docs/docs/**), ALWAYS flatten it to src/content/docs/**.
+//   This prevents routes like /docs/docs/... from being generated.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -16,6 +16,7 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// apps/site/scripts/sync -> apps/site
 const SITE_ROOT = path.resolve(__dirname, "..", "..");
 const REPO_ROOT = path.resolve(SITE_ROOT, "..", "..");
 
@@ -29,57 +30,112 @@ const OUT_DOCS = path.join(OUT_ROOT, "docs");
 const OUT_FAQ = path.join(OUT_ROOT, "faq");
 const OUT_POLICY = path.join(OUT_ROOT, "policy");
 
+function log(msg) {
+  console.log(`[sync] docs: ${msg}`);
+}
+
+function existsDir(p) {
+  try {
+    return fs.statSync(p).isDirectory();
+  } catch {
+    return false;
+  }
+}
+function existsFile(p) {
+  try {
+    return fs.statSync(p).isFile();
+  } catch {
+    return false;
+  }
+}
+
 function ensureDir(p) {
   fs.mkdirSync(p, { recursive: true });
 }
 
-function cleanDir(p) {
+function rmrf(p) {
   fs.rmSync(p, { recursive: true, force: true });
 }
 
-// Copy *contents* of a directory into another directory.
-//
-// Node's fs.cpSync(srcDir, existingDestDir) nests "srcDir" under the destination
-// (i.e. dest/basename(srcDir)), which would create .../docs/docs/... .
-// We instead copy children one by one so the destination layout is stable.
-function copyDirContents(src, dst) {
-  if (!fs.existsSync(src)) return false;
+// Copy directory recursively (overwrites existing)
+function copyDir(src, dst) {
   ensureDir(dst);
+  fs.cpSync(src, dst, { recursive: true, force: true });
+}
 
-  for (const ent of fs.readdirSync(src, { withFileTypes: true })) {
-    const s = path.join(src, ent.name);
-    const d = path.join(dst, ent.name);
-    // fs.cpSync handles both files and directories when recursive is true.
-    fs.cpSync(s, d, { recursive: true });
+function flattenDocsIfNested(outDocsDir) {
+  const nested = path.join(outDocsDir, "docs");
+  if (!existsDir(nested)) return;
+
+  const names = fs.readdirSync(nested);
+  for (const name of names) {
+    const srcPath = path.join(nested, name);
+    const dstPath = path.join(outDocsDir, name);
+
+    // Preserve existing top-level README if present (avoid nuking it).
+    if (name.toLowerCase() === "readme.md" && existsFile(dstPath)) {
+      continue;
+    }
+
+    rmrf(dstPath);
+    fs.renameSync(srcPath, dstPath);
   }
-  return true;
+
+  rmrf(nested);
+  log('flattened nested docs/ (removed extra "docs" segment)');
+}
+
+function removeEmbeddedDocsFaq(outDocsDir) {
+  const embedded = path.join(outDocsDir, "faq");
+  if (existsDir(embedded)) {
+    rmrf(embedded);
+    log("removed embedded docs/faq (use src/content/faq)");
+  }
 }
 
 function main() {
-  if (!fs.existsSync(SRC_ROOT)) {
-    console.error(`[sync] docs: NG: missing ${SRC_ROOT}`);
-    process.exit(1);
+  log("start");
+
+  // Clean output dirs so deleted files don't linger.
+  rmrf(OUT_DOCS);
+  rmrf(OUT_FAQ);
+  rmrf(OUT_POLICY);
+  ensureDir(OUT_ROOT);
+
+  // docs
+  if (!existsDir(SRC_DOCS)) {
+    log(`docs source missing (${SRC_DOCS}) -> created empty ${OUT_DOCS}`);
+    ensureDir(OUT_DOCS);
+  } else {
+    copyDir(SRC_DOCS, OUT_DOCS);
+    log(`docs mirrored (${SRC_DOCS} -> ${OUT_DOCS})`);
   }
 
-  // Clean + mirror to avoid stale content.
-  cleanDir(OUT_DOCS);
-  cleanDir(OUT_FAQ);
-  cleanDir(OUT_POLICY);
+  // Remove embedded docs/faq if any (from old layouts)
+  removeEmbeddedDocsFaq(OUT_DOCS);
 
-  const okDocs = copyDirContents(SRC_DOCS, OUT_DOCS);
-  const okFaq = copyDirContents(SRC_FAQ, OUT_FAQ);
-  const okPolicy = copyDirContents(SRC_POLICY, OUT_POLICY);
+  // Flatten /docs/docs/* -> /docs/* (ALWAYS if present)
+  flattenDocsIfNested(OUT_DOCS);
 
-  if (!okDocs && !okFaq && !okPolicy) {
-    console.error(`[sync] docs: NG: nothing to mirror (missing: docs/faq/policy)`);
-    process.exit(1);
+  // faq
+  if (!existsDir(SRC_FAQ)) {
+    log(`faq source missing (${SRC_FAQ}) -> created empty ${OUT_FAQ}`);
+    ensureDir(OUT_FAQ);
+  } else {
+    copyDir(SRC_FAQ, OUT_FAQ);
+    log(`faq mirrored (${SRC_FAQ} -> ${OUT_FAQ})`);
   }
 
-  console.log(`[sync] docs: start`);
-  if (okDocs) console.log(`[sync] docs: docs mirrored (packages/docs/docs -> apps/site/src/content/docs)`);
-  if (okFaq) console.log(`[sync] docs: faq mirrored (packages/docs/faq -> apps/site/src/content/faq)`);
-  if (okPolicy) console.log(`[sync] docs: policy mirrored (packages/docs/policy -> apps/site/src/content/policy)`);
-  console.log(`[sync] docs: done`);
+  // policy
+  if (!existsDir(SRC_POLICY)) {
+    log(`policy source missing (${SRC_POLICY}) -> created empty ${OUT_POLICY}`);
+    ensureDir(OUT_POLICY);
+  } else {
+    copyDir(SRC_POLICY, OUT_POLICY);
+    log(`policy mirrored (${SRC_POLICY} -> ${OUT_POLICY})`);
+  }
+
+  log("done");
 }
 
 main();

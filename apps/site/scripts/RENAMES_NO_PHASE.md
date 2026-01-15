@@ -1,20 +1,15 @@
-# phase* rename map (apps/site/scripts)
+# Legacy name cleanup
 
-## Renamed check scripts
-- scripts/check/phase2-contract.mjs -> scripts/check/viewer-bootstrap-public-contract.mjs
-- scripts/check/phase2-core-contract.mjs -> scripts/check/viewer-core-layer-contract.mjs
-- scripts/check/phase3-bootstrap-contract.mjs -> scripts/check/viewer-bootstrap-flow-contract.mjs
-- scripts/check/phase4-hub-contract.mjs -> scripts/check/viewer-hub-boundary-contract.mjs
-- scripts/check/phase4-hub-noop.mjs -> scripts/check/viewer-hub-dispose-safety.mjs
-- scripts/check/phase7-regression.mjs -> scripts/check/viewer-regression-suite.mjs
+このリポジトリ内で、過去の開発段階名に由来するラベルが残って混乱しやすかったため、
+「リリース前チェック」「回帰スモーク」など、役割ベースの名前に整理した。
 
-## What to update in apps/site/package.json
-Replace any old paths above with the new ones.
+## 方針
+- npm script: `check:release` に集約（リリース前チェックの入口を 1 つにする）
+- viewer smoke: `regressionRunner.js` と、それを説明する spec に統一
 
-Recommended npm script names (optional, but avoids "phase" in script keys):
-- check:viewer:bootstrap-public-contract
-- check:viewer:core-layer-contract
-- check:viewer:bootstrap-flow-contract
-- check:viewer:hub-boundary-contract
-- check:viewer:hub-dispose-safety
-- check:viewer:regression-suite
+## 追加でやること（手動）
+- 互換のために残している古いファイルがあれば削除する
+  - `apps/viewer/ssot/spec/` 内の legacy smoke spec
+  - `apps/viewer/ssot/docs/test/` 内の legacy runner
+
+※ history を見れば過去名は追えるので、このファイルは役割説明だけを残す。

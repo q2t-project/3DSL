@@ -16,3 +16,13 @@ __PATCH_NOTES__*.txt
 # Excel lock/temp
 ~$*.xls*
 *.tmp
+
+# local artifacts
+_out/
+
+
+# local artifacts
+_out/
+_ul_zips/
+_tmp_marker_backup/
+
