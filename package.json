@@ -10,10 +10,10 @@
     "sync:viewer": "npm --prefix apps/site run sync:viewer",
     "sync:vendor": "npm --prefix apps/site run sync:vendor",
     "check:ssot": "npm --prefix apps/site run check:ssot",
-    "check:phase7": "npm --prefix apps/site run check:phase7",
     "check:guards": "npm --prefix apps/site run check:guards",
     "fix:guards": "npm --prefix apps/site run fix:guards",
-    "build:site": "npm --prefix apps/site run build"
+    "build:site": "npm --prefix apps/site run build",
+    "check:release": "npm --prefix apps/site run check:release"
   },
   "devDependencies": {
     "esprima": "^4.0.1"

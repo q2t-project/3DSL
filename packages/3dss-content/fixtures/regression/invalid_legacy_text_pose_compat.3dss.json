@@ -1,10 +1,10 @@
 {
   "document_meta": {
-    "document_title": "Phase7 fixture: legacy text pose compat",
+    "document_title": "Regression fixture: legacy text pose compat",
     "document_summary": "Legacy marker.text.plane + uuid/position alias coverage.",
     "document_uuid": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
-    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
-    "author": "phase7",
+    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
+    "author": "regression",
     "version": "1.0.0",
     "coordinate_system": "Z+up/freeXY",
     "units": "non_si:px",
@@ -58,7 +58,7 @@
       },
       "meta": {
         "tags": [
-          "s:phase7",
+          "s:regression",
           "s:legacy"
         ]
       },

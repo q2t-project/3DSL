@@ -7,7 +7,7 @@
 - `packages/schemas/3DSS_spec.md` … 仕様書（最新版）
 
 ## リリーススナップショット
-- `packages/schemas/releases/vX.Y.Z/` … その版の凍結コピー（編集禁止）
+- `packages/schemas/release/vX.Y.Z/` … その版の凍結コピー（編集禁止）
 
 ## 運用ルール
 - 編集するのは **正本だけ**。
@@ -17,7 +17,7 @@
 ## リリース手順（例: v1.1.3）
 1. 正本の `3DSS.schema.json` を更新（`$anchor` を `v1.1.3` に、必要なら仕様追記）
 2. `3DSS_spec.md` を更新（同版に合わせる）
-3. 既存の検証（例: `npm run check:phase7`）で NG=0 を確認
-4. `packages/schemas/releases/v1.1.3/` を作成して正本をコピー
+3. 既存の検証（例: `npm run check:release`）で NG=0 を確認
+4. `packages/schemas/release/v1.1.3/` を作成して正本をコピー
 5. リポジトリにタグを打つ（例: `schema-v1.1.3`）
 6. `sync:schemas` で `apps/site/public` 等へ配布
