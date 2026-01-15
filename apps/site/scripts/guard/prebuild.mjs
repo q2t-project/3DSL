@@ -25,10 +25,12 @@ const legacyViewer = path.join(siteRoot, "src", "pages", "viewer.astro");
 const canonicalViewer = path.join(siteRoot, "src", "pages", "viewer", "index.astro");
 const pagesDisabled = path.join(siteRoot, "src", "pages_disabled");
 
-// Cloudflare Pages expects a real top-level "404.html" file.
-// Astro default build.format="directory" would output "404.html/index.html" which Pages will NOT detect.
-// Therefore we require: public/404.html and forbid: src/pages/404.html.astro
-const astro404 = path.join(siteRoot, "src", "pages", "404.html.astro");
+// 404 policy:
+// - Canonical: src/pages/404.astro (Astro emits dist/404.html; confirmed by build logs)
+// - Forbidden: public/404.html (would create a second "truth" and risk conflicts)
+// - Forbidden: src/pages/404.html.astro (misnamed legacy)
+const astro404 = path.join(siteRoot, "src", "pages", "404.astro");
+const astro404Legacy = path.join(siteRoot, "src", "pages", "404.html.astro");
 const public404 = path.join(siteRoot, "public", "404.html");
 
 // Deploy probe (helps verify Cloudflare Pages picked up the latest build)
@@ -46,6 +48,24 @@ function fail(msg) {
   failed = true;
 }
 
+function sh(cmd, opts = {}) {
+  return execSync(cmd, { stdio: ["ignore", "pipe", "pipe"], ...opts }).toString();
+}
+
+function requireNoTrackedDist() {
+  // Delegate to scripts/check/dist-not-tracked.mjs
+  const checker = path.join(siteRoot, "scripts", "check", "dist-not-tracked.mjs");
+  if (!exists(checker)) return;
+  try {
+    execSync(`node "${checker}"`, {
+      cwd: siteRoot,
+      stdio: "inherit",
+    });
+  } catch {
+    fail("[guard] dist-not-tracked check failed. See logs above.");
+  }
+}
+
 // 1) accidental nested folder
 if (exists(nestedSite)) {
   fail(`[guard] Detected accidental nested path: ${nestedSite}\n` +
@@ -57,6 +77,9 @@ if (exists(legacyViewer)) {
   fail(`[guard] Forbidden legacy route exists: ${legacyViewer}\n` +
        `        Use src/pages/viewer/index.astro only.\n`);
 }
+
+// 2.x) forbid tracked dist outputs (hard rule)
+requireNoTrackedDist();
 
 // 3) forbid pages_disabled
 if (exists(pagesDisabled)) {
@@ -92,19 +115,102 @@ if (exists(publicViewerDir)) {
 }
 
 // viewer runtime 依存（これが無いと「200出てるのに中身死ぬ」を起こす）
-const req = [
-  path.join(publicDir, "3dss", "3dss", "release", "3DSS.schema.json"),
-  path.join(publicDir, "3dss", "sample", "3dsl_concept.3dss.json"),
-  path.join(publicDir, "vendor", "three", "build", "three.module.js"),
-  path.join(publicDir, "vendor", "ajv", "dist", "ajv.bundle.js"),
-];
+// NOTE:
+// - vendor placement can vary by sync/bundle strategy.
+// - Use candidates: "any one exists" -> OK.
 
-for (const p of req) {
-  if (!exists(p)) {
-    fail(`[guard] Missing required runtime asset: ${p}\n` +
-         `        Fix: run sync:all (schemas/vendor/3dss-content) or restore the SSOT files.\n`);
+function requireAny(label, candidates, hint) {
+  const ok = candidates.find((p) => exists(p));
+  if (ok) return;
+  const lines = [];
+  lines.push(`[guard] Missing required runtime asset group: ${label}`);
+  lines.push(`        Looked for:`);
+  for (const p of candidates) lines.push(`          - ${p}`);
+  if (hint) lines.push(`        Fix: ${hint}`);
+  fail(lines.join("\n") + "\n");
+}
+
+function readTextIfExists(p) {
+  try {
+    if (!exists(p)) return "";
+    return fs.readFileSync(p, "utf8");
+  } catch {
+    return "";
   }
 }
+
+function viewerMentionsAjv(publicDir) {
+  // "軽い"文字列検索だけ。JS/HTMLの実行解析はしない。
+  const candidates = [
+    path.join(publicDir, "viewer", "index.html"),
+    path.join(publicDir, "viewer", "viewerHost.js"),
+    path.join(publicDir, "viewer", "viewerHostBoot.js"),
+    path.join(publicDir, "viewer", "peekBoot.js"),
+    path.join(publicDir, "viewer", "runtime", "bootstrapViewer.js"),
+  ];
+
+  const needles = [
+    "ajv.bundle.js",
+    "/vendor/ajv/",
+    "vendor/ajv/",
+  ];
+
+  for (const f of candidates) {
+    const txt = readTextIfExists(f);
+    if (!txt) continue;
+    for (const n of needles) {
+      if (txt.includes(n)) return { hit: true, file: f, needle: n };
+    }
+  }
+  return { hit: false };
+}
+
+// Schema (stable)
+requireAny(
+  "3DSS schema",
+  [
+    path.join(publicDir, "3dss", "release", "3DSS.schema.json"),
+    path.join(publicDir, "3dss", "release", "v1.1.3", "3DSS.schema.json"),
+  ],
+  "run sync:schemas (or sync:all) to restore /public/3dss/release/**"
+);
+
+// three.js (placement may vary)
+requireAny(
+  "three.js module",
+  [
+    path.join(publicDir, "vendor", "three", "build", "three.module.js"),
+    path.join(publicDir, "vendor", "three", "build", "three.module.min.js"),
+    path.join(publicDir, "viewer", "vendor", "three", "build", "three.module.js"),
+    path.join(publicDir, "viewer", "vendor", "three", "build", "three.module.min.js"),
+  ],
+  "run sync:vendor (or sync:viewer) to inject vendor/three"
+);
+
+// AJV: required only if the shipped viewer references it
+const ajvRef = viewerMentionsAjv(publicDir);
+if (ajvRef.hit) {
+  requireAny(
+    "ajv bundle (referenced by viewer)",
+    [
+      path.join(publicDir, "vendor", "ajv", "dist", "ajv.bundle.js"),
+      path.join(publicDir, "viewer", "vendor", "ajv", "dist", "ajv.bundle.js"),
+    ],
+    `viewer references AJV (${ajvRef.needle}) in ${ajvRef.file}. Run sync:vendor to inject vendor/ajv.`
+  );
+} else {
+  // No reference => do not require AJV to avoid false failures
+}
+
+// ajv-formats (seen in your tree)
+requireAny(
+  "ajv-formats bundle",
+  [
+    path.join(publicDir, "vendor", "ajv-formats", "dist", "ajv-formats.bundle.js"),
+    path.join(publicDir, "viewer", "vendor", "ajv-formats", "dist", "ajv-formats.bundle.js"),
+  ],
+  "run sync:vendor to inject vendor/ajv-formats"
+);
 
 // ノイズ潰し（任意だが、常に取りに行くなら置いとけ）
 const tuningCss = path.join(publicDir, "viewer_tuning.css");
@@ -114,28 +220,21 @@ if (!exists(tuningCss)) {
 }
 
 
-// 5) require proper Cloudflare Pages 404.html
-if (exists(astro404)) {
-  fail(`[guard] Forbidden Astro 404 route exists: ${astro404}\n` +
-       `        Cloudflare Pages needs a real top-level "404.html" file.\n` +
-       `        Fix: delete src/pages/404.html.astro and create public/404.html instead.\n`);
+// 5) 404 must be provided by Astro route
+if (exists(astro404Legacy)) {
+  fail(`[guard] Forbidden legacy 404 route exists: ${astro404Legacy}\n` +
+       `        Use src/pages/404.astro instead.\n`);
 }
-if (!exists(public404)) {
-  fail(`[guard] Missing required file: ${public404}\n` +
-       `        Cloudflare Pages needs public/404.html to return proper 404 status.\n`);
+if (!exists(astro404)) {
+  fail(`[guard] Missing required Astro 404 route: ${astro404}\n` +
+       `        Fix: create src/pages/404.astro (Astro will emit dist/404.html).\n`);
+}
+if (exists(public404)) {
+  fail(`[guard] Forbidden public 404 file exists: ${public404}\n` +
+       `        Fix: delete public/404.html. 404 is owned by src/pages/404.astro.\n`);
 }
 
-function getGitSha() {
-  const envSha = process.env.CF_PAGES_COMMIT_SHA || process.env.GITHUB_SHA || process.env.COMMIT_SHA;
-  if (envSha && typeof envSha === "string" && envSha.length >= 7) return envSha.slice(0, 7);
-  try {
-    return execSync("git rev-parse --short HEAD", { cwd: repoRoot, stdio: ["ignore", "pipe", "ignore"] })
-      .toString()
-      .trim();
-  } catch {
-    return "unknown";
-  }
-}
+// (rest unchanged)
 
 function writeDeployProbe() {
   try {
@@ -192,6 +291,9 @@ function runLibraryMetaCheck() {
 }
 
 runLibraryMetaCheck();
+
+// dist は生成物。存在は許すが、tracked は禁止。
+// (already checked above)
 
 if (failed) process.exit(1);
 

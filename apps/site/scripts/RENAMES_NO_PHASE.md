@@ -6,7 +6,7 @@
 - scripts/check/phase3-bootstrap-contract.mjs -> scripts/check/viewer-bootstrap-flow-contract.mjs
 - scripts/check/phase4-hub-contract.mjs -> scripts/check/viewer-hub-boundary-contract.mjs
 - scripts/check/phase4-hub-noop.mjs -> scripts/check/viewer-hub-dispose-safety.mjs
-- scripts/check/phase7-regression.mjs -> scripts/check/viewer-regression-suite.mjs
+- scripts/check/regression-suite-regression.mjs -> scripts/check/viewer-regression-suite.mjs
 
 ## What to update in apps/site/package.json
 Replace any old paths above with the new ones.

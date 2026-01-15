@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { cp, mkdir, rm, access } from "node:fs/promises";
+import { cp, mkdir, rm, access, readdir } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -14,6 +14,35 @@ const repoRoot = path.resolve(siteRoot, "..", "..");
 
 const publicDir = path.join(siteRoot, "public");
 const PUBLIC_VIEWER = path.join(publicDir, "viewer");
+
+async function exists(p) {
+  try { await access(p); return true; } catch { return false; }
+}
+
+async function assertExists(p, hint = "") {
+  try {
+    await access(p);
+  } catch (e) {
+    const msg = `[sync] viewer: missing required file: ${p}${hint ? " (" + hint + ")" : ""}`;
+    throw new Error(msg);
+  }
+}
+
+async function listDirSafe(p) {
+  try {
+    const items = await readdir(p, { withFileTypes: true });
+    return items.map(d => (d.isDirectory() ? d.name + "/" : d.name)).sort();
+  } catch {
+    return null;
+  }
+}
+
+async function copyDir(src, dst) {
+  if (!(await exists(src))) return false;
+  await mkdir(dst, { recursive: true });
+  await cp(src, dst, { recursive: true });
+  return true;
+}
 
 // SSOT candidates (first match wins)
 const candidates = [
@@ -125,6 +154,18 @@ try {
   console.warn("[sync] viewer: vendor/three injection skipped:", e?.message ?? e);
 }
 
+// Inject vendor/i18next into /public/viewer (ui/i18n.js imports ../vendor/i18next/i18next.js)
+try {
+  const vendorI18nextSrc = path.join(repoRoot, "packages/vendor/i18next");
+  const vendorI18nextDst = path.join(dst, "vendor/i18next");
+  await access(vendorI18nextSrc);
+  await mkdir(path.dirname(vendorI18nextDst), { recursive: true });
+  await cp(vendorI18nextSrc, vendorI18nextDst, { recursive: true });
+  console.log("[sync] viewer: injected vendor/i18next");
+} catch (e) {
+  console.warn("[sync] viewer: vendor/i18next injection skipped:", e?.message ?? e);
+}
+
 // Remove accidental duplicated viewer tree under public/viewer/ui/* (ui/runtime, ui/scripts, etc.)
 // These duplicates break viewer layer checks (ui-layer must not contain runtime/core).
 try {
@@ -143,6 +184,15 @@ try {
 } catch (e) {
   throw new Error(`[sync] viewer: ui-duplicate cleanup failed: ${e?.message ?? e}`);
 }
+
+// ---- Required artifacts check (this catches the exact 404 you're seeing) ----
+await assertExists(path.join(dst, "runtime", "bootstrapViewer.js"), "runtime entry");
+await assertExists(path.join(dst, "ui", "i18n.js"), "i18n helper");
+await assertExists(path.join(dst, "ui", "errorOverlay.js"), "error overlay");
+
+// Extra debug if something still looks off
+const uiList = await listDirSafe(path.join(dst, "ui"));
+if (uiList) console.log("[sync] viewer: public/ui =", uiList.join(", "));
 
 // Marker to make intent explicit
 try {

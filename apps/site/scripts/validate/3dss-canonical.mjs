@@ -17,7 +17,7 @@ const __dirname = path.dirname(__filename);
 // apps/site/
 const SITE_ROOT = path.resolve(__dirname, "..", "..");
 
-const SCHEMA = path.join(SITE_ROOT, "public", "3dss", "3dss", "release", "3DSS.schema.json");
+const SCHEMA = path.join(SITE_ROOT, "public", "3dss", "release", "3DSS.schema.json");
 const CANON_DIR = path.join(SITE_ROOT, "public", "3dss", "canonical");
 const VALID_DIR = path.join(CANON_DIR, "valid");
 const INVALID_DIR = path.join(CANON_DIR, "invalid");

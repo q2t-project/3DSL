@@ -143,7 +143,7 @@ const explicitSchema = argValue("--schema", null);
 let schemaPath =
   explicitSchema ||
   findExisting([
-    path.resolve(siteRoot, "public/3dss/3dss/release/3DSS.schema.json"),
+    path.resolve(siteRoot, "public/3dss/release/3DSS.schema.json"),
     path.resolve(siteRoot, "public/schemas/3DSS.schema.json"),
     path.resolve(siteRoot, "public/schemas/3dss.schema.json"),
     path.resolve(siteRoot, "schemas/3DSS.schema.json"),
