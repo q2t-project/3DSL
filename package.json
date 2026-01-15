@@ -1,6 +1,7 @@
 {
   "name": "3dsl-root",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "npm --prefix apps/site run dev",
     "build": "npm --prefix apps/site run build",
@@ -10,12 +11,19 @@
     "sync:viewer": "npm --prefix apps/site run sync:viewer",
     "sync:vendor": "npm --prefix apps/site run sync:vendor",
     "check:ssot": "npm --prefix apps/site run check:ssot",
-    "check:phase7": "npm --prefix apps/site run check:phase7",
+    "check:viewer-regression": "npm --prefix apps/site run check:viewer-regression",
     "check:guards": "npm --prefix apps/site run check:guards",
     "fix:guards": "npm --prefix apps/site run fix:guards",
     "build:site": "npm --prefix apps/site run build"
   },
   "devDependencies": {
     "esprima": "^4.0.1"
+  },
+  "dependencies": {
+    "i18next": "^25.7.4",
+    "i18next-browser-languagedetector": "^8.2.0",
+    "i18next-fs-backend": "^2.6.1",
+    "i18next-http-backend": "^3.0.2",
+    "i18next-xhr-backend": "^3.2.2"
   }
 }
