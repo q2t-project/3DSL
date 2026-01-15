@@ -58,6 +58,7 @@
   "dependencies": {
     "@astrojs/check": "^0.9.6",
     "@tailwindcss/vite": "^4.1.17",
+    "3dsl-root": "file:../..",
     "astro": "^5.16.0",
     "tailwindcss": "^4.1.17",
     "typescript": "^5.9.3"
@@ -68,5 +69,8 @@
     "ajv-cli": "^5.0.0",
     "ajv-formats": "^3.0.1",
     "esbuild": "^0.27.2"
+  },
+  "overrides": {
+    "remark-rehype": "11.1.2"
   }
 }
