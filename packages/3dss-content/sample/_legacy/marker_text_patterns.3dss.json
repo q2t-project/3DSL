@@ -42,9 +42,11 @@
           "text": {
             "content": "left&top",
             "pose": {
-              "mode": "billboard",
-              "up": "+z",
-              "roll": 0
+              "up": [
+                0,
+                0,
+                1
+              ]
             },
             "size": 0.6,
             "align": "left&top",
@@ -75,9 +77,11 @@
           "text": {
             "content": "center&top",
             "pose": {
-              "mode": "billboard",
-              "up": "+z",
-              "roll": 0
+              "up": [
+                0,
+                0,
+                1
+              ]
             },
             "size": 0.6,
             "align": "center&top",
@@ -108,9 +112,11 @@
           "text": {
             "content": "right&top",
             "pose": {
-              "mode": "billboard",
-              "up": "+z",
-              "roll": 0
+              "up": [
+                0,
+                0,
+                1
+              ]
             },
             "size": 0.6,
             "align": "right&top",
@@ -141,9 +147,11 @@
           "text": {
             "content": "left&middle",
             "pose": {
-              "mode": "billboard",
-              "up": "+z",
-              "roll": 0
+              "up": [
+                0,
+                0,
+                1
+              ]
             },
             "size": 0.6,
             "align": "left&middle",
@@ -174,9 +182,11 @@
           "text": {
             "content": "center&middle",
             "pose": {
-              "mode": "billboard",
-              "up": "+z",
-              "roll": 0
+              "up": [
+                0,
+                0,
+                1
+              ]
             },
             "size": 0.6,
             "align": "center&middle",
@@ -207,9 +217,11 @@
           "text": {
             "content": "right&middle",
             "pose": {
-              "mode": "billboard",
-              "up": "+z",
-              "roll": 0
+              "up": [
+                0,
+                0,
+                1
+              ]
             },
             "size": 0.6,
             "align": "right&middle",
@@ -240,9 +252,11 @@
           "text": {
             "content": "left&baseline",
             "pose": {
-              "mode": "billboard",
-              "up": "+z",
-              "roll": 0
+              "up": [
+                0,
+                0,
+                1
+              ]
             },
             "size": 0.6,
             "align": "left&baseline",
@@ -273,9 +287,11 @@
           "text": {
             "content": "center&baseline",
             "pose": {
-              "mode": "billboard",
-              "up": "+z",
-              "roll": 0
+              "up": [
+                0,
+                0,
+                1
+              ]
             },
             "size": 0.6,
             "align": "center&baseline",
@@ -306,9 +322,11 @@
           "text": {
             "content": "right&baseline",
             "pose": {
-              "mode": "billboard",
-              "up": "+z",
-              "roll": 0
+              "up": [
+                0,
+                0,
+                1
+              ]
             },
             "size": 0.6,
             "align": "right&baseline",

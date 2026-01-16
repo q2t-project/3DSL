@@ -1,0 +1,2676 @@
+{
+  "document_meta": {
+    "document_title": "3DSL Concept",
+    "document_summary": "トップページ掲載用の Concept 文面を 3DSD（3DSS）に構造化したもの。",
+    "document_uuid": "a768e42d-a474-46f9-a41e-4c5b9cb288a2",
+    "version": "1.0.0",
+    "updated_at": "2026-01-05T01:53:40Z",
+    "tags": [
+      "s:3dsl",
+      "s:concept",
+      "m:top"
+    ],
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.1.3",
+    "generator": "https://q2t-project.github.io/3dsl/",
+    "reference": "26010501 3dsl-concept",
+    "coordinate_system": "Z+up/freeXY",
+    "units": "non_si:px",
+    "i18n": "ja",
+    "author": "q2t-project",
+    "creator_memo": "3DSL Concept 文面（トップページ用）を points/lines へ落としたサンプル。"
+  },
+  "points": [
+    {
+      "signification": {
+        "name": "Concept"
+      },
+      "appearance": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.6,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "Concept"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "b1cbe02d-7219-4a16-8bee-4652e46e38bc",
+        "tags": [
+          "x:p_concept"
+        ],
+        "creator_memo": "3DSL Concept の全体ルート"
+      }
+    },
+    {
+      "signification": {
+        "name": "表現の限界と要請"
+      },
+      "appearance": {
+        "position": [
+          -22,
+          10,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.5,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "表現の限界と要請"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "8dffb04e-0b02-402f-a816-293af8e1cf8a",
+        "tags": [
+          "x:p_sec_limits"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "新しい表現の実験"
+      },
+      "appearance": {
+        "position": [
+          22,
+          10,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.5,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "新しい表現の実験"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "5100c528-f0be-4d6c-b8ae-0d4f026b583b",
+        "tags": [
+          "x:p_sec_experiment"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "宣言"
+      },
+      "appearance": {
+        "position": [
+          0,
+          -18,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.5,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "宣言"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "c2dba50c-826a-4826-8480-893473240e42",
+        "tags": [
+          "x:p_sec_declare"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "世界を分節化"
+      },
+      "appearance": {
+        "position": [
+          -34,
+          16,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.35,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 2,
+            "content": "世界を分節化"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "a1af2261-8607-4b91-9b6e-d2bf6abea441",
+        "tags": [
+          "x:p_lim_lang_segment"
+        ],
+        "creator_memo": "分ければ分かる。だが分かつほど全体は見えにくい。"
+      }
+    },
+    {
+      "signification": {
+        "name": "切断と再接続の検証"
+      },
+      "appearance": {
+        "position": [
+          -34,
+          12,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.35,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "切断と再接続の検証"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "da5b663c-8872-4831-ba6a-a4ecd214cdea",
+        "tags": [
+          "x:p_lim_reconnect"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "複雑化で連結が増え読み手が脱落"
+      },
+      "appearance": {
+        "position": [
+          -34,
+          8,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.35,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "複雑化で連結が増え読み手が脱落"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "eed135b4-21f4-41d1-9fa0-a81012953ad8",
+        "tags": [
+          "x:p_lim_complexity"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "文脈依存"
+      },
+      "appearance": {
+        "position": [
+          -34,
+          4,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.35,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "文脈依存"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "636c4fca-410a-406f-bef5-9b1074045c53",
+        "tags": [
+          "x:p_lim_context"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "コモンズ"
+      },
+      "appearance": {
+        "position": [
+          -34,
+          0,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.35,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "コモンズ"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "eaf15d36-11a4-42b6-9b92-031a731bd3be",
+        "tags": [
+          "x:p_lim_commons"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "成果物が“完成”として固定"
+      },
+      "appearance": {
+        "position": [
+          -34,
+          -4,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.35,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "成果物が“完成”として固定"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "6bce1108-b111-4405-a333-f356d9019a1f",
+        "tags": [
+          "x:p_lim_fixed"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "留保を許容する代替表現が要る"
+      },
+      "appearance": {
+        "position": [
+          -34,
+          -8,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.35,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "留保を許容する代替表現が要る"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "51de5aa5-1d06-43ce-95ea-2cc202748102",
+        "tags": [
+          "x:p_lim_reserve_need"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "図:俯瞰は強いが座標が揃わない"
+      },
+      "appearance": {
+        "position": [
+          -34,
+          -12,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.35,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "図:俯瞰は強いが座標が揃わない"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "4d7ec784-c1ee-4b94-a5f7-651dabfde1ba",
+        "tags": [
+          "x:p_lim_diagram"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "モデル:操作で理解、だが配布/検証が難しい"
+      },
+      "appearance": {
+        "position": [
+          -34,
+          -16,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.35,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "モデル:操作で理解、だが配布/検証が難しい"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "04cee411-1896-46af-a14a-110c246bec60",
+        "tags": [
+          "x:p_lim_model"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "視点/手順共有"
+      },
+      "appearance": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "visible": true,
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "box",
+          "size": [
+            4,
+            4,
+            4
+          ],
+          "text": {
+            "content": "視点/手順共有",
+            "plane": "zx",
+            "size": 8
+          }
+        }
+      },
+      "meta": {
+        "uuid": "2e7dd29f-e703-4987-a6e5-519476a9805f",
+        "tags": [],
+        "creator_memo": ""
+      }
+    },
+    {
+      "signification": {
+        "name": "デジタル:複製"
+      },
+      "appearance": {
+        "position": [
+          -18,
+          -2,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.35,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "デジタル:複製"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "1d2bd262-2f42-4a05-bfe2-c8ad08bd1510",
+        "tags": [
+          "x:p_lim_digital"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "表現=特性の束（複製性×操作性…）"
+      },
+      "appearance": {
+        "position": [
+          -18,
+          -6,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.35,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "表現=特性の束（複製性×操作性…）"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "599629bf-f80c-4046-9865-d740e0d2928e",
+        "tags": [
+          "x:p_lim_bundle"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "3DSL"
+      },
+      "appearance": {
+        "position": [
+          22,
+          6,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.55,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "3DSL"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "92e7b001-76c2-4ba0-9770-c0ba53568131",
+        "tags": [
+          "x:p_dsl"
+        ],
+        "creator_memo": "3-Dimensional Structure Language"
+      }
+    },
+    {
+      "signification": {
+        "name": "概念と関係を3Dに配置"
+      },
+      "appearance": {
+        "position": [
+          34,
+          16,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.35,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "概念と関係を3Dに配置"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "3db07806-16d5-4e50-836e-55ded65895c1",
+        "tags": [
+          "x:p_dsl_place"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "全体フレームを先に外部化"
+      },
+      "appearance": {
+        "position": [
+          34,
+          12,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.35,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "全体フレームを先に外部化"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "b2c2b986-9b2e-485b-b07a-41c908a9d886",
+        "tags": [
+          "x:p_dsl_frame_first"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "関係中心・線の束で構造保持"
+      },
+      "appearance": {
+        "position": [
+          34,
+          8,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.35,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "関係中心・線の束で構造保持"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "ad0238ca-571a-4fec-a11c-19ae6dbfad7e",
+        "tags": [
+          "x:p_dsl_relation_center"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "理解を復元→ナビゲーションへ"
+      },
+      "appearance": {
+        "position": [
+          34,
+          4,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.35,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "理解を復元→ナビゲーションへ"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "b3882035-b845-4e2d-b846-13145fe6ed52",
+        "tags": [
+          "x:p_dsl_navigation"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "回転/ズーム/俯瞰/探索"
+      },
+      "appearance": {
+        "position": [
+          34,
+          0,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.35,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "回転/ズーム/俯瞰/探索"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "899acf39-deb6-420f-97bc-64481b147fbb",
+        "tags": [
+          "x:p_dsl_ops"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "同一モデルを複製・配布"
+      },
+      "appearance": {
+        "position": [
+          34,
+          -4,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.35,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "同一モデルを複製・配布"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "0f006dd3-82d7-4714-bea1-52ad626ef9b8",
+        "tags": [
+          "x:p_dsl_replicate"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "視点と手順を揃えて検証"
+      },
+      "appearance": {
+        "position": [
+          34,
+          -8,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.35,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "視点と手順を揃えて検証"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "1145f4bd-f43e-40fd-90d4-f1ad4d77a206",
+        "tags": [
+          "x:p_dsl_verify"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "共通座標軸/スケール/層別"
+      },
+      "appearance": {
+        "position": [
+          34,
+          -12,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.35,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "共通座標軸/スケール/層別"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "8c1d14b9-6d9b-4aaa-9a22-ab957c4d1b35",
+        "tags": [
+          "x:p_dsl_axes"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "テーマを一意固定しない"
+      },
+      "appearance": {
+        "position": [
+          34,
+          -16,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.35,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "テーマを一意固定しない"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "e0f38e99-5d78-4699-9382-37ddf7dba791",
+        "tags": [
+          "x:p_dsl_multiview"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "分類はナビゲーション（タグ/将来ファセット）"
+      },
+      "appearance": {
+        "position": [
+          18,
+          16,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.35,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "分類はナビゲーション（タグ/将来ファセット）"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "d15ed10e-cdbf-4202-a9b9-130777b8523a",
+        "tags": [
+          "x:p_dsl_classify"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "比較・接続・対立/併存/未決も同居"
+      },
+      "appearance": {
+        "position": [
+          18,
+          12,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.35,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "比較・接続・対立/併存/未決も同居"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "a64c6a91-1419-40b5-8464-a47647217d09",
+        "tags": [
+          "x:p_dsl_compare"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "状態と遷移、時間の扱いを明示"
+      },
+      "appearance": {
+        "position": [
+          18,
+          8,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.35,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "状態と遷移、時間の扱いを明示"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "1957490c-0202-464a-8a20-c6e2dae4609d",
+        "tags": [
+          "x:p_dsl_time"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "留保を保持し、検証で更新"
+      },
+      "appearance": {
+        "position": [
+          18,
+          4,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.35,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "留保を保持し、検証で更新"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "b7e0dc8d-6b97-4313-be8f-a8ad2db7321e",
+        "tags": [
+          "x:p_dsl_reserve"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "前提と手続きが明示された『もっともらしさ』"
+      },
+      "appearance": {
+        "position": [
+          18,
+          0,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.35,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "前提と手続きが明示された『もっともらしさ』"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "4bd283ba-aec4-49dd-9a6f-993c02cae544",
+        "tags": [
+          "x:p_dsl_plausible"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": ""
+      },
+      "appearance": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "visible": true,
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "box",
+          "size": [
+            4,
+            4,
+            4
+          ],
+          "text": {
+            "content": "",
+            "plane": "zx",
+            "size": 8
+          }
+        }
+      },
+      "meta": {
+        "uuid": "b437f61d-8c31-4a71-b714-8a8104da0c9a",
+        "tags": [],
+        "creator_memo": ""
+      }
+    },
+    {
+      "signification": {
+        "name": "公開実験として積み上げる"
+      },
+      "appearance": {
+        "position": [
+          18,
+          -4,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.35,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "公開実験として積み上げる"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "e8f3dab2-dc93-403a-b521-499a66b3c527",
+        "tags": [
+          "x:p_dsl_public"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "座標軸がコモンズになる"
+      },
+      "appearance": {
+        "position": [
+          18,
+          -8,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.35,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "座標軸がコモンズになる"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "050e2c38-dbbd-473f-9a6b-6e0353a1c218",
+        "tags": [
+          "x:p_dsl_commons"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "座標軸をコモンズとして開く"
+      },
+      "appearance": {
+        "position": [
+          0,
+          -26,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.45,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "座標軸をコモンズとして開く"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "7ac7e9b8-fb32-4f4d-bd30-78c6611cde97",
+        "tags": [
+          "x:p_dec_open"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "知を操作と検証の場へ引き戻す"
+      },
+      "appearance": {
+        "position": [
+          -12,
+          -30,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.45,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "知を操作と検証の場へ引き戻す"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "73ffbe60-7af4-45cb-921b-6a21ce99b9a9",
+        "tags": [
+          "x:p_dec_operation"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "理解を共有できるナビゲーションへ"
+      },
+      "appearance": {
+        "position": [
+          12,
+          -30,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.45,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "理解を共有できるナビゲーションへ"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "2ffea083-3013-4c76-ad87-e902524e0a1e",
+        "tags": [
+          "x:p_dec_navigation"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "未決/矛盾を留保し更新循環へ"
+      },
+      "appearance": {
+        "position": [
+          -12,
+          -34,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.45,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "未決/矛盾を留保し更新循環へ"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "788d4c9e-4881-489e-8394-81539272cee1",
+        "tags": [
+          "x:p_dec_hold"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "公開実験"
+      },
+      "appearance": {
+        "position": [
+          12,
+          -34,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.45,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "plane": "zx",
+            "size": 8,
+            "content": "公開実験"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "cfdaed6b-85f5-4ffe-8535-a74bbeac6401",
+        "tags": [
+          "x:p_dec_iterate"
+        ]
+      }
+    }
+  ],
+  "lines": [
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "b1cbe02d-7219-4a16-8bee-4652e46e38bc"
+        },
+        "end_b": {
+          "ref": "8dffb04e-0b02-402f-a816-293af8e1cf8a"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "7a928352-e1fd-4162-8de4-bc068971996e",
+        "tags": [
+          "x:contain_1"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "b1cbe02d-7219-4a16-8bee-4652e46e38bc"
+        },
+        "end_b": {
+          "ref": "5100c528-f0be-4d6c-b8ae-0d4f026b583b"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "bdf41859-f40f-44d2-a1ba-24f9b3463b3d",
+        "tags": [
+          "x:contain_2"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "b1cbe02d-7219-4a16-8bee-4652e46e38bc"
+        },
+        "end_b": {
+          "ref": "c2dba50c-826a-4826-8480-893473240e42"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "59985c63-3d79-49a6-96cb-af09a3ee31c9",
+        "tags": [
+          "x:contain_3"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "8dffb04e-0b02-402f-a816-293af8e1cf8a"
+        },
+        "end_b": {
+          "ref": "a1af2261-8607-4b91-9b6e-d2bf6abea441"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "a6e7f513-a1f5-4f82-bdd9-241f73ff0859",
+        "tags": [
+          "x:contain_4"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "8dffb04e-0b02-402f-a816-293af8e1cf8a"
+        },
+        "end_b": {
+          "ref": "da5b663c-8872-4831-ba6a-a4ecd214cdea"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "9c01f327-3545-4dcb-9ff9-adef0f4c4e98",
+        "tags": [
+          "x:contain_5"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "8dffb04e-0b02-402f-a816-293af8e1cf8a"
+        },
+        "end_b": {
+          "ref": "eed135b4-21f4-41d1-9fa0-a81012953ad8"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "b22b3f23-4772-4240-80d3-3c1d93dc8105",
+        "tags": [
+          "x:contain_6"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "8dffb04e-0b02-402f-a816-293af8e1cf8a"
+        },
+        "end_b": {
+          "ref": "636c4fca-410a-406f-bef5-9b1074045c53"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "6be1e6db-e9c8-4fc7-af2a-133bb88794d9",
+        "tags": [
+          "x:contain_7"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "8dffb04e-0b02-402f-a816-293af8e1cf8a"
+        },
+        "end_b": {
+          "ref": "eaf15d36-11a4-42b6-9b92-031a731bd3be"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "a35a520f-97ba-449a-aa23-a1643e4fad53",
+        "tags": [
+          "x:contain_8"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "8dffb04e-0b02-402f-a816-293af8e1cf8a"
+        },
+        "end_b": {
+          "ref": "6bce1108-b111-4405-a333-f356d9019a1f"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "a4b75216-e1c9-4a9d-874a-cb2ff60c656b",
+        "tags": [
+          "x:contain_9"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "8dffb04e-0b02-402f-a816-293af8e1cf8a"
+        },
+        "end_b": {
+          "ref": "51de5aa5-1d06-43ce-95ea-2cc202748102"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "a2bb2f08-a81d-4232-ab47-f73541038054",
+        "tags": [
+          "x:contain_10"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "8dffb04e-0b02-402f-a816-293af8e1cf8a"
+        },
+        "end_b": {
+          "ref": "4d7ec784-c1ee-4b94-a5f7-651dabfde1ba"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "9e11846e-36e5-4594-91f7-d51c89e30a12",
+        "tags": [
+          "x:contain_11"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "8dffb04e-0b02-402f-a816-293af8e1cf8a"
+        },
+        "end_b": {
+          "ref": "04cee411-1896-46af-a14a-110c246bec60"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "7d353f10-95a9-4129-bcdf-676f75e6406a",
+        "tags": [
+          "x:contain_12"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "8dffb04e-0b02-402f-a816-293af8e1cf8a"
+        },
+        "end_b": {
+          "ref": "1d2bd262-2f42-4a05-bfe2-c8ad08bd1510"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "8a17a29a-996e-4ea2-bdc2-1d6cd15b2159",
+        "tags": [
+          "x:contain_13"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "8dffb04e-0b02-402f-a816-293af8e1cf8a"
+        },
+        "end_b": {
+          "ref": "599629bf-f80c-4046-9865-d740e0d2928e"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "9e495720-866a-4a69-963e-69b27aec9ce9",
+        "tags": [
+          "x:contain_14"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "5100c528-f0be-4d6c-b8ae-0d4f026b583b"
+        },
+        "end_b": {
+          "ref": "92e7b001-76c2-4ba0-9770-c0ba53568131"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "347c80d0-da78-4fe0-b0b0-ef3a20e567b5",
+        "tags": [
+          "x:contain_15"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "92e7b001-76c2-4ba0-9770-c0ba53568131"
+        },
+        "end_b": {
+          "ref": "3db07806-16d5-4e50-836e-55ded65895c1"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "1a66b012-f09f-4a3a-80df-19b2190042ea",
+        "tags": [
+          "x:contain_16"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "92e7b001-76c2-4ba0-9770-c0ba53568131"
+        },
+        "end_b": {
+          "ref": "b2c2b986-9b2e-485b-b07a-41c908a9d886"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "31cc7eb8-6244-401c-bf40-f1f87e831b34",
+        "tags": [
+          "x:contain_17"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "92e7b001-76c2-4ba0-9770-c0ba53568131"
+        },
+        "end_b": {
+          "ref": "ad0238ca-571a-4fec-a11c-19ae6dbfad7e"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "4ddb64e1-3e97-42a1-97cb-f7ec0b9cd330",
+        "tags": [
+          "x:contain_18"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "92e7b001-76c2-4ba0-9770-c0ba53568131"
+        },
+        "end_b": {
+          "ref": "b3882035-b845-4e2d-b846-13145fe6ed52"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "575da8d8-df6d-4de0-ab14-aa81d2f6b8a6",
+        "tags": [
+          "x:contain_19"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "92e7b001-76c2-4ba0-9770-c0ba53568131"
+        },
+        "end_b": {
+          "ref": "899acf39-deb6-420f-97bc-64481b147fbb"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "1053c646-fa5e-4118-8eb2-c1adf0803669",
+        "tags": [
+          "x:contain_20"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "92e7b001-76c2-4ba0-9770-c0ba53568131"
+        },
+        "end_b": {
+          "ref": "0f006dd3-82d7-4714-bea1-52ad626ef9b8"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "cc45644c-10f2-4b41-8452-e1a9464f5e98",
+        "tags": [
+          "x:contain_21"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "92e7b001-76c2-4ba0-9770-c0ba53568131"
+        },
+        "end_b": {
+          "ref": "1145f4bd-f43e-40fd-90d4-f1ad4d77a206"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "2277d72a-acca-43ea-affe-25a9cb603f5c",
+        "tags": [
+          "x:contain_22"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "92e7b001-76c2-4ba0-9770-c0ba53568131"
+        },
+        "end_b": {
+          "ref": "8c1d14b9-6d9b-4aaa-9a22-ab957c4d1b35"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "f2089ed0-f690-4dd4-9df4-9028e3f12bf3",
+        "tags": [
+          "x:contain_23"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "92e7b001-76c2-4ba0-9770-c0ba53568131"
+        },
+        "end_b": {
+          "ref": "e0f38e99-5d78-4699-9382-37ddf7dba791"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "b57a64ff-2c04-4b62-b4a8-6bdb3634277d",
+        "tags": [
+          "x:contain_24"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "92e7b001-76c2-4ba0-9770-c0ba53568131"
+        },
+        "end_b": {
+          "ref": "d15ed10e-cdbf-4202-a9b9-130777b8523a"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "fcec467c-2695-4299-b57b-1b39eee2f65f",
+        "tags": [
+          "x:contain_25"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "92e7b001-76c2-4ba0-9770-c0ba53568131"
+        },
+        "end_b": {
+          "ref": "a64c6a91-1419-40b5-8464-a47647217d09"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "c95770b6-2dfd-4e0f-9dad-5dd14dd28774",
+        "tags": [
+          "x:contain_26"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "92e7b001-76c2-4ba0-9770-c0ba53568131"
+        },
+        "end_b": {
+          "ref": "1957490c-0202-464a-8a20-c6e2dae4609d"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "4128d380-90d9-4580-9574-ece0c7f44a27",
+        "tags": [
+          "x:contain_27"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "92e7b001-76c2-4ba0-9770-c0ba53568131"
+        },
+        "end_b": {
+          "ref": "b7e0dc8d-6b97-4313-be8f-a8ad2db7321e"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "dc22e351-5a19-4063-9a35-645cdc45bd03",
+        "tags": [
+          "x:contain_28"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "92e7b001-76c2-4ba0-9770-c0ba53568131"
+        },
+        "end_b": {
+          "ref": "4bd283ba-aec4-49dd-9a6f-993c02cae544"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "8b22e745-b8fa-4359-91ea-14198910fbbf",
+        "tags": [
+          "x:contain_29"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "92e7b001-76c2-4ba0-9770-c0ba53568131"
+        },
+        "end_b": {
+          "ref": "e8f3dab2-dc93-403a-b521-499a66b3c527"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "acf3c673-aa22-496b-96dd-ee58a7affd35",
+        "tags": [
+          "x:contain_30"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "92e7b001-76c2-4ba0-9770-c0ba53568131"
+        },
+        "end_b": {
+          "ref": "050e2c38-dbbd-473f-9a6b-6e0353a1c218"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "41196013-87eb-47ad-a4a2-aa7b6aa75bdf",
+        "tags": [
+          "x:contain_31"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "c2dba50c-826a-4826-8480-893473240e42"
+        },
+        "end_b": {
+          "ref": "7ac7e9b8-fb32-4f4d-bd30-78c6611cde97"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "5680e4fe-c930-4a36-ac6a-a486e530fe8f",
+        "tags": [
+          "x:contain_32"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "c2dba50c-826a-4826-8480-893473240e42"
+        },
+        "end_b": {
+          "ref": "73ffbe60-7af4-45cb-921b-6a21ce99b9a9"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "8c0106ee-c9ab-49b5-9ceb-38620099c19f",
+        "tags": [
+          "x:contain_33"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "c2dba50c-826a-4826-8480-893473240e42"
+        },
+        "end_b": {
+          "ref": "2ffea083-3013-4c76-ad87-e902524e0a1e"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "209f6df2-4a1d-44fa-9071-ec932826a390",
+        "tags": [
+          "x:contain_34"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "c2dba50c-826a-4826-8480-893473240e42"
+        },
+        "end_b": {
+          "ref": "788d4c9e-4881-489e-8394-81539272cee1"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "2cb4c487-e01d-48bb-b730-3ac720a956b3",
+        "tags": [
+          "x:contain_35"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "c2dba50c-826a-4826-8480-893473240e42"
+        },
+        "end_b": {
+          "ref": "cfdaed6b-85f5-4ffe-8535-a74bbeac6401"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "8634f61f-d031-43c9-bf1f-880dad35ef8c",
+        "tags": [
+          "x:contain_36"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "要請→設計要素"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "51de5aa5-1d06-43ce-95ea-2cc202748102"
+        },
+        "end_b": {
+          "ref": "b7e0dc8d-6b97-4313-be8f-a8ad2db7321e"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "61f82772-d7a3-4d3d-960b-b13cbdf7d36e",
+        "tags": [
+          "x:bridge_1"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "デジタル→複製"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "1d2bd262-2f42-4a05-bfe2-c8ad08bd1510"
+        },
+        "end_b": {
+          "ref": "0f006dd3-82d7-4714-bea1-52ad626ef9b8"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "6cab0184-1d0b-405d-9c46-eae9638f3ba6",
+        "tags": [
+          "x:bridge_2"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "座標不統一→共通軸"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "4d7ec784-c1ee-4b94-a5f7-651dabfde1ba"
+        },
+        "end_b": {
+          "ref": "8c1d14b9-6d9b-4aaa-9a22-ab957c4d1b35"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "beca9d28-9855-4dbb-9ca4-07574fce1140",
+        "tags": [
+          "x:bridge_3"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "固定→公開実験"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "6bce1108-b111-4405-a333-f356d9019a1f"
+        },
+        "end_b": {
+          "ref": "e8f3dab2-dc93-403a-b521-499a66b3c527"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "8c310e3b-9d1e-476c-a53e-65d6ea929860",
+        "tags": [
+          "x:bridge_4"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "コモンズ→宣言"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "050e2c38-dbbd-473f-9a6b-6e0353a1c218"
+        },
+        "end_b": {
+          "ref": "7ac7e9b8-fb32-4f4d-bd30-78c6611cde97"
+        },
+        "line_style": "solid",
+        "opacity": 0.4,
+        "color": "#ffffff",
+        "caption_text": {
+          "plane": "billboard",
+          "font_size": 8
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "89e2ea4d-c694-44bc-91a0-5f282f075a57",
+        "tags": [
+          "x:bridge_5"
+        ]
+      }
+    }
+  ],
+  "aux": []
+}

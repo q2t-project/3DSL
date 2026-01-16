@@ -43,6 +43,8 @@ Cloudflare Pages のプロジェクト設定はこう固定。
   - `NODE_VERSION`（例: `20.3.0`）
   - `PUBLIC_FORMSPREE_ENDPOINT`（問い合わせフォーム使う場合）
 
+※ Cloudflare Pages は npm ci 相当で lock 厳密一致が要るため、apps/site/package.json の overrides（diff/fast-json-patch の監査対応）を使う場合は apps/site/package-lock.json も必ず更新・コミットする。
+
 ---
 
 ## 2) Canonical ルート SSOT（絶対に壊すな）
@@ -628,42 +630,4 @@ push 前に整理が必要なもの。
 4. `git push`（6 commits を publish）
 
 ```
-
-
----
-
-## UI仕上げ前チェックリスト（手戻り防止）
-
-UIを触り始める前に「足場」が安定していることを確認する。ここが崩れると UI 作業が全部巻き戻る。
-
-### A. 依存/CI（Cloudflare Pages が落ちない）
-
-- [ ] Cloudflare Pages の build が通っている（直近デプロイ成功ログがある）
-- [ ] `apps/site` で `npm audit` が `found 0 vulnerabilities`
-- [ ] `apps/site/package.json` と `apps/site/package-lock.json` が整合している（`npm ci` で落ちない）
-- [ ] `apps/site` の依存を触った場合は、**overrides → lock 更新 → build** を 1セットで commit 済み
-
-### B. prebuild ガード（品質ゲート）
-
-- [ ] `npm --prefix apps/site run build` が完走する（prebuild 含む）
-  - [ ] `check:boundary` OK
-  - [ ] `sync:all` OK
-  - [ ] `validate:3dss:canonical` が `ng=0`（可能なら warn=0）
-  - [ ] `astro build` が完走
-
-### C. コンテンツ/SEO（警告を UI 作業に持ち込まない）
-
-- [ ] canonical / library の `recommended` warn が残っていない（例: `description` 推奨）
-- [ ] Content Collections の定義が揃っている（例: `pages` を collections に含める等）
-- [ ] `apps/site/public/__deploy_probe.txt` が更新される（guard が動いている証拠）
-
-### D. リポジトリ清掃（事故防止）
-
-- [ ] `git status` が clean（意図しない modified/untracked が無い）
-- [ ] ローカル生成物（例: `audit*.json`）は `.gitignore` 済み
-
-### E. UI 変更方針（短い合意）
-
-- [ ] UI の変更対象を1つに絞る（例: Libraryカード → 共有導線 → Viewer UI の順）
-- [ ] 変更のゴールが「目視で判定できる」形になっている（スクショ比較できる）
 

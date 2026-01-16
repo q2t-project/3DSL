@@ -1,0 +1,323 @@
+{
+  "document_meta": {
+    "document_title": "marker.text patterns (schema-valid)",
+    "document_summary": "Viewer fallback default sample (v1.1.3). Minimal primitives + text + lines.",
+    "document_uuid": "265b2df4-0357-44a0-a796-ab7b62534609",
+    "version": "1.0.0",
+    "updated_at": "2026-01-11T00:00:00Z",
+    "tags": [
+      "s:3dsl",
+      "s:sample",
+      "m:default"
+    ],
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
+    "generator": "https://q2t-project.github.io/3dsl/",
+    "reference": "default scene",
+    "coordinate_system": "Z+up/freeXY",
+    "units": "non_si:px",
+    "i18n": "ja",
+    "author": "q2t-project",
+    "creator_memo": "marker.text の解釈確認用（align/size/font/content）"
+  },
+  "points": [
+    {
+      "meta": {
+        "uuid": "d88d188a-e88b-426c-a754-f4c58199cb20"
+      },
+      "appearance": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "opacity": 0.9,
+            "emissive": false,
+            "wireframe": false,
+            "color": "#ffffff"
+          },
+          "text": {
+            "content": "left&top",
+            "pose": {
+              "mode": "billboard",
+              "up": "+z",
+              "roll": 0
+            },
+            "size": 0.6,
+            "align": "left&top",
+            "font": "italic 700 serif"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "f027efde-cc40-4e20-adb8-5c6a153e1f9b"
+      },
+      "appearance": {
+        "position": [
+          3,
+          0,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "opacity": 0.9,
+            "emissive": false,
+            "wireframe": false,
+            "color": "#ffffff"
+          },
+          "text": {
+            "content": "center&top",
+            "pose": {
+              "mode": "billboard",
+              "up": "+z",
+              "roll": 0
+            },
+            "size": 0.6,
+            "align": "center&top",
+            "font": "700 monospace"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "6b5cb87f-8c85-4bd8-81d2-c83b3e8cb308"
+      },
+      "appearance": {
+        "position": [
+          6,
+          0,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "opacity": 0.9,
+            "emissive": false,
+            "wireframe": false,
+            "color": "#ffffff"
+          },
+          "text": {
+            "content": "right&top",
+            "pose": {
+              "mode": "billboard",
+              "up": "+z",
+              "roll": 0
+            },
+            "size": 0.6,
+            "align": "right&top",
+            "font": "italic 700 serif"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "06924223-4015-4813-aac0-af9b98ad2902"
+      },
+      "appearance": {
+        "position": [
+          0,
+          2.2,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "opacity": 0.9,
+            "emissive": false,
+            "wireframe": false,
+            "color": "#ffffff"
+          },
+          "text": {
+            "content": "left&middle",
+            "pose": {
+              "mode": "billboard",
+              "up": "+z",
+              "roll": 0
+            },
+            "size": 0.6,
+            "align": "left&middle",
+            "font": "700 monospace"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "4a707437-3f9c-4a2a-b301-f3f07e60281e"
+      },
+      "appearance": {
+        "position": [
+          3,
+          2.2,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "opacity": 0.9,
+            "emissive": false,
+            "wireframe": false,
+            "color": "#ffffff"
+          },
+          "text": {
+            "content": "center&middle",
+            "pose": {
+              "mode": "billboard",
+              "up": "+z",
+              "roll": 0
+            },
+            "size": 0.6,
+            "align": "center&middle",
+            "font": "italic 700 serif"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "c0d7da1e-8672-4525-b87a-70793d06f74a"
+      },
+      "appearance": {
+        "position": [
+          6,
+          2.2,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "opacity": 0.9,
+            "emissive": false,
+            "wireframe": false,
+            "color": "#ffffff"
+          },
+          "text": {
+            "content": "right&middle",
+            "pose": {
+              "mode": "billboard",
+              "up": "+z",
+              "roll": 0
+            },
+            "size": 0.6,
+            "align": "right&middle",
+            "font": "700 monospace"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "6709f594-9aa1-4e5a-8b17-9ff1a0801a49"
+      },
+      "appearance": {
+        "position": [
+          0,
+          4.4,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "opacity": 0.9,
+            "emissive": false,
+            "wireframe": false,
+            "color": "#ffffff"
+          },
+          "text": {
+            "content": "left&baseline",
+            "pose": {
+              "mode": "billboard",
+              "up": "+z",
+              "roll": 0
+            },
+            "size": 0.6,
+            "align": "left&baseline",
+            "font": "italic 700 serif"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "fa54e428-9915-43bc-a913-45f913003eca"
+      },
+      "appearance": {
+        "position": [
+          3,
+          4.4,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "opacity": 0.9,
+            "emissive": false,
+            "wireframe": false,
+            "color": "#ffffff"
+          },
+          "text": {
+            "content": "center&baseline",
+            "pose": {
+              "mode": "billboard",
+              "up": "+z",
+              "roll": 0
+            },
+            "size": 0.6,
+            "align": "center&baseline",
+            "font": "700 monospace"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "ba6e6086-2751-448a-b319-db21eab96959"
+      },
+      "appearance": {
+        "position": [
+          6,
+          4.4,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "opacity": 0.9,
+            "emissive": false,
+            "wireframe": false,
+            "color": "#ffffff"
+          },
+          "text": {
+            "content": "right&baseline",
+            "pose": {
+              "mode": "billboard",
+              "up": "+z",
+              "roll": 0
+            },
+            "size": 0.6,
+            "align": "right&baseline",
+            "font": "italic 700 serif"
+          }
+        }
+      }
+    }
+  ],
+  "lines": [],
+  "aux": []
+}

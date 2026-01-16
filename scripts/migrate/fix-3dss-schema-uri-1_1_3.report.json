@@ -1,0 +1,10 @@
+{
+  "scanned": 43,
+  "changed": 0,
+  "parseErrors": 2,
+  "changedFiles": [],
+  "parseErrorFiles": [
+    "packages/3dss-content/scripts/xls2json/history/generated/out.3dss.json",
+    "packages/3dss-content/scripts/xls2json/out.3dss.json"
+  ]
+}

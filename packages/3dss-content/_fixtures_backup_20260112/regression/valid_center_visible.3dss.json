@@ -3,7 +3,7 @@
     "document_title": "Regression fixture: center visible",
     "document_summary": "Regression fixture for viewer runtime regression suite.",
     "document_uuid": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/release/v1.1.3/3DSS.schema.json",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
     "author": "regression",
     "version": "1.0.0",
     "coordinate_system": "Z+up/freeXY",

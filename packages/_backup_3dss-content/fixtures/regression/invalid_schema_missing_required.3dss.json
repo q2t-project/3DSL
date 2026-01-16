@@ -1,0 +1,12 @@
+{
+  "document_meta": {
+    "document_title": "Regression invalid: schema missing required",
+    "document_uuid": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json",
+    "author": "regression",
+    "coordinate_system": "Z+up/freeXY",
+    "units": "non_si:px",
+    "i18n": "ja"
+  },
+  "points": []
+}

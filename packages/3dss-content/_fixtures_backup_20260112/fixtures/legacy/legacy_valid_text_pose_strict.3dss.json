@@ -35,8 +35,16 @@
             "align": "center&middle",
             "pose": {
               "mode": "fixed",
-              "front": "+z",
-              "up": "+y"
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ]
             }
           }
         },
@@ -75,7 +83,11 @@
             "align": "left&baseline",
             "pose": {
               "mode": "billboard",
-              "up": "+z",
+              "up": [
+                0,
+                0,
+                1
+              ],
               "roll": 45
             }
           }
@@ -111,8 +123,16 @@
             "align": "right&top",
             "pose": {
               "mode": "fixed",
-              "front": "+x",
-              "up": "+z"
+              "front": [
+                1,
+                0,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
             }
           }
         },

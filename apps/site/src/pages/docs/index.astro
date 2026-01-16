@@ -3,7 +3,9 @@ import Layout from "../../layouts/Layout.astro";
 import { getCollection } from "astro:content";
 import DocsText from "../../content/text/docs.md";
 import AdSlot from "../../components/AdSlot.astro";
-import { ADSENSE_SLOTS } from "../../lib/adsense";
+import { ADSENSE_SLOTS, isNoAdsRequest } from "../../lib/adsense";
+
+const noAds = isNoAdsRequest(Astro.url);
 
 // ※ ここは “実在パス” に合わせて調整してください。
 // いまのプランでは /schemas/... を想定してる。
@@ -28,18 +30,20 @@ const links = [
       </div>
 
       <!-- Mobile/inline: 300x250 -->
-      <div class="mt-8 max-w-3xl lg:hidden">
-        <div class="text-xs text-neutral-500">Sponsored</div>
-        <div class="mt-2">
-          <AdSlot
-            slot={ADSENSE_SLOTS.slot_300x250}
-            width={300}
-            height={250}
-            fullWidthResponsive={false}
-            minHeight={250}
-          />
+      {!noAds && (
+        <div class="mt-8 max-w-3xl lg:hidden">
+          <div class="text-xs text-neutral-500">広告</div>
+          <div class="mt-2">
+            <AdSlot
+              slot={ADSENSE_SLOTS.slot_300x250}
+              width={300}
+              height={250}
+              fullWidthResponsive={false}
+              minHeight={250}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       <div class="mt-10 grid gap-3">
         {links.map((x) => (
@@ -49,36 +53,41 @@ const links = [
           </a>
         ))}
 
-      {docsEntries.length ? (
-        <div class="mt-10" data-role="docs-index">
-          <h2 class="text-lg font-medium">Docs (packages/docs)</h2>
-          <div class="mt-3 grid gap-3">
-            {docsEntries.map((e) => (
-              <a class="rounded-2xl border border-white/10 bg-white/5 p-4 hover:bg-white/10" href={`/docs/${e.slug}`}>
-                <div class="text-sm font-medium">{e.data?.title ?? e.slug}</div>
-                <div class="mt-1 font-mono text-xs text-neutral-400">/docs/{e.slug}</div>
-              </a>
-            ))}
+        {docsEntries.length ? (
+          <div class="mt-10" data-role="docs-index">
+            <h2 class="text-lg font-medium">Docs (packages/docs)</h2>
+            <div class="mt-3 grid gap-3">
+              {docsEntries.map((e) => (
+                <a
+                  class="rounded-2xl border border-white/10 bg-white/5 p-4 hover:bg-white/10"
+                  href={`/docs/${e.slug}`}
+                >
+                  <div class="text-sm font-medium">{e.data?.title ?? e.slug}</div>
+                  <div class="mt-1 font-mono text-xs text-neutral-400">/docs/{e.slug}</div>
+                </a>
+              ))}
+            </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
       </div>
     </div>
 
     <!-- Desktop rail: 300x600 -->
-    <aside class="hidden lg:block">
-      <div class="sticky top-24">
-        <div class="text-xs text-neutral-500">Sponsored</div>
-        <div class="mt-2">
-          <AdSlot
-            slot={ADSENSE_SLOTS.slot_300x600}
-            width={300}
-            height={600}
-            fullWidthResponsive={false}
-            minHeight={600}
-          />
+    {!noAds && (
+      <aside class="hidden lg:block">
+        <div class="sticky top-24">
+          <div class="text-xs text-neutral-500">広告</div>
+          <div class="mt-2">
+            <AdSlot
+              slot={ADSENSE_SLOTS.slot_300x600}
+              width={300}
+              height={600}
+              fullWidthResponsive={false}
+              minHeight={600}
+            />
+          </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+    )}
   </section>
 </Layout>

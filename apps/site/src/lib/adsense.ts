@@ -11,11 +11,12 @@ export type AdSlotKey = keyof typeof ADSENSE_SLOTS;
 
 // --- Application-time (review) plan ---
 // Keep the plan intentionally simple (stable for AdSense review):
-// - Ads ON:  /concept
+// - Ads ON:  /concept, /docs
 // - Ads OFF: everything else (including /library, /viewer, /app/*, /modeler, /canonical, /policy, /contact, etc.)
 export function shouldEnableAdsense(pathname: string): boolean {
   const p = (pathname || '/').split('#')[0].split('?')[0];
   if (p === '/concept' || p.startsWith('/concept/')) return true;
+  if (p === '/docs' || p.startsWith('/docs/')) return true;
   return false;
 }
 
