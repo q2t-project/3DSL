@@ -21,10 +21,12 @@ const policy = defineCollection({ type: "content", schema: permissive });
 
 const pages = defineCollection({
   type: "content",
-  schema: z.object({
-    title: z.string().optional(),
-    description: z.string().optional(),
-  }),
+  schema: z
+    .object({
+      title: z.string().optional(),
+      description: z.string().optional(),
+    })
+    .passthrough(),
 });
 
-export const collections = { fragments, text, docs, faq, policy };
+export const collections = { fragments, text, docs, faq, policy, pages };
