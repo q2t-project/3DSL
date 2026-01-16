@@ -219,7 +219,8 @@
         qrModal.addEventListener('click', (ev) => {
           const t = ev.target;
           if (!(t instanceof HTMLElement)) return;
-          if (t.dataset && t.dataset.close === '1') closeQr();
+          const c = t.closest('[data-close="1"]');
+          if (c) closeQr();
         });
         window.addEventListener('keydown', (ev) => {
           if (ev.key === 'Escape') closeQr();
@@ -326,6 +327,10 @@ if (backBtn) {
     z-index: 80;
     display: grid;
     place-items: center;
+  }
+
+  .app-viewer-qr-modal[hidden] {
+    display: none;
   }
 
   .app-viewer-qr-backdrop {

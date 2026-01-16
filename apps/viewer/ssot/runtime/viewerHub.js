@@ -325,6 +325,18 @@ function _pubuiMergeLocale(lang, dict) {
   }
 }
 
+// ------------------------------------------------------------
+// logging (hub)
+// ------------------------------------------------------------
+// NOTE: keep as module-scope so hub internals can safely call it.
+const DEBUG_HUB = false;
+let debugFrameCount = 0;
+function debugHub(...args) {
+  if (!DEBUG_HUB) return;
+  // warn にしておくと、ログレベル設定に関わらず表示されやすい。
+  console.warn(...args);
+}
+
 /**
  * Public: create a minimal UI bridge used by bootstrapViewer.js.
  *
@@ -398,19 +410,7 @@ export async function createPublicUiBridge(opts = {}) {
           const url = `${p}${lang2}/translation.json`;
           const json = await _pubuiLoadLocaleJson(url).catch(() => null);
           if (json) _pubuiMergeLocale(lang2, json);
-       
-// ------------------------------------------------------------
-// logging (hub)
-// ------------------------------------------------------------
-const DEBUG_HUB = false;
-let debugFrameCount = 0;
-function debugHub(...args) {
-  if (!DEBUG_HUB) return;
-  // warn にしておくと、ログレベル設定に関わらず表示されやすい。
-  console.warn(...args);
-}
-
-   return !!json;
+          return !!json;
         };
 
         return (await tryLoad(preferredPath)) || (await tryLoad(fallbackPath));
