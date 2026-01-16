@@ -1,39 +1,15 @@
-// viewer/ui/inputDefaults.js
-// SSOT: input defaults live here (import from uiState + input adapters)
+// viewer/runtime/core/inputDefaults.js
+// SSOT: input defaults live here.
+// NOTE: Base tuning values are centralized in runtime/core/inputTuning.js
+
+import { INPUT_TUNING } from './inputTuning.js';
 
 export const DEFAULT_INPUT_POINTER = Object.freeze({
-  // pointer drag threshold (px)
-  minDragPx: 2,
-  clickMovePx: 2,
-
-  // orbit sensitivity (unit: per px)
-  // NOTE: tuned to avoid "too sensitive" default.
-  rotateSpeed: 0.001,
-  rotateSpeedFast: 0.002,
-
-  // orbit damping factor (0..1). OrbitControls enableDamping compatible.
-  dampingFactor: 0.10,
-
-  // pan sensitivity (unit: per px) + distance factor
-  panSpeed: 0.002,
-  panSpeedFast: 0.004,
-  panFactor: 0.02,
-
-  // wheel zoom sensitivity (unit: per deltaY)
-  wheelZoomSpeed: 0.00035,
-  wheelZoomSpeedFast: 0.0007,
-
-  // touch gestures (unit: per px)
-  // pinchZoomSpeed: pinch distance delta (px) -> zoomDelta
-  pinchZoomSpeed: 0.0007,
-  pinchZoomSpeedFast: 0.0014,
+  ...INPUT_TUNING.pointer,
 });
 
 export const DEFAULT_INPUT_KEYBOARD = Object.freeze({
-  orbitStep: Math.PI / 90,
-  orbitStepFast: Math.PI / 45,
-  panFactor: 0.02,
-  zoomStep: 0.1,
+  ...INPUT_TUNING.keyboard,
 });
 
 // ------------------------------------------------------------

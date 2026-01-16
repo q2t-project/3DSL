@@ -5,14 +5,10 @@
 // NOTE: This is intentionally standalone (no UI layer modules) to avoid "zombie UI" reappearing.
 
 import { bootstrapPeekFromUrl } from "./runtime/bootstrapViewer.js";
+import { INPUT_TUNING } from "./runtime/core/inputTuning.js";
 
 // 高DPRで落ちるPC対策（renderer側 setPixelRatio するならそっちでOK）
 const DPR = Math.min(window.devicePixelRatio || 1, 2);
-
-// orbit gain (top demo should feel calm on touch)
-const ROTATE_GAIN_MOUSE = 0.45;
-const ROTATE_GAIN_TOUCH = 0.22;
-
 
 function showFatal(err) {
   console.error(err);
@@ -88,6 +84,75 @@ function installOrbitInput(canvas, cam) {
   let pinchLastMid = { x: 0, y: 0 };
   let pinchArmed = false;
 
+  // ------------------------------------------------------------
+  // pointer delta -> camera inputs
+  // NOTE: Keep tuning consistent with viewer UI defaults.
+  // ------------------------------------------------------------
+  const T = INPUT_TUNING?.pointer || {};
+
+  function _getDistanceFallback() {
+    const st = typeof cam.getState === "function" ? cam.getState() : null;
+    const d = Number(st?.distance);
+    return Number.isFinite(d) ? d : 10;
+  }
+
+  function _resolvePointerTuning(e, kind) {
+    const isTouch = e?.pointerType === "touch";
+    const isFast = !!e?.shiftKey;
+
+    if (kind === "rotate") {
+      const base = isFast ? Number(T.rotateSpeedFast) : Number(T.rotateSpeed);
+      const mul = isTouch ? Number(T.peekTouchRotateMul ?? 1) : Number(T.peekPointerRotateMul ?? 1);
+      const v = Number.isFinite(base) ? base : 0.001;
+      return v * (Number.isFinite(mul) ? mul : 1);
+    }
+
+    if (kind === "panSpeed") {
+      const base = isFast ? Number(T.panSpeedFast) : Number(T.panSpeed);
+      const mul = isTouch ? Number(T.peekTouchPanMul ?? 1) : Number(T.peekPointerPanMul ?? 1);
+      const v = Number.isFinite(base) ? base : 0.002;
+      return v * (Number.isFinite(mul) ? mul : 1);
+    }
+
+    if (kind === "wheelZoom") {
+      const base = isFast ? Number(T.wheelZoomSpeedFast) : Number(T.wheelZoomSpeed);
+      return Number.isFinite(base) ? base : 0.00035;
+    }
+
+    if (kind === "pinchZoom") {
+      const base = isFast ? Number(T.pinchZoomSpeedFast) : Number(T.pinchZoomSpeed);
+      return Number.isFinite(base) ? base : 0.0007;
+    }
+
+    return 0;
+  }
+
+  function rotateFromPixels(dxPx, dyPx, e) {
+    const s = _resolvePointerTuning(e, "rotate");
+    cam.rotate(dxPx * s, dyPx * s);
+  }
+
+  function panFromPixels(dxPx, dyPx, e) {
+    const distance = Math.max(0.001, _getDistanceFallback());
+    const panFactor = Number.isFinite(Number(T.panFactor)) ? Number(T.panFactor) : 0.02;
+    const panSpeed = _resolvePointerTuning(e, "panSpeed");
+    const panScale = distance * panFactor;
+    const panX = dxPx * panSpeed * panScale;
+    const panY = dyPx * panSpeed * panScale;
+    cam.pan(panX, panY);
+  }
+
+  function zoomFromWheelDelta(deltaY, e) {
+    const s = _resolvePointerTuning(e, "wheelZoom");
+    cam.zoom(deltaY * s);
+  }
+
+  function zoomFromPinchDistDelta(ddPx, e) {
+    const s = _resolvePointerTuning(e, "pinchZoom");
+    // pinch: fingers apart (dd>0) should zoom-in => negative zoomDelta
+    cam.zoom(-ddPx * s);
+  }
+
   function setTouch(e) {
     touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
   }
@@ -142,7 +207,7 @@ function installOrbitInput(canvas, cam) {
         const dy = e.clientY - lastY;
         lastX = e.clientX;
         lastY = e.clientY;
-        cam.rotate(-dx * ROTATE_GAIN_TOUCH, -dy * ROTATE_GAIN_TOUCH);
+        rotateFromPixels(dx, dy, e);
         return;
       }
 
@@ -154,13 +219,13 @@ function installOrbitInput(canvas, cam) {
         // pinch => zoom
         const dd = dist - pinchLastDist;
         pinchLastDist = dist;
-        cam.zoom(-dd);
+        zoomFromPinchDistDelta(dd, e);
 
         // 2-finger move => pan
         const dxm = mid.x - pinchLastMid.x;
         const dym = mid.y - pinchLastMid.y;
         pinchLastMid = mid;
-        cam.pan(-dxm, dym);
+        panFromPixels(dxm, dym, e);
         return;
       }
       return;
@@ -174,8 +239,8 @@ function installOrbitInput(canvas, cam) {
     lastX = e.clientX;
     lastY = e.clientY;
 
-    if (mode === "pan") cam.pan(-dx, dy);
-    else cam.rotate(-dx * ROTATE_GAIN_MOUSE, -dy * ROTATE_GAIN_MOUSE);
+    if (mode === "pan") panFromPixels(dx, dy, e);
+    else rotateFromPixels(dx, dy, e);
   }
 
   function onPointerUp(e) {
@@ -205,7 +270,7 @@ function installOrbitInput(canvas, cam) {
   function onWheel(e) {
     try { e.preventDefault(); } catch (_e) {}
     const dy = clamp(Number(e.deltaY) || 0, -1200, 1200);
-    cam.zoom(dy);
+    zoomFromWheelDelta(dy, e);
   }
 
   function onContextMenu(e) {
