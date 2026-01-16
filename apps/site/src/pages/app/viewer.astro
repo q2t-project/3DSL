@@ -45,6 +45,35 @@
 
     <button id="app-viewer-back" class="app-viewer-back" type="button" aria-label="戻る">← 戻る</button>
 
+    <div class="app-viewer-actions" aria-label="共有">
+      <button id="app-viewer-share" class="app-viewer-action" type="button" aria-label="共有" title="共有">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7a3.27 3.27 0 0 0 0-1.39l7.05-4.11A2.99 2.99 0 1 0 14 5a3 3 0 0 0 .05.52L7 9.63a3 3 0 1 0 0 4.74l7.05 4.11A3 3 0 1 0 18 16.08Z"/></svg>
+      </button>
+      <button id="app-viewer-copy" class="app-viewer-action" type="button" aria-label="コピー" title="コピー">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v16h13a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 18H8V7h11v16Z"/></svg>
+      </button>
+      <button id="app-viewer-qr" class="app-viewer-action" type="button" aria-label="QR" title="QR">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h8v8H3V3Zm2 2v4h4V5H5Zm8-2h8v8h-8V3Zm2 2v4h4V5h-4ZM3 13h8v8H3v-8Zm2 2v4h4v-4H5Zm10-2h2v2h-2v-2Zm-2 2h2v2h-2v-2Zm4 0h2v2h-2v-2Zm2 0h2v6h-6v-2h4v-4Zm-6 4h2v2h-2v-2Z"/></svg>
+      </button>
+    </div>
+
+    <div id="app-viewer-qr-modal" class="app-viewer-qr-modal" hidden>
+      <div class="app-viewer-qr-backdrop" data-close="1"></div>
+      <div class="app-viewer-qr-card" role="dialog" aria-modal="true" aria-label="QRコード">
+        <div class="app-viewer-qr-head">
+          <div class="app-viewer-qr-title">QR</div>
+          <button class="app-viewer-qr-close" type="button" aria-label="閉じる" data-close="1">×</button>
+        </div>
+        <div class="app-viewer-qr-body">
+          <img id="app-viewer-qr-img" class="app-viewer-qr-img" alt="QR" />
+          <div class="app-viewer-qr-hint" id="app-viewer-qr-url"></div>
+          <div class="app-viewer-qr-actions">
+            <button id="app-viewer-qr-copy" type="button">URLコピー</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script is:inline>
     (() => {
       const iframe = document.getElementById("app-viewer-iframe");
@@ -87,7 +116,125 @@
         return String(Math.floor(y));
       }
 
-      if (backBtn) {
+      const shareBtn = document.getElementById("app-viewer-share");
+      const copyBtn = document.getElementById("app-viewer-copy");
+      const qrBtn = document.getElementById("app-viewer-qr");
+      const qrModal = document.getElementById("app-viewer-qr-modal");
+      const qrImg = document.getElementById("app-viewer-qr-img");
+      const qrUrlEl = document.getElementById("app-viewer-qr-url");
+      const qrCopyBtn = document.getElementById("app-viewer-qr-copy");
+
+      function showToast(msg) {
+        let t = document.getElementById("app-viewer-toast");
+        if (!t) {
+          t = document.createElement("div");
+          t.id = "app-viewer-toast";
+          t.className = "app-viewer-toast";
+          t.setAttribute('aria-live', 'polite');
+          document.body.appendChild(t);
+        }
+        t.textContent = msg;
+        t.style.opacity = "1";
+        clearTimeout(showToast._t);
+        showToast._t = setTimeout(() => { t.style.opacity = "0"; }, 1600);
+      }
+
+      function shareUrl() {
+        const inUrl = new URL(window.location.href);
+
+        // Resolve model param (allow legacy open=)
+        const model = inUrl.searchParams.get('model') || inUrl.searchParams.get('open');
+
+        // Share should be stable: /app/viewer + minimum params
+        const out = new URL('/app/viewer', window.location.origin);
+        if (model) out.searchParams.set('model', model);
+
+        const mode = inUrl.searchParams.get('mode');
+        if (mode) out.searchParams.set('mode', mode);
+
+        const src = inUrl.searchParams.get('src');
+        if (src) out.searchParams.set('src', src);
+
+        return out.toString();
+      }
+
+      async function copy(text) {
+        try {
+          await navigator.clipboard.writeText(text);
+          showToast('コピーしたで');
+          return;
+        } catch {}
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.setAttribute('readonly', '');
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          ta.remove();
+          showToast('コピーしたで');
+        } catch {
+          showToast('コピー失敗…');
+        }
+      }
+
+      async function doShare() {
+        const url = shareUrl();
+        const title = '3DSL Viewer';
+        if (navigator.share) {
+          try {
+            await navigator.share({ title, url });
+            return;
+          } catch {}
+        }
+        await copy(url);
+      }
+
+      
+
+      function qrServiceUrl(text) {
+        // External QR service (image)
+        return (
+          'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' +
+          encodeURIComponent(text)
+        );
+      }
+
+      function openQr(url) {
+        if (!qrModal || !qrImg || !qrUrlEl) return;
+        qrImg.src = qrServiceUrl(url);
+        qrUrlEl.textContent = url;
+        qrModal.hidden = false;
+      }
+
+      function closeQr() {
+        if (!qrModal) return;
+        qrModal.hidden = true;
+      }
+
+      function wireQrClose() {
+        if (!qrModal) return;
+        qrModal.addEventListener('click', (ev) => {
+          const t = ev.target;
+          if (!(t instanceof HTMLElement)) return;
+          if (t.dataset && t.dataset.close === '1') closeQr();
+        });
+        window.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Escape') closeQr();
+        });
+      }
+
+      wireQrClose();
+
+      if (shareBtn) shareBtn.addEventListener('click', () => doShare());
+      if (copyBtn) copyBtn.addEventListener('click', () => copy(shareUrl()));
+      if (qrBtn) qrBtn.addEventListener('click', () => openQr(shareUrl()));
+      if (qrCopyBtn) qrCopyBtn.addEventListener('click', () => copy(shareUrl()));
+
+
+if (backBtn) {
         backBtn.addEventListener("click", () => {
           const y = normalizeScroll(scrollRaw);
           let target = "";
@@ -139,7 +286,133 @@
     background: #000;
   }
 
-  .app-viewer-back {
+  .app-viewer-actions {
+    position: fixed;
+    top: calc(env(safe-area-inset-top) + 10px);
+    right: calc(env(safe-area-inset-right) + 10px);
+    z-index: 50;
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .app-viewer-action {
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    border-radius: 999px;
+
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    cursor: pointer;
+  }
+
+  .app-viewer-action svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+    fill: currentColor;
+  }
+
+  .app-viewer-qr-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: grid;
+    place-items: center;
+  }
+
+  .app-viewer-qr-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+  }
+
+  .app-viewer-qr-card {
+    position: relative;
+    width: min(320px, calc(100vw - 40px));
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(0, 0, 0, 0.75);
+    color: #fff;
+    border-radius: 16px;
+    padding: 14px;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+
+  .app-viewer-qr-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+    font: 14px/1.2 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+  }
+
+  .app-viewer-qr-close {
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(0, 0, 0, 0.35);
+    color: #fff;
+    border-radius: 999px;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .app-viewer-qr-img {
+    width: 220px;
+    height: 220px;
+    display: block;
+    margin: 0 auto 10px;
+    border-radius: 10px;
+    background: #fff;
+  }
+
+  .app-viewer-qr-hint {
+    font: 12px/1.4 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+    opacity: 0.85;
+    word-break: break-all;
+  }
+
+
+  .app-viewer-toast {
+    position: fixed;
+    bottom: calc(env(safe-area-inset-bottom) + 14px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 60;
+
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    border-radius: 999px;
+    padding: 8px 12px;
+    font: 13px/1.2 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+
+    opacity: 0;
+    transition: opacity 160ms ease;
+    pointer-events: none;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .app-viewer-action:hover {
+      background: rgba(0, 0, 0, 0.7);
+    }
+    .app-viewer-qr-close:hover {
+      background: rgba(0, 0, 0, 0.55);
+    }
+  }
+
+.app-viewer-back {
     position: fixed;
     top: calc(env(safe-area-inset-top) + 10px);
     left: calc(env(safe-area-inset-left) + 10px);

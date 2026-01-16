@@ -56,6 +56,44 @@ function toAppViewerUrl(viewerUrl: string, back: string) {
   }
 }
 
+function toAppViewerShareUrl(viewerUrl: string) {
+  if (!viewerUrl) return viewerUrl;
+  if (viewerUrl.startsWith("/app/viewer")) {
+    // strip host-only params if any
+    try {
+      const u = new URL(viewerUrl, "http://x");
+      const q = new URLSearchParams();
+      const model = u.searchParams.get("model") ?? u.searchParams.get("open");
+      if (model) q.set("model", model);
+      const mode = u.searchParams.get("mode");
+      if (mode) q.set("mode", mode);
+      const src = u.searchParams.get("src");
+      if (src) q.set("src", src);
+      return `/app/viewer?${q.toString()}`;
+    } catch {
+      return viewerUrl;
+    }
+  }
+  try {
+    const u = new URL(viewerUrl, "http://x");
+    let model = u.searchParams.get("model") ?? u.searchParams.get("open") ?? "";
+    if (!model) {
+      const p = u.pathname;
+      if (/\.(json|3dss\.json)$/i.test(p)) model = p;
+    }
+    if (!model) return viewerUrl;
+    const q = new URLSearchParams();
+    q.set("model", model);
+    const mode = u.searchParams.get("mode");
+    if (mode) q.set("mode", mode);
+    const src = u.searchParams.get("src");
+    if (src) q.set("src", src);
+    return `/app/viewer?${q.toString()}`;
+  } catch {
+    return viewerUrl;
+  }
+}
+
 ---
 
 <Layout
@@ -101,6 +139,155 @@ function toAppViewerUrl(viewerUrl: string, back: string) {
       3DSLの考え方
     </a>
   </div>
+
+  <div class="mt-4 flex flex-wrap items-center gap-2" data-share-url={toAppViewerShareUrl(item.viewer_url)}>
+    <button
+      type="button"
+      class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-neutral-100 hover:bg-white/10"
+      data-role="share-native"
+      aria-label="共有"
+      title="共有"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true" class="h-4 w-4 fill-current">
+        <path d="M18 16a3 3 0 0 0-2.62 1.55L8.91 13.7a3.2 3.2 0 0 0 0-3.4l6.47-3.85A3 3 0 1 0 15 5a3 3 0 0 0 .05.55L8.58 9.4a3 3 0 1 0 0 5.2l6.47 3.85A3 3 0 1 0 18 16z"/>
+      </svg>
+    </button>
+    <button
+      type="button"
+      class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-neutral-100 hover:bg-white/10"
+      data-role="share-copy"
+      aria-label="コピー"
+      title="コピー"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true" class="h-4 w-4 fill-current">
+        <path d="M3.9 12a4.1 4.1 0 0 1 4.1-4.1h4v2H8A2.1 2.1 0 0 0 8 14.1h4v2H8A4.1 4.1 0 0 1 3.9 12zm6.1 1h4v-2h-4v2zm6-5.1h-4v-2h4a4.1 4.1 0 1 1 0 8.2h-4v-2h4a2.1 2.1 0 1 0 0-4.2z"/>
+      </svg>
+    </button>
+    <button
+      type="button"
+      class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-neutral-100 hover:bg-white/10"
+      data-role="share-qr"
+      aria-label="QR"
+      title="QR"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true" class="h-4 w-4 fill-current">
+        <path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm10 0h2v2h-2v-2zm2 2h2v2h-2v-2zm-2 2h2v2h-2v-2zm4 0h2v2h-2v-2zm0-8h2v2h-2v-2z"/>
+      </svg>
+    </button>
+    <span class="text-xs text-neutral-400">共有 / コピー / QR</span>
+  </div>
+
+  <div data-role="share-toast" class="pointer-events-none fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-full border border-white/10 bg-black/70 px-4 py-2 text-sm text-neutral-100 opacity-0 transition-opacity" aria-live="polite"></div>
+
+  <div data-role="share-qr-modal" class="fixed inset-0 z-50 hidden items-center justify-center">
+    <button type="button" data-role="share-qr-close" class="absolute inset-0 h-full w-full bg-black/60" aria-label="閉じる"></button>
+    <div class="relative w-[min(340px,calc(100vw-40px))] rounded-2xl border border-white/10 bg-black/80 p-4 text-neutral-100 backdrop-blur">
+      <div class="flex items-center justify-between gap-3">
+        <div class="text-sm font-medium">QR</div>
+        <button type="button" data-role="share-qr-close" class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 hover:bg-white/10" aria-label="閉じる">×</button>
+      </div>
+      <img data-role="share-qr-img" class="mt-3 mx-auto h-[220px] w-[220px] rounded-xl bg-white" alt="QR" />
+      <div data-role="share-qr-url" class="mt-2 break-all text-xs text-neutral-300"></div>
+      <button type="button" data-role="share-qr-copy" class="mt-3 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm hover:bg-white/10">リンクをコピー</button>
+    </div>
+  </div>
+
+  <script is:inline>
+    (() => {
+      const toast = document.querySelector('[data-role="share-toast"]');
+      const btnShare = document.querySelector('[data-role="share-native"]');
+      const btnCopy = document.querySelector('[data-role="share-copy"]');
+      const btnQr = document.querySelector('[data-role="share-qr"]');
+
+      const container = document.querySelector('[data-share-url]');
+      const qrModal = document.querySelector('[data-role="share-qr-modal"]');
+      const qrImg = document.querySelector('[data-role="share-qr-img"]');
+      const qrUrl = document.querySelector('[data-role="share-qr-url"]');
+      const qrCopy = document.querySelector('[data-role="share-qr-copy"]');
+
+
+      function showToast(msg) {
+        if (!toast) return;
+        toast.textContent = msg;
+        toast.style.opacity = '1';
+        clearTimeout(showToast._t);
+        showToast._t = setTimeout(() => {
+          toast.style.opacity = '0';
+        }, 1600);
+      }
+
+      function shareUrl() {
+        const rel = (container && container.getAttribute('data-share-url')) || '/app/viewer';
+        const u = new URL(rel, window.location.origin);
+        return u.toString();
+      }
+
+      function qrServiceUrl(text) {
+        return 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(text);
+      }
+
+      function openQr(url) {
+        if (!qrModal || !qrImg || !qrUrl) return;
+        qrImg.src = qrServiceUrl(url);
+        qrUrl.textContent = url;
+        qrModal.classList.remove('hidden');
+        qrModal.classList.add('flex');
+      }
+
+      function closeQr() {
+        if (!qrModal) return;
+        qrModal.classList.add('hidden');
+        qrModal.classList.remove('flex');
+      }
+
+      async function copyUrl() {
+        const url = shareUrl();
+        try {
+          await navigator.clipboard.writeText(url);
+          showToast('コピーしたで');
+          return;
+        } catch {
+          // fallback
+        }
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = url;
+          ta.setAttribute('readonly', '');
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          ta.remove();
+          showToast('コピーしたで');
+        } catch {
+          showToast('コピー失敗…手動でURL選択してや');
+        }
+      }
+
+      async function nativeShare() {
+        const url = shareUrl();
+        const title = document.title || '3DSL Library';
+        if (navigator.share) {
+          try {
+            await navigator.share({ title, url });
+            return;
+          } catch {
+            // user cancelled or failed -> fall back
+          }
+        }
+        await copyUrl();
+      }
+
+      if (btnCopy) btnCopy.addEventListener('click', () => copyUrl());
+      if (btnShare) btnShare.addEventListener('click', () => nativeShare());
+      if (btnQr) btnQr.addEventListener('click', () => openQr(shareUrl()));
+      if (qrCopy) qrCopy.addEventListener('click', () => copyUrl());
+      document.querySelectorAll('[data-role="share-qr-close"]').forEach((b) => b.addEventListener('click', () => closeQr()));
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeQr(); });
+    })();
+  </script>
+</div>
 
   {item.entry_points?.length ? (
     <section class="mt-8">
