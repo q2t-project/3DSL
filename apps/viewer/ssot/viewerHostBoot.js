@@ -133,13 +133,58 @@ function showFatal(err) {
   let profile = p.get("profile") || "";
   if (!profile) profile = (mode === "dev") ? "devHarness_full" : "prod_full";
 
-  const host = await mountViewerHost({
+  let currentHost = null;
+
+  async function remount(nextOpts) {
+    try { currentHost?.dispose?.(); } catch {}
+    const host = await mountViewerHost({
+      ...nextOpts,
+      profile,
+    });
+    currentHost = host;
+    window.__vh = host;
+    return host;
+  }
+
+  // Allow outer host (/app/viewer) to load a local document into the iframe.
+  // - postMessage: { type: '3dsl.viewer.loadDocument', document3dss: <object>, label?: <string> }
+  // - postMessage: { type: '3dsl.viewer.loadUrl', modelUrl: <string> }
+  function wireMessageApi() {
+    window.addEventListener("message", (ev) => {
+      try {
+        if (ev.origin !== window.location.origin) return;
+        const d = ev.data;
+        if (!d || typeof d !== "object") return;
+
+        if (d.type === "3dsl.viewer.loadDocument") {
+          const doc = d.document3dss;
+          if (!doc || typeof doc !== "object") return;
+          const label = (typeof d.label === "string" && d.label.trim()) ? d.label.trim() : "(local file)";
+          void remount({
+            document3dss: doc,
+            modelLabel: label,
+            devBootLog: mode === "dev",
+          }).catch(showFatal);
+          return;
+        }
+
+        if (d.type === "3dsl.viewer.loadUrl") {
+          const u = (typeof d.modelUrl === "string") ? d.modelUrl.trim() : "";
+          if (!u || !isProbablyUrlish(u)) return;
+          void remount({
+            modelUrl: u,
+            devBootLog: mode === "dev",
+          }).catch(showFatal);
+        }
+      } catch (_e) {}
+    });
+  }
+
+  wireMessageApi();
+
+  await remount({
     mode,
     modelUrl,
-    qs: p,
-    profile,
+    devBootLog: mode === "dev",
   });
-
-  // expose for devtools
-  window.__vh = host;
 })().catch(showFatal);

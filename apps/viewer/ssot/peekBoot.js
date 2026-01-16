@@ -9,6 +9,11 @@ import { bootstrapPeekFromUrl } from "./runtime/bootstrapViewer.js";
 // 高DPRで落ちるPC対策（renderer側 setPixelRatio するならそっちでOK）
 const DPR = Math.min(window.devicePixelRatio || 1, 2);
 
+// orbit gain (top demo should feel calm on touch)
+const ROTATE_GAIN_MOUSE = 0.45;
+const ROTATE_GAIN_TOUCH = 0.22;
+
+
 function showFatal(err) {
   console.error(err);
   const pre = document.createElement("pre");
@@ -137,7 +142,7 @@ function installOrbitInput(canvas, cam) {
         const dy = e.clientY - lastY;
         lastX = e.clientX;
         lastY = e.clientY;
-        cam.rotate(-dx, -dy);
+        cam.rotate(-dx * ROTATE_GAIN_TOUCH, -dy * ROTATE_GAIN_TOUCH);
         return;
       }
 
@@ -170,7 +175,7 @@ function installOrbitInput(canvas, cam) {
     lastY = e.clientY;
 
     if (mode === "pan") cam.pan(-dx, dy);
-    else cam.rotate(-dx, -dy);
+    else cam.rotate(-dx * ROTATE_GAIN_MOUSE, -dy * ROTATE_GAIN_MOUSE);
   }
 
   function onPointerUp(e) {

@@ -144,8 +144,12 @@ function toAppViewerUrl(viewerUrl: string) {
           </div>
 
           <details class="relative" data-swipe-ignore>
-            <summary class="list-none ui-chip px-4 py-1 cursor-pointer" aria-label="検索を開く">
-              検索
+            <summary class="list-none ui-chip px-3 py-1 cursor-pointer" aria-label="検索">
+              <span class="sr-only">検索</span>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="M21 21l-4.35-4.35"></path>
+              </svg>
             </summary>
 
             <div class="absolute right-0 mt-2 w-[min(24rem,90vw)] ui-surface p-4 bg-neutral-950/95 shadow-lg">
@@ -155,11 +159,14 @@ function toAppViewerUrl(viewerUrl: string) {
                   class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-cyan-300/30"
                   placeholder="タイトル/説明/入口/タグ"
                 />
+                <button id="help" class="ui-btn shrink-0" type="button" aria-label="検索ヘルプ">
+                  ?
+                </button>
                 <button id="clear" class="ui-btn shrink-0" type="button">
                   クリア
                 </button>
               </div>
-              <p class="mt-2 text-xs text-neutral-400">
+              <p id="helpText" class="mt-2 text-xs text-neutral-400 hidden">
                 基本はカード一覧の流し見でOKです。検索は「特定の言葉が含まれるものだけ見たい」場合に使えます。
               </p>
             </div>
@@ -251,6 +258,9 @@ function toAppViewerUrl(viewerUrl: string) {
 
     const q = document.getElementById("q");
     const clear = document.getElementById("clear");
+    const help = document.getElementById("help");
+    const helpText = document.getElementById("helpText");
+
     const count = document.getElementById("count");
     const cards = Array.from(document.querySelectorAll(".card"));
     const tagBtns = Array.from(document.querySelectorAll("button.tag"));
@@ -405,6 +415,10 @@ function toAppViewerUrl(viewerUrl: string) {
       setActiveTag(null);
       apply();
     });
+    help?.addEventListener("click", () => {
+      helpText?.classList.toggle("hidden");
+    });
+
 
     // init
     setActiveTag(null);

@@ -33,6 +33,7 @@
   </head>
 
   <body>
+  <div id="app-viewer-progress" class="app-viewer-progress" aria-hidden="true" data-on="1"><div class="app-viewer-progress-bar"></div></div>
     <iframe
       id="app-viewer-iframe"
       class="app-viewer-iframe"
@@ -46,6 +47,9 @@
     <button id="app-viewer-back" class="app-viewer-back" type="button" aria-label="戻る">← 戻る</button>
 
     <div class="app-viewer-actions" aria-label="共有">
+      <button id="app-viewer-open" class="app-viewer-action" type="button" aria-label="開く" title="開く">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4l2 2h8a2 2 0 0 1 2 2v2H2V6a2 2 0 0 1 2-2h6Zm12 8v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8h20Zm-18 2v6h16v-6H4Z"/></svg>
+      </button>
       <button id="app-viewer-share" class="app-viewer-action" type="button" aria-label="共有" title="共有">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7a3.27 3.27 0 0 0 0-1.39l7.05-4.11A2.99 2.99 0 1 0 14 5a3 3 0 0 0 .05.52L7 9.63a3 3 0 1 0 0 4.74l7.05 4.11A3 3 0 1 0 18 16.08Z"/></svg>
       </button>
@@ -55,6 +59,47 @@
       <button id="app-viewer-qr" class="app-viewer-action" type="button" aria-label="QR" title="QR">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h8v8H3V3Zm2 2v4h4V5H5Zm8-2h8v8h-8V3Zm2 2v4h4V5h-4ZM3 13h8v8H3v-8Zm2 2v4h4v-4H5Zm10-2h2v2h-2v-2Zm-2 2h2v2h-2v-2Zm4 0h2v2h-2v-2Zm2 0h2v6h-6v-2h4v-4Zm-6 4h2v2h-2v-2Z"/></svg>
       </button>
+    </div>
+
+    <div id="app-viewer-open-modal" class="app-viewer-open-modal" hidden>
+      <div class="app-viewer-open-backdrop" data-close="1"></div>
+      <div class="app-viewer-open-card" role="dialog" aria-modal="true" aria-label="開く">
+        <div class="app-viewer-open-head">
+          <div class="app-viewer-open-title">開く</div>
+          <button class="app-viewer-open-close" type="button" aria-label="閉じる" data-close="1">×</button>
+        </div>
+        <div class="app-viewer-open-body">
+          <div class="app-viewer-open-group">
+            <div class="app-viewer-open-label">URL / パス</div>
+            <div class="app-viewer-open-row">
+              <input id="app-viewer-open-url" class="app-viewer-open-input" type="url" inputmode="url" placeholder="例: /library/...json / https://..." />
+              <button id="app-viewer-open-url-btn" class="app-viewer-open-btn" type="button">開く</button>
+            </div>
+            <div class="app-viewer-open-help">※ /viewer/index.html の model= に渡せるやつ（/ からのパス or https）</div>
+          </div>
+
+          <div class="app-viewer-open-group">
+            <div class="app-viewer-open-label">ローカルファイル (PC)</div>
+            <input id="app-viewer-open-file" type="file" accept=".json,application/json" hidden />
+            <div class="app-viewer-open-row">
+              <button id="app-viewer-open-file-btn" class="app-viewer-open-btn" type="button">ファイルを選ぶ</button>
+              <div id="app-viewer-open-file-name" class="app-viewer-open-fname">(未選択)</div>
+            </div>
+            <div id="app-viewer-open-drop" class="app-viewer-open-drop">ここにドロップして開く</div>
+          </div>
+
+
+
+          <div class="app-viewer-open-group">
+            <div class="app-viewer-open-recent-head">
+              <div class="app-viewer-open-label">最近開いた (ローカル)</div>
+              <button id="app-viewer-open-recent-clear" class="app-viewer-open-btn app-viewer-open-btn--ghost" type="button">消す</button>
+            </div>
+            <div id="app-viewer-open-recent-list" class="app-viewer-open-recent-list"></div>
+          </div>
+          <div class="app-viewer-open-note">ローカルファイルは共有 URL / QR にならへんで。</div>
+        </div>
+      </div>
     </div>
 
     <div id="app-viewer-qr-modal" class="app-viewer-qr-modal" hidden>
@@ -74,35 +119,130 @@
       </div>
     </div>
 
+    <div id="app-viewer-drop-overlay" class="app-viewer-drop-overlay" hidden aria-hidden="true">
+      <div class="app-viewer-drop-overlay-card">
+        ドロップして開く
+        <div class="app-viewer-drop-overlay-sub">(JSON / 3DSS)</div>
+      </div>
+    </div>
+
     <script is:inline>
     (() => {
       const iframe = document.getElementById("app-viewer-iframe");
+
+  const progressEl = document.getElementById("app-viewer-progress");
+  let progressFallbackTimer = 0;
+  function showProgress() {
+    if (!progressEl) return;
+    progressEl.setAttribute("data-on", "1");
+  }
+  function hideProgress() {
+    if (!progressEl) return;
+    progressEl.removeAttribute("data-on");
+  }
+
+      let loadToastArmed = false;
+
+      function armLoadToast(){ loadToastArmed = true; }
+      function disarmLoadToast(){ loadToastArmed = false; }
+
+      function stopProgressFallback(){
+        if (progressFallbackTimer) {
+          clearTimeout(progressFallbackTimer);
+          progressFallbackTimer = 0;
+        }
+      }
+
+      function startProgressFallback(){
+        stopProgressFallback();
+        // avoid sticky bar if iframe/runtime is broken
+        progressFallbackTimer = setTimeout(() => {
+          hideProgress();
+          if (loadToastArmed) showToast('読み込みが遅いみたいや…');
+          disarmLoadToast();
+        }, 15000);
+      }
+
       const backBtn = document.getElementById("app-viewer-back");
       if (!iframe) return;
 
-      const sp = new URLSearchParams(window.location.search);
+      const sp0 = new URLSearchParams(window.location.search);
+      const back = sp0.get("back");
+      const returnTo = sp0.get("return");
+      const scrollRaw = sp0.get("scroll");
 
-      // defaults for inner viewer
-      const inner = new URLSearchParams(sp);
-      if (!inner.has("embed")) inner.set("embed", "0");
-      if (!inner.has("mode")) inner.set("mode", "prod");
+      let localLoaded = false;
 
-      // compat: legacy `open=`
-      if (!inner.has("model") && inner.has("open")) {
-        const v = inner.get("open");
-        if (v) inner.set("model", v);
+      function buildInnerFromSearch(sp) {
+        const inner = new URLSearchParams(sp);
+        if (!inner.has("embed")) inner.set("embed", "0");
+        if (!inner.has("mode")) inner.set("mode", "prod");
+
+        // compat: legacy `open=`
+        if (!inner.has("model") && inner.has("open")) {
+          const v = inner.get("open");
+          if (v) inner.set("model", v);
+        }
+
+        // host-only params (do not pass into iframe)
+        inner.delete("back");
+        inner.delete("return");
+        inner.delete("scroll");
+        return inner;
       }
 
-      // host-only params (do not pass into iframe)
-      const back = sp.get("back");
-      const returnTo = sp.get("return");
-      const scrollRaw = sp.get("scroll");
+      function updateIframeFromLocation() {
+        const sp = new URLSearchParams(window.location.search);
+        const inner = buildInnerFromSearch(sp);
+        showProgress();
+        startProgressFallback();
+        iframe.src = `/viewer/index.html?${inner.toString()}`;
+      }
 
-      inner.delete("back");
-      inner.delete("return");
-      inner.delete("scroll");
+      updateIframeFromLocation();
 
-      iframe.src = `/viewer/index.html?${inner.toString()}`;
+      if (iframe) {
+        iframe.addEventListener("load", () => {
+          // HTML load reached; keep progress until runtime reports (or fallback).
+          startProgressFallback();
+        });
+      }
+
+      window.addEventListener('message', (ev) => {
+        try {
+          if (ev.origin !== window.location.origin) return;
+          const msg = ev.data;
+          if (!msg || typeof msg !== 'object') return;
+          const t = msg.type;
+          if (t === '3dsl.viewer.hostReady') {
+            stopProgressFallback();
+            // initial boot: don't toast
+            hideProgress();
+            return;
+          }
+          if (t === '3dsl.viewer.loadStart') {
+            showProgress();
+            startProgressFallback();
+            return;
+          }
+          if (t === '3dsl.viewer.loadOk') {
+            stopProgressFallback();
+            hideProgress();
+            if (loadToastArmed) showToast('読み込み成功');
+            disarmLoadToast();
+            return;
+          }
+          if (t === '3dsl.viewer.loadFail') {
+            stopProgressFallback();
+            hideProgress();
+            const m = (typeof msg.message === 'string') ? msg.message : '';
+            const shortMsg = m ? String(m).slice(0, 60) : '';
+            if (loadToastArmed) showToast(shortMsg ? `読み込み失敗… ${shortMsg}` : '読み込み失敗…');
+            disarmLoadToast();
+            return;
+          }
+        } catch {}
+      });
 
       function sameOriginPath(urlLike) {
         const u = new URL(urlLike, window.location.origin);
@@ -116,13 +256,28 @@
         return String(Math.floor(y));
       }
 
+      const openBtn = document.getElementById("app-viewer-open");
       const shareBtn = document.getElementById("app-viewer-share");
       const copyBtn = document.getElementById("app-viewer-copy");
       const qrBtn = document.getElementById("app-viewer-qr");
+
+      const openModal = document.getElementById("app-viewer-open-modal");
+      const openUrlInput = document.getElementById("app-viewer-open-url");
+      const openUrlBtn = document.getElementById("app-viewer-open-url-btn");
+      const openFileInput = document.getElementById("app-viewer-open-file");
+      const openFileBtn = document.getElementById("app-viewer-open-file-btn");
+      const openFileName = document.getElementById("app-viewer-open-file-name");
+      const openDrop = document.getElementById("app-viewer-open-drop");
+
+      const recentList = document.getElementById("app-viewer-open-recent-list");
+      const recentClearBtn = document.getElementById("app-viewer-open-recent-clear");
+
       const qrModal = document.getElementById("app-viewer-qr-modal");
       const qrImg = document.getElementById("app-viewer-qr-img");
       const qrUrlEl = document.getElementById("app-viewer-qr-url");
       const qrCopyBtn = document.getElementById("app-viewer-qr-copy");
+
+      const dropOverlay = document.getElementById("app-viewer-drop-overlay");
 
       function showToast(msg) {
         let t = document.getElementById("app-viewer-toast");
@@ -138,6 +293,139 @@
         clearTimeout(showToast._t);
         showToast._t = setTimeout(() => { t.style.opacity = "0"; }, 1600);
       }
+
+
+      // ---- recent local (max 5) ----
+      const RECENT_LOCAL_KEY = '3dsl.appviewer.recentLocal.v1';
+      const RECENT_LOCAL_MAX = 5;
+
+      function readRecentLocal() {
+        try {
+          const raw = localStorage.getItem(RECENT_LOCAL_KEY);
+          if (!raw) return [];
+          const v = JSON.parse(raw);
+          const items = (v && Array.isArray(v.items)) ? v.items : [];
+          return items
+            .filter((it) => it && typeof it === 'object')
+            .map((it) => ({
+              id: String(it.id || ''),
+              name: String(it.name || ''),
+              savedAt: Number(it.savedAt || 0),
+              text: String(it.text || ''),
+            }))
+            .filter((it) => it.id && it.name && it.text)
+            .slice(0, RECENT_LOCAL_MAX);
+        } catch {
+          return [];
+        }
+      }
+
+      function writeRecentLocal(items) {
+        try {
+          const payload = { v: 1, items };
+          localStorage.setItem(RECENT_LOCAL_KEY, JSON.stringify(payload));
+          return true;
+        } catch {
+          return false;
+        }
+      }
+
+      function fmtRecentTs(ms) {
+        try {
+          const d = new Date(ms);
+          if (!Number.isFinite(d.getTime())) return '';
+          // 例: 01/16 17:32
+          return d.toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+        } catch {
+          return '';
+        }
+      }
+
+      function renderRecentLocal() {
+        if (!recentList) return;
+        const items = readRecentLocal();
+        recentList.innerHTML = '';
+
+        if (!items.length) {
+          const empty = document.createElement('div');
+          empty.className = 'app-viewer-open-recent-empty';
+          empty.textContent = '(なし)';
+          recentList.appendChild(empty);
+          return;
+        }
+
+        for (const it of items) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'app-viewer-open-recent-item';
+          btn.dataset.recentId = it.id;
+
+          const name = document.createElement('div');
+          name.className = 'app-viewer-open-recent-name';
+          name.textContent = it.name;
+
+          const meta = document.createElement('div');
+          meta.className = 'app-viewer-open-recent-meta';
+          meta.textContent = fmtRecentTs(it.savedAt);
+
+          btn.appendChild(name);
+          btn.appendChild(meta);
+          recentList.appendChild(btn);
+        }
+      }
+
+      function addRecentLocal(name, text) {
+        const n = (name || '').trim();
+        const t = (text || '').trim();
+        if (!n || !t) return;
+
+        const now = Date.now();
+        let items = readRecentLocal();
+        // dedupe by name (most recent wins)
+        items = items.filter((it) => it.name !== n);
+        items.unshift({ id: String(now), name: n, savedAt: now, text: t });
+        items = items.slice(0, RECENT_LOCAL_MAX);
+
+        const ok = writeRecentLocal(items);
+        if (!ok) {
+          showToast('端末に保存できへん（容量）');
+        }
+      }
+
+      async function openRecentLocalById(id) {
+        try {
+          const items = readRecentLocal();
+          const it = items.find((x) => x.id === id);
+          if (!it) return;
+
+          const json = JSON.parse(it.text);
+          if (!json || typeof json !== 'object') throw new Error('invalid json');
+
+          if (openFileName) openFileName.textContent = it.name + ' (保存済み)';
+
+          armLoadToast();
+          showProgress();
+          startProgressFallback();
+
+          localLoaded = true;
+          const ok = await postToIframeWhenReady({
+            type: '3dsl.viewer.loadDocument',
+            document3dss: json,
+            label: it.name,
+          });
+          if (!ok) throw new Error('iframe not ready');
+
+          closeOpenModal();
+          // toast/progress are reported by the iframe runtime
+        } catch (e) {
+          console.error(e);
+          stopProgressFallback();
+          hideProgress();
+          disarmLoadToast();
+          showToast('最近のローカルが壊れてる…');
+        }
+      }
+
 
       function shareUrl() {
         const inUrl = new URL(window.location.href);
@@ -181,6 +469,10 @@
       }
 
       async function doShare() {
+        if (localLoaded) {
+          showToast('ローカルファイルは共有できへん（URL/パスで開いてな）');
+          return;
+        }
         const url = shareUrl();
         const title = '3DSL Viewer';
         if (navigator.share) {
@@ -191,8 +483,6 @@
         }
         await copy(url);
       }
-
-      
 
       function qrServiceUrl(text) {
         // External QR service (image)
@@ -219,23 +509,256 @@
         qrModal.addEventListener('click', (ev) => {
           const t = ev.target;
           if (!(t instanceof HTMLElement)) return;
-          const c = t.closest('[data-close="1"]');
-          if (c) closeQr();
+          if (t.closest('[data-close="1"]')) closeQr();
         });
-        window.addEventListener('keydown', (ev) => {
-          if (ev.key === 'Escape') closeQr();
+      }
+
+      function openOpenModal() {
+        closeQr();
+        if (!openModal) return;
+        try {
+          const u = new URL(window.location.href);
+          const m = u.searchParams.get('model') || u.searchParams.get('open') || '';
+          if (openUrlInput && typeof openUrlInput.value === 'string') {
+            openUrlInput.value = m;
+          }
+        } catch {}
+        renderRecentLocal();
+        openModal.hidden = false;
+      }
+
+      function closeOpenModal() {
+        if (!openModal) return;
+        openModal.hidden = true;
+      }
+
+      function wireOpenClose() {
+        if (!openModal) return;
+        openModal.addEventListener('click', (ev) => {
+          const t = ev.target;
+          if (!(t instanceof HTMLElement)) return;
+          if (t.closest('[data-close="1"]')) closeOpenModal();
         });
       }
 
       wireQrClose();
+      wireOpenClose();
 
+
+      if (recentClearBtn) {
+        recentClearBtn.addEventListener('click', () => {
+          try { localStorage.removeItem(RECENT_LOCAL_KEY); } catch {}
+          renderRecentLocal();
+          showToast('最近のローカル消したで');
+        });
+      }
+
+      if (recentList) {
+        recentList.addEventListener('click', (ev) => {
+          const t = ev.target;
+          if (!(t instanceof HTMLElement)) return;
+          const b = t.closest('[data-recent-id]');
+          if (!(b instanceof HTMLElement)) return;
+          const id = b.dataset.recentId || '';
+          if (id) void openRecentLocalById(id);
+        });
+      }
+
+      window.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Escape') {
+          closeQr();
+          closeOpenModal();
+          if (dropOverlay) dropOverlay.hidden = true;
+        }
+      });
+
+      if (openBtn) openBtn.addEventListener('click', () => openOpenModal());
       if (shareBtn) shareBtn.addEventListener('click', () => doShare());
-      if (copyBtn) copyBtn.addEventListener('click', () => copy(shareUrl()));
-      if (qrBtn) qrBtn.addEventListener('click', () => openQr(shareUrl()));
-      if (qrCopyBtn) qrCopyBtn.addEventListener('click', () => copy(shareUrl()));
+      if (copyBtn) copyBtn.addEventListener('click', () => {
+        if (localLoaded) {
+          showToast('ローカルファイルは共有できへん（URL/パスで開いてな）');
+          return;
+        }
+        void copy(shareUrl());
+      });
+      if (qrBtn) qrBtn.addEventListener('click', () => {
+        if (localLoaded) {
+          showToast('ローカルファイルは共有できへん（URL/パスで開いてな）');
+          return;
+        }
+        openQr(shareUrl());
+      });
+      if (qrCopyBtn) qrCopyBtn.addEventListener('click', () => {
+        if (localLoaded) {
+          showToast('ローカルファイルは共有できへん（URL/パスで開いてな）');
+          return;
+        }
+        void copy(shareUrl());
+      });
 
+      function setModelParamAndReloadIframe(modelUrl) {
+        const raw = (typeof modelUrl === 'string') ? modelUrl.trim() : '';
+        if (!raw) {
+          showToast('URL/パスが空やで');
+          return false;
+        }
+        localLoaded = false;
+        armLoadToast();
+        showProgress();
+        startProgressFallback();
 
-if (backBtn) {
+        const u = new URL(window.location.href);
+        u.searchParams.set('model', raw);
+        u.searchParams.delete('open');
+        history.pushState({}, '', u);
+        updateIframeFromLocation();
+        return true;
+      }
+
+      function postToIframe(payload) {
+        const w = iframe.contentWindow;
+        if (!w) return false;
+        try {
+          w.postMessage(payload, window.location.origin);
+          return true;
+        } catch {
+          return false;
+        }
+      }
+
+      async function postToIframeWhenReady(payload) {
+        if (postToIframe(payload)) return true;
+        return await new Promise((resolve) => {
+          const onLoad = () => {
+            iframe.removeEventListener('load', onLoad);
+            resolve(postToIframe(payload));
+          };
+          iframe.addEventListener('load', onLoad);
+        });
+      }
+
+      async function loadLocalFile(file) {
+        armLoadToast();
+        showProgress();
+        startProgressFallback();
+        try {
+          if (!file) return;
+          const name = file.name || '(file)';
+          if (openFileName) openFileName.textContent = name;
+
+          const text = await file.text();
+          const json = JSON.parse(text);
+          if (!json || typeof json !== 'object') throw new Error('invalid json');
+
+          localLoaded = true;
+          const ok = await postToIframeWhenReady({
+            type: '3dsl.viewer.loadDocument',
+            document3dss: json,
+            label: name,
+          });
+          if (!ok) throw new Error('iframe not ready');
+
+          addRecentLocal(name, text);
+          renderRecentLocal();
+
+          closeOpenModal();
+          // toast/progress are reported by the iframe runtime
+        } catch (e) {
+          console.error(e);
+          stopProgressFallback();
+          hideProgress();
+          disarmLoadToast();
+          showToast('ファイル読み込み失敗…');
+        }
+      }
+
+      if (openUrlBtn) {
+        openUrlBtn.addEventListener('click', () => {
+          const v = (openUrlInput && typeof openUrlInput.value === 'string') ? openUrlInput.value : '';
+          if (setModelParamAndReloadIframe(v)) closeOpenModal();
+        });
+      }
+
+      if (openUrlInput) {
+        openUrlInput.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter') {
+            const v = openUrlInput.value || '';
+            if (setModelParamAndReloadIframe(v)) closeOpenModal();
+          }
+        });
+      }
+
+      if (openFileBtn && openFileInput) {
+        openFileBtn.addEventListener('click', () => {
+          try { openFileInput.click(); } catch {}
+        });
+      }
+
+      if (openFileInput) {
+        openFileInput.addEventListener('change', () => {
+          const f = openFileInput.files && openFileInput.files[0];
+          if (f) void loadLocalFile(f);
+        });
+      }
+
+      if (openDrop) {
+        openDrop.addEventListener('dragover', (ev) => {
+          ev.preventDefault();
+        });
+        openDrop.addEventListener('drop', (ev) => {
+          ev.preventDefault();
+          const dt = ev.dataTransfer;
+          const f = dt && dt.files && dt.files[0];
+          if (f) void loadLocalFile(f);
+        });
+      }
+
+      function dtHasFiles(dt) {
+        try {
+          const types = dt && dt.types ? Array.from(dt.types) : [];
+          return types.includes('Files');
+        } catch {
+          return false;
+        }
+      }
+
+      let overlayHideT = 0;
+      function showDropOverlay() {
+        if (!dropOverlay) return;
+        dropOverlay.hidden = false;
+        clearTimeout(overlayHideT);
+      }
+      function scheduleHideDropOverlay() {
+        if (!dropOverlay) return;
+        clearTimeout(overlayHideT);
+        overlayHideT = setTimeout(() => { dropOverlay.hidden = true; }, 200);
+      }
+
+      window.addEventListener('dragenter', (ev) => {
+        if (!dtHasFiles(ev.dataTransfer)) return;
+        ev.preventDefault();
+        showDropOverlay();
+      });
+      window.addEventListener('dragover', (ev) => {
+        if (!dtHasFiles(ev.dataTransfer)) return;
+        ev.preventDefault();
+        showDropOverlay();
+      });
+      window.addEventListener('dragleave', (ev) => {
+        if (!dropOverlay || dropOverlay.hidden) return;
+        // dataTransfer が空になるケースがあるので overlay 基準で隠す
+        scheduleHideDropOverlay();
+      });
+      window.addEventListener('drop', (ev) => {
+        if (!dtHasFiles(ev.dataTransfer)) return;
+        ev.preventDefault();
+        if (dropOverlay) dropOverlay.hidden = true;
+        const dt = ev.dataTransfer;
+        const f = dt && dt.files && dt.files[0];
+        if (f) void loadLocalFile(f);
+      });
+
+      if (backBtn) {
         backBtn.addEventListener("click", () => {
           const y = normalizeScroll(scrollRaw);
           let target = "";
@@ -260,184 +783,426 @@ if (backBtn) {
       }
     })();
     </script>
+
+    <style>
+      :root {
+        --app-viewer-ui-bg: rgba(10, 10, 10, 0.72);
+        --app-viewer-ui-fg: rgba(255, 255, 255, 0.92);
+        --app-viewer-ui-border: rgba(255, 255, 255, 0.12);
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+        background: #000;
+        overflow: hidden;
+      }
+
+      .app-viewer-iframe {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100dvh;
+        border: 0;
+        display: block;
+        background: #000;
+        z-index: 1;
+      }
+
+      .app-viewer-back {
+        position: fixed;
+        left: 10px;
+        top: 10px;
+        z-index: 50;
+        padding: 10px 12px;
+        font: 14px/1.1 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        color: var(--app-viewer-ui-fg);
+        background: var(--app-viewer-ui-bg);
+        border: 1px solid var(--app-viewer-ui-border);
+        border-radius: 999px;
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .app-viewer-actions {
+        position: fixed;
+        right: 10px;
+        top: 10px;
+        display: flex;
+        gap: 8px;
+        z-index: 50;
+      }
+
+      .app-viewer-action {
+        width: 42px;
+        height: 42px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+        color: var(--app-viewer-ui-fg);
+        background: var(--app-viewer-ui-bg);
+        border: 1px solid var(--app-viewer-ui-border);
+        padding: 0;
+      }
+
+      .app-viewer-action svg {
+        width: 22px;
+        height: 22px;
+        fill: currentColor;
+        opacity: 0.95;
+      }
+
+      .app-viewer-toast {
+        position: fixed;
+        left: 50%;
+        bottom: 18px;
+        transform: translateX(-50%);
+        z-index: 60;
+        padding: 10px 12px;
+        border-radius: 12px;
+        max-width: min(92vw, 520px);
+        background: rgba(0, 0, 0, 0.82);
+        color: rgba(255, 255, 255, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        font: 14px/1.35 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        pointer-events: none;
+      }
+
+      /* ----- QR modal ----- */
+      .app-viewer-qr-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 80;
+      }
+      .app-viewer-qr-modal[hidden] { display: none; }
+
+      .app-viewer-qr-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.62);
+      }
+
+      .app-viewer-qr-card {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: min(92vw, 360px);
+        background: rgba(20, 20, 20, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 16px;
+        overflow: hidden;
+        color: rgba(255, 255, 255, 0.92);
+        font: 14px/1.35 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      }
+
+      .app-viewer-qr-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+      }
+
+      .app-viewer-qr-title {
+        font-weight: 700;
+        letter-spacing: .02em;
+      }
+
+      .app-viewer-qr-close {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(255, 255, 255, 0.92);
+        cursor: pointer;
+        font: 18px/1 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      }
+
+      .app-viewer-qr-body {
+        padding: 12px;
+        display: grid;
+        gap: 10px;
+        justify-items: center;
+      }
+
+      .app-viewer-qr-img {
+        width: 220px;
+        height: 220px;
+        border-radius: 10px;
+        background: #fff;
+      }
+
+      .app-viewer-qr-hint {
+        width: 100%;
+        font: 12px/1.35 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        color: rgba(255, 255, 255, 0.70);
+        word-break: break-all;
+        text-align: center;
+      }
+
+      .app-viewer-qr-actions {
+        width: 100%;
+        display: flex;
+        gap: 8px;
+      }
+
+      .app-viewer-qr-actions button {
+        flex: 1;
+        padding: 10px 10px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(255, 255, 255, 0.92);
+        cursor: pointer;
+        font: 14px/1.1 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      }
+
+      /* ----- Open modal ----- */
+      .app-viewer-open-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 80;
+      }
+      .app-viewer-open-modal[hidden] { display: none; }
+
+      .app-viewer-open-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.62);
+      }
+
+      .app-viewer-open-card {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: min(92vw, 520px);
+        background: rgba(20, 20, 20, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 16px;
+        overflow: hidden;
+        color: rgba(255, 255, 255, 0.92);
+        font: 14px/1.35 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      }
+
+      .app-viewer-open-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+      }
+
+      .app-viewer-open-title {
+        font-weight: 700;
+        letter-spacing: .02em;
+      }
+
+      .app-viewer-open-close {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(255, 255, 255, 0.92);
+        cursor: pointer;
+        font: 18px/1 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      }
+
+      .app-viewer-open-body {
+        padding: 12px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .app-viewer-open-group {
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        border-radius: 14px;
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.04);
+        display: grid;
+        gap: 8px;
+      }
+
+      .app-viewer-open-label {
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.92);
+      }
+
+      .app-viewer-open-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .app-viewer-open-input {
+        width: 100%;
+        padding: 10px 10px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(0, 0, 0, 0.35);
+        color: rgba(255, 255, 255, 0.92);
+        font: 14px/1.1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+
+      .app-viewer-open-btn {
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(255, 255, 255, 0.92);
+        cursor: pointer;
+        font: 14px/1.1 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        white-space: nowrap;
+      }
+
+      .app-viewer-open-help {
+        font: 12px/1.35 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        color: rgba(255, 255, 255, 0.65);
+      }
+
+      .app-viewer-open-fname {
+        font: 12px/1.35 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        color: rgba(255, 255, 255, 0.70);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 38vw;
+      }
+
+      .app-viewer-open-drop {
+        padding: 12px;
+        border-radius: 14px;
+        border: 1px dashed rgba(255, 255, 255, 0.22);
+        background: rgba(0, 0, 0, 0.25);
+        color: rgba(255, 255, 255, 0.78);
+        text-align: center;
+        user-select: none;
+      }
+
+      .app-viewer-open-note {
+        font: 12px/1.35 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        color: rgba(255, 255, 255, 0.70);
+      }
+
+
+
+      .app-viewer-open-btn--ghost {
+        padding: 8px 10px;
+        background: transparent;
+      }
+
+      .app-viewer-open-recent-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .app-viewer-open-recent-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .app-viewer-open-recent-empty {
+        font: 12px/1.35 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        color: rgba(255, 255, 255, 0.70);
+      }
+
+      .app-viewer-open-recent-item {
+        text-align: left;
+        padding: 10px 10px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(0, 0, 0, 0.22);
+        color: rgba(255, 255, 255, 0.92);
+        cursor: pointer;
+      }
+
+      .app-viewer-open-recent-item:hover {
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .app-viewer-open-recent-name {
+        font: 13px/1.2 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        font-weight: 700;
+      }
+
+      .app-viewer-open-recent-meta {
+        margin-top: 4px;
+        font: 12px/1.2 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        color: rgba(255, 255, 255, 0.70);
+      }
+
+      /* ----- Drop overlay (global) ----- */
+      .app-viewer-drop-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 90;
+        display: grid;
+        place-items: center;
+        background: rgba(0, 0, 0, 0.55);
+      }
+      .app-viewer-drop-overlay[hidden] { display: none; }
+
+      .app-viewer-drop-overlay-card {
+        padding: 18px 18px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: rgba(20, 20, 20, 0.92);
+        color: rgba(255, 255, 255, 0.92);
+        font: 16px/1.2 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        text-align: center;
+      }
+
+      .app-viewer-drop-overlay-sub {
+        margin-top: 6px;
+        font: 12px/1.3 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        color: rgba(255, 255, 255, 0.70);
+      }
+
+      @media (max-width: 520px) {
+        .app-viewer-actions { right: 8px; top: 8px; gap: 6px; }
+        .app-viewer-back { left: 8px; top: 8px; padding: 9px 11px; }
+        .app-viewer-action { width: 40px; height: 40px; }
+        .app-viewer-open-row { grid-template-columns: 1fr; }
+        .app-viewer-open-fname { max-width: 100%; }
+      }
+    
+
+  .app-viewer-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    z-index: 99999;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .app-viewer-progress[data-on] { opacity: 1; }
+  .app-viewer-progress-bar {
+    height: 100%;
+    width: 30%;
+    background: rgba(255, 255, 255, 0.75);
+    filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.2));
+    animation: app-viewer-progress-move 1.0s ease-in-out infinite;
+  }
+  @keyframes app-viewer-progress-move {
+    0% { transform: translateX(-35%); }
+    100% { transform: translateX(335%); }
+  }
+
+</style>
   </body>
 </html>
-
-<style is:global>
-  html,
-  body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background: #000;
-  }
-
-  .app-viewer-iframe {
-    position: fixed;
-    inset: 0;
-    width: 100vw;
-    height: 100dvh;
-    border: 0;
-    display: block;
-    overflow: hidden;
-    min-width: 0;
-    min-height: 0;
-    background: #000;
-  }
-
-  .app-viewer-actions {
-    position: fixed;
-    top: calc(env(safe-area-inset-top) + 10px);
-    right: calc(env(safe-area-inset-right) + 10px);
-    z-index: 50;
-    display: inline-flex;
-    gap: 8px;
-    align-items: center;
-  }
-
-  .app-viewer-action {
-    width: 34px;
-    height: 34px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    background: rgba(0, 0, 0, 0.55);
-    color: #fff;
-    border-radius: 999px;
-
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
-    cursor: pointer;
-  }
-
-  .app-viewer-action svg {
-    width: 18px;
-    height: 18px;
-    display: block;
-    fill: currentColor;
-  }
-
-  .app-viewer-qr-modal {
-    position: fixed;
-    inset: 0;
-    z-index: 80;
-    display: grid;
-    place-items: center;
-  }
-
-  .app-viewer-qr-modal[hidden] {
-    display: none;
-  }
-
-  .app-viewer-qr-backdrop {
-    position: absolute;
-    inset: 0;
-    background: rgba(0,0,0,0.55);
-  }
-
-  .app-viewer-qr-card {
-    position: relative;
-    width: min(320px, calc(100vw - 40px));
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    background: rgba(0, 0, 0, 0.75);
-    color: #fff;
-    border-radius: 16px;
-    padding: 14px;
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-  }
-
-  .app-viewer-qr-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 10px;
-    font: 14px/1.2 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
-  }
-
-  .app-viewer-qr-close {
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    background: rgba(0, 0, 0, 0.35);
-    color: #fff;
-    border-radius: 999px;
-    width: 32px;
-    height: 32px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-  }
-
-  .app-viewer-qr-img {
-    width: 220px;
-    height: 220px;
-    display: block;
-    margin: 0 auto 10px;
-    border-radius: 10px;
-    background: #fff;
-  }
-
-  .app-viewer-qr-hint {
-    font: 12px/1.4 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
-    opacity: 0.85;
-    word-break: break-all;
-  }
-
-
-  .app-viewer-toast {
-    position: fixed;
-    bottom: calc(env(safe-area-inset-bottom) + 14px);
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 60;
-
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    background: rgba(0, 0, 0, 0.7);
-    color: #fff;
-    border-radius: 999px;
-    padding: 8px 12px;
-    font: 13px/1.2 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
-
-    opacity: 0;
-    transition: opacity 160ms ease;
-    pointer-events: none;
-  }
-
-  @media (hover: hover) and (pointer: fine) {
-    .app-viewer-action:hover {
-      background: rgba(0, 0, 0, 0.7);
-    }
-    .app-viewer-qr-close:hover {
-      background: rgba(0, 0, 0, 0.55);
-    }
-  }
-
-.app-viewer-back {
-    position: fixed;
-    top: calc(env(safe-area-inset-top) + 10px);
-    left: calc(env(safe-area-inset-left) + 10px);
-    z-index: 50;
-
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    background: rgba(0, 0, 0, 0.55);
-    color: #fff;
-    border-radius: 999px;
-    padding: 6px 10px;
-    font: 13px/1.2 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
-
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
-    cursor: pointer;
-  }
-
-  @media (hover: hover) and (pointer: fine) {
-    .app-viewer-back:hover {
-      background: rgba(0, 0, 0, 0.7);
-    }
-  }
-</style>

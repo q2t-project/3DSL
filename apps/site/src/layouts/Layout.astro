@@ -24,9 +24,10 @@ const enableAdsense = !noAds && shouldEnableAdsense(pathname);
 // Header nav: keep it minimal (no hamburger)
 const nav = [
   { href: "/", label: "Home" },
+  { href: "/viewer", label: "Viewer" },
   { href: "/library", label: "Library" },
   { href: "/docs", label: "Docs" },
-  { href: "/policy", label: "Policy" },
+  { href: "/concept", label: "Concept" },
 ];
 function isActive(href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -79,6 +80,9 @@ function isActive(href: string) {
   </head>
 
   <body class={`min-h-screen text-neutral-100 antialiased${isHome ? " is-home" : ""}`}>
+  <div id="page-progress" class="ui-page-progress" aria-hidden="true" data-on="1">
+    <div class="ui-page-progress-bar"></div>
+  </div>
     <div id="app-shell" class="min-h-screen text-neutral-100 antialiased app-shell">
     <header class="sticky top-0 z-50 border-b border-white/10 bg-neutral-950/60 backdrop-blur">
     <div class="mx-auto max-w-6xl px-4 py-2">
@@ -119,9 +123,9 @@ function isActive(href: string) {
 
     <footer class="border-t border-white/10 bg-neutral-950/40">
       <div class="mx-auto max-w-6xl px-4 py-8 text-xs text-neutral-400">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div>3DSL / 3DSS</div>
-          <div class="flex flex-wrap gap-4">
+        <div class="flex items-center justify-between gap-3">
+          <div>3DSL</div>
+          <div class="ui-footer-links">
             <a class="hover:text-neutral-200" href="/policy">Policy</a>
             <a class="hover:text-neutral-200" href="/contact">Contact</a>
             <a class="hover:text-neutral-200" href="/docs">Docs</a>
@@ -141,6 +145,46 @@ function isActive(href: string) {
          - drag follows finger
          - next page is shown as a blurred iframe behind (preview only)
     -->
+    <script is:inline>
+      (() => {
+        const el = document.getElementById("page-progress");
+        if (!el) return;
+        const show = () => el.setAttribute("data-on", "1");
+        const hide = () => el.removeAttribute("data-on");
+
+        // initial load (also handles bfcache)
+        window.addEventListener("load", () => setTimeout(hide, 120), { once: true });
+        window.addEventListener("pageshow", () => setTimeout(hide, 50));
+
+        // show on same-origin navigations
+        document.addEventListener(
+          "click",
+          (ev) => {
+            const t = ev.target;
+            if (!(t instanceof Element)) return;
+            const a = t.closest("a[href]");
+            if (!(a instanceof HTMLAnchorElement)) return;
+            if (a.target && a.target !== "_self") return;
+            if (a.hasAttribute("download")) return;
+            if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;
+
+            const href = a.getAttribute("href") || "";
+            if (!href || href.startsWith("#")) return;
+
+            try {
+              const u = new URL(a.href);
+              if (u.origin !== location.origin) return;
+              show();
+            } catch {}
+          },
+          true
+        );
+
+        // allow other scripts to toggle
+        window.__3dslProgress = { show, hide };
+      })();
+    </script>
+
     <script is:inline>
       (() => {
         try {
