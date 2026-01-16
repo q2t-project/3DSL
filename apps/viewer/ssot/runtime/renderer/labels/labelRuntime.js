@@ -10,7 +10,7 @@
 // - viewport は CSS px（context 側で統一）
 // - dpr は cameraState.viewport.dpr として別で渡せるが、ここでは現状未使用
 
-import * as THREE from "/viewer/vendor/three/build/three.module.js";
+import * as THREE from "/vendor/three/build/three.module.js";
 import { labelConfig } from "./labelConfig.js";
 import { createTextLabelObject, disposeTextLabelObject } from "./textSprite.js";
 

@@ -67,7 +67,7 @@ Viewer の SSOT / レイヤリング（entry → hub → core → renderer → u
 4. **依存経路**: ports / 公開 API を使用（内部 import を禁止）  
 5. **manifest 追記**: 例外一覧を更新（この文書 + 必要なら manifest 参照）
 
- - importmap の three は /viewer/vendor/... 固定
+- importmap の three は /vendor/... 固定
  - check-host-asset-paths を通す
 
 ## 例外ホストの先頭コメント（テンプレ）

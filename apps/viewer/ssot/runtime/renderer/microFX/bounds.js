@@ -1,5 +1,5 @@
 // viewer/runtime/renderer/microFX/bounds.js
-import * as THREE from "/viewer/vendor/three/build/three.module.js";
+import * as THREE from "/vendor/three/build/three.module.js";
 import { microFXConfig } from "./config.js";
 import { clamp, clamp01, normalizeIntensity, sanitizeVec3 } from "./utils.js";
 

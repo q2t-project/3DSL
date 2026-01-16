@@ -9,7 +9,7 @@
 // - microFXConfig.glow.{screenPx, opacity, color, minWorld, maxWorld}
 // - utils.worldSizeFromScreenPx / sanitizePosition / normalizeIntensity / clamp01
 
-import * as THREE from "/viewer/vendor/three/build/three.module.js";
+import * as THREE from "/vendor/three/build/three.module.js";
 import { microFXConfig } from "./config.js";
 import { createHtmlCanvas, getViewportHeightPxFallback } from "../env.js";
 import {
