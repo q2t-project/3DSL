@@ -26,3 +26,7 @@ _out/
 _ul_zips/
 _tmp_marker_backup/
 
+# npm audit outputs (local only)
+audit.json
+audit-site.json
+audit-viewer.json
