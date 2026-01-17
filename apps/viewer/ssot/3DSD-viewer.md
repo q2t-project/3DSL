@@ -539,7 +539,7 @@ dev viewer の起動時、viewerDevHarness.js は概�E次のように動く�
 2. boot() 冁E��
  - メタパネル / HUD / frame スライダ / filter ボタン等�E DOM を取得する、E
  - const canvasId = "viewer-canvas";
- - const jsonUrl = "../3dss/scene/default/default.3dss.json";�E�Easeline 確認時�E�E
+ - const jsonUrl = "../3dss/scenes/default/default.3dss.json";�E�Easeline 確認時�E�E
  - bootstrapViewerFromUrl(canvasId, jsonUrl, { devBootLog:true, devLabel:"viewer_dev", modelUrl:jsonUrl, logger:devLogger }) を呼ぶ、E
 3. devLogger(line) は
  - console.log(line) + メタパネルへの追記！EppendModelLog(line)�E�を行う、E
@@ -588,7 +588,7 @@ default.3dss.json を読み込んだときに
 ### 1.9.1 入力ファイルの固宁E
 
 1. dev 起動時の baseline 入力�E、常に
-../3dss/scene/default/default.3dss.json とする�E�実パスはリポジトリ構�Eに追従）、E
+../3dss/scenes/default/default.3dss.json とする�E�実パスはリポジトリ構�Eに追従）、E
 
 2. 他�EサンプルをロードすめEUI があっても、E
 「起動直後に自動でロードされるファイル」�E上訁E1 本に限定する、E
@@ -653,7 +653,7 @@ dev viewer�E�Eiewer_dev.html�E�では通常、E
 
 ```text
 BOOT  viewer_dev
-MODEL ../3dss/scene/default.3dss.json
+MODEL ../s3dss/scenes/default.3dss.json
 CAMERA {...}
 LAYERS points=on lines=on aux=on
 FRAME  frame_id=0

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-const basePath = "apps/site/public/3dss/scene/default/default.3dss.json";
+const basePath = "apps/site/public/3dss/scenes/default/default.3dss.json";
 const outPath  = "apps/site/public/3dss/sample/marker_text_patterns.3dss.json";
 const base = JSON.parse(fs.readFileSync(basePath, "utf8"));
 // schema-valid な marker.text 形を default から借りる（これが一番安全）

@@ -2,7 +2,7 @@
 import Layout from "../layouts/Layout.astro";
 import TopText from "../content/pages/top.md";
 
-const demoModel = "/3dss/scene/default/default.3dss.json";
+const demoModel = "/3dss/scenes/top/top.3dss.json";
 ---
 
 <Layout
@@ -27,11 +27,6 @@ const demoModel = "/3dss/scene/default/default.3dss.json";
             aria-hidden="true"
           ></iframe>
           <div class="home-peek__fade"></div>
-        </div>
-
-        <div class="mt-3 flex flex-wrap items-center gap-3">
-          <a href={`/app/viewer?model=${encodeURIComponent(demoModel)}`} class="ui-btn ui-btn">Viewerを開く →</a>
-          <a href="/library" class="text-sm text-neutral-200 hover:underline">Library</a>
         </div>
       </div>
     </div>

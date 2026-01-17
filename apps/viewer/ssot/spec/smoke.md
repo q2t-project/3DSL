@@ -11,7 +11,7 @@
 ## 対象モデル
 
 ### baseline（E2Eの固定）
-- /public/3dss/scene/default/default.3dss.json
+- /public/3dss/scenes/default/default.3dss.json
 
 ### canonical（回帰用：仕様どおりに通る/落ちるを固定）
 - valid:
@@ -37,7 +37,7 @@
 目的：UI消失/片側表示/入力不能などの「1日溶ける系」を即切り分ける。
 
 ### 実行方法（ブラウザ）
-1. `/app/viewer?model=/3dss/scene/default/default.3dss.json&dbgHub=1` を開く
+1. `/app/viewer?model=/3dss/scenes/default/default.3dss.json&dbgHub=1` を開く
 2. DevTools Console で以下を実行
    ```js
    const { runSmoke } = await import("/viewer/test/smokeViewerRunner.js?ts=" + Date.now());

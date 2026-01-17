@@ -1,5 +1,5 @@
 ---
-const DEFAULT_MODEL = "/3dss/scene/default/default.3dss.json";
+const DEFAULT_MODEL = "/3dss/scenes/default/default.3dss.json";
 const sp = Astro.url.searchParams;
 const embed = sp.get("embed") === "1" || sp.get("embed") === "true";
 const model = sp.get("model") || sp.get("src") || DEFAULT_MODEL;

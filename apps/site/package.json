@@ -7,7 +7,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
-    "validate:3dss:baseline": "node scripts/validate/3dss.mjs public/3dss/scene/default/default.3dss.json public/schemas/3DSS.schema.json",
+    "validate:3dss:baseline": "node scripts/validate/3dss.mjs public/3dss/scenes/default/default.3dss.json public/schemas/3DSS.schema.json",
     "validate:3dss:samples": "node scripts/validate/3dss-samples.mjs",
     "validate:3dss:fixtures:ref": "node scripts/validate/3dss-fixtures.mjs --ref",
     "validate:3dss:canonical": "node scripts/validate/3dss-canonical.mjs",
