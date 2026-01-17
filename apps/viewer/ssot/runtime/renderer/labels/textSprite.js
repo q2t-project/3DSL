@@ -229,21 +229,39 @@ const _tmpUp = new THREE.Vector3();
 const _tmpRight = new THREE.Vector3();
 const _tmpMat = new THREE.Matrix4();
 
-function axisToVector(axis, out) {
-  switch (axis) {
-    case "+x": out.set(1, 0, 0); return true;
-    case "-x": out.set(-1, 0, 0); return true;
-    case "+y": out.set(0, 1, 0); return true;
-    case "-y": out.set(0, -1, 0); return true;
-    case "+z": out.set(0, 0, 1); return true;
-    case "-z": out.set(0, 0, -1); return true;
+function poseVecToVector(v, out) {
+  // v can be a normalized vec3 array or an axis token (legacy)
+  if (Array.isArray(v) && v.length === 3) {
+    const x = Number(v[0]);
+    const y = Number(v[1]);
+    const z = Number(v[2]);
+    if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z)) {
+      out.set(x, y, z);
+      return out.lengthSq() > 1e-12;
+    }
+    return false;
+  }
+
+  switch ((typeof v === "string" ? v.trim().toLowerCase() : "")) {
+    case "+x":
+    case "x+": out.set(1, 0, 0); return true;
+    case "-x":
+    case "x-": out.set(-1, 0, 0); return true;
+    case "+y":
+    case "y+": out.set(0, 1, 0); return true;
+    case "-y":
+    case "y-": out.set(0, -1, 0); return true;
+    case "+z":
+    case "z+": out.set(0, 0, 1); return true;
+    case "-z":
+    case "z-": out.set(0, 0, -1); return true;
     default: return false;
   }
 }
 
 function applyPoseOrientation(obj, pose) {
   if (!pose || pose.mode !== "fixed") return null;
-  if (!axisToVector(pose.front, _tmpFront) || !axisToVector(pose.up, _tmpUp)) {
+  if (!poseVecToVector(pose.front, _tmpFront) || !poseVecToVector(pose.up, _tmpUp)) {
     return null;
   }
 
