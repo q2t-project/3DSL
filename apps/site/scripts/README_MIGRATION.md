@@ -10,7 +10,6 @@
 - `scripts/tool/`    : 手動ツール
 - `scripts/dev/`     : 開発用
 - `scripts/legacy/`  : 旧スクリプト（互換/検証用に残置）
-- `scripts/deprecated/`: 旧エントリのスタブ（実行すると移行先を表示して失敗）
 
 ## 旧 → 新（主な移動）
 ### check

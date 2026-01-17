@@ -18,7 +18,6 @@ function walk(dir) {
     if (e.isDirectory()) {
       if (rel.startsWith('vendor/')) continue;
       if (rel.startsWith('_generated/')) continue;
-      if (rel.startsWith('spec/_legacy/')) continue;
       out.push(...walk(p));
       continue;
     }

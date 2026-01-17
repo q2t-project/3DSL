@@ -9,8 +9,6 @@ const TO = 'https://q2t-project.github.io/3dsl/schemas/release/v1.1.3/3DSS.schem
 
 const EXCLUDE_DIR_NAMES = new Set([
   'dist',
-  '_backup_3dss-content',
-  '_fixtures_backup_20260112',
 ]);
 
 function shouldSkipDir(dirPath) {

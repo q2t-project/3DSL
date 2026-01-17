@@ -1,7 +1,7 @@
 // scripts/check-forbidden-imports.mjs
 // Enforce dependency_rules + minimal global reference rules.
 // - Reads /viewer/manifest.yaml
-// - Scans JS modules under /viewer (excluding vendor/spec/_legacy/_generated)
+// - Scans JS modules under /viewer (excluding vendor/_generated)
 //
 // Global reference rules (lightweight, no parser):
 // - core/renderer must not directly reference `window`/`document`.
@@ -111,7 +111,7 @@ async function walkJsFiles(dir) {
     const rel = path.relative(repoRoot, p).replace(/\\/g, '/');
 
     if (e.isDirectory()) {
-      if (rel.startsWith('vendor/') || rel.startsWith('_generated/') || rel.startsWith('spec/_legacy/')) continue;
+      if (rel.startsWith('vendor/') || rel.startsWith('_generated/') || ) continue;
       out.push(...await walkJsFiles(p));
       continue;
     }
