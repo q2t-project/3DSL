@@ -111,7 +111,7 @@ async function walkJsFiles(dir) {
     const rel = path.relative(repoRoot, p).replace(/\\/g, '/');
 
     if (e.isDirectory()) {
-      if (rel.startsWith('vendor/') || rel.startsWith('_generated/') || ) continue;
+      if (rel.startsWith('vendor/') || rel.startsWith('_generated/') ) continue;
       out.push(...await walkJsFiles(p));
       continue;
     }
