@@ -54,7 +54,7 @@ function getModelUrlOrThrow() {
   const qs = new URLSearchParams(globalThis.location?.search ?? "");
   const raw = (qs.get("model") || qs.get("scene") || qs.get("src") || "").trim();
   if (!raw) {
-    return new URL("/3dss/scene/default/default.3dss.json", globalThis.location.origin).toString();
+    return new URL("/3dss/scene/top/top.3dss.json", globalThis.location.origin).toString();
   }
   if (/^https?:\/\//i.test(raw)) return raw;
   return new URL(raw, globalThis.location.href).toString();

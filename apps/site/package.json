@@ -48,7 +48,7 @@
     "fix:guards": "node scripts/guard/fix.mjs",
     "apply:guards": "node scripts/guard/apply.mjs",
     "predev": "npm run check:boundary && npm run sync:all && node scripts/guard/prebuild.mjs",
-    "prebuild": "npm run check:boundary && npm run sync:all && npm run validate:3dss:canonical && node scripts/guard/prebuild.mjs",
+    "prebuild": "npm run check:boundary && npm run sync:all && node scripts/tool/generate-sitemap.mjs && npm run validate:3dss:canonical && node scripts/guard/prebuild.mjs",
     "precheck:ssot": "npm run sync:all",
     "precheck:viewer:regression": "npm run sync:all",
     "ci:build": "npm run check:ssot && npm run check:viewer:regression && npm run validate:3dss:canonical && npm run build",
@@ -56,7 +56,8 @@
     "build:site": "npm --prefix apps/site run build",
     "sync:docs": "node scripts/sync/docs.mjs",
     "precheck:release": "npm run sync:all",
-    "check:release": "npm run check:ssot && npm run check:viewer:regression && npm run validate:3dss:canonical"
+    "check:release": "npm run check:ssot && npm run check:viewer:regression && npm run validate:3dss:canonical",
+    "generate:sitemap": "node scripts/tool/generate-sitemap.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.6",
