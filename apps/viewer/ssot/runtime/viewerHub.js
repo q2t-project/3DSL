@@ -857,8 +857,11 @@ function _getInputDampingFactor() {
   const n = Number(v);
   // 0..1 を許容（0 は “慣性OFF”）
   if (Number.isFinite(n) && n >= 0 && n < 1) return n;
-  return DEFAULT_INPUT_POINTER.dampingFactor;
+
+  // hub default (no imports): OrbitControls 互換の控えめな既定値
+  return 0.10;
 }
+
 
 function _applyCameraInertia(dt) {
   if (!_cameraInertiaActive) return;
