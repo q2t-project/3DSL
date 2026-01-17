@@ -17,6 +17,5 @@
     "dist/**",
     "node_modules/**",
     "scripts/**",
-    "reports/**"
   ]
 }

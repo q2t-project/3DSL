@@ -5,7 +5,7 @@
 // NOTE: This is intentionally standalone (no UI layer modules) to avoid "zombie UI" reappearing.
 
 import { bootstrapPeekFromUrl } from "./runtime/bootstrapViewer.js";
-import { INPUT_TUNING } from "./runtime/core/inputTuning.js";
+import { INPUT_TUNING } from "./runtime/entry/inputTuning.js";
 
 // 高DPRで落ちるPC対策（renderer側 setPixelRatio するならそっちでOK）
 const DPR = Math.min(window.devicePixelRatio || 1, 2);
@@ -54,7 +54,7 @@ function getModelUrlOrThrow() {
   const qs = new URLSearchParams(globalThis.location?.search ?? "");
   const raw = (qs.get("model") || qs.get("scene") || qs.get("src") || "").trim();
   if (!raw) {
-    return new URL("/3dss/scene/default/default.3dss.json", globalThis.location.origin).toString();
+    return new URL("/3dss/scenes/top/top.3dss.json", globalThis.location.origin).toString();
   }
   if (/^https?:\/\//i.test(raw)) return raw;
   return new URL(raw, globalThis.location.href).toString();

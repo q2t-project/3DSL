@@ -536,10 +536,6 @@ Home 等に埋め込む “UI なし” の Viewer は、`peekBoot.js` を **最
 * `apps/site/src/content/text/viewer.md`
 * 新規 docs:
 
-  * `apps/site/src/docs/README.md`
-  * `apps/site/src/docs/text-orientation.md`
-  * `apps/site/src/docs/label-placement.md`
-  * `apps/site/src/docs/renderer-text.md`
   * `.frontmatter`
 
 #### コミット

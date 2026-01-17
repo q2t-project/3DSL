@@ -1,8 +1,9 @@
 // viewer/ui/inputDefaults.js
 // SSOT: input defaults live here (import from uiState + input adapters)
-// NOTE: Base tuning values are centralized in runtime/core/inputTuning.js
+// NOTE: Base tuning values are centralized in runtime/core/inputTuning.js.
+// UI must not import core directly; use entry exit.
 
-import { INPUT_TUNING } from '../runtime/core/inputTuning.js';
+import { INPUT_TUNING } from '../runtime/entry/inputTuning.js';
 
 export const DEFAULT_INPUT_POINTER = Object.freeze({
   ...INPUT_TUNING.pointer,

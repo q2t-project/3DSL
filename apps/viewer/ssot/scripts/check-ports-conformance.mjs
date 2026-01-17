@@ -106,7 +106,6 @@ function walkUiFiles() {
       if (e.isDirectory()) {
         if (rel.startsWith('vendor/')) continue;
         if (rel.startsWith('_generated/')) continue;
-        if (rel.startsWith('spec/_legacy/')) continue;
         rec(p);
         continue;
       }

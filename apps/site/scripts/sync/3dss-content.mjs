@@ -28,6 +28,7 @@ if (!fs.existsSync(srcDist)) {
 ensureDir(dstPublic);
 rmIfExists(path.join(dstPublic, "3dss", "library"));
 rmIfExists(path.join(dstPublic, "library"));
+rmIfExists(path.join(dstPublic, "3dss", "scene"));
 
 // dist 直下（3dss/, library/）を public 直下にコピー
 fs.cpSync(srcDist, dstPublic, { recursive: true });

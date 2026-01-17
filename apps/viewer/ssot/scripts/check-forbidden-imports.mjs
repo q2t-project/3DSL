@@ -1,7 +1,7 @@
 // scripts/check-forbidden-imports.mjs
 // Enforce dependency_rules + minimal global reference rules.
 // - Reads /viewer/manifest.yaml
-// - Scans JS modules under /viewer (excluding vendor/spec/_legacy/_generated)
+// - Scans JS modules under /viewer (excluding vendor/_generated)
 //
 // Global reference rules (lightweight, no parser):
 // - core/renderer must not directly reference `window`/`document`.
@@ -20,7 +20,7 @@ const layerDefinitions = [
   {
     name: 'entry',
     description: 'bootstrap / composition root',
-    match: (rel) => rel === 'runtime/bootstrapViewer.js',
+    match: (rel) => rel === 'runtime/bootstrapViewer.js' || rel.startsWith('runtime/entry/'),
   },
   {
     name: 'hub',
@@ -57,7 +57,7 @@ const layerDefinitions = [
 const minimalHostEntries = {
   'peekBoot.js': {
     classification: 'A. UI無し (No-UI Host)',
-    allowedTargets: new Set(['runtime/bootstrapViewer.js']),
+    allowedTargets: new Set(['runtime/bootstrapViewer.js', 'runtime/entry/inputTuning.js']),
     reason: 'Minimal host entry (no UI). Allow entry-only import to avoid zombie UI.',
   },
 };
@@ -111,7 +111,7 @@ async function walkJsFiles(dir) {
     const rel = path.relative(repoRoot, p).replace(/\\/g, '/');
 
     if (e.isDirectory()) {
-      if (rel.startsWith('vendor/') || rel.startsWith('_generated/') || rel.startsWith('spec/_legacy/')) continue;
+      if (rel.startsWith('vendor/') || rel.startsWith('_generated/') ) continue;
       out.push(...await walkJsFiles(p));
       continue;
     }

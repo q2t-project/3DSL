@@ -37,8 +37,8 @@
 
 ## Viewer URL
 
-- Site container: `/app/viewer?model=/3dss/scenes/default/default.3dss.json`
-- Viewer runtime: `/viewer?model=/3dss/scenes/default/default.3dss.json`
+- Site container: `/app/viewer?model=/3dss/scenes/viewer/viewer.3dss.json`
+- Viewer runtime: `/viewer?model=/3dss/scenes/viewer/viewer.3dss.json`
 
 ## Sync (PowerShell robocopy examples)
 

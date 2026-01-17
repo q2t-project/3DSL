@@ -3,7 +3,7 @@
     "document_title": "Regression fixture: no frames",
     "document_summary": "No frames fields anywhere. startPlayback should be no-op.",
     "document_uuid": "33333333-3333-4333-8333-333333333333",
-    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
     "author": "regression",
     "version": "1.0.0",
     "coordinate_system": "Z+up/freeXY",
