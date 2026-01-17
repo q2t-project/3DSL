@@ -20,7 +20,7 @@ const layerDefinitions = [
   {
     name: 'entry',
     description: 'bootstrap / composition root',
-    match: (rel) => rel === 'runtime/bootstrapViewer.js',
+    match: (rel) => rel === 'runtime/bootstrapViewer.js' || rel.startsWith('runtime/entry/'),
   },
   {
     name: 'hub',
@@ -57,7 +57,7 @@ const layerDefinitions = [
 const minimalHostEntries = {
   'peekBoot.js': {
     classification: 'A. UI無し (No-UI Host)',
-    allowedTargets: new Set(['runtime/bootstrapViewer.js']),
+    allowedTargets: new Set(['runtime/bootstrapViewer.js', 'runtime/entry/inputTuning.js']),
     reason: 'Minimal host entry (no UI). Allow entry-only import to avoid zombie UI.',
   },
 };

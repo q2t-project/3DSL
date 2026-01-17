@@ -5,7 +5,7 @@
 // NOTE: This is intentionally standalone (no UI layer modules) to avoid "zombie UI" reappearing.
 
 import { bootstrapPeekFromUrl } from "./runtime/bootstrapViewer.js";
-import { INPUT_TUNING } from "./runtime/core/inputTuning.js";
+import { INPUT_TUNING } from "./runtime/entry/inputTuning.js";
 
 // 高DPRで落ちるPC対策（renderer側 setPixelRatio するならそっちでOK）
 const DPR = Math.min(window.devicePixelRatio || 1, 2);

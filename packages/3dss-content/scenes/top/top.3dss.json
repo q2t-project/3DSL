@@ -22,7 +22,7 @@
   "points": [
     {
       "signification": {
-        "name": "Hello 3DSL"
+        "name": "Helloo 3DSL"
       },
       "appearance": {
         "position": [
@@ -40,7 +40,7 @@
             "color": "#ffffff"
           },
           "text": {
-            "content": "Hello 3DSL",
+            "content": "topHello 3DSL",
             "pose": {
               "front": [ 
                 0,

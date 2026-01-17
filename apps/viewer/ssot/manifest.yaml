@@ -30,6 +30,7 @@ dependency_rules:
   allowed:
     - "host -> entry"
     - "host -> ui"
+    - "ui -> entry"
     - "ui -> hub"
     - "entry -> hub"
     - "entry -> core"
