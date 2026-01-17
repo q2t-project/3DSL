@@ -1,19 +1,20 @@
 // runtime/core/inputTuning.js
 // Shared tuning constants for input behavior.
 //
-// Policy:
-// - This file is intentionally dependency-free.
-// - Non-core layers must NOT import this module directly.
-//   Use runtime/entry/inputTuning.js as the single public exit.
+// This file is intentionally dependency-free.
+// IMPORTANT: Do not import this module directly from host/ui layers.
+// Use runtime/entry/inputTuning.js as the single public exit for non-core layers.
+
+// NOTE:
+// Many parts of the viewer assume INPUT_TUNING has the shape:
+//   { pointer: {...}, keyboard: {...} }
+// where `pointer` contains both base speeds and optional host multipliers.
+//
+// Keeping this contract stable prevents runtime crashes like:
+//   TypeError: Cannot convert undefined or null to object
+// when spreading INPUT_TUNING.pointer.
 
 export const INPUT_TUNING = Object.freeze({
-  // ------------------------------------------------------------
-  // Core input defaults (pointer / keyboard)
-  // These are the SSOT values consumed by both:
-  // - runtime/core/uiState.js
-  // - ui/inputDefaults.js (via runtime/entry/*)
-  // ------------------------------------------------------------
-
   pointer: Object.freeze({
     // pointer drag threshold (px)
     minDragPx: 2,
@@ -36,9 +37,18 @@ export const INPUT_TUNING = Object.freeze({
     wheelZoomSpeedFast: 0.0007,
 
     // touch gestures (unit: per px)
-    // pinchZoomSpeed: pinch distance delta (px) -> zoomDelta
     pinchZoomSpeed: 0.0007,
     pinchZoomSpeedFast: 0.0014,
+
+    // ------------------------------------------------------------
+    // Peek host tuning (minimal host)
+    // These multipliers allow the top page demo to feel calmer
+    // without forking the rest of the input stack.
+    // ------------------------------------------------------------
+    peekPointerRotateMul: 0.32,
+    peekPointerPanMul: 0.32,
+    peekTouchRotateMul: 0.55,
+    peekTouchPanMul: 0.55,
   }),
 
   keyboard: Object.freeze({
@@ -47,15 +57,4 @@ export const INPUT_TUNING = Object.freeze({
     panFactor: 0.02,
     zoomStep: 0.1,
   }),
-
-  // ------------------------------------------------------------
-  // Host-specific multipliers (peek host)
-  // NOTE: keep as flat keys for backward compatibility.
-  // ------------------------------------------------------------
-
-  // peek host tuning (minimal host)
-  peekPointerRotateMul: 0.32,
-  peekPointerPanMul: 0.32,
-  peekTouchRotateMul: 0.55,
-  peekTouchPanMul: 0.55,
 });

@@ -4,8 +4,6 @@
 // - Safe in Node (no document/window): returns fallback bridge
 // - Designed to be re-exported and used by bootstrapViewer.js via "./viewerHub.js" only.
 
-import { createCameraInputState, addCameraDelta, discardCameraMotion, consumeCameraDelta, applyCameraInertia } from "./core/cameraInputAccumulator.js";
-
 // ------------------------------------------------------------
 // Public UI Bridge (minimal i18n + overlay)
 // ------------------------------------------------------------
@@ -69,6 +67,18 @@ function _pubuiSafeGetSearch() {
     return "";
   }
 }
+
+// debug flags (must never crash if undefined)
+const DEBUG_PICK = (() => {
+  try {
+    if (typeof globalThis?.DEBUG_PICK === 'boolean') return globalThis.DEBUG_PICK;
+    const sp = new URLSearchParams(_pubuiSafeGetSearch());
+    const v = sp.get('debugPick') ?? sp.get('pickDebug') ?? sp.get('DEBUG_PICK');
+    return v === '1' || v === 'true';
+  } catch (_e) {
+    return false;
+  }
+})();
 
 function _pubuiDetectLang(opts = {}) {
   const allow = (lng) => (lng === "ja" || lng === "en" ? lng : null);
@@ -845,9 +855,14 @@ const commandQueue = [];
 // - UI may enqueue {type:'camera.delta', dTheta?, dPhi?, panX?, panY?, zoom?}
 // - hub collapses many deltas into a single application at the next frame boundary.
 const CAMERA_DELTA_APPLY = 'camera.applyInputDeltas';
-const _cameraInput = createCameraInputState();
+const _cameraDelta = { dTheta: 0, dPhi: 0, panX: 0, panY: 0, zoom: 0 };
 let _cameraDeltaScheduled = false;
 
+// OrbitControls 由来の“慣性/減衰”を hub 側で再現する
+// - 1フレーム分の input delta を適用し、残り(delta) を毎フレーム減衰させる
+// - dampingFactor は uiState.viewerSettings.input.pointer.dampingFactor で調整可能（未指定なら 0.10）
+const _cameraInertia = { dTheta: 0, dPhi: 0, panX: 0, panY: 0, zoom: 0 };
+let _cameraInertiaActive = false;
 
 function _getInputDampingFactor() {
   const v = core?.uiState?.viewerSettings?.input?.pointer?.dampingFactor;
@@ -861,8 +876,58 @@ function _getInputDampingFactor() {
 
 
 function _applyCameraInertia(dt) {
-  const damp = _getInputDampingFactor();
-  applyCameraInertia(_cameraInput, dt, damp, opCameraRotate, opCameraPan, opCameraZoom);
+  if (!_cameraInertiaActive) return;
+
+  const a = _cameraInertia;
+  const sum0 = Math.abs(a.dTheta) + Math.abs(a.dPhi) + Math.abs(a.panX) + Math.abs(a.panY) + Math.abs(a.zoom);
+  if (sum0 < 1e-10) {
+    a.dTheta = 0; a.dPhi = 0; a.panX = 0; a.panY = 0; a.zoom = 0;
+    _cameraInertiaActive = false;
+    return;
+  }
+
+  // OrbitControls 互換：
+  // 1) “今の delta” をそのまま適用
+  // 2) 残り(delta) を (1 - damping) で減衰
+  let damp = _getInputDampingFactor();
+  if (!(damp >= 0 && damp < 1)) damp = 0.10;
+
+  // dt を考慮して 60fps 相当の damping をスケール
+  let f = damp;
+  if (typeof dt === 'number' && Number.isFinite(dt) && dt > 0) {
+    const frames = Math.max(1, Math.min(120, dt * 60));
+    f = 1 - Math.pow(1 - damp, frames);
+  }
+
+  const dTheta = a.dTheta;
+  const dPhi   = a.dPhi;
+  const panX   = a.panX;
+  const panY   = a.panY;
+  const zoom   = a.zoom;
+
+  if (dTheta || dPhi) opCameraRotate(dTheta, dPhi);
+  if (panX || panY) opCameraPan(panX, panY);
+  if (zoom) opCameraZoom(zoom);
+
+  // 慣性OFFなら即停止
+  if (!(f > 0)) {
+    a.dTheta = 0; a.dPhi = 0; a.panX = 0; a.panY = 0; a.zoom = 0;
+    _cameraInertiaActive = false;
+    return;
+  }
+
+  const m = 1 - f;
+  a.dTheta *= m;
+  a.dPhi   *= m;
+  a.panX   *= m;
+  a.panY   *= m;
+  a.zoom   *= m;
+
+  const sum = Math.abs(a.dTheta) + Math.abs(a.dPhi) + Math.abs(a.panX) + Math.abs(a.panY) + Math.abs(a.zoom);
+  if (sum < 1e-10) {
+    a.dTheta = 0; a.dPhi = 0; a.panX = 0; a.panY = 0; a.zoom = 0;
+    _cameraInertiaActive = false;
+  }
 }
 
 
@@ -878,7 +943,18 @@ function _removeCameraApplyCmd() {
 
 function _discardCameraDeltas() {
   // drop both pending deltas and inertia (jump commands should not inherit drag momentum)
-  discardCameraMotion(_cameraInput);
+  _cameraInertia.dTheta = 0;
+  _cameraInertia.dPhi = 0;
+  _cameraInertia.panX = 0;
+  _cameraInertia.panY = 0;
+  _cameraInertia.zoom = 0;
+  _cameraInertiaActive = false;
+
+  _cameraDelta.dTheta = 0;
+  _cameraDelta.dPhi = 0;
+  _cameraDelta.panX = 0;
+  _cameraDelta.panY = 0;
+  _cameraDelta.zoom = 0;
   _cameraDeltaScheduled = false;
   _removeCameraApplyCmd();
 }
@@ -950,7 +1026,16 @@ function enqueueCommand(cmd) {
 // CAMERA_DELTA_APPLY を queue 末尾に1個だけ置く。
 function _enqueueCameraDelta(cmd) {
   if (!cmd || typeof cmd !== 'object') return;
-  addCameraDelta(_cameraInput, cmd);
+  const add = (k) => {
+    const v = Number(cmd[k]);
+    if (!Number.isFinite(v) || v === 0) return;
+    _cameraDelta[k] += v;
+  };
+  add('dTheta');
+  add('dPhi');
+  add('panX');
+  add('panY');
+  add('zoom');
 
   _scheduleCameraApply();
   // 同フレーム内で他コマンドが混ざっても apply が末尾になるよう維持
@@ -970,10 +1055,31 @@ function opCameraZoom(zoom) {
 }
 
 function opCameraApplyInputDeltas() {
+  const a = _cameraDelta;
+  if (!a) return;
   try {
+    // dampingFactor がある場合は inertia に積んで、render loop で少しずつ適用する
     const damp = _getInputDampingFactor();
-    consumeCameraDelta(_cameraInput, damp, opCameraRotate, opCameraPan, opCameraZoom);
+    if (damp > 0 && damp < 1) {
+      if (a.dTheta || a.dPhi || a.panX || a.panY || a.zoom) {
+        _cameraInertia.dTheta += a.dTheta;
+        _cameraInertia.dPhi   += a.dPhi;
+        _cameraInertia.panX   += a.panX;
+        _cameraInertia.panY   += a.panY;
+        _cameraInertia.zoom   += a.zoom;
+        _cameraInertiaActive = true;
+      }
+    } else {
+      if (a.dTheta || a.dPhi) opCameraRotate(a.dTheta, a.dPhi);
+      if (a.panX || a.panY) opCameraPan(a.panX, a.panY);
+      if (a.zoom) opCameraZoom(a.zoom);
+    }
   } finally {
+    a.dTheta = 0;
+    a.dPhi = 0;
+    a.panX = 0;
+    a.panY = 0;
+    a.zoom = 0;
     _cameraDeltaScheduled = false;
   }
 }

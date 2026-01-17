@@ -1,10 +1,8 @@
 // viewer/ui/inputDefaults.js
+// UI-facing re-export of input defaults.
 //
-// UI-facing input defaults + presets.
-//
-// Policy:
-// - SSOT lives in runtime/core/inputDefaults.js
-// - UI must not import core directly; use runtime/entry/* exits.
+// SSOT lives in runtime/core/inputDefaults.js.
+// UI layer must not import core directly; use runtime/entry exit.
 
 export {
   DEFAULT_INPUT_POINTER,
