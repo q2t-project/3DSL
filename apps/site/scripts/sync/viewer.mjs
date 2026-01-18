@@ -181,4 +181,35 @@ try {
   throw new Error(`[sync] gen-ports failed after viewer sync: ${e?.message ?? e}`);
 }
 
+// --- StepX: do NOT publish markdown files under /public/viewer ---
+// Docs are served under /docs. Keeping raw .md under /viewer causes conflicts.
+async function removeMarkdownUnder(rootDir) {
+  const stack = [rootDir];
+  while (stack.length) {
+    const cur = stack.pop();
+    let ents;
+    try {
+      ents = await fs.promises.readdir(cur, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const ent of ents) {
+      const p = path.join(cur, ent.name);
+      if (ent.isDirectory()) {
+        stack.push(p);
+        continue;
+      }
+      if (ent.isFile() && ent.name.toLowerCase().endsWith(".md")) {
+        await rm(p, { force: true });
+      }
+    }
+  }
+}
+
+try {
+  await removeMarkdownUnder(dst);
+} catch (e) {
+  console.warn("[sync] viewer: markdown cleanup skipped:", e?.message ?? e);
+}
+
 console.log(`[sync] viewer -> site/public OK (src=${path.relative(repoRoot, src)})`);
