@@ -202,7 +202,7 @@ async function writeRobotsTxt(baseUrl) {
     "Disallow: /schemas/",
     "Disallow: /locales/",
     "Disallow: /3dss/fixtures/",
-    "Disallow: /library/library_index.json",
+    "Disallow: /_data/library/library_index.json",
     "",
     `Sitemap: ${sitemapUrl}`,
     "",

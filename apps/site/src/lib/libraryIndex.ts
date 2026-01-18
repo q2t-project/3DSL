@@ -45,7 +45,7 @@ type LibraryIndex = {
   items: LibraryItem[];
 };
 
-const INDEX_ABS = path.join(process.cwd(), "public", "library", "library_index.json");
+const INDEX_ABS = path.join(process.cwd(), "public", "_data", "library", "library_index.json");
 
 export function readLibraryIndex(): LibraryIndex {
   const raw = fs.readFileSync(INDEX_ABS, "utf8");

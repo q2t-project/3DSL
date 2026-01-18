@@ -1,6 +1,4 @@
 
----
-
 ### Viewer 配信の落とし穴（Astro routes と public 静的の衝突）
 
 **症状**
@@ -43,5 +41,3 @@
 * `/viewer` を開く
   → `/app/viewer` に 302 されるか
 * Hard reload しても UI が古い版に戻らないか（no-store が効いているか）
-
----

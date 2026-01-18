@@ -1588,7 +1588,7 @@ Unicode の文字（\p{L}, \p{N}）も使用できる。
     "version": "1.0.0",
     "author": "creator@example.com",
     "updated_at": "2025-12-12T12:00:00Z",
-    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.1.3",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/release/v1.1.3/3DSS.schema.json",
     "coordinate_system": "Z+up/freeXY",
     "units": "non_si:px",
     "i18n": "ja",

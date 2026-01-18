@@ -3,7 +3,7 @@
     "document_title": "tmp2",
     "document_summary": "",
     "document_uuid": "29cccc84-6e9f-4571-9625-1ddb7969c31f",
-    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.1.3",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
     "author": "vrrrm",
     "version": "1.0.0"
   },
@@ -12,3 +12,4 @@
   "aux": [],
   "frames": []
 }
+
