@@ -1,1 +1,6 @@
-/viewer  /viewer/  301
+# Ensure /viewer/* (static viewer bundle) is served as-is.
+# Only /viewer (no trailing slash) is redirected to the app route.
+
+/viewer/*  /viewer/:splat  200
+/viewer    /app/viewer     302
+/viewer/   /app/viewer     302
