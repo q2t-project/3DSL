@@ -16,6 +16,7 @@
     "check:release": "npm --prefix apps/site run check:release"
   },
   "devDependencies": {
-    "esprima": "^4.0.1"
+    "esprima": "^4.0.1",
+    "linkinator": "^7.5.3"
   }
 }
