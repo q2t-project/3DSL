@@ -1,10 +1,10 @@
 # Ensure /viewer/* (static viewer bundle) is served as-is.
 # Only /viewer (no trailing slash) is redirected to the app route.
 
-/viewer/*  /viewer/:splat  200
+# 生mdは恒久的に /docs へ寄せる（SEOも移す）
+/schemas/release/v1.1.3/3DSS_spec.md   /docs/spec/v1.1.3   301
+/viewer/3DSD-viewer.md                 /docs/viewer        301
+
 /viewer    /app/viewer     302
 /viewer/   /app/viewer     302
 
-# 生mdは恒久的に /docs へ寄せる（SEOも移す）
-/schemas/release/v1.1.3/3DSS_spec.md   /docs/spec/v1.1.3   301
-/viewer/3DSD-viewer.md                /docs/viewer        301
