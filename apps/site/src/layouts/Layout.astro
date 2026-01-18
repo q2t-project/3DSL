@@ -19,6 +19,9 @@ const canonicalFinal = canonicalUrl ?? canonical;
 
 // AdSense
 // - Central policy: ads only on /, /concept (see lib/adsense.ts)
+// For review/verification stability, always load the AdSense script on normal page views.
+// (Ad slots themselves remain gated by shouldEnableAdsense.)
+const includeAdsenseScript = !noAds;
 const enableAdsense = !noAds && shouldEnableAdsense(pathname);
 
 // Header nav: keep it minimal (no hamburger)
@@ -40,11 +43,11 @@ function isActive(href: string) {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
 
-    {enableAdsense && (
+    {includeAdsenseScript && (
       <meta name="google-adsense-account" content={ADSENSE_PUBLISHER_ID} />
     )}
 
-    {enableAdsense && (
+    {includeAdsenseScript && (
       <script
         async
         src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_PUBLISHER_ID}`}

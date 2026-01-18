@@ -3,9 +3,10 @@
   "summary": "一覧にも使う短い説明",
   "description": "一覧にも使う短い説明",
   "tags": [],
-  "meta_title": "SEO用 タイトル（任意）",
-  "meta_description": "SEO用description（任意）",
-  "published": true,
+  "meta_title": "",
+  "meta_description": "",
+  "published": false,
   "created_at": "2026-01-05T00:00:00+09:00",
-  "updated_at": "2026-01-09T00:00:00+09:00"
+  "updated_at": "2026-01-09T00:00:00+09:00",
+  "hidden": true
 }

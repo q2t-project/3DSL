@@ -1,0 +1,5 @@
+竊・crawling http://127.0.0.1:4321
+[0] http://127.0.0.1:4321/
+
+  [0] http://127.0.0.1:4321/
+ERROR: Detected 1 broken links. Scanned 1 links in 0.015 seconds.
