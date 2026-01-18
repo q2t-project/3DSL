@@ -52,6 +52,13 @@
 - check:boundary / forbidden-import / guard(prebuild)
 
 
+## Navigation docs (地図/索引)
+
+- packages/docs/repo/README.md: 入口
+- packages/docs/repo/MAP.md: 全体マップ
+- packages/docs/repo/INDEX.md: 用語/逆引き索引
+- packages/docs/repo/NAV_POLICY.md: 運用規範
+
 ---
 
 ## Review guidelines

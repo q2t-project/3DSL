@@ -10,7 +10,7 @@
       "s:concept",
       "m:top"
     ],
-    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.1.3",
+    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
     "generator": "https://q2t-project.github.io/3dsl/",
     "reference": "26010501 3dsl-concept",
     "coordinate_system": "Z+up/freeXY",
@@ -39,9 +39,22 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
-            "size": 8,
-            "content": "Concept"
+            "content": "topHello 3DSL",
+            "pose": {
+              "front": [ 
+                0,
+                1,
+                0
+              ],
+              "up": [ 
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 64,
+            "align": "center&middle",
+            "font": "helvetiker_regular"
           }
         }
       },
@@ -72,9 +85,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "表現の限界と要請"
+            "content": "表現の限界と要請",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -104,9 +128,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "新しい表現の実験"
+            "content": "新しい表現の実験",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -136,9 +171,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "宣言"
+            "content": "宣言",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -168,9 +214,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 2,
-            "content": "世界を分節化"
+            "content": "世界を分節化",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -201,9 +258,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "切断と再接続の検証"
+            "content": "切断と再接続の検証",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -233,9 +301,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "複雑化で連結が増え読み手が脱落"
+            "content": "複雑化で連結が増え読み手が脱落",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -265,9 +344,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "文脈依存"
+            "content": "文脈依存",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -297,9 +387,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "コモンズ"
+            "content": "コモンズ",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -329,9 +430,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "成果物が“完成”として固定"
+            "content": "成果物が“完成”として固定",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -361,9 +473,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "留保を許容する代替表現が要る"
+            "content": "留保を許容する代替表現が要る",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -393,9 +516,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "図:俯瞰は強いが座標が揃わない"
+            "content": "図:俯瞰は強いが座標が揃わない",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -425,9 +559,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "モデル:操作で理解、だが配布/検証が難しい"
+            "content": "モデル:操作で理解、だが配布/検証が難しい",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -461,8 +606,19 @@
           ],
           "text": {
             "content": "視点/手順共有",
-            "plane": "zx",
-            "size": 8
+            "size": 8,
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -491,9 +647,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "デジタル:複製"
+            "content": "デジタル:複製",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -523,9 +690,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "表現=特性の束（複製性×操作性…）"
+            "content": "表現=特性の束（複製性×操作性…）",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -555,9 +733,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "3DSL"
+            "content": "3DSL",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -588,9 +777,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "概念と関係を3Dに配置"
+            "content": "概念と関係を3Dに配置",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -620,9 +820,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "全体フレームを先に外部化"
+            "content": "全体フレームを先に外部化",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -652,9 +863,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "関係中心・線の束で構造保持"
+            "content": "関係中心・線の束で構造保持",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -684,9 +906,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "理解を復元→ナビゲーションへ"
+            "content": "理解を復元→ナビゲーションへ",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -716,9 +949,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "回転/ズーム/俯瞰/探索"
+            "content": "回転/ズーム/俯瞰/探索",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -748,9 +992,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "同一モデルを複製・配布"
+            "content": "同一モデルを複製・配布",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -780,9 +1035,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "視点と手順を揃えて検証"
+            "content": "視点と手順を揃えて検証",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -812,9 +1078,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "共通座標軸/スケール/層別"
+            "content": "共通座標軸/スケール/層別",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -844,9 +1121,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "テーマを一意固定しない"
+            "content": "テーマを一意固定しない",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -876,9 +1164,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "分類はナビゲーション（タグ/将来ファセット）"
+            "content": "分類はナビゲーション（タグ/将来ファセット）",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -908,9 +1207,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "比較・接続・対立/併存/未決も同居"
+            "content": "比較・接続・対立/併存/未決も同居",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -940,9 +1250,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "状態と遷移、時間の扱いを明示"
+            "content": "状態と遷移、時間の扱いを明示",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -972,9 +1293,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "留保を保持し、検証で更新"
+            "content": "留保を保持し、検証で更新",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -1004,9 +1336,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "前提と手続きが明示された『もっともらしさ』"
+            "content": "前提と手続きが明示された『もっともらしさ』",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -1040,8 +1383,19 @@
           ],
           "text": {
             "content": "",
-            "plane": "zx",
-            "size": 8
+            "size": 8,
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -1070,9 +1424,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "公開実験として積み上げる"
+            "content": "公開実験として積み上げる",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -1102,9 +1467,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "座標軸がコモンズになる"
+            "content": "座標軸がコモンズになる",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -1134,9 +1510,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "座標軸をコモンズとして開く"
+            "content": "座標軸をコモンズとして開く",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -1166,9 +1553,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "知を操作と検証の場へ引き戻す"
+            "content": "知を操作と検証の場へ引き戻す",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -1198,9 +1596,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "理解を共有できるナビゲーションへ"
+            "content": "理解を共有できるナビゲーションへ",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -1230,9 +1639,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "未決/矛盾を留保し更新循環へ"
+            "content": "未決/矛盾を留保し更新循環へ",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -1262,9 +1682,20 @@
             "wireframe": false
           },
           "text": {
-            "plane": "zx",
             "size": 8,
-            "content": "公開実験"
+            "content": "公開実験",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
         }
       },
@@ -1296,8 +1727,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -1330,8 +1772,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -1364,8 +1817,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -1398,8 +1862,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -1432,8 +1907,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -1466,8 +1952,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -1500,8 +1997,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -1534,8 +2042,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -1568,8 +2087,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -1602,8 +2132,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -1636,8 +2177,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -1670,8 +2222,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -1704,8 +2267,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -1738,8 +2312,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -1772,8 +2357,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -1806,8 +2402,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -1840,8 +2447,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -1874,8 +2492,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -1908,8 +2537,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -1942,8 +2582,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -1976,8 +2627,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -2010,8 +2672,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -2044,8 +2717,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -2078,8 +2762,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -2112,8 +2807,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -2146,8 +2852,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -2180,8 +2897,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -2214,8 +2942,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -2248,8 +2987,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -2282,8 +3032,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -2316,8 +3077,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -2350,8 +3122,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -2384,8 +3167,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -2418,8 +3212,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -2452,8 +3257,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -2486,8 +3302,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -2520,8 +3347,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -2554,8 +3392,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -2588,8 +3437,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -2622,8 +3482,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -2656,8 +3527,19 @@
         "opacity": 0.4,
         "color": "#ffffff",
         "caption_text": {
-          "plane": "billboard",
-          "font_size": 8
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
         },
         "line_type": "straight",
         "frames": [
@@ -2674,3 +3556,4 @@
   ],
   "aux": []
 }
+

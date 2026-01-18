@@ -68,6 +68,18 @@ function _pubuiSafeGetSearch() {
   }
 }
 
+// debug flags (must never crash if undefined)
+const DEBUG_PICK = (() => {
+  try {
+    if (typeof globalThis?.DEBUG_PICK === 'boolean') return globalThis.DEBUG_PICK;
+    const sp = new URLSearchParams(_pubuiSafeGetSearch());
+    const v = sp.get('debugPick') ?? sp.get('pickDebug') ?? sp.get('DEBUG_PICK');
+    return v === '1' || v === 'true';
+  } catch (_e) {
+    return false;
+  }
+})();
+
 function _pubuiDetectLang(opts = {}) {
   const allow = (lng) => (lng === "ja" || lng === "en" ? lng : null);
 

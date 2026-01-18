@@ -25,15 +25,27 @@ if (!fs.existsSync(srcDist)) {
 }
 
 // public の中で、この同期が責任持つ範囲だけ掃除（残骸事故防止）
+// NOTE: /library は Astro のページ用ルートに予約し、
+// 3dss-content の dist/library は public/_data/library に退避して衝突を避ける。
 ensureDir(dstPublic);
 rmIfExists(path.join(dstPublic, "3dss", "library"));
-rmIfExists(path.join(dstPublic, "library"));
 rmIfExists(path.join(dstPublic, "3dss", "scene"));
+rmIfExists(path.join(dstPublic, "_data", "library"));
+rmIfExists(path.join(dstPublic, "library")); // legacy cleanup
 
-// dist 直下（3dss/, library/）を public 直下にコピー
-fs.cpSync(srcDist, dstPublic, { recursive: true });
+// dist 直下（3dss/, library/ など）を public に同期。
+// - dist/library -> public/_data/library
+// - その他は public 直下へ
+for (const ent of fs.readdirSync(srcDist, { withFileTypes: true })) {
+  const name = ent.name;
+  const src = path.join(srcDist, name);
+  const dst = name === "library" ? path.join(dstPublic, "_data", "library") : path.join(dstPublic, name);
+  rmIfExists(dst);
+  ensureDir(path.dirname(dst));
+  fs.cpSync(src, dst, { recursive: true });
+}
 
-console.log("[sync] 3dss-content(dist) -> site/public OK");
+console.log("[sync] 3dss-content(dist) -> site/public OK (library -> /_data/library)");
 
 // --- fixtures suite -> site/public (for regression/fixtures validation) ---
 const srcFixturesSuite = path.join(repoRoot, "packages", "3dss-content", "fixtures", "regression");

@@ -1,0 +1,5 @@
+# Avoid edge caching issues for the static viewer JS during preview/dev.
+# (If you later want aggressive caching, switch to immutable + hashed filenames.)
+
+/viewer/*.js
+  Cache-Control: no-store
