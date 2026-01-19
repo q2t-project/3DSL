@@ -128,7 +128,7 @@
           "size": [
             1,
             2,
-            2
+            0.25
           ],
           "common": {
             "opacity": 0.65,
@@ -183,6 +183,51 @@
         "line_style": "solid",
         "opacity": 0.45,
         "color": "#ffffff",
+        "caption_text": {
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          },
+          "font_size": 9
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "aaaaaaa1-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+        "tags": [
+          "x:l_root_a"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "11111111-1111-4111-8111-111111111111"
+        },
+        "end_b": {
+          "ref": "33333333-3333-4333-8333-333333333333"
+        },
+        "line_style": "solid",
+        "opacity": 0.15,
+        "color": "#ff0000",
         "caption_text": {
           "pose": {
             "front": [
