@@ -69,11 +69,11 @@
     },
     {
       "signification": {
-        "name": "relation"
+        "name": "time"
       },
       "appearance": {
         "position": [
-          -4,
+          0,
           8,
           0
         ],
@@ -102,7 +102,8 @@
             },
             "size": 8,
             "align": "left&baseline",
-            "font": "helvetiker_regular"
+            "font": "helvetiker_regular",
+            "color": "#00ff00"
           }
         }
       },
@@ -182,7 +183,7 @@
         },
         "line_style": "solid",
         "opacity": 0.45,
-        "color": "#ffffff",
+        "color": "#22ff22",
         "caption_text": {
           "pose": {
             "front": [
@@ -227,7 +228,7 @@
         },
         "line_style": "solid",
         "opacity": 0.65,
-        "color": "#ff0000",
+        "color": "#444444",
         "caption_text": {
           "pose": {
             "front": [
