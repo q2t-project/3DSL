@@ -32,7 +32,7 @@
         ],
         "marker": {
           "primitive": "sphere",
-          "radius": 0.7,
+          "radius": 16,
           "common": {
             "opacity": 0.9,
             "emissive": false,
@@ -73,13 +73,13 @@
       },
       "appearance": {
         "position": [
-          -14,
-          8,
+          -32,
+          0,
           0
         ],
         "marker": {
           "primitive": "sphere",
-          "radius": 0.45,
+          "radius": 8,
           "common": {
             "opacity": 0.85,
             "emissive": false,
@@ -119,16 +119,16 @@
       },
       "appearance": {
         "position": [
-          14,
-          8,
-          0
+          0,
+          0,
+          32
         ],
         "marker": {
           "primitive": "box",
           "size": [
-            2.2,
-            2.2,
-            2.2
+            8,
+            16,
+            2
           ],
           "common": {
             "opacity": 0.85,
