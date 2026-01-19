@@ -32,7 +32,7 @@
         ],
         "marker": {
           "primitive": "sphere",
-          "radius": 0.7,
+          "radius": 16,
           "common": {
             "opacity": 0.9,
             "emissive": false,
@@ -40,7 +40,7 @@
             "color": "#ffffff"
           },
           "text": {
-            "content": "H ello 3DSL",
+            "content": "64 ABC",
             "pose": {
               "front": [ 
                 0,
@@ -53,7 +53,7 @@
                 1
               ]
             },
-            "size": 18,
+            "size": 16,
             "align": "center&middle",
             "font": "helvetiker_regular"
           }
@@ -73,13 +73,13 @@
       },
       "appearance": {
         "position": [
-          -14,
-          8,
+          -32,
+          0,
           0
         ],
         "marker": {
           "primitive": "sphere",
-          "radius": 0.45,
+          "radius": 8,
           "common": {
             "opacity": 0.85,
             "emissive": false,
@@ -87,7 +87,7 @@
             "color": "#ffffff"
           },
           "text": {
-            "content": "Point A (fixed: ZX plane)",
+            "content": "8",
             "pose": {
               "front": [
                 0,
@@ -100,7 +100,7 @@
                 1
               ]
             },
-            "size": 10,
+            "size": 8,
             "align": "left&top",
             "font": "helvetiker_regular"
           }
@@ -119,16 +119,16 @@
       },
       "appearance": {
         "position": [
-          14,
-          8,
-          0
+          0,
+          0,
+          32
         ],
         "marker": {
           "primitive": "box",
           "size": [
-            2.2,
-            2.2,
-            2.2
+            8,
+            16,
+            2
           ],
           "common": {
             "opacity": 0.85,
@@ -137,7 +137,7 @@
             "color": "#ffffff"
           },
           "text": {
-            "content": "Point B (fixed: XY plane)",
+            "content": "32",
             "pose": {
               "front": [
                 0,
@@ -150,7 +150,7 @@
                 0
               ]
             },
-            "size": 10,
+            "size": 32,
             "align": "center&middle",
             "font": "helvetiker_regular"
           }

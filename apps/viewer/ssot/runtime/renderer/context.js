@@ -638,7 +638,7 @@ function maybeForceContextLoss(renderer, enabled) {
     let sceneRadius = Number(sceneMetricsCache?.radius);
     if (!Number.isFinite(sceneRadius) || sceneRadius <= 0) sceneRadius = null;
 
-    // points: small spheres (最小実装)
+    // points: marker primitives (sphere/box/...) + fallback
     if (pts.length) {
       debugRenderer("[renderer] point[0] uuid candidates", {
         uuid: pts[0]?.uuid,
@@ -653,18 +653,53 @@ function maybeForceContextLoss(renderer, enabled) {
       const pos = resolvePointPos(uuid);
       if (!pos) { warnRenderer("[renderer] skip point (no pos)", uuid, p); continue; }
 
-      const col = readColor(p?.appearance?.color ?? p?.color, 0xffffff);
-      const op = readOpacity(p?.appearance?.opacity ?? p?.opacity, 1);
-      const mat = new THREE.MeshBasicMaterial({ color: col, transparent: op < 1, opacity: op });
+      const marker = (p?.appearance?.marker && typeof p.appearance.marker === "object") ? p.appearance.marker : null;
+      const common = (marker?.common && typeof marker.common === "object") ? marker.common : null;
+
+      const col = readColor(
+        common?.color ?? marker?.color ?? p?.appearance?.color ?? p?.color,
+        0xffffff,
+      );
+      const op = readOpacity(
+        common?.opacity ?? marker?.opacity ?? p?.appearance?.opacity ?? p?.opacity,
+        1,
+      );
+      const wireframe = !!(common?.wireframe ?? marker?.wireframe);
+      const mat = new THREE.MeshBasicMaterial({
+        color: col,
+        transparent: op < 1,
+        opacity: op,
+        wireframe,
+      });
+
       const baseR =
         sceneRadius != null
-          ? Math.max(0.2, Math.min(2.0, sceneRadius * 0.02))
+          ? Math.max(0.15, Math.min(2.5, sceneRadius * 0.02))
           : 0.6;
-      const geo = new THREE.SphereGeometry(baseR, 12, 12);
+
+      const prim = (typeof marker?.primitive === "string" ? marker.primitive.trim().toLowerCase() : "") || "sphere";
+      let geo = null;
+      if (prim === "box") {
+        const s = Array.isArray(marker?.size) ? marker.size : null;
+        const sx = Number(s?.[0]);
+        const sy = Number(s?.[1]);
+        const sz = Number(s?.[2]);
+        const bx = Number.isFinite(sx) && sx > 0 ? sx : (baseR * 2);
+        const by = Number.isFinite(sy) && sy > 0 ? sy : (baseR * 2);
+        const bz = Number.isFinite(sz) && sz > 0 ? sz : (baseR * 2);
+        geo = new THREE.BoxGeometry(bx, by, bz);
+      } else {
+        // default: sphere
+        const rr = Number(marker?.radius);
+        const r = (Number.isFinite(rr) && rr > 0) ? rr : baseR;
+        geo = new THREE.SphereGeometry(r, 16, 16);
+      }
+
       const mesh = new THREE.Mesh(geo, mat);
       mesh.position.set(pos[0], pos[1], pos[2]);
       mesh.userData.uuid = uuid;
       mesh.userData.kind = "points";
+      mesh.userData.__markerPrimitive = prim;
       groups.points.add(mesh);
       maps.points.set(uuid, mesh);
       addPickTarget(mesh);
@@ -939,7 +974,11 @@ function maybeForceContextLoss(renderer, enabled) {
     camera.lookAt(tgt[0], tgt[1], tgt[2]);
     camera.updateProjectionMatrix();
     try {
-      Object.assign(labelCameraState, st, { viewport: labelViewport });
+      Object.assign(labelCameraState, st, {
+        viewport: labelViewport,
+        sceneRadius: Number(sceneMetricsCache?.radius) || null,
+        sceneCenter: sceneMetricsCache?.center || null,
+      });
       labelLayer.setCameraState(labelCameraState);
     } catch (_e) {}
   };

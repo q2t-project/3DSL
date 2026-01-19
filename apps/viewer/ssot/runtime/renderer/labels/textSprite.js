@@ -315,11 +315,7 @@ export function createTextLabelObjectFromTexture(texture, label, meta = {}) {
     });
     obj = new THREE.Mesh(_sharedPlaneGeom, material);
     obj.userData.__labelSharedGeom = true;
-    const normal = applyPoseOrientation(obj, pose);
-
-    // fixed label: keep base orientation for runtime flip (avoid mirrored text from backside)
-    obj.userData.__labelBaseQuat = obj.quaternion.clone();
-    if (normal) obj.userData.__labelNormal = normal;
+    applyPoseOrientation(obj, pose);
   }
 
   obj.userData.__labelAspect = aspect;
