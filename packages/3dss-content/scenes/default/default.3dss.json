@@ -40,7 +40,7 @@
             "color": "#ffffff"
           },
           "text": {
-            "content": "H ello 3DSL",
+            "content": "64 ABC",
             "pose": {
               "front": [ 
                 0,
@@ -53,7 +53,7 @@
                 1
               ]
             },
-            "size": 18,
+            "size": 64,
             "align": "center&middle",
             "font": "helvetiker_regular"
           }
@@ -87,7 +87,7 @@
             "color": "#ffffff"
           },
           "text": {
-            "content": "Point A (fixed: ZX plane)",
+            "content": "32",
             "pose": {
               "front": [
                 0,
@@ -100,7 +100,7 @@
                 1
               ]
             },
-            "size": 10,
+            "size": 32,
             "align": "left&top",
             "font": "helvetiker_regular"
           }
@@ -137,7 +137,7 @@
             "color": "#ffffff"
           },
           "text": {
-            "content": "Point B (fixed: XY plane)",
+            "content": "128",
             "pose": {
               "front": [
                 0,
@@ -150,7 +150,7 @@
                 0
               ]
             },
-            "size": 10,
+            "size": 128,
             "align": "center&middle",
             "font": "helvetiker_regular"
           }
