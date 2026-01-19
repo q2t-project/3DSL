@@ -12,7 +12,7 @@ export const labelConfig = {
     // size=8 のときの world 高さ
     // - 旧: 固定値 baseHeight
     // - 新: sceneRadius が取れる場合は baseHeightFactor * sceneRadius を優先（スケール感を合わせやすい）
-    baseHeight: 0.20,
+    baseHeight: 1.0,
     baseHeightFactor: 0.32,
     // 点の位置からどれだけ持ち上げるか（worldHeight に対する係数）
     offsetYFactor: 0.6,
