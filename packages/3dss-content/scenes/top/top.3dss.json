@@ -32,12 +32,12 @@
         ],
         "marker": {
           "primitive": "sphere",
-          "radius": 0.7,
+          "radius": 0.25,
           "common": {
             "opacity": 0.2,
             "emissive": false,
             "wireframe": false,
-            "color": "#ffffff"
+            "color": "#ff0000"
           },
           "text": {
             "content": "Hello 3DSL",
@@ -79,7 +79,7 @@
         ],
         "marker": {
           "primitive": "sphere",
-          "radius": 0.45,
+          "radius": 0.5,
           "common": {
             "opacity": 0.35,
             "emissive": false,
@@ -100,7 +100,7 @@
                 1
               ]
             },
-            "size": 4,
+            "size": 8,
             "align": "left&top",
             "font": "helvetiker_regular"
           }
@@ -131,10 +131,10 @@
             0.25
           ],
           "common": {
-            "opacity": 0.65,
+            "opacity": 0.45,
             "emissive": false,
             "wireframe": false,
-            "color": "#ffffff"
+            "color": "#008888"
           },
           "text": {
             "content": "structure",
@@ -150,7 +150,7 @@
                 0
               ]
             },
-            "size": 2,
+            "size": 8,
             "align": "center&middle",
             "font": "helvetiker_regular"
           }
