@@ -913,6 +913,14 @@ html, body {
 #gizmo-slot { position: absolute; inset: 0; }
 #gizmo-ui { position: absolute; inset: 0; pointer-events: none; }
 
+/* Mobile: slightly smaller gizmo (keep desktop as-is) */
+@media (max-width: 767px) {
+  #gizmo-wrapper {
+    width: 112px;  /* 80% of 140px */
+    height: 112px; /* 80% of 140px */
+  }
+}
+
 /* Embed mode: hide UI overlays */
 body.is-embed #viewer-topbar,
 body.is-embed #viewer-toolbar,
