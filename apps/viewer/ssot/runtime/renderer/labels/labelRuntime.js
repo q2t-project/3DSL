@@ -393,15 +393,9 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
         ? wcfg.upAxis
         : "z";
 
-    // base height in world units
-    // Prefer sceneRadius-based scaling when available (units vary per scene)
-    const sceneRadius = Number(cameraState?.sceneRadius);
-    const baseHeightFactor = Number(wcfg.baseHeightFactor);
     const baseHeight = Number.isFinite(Number(wcfg.scalePerCameraDistance))
       ? camDist * Number(wcfg.scalePerCameraDistance)
-      : (Number.isFinite(sceneRadius) && sceneRadius > 0 && Number.isFinite(baseHeightFactor) && baseHeightFactor > 0
-        ? sceneRadius * baseHeightFactor
-        : (Number(wcfg.baseHeight) || 0.2));
+      : (Number(wcfg.baseHeight) || 0.2);
 
     const minH = Number.isFinite(Number(wcfg.minHeight)) ? Number(wcfg.minHeight) : null;
     const maxH = Number.isFinite(Number(wcfg.maxHeight)) ? Number(wcfg.maxHeight) : null;
@@ -510,18 +504,8 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
 
       obj.scale.set(h * aspect * scaleMul, h * scaleMul, 1);
 
-      // fixed pose: flip 180deg (local-Y) when camera is behind the plane
-      if (hasCameraPos && !obj.isSprite) {
-        const baseQuat = obj.userData?.__labelBaseQuat;
-        const normal = obj.userData?.__labelNormal;
-        if (normal && baseQuat && typeof baseQuat === "object") {
-          tmpToCam.copy(tmpCamPos).sub(obj.position);
-          const dot = normal.dot(tmpToCam);
-          obj.quaternion.copy(baseQuat);
-          // small epsilon to avoid jitter around edge-on
-          if (dot < -1e-6) obj.quaternion.multiply(flipQuatLocalY);
-        }
-      }
+      // fixed pose: keep orientation static (no camera-dependent flipping)
+      // - backside is allowed to render as-is (DoubleSide material)
 
       // align offset（allocation なし）
       const align = entry?.align;
