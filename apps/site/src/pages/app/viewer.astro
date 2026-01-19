@@ -45,6 +45,8 @@
     ></iframe>
 
     <div class="app-viewer-topbar" aria-label="ナビゲーション">
+      <button id="app-viewer-back" class="app-viewer-back" type="button" aria-label="戻る">← 戻る</button>
+
       <div class="app-viewer-actions" aria-label="アクション">
         <!-- input action (standalone /app/viewer) -->
         <button id="app-viewer-open" class="app-viewer-action" type="button" aria-label="開く" title="開く">
@@ -63,7 +65,6 @@
         </button>
       </div>
 
-      <button id="app-viewer-back" class="app-viewer-back" type="button" aria-label="戻る">← 戻る</button>
     </div>
 
     <div id="app-viewer-open-modal" class="app-viewer-open-modal" hidden>
@@ -105,6 +106,8 @@
           <div class="app-viewer-open-note">※ ローカルファイルは URL 共有対象外やで。</div>
         </div>
       </div>
+    </div>
+
     <div id="app-viewer-toast" class="app-viewer-toast" hidden aria-live="polite"></div>
 
     <div id="app-viewer-qr-modal" class="app-viewer-qr-modal" hidden>
@@ -124,7 +127,6 @@
       </div>
     </div>
 
-    </div>
 
     <div id="app-viewer-drop-overlay" class="app-viewer-drop-overlay" hidden aria-hidden="true">
       <div class="app-viewer-drop-overlay-card">
@@ -319,10 +321,20 @@
           t.setAttribute('aria-live', 'polite');
           document.body.appendChild(t);
         }
+        if (t.hasAttribute('hidden')) t.removeAttribute('hidden');
         t.textContent = msg;
-        t.style.opacity = "1";
+        // ensure transition kicks in
+        t.style.opacity = "0";
+        t.style.transform = "translate(-50%, -10px)";
+        requestAnimationFrame(() => {
+          t.style.opacity = "1";
+          t.style.transform = "translate(-50%, 0px)";
+        });
         clearTimeout(showToast._t);
-        showToast._t = setTimeout(() => { t.style.opacity = "0"; }, 1600);
+        showToast._t = setTimeout(() => {
+          t.style.opacity = "0";
+          t.style.transform = "translate(-50%, -10px)";
+        }, 1600);
       }
 
       function currentShareUrl() {
@@ -982,8 +994,8 @@
       .app-viewer-toast {
         position: fixed;
         left: 50%;
-        bottom: 18px;
-        transform: translateX(-50%);
+        top: 14px;
+        transform: translate(-50%, -10px);
         z-index: 60;
         padding: 10px 12px;
         border-radius: 12px;
@@ -993,9 +1005,13 @@
         border: 1px solid rgba(255, 255, 255, 0.12);
         font: 14px/1.35 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
         opacity: 0;
-        transition: opacity 0.2s ease;
+        transition: opacity 0.2s ease, transform 0.2s ease;
         pointer-events: none;
       }
+
+      .app-viewer-toast[hidden] { display: none; }
+
+      .app-viewer-toast[hidden] { display: none; }
 
       /* ----- QR modal ----- */
       .app-viewer-qr-modal {
