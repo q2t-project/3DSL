@@ -3,8 +3,8 @@
     "document_title": "3DSS Default Scene",
     "document_summary": "Viewer fallback default sample (v1.1.3). Minimal primitives + text + lines.",
     "document_uuid": "7f3b2d2a-7a1c-4c84-9b3a-7e3c42f0f9c1",
-    "version": "1.0.0",
-    "updated_at": "2026-01-11T00:00:00Z",
+    "version": "1.0.1",
+    "updated_at": "2026-01-19T00:00:00Z",
     "tags": [
       "s:3dsl",
       "s:sample",
@@ -22,7 +22,7 @@
   "points": [
     {
       "signification": {
-        "name": "Helloo 3DSL"
+        "name": "Hello 3DSL"
       },
       "appearance": {
         "position": [
@@ -34,13 +34,13 @@
           "primitive": "sphere",
           "radius": 0.7,
           "common": {
-            "opacity": 0.9,
+            "opacity": 0.2,
             "emissive": false,
             "wireframe": false,
             "color": "#ffffff"
           },
           "text": {
-            "content": "topHello 3DSL",
+            "content": "Hello 3DSL",
             "pose": {
               "front": [ 
                 0,
@@ -53,7 +53,7 @@
                 1
               ]
             },
-            "size": 18,
+            "size": 16,
             "align": "center&middle",
             "font": "helvetiker_regular"
           }
@@ -73,7 +73,7 @@
       },
       "appearance": {
         "position": [
-          -14,
+          -4,
           8,
           0
         ],
@@ -81,13 +81,13 @@
           "primitive": "sphere",
           "radius": 0.45,
           "common": {
-            "opacity": 0.85,
+            "opacity": 0.35,
             "emissive": false,
             "wireframe": false,
-            "color": "#ffffff"
+            "color": "#8800ff"
           },
           "text": {
-            "content": "Point A (fixed: ZX plane)",
+            "content": "relations",
             "pose": {
               "front": [
                 0,
@@ -137,7 +137,7 @@
             "color": "#ffffff"
           },
           "text": {
-            "content": "Point B (fixed: XY plane)",
+            "content": "structure",
             "pose": {
               "front": [
                 0,
