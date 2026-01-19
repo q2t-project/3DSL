@@ -34,7 +34,7 @@
           "primitive": "sphere",
           "radius": 0.25,
           "common": {
-            "opacity": 0.2,
+            "opacity": 0.4,
             "emissive": false,
             "wireframe": false,
             "color": "#ff0000"
@@ -81,7 +81,7 @@
           "primitive": "sphere",
           "radius": 0.5,
           "common": {
-            "opacity": 0.15,
+            "opacity": 0.35,
             "emissive": false,
             "wireframe": false,
             "color": "#880088"
@@ -216,7 +216,7 @@
           "structural": "containment"
         },
         "sense": "a_to_b",
-        "caption": ""
+        "caption": "relatoin"
       },
       "appearance": {
         "end_a": {
@@ -226,7 +226,7 @@
           "ref": "33333333-3333-4333-8333-333333333333"
         },
         "line_style": "solid",
-        "opacity": 0.15,
+        "opacity": 0.65,
         "color": "#ff0000",
         "caption_text": {
           "pose": {
@@ -241,7 +241,7 @@
               1
             ]
           },
-          "font_size": 9
+          "font_size": 8
         },
         "line_type": "straight",
         "frames": [
