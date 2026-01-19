@@ -393,9 +393,12 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
         ? wcfg.upAxis
         : "z";
 
-    const baseHeight = Number.isFinite(Number(wcfg.scalePerCameraDistance))
-      ? camDist * Number(wcfg.scalePerCameraDistance)
-      : (Number(wcfg.baseHeight) || 0.2);
+    // Geometry in world space must be camera-independent unless billboard.
+    // - Mesh labels (fixed pose) use a fixed world height.
+    // - Sprite labels (billboard) may optionally scale with camera distance.
+    const baseHeightFixed = (Number(wcfg.baseHeight) || 0.2);
+    const scalePerCameraDistance = Number(wcfg.scalePerCameraDistance);
+    const useCameraScale = Number.isFinite(scalePerCameraDistance);
 
     const minH = Number.isFinite(Number(wcfg.minHeight)) ? Number(wcfg.minHeight) : null;
     const maxH = Number.isFinite(Number(wcfg.maxHeight)) ? Number(wcfg.maxHeight) : null;
@@ -428,6 +431,11 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
       // size factor
       const size = Number(entry?.size) || baseLabelSize;
       const sizeFactor = size / baseLabelSize;
+
+      // base height (world): fixed for mesh labels, optional camera-distance scaling for sprites.
+      const baseHeight = (obj.isSprite && useCameraScale)
+        ? camDist * scalePerCameraDistance
+        : baseHeightFixed;
 
       let h = baseHeight * sizeFactor;
       if (minH != null) h = Math.max(h, minH);
