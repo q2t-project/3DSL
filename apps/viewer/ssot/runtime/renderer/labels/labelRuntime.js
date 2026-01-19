@@ -393,9 +393,15 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
         ? wcfg.upAxis
         : "z";
 
+    // base height in world units
+    // Prefer sceneRadius-based scaling when available (units vary per scene)
+    const sceneRadius = Number(cameraState?.sceneRadius);
+    const baseHeightFactor = Number(wcfg.baseHeightFactor);
     const baseHeight = Number.isFinite(Number(wcfg.scalePerCameraDistance))
       ? camDist * Number(wcfg.scalePerCameraDistance)
-      : (Number(wcfg.baseHeight) || 0.2);
+      : (Number.isFinite(sceneRadius) && sceneRadius > 0 && Number.isFinite(baseHeightFactor) && baseHeightFactor > 0
+        ? sceneRadius * baseHeightFactor
+        : (Number(wcfg.baseHeight) || 0.2));
 
     const minH = Number.isFinite(Number(wcfg.minHeight)) ? Number(wcfg.minHeight) : null;
     const maxH = Number.isFinite(Number(wcfg.maxHeight)) ? Number(wcfg.maxHeight) : null;
