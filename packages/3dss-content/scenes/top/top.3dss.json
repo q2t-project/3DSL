@@ -17,7 +17,7 @@
     "units": "non_si:px",
     "i18n": "ja",
     "author": "q2t-project",
-    "creator_memo": "Stable minimal default sample. Keep small + deterministic."
+    "creator_memo": "Hello 3DSL for topPage."
   },
   "points": [
     {
@@ -34,7 +34,7 @@
           "primitive": "sphere",
           "radius": 0.25,
           "common": {
-            "opacity": 0.4,
+            "opacity": 0.6,
             "emissive": false,
             "wireframe": false,
             "color": "#ff0000"
@@ -69,7 +69,7 @@
     },
     {
       "signification": {
-        "name": "Point A"
+        "name": "relation"
       },
       "appearance": {
         "position": [
@@ -87,7 +87,7 @@
             "color": "#880088"
           },
           "text": {
-            "content": "relations",
+            "content": "relation",
             "pose": {
               "front": [
                 1,
@@ -115,7 +115,7 @@
     },
     {
       "signification": {
-        "name": "Point B"
+        "name": "Structure"
       },
       "appearance": {
         "position": [
@@ -249,7 +249,7 @@
         ]
       },
       "meta": {
-        "uuid": "aaaaaaa1-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+        "uuid": "bbbbbbb1-bbbb-4bbb-8bbb-bbbbbbbbbbb1",
         "tags": [
           "x:l_root_a"
         ]
@@ -294,7 +294,7 @@
         ]
       },
       "meta": {
-        "uuid": "aaaaaaa2-aaaa-4aaa-8aaa-aaaaaaaaaaa2",
+        "uuid": "ccccccc2-cccc-4ccc-8ccc-ccccccccccc2",
         "tags": [
           "x:l_a_b"
         ]
