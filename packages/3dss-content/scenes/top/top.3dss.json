@@ -81,10 +81,10 @@
           "primitive": "sphere",
           "radius": 0.5,
           "common": {
-            "opacity": 0.35,
+            "opacity": 0.15,
             "emissive": false,
             "wireframe": false,
-            "color": "#8800ff"
+            "color": "#880088"
           },
           "text": {
             "content": "relations",
@@ -101,7 +101,7 @@
               ]
             },
             "size": 8,
-            "align": "left&top",
+            "align": "left&baseline",
             "font": "helvetiker_regular"
           }
         }
