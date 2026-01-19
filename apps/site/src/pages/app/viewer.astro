@@ -44,12 +44,26 @@
       referrerpolicy="no-referrer"
     ></iframe>
 
-    <button id="app-viewer-back" class="app-viewer-back" type="button" aria-label="戻る">← 戻る</button>
+    <div class="app-viewer-topbar" aria-label="ナビゲーション">
+      <div class="app-viewer-actions" aria-label="アクション">
+        <!-- input action (standalone /app/viewer) -->
+        <button id="app-viewer-open" class="app-viewer-action" type="button" aria-label="開く" title="開く">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4l2 2h8a2 2 0 0 1 2 2v2H2V6a2 2 0 0 1 2-2h6Zm12 8v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8h20Zm-18 2v6h16v-6H4Z"/></svg>
+        </button>
 
-    <div class="app-viewer-actions" aria-label="開く">
-      <button id="app-viewer-open" class="app-viewer-action" type="button" aria-label="開く" title="開く">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4l2 2h8a2 2 0 0 1 2 2v2H2V6a2 2 0 0 1 2-2h6Zm12 8v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8h20Zm-18 2v6h16v-6H4Z"/></svg>
-      </button>
+        <!-- output actions (library bundle mode) -->
+        <button id="app-viewer-share" class="app-viewer-action" type="button" aria-label="共有" title="共有">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16a3 3 0 0 0-2.62 1.55L8.91 13.7a3.2 3.2 0 0 0 0-3.4l6.47-3.85A3 3 0 1 0 15 5a3 3 0 0 0 .05.55L8.58 9.4a3 3 0 1 0 0 5.2l6.47 3.85A3 3 0 1 0 18 16z"/></svg>
+        </button>
+        <button id="app-viewer-copy" class="app-viewer-action" type="button" aria-label="コピー" title="コピー">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.9 12a4.1 4.1 0 0 1 4.1-4.1h4v2H8A2.1 2.1 0 0 0 8 14.1h4v2H8A4.1 4.1 0 0 1 3.9 12zm6.1 1h4v-2h-4v2zm6-5.1h-4v-2h4a4.1 4.1 0 1 1 0 8.2h-4v-2h4a2.1 2.1 0 1 0 0-4.2z"/></svg>
+        </button>
+        <button id="app-viewer-qr" class="app-viewer-action" type="button" aria-label="QR" title="QR">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm10 0h2v2h-2v-2zm2 2h2v2h-2v-2zm-2 2h2v2h-2v-2zm4 0h2v2h-2v-2zm0-8h2v2h-2v-2z"/></svg>
+        </button>
+      </div>
+
+      <button id="app-viewer-back" class="app-viewer-back" type="button" aria-label="戻る">← 戻る</button>
     </div>
 
     <div id="app-viewer-open-modal" class="app-viewer-open-modal" hidden>
@@ -91,6 +105,25 @@
           <div class="app-viewer-open-note">※ ローカルファイルは URL 共有対象外やで。</div>
         </div>
       </div>
+    <div id="app-viewer-toast" class="app-viewer-toast" hidden aria-live="polite"></div>
+
+    <div id="app-viewer-qr-modal" class="app-viewer-qr-modal" hidden>
+      <div class="app-viewer-qr-backdrop" data-close="1"></div>
+      <div class="app-viewer-qr-card" role="dialog" aria-modal="true" aria-label="QR">
+        <div class="app-viewer-qr-head">
+          <div class="app-viewer-qr-title">QR</div>
+          <button class="app-viewer-qr-close" type="button" aria-label="閉じる" data-close="1">×</button>
+        </div>
+        <div class="app-viewer-qr-body">
+          <img id="app-viewer-qr-img" class="app-viewer-qr-img" alt="QR" />
+          <div id="app-viewer-qr-url" class="app-viewer-qr-hint"></div>
+          <div class="app-viewer-qr-actions">
+            <button id="app-viewer-qr-copy" type="button">リンクをコピー</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     </div>
 
     <div id="app-viewer-drop-overlay" class="app-viewer-drop-overlay" hidden aria-hidden="true">
@@ -231,8 +264,38 @@
       }
 
       const openBtn = document.getElementById("app-viewer-open");
-      // NOTE: share/copy/qr actions are intentionally omitted on /app/viewer.
-      // They should appear only on the library bundle pages.
+
+      const shareBtn = document.getElementById("app-viewer-share");
+      const copyBtn = document.getElementById("app-viewer-copy");
+      const qrBtn = document.getElementById("app-viewer-qr");
+
+      const qrModal = document.getElementById("app-viewer-qr-modal");
+      const qrImg = document.getElementById("app-viewer-qr-img");
+      const qrUrl = document.getElementById("app-viewer-qr-url");
+      const qrCopyBtn = document.getElementById("app-viewer-qr-copy");
+
+      function isLibraryBundleMode() {
+        try {
+          const sp = new URLSearchParams(window.location.search || "");
+          const from = sp.get('from') || '';
+          const ret = sp.get('return') || sp.get('back') || '';
+          if (from === 'library') return true;
+          if (ret && ret.startsWith('/library')) return true;
+          return false;
+        } catch {
+          return false;
+        }
+      }
+
+      const _bundleMode = isLibraryBundleMode();
+      // ページ種別でボタンセットを切り替える
+      // - standalone /app/viewer: input (open) のみ
+      // - library bundle mode: output (share/copy/qr) のみ
+      if (openBtn) openBtn.style.display = _bundleMode ? 'none' : '';
+      if (shareBtn) shareBtn.style.display = _bundleMode ? '' : 'none';
+      if (copyBtn) copyBtn.style.display = _bundleMode ? '' : 'none';
+      if (qrBtn) qrBtn.style.display = _bundleMode ? '' : 'none';
+
 
       const openModal = document.getElementById("app-viewer-open-modal");
       const openUrlInput = document.getElementById("app-viewer-open-url");
@@ -260,6 +323,104 @@
         t.style.opacity = "1";
         clearTimeout(showToast._t);
         showToast._t = setTimeout(() => { t.style.opacity = "0"; }, 1600);
+      }
+
+      function currentShareUrl() {
+        try {
+          const sp = new URLSearchParams(window.location.search || '');
+          const model = sp.get('model') || sp.get('open') || '';
+          const mode = sp.get('mode') || '';
+          const src = sp.get('src') || '';
+          const q = new URLSearchParams();
+          if (model) q.set('model', model);
+          if (mode) q.set('mode', mode);
+          if (src) q.set('src', src);
+          const u = new URL('/app/viewer?' + q.toString(), window.location.origin);
+          return u.toString();
+        } catch {
+          return window.location.href;
+        }
+      }
+
+      function qrServiceUrl(text) {
+        return 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(text);
+      }
+
+      function openQr(url) {
+        if (!qrModal || !qrImg || !qrUrl) return;
+        qrImg.src = qrServiceUrl(url);
+        qrUrl.textContent = url;
+        qrModal.hidden = false;
+      }
+
+      function closeQr() {
+        if (!qrModal) return;
+        qrModal.hidden = true;
+      }
+
+      async function copyToClipboard(text) {
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch {
+          try {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            const ok = document.execCommand('copy');
+            ta.remove();
+            return !!ok;
+          } catch {
+            return false;
+          }
+        }
+      }
+
+      if (shareBtn) {
+        shareBtn.addEventListener('click', async () => {
+          const url = currentShareUrl();
+          if (navigator.share) {
+            try {
+              await navigator.share({ url });
+              return;
+            } catch {}
+          }
+          const ok = await copyToClipboard(url);
+          showToast(ok ? 'URLをコピーしたで' : 'コピー失敗…');
+        });
+      }
+
+      if (copyBtn) {
+        copyBtn.addEventListener('click', async () => {
+          const url = currentShareUrl();
+          const ok = await copyToClipboard(url);
+          showToast(ok ? 'URLをコピーしたで' : 'コピー失敗…');
+        });
+      }
+
+      if (qrBtn) {
+        qrBtn.addEventListener('click', () => {
+          openQr(currentShareUrl());
+        });
+      }
+
+      if (qrCopyBtn) {
+        qrCopyBtn.addEventListener('click', async () => {
+          const url = currentShareUrl();
+          const ok = await copyToClipboard(url);
+          showToast(ok ? 'URLをコピーしたで' : 'コピー失敗…');
+        });
+      }
+
+      if (qrModal) {
+        qrModal.addEventListener('click', (ev) => {
+          const t = ev.target;
+          if (t && t.getAttribute && t.getAttribute('data-close') === '1') closeQr();
+        });
       }
 
 
@@ -445,12 +606,116 @@
 
       window.addEventListener('keydown', (ev) => {
         if (ev.key === 'Escape') {
+          closeQrModal();
           closeOpenModal();
           if (dropOverlay) dropOverlay.hidden = true;
         }
       });
 
       if (openBtn) openBtn.addEventListener('click', () => openOpenModal());
+
+
+      function buildShareUrlAbsolute() {
+        try {
+          const cur = new URL(window.location.href);
+          const q = new URLSearchParams();
+          const model = cur.searchParams.get('model') || cur.searchParams.get('open') || '';
+          if (model) q.set('model', model);
+          const mode = cur.searchParams.get('mode');
+          if (mode) q.set('mode', mode);
+          const src = cur.searchParams.get('src');
+          if (src) q.set('src', src);
+          const rel = '/app/viewer' + (q.toString() ? ('?' + q.toString()) : '');
+          return new URL(rel, window.location.origin).toString();
+        } catch {
+          return window.location.href;
+        }
+      }
+
+      async function copyTextToClipboard(text) {
+        try {
+          if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+            await navigator.clipboard.writeText(text);
+            return true;
+          }
+        } catch {}
+        // fallback (best-effort)
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          const ok = document.execCommand('copy');
+          ta.remove();
+          return !!ok;
+        } catch {
+          return false;
+        }
+      }
+
+      function qrServiceUrl(text) {
+        return 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(text);
+      }
+
+      function openQrModal(url) {
+        if (!qrModal || !qrImg || !qrUrl) return;
+        qrImg.src = qrServiceUrl(url);
+        qrUrl.textContent = url;
+        qrModal.hidden = false;
+      }
+
+      function closeQrModal() {
+        if (!qrModal) return;
+        qrModal.hidden = true;
+      }
+
+      if (shareBtn) {
+        shareBtn.addEventListener('click', async () => {
+          const url = buildShareUrlAbsolute();
+          try {
+            if (navigator.share && typeof navigator.share === 'function') {
+              await navigator.share({ title: document.title || '3DSL', url });
+              showToast('共有したで');
+              return;
+            }
+          } catch {}
+          const ok = await copyTextToClipboard(url);
+          showToast(ok ? 'URLコピーしたで' : 'コピー失敗…');
+        });
+      }
+
+      if (copyBtn) {
+        copyBtn.addEventListener('click', async () => {
+          const url = buildShareUrlAbsolute();
+          const ok = await copyTextToClipboard(url);
+          showToast(ok ? 'URLコピーしたで' : 'コピー失敗…');
+        });
+      }
+
+      if (qrBtn) {
+        qrBtn.addEventListener('click', () => {
+          const url = buildShareUrlAbsolute();
+          openQrModal(url);
+        });
+      }
+
+      if (qrModal) {
+        qrModal.addEventListener('click', (ev) => {
+          const t = ev.target;
+          if (!(t instanceof HTMLElement)) return;
+          if (t.closest('[data-close="1"]')) closeQrModal();
+        });
+      }
+
+      if (qrCopyBtn) {
+        qrCopyBtn.addEventListener('click', async () => {
+          const url = (qrUrl && typeof qrUrl.textContent === 'string') ? qrUrl.textContent : buildShareUrlAbsolute();
+          const ok = await copyTextToClipboard(url);
+          showToast(ok ? 'URLコピーしたで' : 'コピー失敗…');
+        });
+      }
 
       function setModelParamAndReloadIframe(modelUrl) {
         const raw = (typeof modelUrl === 'string') ? modelUrl.trim() : '';
@@ -668,11 +933,17 @@
         z-index: 1;
       }
 
-      .app-viewer-back {
+      .app-viewer-topbar {
         position: fixed;
         left: 10px;
         top: 10px;
         z-index: 50;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .app-viewer-back {
         padding: 10px 12px;
         font: 14px/1.1 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
         color: var(--app-viewer-ui-fg);
@@ -684,12 +955,8 @@
       }
 
       .app-viewer-actions {
-        position: fixed;
-        right: 10px;
-        top: 10px;
         display: flex;
         gap: 8px;
-        z-index: 50;
       }
 
       .app-viewer-action {
@@ -1027,8 +1294,9 @@
       }
 
       @media (max-width: 520px) {
-        .app-viewer-actions { right: 8px; top: 8px; gap: 6px; }
-        .app-viewer-back { left: 8px; top: 8px; padding: 9px 11px; }
+        .app-viewer-topbar { left: 8px; top: 8px; gap: 6px; }
+        .app-viewer-back { padding: 9px 11px; }
+        .app-viewer-actions { gap: 6px; }
         .app-viewer-action { width: 40px; height: 40px; }
         .app-viewer-open-row { grid-template-columns: 1fr; }
         .app-viewer-open-fname { max-width: 100%; }
