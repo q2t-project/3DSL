@@ -48,7 +48,7 @@
 
     { "signification": { "relation": { "structural": "association" }, "sense": "a_to_b", "caption": "A → B" },
       "appearance": { "end_a": { "ref": "22222222-2222-4222-8222-222222222222" }, "end_b": { "ref": "33333333-3333-4333-8333-333333333333" }, "line_style": "solid", "opacity": 0.45, "color": "#ffffff",
-        "caption_text": { "pose": { "front": [ 0, 1, 1 ], "up": [ 1, 0, 0 ] }, "font_size": 10 }, "line_type": "straight", "frames": [ 0] },
+        "caption": { "ja": "因果", "en": "causal" },"caption_text": { "pose": { "front": [ 0, 1, 1 ], "up": [ 1, 0, 0 ] }, "font_size": 10 }, "line_type": "straight", "frames": [ 0] },
       "meta": { "uuid": "ccccccc2-cccc-4ccc-8ccc-ccccccccccc2", "tags": [ "x:l_a_b" ] } }],
 
   "aux": []
