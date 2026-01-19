@@ -46,18 +46,9 @@
 
     <button id="app-viewer-back" class="app-viewer-back" type="button" aria-label="戻る">← 戻る</button>
 
-    <div class="app-viewer-actions" aria-label="共有">
+    <div class="app-viewer-actions" aria-label="開く">
       <button id="app-viewer-open" class="app-viewer-action" type="button" aria-label="開く" title="開く">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4l2 2h8a2 2 0 0 1 2 2v2H2V6a2 2 0 0 1 2-2h6Zm12 8v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8h20Zm-18 2v6h16v-6H4Z"/></svg>
-      </button>
-      <button id="app-viewer-share" class="app-viewer-action" type="button" aria-label="共有" title="共有">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7a3.27 3.27 0 0 0 0-1.39l7.05-4.11A2.99 2.99 0 1 0 14 5a3 3 0 0 0 .05.52L7 9.63a3 3 0 1 0 0 4.74l7.05 4.11A3 3 0 1 0 18 16.08Z"/></svg>
-      </button>
-      <button id="app-viewer-copy" class="app-viewer-action" type="button" aria-label="コピー" title="コピー">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v16h13a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 18H8V7h11v16Z"/></svg>
-      </button>
-      <button id="app-viewer-qr" class="app-viewer-action" type="button" aria-label="QR" title="QR">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h8v8H3V3Zm2 2v4h4V5H5Zm8-2h8v8h-8V3Zm2 2v4h4V5h-4ZM3 13h8v8H3v-8Zm2 2v4h4v-4H5Zm10-2h2v2h-2v-2Zm-2 2h2v2h-2v-2Zm4 0h2v2h-2v-2Zm2 0h2v6h-6v-2h4v-4Zm-6 4h2v2h-2v-2Z"/></svg>
       </button>
     </div>
 
@@ -97,24 +88,7 @@
             </div>
             <div id="app-viewer-open-recent-list" class="app-viewer-open-recent-list"></div>
           </div>
-          <div class="app-viewer-open-note">ローカルファイルは共有 URL / QR にならへんで。</div>
-        </div>
-      </div>
-    </div>
-
-    <div id="app-viewer-qr-modal" class="app-viewer-qr-modal" hidden>
-      <div class="app-viewer-qr-backdrop" data-close="1"></div>
-      <div class="app-viewer-qr-card" role="dialog" aria-modal="true" aria-label="QRコード">
-        <div class="app-viewer-qr-head">
-          <div class="app-viewer-qr-title">QR</div>
-          <button class="app-viewer-qr-close" type="button" aria-label="閉じる" data-close="1">×</button>
-        </div>
-        <div class="app-viewer-qr-body">
-          <img id="app-viewer-qr-img" class="app-viewer-qr-img" alt="QR" />
-          <div class="app-viewer-qr-hint" id="app-viewer-qr-url"></div>
-          <div class="app-viewer-qr-actions">
-            <button id="app-viewer-qr-copy" type="button">URLコピー</button>
-          </div>
+          <div class="app-viewer-open-note">※ ローカルファイルは URL 共有対象外やで。</div>
         </div>
       </div>
     </div>
@@ -257,9 +231,8 @@
       }
 
       const openBtn = document.getElementById("app-viewer-open");
-      const shareBtn = document.getElementById("app-viewer-share");
-      const copyBtn = document.getElementById("app-viewer-copy");
-      const qrBtn = document.getElementById("app-viewer-qr");
+      // NOTE: share/copy/qr actions are intentionally omitted on /app/viewer.
+      // They should appear only on the library bundle pages.
 
       const openModal = document.getElementById("app-viewer-open-modal");
       const openUrlInput = document.getElementById("app-viewer-open-url");
@@ -271,11 +244,6 @@
 
       const recentList = document.getElementById("app-viewer-open-recent-list");
       const recentClearBtn = document.getElementById("app-viewer-open-recent-clear");
-
-      const qrModal = document.getElementById("app-viewer-qr-modal");
-      const qrImg = document.getElementById("app-viewer-qr-img");
-      const qrUrlEl = document.getElementById("app-viewer-qr-url");
-      const qrCopyBtn = document.getElementById("app-viewer-qr-copy");
 
       const dropOverlay = document.getElementById("app-viewer-drop-overlay");
 
@@ -426,95 +394,7 @@
         }
       }
 
-
-      function shareUrl() {
-        const inUrl = new URL(window.location.href);
-
-        // Resolve model param (allow legacy open=)
-        const model = inUrl.searchParams.get('model') || inUrl.searchParams.get('open');
-
-        // Share should be stable: /app/viewer + minimum params
-        const out = new URL('/app/viewer', window.location.origin);
-        if (model) out.searchParams.set('model', model);
-
-        const mode = inUrl.searchParams.get('mode');
-        if (mode) out.searchParams.set('mode', mode);
-
-        const src = inUrl.searchParams.get('src');
-        if (src) out.searchParams.set('src', src);
-
-        return out.toString();
-      }
-
-      async function copy(text) {
-        try {
-          await navigator.clipboard.writeText(text);
-          showToast('コピーしたで');
-          return;
-        } catch {}
-        try {
-          const ta = document.createElement('textarea');
-          ta.value = text;
-          ta.setAttribute('readonly', '');
-          ta.style.position = 'fixed';
-          ta.style.left = '-9999px';
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand('copy');
-          ta.remove();
-          showToast('コピーしたで');
-        } catch {
-          showToast('コピー失敗…');
-        }
-      }
-
-      async function doShare() {
-        if (localLoaded) {
-          showToast('ローカルファイルは共有できへん（URL/パスで開いてな）');
-          return;
-        }
-        const url = shareUrl();
-        const title = '3DSL Viewer';
-        if (navigator.share) {
-          try {
-            await navigator.share({ title, url });
-            return;
-          } catch {}
-        }
-        await copy(url);
-      }
-
-      function qrServiceUrl(text) {
-        // External QR service (image)
-        return (
-          'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' +
-          encodeURIComponent(text)
-        );
-      }
-
-      function openQr(url) {
-        if (!qrModal || !qrImg || !qrUrlEl) return;
-        qrImg.src = qrServiceUrl(url);
-        qrUrlEl.textContent = url;
-        qrModal.hidden = false;
-      }
-
-      function closeQr() {
-        if (!qrModal) return;
-        qrModal.hidden = true;
-      }
-
-      function wireQrClose() {
-        if (!qrModal) return;
-        qrModal.addEventListener('click', (ev) => {
-          const t = ev.target;
-          if (!(t instanceof HTMLElement)) return;
-          if (t.closest('[data-close="1"]')) closeQr();
-        });
-      }
-
       function openOpenModal() {
-        closeQr();
         if (!openModal) return;
         try {
           const u = new URL(window.location.href);
@@ -541,7 +421,6 @@
         });
       }
 
-      wireQrClose();
       wireOpenClose();
 
 
@@ -566,35 +445,12 @@
 
       window.addEventListener('keydown', (ev) => {
         if (ev.key === 'Escape') {
-          closeQr();
           closeOpenModal();
           if (dropOverlay) dropOverlay.hidden = true;
         }
       });
 
       if (openBtn) openBtn.addEventListener('click', () => openOpenModal());
-      if (shareBtn) shareBtn.addEventListener('click', () => doShare());
-      if (copyBtn) copyBtn.addEventListener('click', () => {
-        if (localLoaded) {
-          showToast('ローカルファイルは共有できへん（URL/パスで開いてな）');
-          return;
-        }
-        void copy(shareUrl());
-      });
-      if (qrBtn) qrBtn.addEventListener('click', () => {
-        if (localLoaded) {
-          showToast('ローカルファイルは共有できへん（URL/パスで開いてな）');
-          return;
-        }
-        openQr(shareUrl());
-      });
-      if (qrCopyBtn) qrCopyBtn.addEventListener('click', () => {
-        if (localLoaded) {
-          showToast('ローカルファイルは共有できへん（URL/パスで開いてな）');
-          return;
-        }
-        void copy(shareUrl());
-      });
 
       function setModelParamAndReloadIframe(modelUrl) {
         const raw = (typeof modelUrl === 'string') ? modelUrl.trim() : '';
