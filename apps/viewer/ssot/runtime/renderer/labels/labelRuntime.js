@@ -14,6 +14,23 @@ import * as THREE from "/vendor/three/build/three.module.js";
 import { labelConfig } from "./labelConfig.js";
 import { createTextLabelObject, disposeTextLabelObject } from "./textSprite.js";
 
+function isTroikaText(obj) {
+  // troika-three-text の Text は Mesh 派生。こちら側では userData の印で判定する。
+  // （互換のため複数キーを許容）
+  const ud = obj?.userData;
+  return !!(
+    obj?.isTroikaText ||
+    ud?.labelBackend === "troika" ||
+    ud?.troikaThreeText === true ||
+    ud?.__troikaText === true
+  );
+}
+
+function isAutoScaleTarget(obj) {
+  // 旧: Canvas/Sprite 系は isSprite を持つ。troika も auto-scale の対象に含める。
+  return !!(obj?.isSprite || isTroikaText(obj));
+}
+
 function clamp01(v) {
   const n = Number(v);
   if (!Number.isFinite(n)) return 0;
@@ -432,8 +449,9 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
       const size = Number(entry?.size) || baseLabelSize;
       const sizeFactor = size / baseLabelSize;
 
-      // base height (world): fixed for mesh labels, optional camera-distance scaling for sprites.
-      const baseHeight = (obj.isSprite && useCameraScale)
+      // base height (world): fixed for mesh labels, optional camera-distance scaling for auto-scale targets.
+      // NOTE: troika-three-text の Text も auto-scale 対象に含める。
+      const baseHeight = (isAutoScaleTarget(obj) && useCameraScale)
         ? camDist * scalePerCameraDistance
         : baseHeightFixed;
 
@@ -510,14 +528,30 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
         }
       }
 
-      obj.scale.set(h * aspect * scaleMul, h * scaleMul, 1);
+      // scale / fontSize
+      if (isTroikaText(obj)) {
+        // troika-three-text: world 単位は fontSize で管理する（scale は 1 を維持）
+        const fs = Math.max(0.0001, h * scaleMul);
+        if (obj.fontSize !== fs) obj.fontSize = fs;
+        // troika はパラメータ変更後に sync() が必要
+        if (typeof obj.sync === "function") obj.sync();
+        obj.scale.set(1, 1, 1);
+      } else if (obj.isSprite) {
+        obj.scale.set(h * aspect * scaleMul, h * scaleMul, 1);
+      } else {
+        // mesh plane (fixed pose): keep aspect ratio
+        const sx = h * aspect * scaleMul;
+        const sy = h * scaleMul;
+        obj.scale.set(sx, sy, 1);
+      }
 
       // fixed pose: keep orientation static (no camera-dependent flipping)
       // - backside is allowed to render as-is (DoubleSide material)
 
       // align offset（allocation なし）
       const align = entry?.align;
-      if (align && !obj.isSprite) {
+      // troika は width/height が scale だけで決まらないので align は別実装にする
+      if (align && !obj.isSprite && !isTroikaText(obj)) {
         const ax = Number(align.x);
         const ay = Number(align.y);
         const alignX = Number.isFinite(ax) ? ax : 0.5;

@@ -10,9 +10,9 @@ export const labelConfig = {
   // ワールド座標系での見た目
   world: {
     // size=8 のときの world 高さ
-    baseHeight: 0.20,
+    baseHeight: 8,
     // 点の位置からどれだけ持ち上げるか（worldHeight に対する係数）
-    offsetYFactor: 0.6,
+    offsetYFactor: 0.1,
   },
 
   // Text backend
