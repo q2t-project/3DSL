@@ -1,11 +1,23 @@
 ---
-title: "Policy (Docs)"
-summary: "開発・運用のポリシー類（SSOT, Hosting など）を置く場所です。"
+title: "Policy"
+summary: "サイト公開向けのポリシー（利用条件・免責・第三者サービス等）の SSOT です。"
 ---
 
-ここは **サイト公開向けの「/policy」ページとは別**に、開発運用上のポリシー文章（SSOT / Hosting / violations 等）を SSOT として管理する領域や。
+このディレクトリは、サイト公開向けの **Policy コレクション**（SSOT）。
 
-- Viewer 側の `SSOT_POLICY.md` などは `packages/docs/docs/policy/` に置く
-- この `packages/docs/policy/` は、必要なら公開向けの補助資料として使う（未使用なら最低限の空ファイルでもOK）
+- SSOT: `packages/docs/policy/**`
+- site mirror: `apps/site/src/content/policy/**`
 
-※この README は “空コレクション警告” を止めるための最低限のプレースホルダも兼ねる。
+## ここに置くもの
+
+- コンテンツ利用条件（再配布禁止・リンク/引用のみ許可、など）
+- 免責
+- 第三者サービスに関する補足
+
+## ここに置かないもの
+
+- Viewer/Repo の契約・運用ルール（SSOT/DOM Contract など）
+  - それらは `packages/docs/docs/contracts/**` または `packages/docs/docs/ops/**` に置く
+
+関連：
+- コンテンツ利用条件：`content-usage.md`
