@@ -6,8 +6,8 @@
     "version": "1.0.1",
     "updated_at": "2026-01-19T04:07:09Z",
     "tags": ["s:3dsl","s:sample","m:default"],
-    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
-    "generator": "https://q2t-project.github.io/3dsl/",
+    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
+    "generator": "https://3dsl.jp/",
     "reference": "default scene",
     "coordinate_system": "Z+up/freeXY",
     "units": "non_si:px",
@@ -55,3 +55,5 @@
 
   "aux": []
 }
+
+

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://q2t-project.github.io/3dsl/schemas/release/v1.1.3/3DSS.schema.json",
+  "$id": "https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json",
   "$anchor": "v1.1.3",
   "type": "object",
   "properties": {
@@ -34,7 +34,7 @@
     "validator": {
       "schema_uri": {
         "type": "string",
-        "const": "https://q2t-project.github.io/3dsl/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3"
+        "const": "https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3"
       },
       "uuid": {
         "type": "string",
@@ -1546,7 +1546,7 @@
                 "$ref": "#/$defs/validator/uri"
               }
             ],
-            "default": "https://q2t-project.github.io/3dsl/"
+            "default": "https://3dsl.jp/"
           },
           "reference": {
             "type": "string",
@@ -1600,3 +1600,6 @@
     }
   }
 }
+
+
+

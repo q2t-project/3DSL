@@ -3,7 +3,7 @@
     "document_title": "Draft",
     "document_summary": "",
     "document_uuid": "c02fba95-6d38-4130-9507-e8fac679184d",
-    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
+    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
     "author": "vrrrm",
     "version": "1.0.0"
   },
@@ -12,3 +12,4 @@
   "aux": [],
   "frames": []
 }
+

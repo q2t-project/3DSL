@@ -8,7 +8,7 @@
 | 項目 | 内容 |
 |------|------|
 | 正式名 | 3DSS（Three-Dimensional Structural Schema） |
-| スキーマURI | https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.1.3 |
+| スキーマURI | https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3 |
 | 準拠仕様 | JSON Schema Draft 2020-12 |
 | ステータス | stable |
 | 発行日 | 2026-01-11 |
@@ -21,7 +21,7 @@
 `lines`（関係要素）・`points`（存在要素）・`aux`（補助要素）・`document_meta`（管理情報）を中核として設計されている。
 
 本仕様書が対象とするのは構造層のスキーマ `3DSS.schema.json` である。
-スキーマの `$id` は `https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#` とし、バージョンは `$anchor`（例：`v1.1.3`）で表す。構造ドキュメント側は `document_meta.schema_uri` に `...json#vX.Y.Z` を格納して、準拠バージョンを明示する。
+スキーマの `$id` は `https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#` とし、バージョンは `$anchor`（例：`v1.1.3`）で表す。構造ドキュメント側は `document_meta.schema_uri` に `...json#vX.Y.Z` を格納して、準拠バージョンを明示する。
 構造ドキュメントのバージョン管理は `document_meta.version`（SemVer）で行い、
 仕様書の版数（本書 v1.1.3）とは区別する。
 
@@ -94,7 +94,7 @@ Normalize 段階では `$defs.validator` 配下に定義された型・書式
 `generator`、`updated_at`、`tags`、`reference`、`coordinate_system`、`units`、
 `i18n`、`creator_memo` などを想定する。
 
-- `schema_uri` には、原則として本スキーマの `$id` に `$anchor`（SemVer）を付けた値（例：`https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.1.3`）を格納する。  
+- `schema_uri` には、原則として本スキーマの `$id` に `$anchor`（SemVer）を付けた値（例：`https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3`）を格納する。  
 - `units` は `"m"`／`"cm"`／`"mm"`／`"non_si:px"` のいずれかをとる列挙値であり、  
   デフォルトは `"non_si:px"` とする。  
 - `i18n` は `"ja"`／`"en"` をとる言語コードであり、デフォルトは `"ja"` とする。
@@ -118,7 +118,7 @@ Viewer 固有のレンダ設定（カメラパラメータ、ライト構成、�
 
 - ファイル拡張子：`.3dss-prep.json`
 - スキーマ `$id`：  
-  `https://q2t-project.github.io/3dsl/schemas/3DSS-prep.schema.json`
+  `https://3dsl.jp/schemas/3DSS-prep.schema.json`
 - 役割：  
   - LLM / OCR / 外部DB 等が生成した「名称リスト」等の疎データを  
     modeler に渡すための基本フォーマット
@@ -962,8 +962,8 @@ document_meta
 | `version`           | string(semver)        | ✅  | `"1.0.0"`                               | 文書バージョン（コンテンツ側）。SemVer 形式。                                                        |
 | `updated_at`        | string(timestamp_utc) | 任意 | –                                       | 最終更新日時。`YYYY-MM-DDThh:mm:ssZ` 形式。                                                 |
 | `tags`              | array(tag)            | 任意 | `[]`                                    | 文書単位のスコープタグ。`s:/m:/x:` 接頭辞を含む。                                                    |
-| `schema_uri`        | string(uri)           | ✅  | –                                       | 準拠スキーマ URI。例：`https://q2t-project.github.io/3dsl/schemas/3DSS.schema.json#v1.1.3` |
-| `generator`         | string(uri-reference) | 任意 | `"https://q2t-project.github.io/3dsl/"` | 文書を生成したツールまたはアプリの識別 URI。                                                          |
+| `schema_uri`        | string(uri)           | ✅  | –                                       | 準拠スキーマ URI。例：`https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3` |
+| `generator`         | string(uri-reference) | 任意 | `"https://3dsl.jp/"` | 文書を生成したツールまたはアプリの識別 URI。                                                          |
 | `reference`         | string                | 任意 | `""`                                    | 外部参照・出典・備考など。                                                                     |
 | `coordinate_system` | string(const)         | 任意 | –                                       | 座標系識別子。値は `"Z+up/freeXY"` に限定される（const）。省略時も同一系を前提とする。                            |
 | `units`             | string(enum)          | 任意 | `"non_si:px"`                           | 使用単位。`"m"` / `"cm"` / `"mm"` / `"non_si:px"`。                                     |
@@ -1588,7 +1588,7 @@ Unicode の文字（\p{L}, \p{N}）も使用できる。
     "version": "1.0.0",
     "author": "creator@example.com",
     "updated_at": "2025-12-12T12:00:00Z",
-    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/release/v1.1.3/3DSS.schema.json",
+    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
     "coordinate_system": "Z+up/freeXY",
     "units": "non_si:px",
     "i18n": "ja",
@@ -1659,3 +1659,8 @@ Unicode の文字（\p{L}, \p{N}）も使用できる。
 * glTF 2.0 Specification
 
 （具体的な URL はオンライン版仕様書の脚注にて付与する想定）
+
+
+
+
+

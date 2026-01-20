@@ -3,7 +3,7 @@
     "document_title": "Regression fixture: text pose strict",
     "document_summary": "Strict marker.text.pose coverage for viewer runtime.",
     "document_uuid": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
-    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
+    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
     "author": "regression",
     "version": "1.0.0",
     "coordinate_system": "Z+up/freeXY",
@@ -146,3 +146,4 @@
     }
   ]
 }
+

@@ -3,7 +3,7 @@
     "document_title": "26010502-Draft",
     "document_summary": "",
     "document_uuid": "6e252a6b-ed8f-4ef6-a661-e4c23623456f",
-    "schema_uri": "https://q2t-project.github.io/3dsl/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
+    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
     "author": "vrrrm",
     "version": "1.0.0"
   },
@@ -11,3 +11,4 @@
   "lines": [],
   "aux": []
 }
+

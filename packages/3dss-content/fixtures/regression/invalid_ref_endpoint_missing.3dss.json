@@ -3,7 +3,7 @@
     "document_title": "Regression invalid: endpoint ref missing",
     "document_summary": "Line endpoint ref points to missing uuid.",
     "document_uuid": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
-    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json",
+    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
     "author": "regression",
     "version": "1.1.0",
     "coordinate_system": "Z+up/freeXY",
@@ -47,3 +47,4 @@
     }
   ]
 }
+
