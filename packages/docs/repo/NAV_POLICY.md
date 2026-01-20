@@ -42,6 +42,18 @@
 - 変更は必ず **生成元（SSOT側）** に入れる
 - ミラー候補がある場合（例: `apps/site/src/content/**`）は、編集前に元を特定する
 
+### 3.1 docs/faq/policy の mirror（重要）
+
+- `apps/site/src/content/{docs,faq,policy}` は **生成物**（mirror）
+  - 生成元（SSOT）は `packages/docs/{docs,faq,policy}`
+  - 直接編集しない
+  - git で追跡しない（追跡してたら index から外す）
+
+掃除（過去に追跡してしまった場合）:
+
+- `git rm -r --cached apps/site/src/content/docs apps/site/src/content/faq apps/site/src/content/policy`
+- `npm --prefix apps/site run sync:docs`
+
 ## 4. 配線（依存/データフロー）の表現方法
 
 ### 4.1 手動の配線図（推奨）
@@ -64,4 +76,3 @@
 
 - AGENTS.md 自体は「人間が編集」だが、
   - 追記が必要な場合は `AGENTS.proposed.md` に提案として出す
-
