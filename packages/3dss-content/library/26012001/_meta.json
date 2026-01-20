@@ -1,23 +1,23 @@
 {
-  "title": "",
-  "summary": "",
-  "description": "",
+  "title": "Brain Regions and the Dynamics of Cognition",
+  "summary": "脳の構造から見る認知のダイナミクス",
+  "description": "脳は静的な部位の集合ではなく、複数の脳領域が相互に関わり合う動的な構造です。本3DSDモデルは、脳領域と認知がどのように結びつき、立ち上がるのかを立体的に可視化します。",
   "tags": [],
-  "published": false,
-  "created_at": "2026-01-20T00:00:00+09:00",
-  "updated_at": "2026-01-20T00:00:00+09:00",
+  "published": true,
+  "created_at": "2026-01-20T04:21:59Z",
+  "updated_at": "2026-01-20T04:21:59Z",
   "hidden": false,
   "recommended": false,
   "seo": {
-    "title": "",
-    "description": "",
+    "title": "Brain Regions and the Dynamics of Cognition",
+    "description": "脳は静的な部位の集合ではなく、複数の脳領域が相互に関わり合う動的な構造です。本3DSDモデルは、脳領域と認知がどのように結びつき、立ち上がるのかを立体的に可視化します。",
     "og_image": ""
   },
   "authors": [
     {
       "name": "q2t project",
       "role": "author",
-      "url": ""
+      "url": "3dsl.jp"
     }
   ],
   "rights": {
