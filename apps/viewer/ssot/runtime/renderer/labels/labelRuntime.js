@@ -27,30 +27,67 @@ function isTroikaText(obj) {
 }
 
 function applyTroikaWeight400Fix(obj) {
-  // troika 側だけ fontWeight を 400 固定。
-  // - 3DSS 側の weight 指定は保持するが、troika は現状 Regular に寄せる。
-  // - noto-sans-jp の Bold URL を掴んでいたら Regular URL へ寄せる。
-  if (!obj) return;
+  // troika 側だけ weight を「Regular 相当」へ寄せる。
+  // NOTE: troika の fontWeight は number/string を受けるが、環境差で数値指定が
+  //       予期せず形状に影響するケースがあったため、ここでは "normal" を強制する。
+  if (!obj) return false;
+  let changed = false;
 
   try {
-    if (obj.fontWeight !== 400 && obj.fontWeight !== "400" && obj.fontWeight !== "normal") {
-      obj.fontWeight = 400;
+    if (obj.fontWeight !== "normal") {
+      obj.fontWeight = "normal";
+      changed = true;
+    }
+    if (obj.fontStyle !== "normal") {
+      obj.fontStyle = "normal";
+      changed = true;
+    }
+    if (obj.fontStretch !== "normal") {
+      obj.fontStretch = "normal";
+      changed = true;
     }
   } catch {
     // ignore
   }
 
   const font = obj.font;
-  if (typeof font !== "string") return;
+  if (typeof font !== "string") return changed;
 
   // noto-sans-jp のみ対象。
-  if (!font.includes("/vendor/fonts/noto-sans-jp/")) return;
+  if (!font.includes("/vendor/fonts/noto-sans-jp/")) return changed;
 
   // 明示的に Regular へ。
   const regularUrl = labelConfig?.troika?.fontUrlByKey?.noto_sans_jp_regular;
   if (typeof regularUrl === "string" && regularUrl.length > 0 && font !== regularUrl) {
     obj.font = regularUrl;
+    changed = true;
   }
+
+  return changed;
+}
+
+function clampTroikaOutline(obj, distToCam, fontSize) {
+  // outline が近距離で太りすぎると、テクスチャフィルタの影響で輪郭が潰れて見える。
+  // troika の outlineWidth は em 相当（fontSize に比例）なので、ここは相対値で抑える。
+  const ow = Number(obj?.outlineWidth);
+  if (!Number.isFinite(ow) || ow <= 0) return false;
+  let changed = false;
+
+  // 基本は 0.06em 上限。近距離ではさらに絞る。
+  let maxEm = 0.06;
+  const d = Number(distToCam);
+  const fs = Number(fontSize);
+  if (Number.isFinite(d) && Number.isFinite(fs) && fs > 0) {
+    // dist が fontSize の数倍以下なら、outline を薄くする。
+    if (d < fs * 6) maxEm = 0.035;
+    if (d < fs * 3) maxEm = 0.025;
+  }
+
+  if (ow > maxEm) {
+    obj.outlineWidth = maxEm;
+    changed = true;
+  }
+  return changed;
 }
 
 function isAutoScaleTarget(obj) {
@@ -557,12 +594,24 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
 
       // scale / fontSize
       if (isTroikaText(obj)) {
-        applyTroikaWeight400Fix(obj);
         // troika-three-text: world 単位は fontSize で管理する（scale は 1 を維持）
         const fs = Math.max(0.0001, h * scaleMul);
-        if (obj.fontSize !== fs) obj.fontSize = fs;
-        // troika はパラメータ変更後に sync() が必要
-        if (typeof obj.sync === "function") obj.sync();
+
+        let needsSync = false;
+        if (obj.fontSize !== fs) {
+          obj.fontSize = fs;
+          needsSync = true;
+        }
+
+        // troika 側だけ weight を Regular 相当へ寄せる
+        needsSync = applyTroikaWeight400Fix(obj) || needsSync;
+
+        // outline が近距離で潰れる場合があるので軽くクランプ
+        if (distToCam == null && hasCameraPos) distToCam = tmpCamPos.distanceTo(obj.position);
+        needsSync = clampTroikaOutline(obj, distToCam, fs) || needsSync;
+
+        // パラメータが変わった時だけ sync() を叩く（毎フレーム叩くと重い）
+        if (needsSync && typeof obj.sync === "function") obj.sync();
         obj.scale.set(1, 1, 1);
       } else if (obj.isSprite) {
         obj.scale.set(h * aspect * scaleMul, h * scaleMul, 1);
