@@ -93,8 +93,28 @@ function removeEmbeddedDocsFaq(outDocsDir) {
   }
 }
 
+function removeEmbeddedDocsPolicy(outDocsDir) {
+  const embedded = path.join(outDocsDir, "policy");
+  if (existsDir(embedded)) {
+    rmrf(embedded);
+    log("removed embedded docs/policy (use src/content/policy)");
+  }
+}
+
 function main() {
   log("start");
+
+  // Hard guard: forbid legacy nested policy/faq under packages/docs/docs
+  const forbidden = [];
+  if (existsDir(path.join(SRC_DOCS, "policy"))) forbidden.push("packages/docs/docs/policy");
+  if (existsDir(path.join(SRC_DOCS, "faq"))) forbidden.push("packages/docs/docs/faq");
+  if (forbidden.length > 0) {
+    console.error("[sync] docs: NG: forbidden directories found under packages/docs/docs:");
+    for (const d of forbidden) console.error("  - " + d);
+    console.error("Move them to packages/docs/policy or packages/docs/faq, then re-run sync:docs.");
+    process.exit(1);
+  }
+
 
   // Clean output dirs so deleted files don't linger.
   rmrf(OUT_DOCS);
@@ -113,6 +133,7 @@ function main() {
 
   // Remove embedded docs/faq if any (from old layouts)
   removeEmbeddedDocsFaq(OUT_DOCS);
+  removeEmbeddedDocsPolicy(OUT_DOCS);
 
   // Flatten /docs/docs/* -> /docs/* (ALWAYS if present)
   flattenDocsIfNested(OUT_DOCS);
