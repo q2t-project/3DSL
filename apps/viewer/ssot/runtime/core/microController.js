@@ -252,11 +252,117 @@ function computePointMicroState(base, indices) {
     }
   }
 
+  // points の micro bounds は「座標だけ」だとカメラが寄り過ぎる。
+  // - marker primitive（sphere/box）の大きさ
+  // - marker.text / signification.name の size（概算）
+  // を元に、ざっくりでも “全貌が入る” 半径を見積もる。
+  function asPlainObject(v) {
+    return (v && typeof v === "object" && !Array.isArray(v)) ? v : null;
+  }
+
+  function getSceneRadiusLoose(_indices) {
+    // indices.bounds.radius を優先（modeController と同系）
+    const r0 = Number(_indices?.bounds?.radius);
+    if (Number.isFinite(r0) && r0 > 0) return r0;
+    // 互換: structIndex.bounds.radius
+    const r1 = Number(_indices?.structIndex?.bounds?.radius);
+    if (Number.isFinite(r1) && r1 > 0) return r1;
+    return null;
+  }
+
+  function clamp(n, a, b) {
+    const x = Number(n);
+    if (!Number.isFinite(x)) return a;
+    return Math.max(a, Math.min(b, x));
+  }
+
+  function normalizePointNameLoose(rawName) {
+    if (!rawName) return null;
+    if (typeof rawName === "string") {
+      const t = rawName.trim();
+      return t.length > 0 ? t : null;
+    }
+    if (rawName && typeof rawName === "object" && !Array.isArray(rawName)) {
+      // まず ja/en の順で拾う（micro では言語切替を追わず “読めればOK”）
+      const ja = rawName.ja;
+      if (typeof ja === "string" && ja.trim().length > 0) return ja.trim();
+      const en = rawName.en;
+      if (typeof en === "string" && en.trim().length > 0) return en.trim();
+      for (const key of Object.keys(rawName)) {
+        const v = rawName[key];
+        if (typeof v === "string" && v.trim().length > 0) return v.trim();
+      }
+    }
+    return null;
+  }
+
+  function estimatePointVisualRadius(pointItem, _indices) {
+    const p = pointItem && typeof pointItem === "object" ? pointItem : null;
+    const appearance = asPlainObject(p?.appearance) || {};
+    const marker = asPlainObject(appearance.marker) || {};
+    const textCfg = asPlainObject(marker.text) || {};
+    const signification = asPlainObject(p?.signification) || {};
+
+    // ---- marker primitive radius ----
+    const sceneR = getSceneRadiusLoose(_indices);
+    const baseR = sceneR != null
+      ? clamp(sceneR * 0.02, 0.15, 2.5)
+      : 0.6;
+
+    const prim = (typeof marker.primitive === "string" ? marker.primitive.trim().toLowerCase() : "") || "sphere";
+    let markerRadius = 0;
+    if (prim === "box") {
+      const s = Array.isArray(marker.size) ? marker.size : null;
+      const sx = Number(s?.[0]);
+      const sy = Number(s?.[1]);
+      const sz = Number(s?.[2]);
+      const bx = (Number.isFinite(sx) && sx > 0) ? sx : (baseR * 2);
+      const by = (Number.isFinite(sy) && sy > 0) ? sy : (baseR * 2);
+      const bz = (Number.isFinite(sz) && sz > 0) ? sz : (baseR * 2);
+      markerRadius = Math.max(bx, by, bz) * 0.5;
+    } else {
+      const rr = Number(marker.radius);
+      markerRadius = (Number.isFinite(rr) && rr > 0) ? rr : baseR;
+    }
+
+    // ---- text (rough) ----
+    // ラベルが無い点は text の影響をゼロ扱いにする。
+    let content = null;
+    if (typeof textCfg.content === "string") {
+      const t = textCfg.content.trim();
+      if (t.length > 0) content = t;
+    }
+    if (!content) {
+      content = normalizePointNameLoose(signification.name);
+    }
+
+    let textRadius = 0;
+    if (content) {
+      // label.size は world height と同スケール（labelConfig の baseHeight/baseLabelSize が 8/8）
+      const sz = Number(textCfg.size);
+      const h = (Number.isFinite(sz) && sz > 0) ? sz : 8;
+      // “全貌が入る” 目的なので、text は高さだけ反映（幅は長文で過剰に遠ざかるため切る）
+      // 係数は控えめ（=寄り過ぎを防ぐのが主目的）
+      textRadius = h * 0.35;
+    }
+
+    // ---- merge ----
+    let r = Math.max(markerRadius, textRadius, 0.25);
+    // sceneR が分かる場合は暴走を抑える（micro の意味が壊れない範囲）
+    if (sceneR != null) {
+      r = clamp(r, 0.25, Math.max(0.5, sceneR * 0.5));
+    }
+    return r;
+  }
+
   let localBounds = null;
   if (pos) {
+    const item = getItemByUuid(indices, base.focusUuid);
+    const r = estimatePointVisualRadius(item, indices);
+    const d = Math.max(0.1, r * 2);
     localBounds = {
       center: pos.slice(),
-      size: [0.5, 0.5, 0.5], // あとで microFXConfig と揃えて調整
+      size: [d, d, d],
     };
   }
 
