@@ -18,32 +18,12 @@ function isTroikaText(obj) {
   // troika-three-text の Text は Mesh 派生。こちら側では userData の印で判定する。
   // （互換のため複数キーを許容）
   const ud = obj?.userData;
-  if (
+  return !!(
     obj?.isTroikaText ||
     ud?.labelBackend === "troika" ||
     ud?.troikaThreeText === true ||
     ud?.__troikaText === true
-  ) {
-    return true;
-  }
-
-  // バンドル/ミニファイで constructor.name が潰れたり、userData 印が付かない経路がある。
-  // その場合 Sprite 用の非等方 scale（aspect 補正）が当たって縦長/横長に歪むので、
-  // troika Text っぽいプロパティで追加検出する。
-  // - Text は `.text` と `.fontSize` を持つ
-  // - `.sync()` が存在する（troika-three-text の公開 API）
-  // - `.color` など典型プロパティ（どれか）
-  const hasSync = typeof obj?.sync === "function";
-  const hasFontSize = typeof obj?.fontSize === "number";
-  const hasTextLike = typeof obj?.text === "string" || Array.isArray(obj?.text);
-  const hasTroikaishProps =
-    "font" in (obj || {}) ||
-    "sdfGlyphSize" in (obj || {}) ||
-    "outlineWidth" in (obj || {}) ||
-    "strokeWidth" in (obj || {});
-  if (hasSync && (hasFontSize || hasTextLike) && hasTroikaishProps) return true;
-
-  return false;
+  );
 }
 
 function isAutoScaleTarget(obj) {
@@ -469,10 +449,14 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
       const size = Number(entry?.size) || baseLabelSize;
       const sizeFactor = size / baseLabelSize;
 
-      // base height (world): fixed for mesh labels, optional camera-distance scaling for auto-scale targets.
-      // NOTE: troika-three-text の Text も auto-scale 対象に含める。
+      // Per-label distance to camera (world units). This must be evaluated per label;
+      // using a single "camera radius" value breaks autoscale when labels are near/far.
+      let distToCam = hasCameraPos ? tmpCamPos.distanceTo(obj.position) : null;
+
+      // base height (world): fixed baseline with optional camera-distance scaling for auto-scale targets.
+      // NOTE: troika-three-text Text も auto-scale 対象に含める。
       const baseHeight = (isAutoScaleTarget(obj) && useCameraScale)
-        ? camDist * scalePerCameraDistance
+        ? baseHeightFixed * ((Number.isFinite(distToCam) ? distToCam : camDist) * scalePerCameraDistance) * 0.035
         : baseHeightFixed;
 
       let h = baseHeight * sizeFactor;
