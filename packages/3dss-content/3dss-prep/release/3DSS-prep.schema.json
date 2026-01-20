@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://q2t-project.github.io/3dsl/schemas/3DSS-prep.schema.json#v1.0.0",
+  "$id": "https://3dsl.jp/schemas/3DSS-prep.schema.json#v1.0.0",
   "title": "3DSS Prep Schema v1.0.0",
   "type": "object",
   "properties": {
@@ -28,3 +28,4 @@
   "required": ["points"],
   "additionalProperties": true
 }
+
