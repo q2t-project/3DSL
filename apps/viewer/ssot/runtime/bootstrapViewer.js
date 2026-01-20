@@ -849,6 +849,7 @@ const addUuid = (u, path) => {
     if (typeof v === "string") return v.trim() || null;
     if (v && typeof v === "object") {
       const cand =
+        v.ref ??
         v.uuid ??
         v.point_uuid ??
         v.ref_uuid ??

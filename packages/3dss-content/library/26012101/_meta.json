@@ -1,0 +1,20 @@
+{
+  "title": "描画負荷テスト：1000点・2000線（Stress Test）",
+  "summary": "3DSD-viewerの描画負荷確認用",
+  "description": "points要素1000個およびlines要素2000個のモデルによるviewerの処理負荷を確認する",
+  "tags": [],
+  "entry_points": [],
+  "pairs": [],
+  "rights": null,
+  "related": [],
+  "published": true,
+  "seo": {
+    "title": "",
+    "description": "",
+    "og_image": ""
+  },
+  "recommended": false,
+  "hidden": false,
+  "created_at": "2026-01-20T15:17:57.372Z",
+  "updated_at": "2026-01-20T15:17:57.372Z"
+}
