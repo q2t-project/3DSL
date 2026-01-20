@@ -445,14 +445,21 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
 
       obj.position.copy(pointObj.position);
 
+      // distToCam: baseHeight の camera-distance scaling にも使うので先に計算する。
+      // NOTE: この時点では lift 未反映（差は小さいので baseHeight にはこれで十分）。
+      let distToCam = null;
+      if (lodEnabled && hasCameraPos) {
+        distToCam = tmpCamPos.distanceTo(obj.position);
+      }
+
       // size factor
       const size = Number(entry?.size) || baseLabelSize;
       const sizeFactor = size / baseLabelSize;
 
       // base height (world): fixed for mesh labels, optional camera-distance scaling for auto-scale targets.
       // NOTE: troika-three-text の Text も auto-scale 対象に含める。
-      const baseHeight = (isAutoScaleTarget(obj) && useCameraScale)
-        ? camDist * scalePerCameraDistance
+      const baseHeight = (isAutoScaleTarget(obj) && useCameraScale && Number.isFinite(distToCam))
+        ? distToCam * scalePerCameraDistance
         : baseHeightFixed;
 
       let h = baseHeight * sizeFactor;
@@ -466,8 +473,8 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
       const aspect = Number(obj.userData?.__labelAspect) || 1;
 
       // LOD: distance / screen-size / frustum（なるべく早めに落とす）
-      let distToCam = null;
       if (lodEnabled && hasCameraPos) {
+        // LOD 判定は lift 後の最終位置で再計算する
         distToCam = tmpCamPos.distanceTo(obj.position);
 
         if (Number.isFinite(maxDist) && Number.isFinite(distToCam) && distToCam > maxDist) {
