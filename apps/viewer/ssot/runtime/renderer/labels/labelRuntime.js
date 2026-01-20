@@ -449,30 +449,11 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
       const size = Number(entry?.size) || baseLabelSize;
       const sizeFactor = size / baseLabelSize;
 
-      // distance to camera (for LOD/screen-cull and optional auto-scale)
-      // NOTE: distToCam is used for both LOD and autoscale. We intentionally use
-      // `var` here to avoid hard failures if this block is accidentally duplicated
-      // by patch-application mistakes (var redeclaration is tolerated in JS).
-      var distToCam = null;
-      const needDist = (lodEnabled && hasCameraPos) || (useCameraScale && hasCameraPos);
-      if (needDist) {
-        distToCam = tmpCamPos.distanceTo(obj.position);
-      }
-
-      // distance cull (early)
-      if (lodEnabled && hasCameraPos) {
-        if (Number.isFinite(maxDist) && Number.isFinite(distToCam) && distToCam > maxDist) {
-          stats.labelCulledDistance += 1;
-          continue;
-        }
-      }
-
-      // base height (world): fixed baseline, optional camera-distance scaling for auto-scale targets.
+      // base height (world): fixed for mesh labels, optional camera-distance scaling for auto-scale targets.
       // NOTE: troika-three-text の Text も auto-scale 対象に含める。
-      const distScale = (isAutoScaleTarget(obj) && useCameraScale && Number.isFinite(distToCam) && distToCam > 0)
-        ? distToCam * scalePerCameraDistance
-        : 1;
-      const baseHeight = baseHeightFixed * distScale;
+      const baseHeight = (isAutoScaleTarget(obj) && useCameraScale)
+        ? camDist * scalePerCameraDistance
+        : baseHeightFixed;
 
       let h = baseHeight * sizeFactor;
       if (minH != null) h = Math.max(h, minH);
@@ -484,17 +465,26 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
 
       const aspect = Number(obj.userData?.__labelAspect) || 1;
 
-      // screen-size cull (needs h)
-      if (lodEnabled && hasCameraPos && useScreenCull && Number.isFinite(distToCam) && distToCam > 0 && tanHalfFov > 0) {
-        const denom = 2 * tanHalfFov * distToCam;
-        const approxPx = denom > 0 ? (h * viewportH) / denom : Infinity;
-        if (approxPx < minPx) {
-          stats.labelCulledScreen += 1;
+      // LOD: distance / screen-size / frustum（なるべく早めに落とす）
+      let distToCam = null;
+      if (lodEnabled && hasCameraPos) {
+        distToCam = tmpCamPos.distanceTo(obj.position);
+
+        if (Number.isFinite(maxDist) && Number.isFinite(distToCam) && distToCam > maxDist) {
+          stats.labelCulledDistance += 1;
           continue;
+        }
+
+        if (useScreenCull && Number.isFinite(distToCam) && distToCam > 0 && tanHalfFov > 0) {
+          const denom = 2 * tanHalfFov * distToCam;
+          const approxPx = denom > 0 ? (h * viewportH) / denom : Infinity;
+          if (approxPx < minPx) {
+            stats.labelCulledScreen += 1;
+            continue;
+          }
         }
       }
 
-      // LOD: frustum（なるべく早めに落とす）
       if (useFrustum && !frustum.containsPoint(obj.position)) {
         stats.labelCulledFrustum += 1;
         continue;
@@ -549,9 +539,10 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
       } else if (obj.isSprite) {
         obj.scale.set(h * aspect * scaleMul, h * scaleMul, 1);
       } else {
-        // mesh: uniform
-        const u = h * scaleMul;
-        obj.scale.set(u, u, u);
+        // mesh plane (fixed pose): keep aspect ratio
+        const sx = h * aspect * scaleMul;
+        const sy = h * scaleMul;
+        obj.scale.set(sx, sy, 1);
       }
 
       // fixed pose: keep orientation static (no camera-dependent flipping)
