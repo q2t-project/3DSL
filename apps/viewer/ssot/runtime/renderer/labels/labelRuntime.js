@@ -26,6 +26,33 @@ function isTroikaText(obj) {
   );
 }
 
+function applyTroikaWeight400Fix(obj) {
+  // troika 側だけ fontWeight を 400 固定。
+  // - 3DSS 側の weight 指定は保持するが、troika は現状 Regular に寄せる。
+  // - noto-sans-jp の Bold URL を掴んでいたら Regular URL へ寄せる。
+  if (!obj) return;
+
+  try {
+    if (obj.fontWeight !== 400 && obj.fontWeight !== "400" && obj.fontWeight !== "normal") {
+      obj.fontWeight = 400;
+    }
+  } catch {
+    // ignore
+  }
+
+  const font = obj.font;
+  if (typeof font !== "string") return;
+
+  // noto-sans-jp のみ対象。
+  if (!font.includes("/vendor/fonts/noto-sans-jp/")) return;
+
+  // 明示的に Regular へ。
+  const regularUrl = labelConfig?.troika?.fontUrlByKey?.noto_sans_jp_regular;
+  if (typeof regularUrl === "string" && regularUrl.length > 0 && font !== regularUrl) {
+    obj.font = regularUrl;
+  }
+}
+
 function isAutoScaleTarget(obj) {
   // 旧: Canvas/Sprite 系は isSprite を持つ。troika も auto-scale の対象に含める。
   return !!(obj?.isSprite || isTroikaText(obj));
@@ -530,6 +557,7 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
 
       // scale / fontSize
       if (isTroikaText(obj)) {
+        applyTroikaWeight400Fix(obj);
         // troika-three-text: world 単位は fontSize で管理する（scale は 1 を維持）
         const fs = Math.max(0.0001, h * scaleMul);
         if (obj.fontSize !== fs) obj.fontSize = fs;
@@ -539,10 +567,9 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
       } else if (obj.isSprite) {
         obj.scale.set(h * aspect * scaleMul, h * scaleMul, 1);
       } else {
-        // mesh plane (fixed pose): keep aspect ratio
-        const sx = h * aspect * scaleMul;
-        const sy = h * scaleMul;
-        obj.scale.set(sx, sy, 1);
+        // mesh: uniform
+        const u = h * scaleMul;
+        obj.scale.set(u, u, u);
       }
 
       // fixed pose: keep orientation static (no camera-dependent flipping)

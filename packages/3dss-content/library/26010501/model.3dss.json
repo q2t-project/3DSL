@@ -22,52 +22,6 @@
   "points": [
     {
       "signification": {
-        "name": "Concept"
-      },
-      "appearance": {
-        "position": [
-          0,
-          0,
-          0
-        ],
-        "marker": {
-          "primitive": "sphere",
-          "radius": 0.6,
-          "common": {
-            "opacity": 0.85,
-            "emissive": false,
-            "wireframe": false
-          },
-          "text": {
-            "content": "topHello 3DSL",
-            "pose": {
-              "front": [ 
-                0,
-                1,
-                0
-              ],
-              "up": [ 
-                0,
-                0,
-                1
-              ]
-            },
-            "size": 64,
-            "align": "center&middle",
-            "font": "helvetiker_regular"
-          }
-        }
-      },
-      "meta": {
-        "uuid": "b1cbe02d-7219-4a16-8bee-4652e46e38bc",
-        "tags": [
-          "x:p_concept"
-        ],
-        "creator_memo": "3DSL Concept の全体ルート"
-      }
-    },
-    {
-      "signification": {
         "name": "表現の限界と要請"
       },
       "appearance": {
@@ -85,7 +39,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "表現の限界と要請",
             "pose": {
               "front": [
@@ -128,7 +82,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "新しい表現の実験",
             "pose": {
               "front": [
@@ -171,7 +125,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "宣言",
             "pose": {
               "front": [
@@ -258,7 +212,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "切断と再接続の検証",
             "pose": {
               "front": [
@@ -301,7 +255,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "複雑化で連結が増え読み手が脱落",
             "pose": {
               "front": [
@@ -344,7 +298,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "文脈依存",
             "pose": {
               "front": [
@@ -387,7 +341,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "コモンズ",
             "pose": {
               "front": [
@@ -430,7 +384,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "成果物が“完成”として固定",
             "pose": {
               "front": [
@@ -473,7 +427,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "留保を許容する代替表現が要る",
             "pose": {
               "front": [
@@ -516,7 +470,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "図:俯瞰は強いが座標が揃わない",
             "pose": {
               "front": [
@@ -559,7 +513,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "モデル:操作で理解、だが配布/検証が難しい",
             "pose": {
               "front": [
@@ -606,7 +560,7 @@
           ],
           "text": {
             "content": "視点/手順共有",
-            "size": 8,
+            "size": 4,
             "pose": {
               "front": [
                 0,
@@ -647,7 +601,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "デジタル:複製",
             "pose": {
               "front": [
@@ -690,7 +644,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "表現=特性の束（複製性×操作性…）",
             "pose": {
               "front": [
@@ -733,7 +687,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "3DSL",
             "pose": {
               "front": [
@@ -777,7 +731,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "概念と関係を3Dに配置",
             "pose": {
               "front": [
@@ -820,7 +774,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "全体フレームを先に外部化",
             "pose": {
               "front": [
@@ -863,7 +817,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "関係中心・線の束で構造保持",
             "pose": {
               "front": [
@@ -906,7 +860,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "理解を復元→ナビゲーションへ",
             "pose": {
               "front": [
@@ -949,7 +903,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "回転/ズーム/俯瞰/探索",
             "pose": {
               "front": [
@@ -992,7 +946,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "同一モデルを複製・配布",
             "pose": {
               "front": [
@@ -1035,7 +989,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "視点と手順を揃えて検証",
             "pose": {
               "front": [
@@ -1078,7 +1032,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "共通座標軸/スケール/層別",
             "pose": {
               "front": [
@@ -1121,7 +1075,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "テーマを一意固定しない",
             "pose": {
               "front": [
@@ -1164,7 +1118,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "分類はナビゲーション（タグ/将来ファセット）",
             "pose": {
               "front": [
@@ -1207,7 +1161,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "比較・接続・対立/併存/未決も同居",
             "pose": {
               "front": [
@@ -1250,7 +1204,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "状態と遷移、時間の扱いを明示",
             "pose": {
               "front": [
@@ -1293,7 +1247,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "留保を保持し、検証で更新",
             "pose": {
               "front": [
@@ -1336,7 +1290,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "前提と手続きが明示された『もっともらしさ』",
             "pose": {
               "front": [
@@ -1383,7 +1337,7 @@
           ],
           "text": {
             "content": "",
-            "size": 8,
+            "size": 4,
             "pose": {
               "front": [
                 0,
@@ -1424,7 +1378,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "公開実験として積み上げる",
             "pose": {
               "front": [
@@ -1467,7 +1421,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "座標軸がコモンズになる",
             "pose": {
               "front": [
@@ -1510,7 +1464,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "座標軸をコモンズとして開く",
             "pose": {
               "front": [
@@ -1553,7 +1507,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "知を操作と検証の場へ引き戻す",
             "pose": {
               "front": [
@@ -1596,7 +1550,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "理解を共有できるナビゲーションへ",
             "pose": {
               "front": [
@@ -1639,7 +1593,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "未決/矛盾を留保し更新循環へ",
             "pose": {
               "front": [
@@ -1682,7 +1636,7 @@
             "wireframe": false
           },
           "text": {
-            "size": 8,
+            "size": 4,
             "content": "公開実験",
             "pose": {
               "front": [
