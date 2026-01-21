@@ -27,8 +27,8 @@ const enableAdsense = !noAds && shouldEnableAdsense(pathname);
 // Header nav: keep it minimal (no hamburger)
 const nav = [
   { href: "/", label: "Home" },
-  { href: "/app/viewer", label: "Viewer" },
   { href: "/library", label: "Library" },
+  { href: "/app/viewer", label: "Viewer" },
   { href: "/docs", label: "Docs" },
   { href: "/concept", label: "Concept" },
 ];
@@ -144,7 +144,7 @@ function isActive(href: string) {
     <!-- swipe stage (behind app-shell) -->
     <div id="swipe-stage" aria-hidden="true"></div>
 
-    <!-- Mobile: horizontal swipe to navigate main pages (Home/Library/Concept/Contact)
+    <!-- Mobile: horizontal swipe to navigate main pages (Home/Library/Viewer/Concept/Contact)
          - drag follows finger
          - next page is shown as a blurred iframe behind (preview only)
     -->
@@ -194,7 +194,7 @@ function isActive(href: string) {
           const sp = new URLSearchParams(location.search || "");
           if (sp.get("swipe") === "1") return;
 
-          const ROUTES = ["/", "/library", "/concept", "/contact"];
+          const ROUTES = ["/", "/library", "/app/viewer", "/concept", "/contact"];
           const path = location.pathname || "/";
           const getIndex = () => {
             for (let i = 0; i < ROUTES.length; i++) {
@@ -216,7 +216,7 @@ function isActive(href: string) {
           };
 
 
-          // enable only on these 4 public pages
+          // enable only on these 5 public pages
           if (getIndex() < 0) return;
 
           const app = document.getElementById("app-shell");

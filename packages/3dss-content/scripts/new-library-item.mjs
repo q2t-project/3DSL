@@ -86,7 +86,7 @@ function main() {
   const now = new Date().toISOString();
 
   // required file: _meta.json
-  // NOTE: keys here are aligned with build-library-dist.mjs expectations (meta.seo.* supported)
+  // NOTE: keys here are aligned with build-3dss-content-dist.mjs expectations (meta.seo.* supported)
   const meta = {
     title,
     summary: '',
