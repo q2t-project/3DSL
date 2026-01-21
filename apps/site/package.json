@@ -39,7 +39,7 @@
     "sync:viewer": "node scripts/sync/viewer.mjs",
     "sync:schemas": "node scripts/sync/schemas.mjs",
     "sync:vendor": "node scripts/sync/vendor.mjs",
-    "sync:3dss-content": "node ../../packages/3dss-content/scripts/build-library-dist.mjs && node scripts/sync/3dss-content.mjs",
+    "sync:3dss-content": "node ../../packages/3dss-content/scripts/build-3dss-content-dist.mjs && node scripts/sync/3dss-content.mjs",
     "sync:all": "npm run sync:3dss-content && npm run sync:schemas && npm run sync:viewer && npm run sync:vendor && npm run sync:docs",
     "sync:viewer:force": "node --input-type=module -e \"process.env.SYNC_VIEWER_FORCE='1'; await import('./scripts/sync/viewer.mjs');\"",
     "new:library-item": "node ../../packages/3dss-content/scripts/new-library-item.mjs",

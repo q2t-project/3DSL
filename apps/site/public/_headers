@@ -1,5 +1,13 @@
 # Avoid edge caching issues for the static viewer JS during preview/dev.
 # (If you later want aggressive caching, switch to immutable + hashed filenames.)
 
+# Vendor libraries are SSOT and change rarely.
+# Cache them to avoid 500+ conditional requests (304) on every reload.
+/vendor/*
+  Cache-Control: public, max-age=604800
+
 /viewer/*.js
   Cache-Control: no-store
+
+/*
+  X-Debug-Headers: on
