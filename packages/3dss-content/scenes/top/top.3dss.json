@@ -38,7 +38,7 @@
     { "signification": {"name": "Context" },
       "appearance": { "position": [0, -6, 0],
         "marker": { "primitive": "sphere", "radius": 0.1, "common": { "opacity": 0.20, "emissive": false, "wireframe": false, "color": "#008888" },
-          "text": { "content": "Context", "pose": { "front": [1, 0, 0], "up": [0, 0, 1] }, "size": 1, "align": "center&bottomline", "font": "helvetiker_regular" } } },
+          "text": { "content": "Context", "pose": { "front": [1, 0, 0], "up": [0, 0, 1] }, "size": 1, "align": "center&baseline", "font": "helvetiker_regular" } } },
       "meta": { "uuid": "aa2ef6e7-6616-4ef5-bfe3-f9a8cfa0938d", "tags": [ "x:b" ] } }
 
     ],
