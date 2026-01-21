@@ -936,8 +936,9 @@ function maybeForceContextLoss(renderer, enabled) {
           }
         }
       } catch (_e) {}
+      // NOTE: 必ず scene に追加する（これを忘れると lines が描画されない）
+      groups.lines.add(seg);
 
-      
       // uuid->object / pick
       try { maps.lines.set(uuid, seg); } catch (_e) {}
       try { addPickTarget(seg); } catch (_e) {}

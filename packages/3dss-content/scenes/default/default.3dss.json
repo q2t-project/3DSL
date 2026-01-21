@@ -73,8 +73,8 @@
       },
       "appearance": {
         "position": [
-          -32,
           0,
+          16,
           0
         ],
         "marker": {
@@ -121,7 +121,7 @@
         "position": [
           0,
           0,
-          32
+          16
         ],
         "marker": {
           "primitive": "box",
@@ -150,7 +150,7 @@
                 0
               ]
             },
-            "size": 1,
+            "size": 2,
             "align": "center&middle",
             "font": "helvetiker_regular"
           }
