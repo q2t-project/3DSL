@@ -937,7 +937,7 @@ function maybeForceContextLoss(renderer, enabled) {
         }
       } catch (_e) {}
 
-      
+      
       // uuid->object / pick
       try { maps.lines.set(uuid, seg); } catch (_e) {}
       try { addPickTarget(seg); } catch (_e) {}
