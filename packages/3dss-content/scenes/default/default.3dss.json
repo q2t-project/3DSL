@@ -22,7 +22,7 @@
   "points": [
     {
       "signification": {
-        "name": "HHHello 3DSL"
+        "name": "Hello 3DSL"
       },
       "appearance": {
         "position": [
@@ -32,15 +32,15 @@
         ],
         "marker": {
           "primitive": "sphere",
-          "radius": 16,
+          "radius": 1,
           "common": {
-            "opacity": 0.9,
+            "opacity": 0.6,
             "emissive": false,
             "wireframe": false,
-            "color": "#ffffff"
+            "color": "#ffff44"
           },
           "text": {
-            "content": "64 ABC",
+            "content": "3DSD-viewer",
             "pose": {
               "front": [ 
                 0,
@@ -79,7 +79,7 @@
         ],
         "marker": {
           "primitive": "sphere",
-          "radius": 8,
+          "radius": 2,
           "common": {
             "opacity": 0.85,
             "emissive": false,
@@ -87,7 +87,7 @@
             "color": "#ffffff"
           },
           "text": {
-            "content": "8",
+            "content": "3-dimensional structure language",
             "pose": {
               "front": [
                 0,
@@ -126,9 +126,9 @@
         "marker": {
           "primitive": "box",
           "size": [
-            8,
-            16,
-            2
+            1,
+            2,
+            0.5
           ],
           "common": {
             "opacity": 0.85,
@@ -137,7 +137,7 @@
             "color": "#ffffff"
           },
           "text": {
-            "content": "16",
+            "content": "要素をクリックするとmicroモードになります",
             "pose": {
               "front": [
                 0,
@@ -150,7 +150,7 @@
                 0
               ]
             },
-            "size": 16,
+            "size": 1,
             "align": "center&middle",
             "font": "helvetiker_regular"
           }

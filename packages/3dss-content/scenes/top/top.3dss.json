@@ -36,9 +36,9 @@
       "meta": { "uuid": "692d0705-6e0d-4af6-8b67-3ce79631cfcf", "tags": [ "x:b" ] } },
 
     { "signification": {"name": "meaning" },
-      "appearance": { "position": [0, 0, 4],
+      "appearance": { "position": [0, 0, 2],
         "marker": { "primitive": "sphere", "radius": 0.05, "common": { "opacity": 0.25, "emissive": false, "wireframe": false, "color": "#444488" },
-          "text": { "content": "meaning", "pose": { "front": [0, 0, 1], "up": [0, -1, 0] }, "size": 1, "align": "center&middle", "font": "helvetiker_regular" } } },
+          "text": { "content": "meaning", "pose": { "front": [1, 0, 0], "up": [0, -1, 0] }, "size": 1, "align": "center&middle", "font": "helvetiker_regular" } } },
       "meta": { "uuid": "58329ee1-d2ae-4aa2-9687-4ab855806a12", "tags": [ "x:b" ] } },
 
 
