@@ -1,16 +1,22 @@
-# Avoid edge caching issues for the static viewer JS during preview/dev.
-# (If you later want aggressive caching, switch to immutable + hashed filenames.)
-
-# Vendor libraries are SSOT and change rarely.
-# Cache them to avoid 500+ conditional requests (304) on every reload.
+# vendor: 変更頻度低い＆初回500+リクエストの主犯 → 長期キャッシュ
 /vendor/*
-  Cache-Control: public, max-age=604800
+  Cache-Control: public, max-age=604800, immutable
 
+# astroのビルド成果物は基本ハッシュ付き → immutableでOK
+/_astro/*
+  Cache-Control: public, max-age=604800, immutable
+
+# viewerのboot系は更新あり得る → 短め＋revalidate
 /viewer/*.js
   Cache-Control: public, max-age=60, must-revalidate
 
-/_astro/*
-  Cache-Control: public, max-age=604800, immutable  
+/viewer/*.css
+  Cache-Control: public, max-age=60, must-revalidate
 
+# HTMLは常に最新版を見たいならこれ（任意）
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# デバッグ用（キャッシュ制御はここで書かん）
 /*
   X-Debug-Headers: on

@@ -986,7 +986,28 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
 
   // 2) canvas + renderer(context only)
   const canvasEl = resolveCanvas(canvasOrId);
-  const renderer = createRendererContext(canvasEl);
+
+  // snapshot-friendly capture: enable preserveDrawingBuffer only when ?snap=1
+  const baseViewerSettings =
+    (options?.viewerSettings && typeof options.viewerSettings === "object")
+      ? options.viewerSettings
+      : {};
+
+  const viewerSettingsForRenderer = (() => {
+    let snap = false;
+    try {
+      const sp = new URL(window.location.href).searchParams;
+      snap = (sp.get("snap") === "1");
+    } catch (_e) {}
+    if (!snap) return baseViewerSettings;
+
+    const src = (baseViewerSettings && typeof baseViewerSettings === "object") ? baseViewerSettings : {};
+    const render = (src.render && typeof src.render === "object") ? src.render : {};
+    const webgl = (render.webgl && typeof render.webgl === "object") ? render.webgl : {};
+    return { ...src, render: { ...render, webgl: { ...webgl, preserveDrawingBuffer: true } } };
+  })();
+
+  const renderer = createRendererContext(canvasEl, viewerSettingsForRenderer);
 
   // optional DPR clamp (host が renderer 内部を触らなくて済むように entry 側で吸収)
   try {
@@ -1027,8 +1048,7 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     } catch (_eU) {}
   }
 
-  const initialViewerSettings =
-    options?.viewerSettings && typeof options.viewerSettings === 'object' ? options.viewerSettings : {};
+  const initialViewerSettings = baseViewerSettings;
 
   const uiState = createUiState({
     view_preset_index: 3, // iso_ne
@@ -1229,6 +1249,117 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     if (sp.get("dbgHub") === "1") {
       globalThis.viewerHub = hub;
       console.log("[boot] dbgHub=1 -> globalThis.viewerHub exposed", hub);
+    }
+  } catch (_e) {}
+
+
+  // ------------------------------------------------------------
+  // snapshot IPC (for host-side overlay composition)
+  // - enabled only when ?snap=1
+  // - request : { type: "3dsl.viewer.snapshotRequest", id, minDim }
+  // - response: { type: "3dsl.viewer.snapshotResult", id, ok, blob?, message? }
+  // ------------------------------------------------------------
+  try {
+    const sp = new URLSearchParams(globalThis.location?.search ?? "");
+    const snapMode = sp.get("snap") === "1";
+
+    if (snapMode && renderer && typeof renderer.resize === "function") {
+      const canvas = renderer.canvas || canvasEl;
+
+      const clamp = (n, lo, hi, fallback) => {
+        const v = Number(n);
+        if (!Number.isFinite(v)) return fallback;
+        return Math.max(lo, Math.min(hi, v));
+      };
+
+      const getPixelRatioNow = () => {
+        try {
+          const r = renderer?.renderer ?? null;
+          if (r && typeof r.getPixelRatio === "function") return Number(r.getPixelRatio()) || 1;
+        } catch (_e) {}
+        try {
+          const cw = Math.max(1, Number(canvas?.clientWidth) || 1);
+          const pr = (Number(canvas?.width) || cw) / cw;
+          return Math.max(1, Math.min(4, pr || 1));
+        } catch (_e) {}
+        return 1;
+      };
+
+      const captureBlob = async (minDim) => {
+        // prevent overlap
+        if (globalThis.__3dslSnapshotBusy) throw new Error("snapshot busy");
+        globalThis.__3dslSnapshotBusy = true;
+        try {
+          const targetMin = clamp(minDim, 720, 4096, 2160);
+
+          const cw = Math.max(1, Math.floor(Number(canvas?.clientWidth) || Number(canvas?.width) || 1));
+          const ch = Math.max(1, Math.floor(Number(canvas?.clientHeight) || Number(canvas?.height) || 1));
+
+          const prevPr = getPixelRatioNow();
+          const curMin = Math.max(1, Math.min(Number(canvas?.width) || 1, Number(canvas?.height) || 1));
+          const factor = curMin >= targetMin ? 1 : (targetMin / curMin);
+          const wantPr = Math.max(1, Math.min(4, prevPr * Math.max(1, factor)));
+
+          const changed = Math.abs(wantPr - prevPr) > 0.01;
+          if (changed) {
+            try { renderer.resize(cw, ch, wantPr); } catch (_e) {}
+          }
+
+          // force one render (best-effort)
+          try { renderer.render(core); } catch (_e) {}
+          await new Promise((r) => requestAnimationFrame(() => r()));
+
+          const blob = await new Promise((resolve) => {
+            try {
+              canvas.toBlob((b) => resolve(b || null), "image/png");
+            } catch (_e) {
+              resolve(null);
+            }
+          });
+
+          if (changed) {
+            try { renderer.resize(cw, ch, prevPr); } catch (_e) {}
+            try { renderer.render(core); } catch (_e) {}
+          }
+
+          if (!blob) throw new Error("capture failed");
+          return blob;
+        } finally {
+          globalThis.__3dslSnapshotBusy = false;
+        }
+      };
+
+      // expose current capture implementation (latest wins)
+      globalThis.__3dslSnapshot = { captureBlob };
+
+      if (!globalThis.__3dslSnapshotListenerInstalled) {
+        globalThis.__3dslSnapshotListenerInstalled = true;
+
+        globalThis.addEventListener("message", async (ev) => {
+          try {
+            if (ev.origin !== globalThis.location?.origin) return;
+            const m = ev?.data;
+            if (!m || typeof m !== "object") return;
+            if (m.type !== "3dsl.viewer.snapshotRequest") return;
+
+            const id = typeof m.id === "string" ? m.id : "";
+            if (!id) return;
+
+            const target = ev.source || globalThis.parent;
+            if (!target || typeof target.postMessage !== "function") return;
+
+            try {
+              const cap = globalThis.__3dslSnapshot?.captureBlob;
+              if (typeof cap !== "function") throw new Error("capture not ready");
+              const blob = await cap(m.minDim);
+              target.postMessage({ type: "3dsl.viewer.snapshotResult", id, ok: true, blob }, ev.origin);
+            } catch (e) {
+              const msg = (e && typeof e === "object" && "message" in e) ? String(e.message) : String(e);
+              target.postMessage({ type: "3dsl.viewer.snapshotResult", id, ok: false, message: msg }, ev.origin);
+            }
+          } catch (_e) {}
+        });
+      }
     }
   } catch (_e) {}
 
