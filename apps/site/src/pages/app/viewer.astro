@@ -508,7 +508,7 @@
         }
       }
 
-      function requestInnerSnapshotBlob({ minDim = 2160, timeoutMs = 8000 } = {}) {
+      function requestInnerSnapshotBlob({ minDim = 2160, timeoutMs = 25000 } = {}) {
         return new Promise((resolve, reject) => {
           const id = `snap_${Date.now()}_${Math.random().toString(36).slice(2)}`;
           let done = false;
@@ -555,9 +555,13 @@
 
         let blob = null;
         try {
-          blob = await requestInnerSnapshotBlob({ minDim: 2160 });
+          blob = await requestInnerSnapshotBlob({ minDim: 2160, timeoutMs: 25000 });
         } catch {}
+
+        // Guard: an unusually small capture often indicates a cleared/blank framebuffer.
+        if (blob && typeof blob.size === 'number' && blob.size < 20000) blob = null;
         if (!blob) blob = await canvasToBlob(srcCanvas);
+        if (blob && typeof blob.size === 'number' && blob.size < 20000) blob = null;
         if (!blob) throw new Error('capture failed');
 
         let shot = null;

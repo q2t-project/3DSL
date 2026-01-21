@@ -52,7 +52,7 @@ const useFullWidthResponsive =
 {!noAds && (hasSlot || isDev) && (
   <div class={`ad-slot ${className}`} style={wrapperStyle} data-ad-slot={slot || 'UNSET'}>
     {hasSlot ? (
-      <>
+      <Fragment>
         <ins
           class="adsbygoogle"
           style={insStyle}
@@ -65,7 +65,7 @@ const useFullWidthResponsive =
           window.adsbygoogle = window.adsbygoogle || [];
           window.adsbygoogle.push({});
         </script>
-      </>
+      </Fragment>
     ) : (
       <div class="ad-slot__placeholder">AdSlot (slot unset)</div>
     )}

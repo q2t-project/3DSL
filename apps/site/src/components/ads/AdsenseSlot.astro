@@ -23,7 +23,7 @@ const enabled = !!client && typeof slot === 'string' && slot.trim().length > 0;
 ---
 
 {enabled ? (
-  <>
+  <Fragment>
     <ins
       class={`adsbygoogle ${className}`}
       style={style}
@@ -43,7 +43,7 @@ const enabled = !!client && typeof slot === 'string' && slot.trim().length > 0;
         } catch (e) {}
       })();
     </script>
-  </>
+  </Fragment>
 ) : (
   <div
     class={`rounded-xl border border-white/10 bg-white/5 grid place-items-center text-xs text-neutral-400 ${className}`}
