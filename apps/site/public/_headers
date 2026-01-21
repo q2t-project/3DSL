@@ -7,7 +7,10 @@
   Cache-Control: public, max-age=604800
 
 /viewer/*.js
-  Cache-Control: no-store
+  Cache-Control: public, max-age=60, must-revalidate
+
+/_astro/*
+  Cache-Control: public, max-age=604800, immutable  
 
 /*
   X-Debug-Headers: on
