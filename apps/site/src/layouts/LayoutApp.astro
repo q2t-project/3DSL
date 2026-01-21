@@ -30,12 +30,17 @@ const enableAdsense = !noAds && shouldEnableAdsense(pathname);
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Noto+Sans+JP:wght@300;400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
     />
     <title>{title}</title>
     <slot name="head" />
 
     <style>
+      :root{
+        --font-sans: Inter, system-ui, -apple-system, "Segoe UI",
+          "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+      }
+      body{ font-family: var(--font-sans); }
       html, body {
         height: 100%;
         width: 100%;

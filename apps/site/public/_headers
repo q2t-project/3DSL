@@ -1,5 +1,22 @@
-# Avoid edge caching issues for the static viewer JS during preview/dev.
-# (If you later want aggressive caching, switch to immutable + hashed filenames.)
+# vendor: 変更頻度低い＆初回500+リクエストの主犯 → 長期キャッシュ
+/vendor/*
+  Cache-Control: public, max-age=604800, immutable
 
+# astroのビルド成果物は基本ハッシュ付き → immutableでOK
+/_astro/*
+  Cache-Control: public, max-age=604800, immutable
+
+# viewerのboot系は更新あり得る → 短め＋revalidate
 /viewer/*.js
-  Cache-Control: no-store
+  Cache-Control: public, max-age=60, must-revalidate
+
+/viewer/*.css
+  Cache-Control: public, max-age=60, must-revalidate
+
+# HTMLは常に最新版を見たいならこれ（任意）
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# デバッグ用（キャッシュ制御はここで書かん）
+/*
+  X-Debug-Headers: on
