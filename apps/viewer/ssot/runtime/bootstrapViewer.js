@@ -986,7 +986,28 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
 
   // 2) canvas + renderer(context only)
   const canvasEl = resolveCanvas(canvasOrId);
-  const renderer = createRendererContext(canvasEl);
+
+  // snapshot-friendly capture: enable preserveDrawingBuffer only when ?snap=1
+  const baseViewerSettings =
+    (options?.viewerSettings && typeof options.viewerSettings === "object")
+      ? options.viewerSettings
+      : {};
+
+  const viewerSettingsForRenderer = (() => {
+    let snap = false;
+    try {
+      const sp = new URL(window.location.href).searchParams;
+      snap = (sp.get("snap") === "1");
+    } catch (_e) {}
+    if (!snap) return baseViewerSettings;
+
+    const src = (baseViewerSettings && typeof baseViewerSettings === "object") ? baseViewerSettings : {};
+    const render = (src.render && typeof src.render === "object") ? src.render : {};
+    const webgl = (render.webgl && typeof render.webgl === "object") ? render.webgl : {};
+    return { ...src, render: { ...render, webgl: { ...webgl, preserveDrawingBuffer: true } } };
+  })();
+
+  const renderer = createRendererContext(canvasEl, viewerSettingsForRenderer);
 
   // optional DPR clamp (host が renderer 内部を触らなくて済むように entry 側で吸収)
   try {
@@ -1027,8 +1048,7 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     } catch (_eU) {}
   }
 
-  const initialViewerSettings =
-    options?.viewerSettings && typeof options.viewerSettings === 'object' ? options.viewerSettings : {};
+  const initialViewerSettings = baseViewerSettings;
 
   const uiState = createUiState({
     view_preset_index: 3, // iso_ne

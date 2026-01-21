@@ -60,6 +60,9 @@
         <button id="app-viewer-copy" class="app-viewer-action" type="button" aria-label="コピー" title="コピー">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.9 12a4.1 4.1 0 0 1 4.1-4.1h4v2H8A2.1 2.1 0 0 0 8 14.1h4v2H8A4.1 4.1 0 0 1 3.9 12zm6.1 1h4v-2h-4v2zm6-5.1h-4v-2h4a4.1 4.1 0 1 1 0 8.2h-4v-2h4a2.1 2.1 0 1 0 0-4.2z"/></svg>
         </button>
+        <button id="app-viewer-snap" class="app-viewer-action" type="button" aria-label="スナップショット" title="スナップショット">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3l1.5 2H15l1.5-2H19a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4Zm3 6a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z"/></svg>
+        </button>
         <button id="app-viewer-qr" class="app-viewer-action" type="button" aria-label="QR" title="QR">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm10 0h2v2h-2v-2zm2 2h2v2h-2v-2zm-2 2h2v2h-2v-2zm4 0h2v2h-2v-2zm0-8h2v2h-2v-2z"/></svg>
         </button>
@@ -187,6 +190,15 @@
         if (!inner.has("embed")) inner.set("embed", "0");
         if (!inner.has("mode")) inner.set("mode", "prod");
 
+        // library bundle: enable snapshot-friendly WebGL options (iframe side)
+        try {
+          const from = inner.get('from') || '';
+          const ret = inner.get('return') || inner.get('back') || '';
+          if (from === 'library' || (ret && ret.startsWith('/library'))) {
+            if (!inner.has('snap')) inner.set('snap', '1');
+          }
+        } catch {}
+
         // compat: legacy `open=`
         if (!inner.has("model") && inner.has("open")) {
           const v = inner.get("open");
@@ -197,6 +209,9 @@
         inner.delete("back");
         inner.delete("return");
         inner.delete("scroll");
+        // added by the site swipe preview iframe
+        inner.delete("noads");
+        inner.delete("swipe");
         return inner;
       }
 
@@ -270,6 +285,8 @@
       const shareBtn = document.getElementById("app-viewer-share");
       const copyBtn = document.getElementById("app-viewer-copy");
       const qrBtn = document.getElementById("app-viewer-qr");
+      const snapBtn = document.getElementById("app-viewer-snap");
+
 
       const qrModal = document.getElementById("app-viewer-qr-modal");
       const qrImg = document.getElementById("app-viewer-qr-img");
@@ -297,6 +314,7 @@
       if (shareBtn) shareBtn.style.display = _bundleMode ? '' : 'none';
       if (copyBtn) copyBtn.style.display = _bundleMode ? '' : 'none';
       if (qrBtn) qrBtn.style.display = _bundleMode ? '' : 'none';
+      if (snapBtn) snapBtn.style.display = _bundleMode ? '' : 'none';
 
 
       const openModal = document.getElementById("app-viewer-open-modal");
@@ -351,6 +369,273 @@
           return u.toString();
         } catch {
           return window.location.href;
+        }
+      }
+
+
+      // ---- snapshot (library bundle only) ----
+      const _snapTitleCache = new Map();
+
+      function normalizeTitle(raw) {
+        if (!raw) return '';
+        if (typeof raw === 'string') return raw.trim();
+        if (typeof raw === 'object') {
+          const ja = (typeof raw.ja === 'string') ? raw.ja.trim() : '';
+          const en = (typeof raw.en === 'string') ? raw.en.trim() : '';
+          return ja || en || '';
+        }
+        return '';
+      }
+
+      function filenameFromTitle(title) {
+        const base = (title || '3dsl_snapshot').trim() || '3dsl_snapshot';
+        const safe = base
+          .replace(/[\/:*?"<>|]/g, '_')
+          .replace(/\s+/g, ' ')
+          .slice(0, 60)
+          .trim() || '3dsl_snapshot';
+        const d = new Date();
+        const pad2 = (n) => String(n).padStart(2, '0');
+        const stamp = `${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}_${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}`;
+        return `${safe}_${stamp}.png`;
+      }
+
+      function ellipsizeText(ctx, text, maxWidth) {
+        const t = String(text || '');
+        if (!t) return '';
+        if (ctx.measureText(t).width <= maxWidth) return t;
+        const ell = '…';
+        let lo = 0, hi = t.length;
+        while (lo < hi) {
+          const mid = Math.floor((lo + hi) / 2);
+          const s = t.slice(0, mid) + ell;
+          if (ctx.measureText(s).width <= maxWidth) lo = mid + 1;
+          else hi = mid;
+        }
+        const cut = Math.max(0, lo - 1);
+        return t.slice(0, cut) + ell;
+      }
+
+      function currentModelUrl() {
+        try {
+          const sp = new URLSearchParams(window.location.search || '');
+          return (sp.get('model') || sp.get('open') || '').trim();
+        } catch {
+          return '';
+        }
+      }
+
+      function currentDisplayUrlForSnapshot() {
+        try {
+          const sp = new URLSearchParams(window.location.search || '');
+          const ret = (sp.get('return') || sp.get('back') || '').trim();
+          if (ret && ret.startsWith('/library')) {
+            return new URL(ret, window.location.origin).toString();
+          }
+        } catch {}
+        return currentShareUrl();
+      }
+
+      async function fetchTitleFromModelUrl(modelUrl) {
+        const key = String(modelUrl || '');
+        if (!key) return '';
+        if (_snapTitleCache.has(key)) return _snapTitleCache.get(key) || '';
+
+        let title = '';
+        try {
+          const u = new URL(modelUrl, window.location.origin);
+          const res = await fetch(u.toString(), { method: 'GET', credentials: 'omit', cache: 'force-cache' });
+          if (!res.ok) throw new Error('fetch failed');
+          const json = await res.json();
+          title = normalizeTitle(json?.document_meta?.document_title)
+            || normalizeTitle(json?.document_meta?.title)
+            || normalizeTitle(json?.document_meta?.name)
+            || '';
+        } catch {}
+
+        if (!title) {
+          try {
+            const u = new URL(modelUrl, window.location.origin);
+            const p = (u.pathname || '').split('/').filter(Boolean);
+            title = decodeURIComponent(p[p.length - 1] || '');
+          } catch {}
+        }
+
+        _snapTitleCache.set(key, title);
+        return title;
+      }
+
+      function getInnerViewerCanvas() {
+        try {
+          const w = iframe?.contentWindow;
+          const d = iframe?.contentDocument || w?.document;
+          if (!d) return null;
+          return d.getElementById('viewer-canvas') || d.querySelector('canvas');
+        } catch {
+          return null;
+        }
+      }
+
+      function canvasToBlob(canvas) {
+        return new Promise((resolve) => {
+          try {
+            canvas.toBlob((b) => resolve(b || null), 'image/png');
+          } catch {
+            resolve(null);
+          }
+        });
+      }
+
+      function loadImage(url) {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => resolve(img);
+          img.onerror = (e) => reject(e);
+          img.src = url;
+        });
+      }
+
+      async function buildSnapshotPng({ title, url, notice }) {
+        const srcCanvas = getInnerViewerCanvas();
+        if (!srcCanvas) throw new Error('viewer canvas not found');
+
+        const blob = await canvasToBlob(srcCanvas);
+        if (!blob) throw new Error('capture failed');
+
+        let shot = null;
+        try {
+          shot = await createImageBitmap(blob);
+        } catch {
+          // fallback: Image
+          const dataUrl = URL.createObjectURL(blob);
+          try {
+            const img = await loadImage(dataUrl);
+            shot = img;
+          } finally {
+            try { URL.revokeObjectURL(dataUrl); } catch {}
+          }
+        }
+
+        const S = 1080; // square
+        const out = document.createElement('canvas');
+        out.width = S;
+        out.height = S;
+        const ctx = out.getContext('2d');
+        if (!ctx) throw new Error('2d context not available');
+
+        // draw screenshot (center-crop to square)
+        const sw = shot.width || shot.naturalWidth || 0;
+        const sh = shot.height || shot.naturalHeight || 0;
+        const crop = Math.max(1, Math.min(sw, sh));
+        const sx = Math.max(0, Math.floor((sw - crop) / 2));
+        const sy = Math.max(0, Math.floor((sh - crop) / 2));
+        ctx.drawImage(shot, sx, sy, crop, crop, 0, 0, S, S);
+
+        const pad = 44;
+        const boxPad = 14;
+        const maxW = Math.floor(S * 0.58);
+
+        // right-top: title + url
+        const titleText = (title || '').trim();
+        const urlText = (url || '').trim();
+
+        let titleSize = 46;
+        ctx.font = `700 ${titleSize}px system-ui, -apple-system, Segoe UI, sans-serif`;
+        while (titleSize > 18 && ctx.measureText(titleText).width > maxW) {
+          titleSize -= 2;
+          ctx.font = `700 ${titleSize}px system-ui, -apple-system, Segoe UI, sans-serif`;
+        }
+
+        const urlSize = 20;
+        const urlFont = `500 ${urlSize}px system-ui, -apple-system, Segoe UI, sans-serif`;
+        ctx.font = urlFont;
+        const urlDisplay = ellipsizeText(ctx, urlText, maxW);
+
+        const lineGap = 8;
+        const topH = (titleText ? (titleSize * 1.15) : 0) + (urlDisplay ? (urlSize * 1.25) : 0) + (titleText && urlDisplay ? lineGap : 0);
+        const topW = Math.min(maxW, Math.max(
+          titleText ? ctx.measureText(titleText).width : 0,
+          urlDisplay ? ctx.measureText(urlDisplay).width : 0,
+        ));
+
+        if (topH > 0) {
+          const bw = Math.ceil(topW + boxPad * 2);
+          const bh = Math.ceil(topH + boxPad * 2);
+          const bx = S - pad - bw;
+          const by = pad;
+          ctx.fillStyle = 'rgba(0,0,0,0.45)';
+          ctx.fillRect(bx, by, bw, bh);
+
+          let tx = S - pad - boxPad;
+          let ty = by + boxPad;
+
+          if (titleText) {
+            ctx.fillStyle = 'rgba(255,255,255,0.98)';
+            ctx.font = `700 ${titleSize}px system-ui, -apple-system, Segoe UI, sans-serif`;
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'top';
+            ctx.fillText(titleText, tx, ty);
+            ty += titleSize * 1.15;
+            if (urlDisplay) ty += lineGap;
+          }
+          if (urlDisplay) {
+            ctx.fillStyle = 'rgba(255,255,255,0.92)';
+            ctx.font = urlFont;
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'top';
+            ctx.fillText(urlDisplay, tx, ty);
+          }
+        }
+
+        // right-bottom: notice (1 line)
+        const noticeText = (notice || '').trim();
+        const noticeSize = 20;
+        ctx.font = `500 ${noticeSize}px system-ui, -apple-system, Segoe UI, sans-serif`;
+        const noticeDisplay = ellipsizeText(ctx, noticeText, maxW);
+        if (noticeDisplay) {
+          const bw = Math.ceil(ctx.measureText(noticeDisplay).width + boxPad * 2);
+          const bh = Math.ceil(noticeSize * 1.35 + boxPad * 2);
+          const bx = S - pad - bw;
+          const by = S - pad - bh;
+          ctx.fillStyle = 'rgba(0,0,0,0.45)';
+          ctx.fillRect(bx, by, bw, bh);
+          ctx.fillStyle = 'rgba(255,255,255,0.92)';
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'top';
+          ctx.fillText(noticeDisplay, S - pad - boxPad, by + boxPad);
+        }
+
+        // left-bottom: 3dsl logo
+        try {
+          const logo = await loadImage('/assets/logo/3DSL.svg');
+          const lw = 140;
+          const lh = 40;
+          const bx = pad;
+          const by = S - pad - lh;
+          ctx.fillStyle = 'rgba(0,0,0,0.35)';
+          ctx.fillRect(bx - 10, by - 8, lw + 20, lh + 16);
+          ctx.drawImage(logo, bx, by, lw, lh);
+        } catch {}
+
+        const outBlob = await new Promise((resolve) => {
+          out.toBlob((b) => resolve(b || null), 'image/png');
+        });
+        if (!outBlob) throw new Error('encode failed');
+        return outBlob;
+      }
+
+      async function downloadBlob(blob, filename) {
+        const u = URL.createObjectURL(blob);
+        try {
+          const a = document.createElement('a');
+          a.href = u;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        } finally {
+          try { URL.revokeObjectURL(u); } catch {}
         }
       }
 
@@ -411,6 +696,25 @@
           const url = currentShareUrl();
           const ok = await copyToClipboard(url);
           showToast(ok ? 'URLをコピーしたで' : 'コピー失敗…');
+        });
+      }
+
+      if (snapBtn) {
+        snapBtn.addEventListener('click', async () => {
+          try {
+            const modelUrl = currentModelUrl();
+            const title = await fetchTitleFromModelUrl(modelUrl);
+            const url = currentDisplayUrlForSnapshot();
+            const notice = '再利用は出典URLと権利表記を残してな';
+
+            showToast('画像つくってる…');
+            const png = await buildSnapshotPng({ title: title || '3DSL', url, notice });
+            await downloadBlob(png, filenameFromTitle(title || '3dsl'));
+            showToast('保存したで');
+          } catch (e) {
+            console.error(e);
+            showToast('スナップショット失敗…');
+          }
         });
       }
 
