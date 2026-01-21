@@ -445,14 +445,36 @@ function maybeForceContextLoss(renderer, enabled) {
     _microWasActive = false;
   }
 
+  function disposeMaterial(mat) {
+    if (!mat) return;
+    if (Array.isArray(mat)) {
+      for (const m of mat) disposeMaterial(m);
+      return;
+    }
+    try { mat.dispose?.(); } catch (_e) {}
+  }
+
+  function disposeObjectTree(root) {
+    if (!root) return;
+    try {
+      root.traverse?.((o) => {
+        try { o.geometry?.dispose?.(); } catch (_e) {}
+        try { disposeMaterial(o.material); } catch (_e) {}
+      });
+    } catch (_e) {
+      // best-effort fallback
+      try { root.geometry?.dispose?.(); } catch (_e2) {}
+      try { disposeMaterial(root.material); } catch (_e2) {}
+    }
+  }
+
   function clearGroup(kind) {
     const g = groups[kind];
     if (!g) return;
     while (g.children.length) {
       const o = g.children[g.children.length - 1];
       g.remove(o);
-      try { o.geometry?.dispose?.(); } catch (_e) {}
-      try { o.material?.dispose?.(); } catch (_e) {}
+      disposeObjectTree(o);
     }
     maps[kind].clear();
   }
@@ -831,8 +853,91 @@ function maybeForceContextLoss(renderer, enabled) {
         seg.userData.effectType = effectType;
         seg.userData.effect = effect;
       }
+      // arrow (V1): appearance.arrow
+      try {
+        const ar = (line?.appearance?.arrow && typeof line.appearance.arrow === "object")
+          ? line.appearance.arrow
+          : null;
 
-      groups.lines.add(seg);
+        if (ar) {
+          const prim = (typeof ar.primitive === "string" ? ar.primitive.trim().toLowerCase() : "") || "cone";
+          let placement = (typeof ar.placement === "string" ? ar.placement.trim().toLowerCase() : "");
+          if (!placement) placement = (prof?.sense === "b_to_a") ? "end_a" : "end_b";
+          if (placement !== "end_a" && placement !== "end_b" && placement !== "both" && placement !== "none") {
+            placement = (prof?.sense === "b_to_a") ? "end_a" : "end_b";
+          }
+          const autoOrient = ar.auto_orient !== undefined ? !!ar.auto_orient : true;
+
+          if (prim !== "none" && placement !== "none") {
+            const dx2 = b[0] - a[0];
+            const dy2 = b[1] - a[1];
+            const dz2 = b[2] - a[2];
+            const len2 = Math.max(1e-6, Math.sqrt(dx2 * dx2 + dy2 * dy2 + dz2 * dz2));
+
+            // サイズ（未指定はシーン/線長から推測）
+            const hRaw = (prim === "line") ? Number(ar.length) : Number(ar.height);
+            let height =
+              (Number.isFinite(hRaw) && hRaw > 0)
+                ? hRaw
+                : (sceneRadius != null ? (sceneRadius * 0.06) : (len2 * 0.22));
+            height = Math.max(0.05, Math.min(height, len2 * 0.5));
+
+            const rRaw = (prim === "line") ? (Number(ar.thickness) * 0.5) : Number(ar.radius);
+            let radius =
+              (Number.isFinite(rRaw) && rRaw > 0)
+                ? rRaw
+                : Math.max(0.03, height * 0.25);
+
+            // pyramid の base があれば優先（[w,h]）
+            if (prim === "pyramid" && Array.isArray(ar.base) && ar.base.length >= 2) {
+              const bw = Number(ar.base[0]);
+              const bh = Number(ar.base[1]);
+              const bmax = Math.max(Number.isFinite(bw) ? bw : 0, Number.isFinite(bh) ? bh : 0);
+              if (bmax > 0) radius = Math.max(radius, bmax * 0.5);
+            }
+
+            const radialSegments = prim === "pyramid" ? 4 : 16;
+            const baseAxis = new THREE.Vector3(0, 1, 0);
+
+            const addArrow = (tipVec, dirVec) => {
+              const dir = dirVec.clone();
+              const dlen = dir.length();
+              if (dlen < 1e-6) return;
+              dir.multiplyScalar(1 / dlen);
+
+              // V1: cone を基本形として描く（pyramid は radialSegments=4）
+              const geoArrow = new THREE.ConeGeometry(radius, height, radialSegments);
+              const matArrow = new THREE.MeshBasicMaterial({
+                color: col.clone?.() ?? col,
+                transparent: op < 1,
+                opacity: op,
+              });
+              const mesh = new THREE.Mesh(geoArrow, matArrow);
+              mesh.userData.kind = "lines";
+              mesh.userData.uuid = uuid;
+
+              if (autoOrient) {
+                const q = new THREE.Quaternion().setFromUnitVectors(baseAxis, dir);
+                mesh.quaternion.copy(q);
+              }
+
+              // ConeGeometry は中心原点・先端が +Y 側（= +height/2）
+              mesh.position.copy(tipVec);
+              mesh.position.addScaledVector(dir, -height * 0.5);
+
+              seg.add(mesh);
+            };
+
+            const dirAB = new THREE.Vector3(dx2, dy2, dz2);
+            const dirBA = dirAB.clone().multiplyScalar(-1);
+
+            if (placement === "end_b" || placement === "both") addArrow(new THREE.Vector3(b[0], b[1], b[2]), dirAB);
+            if (placement === "end_a" || placement === "both") addArrow(new THREE.Vector3(a[0], a[1], a[2]), dirBA);
+          }
+        }
+      } catch (_e) {}
+
+      
       // uuid->object / pick
       try { maps.lines.set(uuid, seg); } catch (_e) {}
       try { addPickTarget(seg); } catch (_e) {}

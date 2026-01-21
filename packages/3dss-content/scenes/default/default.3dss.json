@@ -53,7 +53,7 @@
                 1
               ]
             },
-            "size": 16,
+            "size": 8,
             "align": "center&middle",
             "font": "helvetiker_regular"
           }
@@ -100,7 +100,7 @@
                 1
               ]
             },
-            "size": 8,
+            "size": 4,
             "align": "left&top",
             "font": "helvetiker_regular"
           }
@@ -126,9 +126,9 @@
         "marker": {
           "primitive": "box",
           "size": [
-            1,
-            2,
-            0.5
+            0.25,
+            0.1,
+            0.2
           ],
           "common": {
             "opacity": 0.85,
