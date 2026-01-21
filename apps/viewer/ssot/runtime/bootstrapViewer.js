@@ -1305,16 +1305,20 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
             try { renderer.resize(cw, ch, wantPr); } catch (_e) {}
           }
 
-          // force one render (best-effort)
-          try { renderer.render(core); } catch (_e) {}
-          await new Promise((r) => requestAnimationFrame(() => r()));
-
           const blob = await new Promise((resolve) => {
-            try {
-              canvas.toBlob((b) => resolve(b || null), "image/png");
-            } catch (_e) {
-              resolve(null);
-            }
+            const raf = globalThis.requestAnimationFrame
+              ? globalThis.requestAnimationFrame.bind(globalThis)
+              : (fn) => setTimeout(fn, 0);
+
+            raf(() => {
+              // render and capture in the same frame to avoid cleared buffers
+              try { renderer.render(core); } catch (_e) {}
+              try {
+                canvas.toBlob((b) => resolve(b || null), "image/png");
+              } catch (_e) {
+                resolve(null);
+              }
+            });
           });
 
           if (changed) {
