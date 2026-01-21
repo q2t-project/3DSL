@@ -13,18 +13,28 @@ jobs:
       run:
         working-directory: apps/site
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Print environment
+        run: |
+          echo "Runner: $RUNNER_OS"
+          node -v
+          npm -v
+          pwd
+          ls -la
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Install deps (verbose)
+        run: npm ci --verbose
+
+      - name: Run build (capture logs)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ci-logs
+          npm --loglevel verbose run ci:build --if-present 2>&1 | tee ci-logs/ci-build.log
+
+      - name: Upload build log artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
         with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: apps/site/package-lock.json
-
-      - name: Install
-        run: npm ci
-
-      - name: CI build (gates + astro build)
-        run: npm run ci:build
+          name: ci-build-log
+          path: apps/site/ci-logs/ci-build.log
+          if-no-files-found: warn
