@@ -106,7 +106,7 @@
             </div>
             <div id="app-viewer-open-recent-list" class="app-viewer-open-recent-list"></div>
           </div>
-          <div class="app-viewer-open-note">※ ローカルファイルは URL 共有対象外やで。</div>
+          <div class="app-viewer-open-note">※ ローカルファイルは URL 共有の対象外です。</div>
         </div>
       </div>
     </div>
@@ -170,7 +170,7 @@
         // avoid sticky bar if iframe/runtime is broken
         progressFallbackTimer = setTimeout(() => {
           hideProgress();
-          if (loadToastArmed) showToast('読み込みが遅いみたいや…');
+          if (loadToastArmed) showToast('読み込みに時間がかかっています…');
           disarmLoadToast();
         }, 15000);
       }
@@ -252,7 +252,7 @@
           if (t === '3dsl.viewer.loadOk') {
             stopProgressFallback();
             hideProgress();
-            if (loadToastArmed) showToast('読み込み成功');
+            if (loadToastArmed) showToast('読み込みに成功しました');
             disarmLoadToast();
             return;
           }
@@ -261,7 +261,7 @@
             hideProgress();
             const m = (typeof msg.message === 'string') ? msg.message : '';
             const shortMsg = m ? String(m).slice(0, 60) : '';
-            if (loadToastArmed) showToast(shortMsg ? `読み込み失敗… ${shortMsg}` : '読み込み失敗…');
+            if (loadToastArmed) showToast(shortMsg ? `読み込みに失敗しました: ${shortMsg}` : '読み込みに失敗しました');
             disarmLoadToast();
             return;
           }
@@ -671,8 +671,13 @@
         // left-bottom: 3dsl logo
         try {
           const logo = await loadImage('/assets/logo/3DSL.svg');
-          const lw = 140;
-          const lh = 40;
+          const l0w = Number(logo.naturalWidth || logo.width || 310);
+          const l0h = Number(logo.naturalHeight || logo.height || 160);
+          const maxLogoW = 180;
+          const maxLogoH = 56;
+          const s = Math.max(0.01, Math.min(maxLogoW / l0w, maxLogoH / l0h));
+          const lw = Math.max(1, Math.round(l0w * s));
+          const lh = Math.max(1, Math.round(l0h * s));
           const bx = pad;
           const by = S - pad - lh;
           ctx.fillStyle = 'rgba(0,0,0,0.35)';
@@ -749,7 +754,7 @@
             } catch {}
           }
           const ok = await copyToClipboard(url);
-          showToast(ok ? 'URLをコピーしたで' : 'コピー失敗…');
+          showToast(ok ? 'URLをコピーしました' : 'コピーに失敗しました');
         });
       }
 
@@ -757,7 +762,7 @@
         copyBtn.addEventListener('click', async () => {
           const url = currentShareUrl();
           const ok = await copyToClipboard(url);
-          showToast(ok ? 'URLをコピーしたで' : 'コピー失敗…');
+          showToast(ok ? 'URLをコピーしました' : 'コピーに失敗しました');
         });
       }
 
@@ -769,13 +774,13 @@
             const url = currentDisplayUrlForSnapshot();
             const notice = '再利用する場合は、出典URLと権利表記を残してください。';
 
-            showToast('画像つくってる…');
+            showToast('画像を生成しています…');
             const png = await buildSnapshotPng({ title: title || '3DSL', url, notice });
             await downloadBlob(png, filenameFromTitle(title || '3dsl'));
-            showToast('保存したで');
+            showToast('保存しました');
           } catch (e) {
             console.error(e);
-            showToast('スナップショット失敗…');
+            showToast('スナップショットに失敗しました');
           }
         });
       }
@@ -790,7 +795,7 @@
         qrCopyBtn.addEventListener('click', async () => {
           const url = currentShareUrl();
           const ok = await copyToClipboard(url);
-          showToast(ok ? 'URLをコピーしたで' : 'コピー失敗…');
+          showToast(ok ? 'URLをコピーしました' : 'コピーに失敗しました');
         });
       }
 
@@ -895,7 +900,7 @@
 
         const ok = writeRecentLocal(items);
         if (!ok) {
-          showToast('端末に保存できへん（容量）');
+          showToast('端末に保存できません（容量不足）');
         }
       }
 
@@ -929,7 +934,7 @@
           stopProgressFallback();
           hideProgress();
           disarmLoadToast();
-          showToast('最近のローカルが壊れてる…');
+          showToast('最近のローカル履歴が壊れています…');
         }
       }
 
@@ -967,7 +972,7 @@
         recentClearBtn.addEventListener('click', () => {
           try { localStorage.removeItem(RECENT_LOCAL_KEY); } catch {}
           renderRecentLocal();
-          showToast('最近のローカル消したで');
+          showToast('最近のローカル履歴を削除しました');
         });
       }
 
@@ -1055,12 +1060,12 @@
           try {
             if (navigator.share && typeof navigator.share === 'function') {
               await navigator.share({ title: document.title || '3DSL', url });
-              showToast('共有したで');
+              showToast('共有しました');
               return;
             }
           } catch {}
           const ok = await copyTextToClipboard(url);
-          showToast(ok ? 'URLコピーしたで' : 'コピー失敗…');
+          showToast(ok ? 'URLをコピーしました' : 'コピーに失敗しました');
         });
       }
 
@@ -1068,7 +1073,7 @@
         copyBtn.addEventListener('click', async () => {
           const url = buildShareUrlAbsolute();
           const ok = await copyTextToClipboard(url);
-          showToast(ok ? 'URLコピーしたで' : 'コピー失敗…');
+          showToast(ok ? 'URLをコピーしました' : 'コピーに失敗しました');
         });
       }
 
@@ -1091,14 +1096,14 @@
         qrCopyBtn.addEventListener('click', async () => {
           const url = (qrUrl && typeof qrUrl.textContent === 'string') ? qrUrl.textContent : buildShareUrlAbsolute();
           const ok = await copyTextToClipboard(url);
-          showToast(ok ? 'URLコピーしたで' : 'コピー失敗…');
+          showToast(ok ? 'URLをコピーしました' : 'コピーに失敗しました');
         });
       }
 
       function setModelParamAndReloadIframe(modelUrl) {
         const raw = (typeof modelUrl === 'string') ? modelUrl.trim() : '';
         if (!raw) {
-          showToast('URL/パスが空やで');
+          showToast('URL/パスが空です');
           return false;
         }
         localLoaded = false;
@@ -1167,7 +1172,7 @@
           stopProgressFallback();
           hideProgress();
           disarmLoadToast();
-          showToast('ファイル読み込み失敗…');
+          showToast('ファイルの読み込みに失敗しました');
         }
       }
 
