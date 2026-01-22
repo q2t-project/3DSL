@@ -30,6 +30,87 @@ function asPlainObject(v) {
   return (v && typeof v === "object" && !Array.isArray(v)) ? v : null;
 }
 
+// module.extension.latex: lightweight LaTeX-ish to plain text (no typesetting)
+// - NOTE: this is intentionally small/safe; not a full LaTeX parser.
+function latexMathToPlainText(input) {
+  if (typeof input !== "string") return "";
+  let s = input.trim();
+  if (!s) return "";
+
+  // strip $...$ wrappers
+  if (s.startsWith("$") && s.endsWith("$") && s.length >= 2) {
+    s = s.slice(1, -1).trim();
+  }
+
+  // unwrap some common macros: \mathrm{...}, \text{...}, \mathbf{...}
+  s = s.replace(/\\(mathrm|text|mathbf|mathit|mathsf|mathtt)\{([^{}]*)\}/g, "$2");
+
+  // simple fractions (no nested braces)
+  s = s.replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g, "($1)/($2)");
+
+  const cmdMap = {
+    // greek
+    "\\alpha": "α", "\\beta": "β", "\\gamma": "γ", "\\delta": "δ", "\\epsilon": "ε", "\\varepsilon": "ϵ",
+    "\\zeta": "ζ", "\\eta": "η", "\\theta": "θ", "\\vartheta": "ϑ", "\\iota": "ι", "\\kappa": "κ",
+    "\\lambda": "λ", "\\mu": "μ", "\\nu": "ν", "\\xi": "ξ", "\\pi": "π", "\\varpi": "ϖ",
+    "\\rho": "ρ", "\\varrho": "ϱ", "\\sigma": "σ", "\\varsigma": "ς", "\\tau": "τ", "\\upsilon": "υ",
+    "\\phi": "φ", "\\varphi": "ϕ", "\\chi": "χ", "\\psi": "ψ", "\\omega": "ω",
+    // operators / relations
+    "\\times": "×", "\\cdot": "·", "\\pm": "±", "\\mp": "∓",
+    "\\le": "≤", "\\leq": "≤", "\\ge": "≥", "\\geq": "≥", "\\neq": "≠", "\\approx": "≈",
+    "\\infty": "∞",
+    // arrows
+    "\\rightarrow": "→", "\\leftarrow": "←", "\\leftrightarrow": "↔",
+  };
+
+  // replace commands
+  s = s.replace(/\\[a-zA-Z]+/g, (m) => cmdMap[m] ?? m);
+
+  const SUPER = {
+    "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹",
+    "+": "⁺", "-": "⁻", "=": "⁼", "(": "⁽", ")": "⁾", "n": "ⁿ", "i": "ⁱ",
+  };
+  const SUB = {
+    "0": "₀", "1": "₁", "2": "₂", "3": "₃", "4": "₄", "5": "₅", "6": "₆", "7": "₇", "8": "₈", "9": "₉",
+    "+": "₊", "-": "₋", "=": "₌", "(": "₍", ")": "₎",
+    "a": "ₐ", "e": "ₑ", "h": "ₕ", "i": "ᵢ", "j": "ⱼ", "k": "ₖ", "l": "ₗ", "m": "ₘ", "n": "ₙ",
+    "o": "ₒ", "p": "ₚ", "r": "ᵣ", "s": "ₛ", "t": "ₜ", "u": "ᵤ", "v": "ᵥ", "x": "ₓ",
+  };
+
+  const scriptify = (raw, map) => {
+    if (!raw) return "";
+    const str = raw.replace(/\s+/g, "");
+    if (!str) return "";
+    // support digits / a few symbols / limited letters
+    let out = "";
+    for (const ch of str) {
+      const m = map[ch];
+      if (!m) return null; // bail if unknown char
+      out += m;
+    }
+    return out;
+  };
+
+  // superscript: ^{...} or ^x
+  s = s.replace(/\^\{([^{}]*)\}|\^([^\s{}])/g, (_m, g1, g2) => {
+    const raw = (g1 ?? g2 ?? "").trim();
+    const v = scriptify(raw, SUPER);
+    return v ?? ("^" + raw);
+  });
+
+  // subscript: _{...} or _x
+  s = s.replace(/_\{([^{}]*)\}|_([^\s{}])/g, (_m, g1, g2) => {
+    const raw = (g1 ?? g2 ?? "").trim();
+    const v = scriptify(raw, SUB);
+    return v ?? ("_" + raw);
+  });
+
+  // drop remaining braces
+  s = s.replace(/[{}]/g, "");
+
+  return s.trim();
+}
+
 /**
  * localized_string を現在の言語設定から 1 本の string にする。
  *
@@ -303,8 +384,15 @@ function buildAuxExtensionLabelIndex(document3dss) {
     if (latex) {
       const c = latex.content;
       if (typeof c === "string" && c.trim().length > 0) {
-        text = c.trim();
-        size = normalizeTextSize(latex.font_size);
+        const raw = c.trim();
+        const mode = (typeof latex.render_mode === "string" && latex.render_mode.trim().length > 0)
+          ? latex.render_mode.trim().toLowerCase()
+          : "math";
+        const isMath = (mode === "math" || mode === "inline" || mode === "block");
+        const rendered = isMath ? latexMathToPlainText(raw) : raw;
+        text = (rendered && rendered.trim().length > 0) ? rendered.trim() : raw;
+
+        size = normalizeTextSize(latex.font_size ?? 10);
         pose = normalizeTextPose(latex.pose);
         // schema has no align/font here; keep defaults.
         if (typeof latex.color === "string" && latex.color.trim().length > 0) {
@@ -314,9 +402,26 @@ function buildAuxExtensionLabelIndex(document3dss) {
     } else if (param) {
       const t = (typeof param.type === "string" && param.type.trim()) ? param.type.trim() : null;
       const v = (typeof param.version === "string" && param.version.trim()) ? param.version.trim() : null;
-      text = t ? `parametric:${t}${v ? `@${v}` : ""}` : "parametric";
-      size = normalizeTextSize(8);
-      pose = defaultPose;
+      const params = asPlainObject(param.params);
+
+      const label = (typeof params?.label === "string" && params.label.trim().length > 0)
+        ? params.label.trim()
+        : null;
+
+      if (label) {
+        text = label;
+        size = normalizeTextSize(params?.label_size ?? params?.labelSize ?? 8);
+        pose = defaultPose;
+
+        const lc = params?.label_color ?? params?.labelColor;
+        if (typeof lc === "string" && lc.trim().length > 0) {
+          style = { color: lc.trim() };
+        }
+      } else {
+        text = t ? `parametric:${t}${v ? `@${v}` : ""}` : "parametric";
+        size = normalizeTextSize(8);
+        pose = defaultPose;
+      }
     } else if (typeof ext.type === "string" && ext.type.trim().length > 0) {
       text = `extension:${ext.type.trim()}`;
       size = normalizeTextSize(8);

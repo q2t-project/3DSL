@@ -1439,6 +1439,256 @@ function _readVec2(v, fallback) {
   return fallback;
 }
 
+
+function _asPlainObject(v) {
+  return (v && typeof v === "object" && !Array.isArray(v)) ? v : null;
+}
+
+function _clampInt(raw, min, max, fallback) {
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return fallback;
+  const i = Math.trunc(n);
+  return Math.max(min, Math.min(max, i));
+}
+
+function _readNumFromParams(params, key, fallback) {
+  if (!params) return fallback;
+  const n = Number(params[key]);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function _readBoolFromParams(params, key, fallback) {
+  if (!params) return fallback;
+  const v = params[key];
+  if (v === undefined) return fallback;
+  return !!v;
+}
+
+function _readVec3FromParams(params, key, fallback) {
+  if (!params) return fallback;
+  return readVec3(params[key], fallback);
+}
+
+// module.extension.parametric: safe, no-eval procedural shapes
+function buildParametricExtensionObject(parametric, opts) {
+  const p = _asPlainObject(parametric);
+  if (!p) return null;
+
+  const typeRaw = (typeof p.type === "string") ? p.type.trim().toLowerCase() : "";
+  if (!typeRaw) return null;
+
+  const params = _asPlainObject(p.params) || {};
+
+  const defaultOpacity = readOpacity(opts?.defaultOpacity, 0.4);
+  const renderOrder = Number.isFinite(Number(opts?.renderOrder)) ? Number(opts.renderOrder) : 0;
+
+  const col = readColor(params.color, 0xffffff);
+  const op = readOpacity(params.opacity, defaultOpacity);
+  const depthWrite = _readBoolFromParams(params, "depth_write", false);
+
+  const mkLine = (positions) => {
+    if (!Array.isArray(positions) || positions.length < 6) return null;
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    const mat = new THREE.LineBasicMaterial({
+      color: col,
+      transparent: op < 1,
+      opacity: op,
+    });
+    try { mat.depthWrite = depthWrite; } catch (_e) {}
+    const ln = new THREE.Line(geo, mat);
+    ln.renderOrder = renderOrder;
+    return ln;
+  };
+
+  const mkPoints = (positions) => {
+    if (!Array.isArray(positions) || positions.length < 3) return null;
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    const size = _readNumFromParams(params, "size", 2);
+    const mat = new THREE.PointsMaterial({
+      color: col,
+      size: Math.max(0.01, size),
+      sizeAttenuation: true,
+      transparent: op < 1,
+      opacity: op,
+    });
+    try { mat.depthWrite = depthWrite; } catch (_e) {}
+    const pts = new THREE.Points(geo, mat);
+    pts.renderOrder = renderOrder;
+    return pts;
+  };
+
+  const mkMesh = (geo) => {
+    if (!geo) return null;
+    const wireframe = _readBoolFromParams(params, "wireframe", false);
+    const sideRaw = (typeof params.side === "string") ? params.side.trim().toLowerCase() : "";
+    const side =
+      (sideRaw === "front") ? THREE.FrontSide
+        : (sideRaw === "back") ? THREE.BackSide
+          : THREE.DoubleSide;
+
+    const mat = new THREE.MeshBasicMaterial({
+      color: col,
+      transparent: op < 1,
+      opacity: op,
+      side,
+      wireframe,
+    });
+    try { mat.depthWrite = depthWrite; } catch (_e) {}
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.renderOrder = renderOrder;
+    return mesh;
+  };
+
+  // normalize type (accept curve.polyline / curve:polyline etc.)
+  const t = typeRaw.replace(/[^a-z0-9]+/g, "_");
+
+  let obj = null;
+
+  // -----------------------------
+  // curve: polyline
+  // params.points: flat [x0,y0,z0,x1,y1,z1,...]
+  // -----------------------------
+  if (t === "polyline" || t === "curve_polyline" || t === "curve_line") {
+    const pts = Array.isArray(params.points) ? params.points : (Array.isArray(params.positions) ? params.positions : null);
+    if (pts && pts.length >= 6) {
+      const closed = _readBoolFromParams(params, "closed", false);
+      const positions = pts.map((v) => Number(v) || 0);
+      if (closed && positions.length >= 6) {
+        positions.push(positions[0], positions[1], positions[2]);
+      }
+      obj = mkLine(positions);
+    }
+  }
+
+  // -----------------------------
+  // curve: circle
+  // params: radius, segments, plane("xy"|"xz"|"yz"), center([x,y,z]), phase
+  // -----------------------------
+  if (!obj && (t === "circle" || t === "curve_circle")) {
+    const r = Math.max(0.0001, Math.abs(_readNumFromParams(params, "radius", 10)));
+    const seg = _clampInt(params.segments, 3, 8192, 128);
+    const plane = (typeof params.plane === "string" ? params.plane.trim().toLowerCase() : "xy") || "xy";
+    const center = _readVec3FromParams(params, "center", [0, 0, 0]);
+    const phase = _readNumFromParams(params, "phase", 0);
+
+    const positions = [];
+    for (let i = 0; i <= seg; i++) {
+      const a = phase + (i / seg) * Math.PI * 2;
+      const c = Math.cos(a) * r;
+      const s = Math.sin(a) * r;
+
+      let x = 0, y = 0, z = 0;
+      if (plane === "xz") { x = c; z = s; y = 0; }
+      else if (plane === "yz") { y = c; z = s; x = 0; }
+      else { x = c; y = s; z = 0; }
+
+      positions.push(center[0] + x, center[1] + y, center[2] + z);
+    }
+    obj = mkLine(positions);
+  }
+
+  // -----------------------------
+  // curve: helix
+  // params: radius, pitch, turns, segments, axis("x"|"y"|"z"), center([x,y,z]), phase
+  // -----------------------------
+  if (!obj && (t === "helix" || t === "curve_helix" || t === "spiral")) {
+    const r = Math.max(0.0001, Math.abs(_readNumFromParams(params, "radius", 10)));
+    const pitch = _readNumFromParams(params, "pitch", 2);
+    const turns = _readNumFromParams(params, "turns", 3);
+    const seg = _clampInt(params.segments, 8, 20000, 512);
+    const axis = (typeof params.axis === "string" ? params.axis.trim().toLowerCase() : "z") || "z";
+    const center = _readVec3FromParams(params, "center", [0, 0, 0]);
+    const phase = _readNumFromParams(params, "phase", 0);
+
+    const positions = [];
+    const total = pitch * turns;
+    for (let i = 0; i <= seg; i++) {
+      const t0 = i / seg;
+      const a = phase + t0 * Math.PI * 2 * turns;
+      const c = Math.cos(a) * r;
+      const s = Math.sin(a) * r;
+      const along = total * t0;
+
+      let x = 0, y = 0, z = 0;
+      if (axis === "x") { x = along; y = c; z = s; }
+      else if (axis === "y") { y = along; x = c; z = s; }
+      else { z = along; x = c; y = s; }
+
+      positions.push(center[0] + x, center[1] + y, center[2] + z);
+    }
+    obj = mkLine(positions);
+  }
+
+  // -----------------------------
+  // points: from flat array
+  // type: points
+  // -----------------------------
+  if (!obj && (t === "points" || t === "pointcloud")) {
+    const pts = Array.isArray(params.points) ? params.points : (Array.isArray(params.positions) ? params.positions : null);
+    if (pts && pts.length >= 3) {
+      const positions = pts.map((v) => Number(v) || 0);
+      obj = mkPoints(positions);
+    }
+  }
+
+  // -----------------------------
+  // surface: plane
+  // params: size([w,h]) or width/height, seg_x, seg_y, plane("xy"|"xz"|"yz")
+  // -----------------------------
+  if (!obj && (t === "plane" || t === "surface_plane")) {
+    const size = _readVec2(params.size, null);
+    const w = Math.max(0.001, Math.abs(Number(size?.[0] ?? _readNumFromParams(params, "width", 64))) || 64);
+    const h = Math.max(0.001, Math.abs(Number(size?.[1] ?? _readNumFromParams(params, "height", 64))) || 64);
+
+    const sx = _clampInt(params.seg_x ?? params.segments_x, 1, 2048, 10);
+    const sy = _clampInt(params.seg_y ?? params.segments_y, 1, 2048, 10);
+
+    const geo = new THREE.PlaneGeometry(w, h, sx, sy);
+    const mesh = mkMesh(geo);
+    if (mesh) {
+      const plane = (typeof params.plane === "string" ? params.plane.trim().toLowerCase() : "xy") || "xy";
+      if (plane === "xz") mesh.rotation.x = Math.PI / 2;
+      else if (plane === "yz") mesh.rotation.y = Math.PI / 2;
+      obj = mesh;
+    }
+  }
+
+  // -----------------------------
+  // surface: sphere
+  // params: radius, wseg, hseg
+  // -----------------------------
+  if (!obj && (t === "sphere" || t === "surface_sphere")) {
+    const r = Math.max(0.001, Math.abs(_readNumFromParams(params, "radius", 32)));
+    const ws = _clampInt(params.wseg ?? params.width_segments, 3, 512, 32);
+    const hs = _clampInt(params.hseg ?? params.height_segments, 2, 512, 20);
+    const geo = new THREE.SphereGeometry(r, ws, hs);
+    obj = mkMesh(geo);
+  }
+
+  // transform overrides on the generated object
+  if (obj) {
+    try {
+      const off = _readVec3FromParams(params, "offset", null) || _readVec3FromParams(params, "position", null);
+      if (off) obj.position.set(off[0], off[1], off[2]);
+    } catch (_e) {}
+    try {
+      const rot = _readVec3FromParams(params, "rotation", null);
+      if (rot) applyEulerYawPitchRoll(obj, rot);
+    } catch (_e) {}
+    try {
+      const sc = _readVec3FromParams(params, "scale", null);
+      if (sc) applyScaleVec3(obj, sc);
+    } catch (_e) {}
+
+    obj.userData.__auxExtensionParametric = { type: typeRaw, version: p.version, params };
+  }
+
+  return obj;
+}
+
+
 for (const aux of axs) {
   const uuid = aux?.signification?.uuid || pickUuidCompat(aux) || crypto.randomUUID();
   const app = (aux?.appearance && typeof aux.appearance === "object") ? aux.appearance : {};
@@ -1760,12 +2010,24 @@ for (const aux of axs) {
   // ------------------------------------------------------------
   // module.extension
   // - extension.latex: LaTeX 文字列をそのままテキストラベルとして表示（組版は未対応）
-  // - extension.parametric: プレースホルダ表示（将来: 手続き生成）
+  // - extension.parametric: 安全な手続き生成（no-eval）
+  //   - polyline / circle / helix / plane / sphere / points
   // ------------------------------------------------------------
   const extCfg = (mod?.extension && typeof mod.extension === "object") ? mod.extension : null;
   if (extCfg) {
     const latex = (extCfg?.latex && typeof extCfg.latex === "object") ? extCfg.latex : null;
     const param = (extCfg?.parametric && typeof extCfg.parametric === "object") ? extCfg.parametric : null;
+
+    // build parametric object (best-effort)
+    if (param) {
+      try {
+        const gen = buildParametricExtensionObject(param, {
+          defaultOpacity: app.opacity,
+          renderOrder: root.renderOrder,
+        });
+        if (gen) root.add(gen);
+      } catch (_e) {}
+    }
 
     let makeAnchor = false;
     let offset = [0, 0, 0];
@@ -1774,10 +2036,18 @@ for (const aux of axs) {
       const hasLatex = !!(latex && typeof latex.content === "string" && latex.content.trim().length > 0);
       const hasParam = !!param;
       const hasType = (typeof extCfg.type === "string" && extCfg.type.trim().length > 0);
+
       if (hasLatex) {
         makeAnchor = true;
         offset = readVec3(latex.position, [0, 0, 0]);
-      } else if (hasParam || hasType) {
+      } else if (hasParam) {
+        makeAnchor = true;
+        const params = (param && typeof param === "object" && param.params && typeof param.params === "object")
+          ? param.params
+          : null;
+        // label_offset は parametric 専用（生成物とは別の、ラベルの置き場所）
+        offset = readVec3(params?.label_offset ?? params?.labelOffset, [0, 0, 0]);
+      } else if (hasType) {
         makeAnchor = true;
       }
     } catch (_e) {}
@@ -1797,6 +2067,8 @@ for (const aux of axs) {
       } catch (_e) {}
     }
   }
+
+
 
 
   groups.aux.add(root);
