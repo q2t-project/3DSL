@@ -274,7 +274,13 @@ export function createTimeline(hub, opts = {}) {
   function onKeyDown(ev) {
     // 入力欄は無視
     const tag = (ev.target && ev.target.tagName) || '';
-    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'BUTTON') return;
+    if (tag === 'INPUT') {
+      const t = String(ev.target?.type || '').toLowerCase();
+      // range(フレームスライダ) は Space で再生/停止したいので許可
+      if (t !== 'range') return;
+    }
+    if (tag === 'TEXTAREA') return;
+    if (tag === 'BUTTON') return;
     if (ev.target?.isContentEditable) return;
 
     if (ev.code === 'Space') {

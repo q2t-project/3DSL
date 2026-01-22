@@ -118,7 +118,12 @@ export class KeyboardInput {
 
     // 入力欄/編集要素にフォーカス乗ってるときはスキップ
     const tag = (ev.target && ev.target.tagName) || '';
-    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    if (tag === 'INPUT') {
+      const t = String(ev.target?.type || '').toLowerCase();
+      // range は viewer の操作（フレーム/スライダ）に使うので許可
+      if (t !== 'range') return;
+    }
+    if (tag === 'TEXTAREA') return;
     if (ev.target?.isContentEditable) return;
     const camera = hf.getCamera?.() ?? null;
     const frame = hf.getFrameApi?.() ?? null;
@@ -150,7 +155,8 @@ export class KeyboardInput {
       code === 'IntlYen' ||
       code === 'IntlRo' ||
       key === '\\' ||
-      key === '¥';
+      key === '¥' ||
+      key === '￥';
 
     if (isViewCycleKey) {
       if (!camera) return;

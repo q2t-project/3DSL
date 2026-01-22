@@ -494,32 +494,61 @@ export function attachUiProfile(hub, opts) {
     if (vs && typeof vs.toggleWorldAxes === 'function') {
       const btn = el('worldAxesToggle');
       if (btn) {
-        const update = (v) => {
-          const onv = !!v;
+        const update = (visible, mode) => {
+          const onv = !!visible;
+          const n = Number(mode);
+          const mm = Number.isFinite(n) ? n : (onv ? 1 : 0);
           btn.dataset.visible = onv ? 'true' : 'false';
+          btn.dataset.mode = String(mm);
           btn.setAttribute('aria-pressed', onv ? 'true' : 'false');
         };
 
+        const read = () => {
+          const onv = !!vs.getWorldAxesVisible?.();
+          const mm =
+            typeof vs.getWorldAxesMode === 'function'
+              ? vs.getWorldAxesMode()
+              : (onv ? 1 : 0);
+          update(onv, mm);
+        };
+
         try {
-          update(!!vs.getWorldAxesVisible?.());
+          read();
         } catch (_e) {}
 
-        const unsub = vs.onWorldAxesChanged?.((v) => update(v));
-        if (typeof unsub === 'function') add(unsub);
+        const unsub1 = vs.onWorldAxesChanged?.((v) => {
+          const mm =
+            typeof vs.getWorldAxesMode === 'function'
+              ? vs.getWorldAxesMode()
+              : (!!v ? 1 : 0);
+          update(!!v, mm);
+        });
+        if (typeof unsub1 === 'function') add(unsub1);
+
+        const unsub2 = vs.onWorldAxesModeChanged?.((m) => {
+          const onv =
+            typeof vs.getWorldAxesVisible === 'function'
+              ? !!vs.getWorldAxesVisible()
+              : Number(m) > 0;
+          update(onv, m);
+        });
+        if (typeof unsub2 === 'function') add(unsub2);
 
         on(btn, 'click', (ev) => {
           ev.preventDefault?.();
           vs.toggleWorldAxes();
           if (
             typeof vs.onWorldAxesChanged !== 'function' &&
+            typeof vs.onWorldAxesModeChanged !== 'function' &&
             typeof vs.getWorldAxesVisible === 'function'
           ) {
             try {
-              update(!!vs.getWorldAxesVisible());
+              read();
             } catch (_e) {}
           }
         });
       }
+    }
     }
   }
 

@@ -1,184 +1,239 @@
 // viewer/runtime/renderer/worldAxes.js
 //
-// ワールド共通の座標軸（gizmo 左下の worldaxis トグルで表示）
+// ワールド共通の座標軸（背景用）レイヤ。
 // - X = 青, Y = 緑, Z = 赤
-// - 3モード: OFF -> FIXED -> FULL_VIEW -> OFF
-//   - FIXED: シーン半径から決めた固定長
-//   - FULL_VIEW: ビューポート内一杯（カメラのフラスタム境界まで）
+// - OFF / FIXED / FULL_VIEW の 3 モード
+//   - OFF      : 非表示
+//   - FIXED    : sceneRadius ベースの固定長（従来互換）
+//   - FULL_VIEW: 原点が視野内にあるとき、各軸をフラスタム境界まで伸ばして
+//                「ビューポート内いっぱい」に見える長さにする
+//
+// NOTE:
+// - FULL_VIEW は「原点がフラスタム内」のときだけ有効。
+//   原点が視野外の場合は FIXED にフォールバック。
 
 import * as THREE from "/vendor/three/build/three.module.js";
+
+export const WORLD_AXES_MODE = /** @type {const} */ ({
+  OFF: 0,
+  FIXED: 1,
+  FULL_VIEW: 2,
+});
+
+function clampMode(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return WORLD_AXES_MODE.OFF;
+  if (n <= 0) return WORLD_AXES_MODE.OFF;
+  if (n >= 2) return WORLD_AXES_MODE.FULL_VIEW;
+  return WORLD_AXES_MODE.FIXED;
+}
 
 export function createWorldAxesLayer(scene) {
   const group = new THREE.Group();
   group.name = "world-axes";
-  // overlay 的に常に見える方が UX が良いので最前面寄りに寄せる
-  group.renderOrder = 9999;
+  group.renderOrder = -10; // なるべく背景側
   group.visible = false;
   scene.add(group);
 
-  // 0: off, 1: fixed, 2: full_view
-  let mode = 0;
-  let sceneRadius = 1;
-
   const origin = new THREE.Vector3(0, 0, 0);
+  const _tmp = new THREE.Vector3();
 
-  const _tmpMat = new THREE.Matrix4();
-  const _frustum = new THREE.Frustum();
-  const _tmpP = new THREE.Vector3();
-  const _dx = new THREE.Vector3(1, 0, 0);
-  const _dy = new THREE.Vector3(0, 1, 0);
-  const _dz = new THREE.Vector3(0, 0, 1);
-  const _dxn = new THREE.Vector3(-1, 0, 0);
-  const _dyn = new THREE.Vector3(0, -1, 0);
-  const _dzn = new THREE.Vector3(0, 0, -1);
+  let mode = WORLD_AXES_MODE.OFF;
+  let sceneRadius = 1;
+  const FIXED_MUL = 3.0;
 
-  function _makeLine(color, opacity) {
+  const frustum = new THREE.Frustum();
+  const pv = new THREE.Matrix4();
+
+  function makeLine(color, opacity) {
+    const arr = new Float32Array(6);
     const geom = new THREE.BufferGeometry();
-    const pos = new Float32Array(6);
-    geom.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    const attr = new THREE.BufferAttribute(arr, 3);
+    attr.setUsage(THREE.DynamicDrawUsage);
+    geom.setAttribute("position", attr);
+
     const mat = new THREE.LineBasicMaterial({
       color,
       transparent: true,
       opacity,
-      depthTest: false,
       depthWrite: false,
     });
+
     const line = new THREE.Line(geom, mat);
-    line.frustumCulled = false;
-    line.renderOrder = group.renderOrder;
-    return { line, geom, pos };
+    line.frustumCulled = false; // 背景線はカリングさせない
+
+    group.add(line);
+    return { line, geom, attr, arr, mat };
   }
 
-  // X=青 / Y=緑 / Z=赤
-  const lines = {
-    xPos: _makeLine(new THREE.Color(0x3366ff), 0.55),
-    xNeg: _makeLine(new THREE.Color(0x112244), 0.30),
-    yPos: _makeLine(new THREE.Color(0x33ff66), 0.55),
-    yNeg: _makeLine(new THREE.Color(0x115533), 0.30),
-    zPos: _makeLine(new THREE.Color(0xff3366), 0.55),
-    zNeg: _makeLine(new THREE.Color(0x553333), 0.30),
-  };
-  for (const k of Object.keys(lines)) group.add(lines[k].line);
+  /** @type {Array<{axis:string, dir:THREE.Vector3, dirNeg:THREE.Vector3, pos:any, neg:any}>} */
+  const axes = [];
 
-  function _setSegment(buf, x1, y1, z1, x2, y2, z2) {
-    buf[0] = x1; buf[1] = y1; buf[2] = z1;
-    buf[3] = x2; buf[4] = y2; buf[5] = z2;
-  }
+  function initAxes() {
+    group.clear();
 
-  function _applyFixedLength() {
-    const r = Number.isFinite(sceneRadius) && sceneRadius > 0 ? sceneRadius : 1;
-    // 旧 AxesHelper スケールの感覚に合わせて固定長を決める
-    const len = Math.max(0.6, Math.min(r * 0.25, 50));
-    _applyLengths({
-      xPos: len,
-      xNeg: len,
-      yPos: len,
-      yNeg: len,
-      zPos: len,
-      zNeg: len,
-    });
-  }
+    // X=青 / Y=緑 / Z=赤
+    const defs = [
+      {
+        axis: "x",
+        dir: new THREE.Vector3(1, 0, 0),
+        colorPos: new THREE.Color(0x3366ff),
+        colorNeg: new THREE.Color(0x112244),
+      },
+      {
+        axis: "y",
+        dir: new THREE.Vector3(0, 1, 0),
+        colorPos: new THREE.Color(0x33ff66),
+        colorNeg: new THREE.Color(0x115533),
+      },
+      {
+        axis: "z",
+        dir: new THREE.Vector3(0, 0, 1),
+        colorPos: new THREE.Color(0xff3366),
+        colorNeg: new THREE.Color(0x553333),
+      },
+    ];
 
-  function _applyLengths(L) {
-    _setSegment(lines.xPos.pos, 0, 0, 0,  L.xPos, 0, 0);
-    _setSegment(lines.xNeg.pos, 0, 0, 0, -L.xNeg, 0, 0);
-    _setSegment(lines.yPos.pos, 0, 0, 0, 0,  L.yPos, 0);
-    _setSegment(lines.yNeg.pos, 0, 0, 0, 0, -L.yNeg, 0);
-    _setSegment(lines.zPos.pos, 0, 0, 0, 0, 0,  L.zPos);
-    _setSegment(lines.zNeg.pos, 0, 0, 0, 0, 0, -L.zNeg);
-    for (const k of Object.keys(lines)) {
-      lines[k].geom.attributes.position.needsUpdate = true;
-      lines[k].geom.computeBoundingSphere();
+    axes.length = 0;
+    for (const d of defs) {
+      const dirNeg = d.dir.clone().multiplyScalar(-1);
+      const pos = makeLine(d.colorPos, 0.45);
+      const neg = makeLine(d.colorNeg, 0.25);
+      axes.push({ axis: d.axis, dir: d.dir, dirNeg, pos, neg });
     }
   }
 
-  function updateMetrics({ radius }) {
-    if (typeof radius === "number" && radius > 0) {
-      sceneRadius = radius;
-    } else {
-      sceneRadius = 1;
-    }
-    if (mode === 1) _applyFixedLength();
+  function setSegment(seg, from, to) {
+    const a = seg.arr;
+    a[0] = from.x;
+    a[1] = from.y;
+    a[2] = from.z;
+    a[3] = to.x;
+    a[4] = to.y;
+    a[5] = to.z;
+    seg.attr.needsUpdate = true;
+    // bounding sphere は簡易で良い（表示だけ）
+    try {
+      seg.geom.computeBoundingSphere();
+    } catch (_e) {}
   }
 
-  function setMode(m) {
-    let mm = Number(m);
-    if (!Number.isFinite(mm)) mm = 0;
-    mm = (mm === 2) ? 2 : ((mm === 1) ? 1 : 0);
-    mode = mm;
-    group.visible = mode !== 0;
-    if (mode === 1) _applyFixedLength();
+  function fixedLen() {
+    const base = Number.isFinite(sceneRadius) && sceneRadius > 0 ? sceneRadius : 1;
+    return base * FIXED_MUL;
+  }
+
+  function buildFrustum(camera) {
+    if (!camera) return false;
+    // matrixWorldInverse は renderer 側で更新されるが、保険で呼ぶ
+    if (typeof camera.updateMatrixWorld === "function") camera.updateMatrixWorld(true);
+    pv.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    frustum.setFromProjectionMatrix(pv);
+    return true;
+  }
+
+  // 原点から dir 方向に進んだとき、最初にフラスタム境界に当たる t を返す
+  // - 原点がフラスタム内であることが前提
+  function exitT(camera, dir) {
+    if (!buildFrustum(camera)) return null;
+    if (!frustum.containsPoint(origin)) return null;
+
+    let best = Infinity;
+    for (const p of frustum.planes) {
+      const denom = p.normal.dot(dir);
+      if (denom <= 1e-6) continue;
+      // origin = 0 なので plane.constant だけでOK
+      const t = -p.constant / denom;
+      if (t > 1e-6 && t < best) best = t;
+    }
+    if (!Number.isFinite(best)) return null;
+    return best;
+  }
+
+  function updateSegmentsFixed() {
+    const L = fixedLen();
+    for (const ax of axes) {
+      setSegment(ax.pos, origin, _tmp.copy(ax.dir).multiplyScalar(L));
+      setSegment(ax.neg, origin, _tmp.copy(ax.dirNeg).multiplyScalar(L));
+    }
+  }
+
+  function updateSegmentsFullView(camera) {
+    const fallback = fixedLen();
+
+    // 原点が視野外ならフォールバック
+    if (!buildFrustum(camera) || !frustum.containsPoint(origin)) {
+      for (const ax of axes) {
+        setSegment(ax.pos, origin, _tmp.copy(ax.dir).multiplyScalar(fallback));
+        setSegment(ax.neg, origin, _tmp.copy(ax.dirNeg).multiplyScalar(fallback));
+      }
+      return;
+    }
+
+    for (const ax of axes) {
+      const tPos = exitT(camera, ax.dir);
+      const tNeg = exitT(camera, ax.dirNeg);
+      const Lp = Number.isFinite(tPos) && tPos > 0 ? tPos : fallback;
+      const Ln = Number.isFinite(tNeg) && tNeg > 0 ? tNeg : fallback;
+
+      setSegment(ax.pos, origin, _tmp.copy(ax.dir).multiplyScalar(Lp));
+      setSegment(ax.neg, origin, _tmp.copy(ax.dirNeg).multiplyScalar(Ln));
+    }
+  }
+
+  function applyMode() {
+    group.visible = mode !== WORLD_AXES_MODE.OFF;
+  }
+
+  function setMode(next) {
+    const m = clampMode(next);
+    if (m === mode) return;
+    mode = m;
+    applyMode();
   }
 
   function getMode() {
     return mode;
   }
 
-  function _rayToFrustumDistance(dir) {
-    // origin がフラスタム外なら「ビュー内一杯」の定義が破綻するので null
-    if (!_frustum.containsPoint(origin)) return null;
+  function updateMetrics({ radius }) {
+    if (typeof radius === "number" && radius > 0) sceneRadius = radius;
+    else sceneRadius = 1;
 
-    let best = Infinity;
-    for (const plane of _frustum.planes) {
-      const denom = plane.normal.dot(dir);
-      if (Math.abs(denom) < 1e-6) continue;
-      const t = -(plane.distanceToPoint(origin)) / denom;
-      if (!(t > 0)) continue;
-      _tmpP.copy(origin).addScaledVector(dir, t);
-      if (_frustum.containsPoint(_tmpP)) {
-        if (t < best) best = t;
-      }
+    // モードに応じて反映（FULL_VIEW は updateView でやる）
+    if (mode === WORLD_AXES_MODE.FIXED) updateSegmentsFixed();
+    if (mode === WORLD_AXES_MODE.OFF) {
+      // 何もしない
     }
-    return Number.isFinite(best) ? best : null;
   }
 
-  function updateView({ camera }) {
-    if (mode !== 2) return;
-    if (!camera) return;
-
-    try { camera.updateMatrixWorld?.(); } catch (_e) {}
-
-    // フラスタム更新
-    _tmpMat.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-    _frustum.setFromProjectionMatrix(_tmpMat);
-
-    const txp = _rayToFrustumDistance(_dx);
-    const txn = _rayToFrustumDistance(_dxn);
-    const typ = _rayToFrustumDistance(_dy);
-    const tyn = _rayToFrustumDistance(_dyn);
-    const tzp = _rayToFrustumDistance(_dz);
-    const tzn = _rayToFrustumDistance(_dzn);
-
-    // fallback: どれか取れないなら固定長へ
-    if (
-      txp === null || txn === null ||
-      typ === null || tyn === null ||
-      tzp === null || tzn === null
-    ) {
-      _applyFixedLength();
-      return;
-    }
-
-    const k = 0.985; // 端ぴったりはクリップしやすいので少し内側
-    _applyLengths({
-      xPos: txp * k,
-      xNeg: txn * k,
-      yPos: typ * k,
-      yNeg: tyn * k,
-      zPos: tzp * k,
-      zNeg: tzn * k,
-    });
+  function updateView({ camera } = {}) {
+    if (mode !== WORLD_AXES_MODE.FULL_VIEW) return;
+    updateSegmentsFullView(camera);
   }
 
-  // 初期化
-  setMode(0);
-  _applyFixedLength();
+  // 互換 API: setVisible / toggle
+  function setVisible(flag) {
+    setMode(flag ? WORLD_AXES_MODE.FIXED : WORLD_AXES_MODE.OFF);
+  }
+
+  function toggle() {
+    setVisible(!group.visible);
+  }
+
+  // init
+  initAxes();
+  updateSegmentsFixed();
+  applyMode();
 
   return {
     group,
-    updateMetrics,
     setMode,
     getMode,
+    updateMetrics,
     updateView,
+    // back-compat
+    setVisible,
+    toggle,
   };
 }
