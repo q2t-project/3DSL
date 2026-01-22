@@ -284,7 +284,7 @@ function maybeForceContextLoss(renderer, enabled) {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(50, 1, 0.01, 100000);
   camera.up.set(0, 0, 1); // Z-up
-  // world axes layer は ctx に保持（hub 管理 / 二重管理禁止）
+  // worldAxes layer は ctx に保持（未宣言参照・再宣言事故を防ぐ）
   ctx._worldAxesLayer = ctx._worldAxesLayer || null;
   // sceneMetricsCache は下の minimal runtime セクションで 1 回だけ宣言する（重複防止）
 
@@ -309,45 +309,58 @@ function maybeForceContextLoss(renderer, enabled) {
 
   // viewerSettings 適用用のローカル状態（未定義参照を防ぐ）
   let _lastViewerSettingsKey = "";
+  // world axes layer は ctx に保持
   if (ctx._worldAxesLayer === undefined) ctx._worldAxesLayer = null;
+  let _worldAxesMode = 0; // 0: off, 1: fixed, 2: full_view
 
   function ensureWorldAxesLayer() {
-    let layer = ctx._worldAxesLayer;
-    if (layer && layer.group?.parent === scene) return layer;
+    let l = ctx._worldAxesLayer;
+    if (l && l.group && l.group.parent === scene) return l;
     // 古いのが残ってたら remove
-    if (layer?.group?.parent) {
-      try { layer.group.parent.remove(layer.group); } catch (_e) {}
+    if (l && l.group && l.group.parent) {
+      try { l.group.parent.remove(l.group); } catch (_e) {}
     }
-    layer = createWorldAxesLayer(scene);
-    // metrics が既にあれば反映
-    try { if (sceneMetricsCache) layer.updateMetrics(sceneMetricsCache); } catch (_e) {}
-    ctx._worldAxesLayer = layer;
-    return layer;
+    l = createWorldAxesLayer(scene);
+    // layer 側デフォルトは非表示だが、mode があるなら復元
+    try { l.setMode?.(_worldAxesMode); } catch (_e) {}
+    ctx._worldAxesLayer = l;
+    return l;
   }
 
-  // viewerHub.viewerSettings が叩く公開 API
+  function updateWorldAxesMetricsFromCache() {
+    const l = ctx._worldAxesLayer;
+    if (!l) return;
+    const r = Number(sceneMetricsCache?.radius);
+    try { l.updateMetrics?.({ radius: r }); } catch (_e) {}
+  }
+
   function setWorldAxesMode(mode) {
-    const n = Number(mode);
-    const m = (n === 2) ? 2 : (n ? 1 : 0);
-    const layer = ensureWorldAxesLayer();
-    try { layer.setMode(m); } catch (_e) {}
-    // immediate update (metrics/camera)
-    try { if (sceneMetricsCache) layer.updateMetrics(sceneMetricsCache); } catch (_e) {}
-    try { layer.updateCamera(camera); } catch (_e) {}
+    let m = Number(mode);
+    if (!Number.isFinite(m)) m = 0;
+    m = (m === 2) ? 2 : ((m === 1) ? 1 : 0);
+    _worldAxesMode = m;
+
+    const l = ensureWorldAxesLayer();
+    try { l.setMode?.(m); } catch (_e) {}
+    if (m !== 0) {
+      updateWorldAxesMetricsFromCache();
+      if (m === 2) {
+        try { l.updateView?.({ camera }); } catch (_e) {}
+      }
+    }
   }
 
   function getWorldAxesMode() {
-    const layer = ctx._worldAxesLayer;
-    try { return Number(layer?.getMode?.() ?? 0) || 0; } catch (_e) { return 0; }
+    return _worldAxesMode;
   }
 
+  // backward compatible API
   function setWorldAxesVisible(flag) {
-    // backward-compat: visible=true -> FIXED
     setWorldAxesMode(flag ? 1 : 0);
   }
 
   function getWorldAxesVisible() {
-    return getWorldAxesMode() !== 0;
+    return _worldAxesMode !== 0;
   }
 
   // hub から呼べるように公開（ここ1回だけ）
@@ -2082,12 +2095,14 @@ for (const aux of axs) {
     // 線のみ等で positions から決められない場合の最終手段
     if (!sceneMetricsCache) sceneMetricsCache = computeSceneMetricsFromGroups(groups);
 
-    // world axes が表示中なら最新 metrics を反映
+    // world axes が表示中なら最新 metrics で更新
     try {
-      const layer = ctx._worldAxesLayer;
-      if (layer && typeof layer.updateMetrics === "function" && getWorldAxesMode() !== 0) {
-        layer.updateMetrics(sceneMetricsCache);
-        layer.updateCamera?.(camera);
+      if (_worldAxesMode !== 0) {
+        ensureWorldAxesLayer();
+        updateWorldAxesMetricsFromCache();
+        if (_worldAxesMode === 2) {
+          ctx._worldAxesLayer?.updateView?.({ camera });
+        }
       }
     } catch (_e) {}
   };
@@ -2161,8 +2176,6 @@ for (const aux of axs) {
     if (pos) camera.position.set(pos[0], pos[1], pos[2]);
     camera.lookAt(tgt[0], tgt[1], tgt[2]);
     camera.updateProjectionMatrix();
-    // world axes (FULL_VIEW) follows camera
-    try { ctx._worldAxesLayer?.updateCamera?.(camera); } catch (_e) {}
     try {
       Object.assign(labelCameraState, st, {
         viewport: labelViewport,
@@ -2186,8 +2199,14 @@ for (const aux of axs) {
     labelViewport.dpr = pr;
     camera.aspect = cw / ch;
     camera.updateProjectionMatrix();
-    // world axes (FULL_VIEW) reacts to aspect change
-    try { ctx._worldAxesLayer?.updateCamera?.(camera); } catch (_e) {}
+
+    // FULL_VIEW mode: camera 変更に追従
+    try {
+      if (_worldAxesMode === 2) {
+        ensureWorldAxesLayer();
+        ctx._worldAxesLayer?.updateView?.({ camera });
+      }
+    } catch (_e) {}
   };
 
   // ------------------------------------------------------------
@@ -2269,6 +2288,13 @@ for (const aux of axs) {
     try { updateHudObjects(); } catch (_e) {}
 
     try { updateAuxExtensionAnchors(); } catch (_e) {}
+
+    // world axes FULL_VIEW: camera に追従（計算コストは軽い）
+    try {
+      if (_worldAxesMode === 2) {
+        ctx._worldAxesLayer?.updateView?.({ camera });
+      }
+    } catch (_e) {}
 
     try { labelLayer.update(); } catch (_e) {}
     renderer.render(scene, camera);
