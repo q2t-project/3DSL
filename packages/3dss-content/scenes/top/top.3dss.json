@@ -36,7 +36,7 @@
       "meta": { "uuid": "692d0705-6e0d-4af6-8b67-3ce79631cfcf", "tags": [ "x:b" ] } },
 
     { "signification": {"name": "form" },
-      "appearance": { "position": [2, 0, 0],
+      "appearance": { "position": [4, 0, 0],
         "marker": { "primitive": "sphere", "radius": 0.05, "common": { "opacity": 0.25, "emissive": false, "wireframe": false, "color": "#444488" },
           "text": { "content": "form", "pose": { "front": [0, 1, 0], "up": [0, 0, 1] }, "size": 1, "align": "center&middle", "font": "helvetiker_regular" } } },
       "meta": { "uuid": "6b349f44-6b65-4b6a-9f27-4bb9bc840e96", "tags": [ "x:b" ] } },
@@ -57,30 +57,30 @@
     ],
 
   "lines": [
-    { "signification": { "relation": { "structural": "containment" }, "sense": "a_to_b","caption": "hello->function" },
+    { "signification": { "relation": { "structural": "containment" }, "sense": "a_to_b" },
       "appearance": { "end_a": { "ref": "4ffcf12b-ab09-49d5-b361-60a1e17e45e0"}, "end_b": { "ref": "1e595a5b-44aa-42e3-9b22-f83769bade60" }, "line_style": "solid", "opacity": 0.45, "color": "#22ff22",
-        "caption_text": { "pose": { "front": [ 1, 0, 0 ], "up": [ 0, 0, 1 ] }, "font_size": 1 }, "line_type": "straight", "frames": [0],
+      "line_type": "straight", "frames": [0],
         "arrow": { "primitive": "cone", "radius": 0.25, "height": 1.0 } },
        "meta": { "uuid": "fe026297-6657-42c0-97b5-490716e9e0b9", "tags": [ "x:l_root_a" ] } },
 
-    { "signification": { "relation": { "structural": "containment" }, "sense": "a_to_b", "caption": "hello-structure" },
+    { "signification": { "relation": { "structural": "containment" }, "sense": "a_to_b" },
       "appearance": { "end_a": { "ref": "4ffcf12b-ab09-49d5-b361-60a1e17e45e0" }, "end_b": { "ref": "692d0705-6e0d-4af6-8b67-3ce79631cfcf" }, "line_style": "solid", "opacity": 0.65, "color": "#444444", 
-        "caption_text": { "pose": { "front": [1, 0, 0], "up": [0, 0, 1] }, "font_size": 1 }, "line_type": "straight", "frames": [ 0 ] },
+      "line_type": "straight", "frames": [ 0 ] },
       "meta": { "uuid": "572b6eff-9b59-4c89-a13e-d014cc982a79", "tags": [ "x:l_root_a" ] } },
 
-    { "signification": { "relation": { "structural": "association" }, "sense": "a_to_b", "caption": "function-structure" },
-      "appearance": { "end_a": { "ref": "1e595a5b-44aa-42e3-9b22-f83769bade60" }, "end_b": { "ref": "692d0705-6e0d-4af6-8b67-3ce79631cfcf" }, "line_style": "solid", "opacity": 0.45, "color": "#ffffff",
-        "caption_text": { "pose": { "front": [ 0, 1, 1 ], "up": [ 1, 0, 0 ] }, "font_size": 1 }, "line_type": "straight", "frames": [0] },
+    { "signification": { "relation": { "structural": "association" }, "sense": "a_to_b" },
+      "appearance": { "end_a": { "ref": "1e595a5b-44aa-42e3-9b22-f83769bade60" }, "end_b": { "ref": "692d0705-6e0d-4af6-8b67-3ce79631cfcf" }, "line_style": "solid", "opacity": 0.3, "color": "#ffffff",
+      "line_type": "straight", "frames": [0] },
       "meta": { "uuid": "a7d63c13-3041-42b1-83cc-347b7596d5b3", "tags": [ "x:l_a_b" ] } },
 
-    { "signification": { "relation": { "structural": "association" }, "sense": "a_to_b", "caption": "hello->meaning" },
+    { "signification": { "relation": { "structural": "association" }, "sense": "a_to_b" },
       "appearance": { "end_a": { "ref": "4ffcf12b-ab09-49d5-b361-60a1e17e45e0" }, "end_b": { "ref": "58329ee1-d2ae-4aa2-9687-4ab855806a12" }, "line_style": "solid", "opacity": 0.45, "color": "#ffffff",
-        "caption_text": { "pose": { "front": [ 0, 1, 1 ], "up": [ 1, 0, 0 ] }, "font_size": 1 }, "line_type": "straight", "frames": [0] },
+      "line_type": "straight", "frames": [0] },
       "meta": { "uuid": "dd98abfb-bd85-42cf-a0aa-8568d49dffe8", "tags": [ "x:l_a_b" ] } },
 
-    { "signification": { "relation": { "structural": "containment" }, "sense": "a_to_b", "caption": "context->hello" },
-      "appearance": { "end_a": { "ref": "aa2ef6e7-6616-4ef5-bfe3-f9a8cfa0938d" }, "end_b": { "ref": "4ffcf12b-ab09-49d5-b361-60a1e17e45e0" }, "line_style": "solid", "opacity": 0.45, "color": "#ffffff",
-        "caption_text": { "pose": { "front": [ 0, 1, 1 ], "up": [ 1, 0, 0 ] }, "font_size": 1 }, "line_type": "straight", "frames": [0],
+    { "signification": { "relation": { "structural": "containment" }, "sense": "a_to_b" },
+      "appearance": { "end_a": { "ref": "aa2ef6e7-6616-4ef5-bfe3-f9a8cfa0938d" }, "end_b": { "ref": "4ffcf12b-ab09-49d5-b361-60a1e17e45e0" }, "line_style": "solid", "opacity": 0.2, "color": "#ffffff",
+      "line_type": "straight", "frames": [0],
         "arrow": { "primitive": "cone", "radius": 0.25, "height": 1.0 } },
         "meta": { "uuid": "3160a80c-ec6a-4fe3-bc00-e6e53a57bfe7", "tags": [ "x:l_a_b" ] } }
 
