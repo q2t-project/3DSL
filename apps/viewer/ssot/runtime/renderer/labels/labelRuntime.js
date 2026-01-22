@@ -553,7 +553,10 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
       // align offset（allocation なし）
       const align = entry?.align;
       // troika は width/height が scale だけで決まらないので align は別実装にする
-      if (align && !obj.isSprite && !isTroikaText(obj) && !isTextSpriteMesh) {
+      // NOTE:
+      // - billboard(Sprite) は textSprite.js 側で obj.center へ反映済み。
+      // - fixed pose (Mesh/Plane) は pivot が中心のため、ここで offset を当てる。
+      if (align && !obj.isSprite && !isTroikaText(obj)) {
         const ax = Number(align.x);
         const ay = Number(align.y);
         const alignX = Number.isFinite(ax) ? ax : 0.5;

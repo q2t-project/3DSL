@@ -1007,7 +1007,11 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     return { ...src, render: { ...render, webgl: { ...webgl, preserveDrawingBuffer: true } } };
   })();
 
-  const renderer = createRendererContext(canvasEl, viewerSettingsForRenderer);
+  const renderer = createRendererContext(
+    canvasEl,
+    viewerSettingsForRenderer,
+    { modelUrl: options?.modelUrl || "" }
+  );
 
   // optional DPR clamp (host が renderer 内部を触らなくて済むように entry 側で吸収)
   try {
