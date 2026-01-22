@@ -6,6 +6,7 @@ import { microFXConfig } from "./microFX/config.js";
 // NOTE: microFXConfig は profile 切替の“状態置き場”としても使える（存在すれば）
 import { buildLabelIndex } from "./labels/labelIndex.js";
 import { LabelLayer } from "./labels/LabelLayer.js";
+import { createTextSprite } from "./labels/textSprite.js";
 import { createWorldAxesLayer } from "./worldAxes.js";
 import { createLineEffectsRuntime } from "./effects/lineEffects.js";
 // (removed) shared.js dependency
@@ -367,7 +368,54 @@ function maybeForceContextLoss(renderer, enabled) {
   ctx.setWorldAxesVisible = setWorldAxesVisible;
   ctx.getWorldAxesVisible = getWorldAxesVisible;
 
-  const groups = {
+  
+
+// ------------------------------------------------------------
+// simple envMap (no external assets)
+// - used by MeshBasicMaterial reflectivity (plate/shell) without lights
+// ------------------------------------------------------------
+let _defaultEnvMap = null;
+function getDefaultEnvMap() {
+  if (_defaultEnvMap) return _defaultEnvMap;
+  try {
+    const mkFace = (fill) => {
+      const c = document.createElement("canvas");
+      c.width = 16; c.height = 16;
+      const g = c.getContext("2d");
+      g.fillStyle = fill;
+      g.fillRect(0, 0, 16, 16);
+      // subtle diagonal highlight
+      const grad = g.createLinearGradient(0, 0, 16, 16);
+      grad.addColorStop(0, "rgba(255,255,255,0.25)");
+      grad.addColorStop(1, "rgba(0,0,0,0.15)");
+      g.fillStyle = grad;
+      g.fillRect(0, 0, 16, 16);
+      return c;
+    };
+    const faces = [
+      mkFace("#d9ddff"), // +X
+      mkFace("#cfd4ff"), // -X
+      mkFace("#d9ffd9"), // +Y
+      mkFace("#ffd9d9"), // -Y
+      mkFace("#d9ffff"), // +Z
+      mkFace("#e5e5e5"), // -Z
+    ];
+    const ct = new THREE.CubeTexture(faces);
+    ct.needsUpdate = true;
+    ct.mapping = THREE.CubeReflectionMapping;
+    try { ct.colorSpace = THREE.SRGBColorSpace; } catch (_e) {}
+    try {
+      ct.magFilter = THREE.LinearFilter;
+      ct.minFilter = THREE.LinearMipmapLinearFilter;
+    } catch (_e) {}
+    _defaultEnvMap = ct;
+    return _defaultEnvMap;
+  } catch (_e) {
+    return null;
+  }
+}
+
+const groups = {
     points: new THREE.Group(),
     lines: new THREE.Group(),
     aux: new THREE.Group(),
@@ -1470,6 +1518,194 @@ function _readVec3FromParams(params, key, fallback) {
 }
 
 // module.extension.parametric: safe, no-eval procedural shapes
+
+
+function fnv1a32(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    // eslint-disable-next-line no-bitwise
+    h = (h + (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24)) >>> 0;
+  }
+  return h >>> 0;
+}
+
+function makeXorShift32(seed) {
+  // eslint-disable-next-line no-bitwise
+  let x = (seed >>> 0) || 0x12345678;
+  return function rand01() {
+    // xorshift32
+    // eslint-disable-next-line no-bitwise
+    x ^= (x << 13) >>> 0;
+    // eslint-disable-next-line no-bitwise
+    x ^= (x >>> 17) >>> 0;
+    // eslint-disable-next-line no-bitwise
+    x ^= (x << 5) >>> 0;
+    // eslint-disable-next-line no-bitwise
+    return ((x >>> 0) / 4294967296);
+  };
+}
+
+function tokenizeExpr(src) {
+  const s = String(src ?? "");
+  const out = [];
+  let i = 0;
+  const isWS = (c) => c === " " || c === "\t" || c === "\n" || c === "\r";
+  const isNum = (c) => (c >= "0" && c <= "9") || c === ".";
+  const isIdStart = (c) => (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || c === "_";
+  const isId = (c) => isIdStart(c) || (c >= "0" && c <= "9");
+
+  while (i < s.length) {
+    const c = s[i];
+    if (isWS(c)) { i++; continue; }
+
+    // number
+    if (isNum(c)) {
+      let j = i + 1;
+      while (j < s.length && isNum(s[j])) j++;
+      if (j < s.length && (s[j] === "e" || s[j] === "E")) {
+        j++;
+        if (j < s.length && (s[j] === "+" || s[j] === "-")) j++;
+        while (j < s.length && (s[j] >= "0" && s[j] <= "9")) j++;
+      }
+      const raw = s.slice(i, j);
+      const v = Number(raw);
+      out.push({ t: "num", v });
+      i = j;
+      continue;
+    }
+
+    // identifier / keywords
+    if (isIdStart(c)) {
+      let j = i + 1;
+      while (j < s.length && isId(s[j])) j++;
+      const id = s.slice(i, j);
+      out.push({ t: "id", v: id });
+      i = j;
+      continue;
+    }
+
+    // operators / punctuation
+    if (c === "(") { out.push({ t: "lp" }); i++; continue; }
+    if (c === ")") { out.push({ t: "rp" }); i++; continue; }
+    if (c === ",") { out.push({ t: "comma" }); i++; continue; }
+
+    // ** operator
+    if (c === "*" && s[i + 1] === "*") { out.push({ t: "op", v: "**" }); i += 2; continue; }
+
+    if ("+-*/%^".includes(c)) { out.push({ t: "op", v: c }); i++; continue; }
+
+    // unknown -> skip
+    i++;
+  }
+  out.push({ t: "eof" });
+  return out;
+}
+
+function evalParamExpr(expr, ctx) {
+  const tokens = tokenizeExpr(expr);
+  let k = 0;
+  const peek = () => tokens[k] || { t: "eof" };
+  const next = () => tokens[k++] || { t: "eof" };
+
+  const getVar = (name) => {
+    if (name === "true") return 1;
+    if (name === "false") return 0;
+    const v = ctx?.vars?.[name];
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  const callFn = (name, args) => {
+    const fn = ctx?.fns?.[name];
+    if (typeof fn === "function") {
+      const r = fn(...args);
+      const n = Number(r);
+      return Number.isFinite(n) ? n : 0;
+    }
+    return 0;
+  };
+
+  const parsePrimary = () => {
+    const t = peek();
+    if (t.t === "op" && t.v === "-") {
+      next();
+      return -parsePrimary();
+    }
+    if (t.t === "num") {
+      next();
+      return Number.isFinite(t.v) ? t.v : 0;
+    }
+    if (t.t === "id") {
+      next();
+      const id = t.v;
+      if (peek().t === "lp") {
+        next(); // (
+        const args = [];
+        if (peek().t !== "rp") {
+          while (true) {
+            args.push(parseAdd());
+            if (peek().t === "comma") { next(); continue; }
+            break;
+          }
+        }
+        if (peek().t === "rp") next();
+        return callFn(id, args);
+      }
+      return getVar(id);
+    }
+    if (t.t === "lp") {
+      next();
+      const v = parseAdd();
+      if (peek().t === "rp") next();
+      return v;
+    }
+    // fallback
+    next();
+    return 0;
+  };
+
+  const parsePow = () => {
+    let left = parsePrimary();
+    while (peek().t === "op" && (peek().v === "^" || peek().v === "**")) {
+      next();
+      const right = parsePow(); // right-assoc
+      left = Math.pow(left, right);
+    }
+    return left;
+  };
+
+  const parseMul = () => {
+    let left = parsePow();
+    while (peek().t === "op" && (peek().v === "*" || peek().v === "/" || peek().v === "%")) {
+      const op = next().v;
+      const right = parsePow();
+      if (op === "*") left *= right;
+      else if (op === "/") left /= right;
+      else left %= right;
+    }
+    return left;
+  };
+
+  const parseAdd = () => {
+    let left = parseMul();
+    while (peek().t === "op" && (peek().v === "+" || peek().v === "-")) {
+      const op = next().v;
+      const right = parseMul();
+      if (op === "+") left += right;
+      else left -= right;
+    }
+    return left;
+  };
+
+  try {
+    const v = parseAdd();
+    return Number.isFinite(v) ? v : 0;
+  } catch (_e) {
+    return 0;
+  }
+}
+
 function buildParametricExtensionObject(parametric, opts) {
   const p = _asPlainObject(parametric);
   if (!p) return null;
@@ -1478,6 +1714,90 @@ function buildParametricExtensionObject(parametric, opts) {
   if (!typeRaw) return null;
 
   const params = _asPlainObject(p.params) || {};
+
+// ------------------------------------------------------------
+// parametric.seed / parametric.bindings
+// - bindings apply expressions to params (best-effort)
+// - expression is a simple math DSL (no-eval)
+// ------------------------------------------------------------
+const seedRaw = Number(p.seed);
+const seed =
+  Number.isFinite(seedRaw)
+    ? (seedRaw | 0)
+    : (fnv1a32(`${String(p.type ?? "")}:${JSON.stringify(params)}`) | 0);
+
+const rand01 = makeXorShift32(seed);
+
+let exprCtx = {
+  vars: {
+    ...params,
+    seed,
+    pi: Math.PI,
+    tau: Math.PI * 2,
+    e: Math.E,
+  },
+  fns: {
+    sin: Math.sin,
+    cos: Math.cos,
+    tan: Math.tan,
+    abs: Math.abs,
+    floor: Math.floor,
+    ceil: Math.ceil,
+    round: Math.round,
+    sqrt: Math.sqrt,
+    pow: Math.pow,
+    min: Math.min,
+    max: Math.max,
+    log: Math.log,
+    exp: Math.exp,
+    clamp: (v, a, b) => Math.min(Math.max(v, a), b),
+    lerp: (a, b, t) => a + (b - a) * t,
+    rand: (a, b) => {
+      const r = rand01();
+      if (a === undefined) return r;
+      if (b === undefined) return r * Number(a);
+      return Number(a) + (Number(b) - Number(a)) * r;
+    },
+  },
+};
+
+function setPathValue(obj, pathStr, value) {
+  const raw = String(pathStr ?? "").trim();
+  if (!raw) return false;
+  const parts = raw.split(/[./]/g).filter(Boolean);
+  if (!parts.length) return false;
+
+  // allow "params.x" or "x"
+  let cur = obj;
+  let startIdx = 0;
+  if (parts[0] === "params") startIdx = 1;
+  if (startIdx >= parts.length) return false;
+
+  for (let i = startIdx; i < parts.length - 1; i++) {
+    const k = parts[i];
+    if (!cur[k] || typeof cur[k] !== "object") cur[k] = {};
+    cur = cur[k];
+  }
+  cur[parts[parts.length - 1]] = value;
+  return true;
+}
+
+// apply bindings sequentially (later bindings can use updated params)
+if (Array.isArray(p.bindings)) {
+  for (const b of p.bindings) {
+    const target = b?.target;
+    const expr = b?.expression;
+    if (typeof target !== "string" || typeof expr !== "string") continue;
+    try {
+      // refresh vars from current params each time
+      exprCtx = { ...exprCtx, vars: { ...exprCtx.vars, ...params } };
+      const v = evalParamExpr(expr, exprCtx);
+      if (Number.isFinite(v)) {
+        setPathValue({ params }, target, v);
+      }
+    } catch (_e) {}
+  }
+}
 
   const defaultOpacity = readOpacity(opts?.defaultOpacity, 0.4);
   const renderOrder = Number.isFinite(Number(opts?.renderOrder)) ? Number(opts.renderOrder) : 0;
@@ -1682,7 +2002,7 @@ function buildParametricExtensionObject(parametric, opts) {
       if (sc) applyScaleVec3(obj, sc);
     } catch (_e) {}
 
-    obj.userData.__auxExtensionParametric = { type: typeRaw, version: p.version, params };
+    obj.userData.__auxExtensionParametric = { type: typeRaw, version: p.version, seed, params };
   }
 
   return obj;
@@ -1726,260 +2046,443 @@ for (const aux of axs) {
   const axisCfg = (mod?.axis && typeof mod.axis === "object") ? mod.axis : (hasTag("aux:axis") ? {} : null);
   const plateCfg = (mod?.plate && typeof mod.plate === "object") ? mod.plate : (hasTag("aux:plane") ? {} : null);
   const shellCfg = (mod?.shell && typeof mod.shell === "object") ? mod.shell : (hasTag("aux:shell") ? {} : null);
-  const hudCfg = (mod?.hud && typeof mod.hud === "object") ? mod.hud : null;
+  const hudCfg = (mod?.effect && typeof mod.effect === "object") ? mod.effect : ((mod?.hud && typeof mod.hud === "object") ? mod.hud : null);
+
+  const rootOpacity = readOpacity(app.opacity, 0.4);
 
   // ------------------------------------------------------------
   // module.grid
+  // schema: aux.module.grid (grid_type/subdivisions/major_step/minor_step/color_major/color_minor)
+  // compat: legacy {length, step, color, opacity}
   // ------------------------------------------------------------
   if (gridCfg) {
     const g = gridCfg;
-    const lengthRaw = Number(g.length);
-    const stepRaw = Number(g.step);
-    const length = (Number.isFinite(lengthRaw) && lengthRaw > 0) ? lengthRaw : 64;
-    const step = (Number.isFinite(stepRaw) && stepRaw > 0) ? stepRaw : 4;
-    const divisions = Math.max(1, Math.round(length / step));
-    const helper = new THREE.GridHelper(length, divisions);
 
-    // GridHelper defaults Y-up (grid on XZ), rotate to Z-up (grid on XY)
-    helper.rotation.x = Math.PI / 2;
+    const gridTypeRaw = (typeof g.grid_type === "string") ? g.grid_type.trim().toLowerCase() : null;
+    const gridType = (gridTypeRaw === "polar") ? "polar" : "cartesian";
 
-    const col = readColor(g.color, 0xc8c8ff);
-    const op = readOpacity(g.opacity, 0.4);
+    const majorStepRaw = Number(g.major_step);
+    const legacyStepRaw = Number(g.step); // legacy
+    const majorStep =
+      (Number.isFinite(majorStepRaw) && majorStepRaw > 0) ? majorStepRaw
+      : ((Number.isFinite(legacyStepRaw) && legacyStepRaw > 0) ? legacyStepRaw : 4);
 
-    // GridHelper.material は配列（中心線/格子線）
-    const mats = Array.isArray(helper.material) ? helper.material : [helper.material];
-    for (const m of mats) {
-      if (m && m.color) m.color.set(col);
-      m.transparent = op < 1;
-      m.opacity = op;
-      m.depthWrite = false;
+    const minorStepRaw = Number(g.minor_step);
+    const minorStep = (Number.isFinite(minorStepRaw) && minorStepRaw > 0) ? minorStepRaw : 1;
+
+    const subdivisionsRaw = Number(g.subdivisions);
+    let subdivisions = (Number.isFinite(subdivisionsRaw) && subdivisionsRaw > 0)
+      ? Math.max(1, Math.min(4096, Math.trunc(subdivisionsRaw)))
+      : 8;
+
+    // legacy: infer subdivisions from length/step
+    if (!(Number.isFinite(subdivisionsRaw) && subdivisionsRaw > 0)) {
+      const legacyLengthRaw = Number(g.length);
+      const legacyLength = (Number.isFinite(legacyLengthRaw) && legacyLengthRaw > 0) ? legacyLengthRaw : null;
+      const legacyStep = (Number.isFinite(legacyStepRaw) && legacyStepRaw > 0) ? legacyStepRaw : null;
+      if (legacyLength && legacyStep) subdivisions = Math.max(1, Math.min(4096, Math.trunc((legacyLength / legacyStep) / 2)));
     }
 
-    helper.renderOrder = root.renderOrder;
-    root.add(helper);
+    const colMajor = readColor(g.color_major ?? g.colorMajor ?? g.color, 0x666666);
+    const colMinor = readColor(g.color_minor ?? g.colorMinor ?? g.color, 0x333333);
+
+    // schema: use aux.appearance.opacity. legacy: g.opacity
+    const op = readOpacity(g.opacity ?? rootOpacity, rootOpacity);
+
+    const applyHelperStyle = (helper, col, opacity) => {
+      const mats = Array.isArray(helper.material) ? helper.material : [helper.material];
+      for (const mm of mats) {
+        if (!mm) continue;
+        try { if (mm.color) mm.color.set(col); } catch (_e) {}
+        try {
+          mm.transparent = opacity < 1;
+          mm.opacity = opacity;
+          mm.depthWrite = false;
+        } catch (_e) {}
+      }
+    };
+
+    if (gridType === "polar") {
+      const radius = Math.max(0.0001, subdivisions * majorStep);
+      const radials = Math.max(8, Math.min(64, Math.trunc(subdivisions * 2)));
+      const divisions = 64;
+
+      const circlesMajor = Math.max(1, subdivisions);
+      const circlesMinor = Math.max(1, Math.min(8192, Math.trunc(radius / Math.max(0.0001, minorStep))));
+
+      // minor
+      try {
+        const helperMinor = new THREE.PolarGridHelper(radius, radials, circlesMinor, divisions);
+        helperMinor.rotation.x = Math.PI / 2; // Y-up -> Z-up
+        applyHelperStyle(helperMinor, colMinor, op);
+        helperMinor.renderOrder = root.renderOrder;
+        root.add(helperMinor);
+      } catch (_e) {}
+
+      // major
+      try {
+        const helperMajor = new THREE.PolarGridHelper(radius, radials, circlesMajor, divisions);
+        helperMajor.rotation.x = Math.PI / 2;
+        applyHelperStyle(helperMajor, colMajor, op);
+        helperMajor.renderOrder = root.renderOrder + 0.0001;
+        root.add(helperMajor);
+      } catch (_e) {}
+    } else {
+      const size = Math.max(0.0001, subdivisions * majorStep * 2);
+      const divisionsMajor = Math.max(1, Math.min(8192, Math.trunc(size / Math.max(0.0001, majorStep))));
+      const divisionsMinor = Math.max(1, Math.min(8192, Math.trunc(size / Math.max(0.0001, minorStep))));
+
+      // minor
+      try {
+        const helperMinor = new THREE.GridHelper(size, divisionsMinor);
+        helperMinor.rotation.x = Math.PI / 2; // Y-up -> Z-up
+        applyHelperStyle(helperMinor, colMinor, op);
+        helperMinor.renderOrder = root.renderOrder;
+        root.add(helperMinor);
+      } catch (_e) {}
+
+      // major
+      try {
+        const helperMajor = new THREE.GridHelper(size, divisionsMajor);
+        helperMajor.rotation.x = Math.PI / 2;
+        applyHelperStyle(helperMajor, colMajor, op);
+        helperMajor.renderOrder = root.renderOrder + 0.0001;
+        root.add(helperMajor);
+      } catch (_e) {}
+    }
   }
 
   // ------------------------------------------------------------
   // module.axis
+  // schema: aux.module.axis (length/labels/arrow)
+  // compat: legacy {position,bothDir,color,opacity,arrowCfg}
   // ------------------------------------------------------------
   if (axisCfg) {
     const a = axisCfg;
+
     const lengthRaw = Number(a.length);
     const length = (Number.isFinite(lengthRaw) && lengthRaw > 0) ? lengthRaw : 64;
 
-    const axisGroup = new THREE.Group();
+    // schema: labels boolean (default true)
+    const showLabels = (a.labels !== undefined) ? !!a.labels : true;
 
-    const arrowCfg = (a.arrow && typeof a.arrow === "object") ? a.arrow : {};
-    const arrowsVisible = (arrowCfg.visible !== false);
-    const arrowPos = (typeof arrowCfg.position === "string") ? arrowCfg.position : "end"; // end | both
-    const arrowStyle = (typeof arrowCfg.style === "string") ? arrowCfg.style : "cone"; // cone | sphere
-    const arrowSizeRaw = Number(arrowCfg.size);
-    const arrowSize = (Number.isFinite(arrowSizeRaw) && arrowSizeRaw > 0) ? arrowSizeRaw : 2;
+    // legacy: position = end|both
+    const posModeRaw = (typeof a.position === "string") ? a.position.trim().toLowerCase() : null;
+    const bothDir = (posModeRaw === "both");
 
-    const arrowOpacity = readOpacity(arrowCfg.opacity, 1);
+    const axes = [
+      { label: "X", dir: new THREE.Vector3(1, 0, 0), color: 0xff5555 },
+      { label: "Y", dir: new THREE.Vector3(0, 1, 0), color: 0x55ff55 },
+      { label: "Z", dir: new THREE.Vector3(0, 0, 1), color: 0x5588ff },
+    ];
 
-    // base axis lines
-    const bothDir = (arrowPos === "both");
-    const x0 = bothDir ? -length : 0;
-    const x1 = length;
-    const y0 = bothDir ? -length : 0;
-    const y1 = length;
-    const z0 = bothDir ? -length : 0;
-    const z1 = length;
+    // schema arrow
+    const arrowSpec = _asPlainObject(a.arrow);
+    let arrowPrim = (typeof arrowSpec?.primitive === "string") ? arrowSpec.primitive.trim().toLowerCase() : "none";
 
-    const mkLine = (from, to, colorHex) => {
-      const geo = new THREE.BufferGeometry();
-      geo.setAttribute("position", new THREE.Float32BufferAttribute([
-        from[0], from[1], from[2],
-        to[0], to[1], to[2],
-      ], 3));
-      const mat = new THREE.LineBasicMaterial({ color: colorHex });
-      const ln = new THREE.LineSegments(geo, mat);
-      ln.renderOrder = root.renderOrder;
-      return ln;
-    };
+    // legacy arrowCfg
+    const arrowCfg = _asPlainObject(a.arrowCfg) || _asPlainObject(a.arrow_config) || null;
+    if ((!arrowSpec || !arrowSpec.primitive) && arrowCfg && typeof arrowCfg.type === "string") {
+      const t = arrowCfg.type.trim().toLowerCase();
+      if (t === "cone" || t === "pyramid" || t === "line") arrowPrim = t;
+    }
+    if (!["none", "line", "cone", "pyramid"].includes(arrowPrim)) arrowPrim = "none";
 
-    axisGroup.add(mkLine([x0, 0, 0], [x1, 0, 0], 0xff0000));
-    axisGroup.add(mkLine([0, y0, 0], [0, y1, 0], 0x00ff00));
-    axisGroup.add(mkLine([0, 0, z0], [0, 0, z1], 0x0000ff));
+    const arrowLenRaw = Number(arrowSpec?.length ?? arrowCfg?.length);
+    const arrowLength = (Number.isFinite(arrowLenRaw) && arrowLenRaw > 0) ? arrowLenRaw : 6;
 
-    // arrows
-    if (arrowsVisible) {
-      const colorX = readColor(arrowCfg.color_x, 0xff8080);
-      const colorY = readColor(arrowCfg.color_y, 0x80ff80);
-      const colorZ = readColor(arrowCfg.color_z, 0x8080ff);
+    const arrowThickRaw = Number(arrowSpec?.thickness ?? arrowCfg?.thickness);
+    const arrowThickness = (Number.isFinite(arrowThickRaw) && arrowThickRaw > 0) ? arrowThickRaw : 1;
 
-      const mkArrow = (dir, tip, colorHex) => {
-        let geom;
-        if (arrowStyle === "sphere") {
-          geom = new THREE.SphereGeometry(arrowSize, 12, 8);
-        } else {
-          geom = new THREE.ConeGeometry(arrowSize * 0.6, arrowSize * 1.8, 10);
+    const arrowRadiusRaw = Number(arrowSpec?.radius ?? arrowCfg?.radius);
+    const arrowRadius = (Number.isFinite(arrowRadiusRaw) && arrowRadiusRaw > 0) ? arrowRadiusRaw : 2;
+
+    const arrowHeightRaw = Number(arrowSpec?.height ?? arrowCfg?.height);
+    const arrowHeight = (Number.isFinite(arrowHeightRaw) && arrowHeightRaw > 0) ? arrowHeightRaw : 6;
+
+    const arrowBaseRaw = Array.isArray(arrowSpec?.base ?? arrowCfg?.base) ? (arrowSpec?.base ?? arrowCfg?.base) : null;
+    const arrowBase = (arrowBaseRaw && arrowBaseRaw.length >= 2)
+      ? [Number(arrowBaseRaw[0]), Number(arrowBaseRaw[1])]
+      : [4, 4];
+
+    // schema: no axis color/opacity (use per-axis defaults). legacy: a.color/a.opacity
+    const colOverride = (a.color !== undefined) ? readColor(a.color, null) : null;
+    const op = readOpacity(a.opacity ?? rootOpacity, rootOpacity);
+
+    const group = new THREE.Group();
+    group.name = "aux.axis";
+
+    // lines
+    for (const ax of axes) {
+      const col = (colOverride !== null) ? colOverride : ax.color;
+      const mat = new THREE.LineBasicMaterial({ color: col, transparent: op < 1, opacity: op });
+      mat.depthWrite = false;
+
+      const pts = [new THREE.Vector3(0, 0, 0), ax.dir.clone().multiplyScalar(length)];
+      const geom = new THREE.BufferGeometry().setFromPoints(pts);
+      const line = new THREE.Line(geom, mat);
+      line.renderOrder = root.renderOrder;
+      group.add(line);
+
+      if (bothDir) {
+        const pts2 = [new THREE.Vector3(0, 0, 0), ax.dir.clone().multiplyScalar(-length)];
+        const geom2 = new THREE.BufferGeometry().setFromPoints(pts2);
+        const line2 = new THREE.Line(geom2, mat.clone());
+        line2.renderOrder = root.renderOrder;
+        group.add(line2);
+      }
+
+      // arrows (schema: only +end. legacy bothDir -> also -end)
+      const addArrowAt = (dir, col2) => {
+        if (arrowPrim === "none") return 0;
+        let extra = 0;
+        let mesh = null;
+        try {
+          if (arrowPrim === "line") {
+            const r = Math.max(0.0001, arrowThickness * 0.5);
+            const geomA = new THREE.CylinderGeometry(r, r, arrowLength, 6, 1, true);
+            const matA = new THREE.MeshBasicMaterial({ color: col2, transparent: op < 1, opacity: op });
+            matA.depthWrite = false;
+            mesh = new THREE.Mesh(geomA, matA);
+            extra = arrowLength;
+          } else if (arrowPrim === "cone") {
+            const geomA = new THREE.ConeGeometry(Math.max(0.0001, arrowRadius), Math.max(0.0001, arrowHeight), 12, 1, true);
+            const matA = new THREE.MeshBasicMaterial({ color: col2, transparent: op < 1, opacity: op });
+            matA.depthWrite = false;
+            mesh = new THREE.Mesh(geomA, matA);
+            extra = arrowHeight;
+          } else if (arrowPrim === "pyramid") {
+            const w = Math.max(0.0001, Number(arrowBase[0]) || 4);
+            const d = Math.max(0.0001, Number(arrowBase[1]) || 4);
+            const h = Math.max(0.0001, arrowHeight);
+            const geomA = new THREE.ConeGeometry(1, h, 4, 1, true);
+            const matA = new THREE.MeshBasicMaterial({ color: col2, transparent: op < 1, opacity: op });
+            matA.depthWrite = false;
+            mesh = new THREE.Mesh(geomA, matA);
+            mesh.scale.set(w * 0.5, 1, d * 0.5);
+            extra = h;
+          }
+        } catch (_e) {
+          mesh = null;
         }
+        if (!mesh) return 0;
 
-        const mat = new THREE.MeshBasicMaterial({
-          color: colorHex,
-          transparent: arrowOpacity < 1,
-          opacity: arrowOpacity,
-          depthWrite: false,
-        });
+        // orient: cone/cylinder default along +Y. rotate so +Y -> dir
+        try {
+          const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+          mesh.quaternion.copy(q);
+        } catch (_e) {}
 
-        const mesh = new THREE.Mesh(geom, mat);
-        mesh.position.set(tip[0], tip[1], tip[2]);
+        // position: center at axis end + extra/2
+        try {
+          const offset = dir.clone().normalize().multiplyScalar(length + (extra * 0.5));
+          mesh.position.copy(offset);
+        } catch (_e) {}
 
-        if (arrowStyle !== "sphere") {
-          // cone: +Y を向くので dir に合わせる
-          const q = new THREE.Quaternion().setFromUnitVectors(
-            new THREE.Vector3(0, 1, 0),
-            new THREE.Vector3(dir[0], dir[1], dir[2]).normalize()
-          );
-          mesh.setRotationFromQuaternion(q);
-        }
-
-        mesh.renderOrder = root.renderOrder;
-        return mesh;
+        mesh.renderOrder = root.renderOrder + 0.0002;
+        group.add(mesh);
+        return extra;
       };
 
-      const pushAxisArrows = (dir, tipPos, tipNeg, col) => {
-        axisGroup.add(mkArrow(dir, tipPos, col));
-        if (bothDir) axisGroup.add(mkArrow([-dir[0], -dir[1], -dir[2]], tipNeg, col));
-      };
+      const arrowExtra = addArrowAt(ax.dir, col);
 
-      pushAxisArrows([1, 0, 0], [length, 0, 0], [-length, 0, 0], colorX);
-      pushAxisArrows([0, 1, 0], [0, length, 0], [0, -length, 0], colorY);
-      pushAxisArrows([0, 0, 1], [0, 0, length], [0, 0, -length], colorZ);
+      if (bothDir) addArrowAt(ax.dir.clone().multiplyScalar(-1), col);
+
+      // labels
+      if (showLabels) {
+        try {
+          const labelSize = Math.max(10, Math.min(18, length * 0.2));
+          const spr = createTextSprite(ax.label, { fontSize: labelSize, color: `#${col.toString(16).padStart(6, "0")}` });
+          spr.name = `aux.axis.label.${ax.label}`;
+          spr.renderOrder = root.renderOrder + 0.0003;
+          spr.frustumCulled = false;
+          try {
+            spr.traverse((o) => {
+              if (o.material) {
+                o.material.depthTest = false;
+                o.material.depthWrite = false;
+                o.material.transparent = true;
+              }
+            });
+          } catch (_e) {}
+
+          const p = ax.dir.clone().normalize().multiplyScalar(length + arrowExtra + (labelSize * 0.6));
+          spr.position.copy(p);
+          group.add(spr);
+        } catch (_e) {}
+      }
     }
 
-    axisGroup.renderOrder = root.renderOrder;
-    root.add(axisGroup);
+    root.add(group);
   }
 
   // ------------------------------------------------------------
   // module.plate
+  // schema: aux.module.plate (plane/size/position/opacity/reflectivity)
+  // compat: legacy {size,color,opacity}
   // ------------------------------------------------------------
   if (plateCfg) {
     const p = plateCfg;
-    const size = _readVec2(p.size, [1024, 1024]);
-    const w = Math.max(0.001, Math.abs(Number(size[0])) || 1024);
-    const h = Math.max(0.001, Math.abs(Number(size[1])) || 1024);
 
+    const size = readVec2(p.size, [32, 32]);
+    const planeRaw = (typeof p.plane === "string") ? p.plane.trim().toLowerCase() : "xy";
+    const plane = (planeRaw === "yz" || planeRaw === "zx") ? planeRaw : "xy";
+
+    const localPos = readVec3(p.position, [0, 0, 0]);
+
+    const op = readOpacity(p.opacity ?? rootOpacity, rootOpacity);
+    const reflRaw = Number(p.reflectivity);
+    const reflectivity = (Number.isFinite(reflRaw)) ? Math.max(0, Math.min(1, reflRaw)) : 0.5;
+
+    // schema doesn't define color, but keep legacy support
     const col = readColor(p.color, 0xffffff);
-    const op = readOpacity(p.opacity, 0.2);
 
-    const geo = new THREE.PlaneGeometry(w, h);
-    const mat = new THREE.MeshBasicMaterial({
-      color: col,
-      transparent: op < 1,
-      opacity: op,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-    });
+    const geom = new THREE.PlaneGeometry(size[0], size[1]);
+    const mat = new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide, transparent: op < 1, opacity: op });
+    mat.depthWrite = false;
 
-    const mesh = new THREE.Mesh(geo, mat);
+    // reflectivity on MeshBasicMaterial needs envMap
+    if (reflectivity > 0.001) {
+      const env = getDefaultEnvMap();
+      if (env) {
+        try { mat.envMap = env; } catch (_e) {}
+        try { mat.combine = THREE.MixOperation; } catch (_e) {}
+        try { mat.reflectivity = reflectivity; } catch (_e) {}
+      }
+    }
+
+    const mesh = new THREE.Mesh(geom, mat);
+    mesh.name = "aux.plate";
+    mesh.position.set(localPos[0], localPos[1], localPos[2]);
+
+    // plane orientation
+    if (plane === "yz") {
+      mesh.rotation.y = Math.PI / 2;
+    } else if (plane === "zx") {
+      mesh.rotation.x = Math.PI / 2;
+    }
+
     mesh.renderOrder = root.renderOrder;
     root.add(mesh);
   }
 
   // ------------------------------------------------------------
   // module.shell
+  // schema: aux.module.shell (shell_type/opacity/reflectivity/effect)
+  // note: radius is derived from scene metrics (schema doesn't expose it)
+  // compat: legacy {radius,color,opacity,shell_type,shellType}
   // ------------------------------------------------------------
   if (shellCfg) {
     const s = shellCfg;
 
-    // schema: shell_type (compat: type)
-    let type = "sphere";
-    try {
-      const t = (typeof s.shell_type === "string" ? s.shell_type
-        : (typeof s.shellType === "string" ? s.shellType
-        : (typeof s.type === "string" ? s.type : "sphere")));
-      const tt = (t || "").trim().toLowerCase();
-      if (tt) type = tt;
-    } catch (_e) {}
+    const shellTypeRaw = (typeof s.shell_type === "string") ? s.shell_type.trim().toLowerCase()
+      : ((typeof s.shellType === "string") ? s.shellType.trim().toLowerCase() : "sphere");
+    const shellType = ["sphere", "box", "hemisphere", "quarter_sphere", "eighth_sphere"].includes(shellTypeRaw) ? shellTypeRaw : "sphere";
 
+    const op = readOpacity(s.opacity ?? rootOpacity, rootOpacity);
+    const reflRaw = Number(s.reflectivity);
+    const reflectivity = (Number.isFinite(reflRaw)) ? Math.max(0, Math.min(1, reflRaw)) : 0.5;
+
+    // legacy color support
     const col = readColor(s.color, 0xffffff);
-    const op = readOpacity(s.opacity, 0.25);
 
-    // if size/radius is omitted, derive from scene radius
-    const sr = (sceneRadius != null && Number.isFinite(sceneRadius) && sceneRadius > 0) ? sceneRadius : 512;
+    // derive size
+    let sceneR = Number(sceneMetricsCache?.radius);
+    if (!Number.isFinite(sceneR) || sceneR <= 0) sceneR = 64;
+    const radius = Math.max(0.0001, sceneR * 1.05);
 
-    let geo = null;
-    if (type === "box") {
-      const size = readVec3(s.size, [sr * 2, sr * 2, sr * 2]);
-      geo = new THREE.BoxGeometry(
-        Math.max(0.001, Math.abs(size[0])),
-        Math.max(0.001, Math.abs(size[1])),
-        Math.max(0.001, Math.abs(size[2]))
-      );
-    } else {
-      const rRaw = Number(s.radius);
-      const r = (Number.isFinite(rRaw) && rRaw > 0) ? rRaw : (sr * 1.05);
-      geo = new THREE.SphereGeometry(r, 32, 20);
+    let geom = null;
+    try {
+      if (shellType === "box") {
+        const d = radius * 2;
+        geom = new THREE.BoxGeometry(d, d, d);
+      } else {
+        // SphereGeometry is Y-up; rotate -90deg around X to align pole with Z-up for partials
+        const wSeg = 48;
+        const hSeg = 24;
+        if (shellType === "hemisphere") {
+          geom = new THREE.SphereGeometry(radius, wSeg, hSeg, 0, Math.PI * 2, 0, Math.PI * 0.5);
+        } else if (shellType === "quarter_sphere") {
+          geom = new THREE.SphereGeometry(radius, wSeg, hSeg, 0, Math.PI, 0, Math.PI * 0.5);
+        } else if (shellType === "eighth_sphere") {
+          geom = new THREE.SphereGeometry(radius, wSeg, hSeg, 0, Math.PI * 0.5, 0, Math.PI * 0.5);
+        } else {
+          geom = new THREE.SphereGeometry(radius, wSeg, hSeg);
+        }
+      }
+    } catch (_e) {
+      geom = new THREE.SphereGeometry(radius, 32, 16);
     }
 
     const mat = new THREE.MeshBasicMaterial({
       color: col,
       transparent: op < 1,
       opacity: op,
-      side: THREE.DoubleSide,
-      depthWrite: false,
+      side: THREE.BackSide,
     });
+    mat.depthWrite = false;
 
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.renderOrder = root.renderOrder;
-    root.add(mesh);
+    if (reflectivity > 0.001) {
+      const env = getDefaultEnvMap();
+      if (env) {
+        try { mat.envMap = env; } catch (_e) {}
+        try { mat.combine = THREE.MixOperation; } catch (_e) {}
+        try { mat.reflectivity = reflectivity; } catch (_e) {}
+      }
+    }
 
-    // module_shell_effect (edge/rim glow)
+    const shell = new THREE.Mesh(geom, mat);
+    shell.name = "aux.shell";
+    shell.renderOrder = root.renderOrder;
+    shell.frustumCulled = false;
+
+    // rotate for partial spheres so "upper" means +Z
+    if (shellType !== "sphere" && shellType !== "box") {
+      shell.rotation.x = -Math.PI / 2;
+    }
+
+    root.add(shell);
+
+    // shell.effect (schema)
     const eff = (s.effect && typeof s.effect === "object") ? s.effect : null;
     if (eff) {
-      // Keep raw effect for future UI/debug
-      try { mesh.userData.effect = { ...eff }; } catch (_e) {}
+      const edgeIntensity = Number(eff.edge_intensity ?? eff.edgeIntensity);
+      const glowColorHex = readColor(eff.glow_color ?? eff.glowColor, null);
 
-      const edgeRaw = Number(eff.edge_intensity);
-      const edgeIntensity = (Number.isFinite(edgeRaw) ? Math.max(0, Math.min(1, edgeRaw)) : 0.5);
-      const rimlight = eff.rimlight !== undefined ? !!eff.rimlight : false;
-      const glowCol = readColor(eff.glow_color, 0xff0000);
-
-      // outline edges
-      if (edgeIntensity > 0.001) {
+      if (Number.isFinite(edgeIntensity) && edgeIntensity > 0) {
+        // edge highlight: backface wireframe
         try {
-          const eg = new THREE.EdgesGeometry(geo);
-          const em = new THREE.LineBasicMaterial({
-            color: glowCol,
+          const edgeMat = new THREE.MeshBasicMaterial({
+            color: glowColorHex ?? col,
             transparent: true,
-            opacity: Math.max(0.05, Math.min(1, 0.15 + 0.85 * edgeIntensity)),
-          });
-          try {
-            em.depthWrite = false;
-            em.blending = THREE.AdditiveBlending;
-          } catch (_e) {}
-          const edges = new THREE.LineSegments(eg, em);
-          edges.renderOrder = root.renderOrder + 2;
-          try { edges.frustumCulled = false; } catch (_e) {}
-          root.add(edges);
-        } catch (_e) {}
-      }
-
-      // rim/glow (approx.)
-      if (rimlight || edgeIntensity > 0.001) {
-        try {
-          const gm = new THREE.MeshBasicMaterial({
-            color: glowCol,
-            transparent: true,
-            opacity: Math.max(0.02, Math.min(1, (rimlight ? 0.12 : 0.06) * edgeIntensity)),
+            opacity: Math.max(0, Math.min(1, edgeIntensity)),
+            wireframe: true,
             side: THREE.BackSide,
           });
-          try {
-            gm.depthWrite = false;
-            gm.blending = THREE.AdditiveBlending;
-          } catch (_e) {}
-          const glow = new THREE.Mesh(geo, gm);
-          glow.renderOrder = root.renderOrder + 1;
-          const s0 = 1 + Math.max(0.005, Math.min(0.08, 0.03 * edgeIntensity));
-          glow.scale.set(s0, s0, s0);
-          try { glow.frustumCulled = false; } catch (_e) {}
-          root.add(glow);
+          edgeMat.depthWrite = false;
+          const edge = new THREE.Mesh(geom, edgeMat);
+          edge.renderOrder = root.renderOrder + 0.0001;
+          edge.frustumCulled = false;
+          edge.rotation.copy(shell.rotation);
+          root.add(edge);
         } catch (_e) {}
       }
+
+      // rimlight: subtle inner glow via FrontSide copy
+      try {
+        const rimMat = new THREE.MeshBasicMaterial({
+          color: glowColorHex ?? col,
+          transparent: true,
+          opacity: 0.15,
+          side: THREE.FrontSide,
+        });
+        rimMat.depthWrite = false;
+        const rim = new THREE.Mesh(geom, rimMat);
+        rim.renderOrder = root.renderOrder + 0.00015;
+        rim.frustumCulled = false;
+        rim.rotation.copy(shell.rotation);
+        root.add(rim);
+      } catch (_e) {}
     }
   }
 
@@ -2022,7 +2525,7 @@ for (const aux of axs) {
     if (param) {
       try {
         const gen = buildParametricExtensionObject(param, {
-          defaultOpacity: app.opacity,
+          defaultOpacity: rootOpacity,
           renderOrder: root.renderOrder,
         });
         if (gen) root.add(gen);
