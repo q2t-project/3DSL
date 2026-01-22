@@ -19,177 +19,172 @@
 "points": [
 
 {"signification": {"name":"未分化"}, "appearance": {"position":[0,0,0],
-    "marker": {"primitive": "sphere", "radius": 0.1, "common": { "opacity": 0.2, "color": "#444444" }, "text": { "content": "未分化", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 4, "align": "center&top" } },
-    "frame": [0] },
+    "marker": {"text": { "content": "未分化", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 4, "align": "center&top" }, "primitive": "sphere", "radius": 0.1, "common": { "opacity": 0.2, "color": "#444444" } }, "frames": [0] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "ef95b02c-e33c-4bb4-803d-1524e3de1dc6" } },
 
 {"signification": {"name":"存在"}, "appearance": {"position":[16,0,0],
-    "marker": {"primitive": "sphere", "radius": 0.1, "common": { "opacity": 0.2, "color": "#ff0000" }, "text": { "content": "存在", "pose": {"front": [0,1,0],"up": [1,0,0]},"size": 4, "align": "left&beseline" } },
-    "frame": [0] },
+    "marker": {"text": { "content": "存在", "pose": {"front": [0,1,0],"up": [1,0,0]},"size": 4, "align": "left&beseline" },"primitive": "sphere", "radius": 0.1, "common": { "opacity": 0.2, "color": "#ff0000" } }, "frames": [0] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "120ee448-cf28-4baa-b896-e407cddd9cbe" } },
 
 {"signification": {"name":"認識"}, "appearance": {"position":[-16,0,0],
-    "marker": {"primitive": "sphere", "radius": 0.1, "common": { "opacity": 0.2, "color": "#00ff00" }, "text": { "content": "認識", "pose": {"front": [1,0,0],"up": [1,0,0]},"size": 4, "align": "left&baseline" } },
-    "frame": [0] },
+    "marker": {"text": { "content": "認識", "pose": {"front": [1,0,0],"up": [1,0,0]},"size": 4, "align": "left&baseline" } },"primitive": "sphere", "radius": 0.1, "common": { "opacity": 0.2, "color": "#00ff00" }, "frames": [0] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "6cc618ca-6086-4a26-974c-3c62eab8a453" } },
 
 {"signification": {"name":"ピュシス"}, "appearance": {"position":[16,0,0],
-    "text": { "content": "ピュシス", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 2, "align": "center&baseline" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [1] },
+    "marker": {"text": { "content": "ピュシス", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 2, "align": "center&baseline" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [1] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "5e6cebc8-5f4f-4d59-bd72-67a6a7ad47f9" } },
 
     {"signification": {"name":"ロゴス"}, "appearance": {"position":[-16,0,0],
-    "text": { "content": "", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 2, "align": "center&baseline" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [1] },
+    "marker": {"text": { "content": "", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 2, "align": "center&baseline" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [1] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "0699464e-46ad-404f-88c0-880a4efad727" } },
 
 {"signification": {"name":"質"}, "appearance": {"position":[16,8,0],
-    "text": { "content": "質", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 1, "align": "center&middle" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [0] },
+    "marker": {"text": { "content": "質", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 1, "align": "center&middle" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [0] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "7208002b-79f8-47b6-af76-104e8713877d" } },
 
 {"signification": {"name":"量"}, "appearance": {"position":[16,8,0],
-    "text": { "content": "量", "pose": {"front": [0,1,0],"up": [1,0,0]},"size": 1, "align": "center&middle" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [0] },
+    "marker": {"text": { "content": "量", "pose": {"front": [0,1,0],"up": [1,0,0]},"size": 1, "align": "center&middle" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [0] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "5916e004-561e-48b8-9d39-54d8d5970375" } },
 
 {"signification": {"name":"時間"}, "appearance": {"position":[16,8,0],
-    "text": { "content": "時間", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 1, "align": "center&top" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [0] },
+    "marker": {"text": { "content": "時間", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 1, "align": "center&top" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [0] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "1b020ea1-a3c9-4b27-9e41-b3beb780276f" } },
 
 {"signification": {"name":"形式"}, "appearance": {"position":[-8,0,0],
-    "text": { "content": "形式", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 1, "align": "center&top" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [2] },
+    "marker": {"text": { "content": "形式", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 1, "align": "center&top" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [2] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "e31cd794-5afa-4c15-a580-f61703f82cd8" } },
 
 {"signification": {"name":"機能"}, "appearance": {"position":[-16,8,0],
-    "text": { "content": "機能", "pose": {"front": [1,0,0],"up": [0,0,1]},"size": 1, "align": "center&middle" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [2] },
+    "marker": {"text": { "content": "機能", "pose": {"front": [1,0,0],"up": [0,0,1]},"size": 1, "align": "center&middle" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [2] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "ab199581-c3ca-48ee-9423-3c2dc44cda1c" } },
 
 {"signification": {"name":"意味"}, "appearance": {"position":[-16,0,8],
-    "text": { "content": "意味", "pose": {"front": [1,0,0],"up": [0,-1,0]},"size": 1, "align": "center&top" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [2] },
+    "marker": {"text": { "content": "意味", "pose": {"front": [1,0,0],"up": [0,-1,0]},"size": 1, "align": "center&top" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [2] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "d610bd6e-e18e-45e2-9255-cbb5c18ab623" } },
 
 {"signification": {"name":"構造"}, "appearance": {"position":[0,0,0],
-    "text": { "content": "構造", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 2, "align": "center&top" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [2] },
+    "marker": {"text": { "content": "構造", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 2, "align": "center&top" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [2] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "b40663d4-da21-47cd-b5c3-10c8a41f8382" } },
 
 {"signification": {"name":"配置"}, "appearance": {"position":[4,0,4],
-    "text": { "content": "配置", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 0.5, "align": "center&baseline" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [2] },
+    "marker": {"text": { "content": "配置", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 0.5, "align": "center&baseline" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [2] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "901f3baa-b87e-470b-9b23-3507051d9842" } },
 
 {"signification": {"name":"関係"}, "appearance": {"position":[-4,0,4],
-    "text": { "content": "関係", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 0.5, "align": "center&baseline" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [2] },
+    "marker": {"text": { "content": "関係", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 0.5, "align": "center&baseline" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [2] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "fca66653-07bf-4a54-9b03-cd6d069ed864" } },
 
 {"signification": {"name":"状態"}, "appearance": {"position":[16,0,0],
-    "text": { "content": "状態", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 1, "align": "center&top" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [3] },
+    "marker": {"text": { "content": "状態", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 1, "align": "center&top" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [3] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "970743b0-6f15-4bc2-87c6-d1c04b2437ca" } },
 
 {"signification": {"name":"状態遷移"}, "appearance": {"position":[16,16,0],
-    "text": { "content": "状態遷移", "pose": {"front": [1,0,0],"up": [0,0,1]},"size": 1, "align": "center&top" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [3] },
+    "marker": {"text": { "content": "状態遷移", "pose": {"front": [1,0,0],"up": [0,0,1]},"size": 1, "align": "center&top" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [3] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "c3ce2f15-8f1c-4473-9ac3-94e9292510e1" } },
 
 {"signification": {"name":"分⇆類"}, "appearance": {"position":[-16,8,0],
-    "text": { "content": "分⇆類", "pose": {"front": [1,0,0],"up": [0,0,1]},"size": 1, "align": "center&middle" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [3] },
+    "marker": {"text": { "content": "分⇆類", "pose": {"front": [1,0,0],"up": [0,0,1]},"size": 1, "align": "center&middle" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [3] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "696e94c0-c266-410c-adf2-740797d57edc" } },
 
 {"signification": {"name":"先験的"}, "appearance": {"position":[-4,4,0],
-    "text": { "content": "先験的", "pose": {"front": [1,0,0],"up": [0,0,1]},"size": 0.5, "align": "center&middle" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [3] },
+    "marker": {"text": { "content": "先験的", "pose": {"front": [1,0,0],"up": [0,0,1]},"size": 0.5, "align": "center&middle" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [3] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "fcdefb56-0b0e-4e82-bb91-c7a1bfe8c002" } },
 
 {"signification": {"name":"感性"}, "appearance": {"position":[0,0,0],
-    "text": { "content": "感性", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 1, "align": "center&middle" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [3] },
+    "marker": {"text": { "content": "感性", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 1, "align": "center&middle" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [3] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "6147f3c6-5a9b-4dc1-b33c-c0e1e3adfd45" } },
 
 {"signification": {"name":"循環"}, "appearance": {"position":[-16,8,8],
-    "text": { "content": "循環", "pose": {"front": [0,0,1],"up": [-1,0,0]},"size": 0.5, "align": "center&middle" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [3] },
+    "marker": {"text": { "content": "循環", "pose": {"front": [0,0,1],"up": [-1,0,0]},"size": 0.5, "align": "center&middle" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [3] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "__" } },
 
 {"signification": {"name":"分"}, "appearance": {"position":[0,0,0],
-    "text": { "content": "分", "pose": {"front": [0,1,0],"up": [-1,0,0]},"size": 2, "align": "center&middle" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [3] },
+    "marker": {"text": { "content": "分", "pose": {"front": [0,1,0],"up": [-1,0,0]},"size": 2, "align": "center&middle" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [3] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "59f4dca9-4794-440f-87a2-52677f1ab0d0" } },
 
 {"signification": {"name":"共通化"}, "appearance": {"position":[0,0,0],
-    "text": { "content": "共通化", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 1, "align": "center&middle" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [3] },
+    "marker": {"text": { "content": "共通化", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 1, "align": "center&middle" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [3] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "39156e97-df1c-4bf8-aea3-a77ba8666570" } },
 
 {"signification": {"name":"類"}, "appearance": {"position":[0,0,0],
-    "text": { "content": "類", "pose": {"front": [0,1,0],"up": [1,0,0]},"size": 2, "align": "center&middle" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [3] },
+    "marker": {"text": { "content": "類", "pose": {"front": [0,1,0],"up": [1,0,0]},"size": 2, "align": "center&middle" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [3] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "6ff24b11-ae09-47ab-a922-1c6b3ff416b0" } },
 
 {"signification": {"name":"差異化"}, "appearance": {"position":[0,0,0],
-    "text": { "content": "差異化", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 1, "align": "center&middle" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [3] },
+    "marker": {"text": { "content": "差異化", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 1, "align": "center&middle" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [3] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "1ab296dc-59c9-4d63-a872-7006690877e9" } },
 
 {"signification": {"name":"概念"}, "appearance": {"position":[-16,8,16],
-    "text": { "content": "概念", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 2, "align": "center&middle" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [3] },
+    "marker": {"text": { "content": "概念", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 2, "align": "center&middle" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [3] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "277aa365-47c8-437a-94f5-a5f5acda16b3" } },
 
 {"signification": {"name":"外延"}, "appearance": {"position":[-12,8,16],
-    "text": { "content": "外延", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 0.5, "align": "center&middle" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [3] },
+    "marker": {"text": { "content": "外延", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 0.5, "align": "center&middle" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [3] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "63c1c097-7021-4836-b86e-f3a82e491275" } },
 
 {"signification": {"name":"内包"}, "appearance": {"position":[-20,8,16],
-    "text": { "content": "内包", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 0.5, "align": "center&middle" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [3] },
+    "marker": {"text": { "content": "内包", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 0.5, "align": "center&middle" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [3] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "fb72c80a-624c-4a42-9249-e47335a3656a" } },
 
 {"signification": {"name":"スキーマ"}, "appearance": {"position":[-12,-8,12],
-    "text": { "content": "スキーマ", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 2, "align": "center&middle" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [3] },
+    "marker": {"text": { "content": "スキーマ", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 2, "align": "center&middle" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [3] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "f0b6448b-baa6-458e-a770-8cd48d70efc3" } },
 
 {"signification": {"name":"コンテキスト"}, "appearance": {"position":[-16,0,16],
-    "text": { "content": "コンテキスト", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 2, "align": "center&middle" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [3] },
+    "marker": {"text": { "content": "コンテキスト", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 2, "align": "center&middle" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [3] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "a448bde1-7a0c-427a-8faf-3e26beb3b28c" } },
 
 
 
 {"signification": {"name":"プロセス"}, "appearance": {"position":[8,0,12],
-    "text": { "content": "", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 2, "align": "center&middle" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [6] },
+    "marker": {"text": { "content": "プロセス", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 2, "align": "center&middle" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [6] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "5479ca54-96f2-43fa-8db0-32eafbe9f2c2" } },
 
 {"signification": {"name":"インプット"}, "appearance": {"position":[8,4,12],
-    "text": { "content": "", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 2, "align": "center&middle" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [6] },
+    "marker": {"text": { "content": "インプット", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 2, "align": "center&middle" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [6] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "fc79f958-f049-4cac-b29f-d32ac875d4c2" } },
 
 {"signification": {"name":"スループット"}, "appearance": {"position":[8,8,12],
-    "text": { "content": "", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 2, "align": "center&middle" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [6] },
+    "marker": {"text": { "content": "スループット", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 2, "align": "center&middle" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [6] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "3a709aba-f20f-4a2e-b4ff-c2f4200b3a24" } },
 
 {"signification": {"name":"アウトプット"}, "appearance": {"position":[8,12,12],
-    "text": { "content": "", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 2, "align": "center&middle" }, "marker": {"primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frame": [6] },
+    "marker": {"text": { "content": "アウトプット", "pose": {"front": [0,1,0],"up": [0,0,1]},"size": 2, "align": "center&middle" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [6] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "c8c25655-0ba5-420a-99a7-973094baf09a" } }
 
+
 ]
-
-
-
 }
