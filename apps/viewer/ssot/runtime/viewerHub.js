@@ -556,37 +556,48 @@ export function createViewerHub({ core, renderer }) {
 
   // --- viewer 設定 ---
   // NOTE:
-  // - worldAxesVisible は「hub管理」で固定（viewerSettingsController の管轄外）。
-  // - worldAxes の実体（AxesHelper）は renderer が持つが、可視/不可視の唯一の入口は
-  //   hub.viewerSettings.setWorldAxesVisible -> renderer.setWorldAxesVisible に限定する。
+  // - worldAxes は「hub管理」で固定（viewerSettingsController の管轄外）。
+  // - renderer 側は worldAxes の実体（line layer）を持つが、
+  //   mode の唯一の入口は hub.viewerSettings.setWorldAxesMode に限定する。
   // - renderer.applyViewerSettings() では worldAxes を扱わない（= 二重管理禁止）。
 
   const viewerSettingsState = {
     // ワールド座標軸だけは当面 hub 管理でOK（Phase2の対象外にしてある）
-   worldAxesVisible: false,
+    // 0:OFF / 1:FIXED / 2:FULL_VIEW
+    worldAxesMode: 0,
     worldAxesListeners: [],
   };
 
 
   const viewerSettings = {
     // --------------------------------------------------------
-    // 既存: ワールド座標軸の表示 ON/OFF
+    // ワールド座標軸: 3-mode
     // --------------------------------------------------------
     setWorldAxesVisible(flag) {
+      // backward-compat: visible=true maps to FIXED
+      this.setWorldAxesMode(flag ? 1 : 0);
+    },
+
+    setWorldAxesMode(mode) {
       if (!assertAlive()) return;
-      const visible = !!flag;
-      if (visible === viewerSettingsState.worldAxesVisible) return;
-
-      viewerSettingsState.worldAxesVisible = visible;
-
-      if (
-        renderer &&
-        typeof renderer.setWorldAxesVisible === "function"
-      ) {
-        renderer.setWorldAxesVisible(visible);
+      const n = Number(mode);
+      const m = (n === 2) ? 2 : (n ? 1 : 0);
+      if (m === viewerSettingsState.worldAxesMode) {
+        // mode が同じでも renderer 側の復旧が必要なケースがあるので一応流す
       }
 
-      // UI へ通知
+      viewerSettingsState.worldAxesMode = m;
+
+      if (renderer) {
+        if (typeof renderer.setWorldAxesMode === "function") {
+          renderer.setWorldAxesMode(m);
+        } else if (typeof renderer.setWorldAxesVisible === "function") {
+          renderer.setWorldAxesVisible(m !== 0);
+        }
+      }
+
+      // UI へ通知（既存 listener は visible:boolean）
+      const visible = (m !== 0);
       viewerSettingsState.worldAxesListeners.forEach((fn) => {
         try {
           fn(visible);
@@ -597,11 +608,18 @@ export function createViewerHub({ core, renderer }) {
     },
 
     toggleWorldAxes() {
-      this.setWorldAxesVisible(!viewerSettingsState.worldAxesVisible);
+      // cycle: OFF -> FIXED -> FULL_VIEW -> OFF
+      const cur = viewerSettingsState.worldAxesMode;
+      const next = (cur + 1) % 3;
+      this.setWorldAxesMode(next);
     },
 
     getWorldAxesVisible() {
-      return viewerSettingsState.worldAxesVisible;
+      return viewerSettingsState.worldAxesMode !== 0;
+    },
+
+    getWorldAxesMode() {
+      return viewerSettingsState.worldAxesMode;
     },
 
     // listener: (visible:boolean) => void
@@ -609,7 +627,7 @@ export function createViewerHub({ core, renderer }) {
       if (!assertAlive()) return () => {};
       if (typeof listener === "function") {
           viewerSettingsState.worldAxesListeners.push(listener);
-          try { listener(viewerSettingsState.worldAxesVisible); } catch (_e) {}
+          try { listener(viewerSettingsState.worldAxesMode !== 0); } catch (_e) {}
         return () => {
           const i = viewerSettingsState.worldAxesListeners.indexOf(listener);
           if (i >= 0) viewerSettingsState.worldAxesListeners.splice(i, 1);
