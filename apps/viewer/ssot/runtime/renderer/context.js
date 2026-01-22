@@ -4,7 +4,7 @@ import * as THREE from "/vendor/three/build/three.module.js";
 import { applyMicroFX as applyMicroFXImpl, clearMicroFX as clearMicroFXImpl } from "./microFX/index.js";
 import { microFXConfig } from "./microFX/config.js";
 // NOTE: microFXConfig は profile 切替の“状態置き場”としても使える（存在すれば）
-import { buildPointLabelIndex } from "./labels/labelIndex.js";
+import { buildLabelIndex } from "./labels/labelIndex.js";
 import { LabelLayer } from "./labels/LabelLayer.js";
 import { createWorldAxesLayer } from "./worldAxes.js";
 import { createLineEffectsRuntime } from "./effects/lineEffects.js";
@@ -389,6 +389,11 @@ function maybeForceContextLoss(renderer, enabled) {
   const labelViewport = { width: 0, height: 0, dpr: 1 };
   const labelCameraState = { viewport: labelViewport };
   const labelObjects = new Map();
+  const lineCaptionAnchors = new Map();
+  const auxExtensionAnchors = new Map(); // uuid -> Object3D (world-space anchor for aux.module.extension labels)
+  const hudEntries = []; // [{ obj, followCamera, scaleWithDistance, baseOffset, baseQuat, baseScale, baseDistance }]
+
+
 
   const debugMetrics = {
     fps: 0,
@@ -632,6 +637,10 @@ function maybeForceContextLoss(renderer, enabled) {
     clearGroup("points");
     clearGroup("lines");
     clearGroup("aux");
+
+    lineCaptionAnchors.clear();
+    auxExtensionAnchors.clear();
+    hudEntries.length = 0;
 
     // cancel pending glTF marker loads for previous document
     bumpGltfSyncToken();
@@ -931,12 +940,220 @@ function maybeForceContextLoss(renderer, enabled) {
       addPickTarget(root);
     }
 
-    // labels: points marker.text
-    try {
-      const labelIndex = buildPointLabelIndex(struct);
-      labelLayer.sync(labelIndex, maps.points);
-      refreshLabelObjects();
-    } catch (_e) {}
+
+
+    // ------------------------------------------------------------
+    // lines: appearance.line_type + geometry (schema)
+    // ------------------------------------------------------------
+    function _normLineType(v) {
+      if (typeof v !== "string") return "straight";
+      const s = v.trim().toLowerCase();
+      return (s === "polyline" || s === "catmullrom" || s === "bezier" || s === "arc") ? s : "straight";
+    }
+
+    function _normLineStyle(v) {
+      if (typeof v !== "string") return "solid";
+      const s = v.trim().toLowerCase();
+      return (s === "solid" || s === "dashed" || s === "dotted" || s === "double" || s === "none") ? s : "solid";
+    }
+
+    function _clampInt(n, lo, hi) {
+      const x = Math.trunc(Number(n));
+      if (!Number.isFinite(x)) return lo;
+      return Math.max(lo, Math.min(hi, x));
+    }
+
+    function _near3(a, b, eps = 1e-6) {
+      if (!a || !b) return false;
+      const dx = (a[0] - b[0]);
+      const dy = (a[1] - b[1]);
+      const dz = (a[2] - b[2]);
+      return (dx*dx + dy*dy + dz*dz) <= (eps*eps);
+    }
+
+    function _normalizeVec3List(raw, dim) {
+      const out = [];
+      if (!Array.isArray(raw)) return out;
+      for (const v of raw) {
+        const p = readVec3(v, null);
+        if (!p) continue;
+        if (dim === 2) p[2] = 0;
+        out.push(p);
+      }
+      return out;
+    }
+
+    function _ensureEndpoints(points, a, b) {
+      const out = Array.isArray(points) ? points.slice() : [];
+      if (!out.length) return [a, b];
+      if (!_near3(out[0], a)) out.unshift(a);
+      if (!_near3(out[out.length - 1], b)) out.push(b);
+
+      // 連続重複を除去（epsilon）
+      const compact = [out[0]];
+      for (let i = 1; i < out.length; i++) {
+        if (_near3(out[i], compact[compact.length - 1])) continue;
+        compact.push(out[i]);
+      }
+      return compact.length >= 2 ? compact : [a, b];
+    }
+
+    function _polylineLength(points) {
+      if (!Array.isArray(points) || points.length < 2) return 0;
+      let len = 0;
+      for (let i = 1; i < points.length; i++) {
+        const p0 = points[i - 1];
+        const p1 = points[i];
+        const dx = p1[0] - p0[0];
+        const dy = p1[1] - p0[1];
+        const dz = p1[2] - p0[2];
+        len += Math.sqrt(dx*dx + dy*dy + dz*dz);
+      }
+      return len;
+    }
+
+    function _polylineMidpoint(points) {
+      if (!Array.isArray(points) || points.length < 2) return [0, 0, 0];
+      const total = _polylineLength(points);
+      if (!(total > 0)) {
+        const p0 = points[0];
+        const p1 = points[points.length - 1];
+        return [(p0[0] + p1[0]) * 0.5, (p0[1] + p1[1]) * 0.5, (p0[2] + p1[2]) * 0.5];
+      }
+
+      const half = total * 0.5;
+      let acc = 0;
+      for (let i = 1; i < points.length; i++) {
+        const p0 = points[i - 1];
+        const p1 = points[i];
+        const dx = p1[0] - p0[0];
+        const dy = p1[1] - p0[1];
+        const dz = p1[2] - p0[2];
+        const seg = Math.sqrt(dx*dx + dy*dy + dz*dz);
+        if (acc + seg >= half) {
+          const t = seg > 0 ? (half - acc) / seg : 0;
+          return [p0[0] + dx * t, p0[1] + dy * t, p0[2] + dz * t];
+        }
+        acc += seg;
+      }
+      return points[points.length - 1].slice();
+    }
+
+    function _estimateCurveLength(curve, samples = 16) {
+      try {
+        const pts = curve.getPoints(_clampInt(samples, 4, 64));
+        let len = 0;
+        for (let i = 1; i < pts.length; i++) len += pts[i].distanceTo(pts[i - 1]);
+        return len;
+      } catch (_e) {}
+      return 0;
+    }
+
+    function _chooseCurveSegments(estimatedLen, sceneRadius) {
+      const r = (Number.isFinite(sceneRadius) && sceneRadius > 0)
+        ? sceneRadius
+        : (estimatedLen > 0 ? estimatedLen : 1);
+      const rel = estimatedLen / Math.max(1e-6, r);
+
+      // 長さ=radius のとき 24 分割くらい
+      return _clampInt(Math.round(24 * rel), 12, 160);
+    }
+
+    function _v3(p) {
+      return new THREE.Vector3(
+        Number(p?.[0]) || 0,
+        Number(p?.[1]) || 0,
+        Number(p?.[2]) || 0
+      );
+    }
+
+    function _buildLineVertices({ lineType, geometry, a, b, sceneRadius }) {
+      const g = (geometry && typeof geometry === "object") ? geometry : null;
+      const dim = (g?.dimension === 2) ? 2 : 3;
+      const A = (dim === 2) ? [a[0], a[1], 0] : a;
+      const B = (dim === 2) ? [b[0], b[1], 0] : b;
+
+      if (lineType === "polyline") {
+        const pts = _normalizeVec3List(g?.polyline_points, dim);
+        return _ensureEndpoints(pts, A, B);
+      }
+
+      if (lineType === "catmullrom") {
+        const pts = _normalizeVec3List(g?.catmullrom_points, dim);
+        const anchors = _ensureEndpoints(pts, A, B);
+        if (anchors.length < 2) return [A, B];
+
+        const tensionRaw = Number(g?.catmullrom_tension);
+        const tension =
+          (Number.isFinite(tensionRaw) && tensionRaw >= 0 && tensionRaw <= 1)
+            ? tensionRaw
+            : 0.5;
+
+        const curve = new THREE.CatmullRomCurve3(anchors.map(_v3));
+        curve.curveType = "catmullrom";
+        curve.tension = tension;
+
+        const est = _estimateCurveLength(curve, 24);
+        const segs = _chooseCurveSegments(est, sceneRadius);
+        const ptsOut = curve.getPoints(segs);
+        return ptsOut.map((v) => [v.x, v.y, v.z]);
+      }
+
+      if (lineType === "bezier") {
+        const cs = _normalizeVec3List(g?.bezier_controls, dim);
+        if (!cs.length) return [A, B];
+
+        let curve = null;
+        if (cs.length >= 2) {
+          curve = new THREE.CubicBezierCurve3(_v3(A), _v3(cs[0]), _v3(cs[1]), _v3(B));
+        } else {
+          curve = new THREE.QuadraticBezierCurve3(_v3(A), _v3(cs[0]), _v3(B));
+        }
+
+        const est = _estimateCurveLength(curve, 24);
+        const segs = _chooseCurveSegments(est, sceneRadius);
+        const ptsOut = curve.getPoints(segs);
+        return ptsOut.map((v) => [v.x, v.y, v.z]);
+      }
+
+      if (lineType === "arc") {
+        const center = readVec3(g?.arc_center, null);
+        const rRaw = Number(g?.arc_radius);
+        const a0 = Number(g?.arc_angle_start);
+        const a1 = Number(g?.arc_angle_end);
+
+        if (!center || !(Number.isFinite(rRaw) && rRaw > 0) || !Number.isFinite(a0) || !Number.isFinite(a1)) {
+          return [A, B];
+        }
+        if (dim === 2) center[2] = 0;
+
+        const clockwise = !!g?.arc_clockwise;
+        let sweep = a1 - a0;
+        if (clockwise) {
+          if (sweep > 0) sweep -= Math.PI * 2;
+        } else {
+          if (sweep < 0) sweep += Math.PI * 2;
+        }
+
+        const est = Math.abs(sweep) * rRaw;
+        const segs = _chooseCurveSegments(est, sceneRadius);
+
+        const out = [];
+        for (let i = 0; i <= segs; i++) {
+          const t = segs > 0 ? (i / segs) : 0;
+          const th = a0 + sweep * t;
+          out.push([
+            center[0] + rRaw * Math.cos(th),
+            center[1] + rRaw * Math.sin(th),
+            center[2],
+          ]);
+        }
+        return out.length >= 2 ? out : [A, B];
+      }
+
+      return [A, B];
+    }
+
 
     // lines: LineSegments(2pts)
     if (lns.length) {
@@ -963,100 +1180,143 @@ function maybeForceContextLoss(renderer, enabled) {
         continue;
       }
 
-      // ------------------------------------------------------------
-      // lineProfile -> renderer.userData （effects/lineEffectsRuntime 用）
-      // ------------------------------------------------------------
-      const prof = structIndex?.lineProfile?.get?.(uuid) || null;
-      const lineStyle =
-        (prof && typeof prof.lineStyle === "string" && prof.lineStyle.trim())
-          ? prof.lineStyle.trim()
-          : "solid";
-      if (lineStyle === "none") continue;
 
-      let effectType = null;
-      let effect = null;
-      if (prof && prof.effect && typeof prof.effect === "object") {
-        const t = prof.effect.effect_type;
-        if (typeof t === "string" && t !== "none") {
-          effectType = t;
-          effect = { ...prof.effect };
-          delete effect.effect_type;
+// ------------------------------------------------------------
+// lineProfile -> renderer.userData （effects/lineEffectsRuntime 用）
+// ------------------------------------------------------------
+const prof = structIndex?.lineProfile?.get?.(uuid) || null;
 
-          // structIndex 側の easing 名（ease-in/out 系）を runtime 側に寄せる
-          if (typeof effect.easing === "string") {
-            const ez = effect.easing;
-            if (ez === "ease-in") effect.easing = "quad_in";
-            else if (ez === "ease-out") effect.easing = "quad_out";
-            else if (ez === "ease-in-out") effect.easing = "quad_in_out";
-          }
+// schema: appearance.line_type / appearance.line_style（structIndex の既定値も拾う）
+const lineType = _normLineType(
+  line?.appearance?.line_type ?? line?.appearance?.lineType ?? prof?.lineType
+);
+const lineStyle = _normLineStyle(
+  line?.appearance?.line_style ?? line?.appearance?.lineStyle ?? prof?.lineStyle
+);
+if (lineStyle === "none") continue;
 
-          // flow の向きは sense から推測（明示されてるなら尊重）
-          if (effectType === "flow" && !effect.direction) {
-            const sense = prof.sense;
-            effect.direction = sense === "b_to_a" ? "backward" : "forward";
-          }
-        }
-      }
+// appearance.visible (schema)
+const visibleFlag = (line?.appearance?.visible ?? prof?.visible);
+if (visibleFlag === false) continue;
 
-      const useDashed =
-        lineStyle === "dashed" || lineStyle === "dotted" || effectType === "flow";
+const geometryCfg =
+  (line?.appearance?.geometry && typeof line.appearance.geometry === "object")
+    ? line.appearance.geometry
+    : ((line?.geometry && typeof line.geometry === "object") ? line.geometry : null);
 
-      const col = readColor(line?.appearance?.color ?? line?.color, 0xffffff);
-      const op = readOpacity(line?.appearance?.opacity ?? line?.opacity, 1);
+const vertices = _buildLineVertices({ lineType, geometry: geometryCfg, a, b, sceneRadius });
+const aDraw = (Array.isArray(vertices) && vertices.length) ? vertices[0] : a;
+const bDraw = (Array.isArray(vertices) && vertices.length) ? vertices[vertices.length - 1] : b;
+const pathLen = Math.max(1e-6, _polylineLength(vertices));
 
-      let mat;
-      if (useDashed) {
-        const dx = a[0] - b[0];
-        const dy = a[1] - b[1];
-        const dz = a[2] - b[2];
-        const len = Math.max(1e-6, Math.sqrt(dx * dx + dy * dy + dz * dz));
+// line caption anchor (path midpoint)
+try {
+  const mid = _polylineMidpoint(vertices);
+  const anchor = new THREE.Object3D();
+  anchor.position.set(mid[0], mid[1], mid[2]);
+  lineCaptionAnchors.set(uuid, anchor);
+} catch (_e) {}
 
-        let dashSize;
-        let gapSize;
-        if (lineStyle === "dotted") {
-          dashSize = len / 60;
-          gapSize = len / 20;
-        } else {
-          dashSize = len / 12;
-          gapSize = dashSize * 0.6;
-        }
+let effectType = null;
+let effect = null;
+if (prof && prof.effect && typeof prof.effect === "object") {
+  const t = prof.effect.effect_type;
+  if (typeof t === "string" && t !== "none") {
+    effectType = t;
+    effect = { ...prof.effect };
+    delete effect.effect_type;
 
-        dashSize = Math.max(0.02, Math.min(dashSize, len));
-        gapSize = Math.max(0.02, Math.min(gapSize, len));
+    // structIndex 側の easing 名（ease-in/out 系）を runtime 側に寄せる
+    if (typeof effect.easing === "string") {
+      const ez = effect.easing;
+      if (ez === "ease-in") effect.easing = "quad_in";
+      else if (ez === "ease-out") effect.easing = "quad_out";
+      else if (ez === "ease-in-out") effect.easing = "quad_in_out";
+    }
 
-        mat = new THREE.LineDashedMaterial({
-          color: col,
-          transparent: op < 1,
-          opacity: op,
-          dashSize,
-          gapSize,
-        });
-      } else {
-        mat = new THREE.LineBasicMaterial({
-          color: col,
-          transparent: op < 1,
-          opacity: op,
-        });
-      }
-      const geo = new THREE.BufferGeometry();
-      geo.setAttribute("position", new THREE.Float32BufferAttribute([
-        a[0], a[1], a[2],
-        b[0], b[1], b[2],
-      ], 3));
-      const seg = new THREE.LineSegments(geo, mat);
-      if (mat.isLineDashedMaterial) {
-        try { seg.computeLineDistances(); } catch (_e) {}
-      }
-      seg.userData.uuid = uuid;
-      seg.userData.kind = "lines";
+    // flow の向きは sense から推測（明示されてるなら尊重）
+    if (effectType === "flow" && !effect.direction) {
+      const sense = prof.sense;
+      effect.direction = sense === "b_to_a" ? "backward" : "forward";
+    }
+  }
+}
 
-      // lineEffectsRuntime が読む
-      seg.userData.lineStyle = lineStyle;
-      if (prof && typeof prof.sense === "string") seg.userData.sense = prof.sense;
-      if (effectType && effect) {
-        seg.userData.effectType = effectType;
-        seg.userData.effect = effect;
-      }
+const useDashed =
+  lineStyle === "dashed" || lineStyle === "dotted" || effectType === "flow";
+
+const col = readColor(line?.appearance?.color ?? line?.color, 0xffffff);
+const op = readOpacity(line?.appearance?.opacity ?? line?.opacity, 1);
+
+let mat;
+if (useDashed) {
+  let dashSize;
+  let gapSize;
+  if (lineStyle === "dotted") {
+    dashSize = pathLen / 60;
+    gapSize = pathLen / 20;
+  } else {
+    dashSize = pathLen / 12;
+    gapSize = dashSize * 0.6;
+  }
+
+  dashSize = Math.max(0.02, Math.min(dashSize, pathLen));
+  gapSize = Math.max(0.02, Math.min(gapSize, pathLen));
+
+  mat = new THREE.LineDashedMaterial({
+    color: col,
+    transparent: op < 1,
+    opacity: op,
+    dashSize,
+    gapSize,
+  });
+} else {
+  mat = new THREE.LineBasicMaterial({
+    color: col,
+    transparent: op < 1,
+    opacity: op,
+  });
+}
+
+const geo = new THREE.BufferGeometry();
+try {
+  const pos = [];
+  if (Array.isArray(vertices)) {
+    for (const v of vertices) pos.push(v[0], v[1], v[2]);
+  }
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+} catch (_e) {
+  geo.setAttribute("position", new THREE.Float32BufferAttribute([
+    aDraw[0], aDraw[1], aDraw[2],
+    bDraw[0], bDraw[1], bDraw[2],
+  ], 3));
+}
+
+// straight は LineSegments、曲線/ポリラインは Line として連結描画
+const seg = (lineType === "straight")
+  ? new THREE.LineSegments(geo, mat)
+  : new THREE.Line(geo, mat);
+
+if (mat.isLineDashedMaterial) {
+  try { seg.computeLineDistances(); } catch (_e) {}
+}
+seg.userData.uuid = uuid;
+seg.userData.kind = "lines";
+
+// appearance.render_order (schema)
+try {
+  const ro = Number(line?.appearance?.render_order ?? line?.appearance?.renderOrder ?? prof?.renderOrder ?? 0);
+  if (Number.isFinite(ro)) seg.renderOrder = ro;
+} catch (_e) {}
+
+// lineEffectsRuntime が読む
+seg.userData.lineType = lineType;
+seg.userData.lineStyle = lineStyle;
+if (prof && typeof prof.sense === "string") seg.userData.sense = prof.sense;
+if (effectType && effect) {
+  seg.userData.effectType = effectType;
+  seg.userData.effect = effect;
+}
       // arrow (V1): appearance.arrow
       try {
         const ar = (line?.appearance?.arrow && typeof line.appearance.arrow === "object")
@@ -1073,9 +1333,9 @@ function maybeForceContextLoss(renderer, enabled) {
           const autoOrient = ar.auto_orient !== undefined ? !!ar.auto_orient : true;
 
           if (prim !== "none" && placement !== "none") {
-            const dx2 = b[0] - a[0];
-            const dy2 = b[1] - a[1];
-            const dz2 = b[2] - a[2];
+            const dx2 = bDraw[0] - aDraw[0];
+            const dy2 = bDraw[1] - aDraw[1];
+            const dz2 = bDraw[2] - aDraw[2];
             const len2 = Math.max(1e-6, Math.sqrt(dx2 * dx2 + dy2 * dy2 + dz2 * dz2));
 
             // サイズ（未指定はシーン/線長から推測）
@@ -1135,8 +1395,8 @@ function maybeForceContextLoss(renderer, enabled) {
             const dirAB = new THREE.Vector3(dx2, dy2, dz2);
             const dirBA = dirAB.clone().multiplyScalar(-1);
 
-            if (placement === "end_b" || placement === "both") addArrow(new THREE.Vector3(b[0], b[1], b[2]), dirAB);
-            if (placement === "end_a" || placement === "both") addArrow(new THREE.Vector3(a[0], a[1], a[2]), dirBA);
+            if (placement === "end_b" || placement === "both") addArrow(new THREE.Vector3(bDraw[0], bDraw[1], bDraw[2]), dirAB);
+            if (placement === "end_a" || placement === "both") addArrow(new THREE.Vector3(aDraw[0], aDraw[1], aDraw[2]), dirBA);
           }
         }
       } catch (_e) {}
@@ -1167,37 +1427,390 @@ function maybeForceContextLoss(renderer, enabled) {
       lineEffectsRuntime = null;
     }
 
-    // aux: struct.aux から作る（grid/axis）
-    for (const a of axs) {
-      const uuid = pickUuidCompat(a);
-      if (!uuid) continue;
 
-      const tag = collectStringsShallowCompat(a).join(" ").toLowerCase();
-      debugRenderer("[renderer] aux tag haystack", tag);
+// aux: struct.aux
+// schema: aux[].appearance.module (grid / axis / plate / shell / hud / extension)
+function _readVec2(v, fallback) {
+  if (Array.isArray(v) && v.length >= 2) {
+    const x = Number(v[0]);
+    const y = Number(v[1]);
+    if (Number.isFinite(x) && Number.isFinite(y)) return [x, y];
+  }
+  return fallback;
+}
 
-      let obj = null;
-      if (tag.includes("grid")) {
-        const size = Number(a?.size ?? a?.appearance?.size ?? a?.params?.size ?? 40);
-        const div  = Number(a?.divisions ?? a?.appearance?.divisions ?? a?.params?.divisions ?? 20);
-        obj = new THREE.GridHelper(
-          Number.isFinite(size) ? size : 40,
-          Number.isFinite(div) ? div : 20
-        );
-        // GridHelper はデフォで Y-up 前提やから、Z-up に合わせて回す
-        obj.rotation.x = Math.PI / 2;
-      } else if (tag.includes("axis") || tag.includes("axes")) {
-        const len = Number(a?.size ?? a?.appearance?.size ?? 12);
-        obj = new THREE.AxesHelper(Number.isFinite(len) ? len : 12);
-      } else {
-        continue;
+for (const aux of axs) {
+  const uuid = aux?.signification?.uuid || pickUuidCompat(aux) || crypto.randomUUID();
+  const app = (aux?.appearance && typeof aux.appearance === "object") ? aux.appearance : {};
+
+  // appearance.visible (schema)
+  if (app.visible === false) continue;
+
+  const root = new THREE.Group();
+  root.userData.uuid = uuid;
+  root.userData.kind = "aux";
+
+  // spatial
+  const pos = readVec3(app.position, [0, 0, 0]);
+  root.position.set(pos[0], pos[1], pos[2]);
+
+  const orient = readVec3(app.orientation, null);
+  if (orient) applyEulerYawPitchRoll(root, orient);
+
+  const sc = readVec3(app.scale, null);
+  if (sc) applyScaleVec3(root, sc);
+
+  // appearance.render_order (schema)
+  try {
+    const ro = Number(app.render_order ?? app.renderOrder ?? 0);
+    if (Number.isFinite(ro)) root.renderOrder = ro;
+  } catch (_e) {}
+
+  const mod = (app.module && typeof app.module === "object") ? app.module : null;
+
+  // backward-compat: tags (aux:grid / aux:axis / aux:plane / aux:shell)
+  const tags = readTags(aux?.meta?.tags);
+  const hasTag = (t) => tags.includes(t);
+
+  const gridCfg = (mod?.grid && typeof mod.grid === "object") ? mod.grid : (hasTag("aux:grid") ? {} : null);
+  const axisCfg = (mod?.axis && typeof mod.axis === "object") ? mod.axis : (hasTag("aux:axis") ? {} : null);
+  const plateCfg = (mod?.plate && typeof mod.plate === "object") ? mod.plate : (hasTag("aux:plane") ? {} : null);
+  const shellCfg = (mod?.shell && typeof mod.shell === "object") ? mod.shell : (hasTag("aux:shell") ? {} : null);
+  const hudCfg = (mod?.hud && typeof mod.hud === "object") ? mod.hud : null;
+
+  // ------------------------------------------------------------
+  // module.grid
+  // ------------------------------------------------------------
+  if (gridCfg) {
+    const g = gridCfg;
+    const lengthRaw = Number(g.length);
+    const stepRaw = Number(g.step);
+    const length = (Number.isFinite(lengthRaw) && lengthRaw > 0) ? lengthRaw : 64;
+    const step = (Number.isFinite(stepRaw) && stepRaw > 0) ? stepRaw : 4;
+    const divisions = Math.max(1, Math.round(length / step));
+    const helper = new THREE.GridHelper(length, divisions);
+
+    // GridHelper defaults Y-up (grid on XZ), rotate to Z-up (grid on XY)
+    helper.rotation.x = Math.PI / 2;
+
+    const col = readColor(g.color, 0xc8c8ff);
+    const op = readOpacity(g.opacity, 0.4);
+
+    // GridHelper.material は配列（中心線/格子線）
+    const mats = Array.isArray(helper.material) ? helper.material : [helper.material];
+    for (const m of mats) {
+      if (m && m.color) m.color.set(col);
+      m.transparent = op < 1;
+      m.opacity = op;
+      m.depthWrite = false;
+    }
+
+    helper.renderOrder = root.renderOrder;
+    root.add(helper);
+  }
+
+  // ------------------------------------------------------------
+  // module.axis
+  // ------------------------------------------------------------
+  if (axisCfg) {
+    const a = axisCfg;
+    const lengthRaw = Number(a.length);
+    const length = (Number.isFinite(lengthRaw) && lengthRaw > 0) ? lengthRaw : 64;
+
+    const axisGroup = new THREE.Group();
+
+    const arrowCfg = (a.arrow && typeof a.arrow === "object") ? a.arrow : {};
+    const arrowsVisible = (arrowCfg.visible !== false);
+    const arrowPos = (typeof arrowCfg.position === "string") ? arrowCfg.position : "end"; // end | both
+    const arrowStyle = (typeof arrowCfg.style === "string") ? arrowCfg.style : "cone"; // cone | sphere
+    const arrowSizeRaw = Number(arrowCfg.size);
+    const arrowSize = (Number.isFinite(arrowSizeRaw) && arrowSizeRaw > 0) ? arrowSizeRaw : 2;
+
+    const arrowOpacity = readOpacity(arrowCfg.opacity, 1);
+
+    // base axis lines
+    const bothDir = (arrowPos === "both");
+    const x0 = bothDir ? -length : 0;
+    const x1 = length;
+    const y0 = bothDir ? -length : 0;
+    const y1 = length;
+    const z0 = bothDir ? -length : 0;
+    const z1 = length;
+
+    const mkLine = (from, to, colorHex) => {
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.Float32BufferAttribute([
+        from[0], from[1], from[2],
+        to[0], to[1], to[2],
+      ], 3));
+      const mat = new THREE.LineBasicMaterial({ color: colorHex });
+      const ln = new THREE.LineSegments(geo, mat);
+      ln.renderOrder = root.renderOrder;
+      return ln;
+    };
+
+    axisGroup.add(mkLine([x0, 0, 0], [x1, 0, 0], 0xff0000));
+    axisGroup.add(mkLine([0, y0, 0], [0, y1, 0], 0x00ff00));
+    axisGroup.add(mkLine([0, 0, z0], [0, 0, z1], 0x0000ff));
+
+    // arrows
+    if (arrowsVisible) {
+      const colorX = readColor(arrowCfg.color_x, 0xff8080);
+      const colorY = readColor(arrowCfg.color_y, 0x80ff80);
+      const colorZ = readColor(arrowCfg.color_z, 0x8080ff);
+
+      const mkArrow = (dir, tip, colorHex) => {
+        let geom;
+        if (arrowStyle === "sphere") {
+          geom = new THREE.SphereGeometry(arrowSize, 12, 8);
+        } else {
+          geom = new THREE.ConeGeometry(arrowSize * 0.6, arrowSize * 1.8, 10);
+        }
+
+        const mat = new THREE.MeshBasicMaterial({
+          color: colorHex,
+          transparent: arrowOpacity < 1,
+          opacity: arrowOpacity,
+          depthWrite: false,
+        });
+
+        const mesh = new THREE.Mesh(geom, mat);
+        mesh.position.set(tip[0], tip[1], tip[2]);
+
+        if (arrowStyle !== "sphere") {
+          // cone: +Y を向くので dir に合わせる
+          const q = new THREE.Quaternion().setFromUnitVectors(
+            new THREE.Vector3(0, 1, 0),
+            new THREE.Vector3(dir[0], dir[1], dir[2]).normalize()
+          );
+          mesh.setRotationFromQuaternion(q);
+        }
+
+        mesh.renderOrder = root.renderOrder;
+        return mesh;
+      };
+
+      const pushAxisArrows = (dir, tipPos, tipNeg, col) => {
+        axisGroup.add(mkArrow(dir, tipPos, col));
+        if (bothDir) axisGroup.add(mkArrow([-dir[0], -dir[1], -dir[2]], tipNeg, col));
+      };
+
+      pushAxisArrows([1, 0, 0], [length, 0, 0], [-length, 0, 0], colorX);
+      pushAxisArrows([0, 1, 0], [0, length, 0], [0, -length, 0], colorY);
+      pushAxisArrows([0, 0, 1], [0, 0, length], [0, 0, -length], colorZ);
+    }
+
+    axisGroup.renderOrder = root.renderOrder;
+    root.add(axisGroup);
+  }
+
+  // ------------------------------------------------------------
+  // module.plate
+  // ------------------------------------------------------------
+  if (plateCfg) {
+    const p = plateCfg;
+    const size = _readVec2(p.size, [1024, 1024]);
+    const w = Math.max(0.001, Math.abs(Number(size[0])) || 1024);
+    const h = Math.max(0.001, Math.abs(Number(size[1])) || 1024);
+
+    const col = readColor(p.color, 0xffffff);
+    const op = readOpacity(p.opacity, 0.2);
+
+    const geo = new THREE.PlaneGeometry(w, h);
+    const mat = new THREE.MeshBasicMaterial({
+      color: col,
+      transparent: op < 1,
+      opacity: op,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.renderOrder = root.renderOrder;
+    root.add(mesh);
+  }
+
+  // ------------------------------------------------------------
+  // module.shell
+  // ------------------------------------------------------------
+  if (shellCfg) {
+    const s = shellCfg;
+
+    // schema: shell_type (compat: type)
+    let type = "sphere";
+    try {
+      const t = (typeof s.shell_type === "string" ? s.shell_type
+        : (typeof s.shellType === "string" ? s.shellType
+        : (typeof s.type === "string" ? s.type : "sphere")));
+      const tt = (t || "").trim().toLowerCase();
+      if (tt) type = tt;
+    } catch (_e) {}
+
+    const col = readColor(s.color, 0xffffff);
+    const op = readOpacity(s.opacity, 0.25);
+
+    // if size/radius is omitted, derive from scene radius
+    const sr = (sceneRadius != null && Number.isFinite(sceneRadius) && sceneRadius > 0) ? sceneRadius : 512;
+
+    let geo = null;
+    if (type === "box") {
+      const size = readVec3(s.size, [sr * 2, sr * 2, sr * 2]);
+      geo = new THREE.BoxGeometry(
+        Math.max(0.001, Math.abs(size[0])),
+        Math.max(0.001, Math.abs(size[1])),
+        Math.max(0.001, Math.abs(size[2]))
+      );
+    } else {
+      const rRaw = Number(s.radius);
+      const r = (Number.isFinite(rRaw) && rRaw > 0) ? rRaw : (sr * 1.05);
+      geo = new THREE.SphereGeometry(r, 32, 20);
+    }
+
+    const mat = new THREE.MeshBasicMaterial({
+      color: col,
+      transparent: op < 1,
+      opacity: op,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.renderOrder = root.renderOrder;
+    root.add(mesh);
+
+    // module_shell_effect (edge/rim glow)
+    const eff = (s.effect && typeof s.effect === "object") ? s.effect : null;
+    if (eff) {
+      // Keep raw effect for future UI/debug
+      try { mesh.userData.effect = { ...eff }; } catch (_e) {}
+
+      const edgeRaw = Number(eff.edge_intensity);
+      const edgeIntensity = (Number.isFinite(edgeRaw) ? Math.max(0, Math.min(1, edgeRaw)) : 0.5);
+      const rimlight = eff.rimlight !== undefined ? !!eff.rimlight : false;
+      const glowCol = readColor(eff.glow_color, 0xff0000);
+
+      // outline edges
+      if (edgeIntensity > 0.001) {
+        try {
+          const eg = new THREE.EdgesGeometry(geo);
+          const em = new THREE.LineBasicMaterial({
+            color: glowCol,
+            transparent: true,
+            opacity: Math.max(0.05, Math.min(1, 0.15 + 0.85 * edgeIntensity)),
+          });
+          try {
+            em.depthWrite = false;
+            em.blending = THREE.AdditiveBlending;
+          } catch (_e) {}
+          const edges = new THREE.LineSegments(eg, em);
+          edges.renderOrder = root.renderOrder + 2;
+          try { edges.frustumCulled = false; } catch (_e) {}
+          root.add(edges);
+        } catch (_e) {}
       }
 
-      obj.userData.uuid = uuid;
-      obj.userData.kind = "aux";
-      groups.aux.add(obj);
-      maps.aux.set(uuid, obj);
-      addPickTarget(obj);
+      // rim/glow (approx.)
+      if (rimlight || edgeIntensity > 0.001) {
+        try {
+          const gm = new THREE.MeshBasicMaterial({
+            color: glowCol,
+            transparent: true,
+            opacity: Math.max(0.02, Math.min(1, (rimlight ? 0.12 : 0.06) * edgeIntensity)),
+            side: THREE.BackSide,
+          });
+          try {
+            gm.depthWrite = false;
+            gm.blending = THREE.AdditiveBlending;
+          } catch (_e) {}
+          const glow = new THREE.Mesh(geo, gm);
+          glow.renderOrder = root.renderOrder + 1;
+          const s0 = 1 + Math.max(0.005, Math.min(0.08, 0.03 * edgeIntensity));
+          glow.scale.set(s0, s0, s0);
+          try { glow.frustumCulled = false; } catch (_e) {}
+          root.add(glow);
+        } catch (_e) {}
+      }
     }
+  }
+
+  // ------------------------------------------------------------
+  // module.hud
+  // ------------------------------------------------------------
+  if (hudCfg) {
+    const h = hudCfg;
+    const followCamera = (h.follow_camera !== undefined) ? !!h.follow_camera : true;
+    const scaleWithDistance = (h.scale_with_distance !== undefined) ? !!h.scale_with_distance : true;
+
+    // HUD entries are updated every render tick (camera follow + distance scaling)
+    try {
+      hudEntries.push({
+        obj: root,
+        followCamera,
+        scaleWithDistance,
+        baseOffset: root.position.clone(),
+        baseQuat: root.quaternion.clone(),
+        baseScale: root.scale.clone(),
+        baseDistance: null,
+      });
+      root.userData.hud = { followCamera, scaleWithDistance };
+      if (followCamera) root.frustumCulled = false;
+    } catch (_e) {}
+  }
+
+  // ------------------------------------------------------------
+  // module.extension
+  // - extension.latex: LaTeX 文字列をそのままテキストラベルとして表示（組版は未対応）
+  // - extension.parametric: プレースホルダ表示（将来: 手続き生成）
+  // ------------------------------------------------------------
+  const extCfg = (mod?.extension && typeof mod.extension === "object") ? mod.extension : null;
+  if (extCfg) {
+    const latex = (extCfg?.latex && typeof extCfg.latex === "object") ? extCfg.latex : null;
+    const param = (extCfg?.parametric && typeof extCfg.parametric === "object") ? extCfg.parametric : null;
+
+    let makeAnchor = false;
+    let offset = [0, 0, 0];
+
+    try {
+      const hasLatex = !!(latex && typeof latex.content === "string" && latex.content.trim().length > 0);
+      const hasParam = !!param;
+      const hasType = (typeof extCfg.type === "string" && extCfg.type.trim().length > 0);
+      if (hasLatex) {
+        makeAnchor = true;
+        offset = readVec3(latex.position, [0, 0, 0]);
+      } else if (hasParam || hasType) {
+        makeAnchor = true;
+      }
+    } catch (_e) {}
+
+    if (makeAnchor && !auxExtensionAnchors.has(uuid)) {
+      try {
+        const anchor = new THREE.Object3D();
+        anchor.userData.__auxExtOffset = offset;
+
+        // initial world position (updated each render tick)
+        const off = new THREE.Vector3(Number(offset?.[0] ?? 0), Number(offset?.[1] ?? 0), Number(offset?.[2] ?? 0));
+        off.multiply(root.scale);
+        off.applyQuaternion(root.quaternion);
+        anchor.position.copy(root.position).add(off);
+
+        auxExtensionAnchors.set(uuid, anchor);
+      } catch (_e) {}
+    }
+  }
+
+
+  groups.aux.add(root);
+  maps.aux.set(uuid, root);
+  // aux は pick 対象にしない（裏の点/線を拾いたい）
+}
+
+    // labels: points.marker.text + lines.signification.caption + aux.module.extension
+    try {
+      const labelIndex = buildLabelIndex(struct);
+      labelLayer.sync(labelIndex, { points: maps.points, lines: lineCaptionAnchors, aux: auxExtensionAnchors });
+      refreshLabelObjects();
+    } catch (_e) {}
+
 
     debugRenderer("[renderer] syncDocument built", {
       points: maps.points.size,
@@ -1308,6 +1921,74 @@ function maybeForceContextLoss(renderer, enabled) {
     camera.updateProjectionMatrix();
   };
 
+  // ------------------------------------------------------------
+  // HUD runtime (aux.module.hud)
+  // - follow_camera: position/orientation follows camera (offset is aux.appearance.position/orientation)
+  // - scale_with_distance: scales with camera distance to keep apparent size
+  // ------------------------------------------------------------
+  const _tmpHudV = new THREE.Vector3();
+  const _tmpHudQ = new THREE.Quaternion();
+
+  function updateHudObjects() {
+    if (!hudEntries.length) return;
+    const camPos = camera.position;
+    const camQ = camera.quaternion;
+
+    for (const e of hudEntries) {
+      const obj = e?.obj;
+      if (!obj) continue;
+      if (obj.visible === false) continue;
+
+      // follow camera: treat baseOffset/baseQuat as camera-local transform
+      if (e.followCamera) {
+        _tmpHudV.copy(e.baseOffset).applyQuaternion(camQ);
+        obj.position.copy(camPos).add(_tmpHudV);
+
+        _tmpHudQ.copy(camQ).multiply(e.baseQuat);
+        obj.quaternion.copy(_tmpHudQ);
+      }
+
+      // distance scaling: scale proportionally to distance from camera (relative to first frame)
+      if (e.scaleWithDistance) {
+        const dist = camPos.distanceTo(obj.position) || 1;
+        if (!e.baseDistance || !Number.isFinite(e.baseDistance) || e.baseDistance <= 0) {
+          e.baseDistance = dist;
+        }
+        const factor = dist / (e.baseDistance || 1);
+        obj.scale.copy(e.baseScale).multiplyScalar(factor);
+      } else {
+        obj.scale.copy(e.baseScale);
+      }
+    }
+  }
+
+  // ------------------------------------------------------------
+  // aux.module.extension anchors (world-space)
+  // ------------------------------------------------------------
+  const _tmpAuxExtOff = new THREE.Vector3();
+
+  function updateAuxExtensionAnchors() {
+    if (!auxExtensionAnchors.size) return;
+
+    for (const [uuid, anchor] of auxExtensionAnchors.entries()) {
+      const root = maps.aux.get(uuid);
+      if (!root) continue;
+
+      const offArr = anchor?.userData?.__auxExtOffset;
+      const ox = Number(offArr?.[0] ?? 0) || 0;
+      const oy = Number(offArr?.[1] ?? 0) || 0;
+      const oz = Number(offArr?.[2] ?? 0) || 0;
+
+      _tmpAuxExtOff.set(ox, oy, oz);
+      _tmpAuxExtOff.multiply(root.scale);
+      _tmpAuxExtOff.applyQuaternion(root.quaternion);
+
+      anchor.position.copy(root.position).add(_tmpAuxExtOff);
+    }
+  }
+
+
+
   ctx.render = (_core) => {
     if (ctx._disposed) return;
 
@@ -1315,6 +1996,10 @@ function maybeForceContextLoss(renderer, enabled) {
     if (!_suppressLineEffects) {
       try { lineEffectsRuntime?.updateLineEffects?.(); } catch (_e) {}
     }
+
+    try { updateHudObjects(); } catch (_e) {}
+
+    try { updateAuxExtensionAnchors(); } catch (_e) {}
 
     try { labelLayer.update(); } catch (_e) {}
     renderer.render(scene, camera);
