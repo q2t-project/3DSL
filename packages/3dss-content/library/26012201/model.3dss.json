@@ -4,7 +4,6 @@
     "document_summary": "構造一般を存在論と認識論の座標より再構成",
     "document_uuid": "63fcdc81-aace-4599-8880-010f60765292",
     "version": "1.0.0",
-    "created_at": "2026-01-22T05:23:41Z",
     "updated_at": "2026-01-22T05:23:41Z",
     "tags": ["s:__","m:__", "x:__"],
     "schema_uri": "https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
@@ -24,12 +23,12 @@
     "uuid": "ef95b02c-e33c-4bb4-803d-1524e3de1dc6" } },
 
 {"signification": {"name":"存在"}, "appearance": {"position":[16,0,0],
-    "marker": {"text": { "content": "存在", "pose": {"front": [0,1,0],"up": [1,0,0]},"size": 4, "align": "left&beseline" },"primitive": "sphere", "radius": 0.1, "common": { "opacity": 0.2, "color": "#ff0000" } }, "frames": [0] },
+    "marker": {"text": { "content": "存在", "pose": {"front": [0,1,0],"up": [1,0,0]},"size": 4, "align": "left&baseline" }, "primitive": "sphere", "radius": 0.1, "common": { "opacity": 0.2, "color": "#ff0000" } }, "frames": [0] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "120ee448-cf28-4baa-b896-e407cddd9cbe" } },
 
 {"signification": {"name":"認識"}, "appearance": {"position":[-16,0,0],
-    "marker": {"text": { "content": "認識", "pose": {"front": [1,0,0],"up": [1,0,0]},"size": 4, "align": "left&baseline" } },"primitive": "sphere", "radius": 0.1, "common": { "opacity": 0.2, "color": "#00ff00" }, "frames": [0] },
+    "marker": {"text": { "content": "認識", "pose": {"front": [1,0,0],"up": [1,0,0]},"size": 4, "align": "left&baseline" }, "primitive": "sphere", "radius": 0.1, "common": { "opacity": 0.2, "color": "#00ff00" } }, "frames": [0] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "6cc618ca-6086-4a26-974c-3c62eab8a453" } },
 
@@ -116,7 +115,7 @@
 {"signification": {"name":"循環"}, "appearance": {"position":[-16,8,8],
     "marker": {"text": { "content": "循環", "pose": {"front": [0,0,1],"up": [-1,0,0]},"size": 0.5, "align": "center&middle" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [3] },
     "meta": { "tags": [],"creator_memo": "__",
-    "uuid": "__" } },
+    "uuid": "4e5352d9-701e-402f-9a8f-d595126a3c28" } },
 
 {"signification": {"name":"分"}, "appearance": {"position":[0,0,0],
     "marker": {"text": { "content": "分", "pose": {"front": [0,1,0],"up": [-1,0,0]},"size": 2, "align": "center&middle" }, "primitive": "sphere", "radius": 0.25, "common": { "opacity": 0.5, "color": "#ff0000" } }, "frames": [3] },
