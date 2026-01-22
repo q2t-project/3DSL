@@ -1,6 +1,6 @@
-// viewer/runtime/utils/labelIndex.js"
+// viewer/runtime/utils/labelIndex.js
 //
-// points の「代表ラベル」（テキスト + フォントサイズなど）を
+// points/lines の「代表ラベル」（テキスト + フォントサイズなど）を
 // 3DSS から抜き出して正規化する純ドメイン層。
 // three.js など描画実装には依存しない。
 // Renderer 側はここで作った index を見て、どう表示するかだけを決めればよい。
@@ -30,41 +30,119 @@ function asPlainObject(v) {
   return (v && typeof v === "object" && !Array.isArray(v)) ? v : null;
 }
 
+// module.extension.latex: lightweight LaTeX-ish to plain text (no typesetting)
+// - NOTE: this is intentionally small/safe; not a full LaTeX parser.
+function latexMathToPlainText(input) {
+  if (typeof input !== "string") return "";
+  let s = input.trim();
+  if (!s) return "";
+
+  // strip $...$ wrappers
+  if (s.startsWith("$") && s.endsWith("$") && s.length >= 2) {
+    s = s.slice(1, -1).trim();
+  }
+
+  // unwrap some common macros: \mathrm{...}, \text{...}, \mathbf{...}
+  s = s.replace(/\\(mathrm|text|mathbf|mathit|mathsf|mathtt)\{([^{}]*)\}/g, "$2");
+
+  // simple fractions (no nested braces)
+  s = s.replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g, "($1)/($2)");
+
+  const cmdMap = {
+    // greek
+    "\\alpha": "α", "\\beta": "β", "\\gamma": "γ", "\\delta": "δ", "\\epsilon": "ε", "\\varepsilon": "ϵ",
+    "\\zeta": "ζ", "\\eta": "η", "\\theta": "θ", "\\vartheta": "ϑ", "\\iota": "ι", "\\kappa": "κ",
+    "\\lambda": "λ", "\\mu": "μ", "\\nu": "ν", "\\xi": "ξ", "\\pi": "π", "\\varpi": "ϖ",
+    "\\rho": "ρ", "\\varrho": "ϱ", "\\sigma": "σ", "\\varsigma": "ς", "\\tau": "τ", "\\upsilon": "υ",
+    "\\phi": "φ", "\\varphi": "ϕ", "\\chi": "χ", "\\psi": "ψ", "\\omega": "ω",
+    // operators / relations
+    "\\times": "×", "\\cdot": "·", "\\pm": "±", "\\mp": "∓",
+    "\\le": "≤", "\\leq": "≤", "\\ge": "≥", "\\geq": "≥", "\\neq": "≠", "\\approx": "≈",
+    "\\infty": "∞",
+    // arrows
+    "\\rightarrow": "→", "\\leftarrow": "←", "\\leftrightarrow": "↔",
+  };
+
+  // replace commands
+  s = s.replace(/\\[a-zA-Z]+/g, (m) => cmdMap[m] ?? m);
+
+  const SUPER = {
+    "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹",
+    "+": "⁺", "-": "⁻", "=": "⁼", "(": "⁽", ")": "⁾", "n": "ⁿ", "i": "ⁱ",
+  };
+  const SUB = {
+    "0": "₀", "1": "₁", "2": "₂", "3": "₃", "4": "₄", "5": "₅", "6": "₆", "7": "₇", "8": "₈", "9": "₉",
+    "+": "₊", "-": "₋", "=": "₌", "(": "₍", ")": "₎",
+    "a": "ₐ", "e": "ₑ", "h": "ₕ", "i": "ᵢ", "j": "ⱼ", "k": "ₖ", "l": "ₗ", "m": "ₘ", "n": "ₙ",
+    "o": "ₒ", "p": "ₚ", "r": "ᵣ", "s": "ₛ", "t": "ₜ", "u": "ᵤ", "v": "ᵥ", "x": "ₓ",
+  };
+
+  const scriptify = (raw, map) => {
+    if (!raw) return "";
+    const str = raw.replace(/\s+/g, "");
+    if (!str) return "";
+    // support digits / a few symbols / limited letters
+    let out = "";
+    for (const ch of str) {
+      const m = map[ch];
+      if (!m) return null; // bail if unknown char
+      out += m;
+    }
+    return out;
+  };
+
+  // superscript: ^{...} or ^x
+  s = s.replace(/\^\{([^{}]*)\}|\^([^\s{}])/g, (_m, g1, g2) => {
+    const raw = (g1 ?? g2 ?? "").trim();
+    const v = scriptify(raw, SUPER);
+    return v ?? ("^" + raw);
+  });
+
+  // subscript: _{...} or _x
+  s = s.replace(/_\{([^{}]*)\}|_([^\s{}])/g, (_m, g1, g2) => {
+    const raw = (g1 ?? g2 ?? "").trim();
+    const v = scriptify(raw, SUB);
+    return v ?? ("_" + raw);
+  });
+
+  // drop remaining braces
+  s = s.replace(/[{}]/g, "");
+
+  return s.trim();
+}
+
 /**
- * signification.name を現在の言語設定から 1 本の string にする。
+ * localized_string を現在の言語設定から 1 本の string にする。
  *
  * - string の場合         → そのまま（trim して空なら null）
  * - {ja,en} の場合        → lang → ja → en → 最初の key の順にフォールバック
  */
-export function normalizePointName(rawName, lang = "ja") {
-  if (!rawName) return null;
+export function normalizeLocalizedString(raw, lang = "ja") {
+  if (!raw) return null;
 
-  if (typeof rawName === "string") {
-    const trimmed = rawName.trim();
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
     return trimmed.length > 0 ? trimmed : null;
   }
 
-  if (rawName && typeof rawName === "object" && !Array.isArray(rawName)) {
-    // まず指定言語
-    const fromLang = rawName[lang];
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    const fromLang = raw[lang];
     if (typeof fromLang === "string" && fromLang.trim().length > 0) {
       return fromLang.trim();
     }
 
-    // 次に ja / en の優先フォールバック
-    const ja = rawName.ja;
+    const ja = raw.ja;
     if (typeof ja === "string" && ja.trim().length > 0) {
       return ja.trim();
     }
 
-    const en = rawName.en;
+    const en = raw.en;
     if (typeof en === "string" && en.trim().length > 0) {
       return en.trim();
     }
 
-    // それでもダメなら、object 内の最初の string プロパティ
-    for (const key of Object.keys(rawName)) {
-      const v = rawName[key];
+    for (const key of Object.keys(raw)) {
+      const v = raw[key];
       if (typeof v === "string" && v.trim().length > 0) {
         return v.trim();
       }
@@ -75,17 +153,15 @@ export function normalizePointName(rawName, lang = "ja") {
 }
 
 /**
+ * signification.name を現在の言語設定から 1 本の string にする。
+ */
+export function normalizePointName(rawName, lang = "ja") {
+  return normalizeLocalizedString(rawName, lang);
+}
+
+/**
  * marker.text 設定を signification.name とマージして、
  * 「最終的に描画へ渡すラベル情報」に落とし込む。
- *
- * 優先順位:
- *   1) marker.text.content が non-empty ならそれを採用
- *   2) そうでなければ signification.name を normalize したもの
- *
- * size / align / pose / font は marker.text 側を優先し、
- * 無ければ 3DSS 仕様のデフォルトに合わせる。
- *
- * align / font は viewer 内部仕様に沿って正規化されたオブジェクトを返す。
  */
 export function buildPointLabelFromPoint(point, lang = "ja") {
   if (!point || typeof point !== "object") return null;
@@ -114,7 +190,6 @@ export function buildPointLabelFromPoint(point, lang = "ja") {
     content = normalizePointName(signification.name, lang);
   }
 
-  // 両方空ならラベル無し扱い
   if (!content) return null;
 
   // 3) size / align / pose / font の決定
@@ -135,15 +210,58 @@ export function buildPointLabelFromPoint(point, lang = "ja") {
 }
 
 /**
+ * lines の caption を label エントリへ正規化。
+ *
+ * - content: signification.caption（localized_string）
+ * - size: appearance.caption_text.font_size（default 8）
+ * - pose: appearance.caption_text.pose（default: schema 既定の fixed front/up）
+ * - align: schema に無いので center&middle
+ * - font: schema に無いので viewer default
+ */
+export function buildLineLabelFromLine(line, lang = "ja") {
+  if (!line || typeof line !== "object") return null;
+
+  const uuidRaw = line?.meta?.uuid;
+  const uuid = (typeof uuidRaw === "string" ? uuidRaw.trim() : "");
+  if (!uuid) return null;
+
+  const signification = asPlainObject(line.signification) || {};
+  const appearance = asPlainObject(line.appearance) || {};
+
+  const caption = normalizeLocalizedString(signification.caption, lang);
+  if (!caption) return null;
+
+  const capText = asPlainObject(appearance.caption_text) || {};
+
+  const size = normalizeTextSize(capText.font_size);
+  const font = normalizeTextFont(null);
+  const align = normalizeTextAlign(null);
+
+  // schema default (fixed): front:[0,1,0], up:[0,0,1]
+  const poseRaw = (capText.pose != null)
+    ? capText.pose
+    : { front: [0, 1, 0], up: [0, 0, 1] };
+  const pose = normalizeTextPose(poseRaw);
+
+  return {
+    uuid,
+    kind: "lines",
+    text: caption,
+    size,
+    font,
+    align,
+    pose,
+    // lines は midpoint に置く前提やから、デフォの "上に持ち上げ" はせん
+    liftFactor: 0,
+  };
+}
+
+/**
  * 3DSS ドキュメント全体から
- *   uuid → { text, size, font, align, pose }
+ *   uuid → { text, size, font, align, pose, kind }
  * の Map を構成する。
  *
  * - 対象は points 配列のみ
- * - content / signification.name が何も無い点は index に含めない
- *
- * @param {object} document3dss
- * @returns {Map<string, {uuid,text,size,font,align,pose,kind}>}
  */
 export function buildPointLabelIndex(document3dss) {
   const result = new Map();
@@ -152,7 +270,6 @@ export function buildPointLabelIndex(document3dss) {
     return result;
   }
 
-  // document_meta.i18n があればそれを優先（schema では 'ja'|'en', default 'ja'）
   const meta = asPlainObject(document3dss.document_meta) || null;
   const lang = normalizeLangCode(meta?.i18n);
 
@@ -180,9 +297,170 @@ export function buildPointLabelIndex(document3dss) {
   for (const point of points) {
     const label = buildPointLabelFromPoint(point, lang);
     if (!label) continue;
-
     result.set(label.uuid, label);
   }
 
   return result;
 }
+
+/**
+ * lines.caption の index。
+ */
+export function buildLineCaptionIndex(document3dss) {
+  const result = new Map();
+
+  if (!document3dss || typeof document3dss !== "object") {
+    return result;
+  }
+
+  const meta = asPlainObject(document3dss.document_meta) || null;
+  const lang = normalizeLangCode(meta?.i18n);
+
+  const frames = Array.isArray(document3dss.frames)
+    ? document3dss.frames
+    : [];
+
+  const lines = [];
+  const seen = new Set();
+  const push = (line) => {
+    const uuid = line?.meta?.uuid;
+    if (!uuid || seen.has(uuid)) return;
+    seen.add(uuid);
+    lines.push(line);
+  };
+
+  if (Array.isArray(document3dss.lines)) {
+    for (const line of document3dss.lines) push(line);
+  }
+  for (const frame of frames) {
+    if (!Array.isArray(frame?.lines)) continue;
+    for (const line of frame.lines) push(line);
+  }
+
+  for (const line of lines) {
+    const label = buildLineLabelFromLine(line, lang);
+    if (!label) continue;
+    result.set(label.uuid, label);
+  }
+
+  return result;
+}
+
+/**
+ * points + lines をマージしたラベル index（uuid 衝突は points 優先）
+ */
+
+function buildAuxExtensionLabelIndex(document3dss) {
+  const out = new Map();
+  const auxNodes = Array.isArray(document3dss?.aux) ? document3dss.aux : [];
+
+  // default style
+  const defaultAlign = normalizeTextAlign("center&middle");
+  const defaultPose = normalizeTextPose(null);
+  const defaultFont = normalizeTextFont(null);
+
+  for (const aux of auxNodes) {
+    if (!aux || typeof aux !== "object") continue;
+
+    const uuidRaw = aux?.meta?.uuid;
+    const uuid = (typeof uuidRaw === "string" ? uuidRaw.trim() : "");
+    if (!uuid) continue;
+
+    const appearance = asPlainObject(aux.appearance) || {};
+    const mod = asPlainObject(appearance.module) || null;
+    const ext = mod ? asPlainObject(mod.extension) : null;
+    if (!ext) continue;
+
+    let text = null;
+    let size = null;
+    let pose = defaultPose;
+    let align = defaultAlign;
+    let font = defaultFont;
+    let style = null;
+
+    const latex = asPlainObject(ext.latex);
+    const param = asPlainObject(ext.parametric);
+
+    if (latex) {
+      const c = latex.content;
+      if (typeof c === "string" && c.trim().length > 0) {
+        const raw = c.trim();
+        const mode = (typeof latex.render_mode === "string" && latex.render_mode.trim().length > 0)
+          ? latex.render_mode.trim().toLowerCase()
+          : "math";
+        const isMath = (mode === "math" || mode === "inline" || mode === "block");
+        const rendered = isMath ? latexMathToPlainText(raw) : raw;
+        text = (rendered && rendered.trim().length > 0) ? rendered.trim() : raw;
+
+        size = normalizeTextSize(latex.font_size ?? 10);
+        pose = normalizeTextPose(latex.pose);
+        // schema has no align/font here; keep defaults.
+        if (typeof latex.color === "string" && latex.color.trim().length > 0) {
+          style = { color: latex.color.trim() };
+        }
+      }
+    } else if (param) {
+      const t = (typeof param.type === "string" && param.type.trim()) ? param.type.trim() : null;
+      const v = (typeof param.version === "string" && param.version.trim()) ? param.version.trim() : null;
+      const params = asPlainObject(param.params);
+
+      const label = (typeof params?.label === "string" && params.label.trim().length > 0)
+        ? params.label.trim()
+        : null;
+
+      if (label) {
+        text = label;
+        size = normalizeTextSize(params?.label_size ?? params?.labelSize ?? 8);
+        pose = defaultPose;
+
+        const lc = params?.label_color ?? params?.labelColor;
+        if (typeof lc === "string" && lc.trim().length > 0) {
+          style = { color: lc.trim() };
+        }
+      } else {
+        text = t ? `parametric:${t}${v ? `@${v}` : ""}` : "parametric";
+        size = normalizeTextSize(8);
+        pose = defaultPose;
+      }
+    } else if (typeof ext.type === "string" && ext.type.trim().length > 0) {
+      text = `extension:${ext.type.trim()}`;
+      size = normalizeTextSize(8);
+      pose = defaultPose;
+    }
+
+    if (!text) continue;
+
+    out.set(uuid, {
+      kind: "aux",
+      uuid,
+      text,
+      size,
+      font,
+      align,
+      pose,
+      // aux.extension.* は指定座標に置きたいので、既定の “上に持ち上げ” を止める
+      liftFactor: 0,
+      style,
+    });
+  }
+
+  return out;
+}
+
+export function buildLabelIndex(document3dss) {
+  const points = buildPointLabelIndex(document3dss);
+  const lines = buildLineCaptionIndex(document3dss);
+  const aux = buildAuxExtensionLabelIndex(document3dss);
+
+  const merged = new Map(points);
+  for (const [uuid, entry] of lines.entries()) {
+    if (merged.has(uuid)) continue;
+    merged.set(uuid, entry);
+  }
+  for (const [uuid, entry] of aux.entries()) {
+    if (merged.has(uuid)) continue;
+    merged.set(uuid, entry);
+  }
+  return merged;
+}
+

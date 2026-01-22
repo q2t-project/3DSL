@@ -47,6 +47,41 @@ function readScalar(v, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function normalizeCssColor(raw) {
+  if (typeof raw !== "string") return "";
+  const s = raw.trim();
+  if (!s) return "";
+  // accept any valid CSS color string; basic sanitize only
+  return s;
+}
+
+function styleKeyFromEntry(entry) {
+  const style = (entry && typeof entry === "object") ? entry.style : null;
+  const c = normalizeCssColor(style?.color ?? entry?.color);
+  const bg = normalizeCssColor(style?.bgColor ?? style?.background ?? entry?.bgColor ?? entry?.background);
+  return `c=${c}|bg=${bg}`;
+}
+
+function deriveLabelConfig(baseCfg, entry) {
+  const style = (entry && typeof entry === "object") ? entry.style : null;
+  const c = normalizeCssColor(style?.color ?? entry?.color);
+  const bg = normalizeCssColor(style?.bgColor ?? style?.background ?? entry?.bgColor ?? entry?.background);
+  if (!c && !bg) return baseCfg;
+
+  const cfg = {
+    ...baseCfg,
+    text: { ...baseCfg.text },
+    background: { ...baseCfg.background },
+  };
+  if (c) cfg.text.fillStyle = c;
+  if (bg) {
+    cfg.background.enabled = true;
+    cfg.background.fillStyle = bg;
+  }
+  return cfg;
+}
+
+
 function hasIn(setLike, uuid) {
   return !!setLike && typeof setLike.has === "function" && setLike.has(uuid);
 }
@@ -95,8 +130,8 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
   // uuid -> { obj, entry, entryKey }
   const labels = new Map();
 
-  let pointLabelIndex = new Map();
-  let pointObjects = null;
+  let labelIndex = new Map();
+  let objectMaps = null;
 
   // microFX state（ラベル見え方だけ）
   const fx = {
@@ -236,14 +271,19 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
     scene.remove(group);
   }
 
+  function setObjects(next) {
+    objectMaps = next || null;
+  }
+
   function setPointObjects(map) {
-    pointObjects = map || null;
+    // backward compat: points-only
+    setObjects(map);
   }
 
   function syncIndex(nextIndex) {
-    pointLabelIndex = nextIndex || new Map();
+    labelIndex = nextIndex || new Map();
 
-    const nextUuids = new Set(pointLabelIndex.keys());
+    const nextUuids = new Set(labelIndex.keys());
 
     // remove
     for (const [uuid, info] of labels.entries()) {
@@ -255,16 +295,20 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
     }
 
     // add/update
-    for (const [uuid, entry] of pointLabelIndex.entries()) {
-      if (!entry || entry.kind !== "points") continue;
+    for (const [uuid, entry] of labelIndex.entries()) {
+      if (!entry) continue;
+      const kind = entry.kind;
+      if (kind !== "points" && kind !== "lines" && kind !== "aux") continue;
 
       // entry が変わったら貼り替え（text/size/font/align/pose）
       const entryKey = [
+        `k=${kind}`,
         entry.text ?? "",
         `s=${Number(entry.size) || 8}`,
         `f=${entry.font?.key ?? entry.font ?? ""}`,
         `a=${entry.align?.key ?? entry.align ?? ""}`,
         `p=${entry.pose?.key ?? ""}`,
+        styleKeyFromEntry(entry),
       ].join("|");
 
       const cur = labels.get(uuid);
@@ -279,7 +323,8 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
         labels.delete(uuid);
       }
 
-      const obj = createTextLabelObject(entry.text, entry, labelConfig);
+      const cfg = deriveLabelConfig(labelConfig, entry);
+      const obj = createTextLabelObject(entry.text, entry, cfg);
       if (!obj) continue;
 
       stats.textRebuilds += 1;
@@ -317,8 +362,8 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
   }
 
   function update(cameraState, visibleSet) {
-    // pointObjects / cameraState が無いとき、前回の visible が残るのを防ぐ
-    if (!pointObjects || !cameraState) {
+    // objectMaps / cameraState が無いとき、前回の visible が残るのを防ぐ
+    if (!objectMaps || !cameraState) {
       for (const { obj } of labels.values()) obj.visible = false;
       stats.labelVisible = 0;
       return;
@@ -435,15 +480,19 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
         continue;
       }
 
-      const pointObj = pointObjects.get(uuid);
-      if (!pointObj) {
+      const srcMap = (objectMaps instanceof Map)
+        ? objectMaps
+        : (objectMaps && typeof objectMaps === "object" ? objectMaps[entry.kind] : null);
+
+      const targetObj = (srcMap && typeof srcMap.get === "function") ? srcMap.get(uuid) : null;
+      if (!targetObj) {
         obj.visible = false;
         continue;
       }
 
       obj.visible = false; // cull を通ったら最後に true
 
-      obj.position.copy(pointObj.position);
+      obj.position.copy(targetObj.position);
 
       // size factor
       const size = Number(entry?.size) || baseLabelSize;
@@ -459,7 +508,9 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
       if (minH != null) h = Math.max(h, minH);
       if (maxH != null) h = Math.min(h, maxH);
 
-      const lift = h * offsetYFactor;
+      const lf = Number(entry?.liftFactor);
+      const liftFactor = Number.isFinite(lf) ? lf : offsetYFactor;
+      const lift = h * liftFactor;
       if (upAxis === "y") obj.position.y += lift;
       else obj.position.z += lift;
 
@@ -586,6 +637,7 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null } =
     group,
     labels,
 
+    setObjects,
     setPointObjects,
     syncIndex,
 

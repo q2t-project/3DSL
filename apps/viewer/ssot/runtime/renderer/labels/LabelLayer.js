@@ -12,8 +12,8 @@ export class LabelLayer {
     this.cameraState = null;
   }
 
-  sync(labelIndex, pointObjects) {
-    this.runtime.setPointObjects(pointObjects);
+  sync(labelIndex, objectMaps) {
+    this.runtime.setObjects(objectMaps);
     this.runtime.syncIndex(labelIndex);
   }
 

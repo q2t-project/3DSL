@@ -8,10 +8,6 @@ const title = "Library | 3DSL";
 const description =
   "3DSL Library：カードを眺めて入口を選び、詳細や Viewer で深掘りするための一覧です。";
 
-const allTags = Array.from(new Set(items.flatMap((it) => it.tags ?? []))).sort((a, b) =>
-  a.localeCompare(b, "ja")
-);
-
 function joinText(it: any) {
   return [
     it.title ?? "",
@@ -123,56 +119,39 @@ function toAppViewerUrl(viewerUrl: string) {
         <h1 class="text-2xl font-medium tracking-tight">Library</h1>
       </div>
 
-      <div class="w-full sm:w-auto text-xs text-neutral-400 text-right">
+      <div class="w-full sm:w-auto text-xs text-neutral-400 text-right flex items-center justify-end gap-2">
         <span id="count">表示 {items.length} / {items.length}</span>
-      </div>
-    </div>
 
-    {/* controls: tags row + optional search */}
-    <div class="mt-5 flex flex-col gap-3">
-      {allTags.length > 0 && (
-        <div class="flex items-center gap-2">
-          <div
-            class="flex flex-1 gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            aria-label="タグ"
-          >
-            {allTags.map((t) => (
-              <button class="tag ui-chip shrink-0" data-tag={t} type="button">
-                {t}
+        {/* search (cards-first; optional narrowing) */}
+        <details class="relative" data-swipe-ignore>
+          <summary class="list-none ui-chip px-3 py-1 cursor-pointer" aria-label="検索">
+            <span class="sr-only">検索</span>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+              <circle cx="11" cy="11" r="7"></circle>
+              <path d="M21 21l-4.35-4.35"></path>
+            </svg>
+          </summary>
+
+          <div class="absolute right-0 mt-2 w-[min(24rem,90vw)] ui-surface p-4 bg-neutral-950/95 shadow-lg">
+            <div class="flex items-center gap-2">
+              <input
+                id="q"
+                class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-cyan-300/30"
+                placeholder="タイトル/説明/入口/タグ"
+              />
+              <button id="help" class="ui-btn shrink-0" type="button" aria-label="検索ヘルプ">
+                ?
               </button>
-            ))}
-          </div>
-
-          <details class="relative" data-swipe-ignore>
-            <summary class="list-none ui-chip px-3 py-1 cursor-pointer" aria-label="検索">
-              <span class="sr-only">検索</span>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
-                <circle cx="11" cy="11" r="7"></circle>
-                <path d="M21 21l-4.35-4.35"></path>
-              </svg>
-            </summary>
-
-            <div class="absolute right-0 mt-2 w-[min(24rem,90vw)] ui-surface p-4 bg-neutral-950/95 shadow-lg">
-              <div class="flex items-center gap-2">
-                <input
-                  id="q"
-                  class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-cyan-300/30"
-                  placeholder="タイトル/説明/入口/タグ"
-                />
-                <button id="help" class="ui-btn shrink-0" type="button" aria-label="検索ヘルプ">
-                  ?
-                </button>
-                <button id="clear" class="ui-btn shrink-0" type="button">
-                  クリア
-                </button>
-              </div>
-              <p id="helpText" class="mt-2 text-xs text-neutral-400 hidden">
-                基本はカード一覧の流し見でOKです。検索は「特定の言葉が含まれるものだけ見たい」場合に使えます。
-              </p>
+              <button id="clear" class="ui-btn shrink-0" type="button">
+                クリア
+              </button>
             </div>
-          </details>
-        </div>
-      )}
+            <p id="helpText" class="mt-2 text-xs text-neutral-400 hidden">
+              基本はカード一覧の流し見でOKです。検索は「特定の言葉が含まれるものだけ見たい」場合に使えます。
+            </p>
+          </div>
+        </details>
+      </div>
     </div>
   </section>
 
@@ -263,12 +242,11 @@ function toAppViewerUrl(viewerUrl: string) {
 
     const count = document.getElementById("count");
     const cards = Array.from(document.querySelectorAll(".card"));
-    const tagBtns = Array.from(document.querySelectorAll("button.tag"));
 
     const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
 
-    // Philosophy: cards-first. Tag filter is a lightweight narrowing.
-    const state = { tag: null, query: "" };
+    // Philosophy: cards-first. Search is a lightweight narrowing.
+    const state = { query: "" };
 
     function apply() {
       const terms = (state.query || "")
@@ -279,11 +257,8 @@ function toAppViewerUrl(viewerUrl: string) {
       let shown = 0;
       for (const c of cards) {
         const text = c.getAttribute("data-text") || "";
-        const tags = (c.getAttribute("data-tags") || "").split(",").filter(Boolean);
-
-        const okTag = !state.tag || tags.includes(state.tag);
         const okQuery = terms.every((t) => text.includes(t));
-        const ok = okTag && okQuery;
+        const ok = okQuery;
 
         c.style.display = ok ? "" : "none";
         if (ok) shown++;
@@ -293,24 +268,6 @@ function toAppViewerUrl(viewerUrl: string) {
       // update tickers for visible cards
       requestAnimationFrame(updateTickers);
     }
-
-    function setActiveTag(next) {
-      state.tag = next;
-      tagBtns.forEach((btn) => {
-        const isActive = btn.dataset.tag === next;
-        btn.dataset.active = isActive ? "true" : "false";
-        btn.classList.toggle("ui-chip--active", isActive); // compat
-      });
-      apply();
-    }
-
-    tagBtns.forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const t = btn.dataset.tag;
-        if (!t) return;
-        setActiveTag(state.tag === t ? null : t);
-      });
-    });
 
     function buildViewerUrl(base) {
       if (!base) return base;
@@ -412,7 +369,6 @@ function toAppViewerUrl(viewerUrl: string) {
     clear?.addEventListener("click", () => {
       state.query = "";
       if (q) q.value = "";
-      setActiveTag(null);
       apply();
     });
     help?.addEventListener("click", () => {
@@ -421,7 +377,6 @@ function toAppViewerUrl(viewerUrl: string) {
 
 
     // init
-    setActiveTag(null);
     apply();
   </script>
 
