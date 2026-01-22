@@ -22,6 +22,16 @@ import {
   pickUuidCompat,
 } from "./adapters/compat.js";
 
+import {
+  resolveAssetUrl,
+  loadGltfScene,
+  cloneGltfScene,
+  applyEulerYawPitchRoll,
+  applyScaleVec3,
+  applyOffsetVec3,
+  applyEmissiveFlagToMaterial,
+} from "./gltf/gltfRuntime.js";
+
 // ------------------------------------------------------------
 // logging
 // ------------------------------------------------------------
@@ -231,6 +241,7 @@ function maybeForceContextLoss(renderer, enabled) {
   if (prev) disposeRendererContext(prev);
 
   const label = typeof opts.label === "string" ? opts.label : "viewer";
+  const modelUrl = typeof opts.modelUrl === "string" ? opts.modelUrl : "";
   const renderSettings =
     (viewerSettingsOrRenderSettings?.render && isPlainObject(viewerSettingsOrRenderSettings.render))
       ? viewerSettingsOrRenderSettings.render
@@ -468,6 +479,49 @@ function maybeForceContextLoss(renderer, enabled) {
     }
   }
 
+  // ------------------------------------------------------------
+  // glTF marker support (ctx-scoped)
+  // - schema: point.appearance.marker.gltf
+  // - async load; attach only if current sync token matches
+  // ------------------------------------------------------------
+
+  let _gltfSyncToken = 1;
+  /** @type {Map<string, {promise: Promise<THREE.Object3D|null>, scene: THREE.Object3D|null}>} */
+  const _gltfTemplateCache = new Map();
+
+  function bumpGltfSyncToken() {
+    _gltfSyncToken = (_gltfSyncToken + 1) | 0;
+    if (_gltfSyncToken === 0) _gltfSyncToken = 1;
+  }
+
+  function clearGltfTemplateCache() {
+    for (const entry of _gltfTemplateCache.values()) {
+      if (entry?.scene) {
+        try { disposeObjectTree(entry.scene); } catch (_e) {}
+      }
+    }
+    _gltfTemplateCache.clear();
+  }
+
+  function getGltfTemplate(absUrl) {
+    if (!absUrl) return Promise.resolve(null);
+    const hit = _gltfTemplateCache.get(absUrl);
+    if (hit) return hit.promise;
+
+    const entry = { promise: null, scene: null };
+    entry.promise = loadGltfScene(absUrl)
+      .then((scene) => {
+        entry.scene = scene || null;
+        return entry.scene;
+      })
+      .catch((_e) => {
+        _gltfTemplateCache.delete(absUrl);
+        return null;
+      });
+    _gltfTemplateCache.set(absUrl, entry);
+    return entry.promise;
+  }
+
   function clearGroup(kind) {
     const g = groups[kind];
     if (!g) return;
@@ -579,6 +633,9 @@ function maybeForceContextLoss(renderer, enabled) {
     clearGroup("lines");
     clearGroup("aux");
 
+    // cancel pending glTF marker loads for previous document
+    bumpGltfSyncToken();
+
     // metrics は毎回作り直し
     sceneMetricsCache = null;
 
@@ -669,6 +726,64 @@ function maybeForceContextLoss(renderer, enabled) {
         picked: pickUuidCompat(pts[0]),
       });
     }
+    const pointSyncToken = _gltfSyncToken;
+
+    function applyCommonToMaterial(mat, { colorHex, opacity, wireframe, emissive }) {
+      if (!mat) return;
+      if (Array.isArray(mat)) {
+        for (const m of mat) applyCommonToMaterial(m, { colorHex, opacity, wireframe, emissive });
+        return;
+      }
+      try {
+        if (mat.color && typeof mat.color.set === "function") mat.color.set(colorHex);
+      } catch (_e) {}
+      try {
+        if ("opacity" in mat) {
+          const op = Math.max(0, Math.min(1, Number(opacity)));
+          if (Number.isFinite(op)) {
+            mat.opacity = op;
+            if (op < 1) {
+              mat.transparent = true;
+              mat.depthWrite = false;
+            }
+          }
+        }
+      } catch (_e) {}
+      try {
+        if ("wireframe" in mat) mat.wireframe = !!wireframe;
+      } catch (_e) {}
+      try { applyEmissiveFlagToMaterial(mat, colorHex, !!emissive); } catch (_e) {}
+    }
+
+    function createPyramidGeometry(baseW, baseD, height) {
+      const w = Math.max(0.0001, Number(baseW) || 1);
+      const d = Math.max(0.0001, Number(baseD) || 1);
+      const h = Math.max(0.0001, Number(height) || 1);
+      const hw = w / 2;
+      const hd = d / 2;
+      const hh = h / 2;
+      const positions = new Float32Array([
+        -hw, -hh, -hd, // 0
+         hw, -hh, -hd, // 1
+         hw, -hh,  hd, // 2
+        -hw, -hh,  hd, // 3
+          0,  hh,   0, // 4 apex
+      ]);
+      const indices = [
+        0, 2, 1,
+        0, 3, 2,
+        0, 1, 4,
+        1, 2, 4,
+        2, 3, 4,
+        3, 0, 4,
+      ];
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+      geo.setIndex(indices);
+      geo.computeVertexNormals();
+      return geo;
+    }
+
     for (const p of pts) {
       const uuid = pickUuidCompat(p);
       if (!uuid) continue;
@@ -678,30 +793,58 @@ function maybeForceContextLoss(renderer, enabled) {
       const marker = (p?.appearance?.marker && typeof p.appearance.marker === "object") ? p.appearance.marker : null;
       const common = (marker?.common && typeof marker.common === "object") ? marker.common : null;
 
+      // common (color/opacity/wireframe/emissive)
       const col = readColor(
         common?.color ?? marker?.color ?? p?.appearance?.color ?? p?.color,
         0xffffff,
       );
+      const colorHex = (() => { try { return `#${col.getHexString()}`; } catch (_e) { return "#ffffff"; } })();
       const op = readOpacity(
         common?.opacity ?? marker?.opacity ?? p?.appearance?.opacity ?? p?.opacity,
         1,
       );
       const wireframe = !!(common?.wireframe ?? marker?.wireframe);
-      const mat = new THREE.MeshBasicMaterial({
-        color: col,
-        transparent: op < 1,
-        opacity: op,
-        wireframe,
-      });
+      const emissive = !!(common?.emissive ?? marker?.emissive);
+
+      // common (scale/orientation)
+      const commonScale = readVec3(common?.scale, [1, 1, 1]);
+      const commonOri = readVec3(common?.orientation, [0, 0, 0]); // [yaw, pitch, roll] (rad)
 
       const baseR =
         sceneRadius != null
           ? Math.max(0.15, Math.min(2.5, sceneRadius * 0.02))
           : 0.6;
 
-      const prim = (typeof marker?.primitive === "string" ? marker.primitive.trim().toLowerCase() : "") || "sphere";
-      let geo = null;
-      if (prim === "box") {
+      const root = new THREE.Group();
+      root.position.set(pos[0], pos[1], pos[2]);
+      root.userData.uuid = uuid;
+      root.userData.kind = "points";
+      root.userData.__markerPrimitive = (typeof marker?.primitive === "string" ? marker.primitive.trim().toLowerCase() : "") || "sphere";
+      applyScaleVec3(root, commonScale);
+      applyEulerYawPitchRoll(root, commonOri);
+
+      // marker primitive
+      const prim = root.userData.__markerPrimitive;
+
+      const isTrans = (op < 1) || !!emissive;
+      const mat = new THREE.MeshBasicMaterial({
+        color: col,
+        transparent: isTrans,
+        opacity: op,
+        depthWrite: !isTrans,
+        wireframe,
+        side: (prim === "corona") ? THREE.DoubleSide : THREE.FrontSide,
+      });
+      applyCommonToMaterial(mat, { colorHex, opacity: op, wireframe, emissive });
+
+      let mesh = null;
+      if (prim === "none") {
+        // invisible pick proxy (so the point remains selectable even without a primitive)
+        const geo = new THREE.SphereGeometry(Math.max(0.05, baseR * 0.4), 8, 8);
+        const pm = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
+        mesh = new THREE.Mesh(geo, pm);
+        mesh.userData.__pickProxy = true;
+      } else if (prim === "box") {
         const s = Array.isArray(marker?.size) ? marker.size : null;
         const sx = Number(s?.[0]);
         const sy = Number(s?.[1]);
@@ -709,22 +852,83 @@ function maybeForceContextLoss(renderer, enabled) {
         const bx = Number.isFinite(sx) && sx > 0 ? sx : (baseR * 2);
         const by = Number.isFinite(sy) && sy > 0 ? sy : (baseR * 2);
         const bz = Number.isFinite(sz) && sz > 0 ? sz : (baseR * 2);
-        geo = new THREE.BoxGeometry(bx, by, bz);
+        mesh = new THREE.Mesh(new THREE.BoxGeometry(bx, by, bz), mat);
+      } else if (prim === "cone") {
+        const rr = Number(marker?.radius);
+        const hh = Number(marker?.height);
+        const r = (Number.isFinite(rr) && rr > 0) ? rr : baseR;
+        const h = (Number.isFinite(hh) && hh > 0) ? hh : (baseR * 2);
+        mesh = new THREE.Mesh(new THREE.ConeGeometry(r, h, 16), mat);
+      } else if (prim === "pyramid") {
+        const b = Array.isArray(marker?.base) ? marker.base : null;
+        const bw0 = Number(b?.[0]);
+        const bd0 = Number(b?.[1]);
+        const hh = Number(marker?.height);
+        const bw = (Number.isFinite(bw0) && bw0 > 0) ? bw0 : (baseR * 2);
+        const bd = (Number.isFinite(bd0) && bd0 > 0) ? bd0 : (baseR * 2);
+        const h = (Number.isFinite(hh) && hh > 0) ? hh : (baseR * 2);
+        mesh = new THREE.Mesh(createPyramidGeometry(bw, bd, h), mat);
+      } else if (prim === "corona") {
+        const ir0 = Number(marker?.inner_radius);
+        const or0 = Number(marker?.outer_radius);
+        const ir = (Number.isFinite(ir0) && ir0 > 0) ? ir0 : (baseR * 0.7);
+        const or = (Number.isFinite(or0) && or0 > 0) ? or0 : (baseR * 1.0);
+        mesh = new THREE.Mesh(new THREE.RingGeometry(ir, or, 32), mat);
       } else {
         // default: sphere
         const rr = Number(marker?.radius);
         const r = (Number.isFinite(rr) && rr > 0) ? rr : baseR;
-        geo = new THREE.SphereGeometry(r, 16, 16);
+        mesh = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 16), mat);
       }
 
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(pos[0], pos[1], pos[2]);
-      mesh.userData.uuid = uuid;
-      mesh.userData.kind = "points";
-      mesh.userData.__markerPrimitive = prim;
-      groups.points.add(mesh);
-      maps.points.set(uuid, mesh);
-      addPickTarget(mesh);
+      if (mesh) {
+        root.add(mesh);
+      }
+
+      // marker.gltf (async)
+      const gltfCfg = (marker?.gltf && typeof marker.gltf === "object") ? marker.gltf : null;
+      const gltfUrl = (typeof gltfCfg?.url === "string") ? gltfCfg.url : "";
+      const absGltfUrl = resolveAssetUrl(gltfUrl, modelUrl);
+      if (absGltfUrl) {
+        const slot = new THREE.Group();
+        slot.userData.__markerGltfSlot = true;
+        root.add(slot);
+
+        void getGltfTemplate(absGltfUrl).then((tpl) => {
+          if (!tpl) return;
+          if (ctx._disposed) return;
+          if (pointSyncToken !== _gltfSyncToken) return;
+          if (!root.parent) return;
+
+          // clear previous
+          while (slot.children.length) {
+            const o = slot.children[slot.children.length - 1];
+            slot.remove(o);
+            disposeObjectTree(o);
+          }
+
+          const inst = cloneGltfScene(tpl, { cloneMaterials: true });
+          if (!inst) return;
+
+          applyOffsetVec3(inst, readVec3(gltfCfg?.offset, [0, 0, 0]));
+          applyScaleVec3(inst, readVec3(gltfCfg?.scale, [1, 1, 1]));
+          applyEulerYawPitchRoll(inst, readVec3(gltfCfg?.rotation, [0, 0, 0]));
+
+          // apply common visual flags to glTF materials too
+          try {
+            inst.traverse((o) => {
+              if (!o || !o.isMesh) return;
+              applyCommonToMaterial(o.material, { colorHex, opacity: op, wireframe, emissive });
+            });
+          } catch (_e) {}
+
+          slot.add(inst);
+        });
+      }
+
+      groups.points.add(root);
+      maps.points.set(uuid, root);
+      addPickTarget(root);
     }
 
     // labels: points marker.text
@@ -1407,6 +1611,9 @@ function maybeForceContextLoss(renderer, enabled) {
     try { clearSelectionHighlightImpl(scene); } catch (_e) {}
     try { clearMicroFXImpl(scene); } catch (_e) {}
     try { labelLayer.dispose(); } catch (_e) {}
+    // cancel pending glTF marker loads and free cached templates
+    try { bumpGltfSyncToken(); } catch (_e) {}
+    try { clearGltfTemplateCache(); } catch (_e) {}
   };
 
   _canvasContexts.set(canvas, ctx);
