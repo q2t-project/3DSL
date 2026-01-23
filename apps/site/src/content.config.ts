@@ -19,7 +19,7 @@ const docs = defineCollection({ type: "content", schema: permissive });
 const faq = defineCollection({ type: "content", schema: permissive });
 const policy = defineCollection({ type: "content", schema: permissive });
 
-// Generated from packages/3dss-content/library/*/content.md by sync:3dss-content.
+// Generated from library content sources by sync:3dss-content.
 // Untracked generated files; used only at build time to render Markdown to HTML.
 const library_items = defineCollection({
   type: "content",
