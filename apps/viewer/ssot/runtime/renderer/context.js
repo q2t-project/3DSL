@@ -730,14 +730,14 @@ function maybeForceContextLoss(renderer, enabled) {
     }
     const pointSyncToken = _gltfSyncToken;
 
-    function applyCommonToMaterial(mat, { colorHex, opacity, wireframe, emissive }) {
+    function applyCommonToMaterial(mat, { colorHex, opacity, wireframe, emissive, applyColor = true }) {
       if (!mat) return;
       if (Array.isArray(mat)) {
-        for (const m of mat) applyCommonToMaterial(m, { colorHex, opacity, wireframe, emissive });
+        for (const m of mat) applyCommonToMaterial(m, { colorHex, opacity, wireframe, emissive, applyColor });
         return;
       }
       try {
-        if (mat.color && typeof mat.color.set === "function") mat.color.set(colorHex);
+        if (applyColor && mat.color && typeof mat.color.set === "function") mat.color.set(colorHex);
       } catch (_e) {}
       try {
         if ("opacity" in mat) {
@@ -796,6 +796,12 @@ function maybeForceContextLoss(renderer, enabled) {
       const common = (marker?.common && typeof marker.common === "object") ? marker.common : null;
 
       // common (color/opacity/wireframe/emissive)
+      const hasExplicitColor = [
+        common?.color,
+        marker?.color,
+        p?.appearance?.color,
+        p?.color,
+      ].some((v) => (typeof v === "string" ? v.trim() : v) != null);
       const col = readColor(
         common?.color ?? marker?.color ?? p?.appearance?.color ?? p?.color,
         0xffffff,
@@ -920,7 +926,7 @@ function maybeForceContextLoss(renderer, enabled) {
           try {
             inst.traverse((o) => {
               if (!o || !o.isMesh) return;
-              applyCommonToMaterial(o.material, { colorHex, opacity: op, wireframe, emissive });
+              applyCommonToMaterial(o.material, { colorHex, opacity: op, wireframe, emissive, applyColor: hasExplicitColor });
             });
           } catch (_e) {}
 
