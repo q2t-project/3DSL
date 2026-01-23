@@ -549,7 +549,6 @@ export function attachUiProfile(hub, opts) {
         });
       }
     }
-    }
   }
 
   _handles.set(hub, handle);

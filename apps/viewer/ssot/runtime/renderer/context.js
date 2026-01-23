@@ -289,6 +289,9 @@ function maybeForceContextLoss(renderer, enabled) {
   ctx._worldAxesLayer = ctx._worldAxesLayer || null;
   ctx._worldAxesMode = ctx._worldAxesMode ?? 0;
 
+  // sceneMetricsCache は minimal runtime セクションで 1回だけ宣言する（重複防止）
+  let sceneMetricsCache = null;
+
   function ensureWorldAxesLayer() {
     let layer = ctx._worldAxesLayer;
     if (layer && layer.group && layer.group.parent === scene) return layer;
