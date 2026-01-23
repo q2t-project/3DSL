@@ -128,28 +128,19 @@ const thirdParty = Array.isArray(rights?.third_party)
       <main class="min-w-0">
         <section class="rounded-2xl border border-neutral-800 bg-neutral-950/40 p-4">
           <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <div class="min-w-0">
-              {/*
-                NOTE:
-                Avoid the padding-top aspect-ratio hack here.
-                With an absolutely-positioned iframe, some browsers end up rendering a large
-                "padding" gap (or the iframe not filling the padding area), which looks like an
-                unexplained empty space.
-
-                Use native aspect-ratio and let the iframe participate in normal flow with h/w 100%.
-              */}
-              <div
-                class="w-full overflow-hidden rounded-xl border border-neutral-800 bg-black"
-                style="aspect-ratio: 16 / 9;"
-              >
-                <iframe
-                  class="block h-full w-full border-0"
-                  src={peekUrl}
-                  title={`Preview: ${item.title}`}
-                  loading="lazy"
-                  allow="fullscreen"
-                />
-              </div>
+	            <div class="min-w-0">
+	              <div
+	                class="relative w-full overflow-hidden rounded-xl border border-neutral-800 bg-black"
+	                style="aspect-ratio: 16 / 9;"
+	              >
+	                <iframe
+	                  class="absolute inset-0 h-full w-full border-0"
+	                  src={peekUrl}
+	                  title={`Preview: ${item.title}`}
+	                  loading="lazy"
+	                  allow="fullscreen"
+	                />
+	              </div>
 
               <div class="mt-3 flex flex-wrap gap-2">
                 <a
