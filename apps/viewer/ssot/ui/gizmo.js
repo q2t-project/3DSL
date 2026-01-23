@@ -788,14 +788,15 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
     emissive: 0x3355ff,
   });
 
-  const beamRadius = 0.03;
+  // ビームは「視認性最優先」で unlit & 常に前面表示
+  const beamRadius = 0.04;
 
-  const beamMatBase = createLitMaterial({
+  const beamMatBase = new THREE.MeshBasicMaterial({
     color: 0x99bbff,
-    emissive: 0x3355ff,
     transparent: true,
     opacity: 0.0,
     depthWrite: false,
+    depthTest: false,
   });
 
   function createPresetCamera(def) {
@@ -835,6 +836,7 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
 
       const beam = new THREE.Mesh(beamGeom, beamMatBase.clone());
       beam.visible = false;
+      beam.renderOrder = 20;
 
       // Cylinder は Y 軸方向に伸びるので、Z 軸に合わせる
       beam.rotation.x = Math.PI / 2;

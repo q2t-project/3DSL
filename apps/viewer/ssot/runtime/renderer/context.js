@@ -323,11 +323,10 @@ function maybeForceContextLoss(renderer, enabled) {
     try { layer.setVisible?.(m > 0); } catch (_e) {}
 
     // scene radius を反映（FIXED の長さ・FULL_VIEW の fallback に使う）
+    // FIXED でも camera を一度渡しておく（viewport 内 clamp のため）
     if (m > 0) {
       try { layer.updateMetrics?.({ radius: Number(sceneMetricsCache?.radius) || 1 }); } catch (_e) {}
-      if (m === 2) {
-        try { layer.updateView?.({ camera }); } catch (_e) {}
-      }
+      try { layer.updateView?.({ camera }); } catch (_e) {}
     }
   }
 

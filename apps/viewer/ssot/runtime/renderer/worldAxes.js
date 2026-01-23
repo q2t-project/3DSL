@@ -39,9 +39,10 @@ export function createWorldAxesLayer(scene) {
   const _tmp = new THREE.Vector3();
 
   let mode = WORLD_AXES_MODE.OFF;
-    let lastCamera = null;
-let sceneRadius = 1;
+  let lastCamera = null;
+  let sceneRadius = 1;
   const FIXED_MUL = 3.0;
+  const FIXED_VIEW_FRACTION = 0.25; // FIXED を「FULL_VIEW より短い」と感じる程度
 
   const frustum = new THREE.Frustum();
   const pv = new THREE.Matrix4();
@@ -149,11 +150,25 @@ let sceneRadius = 1;
     return Number.isFinite(best) ? best : null;
   }
 
-  function updateSegmentsFixed() {
-    const L = fixedLen();
+  function updateSegmentsFixed(camera) {
+    const base = fixedLen();
+
+    // 原点が視野内なら、フラスタム境界までの距離を使って「短め」に clamp。
+    // これで、sceneRadius が大きいモデルでも FIXED と FULL_VIEW の見た目が同化しない。
+    const canClamp = !!(camera && buildFrustum(camera) && frustum.containsPoint(origin));
+
     for (const ax of axes) {
-      setSegment(ax.pos, origin, _tmp.copy(ax.dir).multiplyScalar(L));
-      setSegment(ax.neg, origin, _tmp.copy(ax.dirNeg).multiplyScalar(L));
+      let Lp = base;
+      let Ln = base;
+      if (canClamp) {
+        const tPos = exitT(ax.dir);
+        const tNeg = exitT(ax.dirNeg);
+        if (Number.isFinite(tPos) && tPos > 0) Lp = Math.min(base, tPos * FIXED_VIEW_FRACTION);
+        if (Number.isFinite(tNeg) && tNeg > 0) Ln = Math.min(base, tNeg * FIXED_VIEW_FRACTION);
+      }
+
+      setSegment(ax.pos, origin, _tmp.copy(ax.dir).multiplyScalar(Lp));
+      setSegment(ax.neg, origin, _tmp.copy(ax.dirNeg).multiplyScalar(Ln));
     }
   }
 
@@ -193,7 +208,7 @@ let sceneRadius = 1;
     // mode を切り替えた瞬間に見た目も切り替わるように、ここでジオメトリを更新する
     // （以前は FULL_VIEW のジオメトリが残って FIXED と同じに見えてた）
     if (mode === WORLD_AXES_MODE.FIXED) {
-      updateSegmentsFixed();
+      updateSegmentsFixed(lastCamera);
     } else if (mode === WORLD_AXES_MODE.FULL_VIEW) {
       updateSegmentsFullView(lastCamera);
     }
@@ -208,15 +223,19 @@ let sceneRadius = 1;
     else sceneRadius = 1;
 
     // モードに応じて反映
-    if (mode === WORLD_AXES_MODE.FIXED) updateSegmentsFixed();
+    if (mode === WORLD_AXES_MODE.FIXED) updateSegmentsFixed(lastCamera);
     if (mode === WORLD_AXES_MODE.FULL_VIEW) updateSegmentsFullView(lastCamera);
     // OFF は何もしない
   }
 
   function updateView({ camera } = {}) {
     if (camera) lastCamera = camera;
-    if (mode !== WORLD_AXES_MODE.FULL_VIEW) return;
-    updateSegmentsFullView(lastCamera);
+    if (mode === WORLD_AXES_MODE.FULL_VIEW) {
+      updateSegmentsFullView(lastCamera);
+    } else if (mode === WORLD_AXES_MODE.FIXED) {
+      // FIXED でも camera を受け取ったら clamp を反映
+      updateSegmentsFixed(lastCamera);
+    }
   }
 
   // 互換 API: setVisible / toggle
@@ -230,7 +249,7 @@ let sceneRadius = 1;
 
   // init
   initAxes();
-  updateSegmentsFixed();
+  updateSegmentsFixed(null);
   applyMode();
 
   return {
