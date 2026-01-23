@@ -163,6 +163,7 @@ function toAppViewerUrl(viewerUrl: string) {
       const created = deriveCreatedYmd(it);
       const updated = deriveUpdatedYmd(it);
       const viewerBase = toAppViewerUrl(it.viewer_url);
+      const detailUrl = `/library/${it.slug ?? it.id}/`;
       const summary = String(it.summary ?? "");
       const badge = uuidBadgeText(it.id);
 
@@ -171,11 +172,12 @@ function toAppViewerUrl(viewerUrl: string) {
           class="card lib-card"
           data-tags={(it.tags ?? []).join(",")}
           data-text={joinText(it)}
+          data-detail-url={detailUrl}
           data-viewer-url={viewerBase}
           data-idx={String(idx)}
           tabindex="0"
           role="link"
-          aria-label={`${it.title} を Viewer で開く`}
+          aria-label={`${it.title} の詳細ページを開く`}
         >
           <div class="lib-top">
             <div title={String(it.id ?? "")}>
@@ -201,7 +203,11 @@ function toAppViewerUrl(viewerUrl: string) {
             </div>
           </div>
 
-          <div class="lib-title" title={it.title}>{it.title}</div>
+          <a class="lib-title" href={detailUrl} title={it.title}>{it.title}</a>
+          <div class="lib-actions" data-swipe-ignore>
+            <a class="lib-action" href={detailUrl}>詳細</a>
+            <a class="lib-action" href={it.viewer_url} target="_blank" rel="noreferrer">Viewer</a>
+          </div>
         </article>
       );
     })}
@@ -269,46 +275,26 @@ function toAppViewerUrl(viewerUrl: string) {
       requestAnimationFrame(updateTickers);
     }
 
-    function buildViewerUrl(base) {
-      if (!base) return base;
-      try {
-        const u = new URL(base, window.location.origin);
-        const scroll = Math.max(0, Math.round(window.scrollY || 0));
-        u.searchParams.set("from", "library");
-        u.searchParams.set("return", "/library");
-        u.searchParams.set("scroll", String(scroll));
-        // legacy compat (optional)
-        u.searchParams.set("back", "/library");
-        return `${u.pathname}?${u.searchParams.toString()}${u.hash}`;
-      } catch {
-        return base;
-      }
-    }
-
     cards.forEach((card) => {
-      const base = card.dataset.viewerUrl;
+      const base = card.dataset.detailUrl;
       if (!base) return;
 
-      // カードクリックでViewerへ
+      // カードクリックで詳細ページへ
       card.addEventListener("click", (ev) => {
         if (ev.defaultPrevented) return;
         if (ev.button !== 0) return;
+        if (ev.target && ev.target.closest && ev.target.closest("a")) return;
         if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;
 
-        const next = buildViewerUrl(base);
-        if (!next) return;
-
         ev.preventDefault();
-        window.location.assign(next);
+        window.location.assign(base);
       });
 
       // Enter/Spaceでも開ける（アクセシビリティ）
       card.addEventListener("keydown", (ev) => {
         if (ev.key !== "Enter" && ev.key !== " ") return;
-        const next = buildViewerUrl(base);
-        if (!next) return;
         ev.preventDefault();
-        window.location.assign(next);
+        window.location.assign(base);
       });
     });
 

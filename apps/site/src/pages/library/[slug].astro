@@ -1,378 +1,313 @@
 ---
 import Layout from "../../layouts/Layout.astro";
-import { getLibraryItems, getLibraryItemBySlug } from "../../lib/libraryIndex";
-import LibraryDetailIntro from "../../content/pages/library_detail_intro.md";
+import AdSlot from "../../components/AdSlot.astro";
+import { ADSENSE_SLOTS } from "../../lib/adsense";
+import { getLibraryItemBySlug, getLibraryItems } from "../../lib/libraryIndex";
+import { getEntry, render } from "astro:content";
+import fs from "node:fs";
+import path from "node:path";
 
 export function getStaticPaths() {
   const items = getLibraryItems();
   return items.map((it) => ({ params: { slug: it.slug } }));
 }
 
-const { slug } = Astro.params;
+const slug = String(Astro.params.slug ?? "");
 const item = getLibraryItemBySlug(slug);
-
 if (!item) {
-  throw new Error(`Library item not found for slug=${slug}`);
+  throw new Error(`[library/[slug]] item not found: ${slug}`);
 }
 
-const pageTitle = (item.meta_title ?? `${item.title} | 3DSL Library`);
-const pageDescription = (item.meta_description ?? item.summary ?? "3DSL Library のコンテンツ詳細ページ。概要と出典を確認し、Viewer で操作して探索できます。");
+const dataDir = item.data_dir ?? `/_data/library/${slug}`;
+const modelUrl = item.model_url ?? `${dataDir}/model.3dss.json`;
+const viewerUrl = item.viewer_url ?? `/viewer/index.html?model=${encodeURIComponent(modelUrl)}`;
+const peekUrl = `/viewer/peek.html?model=${encodeURIComponent(modelUrl)}`;
 
-const canonical = Astro.url?.href ?? `/library/${item.slug}`;
-const origin = Astro.url?.origin ?? "";
+function filePathFromPublic(urlPath) {
+  const p = String(urlPath || "").replace(/^\/+/, "");
+  return path.join(process.cwd(), "public", p);
+}
 
-const jsonldBreadcrumb = {
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  "itemListElement": [
-    { "@type": "ListItem", "position": 1, "name": "Home", "item": `${origin}/` },
-    { "@type": "ListItem", "position": 2, "name": "Library", "item": `${origin}/library` },
-    { "@type": "ListItem", "position": 3, "name": item.title, "item": `${origin}/library/${item.slug}` }
-  ]
-};
-function toAppViewerUrl(viewerUrl: string, back: string) {
-  if (!viewerUrl) return viewerUrl;
-  if (viewerUrl.startsWith("/app/viewer")) return viewerUrl;
+const metaPath = filePathFromPublic(`${dataDir}/_meta.json`);
+const meta = fs.existsSync(metaPath)
+  ? JSON.parse(fs.readFileSync(metaPath, "utf8"))
+  : null;
+
+const seoTitle = meta?.seo?.title ?? item.meta_title ?? item.title;
+const seoDescription = meta?.seo?.description ?? item.meta_description ?? item.summary ?? "";
+
+// Per-item page config (optional)
+const pageConf = meta?.page ?? {};
+const adAllow = new Set(
+  Array.isArray(pageConf?.ads)
+    ? pageConf.ads
+    : ["mobile_top", "desktop_rail"]
+);
+const showAdMobileTop = adAllow.has("mobile_top");
+const showAdDesktopRail = adAllow.has("desktop_rail");
+const showAdInline1 = adAllow.has("inline_1");
+
+function listFilesPublicDir(urlDir) {
+  const abs = filePathFromPublic(urlDir);
+  if (!fs.existsSync(abs)) return [];
+  let ents = [];
   try {
-    const u = new URL(viewerUrl, "http://x");
-    // contract: prefer `model`, accept legacy `open`
-    let model = u.searchParams.get("model") ?? u.searchParams.get("open") ?? "";
-    if (!model) {
-      const p = u.pathname;
-      if (/\.(json|3dss\.json)$/i.test(p)) model = p;
-    }
-    if (!model) return viewerUrl;
-    const q = new URLSearchParams();
-    q.set("model", model);
-    q.set("back", back);
-    q.set("return", back);
-    const mode = u.searchParams.get("mode");
-    if (mode) q.set("mode", mode);
-    const src = u.searchParams.get("src");
-    if (src) q.set("src", src);
-    return `/app/viewer?${q.toString()}`;
+    ents = fs.readdirSync(abs, { withFileTypes: true });
   } catch {
-    return viewerUrl;
+    return [];
   }
+  return ents
+    .filter((d) => d.isFile())
+    .map((d) => ({
+      name: d.name,
+      url: `${urlDir.replace(/\/+$/, "")}/${encodeURIComponent(d.name)}`,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-function toAppViewerShareUrl(viewerUrl: string) {
-  if (!viewerUrl) return viewerUrl;
-  if (viewerUrl.startsWith("/app/viewer")) {
-    // strip host-only params if any
-    try {
-      const u = new URL(viewerUrl, "http://x");
-      const q = new URLSearchParams();
-      const model = u.searchParams.get("model") ?? u.searchParams.get("open");
-      if (model) q.set("model", model);
-      const mode = u.searchParams.get("mode");
-      if (mode) q.set("mode", mode);
-      const src = u.searchParams.get("src");
-      if (src) q.set("src", src);
-      return `/app/viewer?${q.toString()}`;
-    } catch {
-      return viewerUrl;
-    }
+const attachments = listFilesPublicDir(`${dataDir}/attachments`);
+
+// Markdown body (optional)
+let RenderedContent = null;
+try {
+  const entry = await getEntry("library_items", slug);
+  if (entry) {
+    const rendered = await render(entry);
+    RenderedContent = rendered.Content;
   }
-  try {
-    const u = new URL(viewerUrl, "http://x");
-    let model = u.searchParams.get("model") ?? u.searchParams.get("open") ?? "";
-    if (!model) {
-      const p = u.pathname;
-      if (/\.(json|3dss\.json)$/i.test(p)) model = p;
-    }
-    if (!model) return viewerUrl;
-    const q = new URLSearchParams();
-    q.set("model", model);
-    const mode = u.searchParams.get("mode");
-    if (mode) q.set("mode", mode);
-    const src = u.searchParams.get("src");
-    if (src) q.set("src", src);
-    return `/app/viewer?${q.toString()}`;
-  } catch {
-    return viewerUrl;
-  }
+} catch {
+  RenderedContent = null;
 }
 
+const tags = Array.isArray(meta?.tags) ? meta.tags : (item.tags ?? []);
+const descriptionLong = meta?.description ?? "";
+const createdAt = item.created_at ?? meta?.created_at ?? "";
+const updatedAt = item.updated_at ?? meta?.updated_at ?? "";
+
+function hasNonEmptyString(x) {
+  return typeof x === "string" && x.trim().length > 0;
+}
+
+const authors = Array.isArray(meta?.authors) ? meta.authors : [];
+const references = Array.isArray(meta?.references) ? meta.references : [];
+const rights = meta?.rights ?? null;
+
+const referencesMeaningful = references.filter((r) =>
+  hasNonEmptyString(r?.title) || hasNonEmptyString(r?.url) || hasNonEmptyString(r?.authors)
+);
+
+const thirdParty = Array.isArray(rights?.third_party)
+  ? rights.third_party.filter((t) =>
+      hasNonEmptyString(t?.name) || hasNonEmptyString(t?.url) || hasNonEmptyString(t?.license)
+    )
+  : [];
 ---
 
-<Layout
-  title={pageTitle}
-  description={pageDescription}
-  canonical={canonical}
-  ogType="article"
-  twitterCard="summary_large_image"
->
-  <Fragment slot="head">
-    <meta property="og:url" content={canonical} />
-    <meta name="twitter:title" content={pageTitle} />
-    <meta name="twitter:description" content={pageDescription} />
-    <script type="application/ld+json" set:html={JSON.stringify(jsonldBreadcrumb)}></script>
-  </Fragment>
-
-  <nav class="text-sm text-neutral-400">
-    <a href="/library" class="hover:underline">Library</a>
-    <span class="mx-2">/</span>
-    <span class="text-neutral-200">{item.title}</span>
-  </nav>
-
-  <h1 class="mt-4 text-2xl font-medium">{item.title}</h1>
-  {item.summary ? <p class="mt-2 text-neutral-200">{item.summary}</p> : null}
-
-  <div class="mt-4 max-w-3xl">
-    <div class="prose prose-sm prose-invert prose-neutral text-neutral-300 font-content">
-      <LibraryDetailIntro />
+<Layout title={seoTitle} description={seoDescription}>
+  <div class="mx-auto max-w-[1200px] px-4 py-6">
+    <div class="text-xs text-neutral-500">
+      <a href="/library" class="hover:underline">Library</a>
+      <span class="mx-2">/</span>
+      <span class="text-neutral-400">{item.title}</span>
     </div>
-  </div>
 
-  <div class="mt-6 flex flex-wrap gap-3">
-    <a
-      href={toAppViewerUrl(item.viewer_url, `/library/${item.slug}`)}
-      class="rounded-xl bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900"
-    >
-      Viewerで操作して探索する
-    </a>
-    <a
-      href="/concept"
-      class="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-neutral-100 hover:bg-white/10"
-    >
-      3DSLの考え方
-    </a>
-  </div>
-
-  <div class="mt-4 flex flex-wrap items-center gap-2" data-share-url={toAppViewerShareUrl(item.viewer_url)}>
-    <button
-      type="button"
-      class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-neutral-100 hover:bg-white/10"
-      data-role="share-native"
-      aria-label="共有"
-      title="共有"
-    >
-      <svg viewBox="0 0 24 24" aria-hidden="true" class="h-4 w-4 fill-current">
-        <path d="M18 16a3 3 0 0 0-2.62 1.55L8.91 13.7a3.2 3.2 0 0 0 0-3.4l6.47-3.85A3 3 0 1 0 15 5a3 3 0 0 0 .05.55L8.58 9.4a3 3 0 1 0 0 5.2l6.47 3.85A3 3 0 1 0 18 16z"/>
-      </svg>
-    </button>
-    <button
-      type="button"
-      class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-neutral-100 hover:bg-white/10"
-      data-role="share-copy"
-      aria-label="コピー"
-      title="コピー"
-    >
-      <svg viewBox="0 0 24 24" aria-hidden="true" class="h-4 w-4 fill-current">
-        <path d="M3.9 12a4.1 4.1 0 0 1 4.1-4.1h4v2H8A2.1 2.1 0 0 0 8 14.1h4v2H8A4.1 4.1 0 0 1 3.9 12zm6.1 1h4v-2h-4v2zm6-5.1h-4v-2h4a4.1 4.1 0 1 1 0 8.2h-4v-2h4a2.1 2.1 0 1 0 0-4.2z"/>
-      </svg>
-    </button>
-    <button
-      type="button"
-      class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-neutral-100 hover:bg-white/10"
-      data-role="share-qr"
-      aria-label="QR"
-      title="QR"
-    >
-      <svg viewBox="0 0 24 24" aria-hidden="true" class="h-4 w-4 fill-current">
-        <path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm10 0h2v2h-2v-2zm2 2h2v2h-2v-2zm-2 2h2v2h-2v-2zm4 0h2v2h-2v-2zm0-8h2v2h-2v-2z"/>
-      </svg>
-    </button>
-    <span class="text-xs text-neutral-400">共有 / コピー / QR</span>
-  </div>
-
-  <div data-role="share-toast" class="pointer-events-none fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-full border border-white/10 bg-black/70 px-4 py-2 text-sm text-neutral-100 opacity-0 transition-opacity" aria-live="polite"></div>
-
-  <div data-role="share-qr-modal" class="fixed inset-0 z-50 hidden items-center justify-center">
-    <button type="button" data-role="share-qr-close" class="absolute inset-0 h-full w-full bg-black/60" aria-label="閉じる"></button>
-    <div class="relative w-[min(340px,calc(100vw-40px))] rounded-2xl border border-white/10 bg-black/80 p-4 text-neutral-100 backdrop-blur">
-      <div class="flex items-center justify-between gap-3">
-        <div class="text-sm font-medium">QR</div>
-        <button type="button" data-role="share-qr-close" class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 hover:bg-white/10" aria-label="閉じる">×</button>
-      </div>
-      <img data-role="share-qr-img" class="mt-3 mx-auto h-[220px] w-[220px] rounded-xl bg-white" alt="QR" />
-      <div data-role="share-qr-url" class="mt-2 break-all text-xs text-neutral-300"></div>
-      <button type="button" data-role="share-qr-copy" class="mt-3 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm hover:bg-white/10">リンクをコピー</button>
-    </div>
-  </div>
-
-  <script is:inline>
-    (() => {
-      const toast = document.querySelector('[data-role="share-toast"]');
-      const btnShare = document.querySelector('[data-role="share-native"]');
-      const btnCopy = document.querySelector('[data-role="share-copy"]');
-      const btnQr = document.querySelector('[data-role="share-qr"]');
-
-      const container = document.querySelector('[data-share-url]');
-      const qrModal = document.querySelector('[data-role="share-qr-modal"]');
-      const qrImg = document.querySelector('[data-role="share-qr-img"]');
-      const qrUrl = document.querySelector('[data-role="share-qr-url"]');
-      const qrCopy = document.querySelector('[data-role="share-qr-copy"]');
-
-
-      function showToast(msg) {
-        if (!toast) return;
-        toast.textContent = msg;
-        toast.style.opacity = '1';
-        clearTimeout(showToast._t);
-        showToast._t = setTimeout(() => {
-          toast.style.opacity = '0';
-        }, 1600);
-      }
-
-      function shareUrl() {
-        const rel = (container && container.getAttribute('data-share-url')) || '/app/viewer';
-        const u = new URL(rel, window.location.origin);
-        return u.toString();
-      }
-
-      function qrServiceUrl(text) {
-        return 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(text);
-      }
-
-      function openQr(url) {
-        if (!qrModal || !qrImg || !qrUrl) return;
-        qrImg.src = qrServiceUrl(url);
-        qrUrl.textContent = url;
-        qrModal.classList.remove('hidden');
-        qrModal.classList.add('flex');
-      }
-
-      function closeQr() {
-        if (!qrModal) return;
-        qrModal.classList.add('hidden');
-        qrModal.classList.remove('flex');
-      }
-
-      async function copyUrl() {
-        const url = shareUrl();
-        try {
-          await navigator.clipboard.writeText(url);
-          showToast('コピーしたで');
-          return;
-        } catch {
-          // fallback
-        }
-        try {
-          const ta = document.createElement('textarea');
-          ta.value = url;
-          ta.setAttribute('readonly', '');
-          ta.style.position = 'fixed';
-          ta.style.left = '-9999px';
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand('copy');
-          ta.remove();
-          showToast('コピーしたで');
-        } catch {
-          showToast('コピー失敗…手動でURL選択してや');
-        }
-      }
-
-      async function nativeShare() {
-        const url = shareUrl();
-        const title = document.title || '3DSL Library';
-        if (navigator.share) {
-          try {
-            await navigator.share({ title, url });
-            return;
-          } catch {
-            // user cancelled or failed -> fall back
-          }
-        }
-        await copyUrl();
-      }
-
-      if (btnCopy) btnCopy.addEventListener('click', () => copyUrl());
-      if (btnShare) btnShare.addEventListener('click', () => nativeShare());
-      if (btnQr) btnQr.addEventListener('click', () => openQr(shareUrl()));
-      if (qrCopy) qrCopy.addEventListener('click', () => copyUrl());
-      document.querySelectorAll('[data-role="share-qr-close"]').forEach((b) => b.addEventListener('click', () => closeQr()));
-      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeQr(); });
-    })();
-  </script>
-</div>
-
-  {item.entry_points?.length ? (
-    <section class="mt-8">
-      <h2 class="text-lg font-medium">入口</h2>
-      <div class="mt-3 flex flex-wrap gap-2">
-        {item.entry_points.map((t) => (
-          <span class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-neutral-200">
-            {t}
-          </span>
-        ))}
-      </div>
-    </section>
-  ) : null}
-
-  {item.tags?.length ? (
-    <section class="mt-8">
-      <h2 class="text-lg font-medium">タグ</h2>
-      <div class="mt-3 flex flex-wrap gap-2">
-        {item.tags.map((t) => (
-          <a
-            href={`/library?tag=${encodeURIComponent(t)}`}
-            class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-neutral-200 hover:bg-white/10"
-          >
-            {t}
-          </a>
-        ))}
-      </div>
-    </section>
-  ) : null}
-
-  {item.pairs?.length ? (
-    <section class="mt-8">
-      <h2 class="text-lg font-medium">対概念</h2>
-      <ul class="mt-3 space-y-2 text-neutral-200">
-        {item.pairs.map((p) => (
-          <li>{p.a} ↔ {p.b}</li>
-        ))}
-      </ul>
-    </section>
-  ) : null}
-
-  {item.rights ? (
-    <section class="mt-10 rounded-2xl border border-white/10 bg-white/5 p-4">
-      <h2 class="text-lg font-medium">出典と権利表記</h2>
-      {item.rights.notice_short ? (
-        <p class="mt-2 text-sm text-neutral-300">{item.rights.notice_short}</p>
+    <div class="mt-3">
+      <h1 class="text-2xl font-semibold tracking-tight text-neutral-100">{item.title}</h1>
+      {item.summary ? (
+        <p class="mt-2 max-w-[75ch] text-sm leading-relaxed text-neutral-300">{item.summary}</p>
       ) : null}
+    </div>
 
-      {item.rights.sources?.length ? (
-        <ul class="mt-3 space-y-2 text-sm text-neutral-300">
-          {item.rights.sources.map((s) => (
-            <li>
-              <span class="font-medium text-neutral-200">{s.title ?? "出典"}</span>
-              {s.creator ? <span> / {s.creator}</span> : null}
-              {s.year ? <span> ({s.year})</span> : null}
-              {s.locator ? <span> — {s.locator}</span> : null}
-              {s.url ? (
-                <span>
-                  {" "}—{" "}
-                  <a class="underline" href={s.url} rel="nofollow noopener" target="_blank">
-                    リンク
-                  </a>
-                </span>
+    {showAdMobileTop ? (
+      <div class="mt-4 lg:hidden">
+        <AdSlot slot={ADSENSE_SLOTS.slot_300x250} layout="in-article" className="w-full" />
+      </div>
+    ) : null}
+
+    <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+      <main class="min-w-0">
+        <section class="rounded-2xl border border-neutral-800 bg-neutral-950/40 p-4">
+          <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div class="min-w-0">
+              <div class="relative w-full overflow-hidden rounded-xl border border-neutral-800 bg-black" style="padding-top: 56.25%;">
+                <iframe
+                  class="absolute inset-0 h-full w-full"
+                  src={peekUrl}
+                  title={`Preview: ${item.title}`}
+                  loading="lazy"
+                  allow="fullscreen"
+                />
+              </div>
+
+              <div class="mt-3 flex flex-wrap gap-2">
+                <a
+                  href={viewerUrl}
+                  class="inline-flex items-center gap-2 rounded-full border border-neutral-700 bg-neutral-900 px-4 py-2 text-sm text-neutral-100 hover:bg-neutral-800"
+                >
+                  Viewerで開く
+                </a>
+                <a
+                  href={modelUrl}
+                  class="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-transparent px-4 py-2 text-sm text-neutral-300 hover:bg-neutral-900"
+                >
+                  model.3dss.json
+                </a>
+              </div>
+            </div>
+
+            <div class="min-w-0">
+              {hasNonEmptyString(descriptionLong) ? (
+                <p class="text-sm leading-relaxed text-neutral-300">{descriptionLong}</p>
               ) : null}
-            </li>
-          ))}
-        </ul>
-      ) : null}
 
-      <p class="mt-4 text-xs text-neutral-400">
-        本ページは正当な引用の範囲で構造スナップショットを掲載しています。操作による探索は Viewer で行ってください。
-      </p>
-    </section>
-  ) : null}
+              {Array.isArray(tags) && tags.length ? (
+                <div class="mt-3 flex flex-wrap gap-2">
+                  {tags.map((t) => (
+                    <span class="rounded-full border border-neutral-800 bg-neutral-900 px-2 py-0.5 text-xs text-neutral-300">{t}</span>
+                  ))}
+                </div>
+              ) : null}
 
-  {item.related?.length ? (
-    <section class="mt-10">
-      <h2 class="text-lg font-medium">関連</h2>
-      <ul class="mt-3 grid gap-3 sm:grid-cols-2">
-        {item.related.map((s) => (
-          <li class="rounded-2xl border border-white/10 bg-white/5 p-4 hover:bg-white/10">
-            <a href={`/library/${s}`} class="font-medium hover:underline">{s}</a>
-          </li>
-        ))}
-      </ul>
-    </section>
-  ) : null}
+              <div class="mt-4 grid grid-cols-1 gap-2 text-xs text-neutral-400">
+                {hasNonEmptyString(createdAt) ? (
+                  <div><span class="text-neutral-500">created:</span> {createdAt}</div>
+                ) : null}
+                {hasNonEmptyString(updatedAt) ? (
+                  <div><span class="text-neutral-500">updated:</span> {updatedAt}</div>
+                ) : null}
+              </div>
+
+              {Array.isArray(authors) && authors.length ? (
+                <div class="mt-4">
+                  <div class="text-xs font-semibold text-neutral-400">authors</div>
+                  <ul class="mt-2 space-y-1 text-xs text-neutral-300">
+                    {authors.map((a) => (
+                      <li>
+                        {a?.url ? (
+                          <a class="hover:underline" href={a.url} target="_blank" rel="noreferrer">{a?.name ?? a.url}</a>
+                        ) : (
+                          <span>{a?.name ?? ""}</span>
+                        )}
+                        {a?.role ? <span class="ml-2 text-neutral-500">({a.role})</span> : null}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </section>
+
+        {RenderedContent ? (
+          <section class="mt-8 rounded-2xl border border-neutral-800 bg-neutral-950/40 p-5">
+            <h2 class="text-base font-semibold text-neutral-100">本文</h2>
+            <div class="prose prose-invert mt-4 max-w-none">
+              <RenderedContent />
+            </div>
+          </section>
+        ) : null}
+
+        {showAdInline1 ? (
+          <div class="mt-8">
+            <AdSlot slot={ADSENSE_SLOTS.slot_300x250} layout="in-article" className="w-full" />
+          </div>
+        ) : null}
+
+        {attachments.length ? (
+          <section class="mt-8 rounded-2xl border border-neutral-800 bg-neutral-950/40 p-5">
+            <h2 class="text-base font-semibold text-neutral-100">添付ファイル</h2>
+            <ul class="mt-3 list-disc space-y-1 pl-5 text-sm text-neutral-300">
+              {attachments.map((f) => (
+                <li><a class="hover:underline" href={f.url} target="_blank" rel="noreferrer">{f.name}</a></li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
+        {referencesMeaningful.length ? (
+          <section class="mt-8 rounded-2xl border border-neutral-800 bg-neutral-950/40 p-5">
+            <h2 class="text-base font-semibold text-neutral-100">参考</h2>
+            <div class="mt-3 space-y-3 text-sm text-neutral-300">
+              {referencesMeaningful.map((r) => (
+                <div class="rounded-xl border border-neutral-800 bg-neutral-950/40 p-3">
+                  {hasNonEmptyString(r?.title) ? <div class="font-medium text-neutral-100">{r.title}</div> : null}
+                  <div class="mt-1 text-xs text-neutral-400">
+                    {hasNonEmptyString(r?.authors) ? <span>{r.authors}</span> : null}
+                    {hasNonEmptyString(r?.year) ? <span class="ml-2">({r.year})</span> : null}
+                    {hasNonEmptyString(r?.publisher_or_venue) ? <span class="ml-2">{r.publisher_or_venue}</span> : null}
+                  </div>
+                  {hasNonEmptyString(r?.url) ? (
+                    <div class="mt-2">
+                      <a class="text-xs text-neutral-300 hover:underline" href={r.url} target="_blank" rel="noreferrer">{r.url}</a>
+                    </div>
+                  ) : null}
+                  {hasNonEmptyString(r?.scope_note) ? (
+                    <div class="mt-2 text-xs text-neutral-400">{r.scope_note}</div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {(hasNonEmptyString(rights?.license) || hasNonEmptyString(rights?.copyright) || thirdParty.length) ? (
+          <section class="mt-8 rounded-2xl border border-neutral-800 bg-neutral-950/40 p-5">
+            <h2 class="text-base font-semibold text-neutral-100">権利</h2>
+            <div class="mt-3 space-y-2 text-sm text-neutral-300">
+              {hasNonEmptyString(rights?.license) ? (
+                <div><span class="text-neutral-500">license:</span> {rights.license}</div>
+              ) : null}
+              {hasNonEmptyString(rights?.copyright) ? (
+                <div><span class="text-neutral-500">copyright:</span> {rights.copyright}</div>
+              ) : null}
+              {thirdParty.length ? (
+                <div class="mt-4">
+                  <div class="text-xs font-semibold text-neutral-400">third-party</div>
+                  <ul class="mt-2 list-disc space-y-1 pl-5 text-xs text-neutral-300">
+                    {thirdParty.map((t) => (
+                      <li>
+                        <span>{t.name}</span>
+                        {hasNonEmptyString(t?.license) ? <span class="ml-2 text-neutral-400">{t.license}</span> : null}
+                        {hasNonEmptyString(t?.url) ? (
+                          <a class="ml-2 hover:underline" href={t.url} target="_blank" rel="noreferrer">source</a>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
+      </main>
+
+      <aside class="hidden lg:block">
+        <div class="sticky top-6 space-y-6">
+          {showAdDesktopRail ? (
+            <div class="rounded-2xl border border-neutral-800 bg-neutral-950/40 p-3">
+              <AdSlot slot={ADSENSE_SLOTS.slot_300x600} className="w-full" />
+            </div>
+          ) : null}
+
+          <div class="rounded-2xl border border-neutral-800 bg-neutral-950/40 p-4">
+            <div class="text-xs font-semibold text-neutral-400">Quick</div>
+            <div class="mt-3 flex flex-col gap-2">
+              <a
+                href={viewerUrl}
+                class="inline-flex items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 px-4 py-2 text-sm text-neutral-100 hover:bg-neutral-800"
+              >
+                Viewer
+              </a>
+              <a
+                href={modelUrl}
+                class="inline-flex items-center justify-center rounded-full border border-neutral-800 bg-transparent px-4 py-2 text-sm text-neutral-300 hover:bg-neutral-900"
+              >
+                model.3dss.json
+              </a>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
 </Layout>

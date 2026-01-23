@@ -19,6 +19,22 @@ const docs = defineCollection({ type: "content", schema: permissive });
 const faq = defineCollection({ type: "content", schema: permissive });
 const policy = defineCollection({ type: "content", schema: permissive });
 
+// Generated from packages/3dss-content/library/*/content.md by sync:3dss-content.
+// Untracked generated files; used only at build time to render Markdown to HTML.
+const library_items = defineCollection({
+  type: "content",
+  schema: z
+    .object({
+      id: z.string(),
+      title: z.string().optional(),
+      summary: z.string().optional(),
+      tags: z.array(z.string()).optional(),
+      created_at: z.string().optional(),
+      updated_at: z.string().optional(),
+    })
+    .passthrough(),
+});
+
 const pages = defineCollection({
   type: "content",
   schema: z
@@ -29,4 +45,4 @@ const pages = defineCollection({
     .passthrough(),
 });
 
-export const collections = { fragments, text, docs, faq, policy, pages };
+export const collections = { fragments, text, docs, faq, policy, library_items, pages };

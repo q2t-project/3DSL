@@ -1,234 +1,121 @@
-# Library コンテンツページ方針（SEO/広告/運用のブレ止め）
+# Library 個別ページ方針
 
-## 0. 目的
-- 広告掲載の主戦場を「コンテンツ固有のHTML詳細ページ」にする
-- 検索エンジン・SNS（OGP）にコンテンツの意味（タイトル/説明/タグ/参考等）を確実に渡す
-- 3D表示体験（viewer）は共通アプリとして一斉改善できる形を維持する
-- ページごとの特殊対応で破綻しないよう、最初は「ひな型 + セクションON/OFF」で運用する
+## 目的
 
----
+Library の各コンテンツを **検索エンジンが読める HTML ページ**として公開しつつ、3D モデルの体験（Viewer）も成立させる。
 
-## 1. 設計思想（ここがSSOT）
-本システムは「2モード」で成立させる。
+* SEO: タイトル/要約/本文/参考文献/権利情報を HTML に載せる
+* UX: 最初の画面で「何のモデルか」が分かり、必要なら Viewer で拡大して見られる
+* 運用: 1 つの共通テンプレートで回し、コンテンツごとの差分はメタ情報で制御する
 
-### 1.1 詳細ページ（正）：記事/ランディングとしてのページ
-- URL: `/library/<ID>/`
-- 役割:
-  - SEO/OGPの入口
-  - 広告の主戦場
-  - メタ情報・説明・本文・添付を階層的に提示
-- 前提:
-  - スクロールは許容（本文・図・添付が可変長のため）
+## URL とデータ配置
 
-### 1.2 Viewerページ（体験用）：アプリとしてのページ
-- URL: `/viewer/?model=...`
-- 役割:
-  - 100vhフィット、スクロール無しの操作最優先
-  - 細部観察、操作性・没入感を担保
-- 前提:
-  - 詳細ページから「Viewerで開く」導線で遷移させる
+* 一覧: `/library/`
+* 個別ページ: `/library/<id>/`（`<id>` は `packages/3dss-content/library/<id>` のフォルダ名）
+* 個別データ: `/_data/library/<id>/...`
 
-> 結論：**詳細ページが正、viewerは体験用**。役割を分離し、両方を強くする。
+個別ページは **HTML（Astro）**で構成し、モデル本体・本文・画像等は `/_data/library/<id>/` から参照する。
 
----
+## レイアウト思想
 
-## 2. 現状の課題（整理）
-- viewer 1枚HTML（アプリシェル）に `?model=...` で切替し、`_meta.json` 等を JS fetch する方式は、
-  - 初回HTMLにコンテンツ本文が載りにくく
-  - クローラ/OGPに拾われにくい
-  - 広告・導線・階層提示が作りにくい
-という弱点が出やすい。
+Viewer（/viewer/）は「全画面・スクロール無し」が基本設計。
+一方、Library 個別ページは **「スクロール前提」**で、情報の階層（概要 → 本文 → 参考/添付）を成立させる。
 
----
+### ファーストビュー（スクロール無しで把握できる範囲）
 
-## 3. URL設計（ブレ防止）
-- 詳細ページ（正）：`/library/<ID>/`
-- viewer（体験用）：`/viewer/?model=/_data/library/<ID>/model.3dss.json`（例）
+* モデルのプレビュー（軽量/簡易 Viewer: peek）
+* タイトル・要約・タグ・更新日などの最低限のメタ情報
+* 主要アクション
+  * `Viewer で開く`（フル機能の /viewer/ へ）
+  * `model.3dss.json` を開く/ダウンロード
 
-運用ルール：
-- 共有URLは詳細ページを基本にする
-- 既存の viewer URL は壊さず残す（共有リンク資産維持）
+### スクロール後（深掘り）
 
----
+* 本文（Markdown）… 画像を挟み込み可能
+* 添付ファイル（PDF 等）
+* 参考文献/出典/権利情報（_meta.json 由来）
 
-## 4. 詳細ページのレイアウト指針（階層性の定義）
-詳細ページは、情報の階層を明示する。
+## ページ構成（標準）
 
-### 4.1 ファーストビュー（最優先）
-- モデルの最小限の把握（プレビュー/簡易viewer/サムネ等）
-- メタ要約（タイトル、タグ、短い説明）
-- 主要導線（必須）
-  - 「Viewerで開く」（最重要）
-  - 共有（URL）
-  - 関連（タグ/シリーズ等）
+1. ヘッダ：パンくず、タイトル、要約
+2. （モバイル）上部広告（任意）
+3. プレビュー（iframe: `/viewer/peek.html?model=...`）
+4. 概要カード：タグ、日付、作者、説明、主要リンク
+5. 本文（任意）
+6. （任意）インライン広告
+7. 添付（任意）
+8. 参考文献/権利（任意）
+9. （PC）右レール広告（任意・sticky）
 
-### 4.2 スクロール下（詳細）
-- 本文（Markdown + 画像混在）
-- 添付（PDF等）
-- 詳細メタ（rights, references, notes）
-- 関連リンク（同タグ/同系列）
+## コンテンツの書き方
 
-> 体験（操作性）は viewer に逃がし、詳細ページは情報の階層性と回遊性を担う。
+### ファイル配置（SSOT）
 
----
+`packages/3dss-content/library/<id>/` に置く。
 
-## 5. ひな型（テンプレ）設計：標準セクション
-### 5.1 標準（常設）
-- Viewer導線
-  - 「Viewerで開く」ボタン（必須）
-- メタ情報欄（ビルド時生成）
-  - タイトル（H1）
-  - サマリー/説明（検索用）
-  - タグ
-  - 権利/出典/参考文献（あれば）
-- 広告
-  - PC：右サイド（レール/スクレーパ相当）
-  - モバイル：上（トップ）
+* `model.3dss.json`（必須）
+* `_meta.json`（推奨/実質必須）
+* `content.md`（任意…本文）
+* `assets/`（任意…本文用の画像など）
+* `attachments/`（任意…PDF などの添付）
 
-### 5.2 オプショナル（あるときだけ表示）
-- 本文（Markdown）：`content.md`
-- 画像/図表：本文Markdown内に混在（assets参照）
-- 添付（PDF等）：リンク（必要なら埋め込みは後回し）
+### Markdown に画像を混ぜる
 
----
+本文は通常の Markdown を使う。
 
-## 6. モバイルで地獄化させないルール
-- テンプレは基本1種類（最大でも2種類）
-- コンテンツごとのカスタマイズは「レイアウト変更」ではなく **セクションON/OFF**で行う
-- CSSはテンプレ側に集約し、ページ固有CSSを増やさない
-- 広告枠は **DOMごと出し分け**（空枠を残さない）
-- 体験（100vhフィット）は viewer に担わせ、詳細ページで無理に実現しない
-
----
-
-## 7. 広告枠の設計（スロットID + allowlist）
-### 7.1 スロットはテンプレ側で位置IDとして固定
-例：
-- `mobile_top`
-- `desktop_rail`
-- `inline_1`
-- `inline_2`
-
-### 7.2 コンテンツごとに「使う枠だけ列挙（allowlist方式）」
-- 広告なし：`[]`
-- 通常：`["mobile_top","desktop_rail"]`
-- 多め：`["mobile_top","desktop_rail","inline_1"]`
-
-allowlist方式の利点：
-- テンプレに枠を追加しても既存ページの挙動が変わらない
-- 「このページは広告ゼロ」が自然に実現できる
-
----
-
-## 8. コンテンツファイル配置（運用を単純化）
-`packages/3dss-content/library/<ID>/`
-- `model.3dss.json`（必須）
-- `_meta.json`（必須：title/summary/tags/rights/references…）
-- `content.md`（任意：本文Markdown）
-- `assets/`（任意：png/webp等）
-- `attachments/`（任意：pdf等）
-
-dist/public への同期後、公開パスは以下を基準とする：
-- `/_data/library/<ID>/assets/...`
-- `/_data/library/<ID>/attachments/...`
-
----
-
-## 9. 本文（Markdown）に画像を混ぜる運用（正式採用）
-### 9.1 基本
-- 画像はファイル置き（`assets/`）を基本にする
-- `content.md` 内でMarkdown記法で参照する（公開パスへ）
-
-例：
 ```md
-文章…
+本文…
 
-![図1: 概念図](/_data/library/<ID>/assets/fig1.png)
+![説明文](/_data/library/<id>/assets/figure-01.png)
 
-続き…
-````
-
-### 9.2 例外（必要なら）
-
-* キャプションや細かい制御が必要なら、Markdown内に素のHTML（figure/img）を混ぜてよい
-* MDX/Astroコンポーネントは当面採用しない（導入コストと運用複雑化を避ける）
-
-### 9.3 非推奨
-
-* data URL（base64貼り付け）は避ける（HTML肥大、キャッシュ不利）
-
----
-
-## 10. SEO/OGPの基本ルール
-
-詳細ページで以下を確定させる：
-
-* `<title>`（タイトル）
-* `<meta name="description">`（サマリー）
-* OGP（title/description/image/url）
-* canonical（詳細ページURL）
-
-viewerは体験用。入口を詳細ページに寄せるため、必要に応じて viewer の検索露出（noindex等）を検討する。
-※移行直後は段階的に判断してよい。
-
----
-
-## 11. 移行手順（低リスク）
-
-1. 詳細ページ生成を実装（既存viewerはそのまま）
-2. library一覧のリンク先を詳細ページに切替
-3. 詳細ページに「Viewerで開く」を必ず置く（互換維持）
-4. 入口が揃ったら viewer の検索露出方針を判断
-
----
-
-## 12. デメリットと運用対策（結論：運用で潰せる範囲）
-
-### 12.1 初期導入コスト
-
-* 詳細ページ生成、dist/sync、テンプレ、メタ整備が必要
-  → 対策：テンプレ固定 + ON/OFF、生成物は再生成方式、必須項目チェック
-
-### 12.2 運用コスト（コンテンツ増加）
-
-* `_meta.json` 品質のばらつき、assets/attachments整理が必要
-  → 対策：テンプレ/必須項目/バリデーションで統制
-
-### 12.3 UXの二面性
-
-* 詳細ページは記事（スクロール前提）、viewerはアプリ（100vhフィット）で体験が分かれる
-  → 対策：「Viewerで開く」導線を最重要に固定し、役割分担を明示する
-
-### 12.4 重複・入口分散
-
-* viewer URL と詳細ページが両方検索に出ると入口が割れる可能性
-  → 対策：内部リンク・sitemapは詳細ページ中心。必要なら viewer の露出制御
-
-### 12.5 広告によるレイアウト不安定
-
-* 枠の出し方でCLS/速度悪化が起こり得る
-  → 対策：サイズ固定、DOMごと出し分け、増枠は例外運用
-
----
-
-## 13. 最小運用の初期値（推奨）
-
-* テンプレ：1種のみ
-* 広告スロット：まず2枠（増やすのは後）
-
-  * `mobile_top`
-  * `desktop_rail`
-* 通常ページ：`["mobile_top","desktop_rail"]`
-* 広告なしページ：`[]`
-* 増枠ページ：`+ "inline_1"`（例外のみ）
-
----
-
-## 14. この方針の結論
-
-* 広告と検索の入口＝静的HTML詳細ページ
-* 表示体験＝viewer（共通アプリ）
-* 本文はMarkdown（content.md）に画像を混在
-* カスタマイズは最後の砦。まずは「ひな型 + セクションON/OFF」で運用する
-
+本文…
 ```
+
+推奨は **絶対パス**（`/_data/library/<id>/...`）。
+相対パスは URL 解決が紛れやすいので避ける。
+
+## 広告の方針
+
+「枠を多めに用意し、個別コンテンツで使う枠を選ぶ」方式。
+
+* デフォルト: `mobile_top` と `desktop_rail`（必要ならテンプレ側で変更）
+* コンテンツごとの上書き: `_meta.json` の `page.ads` でスロット名を allowlist
+
+例：広告ゼロ
+
+```json
+{
+  "page": {
+    "ads": []
+  }
+}
+```
+
+例：モバイル上部＋PC右レール＋インライン 1つ
+
+```json
+{
+  "page": {
+    "ads": ["mobile_top", "desktop_rail", "inline_1"]
+  }
+}
+```
+
+## 実装とビルド手順
+
+### dist 生成（packages/3dss-content）
+
+`packages/3dss-content/scripts/build-3dss-content-dist.mjs` が以下を生成する。
+
+* `packages/3dss-content/dist/library/<id>/...`（サイト用: _meta/content/assets/attachments/model）
+* `packages/3dss-content/dist/3dss/library/<id>/model.3dss.json`（互換用: 既存の viewer リンク維持）
+* `packages/3dss-content/dist/library/library_index.json`
+
+### サイトへ同期（apps/site）
+
+`apps/site/scripts/sync/3dss-content.mjs` が以下を行う。
+
+* `apps/site/public/_data/library/...` にコピー
+* `apps/site/src/content/library_items/<id>.md` を生成（`content.md` がある場合のみ）
+
+Astro は `library_items` コレクションを通じて Markdown を HTML 化し、個別ページに埋め込む。
