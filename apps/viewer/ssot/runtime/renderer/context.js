@@ -521,6 +521,17 @@ function maybeForceContextLoss(renderer, enabled) {
     maps[kind].clear();
   }
 
+  // ------------------------------------------------------------
+  // picking targets (raycaster)
+  // - keep a deduped list of objects that should be raycast targets
+  // - avoids intersecting the entire scene graph
+  // ------------------------------------------------------------
+
+  /** @type {THREE.Object3D[]} */
+  const pickTargets = [];
+  /** @type {WeakSet<object>} */
+  let _pickTargetSet = new WeakSet();
+
   function clearPickTargets() {
     pickTargets.length = 0;
     _pickTargetSet = new WeakSet();
