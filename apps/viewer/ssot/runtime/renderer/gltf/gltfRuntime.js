@@ -10,16 +10,19 @@ let _gltfLoaderCtorPromise = null;
 async function loadGLTFLoaderCtor() {
   if (_gltfLoaderCtorPromise) return _gltfLoaderCtorPromise;
   _gltfLoaderCtorPromise = (async () => {
+    // Prefer /examples/jsm/ (this project's current vendor layout).
+    try {
+      const mod = await import("/vendor/three/examples/jsm/loaders/GLTFLoader.js");
+      if (mod?.GLTFLoader) return mod.GLTFLoader;
+    } catch (_e) {}
+
     // three r150+: /addons/
     try {
       const mod = await import("/vendor/three/addons/loaders/GLTFLoader.js");
       if (mod?.GLTFLoader) return mod.GLTFLoader;
-    } catch (_e) {}
+    } catch (_e2) {}
 
-    // older vendor layout: /examples/jsm/
-    const mod = await import("/vendor/three/examples/jsm/loaders/GLTFLoader.js");
-    if (!mod?.GLTFLoader) throw new Error("GLTFLoader not found in vendor/three");
-    return mod.GLTFLoader;
+    throw new Error("GLTFLoader not found in vendor/three");
   })();
   return _gltfLoaderCtorPromise;
 }
@@ -28,20 +31,210 @@ export function resolveAssetUrl(rawUrl, modelUrl) {
   const u = typeof rawUrl === "string" ? rawUrl.trim() : "";
   if (!u) return null;
 
-  // If rawUrl is already absolute, URL() will keep it.
+  // NOTE:
+  // - modelUrl in this project is often a root-relative path like "/_data/.../model.3dss.json".
+  //   new URL(rel, "/_data/...") throws because base must be absolute.
+  // - Normalize modelUrl against current location so that relative asset URLs resolve
+  //   next to the model JSON (not next to /viewer/).
+
+  const locHref = globalThis.location?.href || "";
+
+  /** @type {string[]} */
   const baseCandidates = [];
-  if (typeof modelUrl === "string" && modelUrl.trim()) baseCandidates.push(modelUrl.trim());
-  baseCandidates.push(globalThis.location?.href || "");
+
+  if (typeof modelUrl === "string") {
+    const m = modelUrl.trim();
+    if (m) {
+      // 1) already absolute
+      try {
+        baseCandidates.push(new URL(m).toString());
+      } catch (_e) {
+        // 2) root-relative / relative -> resolve against current location
+        try {
+          if (locHref) baseCandidates.push(new URL(m, locHref).toString());
+        } catch (_e2) {}
+      }
+    }
+  }
+
+  if (locHref) baseCandidates.push(locHref);
 
   for (const base of baseCandidates) {
     try {
-      const abs = new URL(u, base);
-      return abs.toString();
+      return new URL(u, base).toString();
     } catch (_e) {}
   }
 
   // Fallback: return as-is (may still work for absolute-ish paths)
   return u;
+}
+
+// ------------------------------------------------------------
+// glTF line primitive (LINE_STRIP / LINES / LINE_LOOP) -> mesh
+// - WebGL lineWidth is effectively 1px on many platforms.
+// - Convert to TubeGeometry / Instanced cylinders for stable "line thickness".
+// ------------------------------------------------------------
+
+function _pickMatColorOpacity(srcMat) {
+  let color = 0xffffff;
+  let opacity = 1;
+  try {
+    if (srcMat?.color && typeof srcMat.color.getHex === "function") {
+      color = srcMat.color.getHex();
+    }
+  } catch (_e) {}
+  try {
+    const o = Number(srcMat?.opacity);
+    if (Number.isFinite(o)) opacity = o;
+  } catch (_e) {}
+  return { color, opacity };
+}
+
+function _makeBasicMaterialFrom(srcMat) {
+  const { color, opacity } = _pickMatColorOpacity(srcMat);
+  const transparent = opacity < 0.999;
+  const m = new THREE.MeshBasicMaterial({ color, transparent, opacity });
+  // avoid z-fighting artifacts for thin tubes
+  try { m.depthWrite = false; } catch (_e) {}
+  return m;
+}
+
+function _guessTubeRadius(scene, ratio = 0.0025) {
+  try {
+    const box = new THREE.Box3().setFromObject(scene);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const diag = size.length();
+    let r = diag * ratio;
+    if (!Number.isFinite(r) || r <= 0) r = 0.01;
+    r = Math.max(0.001, Math.min(10, r));
+    return r;
+  } catch (_e) {
+    return 0.01;
+  }
+}
+
+function _tubeMeshFromLine(line, radius, radialSegments = 8) {
+  const pos = line?.geometry?.attributes?.position;
+  if (!pos || pos.count < 2) return null;
+
+  const pts = [];
+  const v = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i);
+    pts.push(v.clone());
+  }
+
+  const path = new THREE.CurvePath();
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i];
+    const b = pts[i + 1];
+    if (a.distanceToSquared(b) < 1e-12) continue;
+    path.add(new THREE.LineCurve3(a, b));
+  }
+  if (!path.curves.length) return null;
+
+  // segments scale with polyline length (clamped)
+  const tubularSegments = Math.max(2, Math.min(2048, path.curves.length * 4));
+  const geo = new THREE.TubeGeometry(path, tubularSegments, radius, radialSegments, false);
+  const mat = _makeBasicMaterialFrom(line.material);
+  const mesh = new THREE.Mesh(geo, mat);
+
+  // preserve transform
+  try {
+    mesh.position.copy(line.position);
+    mesh.quaternion.copy(line.quaternion);
+    mesh.scale.copy(line.scale);
+  } catch (_e) {}
+  mesh.visible = line.visible;
+  mesh.renderOrder = line.renderOrder;
+  mesh.name = (line.name ? `${line.name}__tube` : "LineTube");
+  mesh.userData.__fromGltfLine = true;
+  return mesh;
+}
+
+function _instancedCylindersFromLineSegments(lineSeg, radius, radialSegments = 8) {
+  const pos = lineSeg?.geometry?.attributes?.position;
+  if (!pos || pos.count < 2) return null;
+
+  const segCount = Math.floor(pos.count / 2);
+  if (segCount <= 0) return null;
+
+  const geo = new THREE.CylinderGeometry(radius, radius, 1, radialSegments, 1, true);
+  const mat = _makeBasicMaterialFrom(lineSeg.material);
+  const inst = new THREE.InstancedMesh(geo, mat, segCount);
+
+  const p0 = new THREE.Vector3();
+  const p1 = new THREE.Vector3();
+  const mid = new THREE.Vector3();
+  const dir = new THREE.Vector3();
+  const quat = new THREE.Quaternion();
+  const yAxis = new THREE.Vector3(0, 1, 0);
+  const scale = new THREE.Vector3(1, 1, 1);
+  const m4 = new THREE.Matrix4();
+
+  for (let i = 0; i < segCount; i++) {
+    p0.fromBufferAttribute(pos, i * 2);
+    p1.fromBufferAttribute(pos, i * 2 + 1);
+
+    dir.subVectors(p1, p0);
+    const len = dir.length();
+    if (!Number.isFinite(len) || len < 1e-9) {
+      m4.identity();
+      inst.setMatrixAt(i, m4);
+      continue;
+    }
+
+    mid.addVectors(p0, p1).multiplyScalar(0.5);
+    quat.setFromUnitVectors(yAxis, dir.normalize());
+    scale.set(1, len, 1);
+    m4.compose(mid, quat, scale);
+    inst.setMatrixAt(i, m4);
+  }
+  inst.instanceMatrix.needsUpdate = true;
+
+  // preserve transform
+  try {
+    inst.position.copy(lineSeg.position);
+    inst.quaternion.copy(lineSeg.quaternion);
+    inst.scale.copy(lineSeg.scale);
+  } catch (_e) {}
+  inst.visible = lineSeg.visible;
+  inst.renderOrder = lineSeg.renderOrder;
+  inst.name = (lineSeg.name ? `${lineSeg.name}__cyl` : "LineSegmentsCyl");
+  inst.userData.__fromGltfLineSegments = true;
+  return inst;
+}
+
+function _convertLinesToMeshes(scene, { radiusRatio = 0.0025 } = {}) {
+  if (!scene) return;
+  /** @type {any[]} */
+  const targets = [];
+  try {
+    scene.traverse((o) => {
+      if (!o) return;
+      if (o.userData?.__fromGltfLine || o.userData?.__fromGltfLineSegments) return;
+      if (o.isLine || o.isLineLoop || o.isLineSegments) targets.push(o);
+    });
+  } catch (_e) {}
+  if (!targets.length) return;
+
+  const radius = _guessTubeRadius(scene, radiusRatio);
+
+  for (const o of targets) {
+    const parent = o.parent;
+    if (!parent) continue;
+
+    let repl = null;
+    if (o.isLineSegments) repl = _instancedCylindersFromLineSegments(o, radius);
+    else repl = _tubeMeshFromLine(o, radius);
+    if (!repl) continue;
+
+    try {
+      parent.add(repl);
+      parent.remove(o);
+    } catch (_e) {}
+  }
 }
 
 export async function loadGltfScene(absUrl) {
@@ -53,214 +246,10 @@ export async function loadGltfScene(absUrl) {
   if (!scene) return null;
   try { scene.updateMatrixWorld(true); } catch (_e) {}
 
-  // If the glTF contains line primitives, convert them into tube meshes.
-  // WebGL line widths are not reliable across platforms; mesh-based tubes are.
-  try { convertGltfLinesToTubes(scene); } catch (_e) {}
+  // Convert LINE_* primitives to meshes for stable thickness.
+  try { _convertLinesToMeshes(scene, { radiusRatio: 0.0025 }); } catch (_e) {}
 
   return scene;
-}
-
-function _readPolylinePointsFromGeometry(geo) {
-  if (!geo) return [];
-  const pos = geo.getAttribute?.("position") || null;
-  if (!pos || typeof pos.count !== "number" || pos.count <= 0) return [];
-
-  const pts = [];
-  const idx = geo.index || null;
-  if (idx && idx.array && typeof idx.count === "number") {
-    const a = idx.array;
-    for (let k = 0; k < idx.count; k++) {
-      const i = a[k];
-      pts.push(new THREE.Vector3(pos.getX(i), pos.getY(i), pos.getZ(i)));
-    }
-  } else {
-    for (let i = 0; i < pos.count; i++) {
-      pts.push(new THREE.Vector3(pos.getX(i), pos.getY(i), pos.getZ(i)));
-    }
-  }
-
-  // Dedup consecutive points (degenerate segments make TubeGeometry unstable)
-  const out = [];
-  let prev = null;
-  for (const p of pts) {
-    if (!prev || p.distanceToSquared(prev) > 1e-12) out.push(p);
-    prev = p;
-  }
-  return out;
-}
-
-function _computeWorldBoundsOfLines(root) {
-  const box = new THREE.Box3();
-  const wp = new THREE.Vector3();
-  let has = false;
-  root.traverse?.((o) => {
-    if (!o) return;
-    if (!o.isLine && !o.isLineSegments && !o.isLineLoop) return;
-    const geo = o.geometry || null;
-    const pts = _readPolylinePointsFromGeometry(geo);
-    if (pts.length < 2) return;
-    for (const p of pts) {
-      wp.copy(p).applyMatrix4(o.matrixWorld);
-      if (!has) { box.set(wp, wp); has = true; }
-      else box.expandByPoint(wp);
-    }
-  });
-  return has ? box : null;
-}
-
-function _createBasicFromLineMaterial(lineMat) {
-  const col = (lineMat?.color && typeof lineMat.color.getHex === "function")
-    ? lineMat.color.getHex()
-    : 0xffffff;
-  const op = Number(lineMat?.opacity);
-  const opacity = Number.isFinite(op) ? op : 1;
-  const transparent = opacity < 1;
-  return new THREE.MeshBasicMaterial({
-    color: col,
-    transparent,
-    opacity,
-    depthWrite: !transparent,
-  });
-}
-
-function _replaceObject(parent, oldObj, newObj) {
-  if (!parent || !oldObj || !newObj) return;
-  // Preserve transforms / visibility / layers.
-  newObj.name = oldObj.name;
-  newObj.visible = oldObj.visible;
-  try { newObj.layers.mask = oldObj.layers.mask; } catch (_e) {}
-
-  newObj.position.copy(oldObj.position);
-  newObj.quaternion.copy(oldObj.quaternion);
-  newObj.scale.copy(oldObj.scale);
-  newObj.matrixAutoUpdate = oldObj.matrixAutoUpdate;
-  if (!newObj.matrixAutoUpdate) {
-    try { newObj.matrix.copy(oldObj.matrix); } catch (_e) {}
-  }
-  try { newObj.renderOrder = oldObj.renderOrder; } catch (_e) {}
-  try { newObj.userData = { ...(oldObj.userData || {}), __tubeifiedFromLine: true }; } catch (_e) {}
-
-  parent.add(newObj);
-  parent.remove(oldObj);
-}
-
-function _polylineToTubeMesh(lineObj, radiusWorld, { radialSegments = 8, closed = false } = {}) {
-  const geo = lineObj?.geometry || null;
-  const pts = _readPolylinePointsFromGeometry(geo);
-  if (pts.length < 2) return null;
-
-  // Convert desired world-space radius into local-space radius
-  const ws = new THREE.Vector3(1, 1, 1);
-  try { lineObj.getWorldScale(ws); } catch (_e) {}
-  const s = (ws.x + ws.y + ws.z) / 3;
-  const radiusLocal = radiusWorld / (Number.isFinite(s) && s > 1e-9 ? s : 1);
-
-  // Keep corners straight (no smoothing)
-  const path = new THREE.CurvePath();
-  for (let i = 0; i < pts.length - 1; i++) {
-    path.add(new THREE.LineCurve3(pts[i], pts[i + 1]));
-  }
-  if (closed) {
-    path.add(new THREE.LineCurve3(pts[pts.length - 1], pts[0]));
-  }
-
-  const segEdges = closed ? pts.length : (pts.length - 1);
-  const tubularSegments = Math.min(512, Math.max(8, segEdges * 8));
-  const tubeGeo = new THREE.TubeGeometry(path, tubularSegments, radiusLocal, radialSegments, !!closed);
-  const mat = _createBasicFromLineMaterial(lineObj.material);
-  const mesh = new THREE.Mesh(tubeGeo, mat);
-  return mesh;
-}
-
-function _lineSegmentsToCylinders(lineObj, radiusWorld, { radialSegments = 8 } = {}) {
-  const geo = lineObj?.geometry || null;
-  const pos = geo?.getAttribute?.("position") || null;
-  if (!pos || pos.count < 2) return null;
-
-  // Convert desired world-space radius into local-space radius
-  const ws = new THREE.Vector3(1, 1, 1);
-  try { lineObj.getWorldScale(ws); } catch (_e) {}
-  const s = (ws.x + ws.y + ws.z) / 3;
-  const radiusLocal = radiusWorld / (Number.isFinite(s) && s > 1e-9 ? s : 1);
-
-  const group = new THREE.Group();
-  const mat = _createBasicFromLineMaterial(lineObj.material);
-
-  const a = new THREE.Vector3();
-  const b = new THREE.Vector3();
-  const mid = new THREE.Vector3();
-  const dir = new THREE.Vector3();
-  const up = new THREE.Vector3(0, 1, 0);
-  const q = new THREE.Quaternion();
-
-  const makeCylinder = (len) => new THREE.CylinderGeometry(radiusLocal, radiusLocal, len, radialSegments);
-
-  // If indexed, interpret indices as pairs; else use position order.
-  const idx = geo.index || null;
-  const indices = (idx && idx.array && typeof idx.count === "number") ? idx.array : null;
-  const icount = (idx && typeof idx.count === "number") ? idx.count : 0;
-  const segCount = indices ? Math.floor(icount / 2) : Math.floor(pos.count / 2);
-
-  for (let sidx = 0; sidx < segCount; sidx++) {
-    const i0 = indices ? indices[sidx * 2] : (sidx * 2);
-    const i1 = indices ? indices[sidx * 2 + 1] : (sidx * 2 + 1);
-    a.set(pos.getX(i0), pos.getY(i0), pos.getZ(i0));
-    b.set(pos.getX(i1), pos.getY(i1), pos.getZ(i1));
-    const len = a.distanceTo(b);
-    if (!(len > 1e-9)) continue;
-    mid.copy(a).add(b).multiplyScalar(0.5);
-    dir.copy(b).sub(a).normalize();
-    q.setFromUnitVectors(up, dir);
-
-    const cyl = new THREE.Mesh(makeCylinder(len), mat);
-    cyl.position.copy(mid);
-    cyl.quaternion.copy(q);
-    group.add(cyl);
-  }
-
-  return group;
-}
-
-function convertGltfLinesToTubes(root, {
-  radiusRatio = 0.0025,
-  minRadius = 0.001,
-  maxRadius = 10,
-  radialSegments = 8,
-} = {}) {
-  if (!root) return;
-
-  // Determine a stable "world" radius based on overall bounds of line primitives.
-  const bounds = _computeWorldBoundsOfLines(root);
-  if (!bounds) return;
-  const size = new THREE.Vector3();
-  bounds.getSize(size);
-  const diag = size.length();
-  if (!(diag > 0)) return;
-  const radiusWorld = Math.max(minRadius, Math.min(maxRadius, diag * radiusRatio));
-
-  /** @type {THREE.Object3D[]} */
-  const targets = [];
-  root.traverse?.((o) => {
-    if (!o) return;
-    if (o.isLine || o.isLineSegments || o.isLineLoop) targets.push(o);
-  });
-
-  for (const lineObj of targets) {
-    const parent = lineObj.parent;
-    if (!parent) continue;
-
-    let repl = null;
-    if (lineObj.isLineSegments) {
-      repl = _lineSegmentsToCylinders(lineObj, radiusWorld, { radialSegments });
-    } else {
-      repl = _polylineToTubeMesh(lineObj, radiusWorld, { radialSegments, closed: !!lineObj.isLineLoop });
-    }
-
-    if (!repl) continue;
-    _replaceObject(parent, lineObj, repl);
-  }
-
-  try { root.updateMatrixWorld(true); } catch (_e) {}
 }
 
 function cloneMaterial(mat) {
