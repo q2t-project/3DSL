@@ -18,14 +18,14 @@
 "points": [
 
 {"signification": {"name":"R0"}, "appearance": {"position":[128,0,0],
-    "marker": { "primitive":"none", "gltf": { "url": "./righthand_model.glb", "scale": [1, 1, 1], "rotation": [0, 0, 0], "offset": [0, 0, 0] },
+    "marker": { "primitive":"none", "gltf": { "url": "./assets/righthand_model.glb", "scale": [1, 1, 1], "rotation": [0, 0, 0], "offset": [0, 0, 0] },
      "common": { "opacity": 0.8, "color": "#ffffff" } }, "frames": [0] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "3dd94c76-1c7b-4b81-993e-25c26d73b114" } },
 
 
 {"signification": {"name":"L0"}, "appearance": {"position":[-128,0,0],
-    "marker": { "primitive":"none", "gltf": { "url": "./lefthand_model.glb", "scale": [1, 1, 1], "rotation": [0, 0, 0], "offset": [0, 0, 0] },
+    "marker": { "primitive":"none", "gltf": { "url": "./assets/lefthand_model.glb", "scale": [1, 1, 1], "rotation": [0, 0, 0], "offset": [0, 0, 0] },
      "common": { "opacity": 0.8, "color": "#ffffff" } }, "frames": [0] },
     "meta": { "tags": [],"creator_memo": "__",
     "uuid": "a8d4fbd0-5cc6-4f48-9490-1464b16af4d1" } }
