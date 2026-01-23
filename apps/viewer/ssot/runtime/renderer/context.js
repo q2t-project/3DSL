@@ -926,7 +926,7 @@ function maybeForceContextLoss(renderer, enabled) {
           try {
             inst.traverse((o) => {
               if (!o || !o.isMesh) return;
-              applyCommonToMaterial(o.material, { colorHex, opacity: op, wireframe, emissive, applyColor: hasExplicitColor });
+              applyCommonToMaterial(o.material, { colorHex, opacity: op, wireframe, emissive, applyColor: false });
             });
           } catch (_e) {}
 

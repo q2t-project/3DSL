@@ -75,9 +75,30 @@ export function resolveAssetUrl(rawUrl, modelUrl) {
 // - Convert to TubeGeometry / Instanced cylinders for stable "line thickness".
 // ------------------------------------------------------------
 
-function _pickMatColorOpacity(srcMat) {
+function _pickMatColorOpacity(srcMat, parser) {
   let color = 0xffffff;
   let opacity = 1;
+
+  // Prefer glTF baseColorFactor when available (works even if downstream code tints materials).
+  try {
+    const assoc = parser?.associations?.get?.(srcMat);
+    const idx = assoc?.materials;
+    const jm = (Number.isInteger(idx) && parser?.json?.materials) ? parser.json.materials[idx] : null;
+    const base = jm?.pbrMetallicRoughness?.baseColorFactor;
+    if (Array.isArray(base) && base.length >= 3) {
+      const r = Number(base[0]);
+      const g = Number(base[1]);
+      const b = Number(base[2]);
+      const a = (base.length >= 4) ? Number(base[3]) : 1;
+      if (Number.isFinite(r) && Number.isFinite(g) && Number.isFinite(b)) {
+        try { color = new THREE.Color(r, g, b).getHex(); } catch (_e) {}
+      }
+      if (Number.isFinite(a)) opacity = Math.max(0, Math.min(1, a));
+      return { color, opacity };
+    }
+  } catch (_e) {}
+
+  // Fallback: three.js material fields
   try {
     if (srcMat?.color && typeof srcMat.color.getHex === "function") {
       color = srcMat.color.getHex();
@@ -90,8 +111,8 @@ function _pickMatColorOpacity(srcMat) {
   return { color, opacity };
 }
 
-function _makeBasicMaterialFrom(srcMat) {
-  const { color, opacity } = _pickMatColorOpacity(srcMat);
+function _makeBasicMaterialFrom(srcMat, parser) {
+  const { color, opacity } = _pickMatColorOpacity(srcMat, parser);
   const transparent = opacity < 0.999;
   const m = new THREE.MeshBasicMaterial({ color, transparent, opacity });
   // avoid z-fighting artifacts for thin tubes
@@ -114,7 +135,7 @@ function _guessTubeRadius(scene, ratio = 0.0025) {
   }
 }
 
-function _tubeMeshFromLine(line, radius, radialSegments = 8) {
+function _tubeMeshFromLine(line, radius, radialSegments = 8, parser) {
   const pos = line?.geometry?.attributes?.position;
   if (!pos || pos.count < 2) return null;
 
@@ -137,7 +158,7 @@ function _tubeMeshFromLine(line, radius, radialSegments = 8) {
   // segments scale with polyline length (clamped)
   const tubularSegments = Math.max(2, Math.min(2048, path.curves.length * 4));
   const geo = new THREE.TubeGeometry(path, tubularSegments, radius, radialSegments, false);
-  const mat = _makeBasicMaterialFrom(line.material);
+  const mat = _makeBasicMaterialFrom(line.material, parser);
   const mesh = new THREE.Mesh(geo, mat);
 
   // preserve transform
@@ -153,7 +174,7 @@ function _tubeMeshFromLine(line, radius, radialSegments = 8) {
   return mesh;
 }
 
-function _instancedCylindersFromLineSegments(lineSeg, radius, radialSegments = 8) {
+function _instancedCylindersFromLineSegments(lineSeg, radius, radialSegments = 8, parser) {
   const pos = lineSeg?.geometry?.attributes?.position;
   if (!pos || pos.count < 2) return null;
 
@@ -161,7 +182,7 @@ function _instancedCylindersFromLineSegments(lineSeg, radius, radialSegments = 8
   if (segCount <= 0) return null;
 
   const geo = new THREE.CylinderGeometry(radius, radius, 1, radialSegments, 1, true);
-  const mat = _makeBasicMaterialFrom(lineSeg.material);
+  const mat = _makeBasicMaterialFrom(lineSeg.material, parser);
   const inst = new THREE.InstancedMesh(geo, mat, segCount);
 
   const p0 = new THREE.Vector3();
@@ -206,7 +227,7 @@ function _instancedCylindersFromLineSegments(lineSeg, radius, radialSegments = 8
   return inst;
 }
 
-function _convertLinesToMeshes(scene, { radiusRatio = 0.0025 } = {}) {
+function _convertLinesToMeshes(scene, { radiusRatio = 0.0025, parser = null } = {}) {
   if (!scene) return;
   /** @type {any[]} */
   const targets = [];
@@ -226,8 +247,8 @@ function _convertLinesToMeshes(scene, { radiusRatio = 0.0025 } = {}) {
     if (!parent) continue;
 
     let repl = null;
-    if (o.isLineSegments) repl = _instancedCylindersFromLineSegments(o, radius);
-    else repl = _tubeMeshFromLine(o, radius);
+    if (o.isLineSegments) repl = _instancedCylindersFromLineSegments(o, radius, 8, parser);
+    else repl = _tubeMeshFromLine(o, radius, 8, parser);
     if (!repl) continue;
 
     try {
@@ -247,7 +268,7 @@ export async function loadGltfScene(absUrl) {
   try { scene.updateMatrixWorld(true); } catch (_e) {}
 
   // Convert LINE_* primitives to meshes for stable thickness.
-  try { _convertLinesToMeshes(scene, { radiusRatio: 0.0025 }); } catch (_e) {}
+  try { _convertLinesToMeshes(scene, { radiusRatio: 0.0025, parser: gltf?.parser }); } catch (_e) {}
 
   return scene;
 }
