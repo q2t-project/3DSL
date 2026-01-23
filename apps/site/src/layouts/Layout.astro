@@ -43,6 +43,65 @@ function isActive(href: string) {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
 
+    <script is:inline>
+      (() => {
+        // Keep explicit scroll restore (e.g. /library?scroll=1234).
+        // Otherwise, always start at the top to avoid unintended scroll on load.
+        const shouldSkip = () => {
+          try {
+            if (location.hash) return true;
+            const sp = new URLSearchParams(location.search);
+            if (sp.has('scroll')) return true;
+          } catch {
+            // ignore
+          }
+          return false;
+        };
+
+        const toTop = () => {
+          if (shouldSkip()) return;
+          // Use both for older browser quirks.
+          window.scrollTo(0, 0);
+          document.documentElement.scrollTop = 0;
+          document.body.scrollTop = 0;
+        };
+
+        try {
+          if ('scrollRestoration' in history && !shouldSkip()) {
+            history.scrollRestoration = 'manual';
+          }
+        } catch {
+          // ignore
+        }
+
+        // Run in multiple phases to defeat late layout shifts (fonts/ads/etc.).
+        toTop();
+        addEventListener(
+          'DOMContentLoaded',
+          () => {
+            requestAnimationFrame(toTop);
+          },
+          { once: true }
+        );
+        addEventListener(
+          'load',
+          () => {
+            requestAnimationFrame(toTop);
+            setTimeout(toTop, 50);
+            setTimeout(toTop, 250);
+          },
+          { once: true }
+        );
+        addEventListener('pageshow', (e) => {
+          // bfcache restore
+          if (!e || e.persisted) {
+            requestAnimationFrame(toTop);
+            setTimeout(toTop, 50);
+          }
+        });
+      })();
+    </script>
+
     {includeAdsenseScript && (
       <meta name="google-adsense-account" content={ADSENSE_PUBLISHER_ID} />
     )}
