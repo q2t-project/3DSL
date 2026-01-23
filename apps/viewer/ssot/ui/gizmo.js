@@ -960,7 +960,7 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
   // アクティブビューに応じたビーム演出（アイソメだけ点滅）
   // ------------------------------------------------------------
   function updatePresetBeams(timeSec) {
-    const canShow = presetsVisible && !!activePresetKey;
+    const canShow = !!activePresetKey;
 
     presetBeams.forEach(({ key, kind, mesh }) => {
       const mat = mesh.material;

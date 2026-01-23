@@ -39,7 +39,8 @@ export function createWorldAxesLayer(scene) {
   const _tmp = new THREE.Vector3();
 
   let mode = WORLD_AXES_MODE.OFF;
-  let sceneRadius = 1;
+    let lastCamera = null;
+let sceneRadius = 1;
   const FIXED_MUL = 3.0;
 
   const frustum = new THREE.Frustum();
@@ -188,6 +189,14 @@ export function createWorldAxesLayer(scene) {
     if (m === mode) return;
     mode = m;
     applyMode();
+
+    // mode を切り替えた瞬間に見た目も切り替わるように、ここでジオメトリを更新する
+    // （以前は FULL_VIEW のジオメトリが残って FIXED と同じに見えてた）
+    if (mode === WORLD_AXES_MODE.FIXED) {
+      updateSegmentsFixed();
+    } else if (mode === WORLD_AXES_MODE.FULL_VIEW) {
+      updateSegmentsFullView(lastCamera);
+    }
   }
 
   function getMode() {
@@ -198,16 +207,16 @@ export function createWorldAxesLayer(scene) {
     if (typeof radius === "number" && radius > 0) sceneRadius = radius;
     else sceneRadius = 1;
 
-    // モードに応じて反映（FULL_VIEW は updateView でやる）
+    // モードに応じて反映
     if (mode === WORLD_AXES_MODE.FIXED) updateSegmentsFixed();
-    if (mode === WORLD_AXES_MODE.OFF) {
-      // 何もしない
-    }
+    if (mode === WORLD_AXES_MODE.FULL_VIEW) updateSegmentsFullView(lastCamera);
+    // OFF は何もしない
   }
 
   function updateView({ camera } = {}) {
+    if (camera) lastCamera = camera;
     if (mode !== WORLD_AXES_MODE.FULL_VIEW) return;
-    updateSegmentsFullView(camera);
+    updateSegmentsFullView(lastCamera);
   }
 
   // 互換 API: setVisible / toggle
