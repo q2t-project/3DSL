@@ -2315,6 +2315,7 @@ for (const aux of axs) {
   // ------------------------------------------------------------
   let _lineWidthMode = "auto";       // "auto" | "fixed" | "adaptive"
   let _microFXProfile = "normal";    // "weak" | "normal" | "strong"
+  let _lastViewerSettingsKey = "";
 
   function _normLineWidthMode(v) {
     if (typeof v !== "string") return null;

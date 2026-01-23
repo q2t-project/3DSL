@@ -134,20 +134,18 @@ export function createWorldAxesLayer(scene) {
 
   // 原点から dir 方向に進んだとき、最初にフラスタム境界に当たる t を返す
   // - 原点がフラスタム内であることが前提
-  function exitT(camera, dir) {
-    if (!buildFrustum(camera)) return null;
-    if (!frustum.containsPoint(origin)) return null;
-
+  function exitT(dir) {
+    // Find the nearest frustum plane intersection along `dir` starting from `origin`.
+    // Works regardless of the frustum plane sign convention.
     let best = Infinity;
     for (const p of frustum.planes) {
+      const d0 = p.distanceToPoint(origin);
       const denom = p.normal.dot(dir);
-      if (denom <= 1e-6) continue;
-      // origin = 0 なので plane.constant だけでOK
-      const t = -p.constant / denom;
+      if (Math.abs(denom) <= 1e-6) continue;
+      const t = -d0 / denom;
       if (t > 1e-6 && t < best) best = t;
     }
-    if (!Number.isFinite(best)) return null;
-    return best;
+    return Number.isFinite(best) ? best : null;
   }
 
   function updateSegmentsFixed() {
@@ -171,8 +169,8 @@ export function createWorldAxesLayer(scene) {
     }
 
     for (const ax of axes) {
-      const tPos = exitT(camera, ax.dir);
-      const tNeg = exitT(camera, ax.dirNeg);
+      const tPos = exitT( ax.dir);
+      const tNeg = exitT( ax.dirNeg);
       const Lp = Number.isFinite(tPos) && tPos > 0 ? tPos : fallback;
       const Ln = Number.isFinite(tNeg) && tNeg > 0 ? tNeg : fallback;
 
