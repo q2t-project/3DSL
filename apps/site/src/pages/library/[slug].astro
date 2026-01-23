@@ -41,7 +41,7 @@ const pageConf = meta?.page ?? {};
 const adAllow = new Set(
   Array.isArray(pageConf?.ads)
     ? pageConf.ads
-    : ["mobile_top", "desktop_rail"]
+    : ["desktop_rail"]
 );
 const showAdMobileTop = adAllow.has("mobile_top");
 const showAdDesktopRail = adAllow.has("desktop_rail");
@@ -102,56 +102,6 @@ const thirdParty = Array.isArray(rights?.third_party)
     )
   : [];
 ---
-
-<!--
-  Detail pages should start at the top on normal navigation/reload.
-  (Keep browser default behavior only for back/forward navigation.)
--->
-<script is:inline>
-  (() => {
-    const forceTop = () => {
-      try {
-        window.scrollTo(0, 0);
-        document.documentElement.scrollTop = 0;
-        document.body.scrollTop = 0;
-      } catch {
-        /* noop */
-      }
-    };
-
-    let navType = "navigate";
-    try {
-      const nav = performance.getEntriesByType?.("navigation")?.[0];
-      if (nav && typeof nav.type === "string") navType = nav.type;
-    } catch {
-      /* noop */
-    }
-
-    // Don't break back/forward scroll restoration (BFCache etc.).
-    if (navType === "back_forward") return;
-
-    try {
-      if ("scrollRestoration" in history) history.scrollRestoration = "manual";
-    } catch {
-      /* noop */
-    }
-
-    // Run a few times to defeat late scroll restoration/layout shifts.
-    forceTop();
-    document.addEventListener("DOMContentLoaded", forceTop, { once: true });
-    window.addEventListener("load", forceTop, { once: true });
-    window.addEventListener(
-      "pageshow",
-      (e) => {
-        // If not coming from BFCache, keep top.
-        if (!e.persisted) forceTop();
-      },
-      { once: true }
-    );
-    requestAnimationFrame(forceTop);
-    setTimeout(forceTop, 80);
-  })();
-</script>
 
 <Layout title={seoTitle} description={seoDescription}>
   <div class="mx-auto max-w-[1200px] px-4 py-6">
