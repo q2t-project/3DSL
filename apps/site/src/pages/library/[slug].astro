@@ -41,7 +41,7 @@ const pageConf = meta?.page ?? {};
 const adAllow = new Set(
   Array.isArray(pageConf?.ads)
     ? pageConf.ads
-    : ["desktop_rail"]
+    : ["mobile_top", "desktop_rail"]
 );
 const showAdMobileTop = adAllow.has("mobile_top");
 const showAdDesktopRail = adAllow.has("desktop_rail");
@@ -129,9 +129,18 @@ const thirdParty = Array.isArray(rights?.third_party)
         <section class="rounded-2xl border border-neutral-800 bg-neutral-950/40 p-4">
           <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div class="min-w-0">
-              <div class="relative w-full overflow-hidden rounded-xl border border-neutral-800 bg-black" style="padding-top: 56.25%;">
+              <!--
+                NOTE:
+                Avoid the padding-top aspect-ratio hack here.
+                On some browsers/conditions it can end up showing a large "padding" gap.
+                Use native aspect-ratio instead, and let the iframe fill via inset.
+              -->
+              <div
+                class="relative w-full overflow-hidden rounded-xl border border-neutral-800 bg-black"
+                style="aspect-ratio: 16 / 9;"
+              >
                 <iframe
-                  class="absolute inset-0 h-full w-full"
+                  class="absolute inset-0"
                   src={peekUrl}
                   title={`Preview: ${item.title}`}
                   loading="lazy"
