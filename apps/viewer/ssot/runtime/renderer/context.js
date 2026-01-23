@@ -2470,6 +2470,28 @@ for (const aux of axs) {
      try { clearSelectionHighlightImpl(scene); } catch (_e) {}
    };
 
+  // viewerSettings の key 単位の適用（互換 / 差分反映用）
+  // 外部から ctx.applyViewerSettingsKey が呼ばれる場合があるため、常に提供する。
+  ctx.applyViewerSettingsKey = (key, value, viewerSettings) => {
+    if (ctx._disposed) return false;
+    const k = String(key ?? "");
+    const vs = (viewerSettings && typeof viewerSettings === "object") ? viewerSettings : {};
+    const rs = (vs.render && typeof vs.render === "object") ? vs.render : vs;
+    // key が render.xxx / xxx どちらでも受ける
+    if (/lineWidthMode$/i.test(k)) {
+      const next = _normLineWidthMode((value !== undefined) ? value : rs.lineWidthMode);
+      if (next) setLineWidthMode(next);
+    } else if (/microFXProfile$/i.test(k)) {
+      const next = _normMicroFXProfile((value !== undefined) ? value : rs.microFXProfile);
+      if (next) setMicroFXProfile(next);
+    } else {
+      // unknown key: no-op
+      return false;
+    }
+    _lastViewerSettingsKey = `${_lineWidthMode}|${_microFXProfile}`;
+    return true;
+  };
+
   ctx.applyViewerSettings = (viewerSettings) => {
     if (ctx._disposed) return;
 
