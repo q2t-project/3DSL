@@ -128,17 +128,25 @@ const thirdParty = Array.isArray(rights?.third_party)
       <main class="min-w-0">
         <section class="rounded-2xl border border-neutral-800 bg-neutral-950/40 p-4">
           <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <div class="min-w-0">
-              <div class="w-full overflow-hidden rounded-xl border border-neutral-800 bg-black">
-                <iframe
-                  class="block w-full pointer-events-none"
-                  style="aspect-ratio: 16 / 9;"
-                  src={peekUrl}
-                  title={`Preview: ${item.title}`}
-                  loading="lazy"
-                  allow="fullscreen"
-                />
-              </div>
+	            <div class="min-w-0">
+	              {/**
+	               * Preview sizing rationale:
+	               * - Avoid the classic padding-top aspect-ratio hack here.
+	               *   In some browser/layout conditions it can produce large "padding" gaps.
+	               * - Use native aspect-ratio on the iframe itself.
+	               * - Cap max width so the preview doesn't become a giant viewport on desktop.
+	               */}
+	              <div class="mx-auto w-full max-w-[900px] overflow-hidden rounded-xl border border-neutral-800 bg-black">
+	                <iframe
+	                  class="pointer-events-none block w-full"
+	                  style="aspect-ratio: 16 / 9"
+	                  src={peekUrl}
+	                  title={`Preview: ${item.title}`}
+	                  loading="lazy"
+	                  referrerpolicy="no-referrer"
+	                  allow="fullscreen"
+	                />
+	              </div>
 
               <div class="mt-3 flex flex-wrap gap-2">
                 <a
