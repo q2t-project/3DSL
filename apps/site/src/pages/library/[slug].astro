@@ -103,36 +103,57 @@ const thirdParty = Array.isArray(rights?.third_party)
   : [];
 ---
 
-<Layout title={seoTitle} description={seoDescription}>
-  <!-- Ensure the page starts at the top on normal navigations.
-       (Some browsers restore scroll on reload / JS navigations; keep back/forward intact.) -->
-  <script is:inline>
-    (() => {
+<!--
+  Detail pages should start at the top on normal navigation/reload.
+  (Keep browser default behavior only for back/forward navigation.)
+-->
+<script is:inline>
+  (() => {
+    const forceTop = () => {
       try {
-        if (location.hash) return;
-        const sp = new URLSearchParams(location.search);
-        if (sp.has("scroll")) return;
-
-        // performance navigation type: 'navigate' | 'reload' | 'back_forward' | 'prerender'
-        let isBackForward = false;
-        const nav = performance.getEntriesByType?.("navigation")?.[0];
-        if (nav && typeof nav.type === "string") {
-          isBackForward = nav.type === "back_forward";
-        } else {
-          // Deprecated fallback
-          // @ts-ignore
-          isBackForward = !!(performance.navigation && performance.navigation.type === 2);
-        }
-
-        if (!isBackForward) {
-          // After first paint so the scroll sticks even if layout shifts.
-          requestAnimationFrame(() => window.scrollTo(0, 0));
-        }
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
       } catch {
-        // no-op
+        /* noop */
       }
-    })();
-  </script>
+    };
+
+    let navType = "navigate";
+    try {
+      const nav = performance.getEntriesByType?.("navigation")?.[0];
+      if (nav && typeof nav.type === "string") navType = nav.type;
+    } catch {
+      /* noop */
+    }
+
+    // Don't break back/forward scroll restoration (BFCache etc.).
+    if (navType === "back_forward") return;
+
+    try {
+      if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+    } catch {
+      /* noop */
+    }
+
+    // Run a few times to defeat late scroll restoration/layout shifts.
+    forceTop();
+    document.addEventListener("DOMContentLoaded", forceTop, { once: true });
+    window.addEventListener("load", forceTop, { once: true });
+    window.addEventListener(
+      "pageshow",
+      (e) => {
+        // If not coming from BFCache, keep top.
+        if (!e.persisted) forceTop();
+      },
+      { once: true }
+    );
+    requestAnimationFrame(forceTop);
+    setTimeout(forceTop, 80);
+  })();
+</script>
+
+<Layout title={seoTitle} description={seoDescription}>
   <div class="mx-auto max-w-[1200px] px-4 py-6">
     <div class="text-xs text-neutral-500">
       <a href="/library" class="hover:underline">Library</a>
