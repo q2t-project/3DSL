@@ -43,6 +43,13 @@ function isActive(href: string) {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
 
+	    <script is:inline>
+	      // Prevent browser/SPA-like scroll restoration from leaving pages "already scrolled" on navigation.
+	      try {
+	        if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+	      } catch {}
+	    </script>
+
     {includeAdsenseScript && (
       <meta name="google-adsense-account" content={ADSENSE_PUBLISHER_ID} />
     )}
@@ -184,6 +191,46 @@ function isActive(href: string) {
 
         // allow other scripts to toggle
         window.__3dslProgress = { show, hide };
+      })();
+    </script>
+
+    <script is:inline>
+      // Scroll position control (important when using ViewTransitions / client-side navigation).
+      // Otherwise, the next page can inherit the previous page's scrollY.
+      (() => {
+        const shouldKeepScroll = () => {
+          // hash navigation should keep the browser's default behavior
+          if (location.hash && location.hash !== "#") return true;
+          // explicit restore handler (e.g. /library?scroll=123)
+          try {
+            const sp = new URLSearchParams(location.search || "");
+            if (sp.has("scroll")) return true;
+          } catch {}
+          return false;
+        };
+
+        const forceTop = () => {
+          if (shouldKeepScroll()) return;
+          // set all common scroll roots to be safe
+          window.scrollTo(0, 0);
+          document.documentElement.scrollTop = 0;
+          document.body.scrollTop = 0;
+        };
+
+        try {
+          if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+        } catch {}
+
+        // initial load and after client-side navigations
+        const onPage = () => {
+          forceTop();
+          requestAnimationFrame(forceTop);
+          setTimeout(forceTop, 50);
+        };
+
+        window.addEventListener("load", onPage);
+        document.addEventListener("astro:page-load", onPage);
+        document.addEventListener("astro:after-swap", onPage);
       })();
     </script>
 

@@ -562,31 +562,35 @@ export function createViewerHub({ core, renderer }) {
   // - renderer.applyViewerSettings() では worldAxes を扱わない（= 二重管理禁止）。
 
   const viewerSettingsState = {
-    // ワールド座標軸だけは当面 hub 管理でOK（Phase2の対象外にしてある）
-   worldAxesVisible: false,
-    worldAxesListeners: [],
+    // 0:OFF / 1:FIXED / 2:FULL_VIEW
+    worldAxesMode: 0,
+    worldAxesListeners: [],       // (visible:boolean)=>void
+    worldAxesModeListeners: [],   // (mode:number)=>void
   };
-
 
   const viewerSettings = {
     // --------------------------------------------------------
-    // 既存: ワールド座標軸の表示 ON/OFF
+    // world axes (3-mode)
     // --------------------------------------------------------
-    setWorldAxesVisible(flag) {
+    setWorldAxesMode(mode) {
       if (!assertAlive()) return;
-      const visible = !!flag;
-      if (visible === viewerSettingsState.worldAxesVisible) return;
+      const n = Number(mode);
+      const m = n >= 2 ? 2 : n >= 1 ? 1 : 0;
+      if (m === viewerSettingsState.worldAxesMode) return;
 
-      viewerSettingsState.worldAxesVisible = visible;
+      viewerSettingsState.worldAxesMode = m;
 
-      if (
-        renderer &&
-        typeof renderer.setWorldAxesVisible === "function"
-      ) {
-        renderer.setWorldAxesVisible(visible);
+      if (renderer) {
+        if (typeof renderer.setWorldAxesMode === "function") {
+          renderer.setWorldAxesMode(m);
+        } else if (typeof renderer.setWorldAxesVisible === "function") {
+          renderer.setWorldAxesVisible(m > 0);
+        }
       }
 
-      // UI へ通知
+      const visible = m > 0;
+
+      // UI へ通知（互換: visible）
       viewerSettingsState.worldAxesListeners.forEach((fn) => {
         try {
           fn(visible);
@@ -594,22 +598,44 @@ export function createViewerHub({ core, renderer }) {
           debugHub("[hub.viewerSettings] listener error", e);
         }
       });
+
+      // UI へ通知（新: mode）
+      viewerSettingsState.worldAxesModeListeners.forEach((fn) => {
+        try {
+          fn(m);
+        } catch (e) {
+          debugHub("[hub.viewerSettings] mode listener error", e);
+        }
+      });
+    },
+
+    getWorldAxesMode() {
+      return Number(viewerSettingsState.worldAxesMode) || 0;
+    },
+
+    // --------------------------------------------------------
+    // 既存互換: ワールド座標軸の表示 ON/OFF
+    // --------------------------------------------------------
+    setWorldAxesVisible(flag) {
+      this.setWorldAxesMode(flag ? 1 : 0);
     },
 
     toggleWorldAxes() {
-      this.setWorldAxesVisible(!viewerSettingsState.worldAxesVisible);
+      // OFF -> FIXED -> FULL_VIEW -> OFF
+      const next = (this.getWorldAxesMode() + 1) % 3;
+      this.setWorldAxesMode(next);
     },
 
     getWorldAxesVisible() {
-      return viewerSettingsState.worldAxesVisible;
+      return this.getWorldAxesMode() > 0;
     },
 
     // listener: (visible:boolean) => void
     onWorldAxesChanged(listener) {
       if (!assertAlive()) return () => {};
       if (typeof listener === "function") {
-          viewerSettingsState.worldAxesListeners.push(listener);
-          try { listener(viewerSettingsState.worldAxesVisible); } catch (_e) {}
+        viewerSettingsState.worldAxesListeners.push(listener);
+        try { listener(this.getWorldAxesVisible()); } catch (_e) {}
         return () => {
           const i = viewerSettingsState.worldAxesListeners.indexOf(listener);
           if (i >= 0) viewerSettingsState.worldAxesListeners.splice(i, 1);
@@ -618,7 +644,24 @@ export function createViewerHub({ core, renderer }) {
       return () => {};
     },
 
+    // listener: (mode:number) => void
+    onWorldAxesModeChanged(listener) {
+      if (!assertAlive()) return () => {};
+      if (typeof listener === "function") {
+        viewerSettingsState.worldAxesModeListeners.push(listener);
+        try { listener(this.getWorldAxesMode()); } catch (_e) {}
+        return () => {
+          const i = viewerSettingsState.worldAxesModeListeners.indexOf(listener);
+          if (i >= 0) viewerSettingsState.worldAxesModeListeners.splice(i, 1);
+        };
+      }
+      return () => {};
+    },
+
     // --------------------------------------------------------
+    // 追加: FOV (1..179)
+    // --------------------------------------------------------
+// --------------------------------------------------------
     // 追加: FOV (1..179)
     // --------------------------------------------------------
     // FOV
@@ -1603,6 +1646,7 @@ function flushCommandQueue() {
       }
 
       viewerSettingsState.worldAxesListeners.length = 0;
+      viewerSettingsState.worldAxesModeListeners.length = 0;
 
       try { renderer?.dispose?.(); } catch (_e) {}
       try { core?.dispose?.(); } catch (_e) {}

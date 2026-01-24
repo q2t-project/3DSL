@@ -99,7 +99,8 @@ function isProductionBuild(baseUrl) {
 }
 
 async function readLibraryIndex() {
-  const p = path.join(publicDir, "library", "library_index.json");
+  // Sync contract: packages/3dss-content/dist/library -> apps/site/public/_data/library
+  const p = path.join(publicDir, "_data", "library", "library_index.json");
   try {
     const raw = await fs.readFile(p, "utf8");
     const j = JSON.parse(raw);

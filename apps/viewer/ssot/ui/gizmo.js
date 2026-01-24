@@ -788,14 +788,15 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
     emissive: 0x3355ff,
   });
 
-  const beamRadius = 0.03;
+  // ビームは「視認性最優先」で unlit & 常に前面表示
+  const beamRadius = 0.04;
 
-  const beamMatBase = createLitMaterial({
+  const beamMatBase = new THREE.MeshBasicMaterial({
     color: 0x99bbff,
-    emissive: 0x3355ff,
     transparent: true,
     opacity: 0.0,
     depthWrite: false,
+    depthTest: false,
   });
 
   function createPresetCamera(def) {
@@ -823,8 +824,8 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
     lens.rotation.y = Math.PI; // 法線を -Z（原点向き）へ
     group.add(lens);
 
-    // 視線ビーム（アイソメ4方のみ）
-    if (def.kind === 'iso') {
+    // 視線ビーム（7ビュー全部に付ける。アイソメだけ点滅演出）
+    {
       const beamLength = CAM_DISTANCE - LENS_OFFSET; // レンズ中心〜原点
       const beamGeom = new THREE.CylinderGeometry(
         beamRadius,
@@ -834,6 +835,8 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
       );
 
       const beam = new THREE.Mesh(beamGeom, beamMatBase.clone());
+      beam.visible = false;
+      beam.renderOrder = 20;
 
       // Cylinder は Y 軸方向に伸びるので、Z 軸に合わせる
       beam.rotation.x = Math.PI / 2;
@@ -843,7 +846,7 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
       beam.position.set(0, 0, beamCenterZ);
 
       group.add(beam);
-      presetBeams.push({ key: def.key, mesh: beam });
+      presetBeams.push({ key: def.key, kind: def.kind, mesh: beam });
     }
 
     group.userData.presetKey = def.key;
@@ -959,22 +962,33 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
   // アクティブビューに応じたビーム演出（アイソメだけ点滅）
   // ------------------------------------------------------------
   function updatePresetBeams(timeSec) {
-    presetBeams.forEach(({ key, mesh }) => {
+    const canShow = !!activePresetKey;
+
+    presetBeams.forEach(({ key, kind, mesh }) => {
       const mat = mesh.material;
       if (!mat) return;
 
-      if (!presetsVisible || !activePresetKey || key !== activePresetKey) {
+      if (!canShow || key !== activePresetKey) {
+        mesh.visible = false;
         mat.opacity = 0.0;
         return;
       }
 
-      const t = (timeSec * 2.0) % 1.0;
-      const pulse = 0.4 + 0.6 * Math.sin(t * Math.PI * 2) * 0.5 + 0.3;
-      mat.opacity = pulse;
+      mesh.visible = true;
+
+      // iso だけ点滅、軸ビューは常時表示
+      if (kind === 'iso') {
+        const t = (timeSec * 2.0) % 1.0;
+        const s = 0.5 + 0.5 * Math.sin(t * Math.PI * 2);
+        mat.opacity = 0.35 + 0.55 * s;
+      } else {
+        mat.opacity = 0.65;
+      }
     });
   }
 
-  // ------------------------------------------------------------
+
+// ------------------------------------------------------------
   // サイズ調整（wrapper の大きさに追従）
   // ------------------------------------------------------------
   let lastDisplaySize = 0;

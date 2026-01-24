@@ -138,6 +138,14 @@ function buildViewerUrl(modelUrl) {
   return `/viewer/index.html?model=${encodeURIComponent(modelUrl)}`;
 }
 
+function safeCpDir(srcDir, dstDir) {
+  if (!fs.existsSync(srcDir)) return false;
+  if (!fs.statSync(srcDir).isDirectory()) return false;
+  ensureDir(dstDir);
+  fs.cpSync(srcDir, dstDir, { recursive: true });
+  return true;
+}
+
 function pickSeo(meta, titleFallback, descFallback) {
   const seo = meta?.seo && typeof meta.seo === "object" ? meta.seo : {};
 
@@ -253,13 +261,35 @@ function main() {
     const rights = meta?.rights ?? null;
     const related = Array.isArray(meta?.related) ? meta.related : [];
 
-    const outDir = path.join(OUT_3DSS_LIBRARY_DIR, id);
-    ensureDir(outDir);
+    // --- dist outputs ---
+    // 1) legacy/public model path (for backward shared links)
+    const out3dssDir = path.join(OUT_3DSS_LIBRARY_DIR, id);
+    ensureDir(out3dssDir);
+    fs.copyFileSync(modelPath, path.join(out3dssDir, "model.3dss.json"));
 
-    // copy model
-    fs.copyFileSync(modelPath, path.join(outDir, "model.3dss.json"));
+    // 2) site data root (mirrored to apps/site/public/_data/library/<id>/...)
+    const outDataDir = path.join(OUT_LIBRARY_DIR, id);
+    ensureDir(outDataDir);
+    fs.copyFileSync(modelPath, path.join(outDataDir, "model.3dss.json"));
 
-    const model_url = `/3dss/library/${id}/model.3dss.json`;
+    // copy meta (if missing in SSOT, emit an ensured meta JSON in dist)
+    if (existsFile(metaPath)) {
+      fs.copyFileSync(metaPath, path.join(outDataDir, "_meta.json"));
+    } else {
+      writeJson(path.join(outDataDir, "_meta.json"), meta);
+    }
+
+    // optional: content + assets + attachments
+    const contentSrc = path.join(srcDir, "content.md");
+    if (existsFile(contentSrc)) {
+      fs.copyFileSync(contentSrc, path.join(outDataDir, "content.md"));
+    }
+    safeCpDir(path.join(srcDir, "assets"), path.join(outDataDir, "assets"));
+    safeCpDir(path.join(srcDir, "attachments"), path.join(outDataDir, "attachments"));
+
+    const data_dir = `/_data/library/${id}`;
+    const model_url = `${data_dir}/model.3dss.json`;
+    const legacy_model_url = `/3dss/library/${id}/model.3dss.json`;
     const viewer_url = buildViewerUrl(model_url);
 
     const created_at = deriveCreatedAt(meta, dm, id, modelPath);
@@ -282,11 +312,15 @@ function main() {
       created_at,
       updated_at,
       tags,
+      data_dir,
+      model_url,
+      legacy_model_url,
       viewer_url,
       entry_points,
       pairs,
       rights,
       related,
+      page: meta?.page ?? null,
       ...seo,
     });
   }

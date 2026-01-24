@@ -304,8 +304,23 @@ function installOrbitInput(canvas, cam) {
 
   if (!canvas) throw new Error("[peekBoot] viewer canvas not found");
 
+  // NOTE: In embedded contexts (e.g., Library detail / Top page peek iframe),
+  // forcing focus causes the browser to scroll the parent page to the iframe.
+  // Auto-focus only when running standalone (top-level).
   canvas.tabIndex = 0;
-  canvas.focus?.();
+  const isEmbedded = (() => {
+    try {
+      return window.top !== window.self;
+    } catch {
+      // If cross-origin access throws, assume embedded.
+      return true;
+    }
+  })();
+
+  if (!isEmbedded) {
+    // Defer focus to avoid layout/scroll surprises during first paint.
+    requestAnimationFrame(() => canvas.focus?.());
+  }
 
   if (!ensureWebGL(canvas)) return;
 

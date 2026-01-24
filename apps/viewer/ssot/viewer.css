@@ -1509,6 +1509,9 @@ html, body {
 /* frame labels: keep min/max as normal flow, keep zero as absolute */
 .frame-labels {
   margin-top: 3px !important; /* closer to bar */
+  display: flex !important;
+  justify-content: space-between !important;
+  width: 100% !important;
   align-items: flex-start !important;
 }
 .frame-label-min,

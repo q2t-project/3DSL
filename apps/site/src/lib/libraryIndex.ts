@@ -37,6 +37,12 @@ export type LibraryItem = {
   rights?: LibraryRights | null;
   meta_title?: string;
   meta_description?: string;
+
+  // Generated endpoints (optional; backward compatible)
+  data_dir?: string; // /_data/library/<id>
+  model_url?: string; // /_data/library/<id>/model.3dss.json
+  legacy_model_url?: string; // /3dss/library/<id>/model.3dss.json
+  page?: any;
 };
 
 type LibraryIndex = {

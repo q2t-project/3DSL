@@ -284,88 +284,70 @@ function maybeForceContextLoss(renderer, enabled) {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(50, 1, 0.01, 100000);
   camera.up.set(0, 0, 1); // Z-up
-  // worldAxes helper は ctx に保持（未宣言参照・再宣言事故を防ぐ）
-  ctx._worldAxesHelper = ctx._worldAxesHelper || null;
-  // sceneMetricsCache は下の minimal runtime セクションで 1 回だけ宣言する（重複防止）
+  // worldAxes layer は ctx に保持（未宣言参照・再宣言事故を防ぐ）
+  // - OFF/FIXED/FULL_VIEW の 3 モード（hub から切替）
+  ctx._worldAxesLayer = ctx._worldAxesLayer || null;
+  ctx._worldAxesMode = ctx._worldAxesMode ?? 0;
 
-  // picking
-
-  function isObjectVisible(obj) {
-    let o = obj;
-    while (o) {
-      if (o.visible === false) return false;
-      o = o.parent || null;
-    }
-    return true;
-  }
-
-  const raycaster = new THREE.Raycaster();
-  // 線が拾えん問題の保険（必要なら後で viewerSettings から調整してもええ）
-  try { raycaster.params.Line.threshold = 0.5; } catch (_e) {}
-  const pickTargets = [];
-  let _pickTargetSet = new WeakSet();
-
+  // sceneMetricsCache は minimal runtime セクションで 1回だけ宣言する（重複防止）
   let sceneMetricsCache = null;
 
-  // viewerSettings 適用用のローカル状態（未定義参照を防ぐ）
-  let _lastViewerSettingsKey = "";
-  // world axes helper は ctx に保持
-  if (ctx._worldAxesHelper === undefined) ctx._worldAxesHelper = null;
+  function ensureWorldAxesLayer() {
+    let layer = ctx._worldAxesLayer;
+    if (layer && layer.group && layer.group.parent === scene) return layer;
 
-  function ensureWorldAxesHelper() {
-    let h = ctx._worldAxesHelper;
-    if (h && h.parent === scene) return h;
-    // 古いのが残ってたら remove
-    if (h && h.parent) {
-      try { h.parent.remove(h); } catch (_e) {}
+    // もし旧 AxesHelper が残ってたら除去（互換のため）
+    if (ctx._worldAxesHelper && ctx._worldAxesHelper.parent) {
+      try { ctx._worldAxesHelper.parent.remove(ctx._worldAxesHelper); } catch (_e) {}
     }
-    h = new THREE.AxesHelper(1);
-    h.name = "worldAxes";
-    h.renderOrder = 9999;
-    h.frustumCulled = false;
-    h.visible = false;
-    // 常に手前に出す
-    try {
-      h.traverse((o) => {
-        if (o.material) {
-          o.material.depthTest = false;
-          o.material.depthWrite = false;
-          o.material.transparent = true;
-        }
-      });
-    } catch (_e) {}
-    scene.add(h);
-    ctx._worldAxesHelper = h;
-    return h;
+    ctx._worldAxesHelper = null;
+
+    layer = createWorldAxesLayer(scene);
+    ctx._worldAxesLayer = layer;
+
+    // 初期モード反映
+    try { layer.setMode?.(ctx._worldAxesMode); } catch (_e) {}
+    try { layer.setVisible?.(ctx._worldAxesMode > 0); } catch (_e) {}
+    return layer;
   }
 
-  function updateWorldAxesScaleFromMetrics() {
-    const h = ctx._worldAxesHelper;
-    if (!h) return;
-    const r = Number(sceneMetricsCache?.radius);
-    const s =
-      Number.isFinite(r) && r > 0 ? Math.max(0.6, Math.min(r * 0.25, 50)) : 1.0;
-    h.scale.setScalar(s);
+  function setWorldAxesMode(mode) {
+    const n = Number(mode);
+    const m = n >= 2 ? 2 : n >= 1 ? 1 : 0;
+    ctx._worldAxesMode = m;
+
+    const layer = ensureWorldAxesLayer();
+    if (!layer) return;
+
+    try { layer.setMode?.(m); } catch (_e) {}
+    try { layer.setVisible?.(m > 0); } catch (_e) {}
+
+    // scene radius を反映（FIXED の長さ・FULL_VIEW の fallback に使う）
+    // FIXED でも camera を一度渡しておく（viewport 内 clamp のため）
+    if (m > 0) {
+      try { layer.updateMetrics?.({ radius: Number(sceneMetricsCache?.radius) || 1 }); } catch (_e) {}
+      try { layer.updateView?.({ camera }); } catch (_e) {}
+    }
   }
 
-  // viewerHub.viewerSettings が直接叩く公開 API
+  function getWorldAxesMode() {
+    return Number(ctx._worldAxesMode) || 0;
+  }
+
+  // viewerHub.viewerSettings が直接叩く公開 API（互換）
   function setWorldAxesVisible(flag) {
-    const on = !!flag;
-    if (!on) {
-      if (ctx._worldAxesHelper) ctx._worldAxesHelper.visible = false;
-      return;
-    }
-    ensureWorldAxesHelper().visible = true;
-    updateWorldAxesScaleFromMetrics();
+    setWorldAxesMode(flag ? 1 : 0);
   }
 
   function getWorldAxesVisible() {
-    return !!ctx._worldAxesHelper?.visible;
+    return getWorldAxesMode() > 0;
   }
 
-  // hub から呼べるように公開（ここ1回だけ）
+  ctx.setWorldAxesMode = setWorldAxesMode;
+  ctx.getWorldAxesMode = getWorldAxesMode;
   ctx.setWorldAxesVisible = setWorldAxesVisible;
   ctx.getWorldAxesVisible = getWorldAxesVisible;
+
 
   const groups = {
     points: new THREE.Group(),
@@ -537,6 +519,17 @@ function maybeForceContextLoss(renderer, enabled) {
     }
     maps[kind].clear();
   }
+
+  // ------------------------------------------------------------
+  // picking targets (raycaster)
+  // - keep a deduped list of objects that should be raycast targets
+  // - avoids intersecting the entire scene graph
+  // ------------------------------------------------------------
+
+  /** @type {THREE.Object3D[]} */
+  const pickTargets = [];
+  /** @type {WeakSet<object>} */
+  let _pickTargetSet = new WeakSet();
 
   function clearPickTargets() {
     pickTargets.length = 0;
@@ -737,14 +730,14 @@ function maybeForceContextLoss(renderer, enabled) {
     }
     const pointSyncToken = _gltfSyncToken;
 
-    function applyCommonToMaterial(mat, { colorHex, opacity, wireframe, emissive }) {
+    function applyCommonToMaterial(mat, { colorHex, opacity, wireframe, emissive, applyColor = true }) {
       if (!mat) return;
       if (Array.isArray(mat)) {
-        for (const m of mat) applyCommonToMaterial(m, { colorHex, opacity, wireframe, emissive });
+        for (const m of mat) applyCommonToMaterial(m, { colorHex, opacity, wireframe, emissive, applyColor });
         return;
       }
       try {
-        if (mat.color && typeof mat.color.set === "function") mat.color.set(colorHex);
+        if (applyColor && mat.color && typeof mat.color.set === "function") mat.color.set(colorHex);
       } catch (_e) {}
       try {
         if ("opacity" in mat) {
@@ -803,6 +796,12 @@ function maybeForceContextLoss(renderer, enabled) {
       const common = (marker?.common && typeof marker.common === "object") ? marker.common : null;
 
       // common (color/opacity/wireframe/emissive)
+      const hasExplicitColor = [
+        common?.color,
+        marker?.color,
+        p?.appearance?.color,
+        p?.color,
+      ].some((v) => (typeof v === "string" ? v.trim() : v) != null);
       const col = readColor(
         common?.color ?? marker?.color ?? p?.appearance?.color ?? p?.color,
         0xffffff,
@@ -927,7 +926,7 @@ function maybeForceContextLoss(renderer, enabled) {
           try {
             inst.traverse((o) => {
               if (!o || !o.isMesh) return;
-              applyCommonToMaterial(o.material, { colorHex, opacity: op, wireframe, emissive });
+              applyCommonToMaterial(o.material, { colorHex, opacity: op, wireframe, emissive, applyColor: false });
             });
           } catch (_e) {}
 
@@ -2093,9 +2092,11 @@ for (const aux of axs) {
     // 線のみ等で positions から決められない場合の最終手段
     if (!sceneMetricsCache) sceneMetricsCache = computeSceneMetricsFromGroups(groups);
 
-    // world axes が表示中なら最新 metrics でスケール更新
+    // world axes が有効なら最新 metrics を反映（FIXED の長さ / FULL_VIEW の fallback 用）
     try {
-      if (ctx._worldAxesHelper?.visible) updateWorldAxesScaleFromMetrics();
+      const layer = ctx._worldAxesLayer;
+      const mode = Number(ctx._worldAxesMode) || 0;
+      if (layer && mode > 0) layer.updateMetrics?.({ radius: Number(sceneMetricsCache?.radius) || 1 });
     } catch (_e) {}
   };
 
@@ -2274,6 +2275,11 @@ for (const aux of axs) {
     try { updateAuxExtensionAnchors(); } catch (_e) {}
 
     try { labelLayer.update(); } catch (_e) {}
+    // world axes FULL_VIEW: カメラフラスタムに追随（毎フレーム更新）
+    if (ctx._worldAxesLayer && Number(ctx._worldAxesMode) === 2) {
+      try { ctx._worldAxesLayer.updateView?.({ camera }); } catch (_e) {}
+    }
+
     renderer.render(scene, camera);
 
     const now = (globalThis.performance?.now?.() ?? Date.now());
@@ -2314,6 +2320,7 @@ for (const aux of axs) {
   // ------------------------------------------------------------
   let _lineWidthMode = "auto";       // "auto" | "fixed" | "adaptive"
   let _microFXProfile = "normal";    // "weak" | "normal" | "strong"
+  let _lastViewerSettingsKey = "";
 
   function _normLineWidthMode(v) {
     if (typeof v !== "string") return null;
@@ -2468,6 +2475,28 @@ for (const aux of axs) {
      try { lineEffectsRuntime?.applySelection?.(null); } catch (_e) {}
      try { clearSelectionHighlightImpl(scene); } catch (_e) {}
    };
+
+  // viewerSettings の key 単位の適用（互換 / 差分反映用）
+  // 外部から ctx.applyViewerSettingsKey が呼ばれる場合があるため、常に提供する。
+  ctx.applyViewerSettingsKey = (key, value, viewerSettings) => {
+    if (ctx._disposed) return false;
+    const k = String(key ?? "");
+    const vs = (viewerSettings && typeof viewerSettings === "object") ? viewerSettings : {};
+    const rs = (vs.render && typeof vs.render === "object") ? vs.render : vs;
+    // key が render.xxx / xxx どちらでも受ける
+    if (/lineWidthMode$/i.test(k)) {
+      const next = _normLineWidthMode((value !== undefined) ? value : rs.lineWidthMode);
+      if (next) setLineWidthMode(next);
+    } else if (/microFXProfile$/i.test(k)) {
+      const next = _normMicroFXProfile((value !== undefined) ? value : rs.microFXProfile);
+      if (next) setMicroFXProfile(next);
+    } else {
+      // unknown key: no-op
+      return false;
+    }
+    _lastViewerSettingsKey = `${_lineWidthMode}|${_microFXProfile}`;
+    return true;
+  };
 
   ctx.applyViewerSettings = (viewerSettings) => {
     if (ctx._disposed) return;

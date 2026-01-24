@@ -527,7 +527,7 @@ lines
 | プロパティ | 型 | 必須 | デフォルト | 説明 |
 |---|---|---|---|---|
 | `font_size` | number | 任意 | `8` | 表示サイズ（相対）。Viewer は `font_size/8` を倍率として適用する想定。 |
-| `pose`  | object(text_pose) | 任意 | `{ "mode": "billboard" }` | テキスト姿勢（6.5 `text_pose`）。`mode="fixed"` はワールド固定、`mode="billboard"` はカメラ正面。v0 は `billboard` のみ対応で良い。 |
+| `pose`  | object(text_pose) | 任意 | `{ "front": [0,1,0], "up": [0,0,1] }` | テキスト姿勢（6.5 `text_pose`）。`front` はテキスト面の正面方向（法線）、`up` は文字の上方向。 |
 
 ---
 
@@ -707,19 +707,24 @@ points
 | `content` | string       | `""`                   | 表示テキスト。                                                  |
 | `font`    | string       | `"helvetiker_regular"` | 使用フォント。                                                  |
 | `size`    | number       | `8`                    | テキストサイズ。                                                 |
-| `align`   | string(enum) | `"center middle"`      | 水平／垂直アライン。9 通り（left/center/right × top/middle/baseline）。 |
-| `pose`    | object(text_pose) | `{ "mode": "billboard" }` | 表示姿勢。6.5 `text_pose` を参照。`fixed`/`billboard` を使い分ける。 |
+| `align`   | string(enum) | `"center&middle"`      | 水平／垂直アライン。9 通り（left/center/right × top/middle/baseline）。 |
+| `pose`    | object(text_pose) | `{ "front": [0,1,0], "up": [0,0,1] }` | 表示姿勢。6.5 `text_pose` を参照。 |
 
-> `pose` は `text_pose`（6.5）をそのまま持つ。`mode="billboard"` は常にカメラ正面（`up`/`roll` 指定可）、`mode="fixed"` はワールド固定（`front`/`up` を指定）。
-> `pose` を省略した場合は `{ "mode": "billboard" }` を補完してよい。
+> `pose` は `text_pose`（6.5）。`front`（正面＝法線）と `up`（文字の上方向）を vec3 で指定する。JSON Schema では `pose` は必須（ただし default あり）なので、Authoring/Importer は省略時にデフォルトを補完してよいが、正規化（保存/Export）では必ず `{front, up}` を明示する。
 **align の表記ルール（v1.1.3）**
 
-`align` は `"<h> <v>"`（半角スペース区切り）で指定する。
+`align` は `"<h>&<v>"`（`&` 区切り）で指定する。
 
 - `<h>`: `left` / `center` / `right`
 - `<v>`: `top` / `middle` / `baseline`
 
-旧表記として `center&middle` のような `&` 区切りが過去の例・生成物に存在しうるが、v1.1.3 では正規表記ではない。Importer/Normalizer は互換のため `&` をスペースに置換してよい。
+許容値（9通り）：
+
+- `left&top` / `left&middle` / `left&baseline`
+- `center&top` / `center&middle` / `center&baseline`
+- `right&top` / `right&middle` / `right&baseline`
+
+旧表記として `"<h> <v>"`（半角スペース区切り）が過去の例・生成物に存在しうる。Importer/Normalizer は互換のためスペース区切りを `&` 区切りに正規化してよい（正規化後は JSON Schema に準拠した `&` 形式で出力する）。
 
 ---
 
@@ -1175,11 +1180,8 @@ JSON Schema 上の `default` は定義しないが、
 | `render_mode` | string(enum)        | 任意 | `"math"`  | 表示モード。`math` / `inline` / `block`。        |
 | `font_size`   | number              | 任意 | –         | フォントサイズ。スキーマ上 default 未指定（Renderer 側で決定）。 |
 | `color`       | string(color_hex)   | 任意 | `#ffffff` | 数式色。                                      |
-| `pose`        | object(text_pose) | 任意 | `{ "mode": "billboard" }` | 表示姿勢。6.5 `text_pose` を参照。 |
+| `pose`        | object(text_pose)   | ✅  | `{ "front": [0,1,0], "up": [0,0,1] }` | 表示姿勢。6.5 `text_pose` を参照。 |
 | `position`    | vec3                | 任意 | –         | 配置位置。                                     |
-
-* `pose` は省略時 `{ "mode": "billboard" }` を補完してよい。`position` は省略時の扱いは実装ポリシー（例：原点）。
-  Viewer 実装は、未指定時に例えば pose=`{ "mode": "billboard" }`・position=`[0,0,0]` を初期値とするなど、
 
 ---
 
@@ -1202,7 +1204,7 @@ JSON Schema 上の `default` は定義しないが、
 * `scale` : スケール
 * `rotation` : glTF 等、別解釈を必要とする回転
 * `offset` : ローカル原点からのオフセット
-* `axis_signed` : 符号付き軸（`+x`/`-x`/`+y`/`-y`/`+z`/`-z`）。`text_pose` などで使用。
+* `axis_signed` : 符号付き軸（`+x`/`-x`/`+y`/`-y`/`+z`/`-z`）。入力ショートハンド／旧表記移行のために利用してよい（`text_pose` の保存形式は vec3 配列）。
 
 3DSS v1.1.3 では座標系は `document_meta.coordinate_system` の const により
 **`"Z+up/freeXY"` に固定**され、
@@ -1252,30 +1254,34 @@ JSON Schema 上の `default` は定義しないが、
 
 ### 6.5 text_pose
 
-テキスト（`marker.text` / `caption_text` / `extension.latex`）の表示姿勢を指定するための型。
+テキスト（`marker.text` / `caption_text` / `extension.latex`）の **表示姿勢**を指定するための型（v1.1.3）。
 
-- `mode: "billboard"`
-  - 常にカメラ正面を向く。
-  - `up`（既定：`+z`）で「上方向」の基準（ワールド軸）を与える。
-  - `roll`（既定：`0`、degree）で画面奥行き方向の回転を与える。
+`text_pose` は次の 2 ベクトル（vec3）で姿勢を表す：
 
-- `mode: "fixed"`
-  - ワールド固定の姿勢。
-  - `front` はテキストの「表」が向く法線方向（符号付き軸）。
-  - `up` は文字の上方向（符号付き軸）。
-  - `front` と `up` は直交（同軸／反転軸は不可）。
-  - 実装は右手系で `right = up × front` を基準に姿勢を構成してよい。
+- `front` : テキスト面の正面方向（法線）
+- `up` : 文字の上方向
+
+| プロパティ | 型 | 必須 | 説明 |
+|---|---|---|---|
+| `front` | vec3 | ✅ | 正面方向（法線）。`[x,y,z]`。 |
+| `up` | vec3 | ✅ | 文字の上方向。`[x,y,z]`。 |
+
+制約・実装上の注意：
+
+- 保存形式は **常に vec3 配列**（`[x,y,z]`）。`mode` / `roll` などのフィールドは存在しない（`additionalProperties:false`）。
+- `front` と `up` は **ゼロベクトル不可**、かつ平行（同軸／反転軸）を避けることを推奨する（姿勢が定義できないため）。
+- 実装は右手系で `right = up × front` を用いて姿勢（直交基底）を構成してよい（必要に応じて正規直交化）。
 
 #### 6.5.1 旧 `plane` からの移行（参考）
 
-旧：`plane = xy|yz|zx|billboard` を持つデータは、次の `pose` に写像してよい。
+旧：`plane = xy|yz|zx|billboard` を持つデータを取り込む場合、`plane` を次の `{front, up}` に写像してよい（`billboard` は 3DSS の保存形式には含まれないため、UI 状態として扱う）。
 
-- `xy` → `{ "mode": "fixed", "front": "+z", "up": "+y" }`
-- `yz` → `{ "mode": "fixed", "front": "+x", "up": "+z" }`
-- `zx` → `{ "mode": "fixed", "front": "+y", "up": "+z" }`
-- `billboard` → `{ "mode": "billboard", "up": "+z", "roll": 0 }`
+- `xy` → `{ "front": [0,0,1], "up": [0,1,0] }`
+- `yz` → `{ "front": [1,0,0], "up": [0,0,1] }`
+- `zx` → `{ "front": [0,1,0], "up": [0,0,1] }`
 
-※ 既存実装で `plane` の表裏（法線符号）を反転していた場合は、`front` を `-` にすることで同等にできる。
+`billboard` は **ファイル内に保持する姿勢情報ではない**（ランタイム表示モード）。Importer は既定の `pose`（例：`{ "front":[0,1,0], "up":[0,0,1] }`）に落とし込んだ上で、必要なら別途 UI/ツール側（3DSS外）にヒントとして保持してよい。
+
 
 ### 7.1 バージョン管理（Version Management）
 
@@ -1617,7 +1623,7 @@ Unicode の文字（\p{L}, \p{N}）も使用できる。
 | version | date       | note                                                                              | status |
 | ------- | ---------- | --------------------------------------------------------------------------------- | ------ |
 | 1.1.3   | 2026-01-12 | text pose SSOT化(front/up vec3配列) 等） | stable |
-| 1.1.2   | 2026-01-11 | `text_pose` 導入：`marker.text.plane` / `caption_text.plane` / `extension.latex.plane` を `pose` に置換（fixed/billboard）。`marker.text.align` 正規表記をスペース区切りに統一（旧 `&` 区切りは非推奨・互換ノーマライズ可）。 | stable |
+| 1.1.2   | 2026-01-11 | `text_pose` 導入：`marker.text.plane` / `caption_text.plane` / `extension.latex.plane` を `pose(front/up vec3配列)` に置換。`marker.text.align` 正規表記を `&` 区切りに統一（互換入力としてスペース区切りはノーマライズ可）。 | stable |
 | 1.1.1   | 2025-12-25 | 実装時に判明した不具合修正 | stable |
 | 1.1.0   | 2025-12-12 | `$defs` 再編（geometry/labels/meta）、units 既定値の見直し、document_meta の拡張ほか | stable |
 | 1.0.2   | 2025-12-03 | 実装時に判明した不具合修正等                                                     | stable |

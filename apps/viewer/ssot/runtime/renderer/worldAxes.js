@@ -2,118 +2,263 @@
 //
 // ワールド共通の座標軸（背景用）レイヤ。
 // - X = 青, Y = 緑, Z = 赤
-// - 原点まわりに ±axisLength まで伸ばしたラインを描く
-// - axisLength は「シーン半径 sceneRadius × 3」を基本にする
+// - OFF / FIXED / FULL_VIEW の 3 モード
+//   - OFF      : 非表示
+//   - FIXED    : sceneRadius ベースの固定長（従来互換）
+//   - FULL_VIEW: 原点が視野内にあるとき、各軸をフラスタム境界まで伸ばして
+//                「ビューポート内いっぱい」に見える長さにする
 //
-// いまのところカメラ依存の処理は入れず、
-// context 側から渡される sceneRadius に応じてだけ伸ばす。
+// NOTE:
+// - FULL_VIEW は「原点がフラスタム内」のときだけ有効。
+//   原点が視野外の場合は FIXED にフォールバック。
 
 import * as THREE from "/vendor/three/build/three.module.js";
+
+export const WORLD_AXES_MODE = /** @type {const} */ ({
+  OFF: 0,
+  FIXED: 1,
+  FULL_VIEW: 2,
+});
+
+function clampMode(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return WORLD_AXES_MODE.OFF;
+  if (n <= 0) return WORLD_AXES_MODE.OFF;
+  if (n >= 2) return WORLD_AXES_MODE.FULL_VIEW;
+  return WORLD_AXES_MODE.FIXED;
+}
 
 export function createWorldAxesLayer(scene) {
   const group = new THREE.Group();
   group.name = "world-axes";
-  group.renderOrder = -10; // なるべく背景側に描画
-  group.visible = false;   // デフォルトは非表示（C キー等で toggle 想定）
+  group.renderOrder = -10; // なるべく背景側
+  group.visible = false;
   scene.add(group);
 
-  let visible = false;
-  let sceneRadius = 1;
+  const origin = new THREE.Vector3(0, 0, 0);
+  const _tmp = new THREE.Vector3();
 
-  function rebuildLines() {
+  let mode = WORLD_AXES_MODE.OFF;
+  let lastCamera = null;
+  let sceneRadius = 1;
+  const FIXED_MUL = 3.0;
+  const FIXED_VIEW_FRACTION = 0.25; // FIXED を「FULL_VIEW より短い」と感じる程度
+
+  const frustum = new THREE.Frustum();
+  const pv = new THREE.Matrix4();
+
+  function makeLine(color, opacity) {
+    const arr = new Float32Array(6);
+    const geom = new THREE.BufferGeometry();
+    const attr = new THREE.BufferAttribute(arr, 3);
+    attr.setUsage(THREE.DynamicDrawUsage);
+    geom.setAttribute("position", attr);
+
+    const mat = new THREE.LineBasicMaterial({
+      color,
+      transparent: true,
+      opacity,
+      depthWrite: false,
+    });
+
+    const line = new THREE.Line(geom, mat);
+    line.frustumCulled = false; // 背景線はカリングさせない
+
+    group.add(line);
+    return { line, geom, attr, arr, mat };
+  }
+
+  /** @type {Array<{axis:string, dir:THREE.Vector3, dirNeg:THREE.Vector3, pos:any, neg:any}>} */
+  const axes = [];
+
+  function initAxes() {
     group.clear();
 
-    // シーン半径ベースで「ほぼ無限長」に見える程度に伸ばす
+    // X=青 / Y=緑 / Z=赤
+    const defs = [
+      {
+        axis: "x",
+        dir: new THREE.Vector3(1, 0, 0),
+        colorPos: new THREE.Color(0x3366ff),
+        colorNeg: new THREE.Color(0x112244),
+      },
+      {
+        axis: "y",
+        dir: new THREE.Vector3(0, 1, 0),
+        colorPos: new THREE.Color(0x33ff66),
+        colorNeg: new THREE.Color(0x115533),
+      },
+      {
+        axis: "z",
+        dir: new THREE.Vector3(0, 0, 1),
+        colorPos: new THREE.Color(0xff3366),
+        colorNeg: new THREE.Color(0x553333),
+      },
+    ];
+
+    axes.length = 0;
+    for (const d of defs) {
+      const dirNeg = d.dir.clone().multiplyScalar(-1);
+      const pos = makeLine(d.colorPos, 0.45);
+      const neg = makeLine(d.colorNeg, 0.25);
+      axes.push({ axis: d.axis, dir: d.dir, dirNeg, pos, neg });
+    }
+  }
+
+  function setSegment(seg, from, to) {
+    const a = seg.arr;
+    a[0] = from.x;
+    a[1] = from.y;
+    a[2] = from.z;
+    a[3] = to.x;
+    a[4] = to.y;
+    a[5] = to.z;
+    seg.attr.needsUpdate = true;
+    // bounding sphere は簡易で良い（表示だけ）
+    try {
+      seg.geom.computeBoundingSphere();
+    } catch (_e) {}
+  }
+
+  function fixedLen() {
     const base = Number.isFinite(sceneRadius) && sceneRadius > 0 ? sceneRadius : 1;
-    const axisLength = base * 3.0;
+    return base * FIXED_MUL;
+  }
 
-    const origin = new THREE.Vector3(0, 0, 0);
+  function buildFrustum(camera) {
+    if (!camera) return false;
+    // matrixWorldInverse は renderer 側で更新されるが、保険で呼ぶ
+    if (typeof camera.updateMatrixWorld === "function") camera.updateMatrixWorld(true);
+    pv.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    frustum.setFromProjectionMatrix(pv);
+    return true;
+  }
 
-    const makeAxis = (axis) => {
-      let dirPos, dirNeg, colorPos, colorNeg;
+  // 原点から dir 方向に進んだとき、最初にフラスタム境界に当たる t を返す
+  // - 原点がフラスタム内であることが前提
+  function exitT(dir) {
+    // Find the nearest frustum plane intersection along `dir` starting from `origin`.
+    // Works regardless of the frustum plane sign convention.
+    let best = Infinity;
+    for (const p of frustum.planes) {
+      const d0 = p.distanceToPoint(origin);
+      const denom = p.normal.dot(dir);
+      if (Math.abs(denom) <= 1e-6) continue;
+      const t = -d0 / denom;
+      if (t > 1e-6 && t < best) best = t;
+    }
+    return Number.isFinite(best) ? best : null;
+  }
 
-      switch (axis) {
-        case "x":
-          dirPos = new THREE.Vector3(1, 0, 0);
-          dirNeg = new THREE.Vector3(-1, 0, 0);
-          // X: 青
-          colorPos = new THREE.Color(0x3366ff); // 明るめ
-          colorNeg = new THREE.Color(0x112244); // 暗め
-          break;
-        case "y":
-          dirPos = new THREE.Vector3(0, 1, 0);
-          dirNeg = new THREE.Vector3(0, -1, 0);
-          // Y: 緑
-          colorPos = new THREE.Color(0x33ff66);
-          colorNeg = new THREE.Color(0x115533);
-          break;
-        case "z":
-        default:
-          dirPos = new THREE.Vector3(0, 0, 1);
-          dirNeg = new THREE.Vector3(0, 0, -1);
-          // Z: 赤
-          colorPos = new THREE.Color(0xff3366);
-          colorNeg = new THREE.Color(0x553333);
-          break;
+  function updateSegmentsFixed(camera) {
+    const base = fixedLen();
+
+    // 原点が視野内なら、フラスタム境界までの距離を使って「短め」に clamp。
+    // これで、sceneRadius が大きいモデルでも FIXED と FULL_VIEW の見た目が同化しない。
+    const canClamp = !!(camera && buildFrustum(camera) && frustum.containsPoint(origin));
+
+    for (const ax of axes) {
+      let Lp = base;
+      let Ln = base;
+      if (canClamp) {
+        const tPos = exitT(ax.dir);
+        const tNeg = exitT(ax.dirNeg);
+        if (Number.isFinite(tPos) && tPos > 0) Lp = Math.min(base, tPos * FIXED_VIEW_FRACTION);
+        if (Number.isFinite(tNeg) && tNeg > 0) Ln = Math.min(base, tNeg * FIXED_VIEW_FRACTION);
       }
 
-      const geomPos = new THREE.BufferGeometry().setFromPoints([
-        origin,
-        origin.clone().addScaledVector(dirPos, axisLength),
-      ]);
-      const geomNeg = new THREE.BufferGeometry().setFromPoints([
-        origin,
-        origin.clone().addScaledVector(dirNeg, axisLength),
-      ]);
+      setSegment(ax.pos, origin, _tmp.copy(ax.dir).multiplyScalar(Lp));
+      setSegment(ax.neg, origin, _tmp.copy(ax.dirNeg).multiplyScalar(Ln));
+    }
+  }
 
-      const matPos = new THREE.LineBasicMaterial({
-        color: colorPos,
-        transparent: true,
-        opacity: 0.45,
-        depthWrite: false,
-      });
-      const matNeg = new THREE.LineBasicMaterial({
-        color: colorNeg,
-        transparent: true,
-        opacity: 0.25,
-        depthWrite: false,
-      });
+  function updateSegmentsFullView(camera) {
+    const fallback = fixedLen();
 
-      const linePos = new THREE.Line(geomPos, matPos);
-      const lineNeg = new THREE.Line(geomNeg, matNeg);
+    // 原点が視野外ならフォールバック
+    if (!buildFrustum(camera) || !frustum.containsPoint(origin)) {
+      for (const ax of axes) {
+        setSegment(ax.pos, origin, _tmp.copy(ax.dir).multiplyScalar(fallback));
+        setSegment(ax.neg, origin, _tmp.copy(ax.dirNeg).multiplyScalar(fallback));
+      }
+      return;
+    }
 
-      group.add(linePos);
-      group.add(lineNeg);
-    };
+    for (const ax of axes) {
+      const tPos = exitT( ax.dir);
+      const tNeg = exitT( ax.dirNeg);
+      const Lp = Number.isFinite(tPos) && tPos > 0 ? tPos : fallback;
+      const Ln = Number.isFinite(tNeg) && tNeg > 0 ? tNeg : fallback;
 
-    makeAxis("x");
-    makeAxis("y");
-    makeAxis("z");
+      setSegment(ax.pos, origin, _tmp.copy(ax.dir).multiplyScalar(Lp));
+      setSegment(ax.neg, origin, _tmp.copy(ax.dirNeg).multiplyScalar(Ln));
+    }
+  }
 
-    group.visible = visible;
+  function applyMode() {
+    group.visible = mode !== WORLD_AXES_MODE.OFF;
+  }
+
+  function setMode(next) {
+    const m = clampMode(next);
+    if (m === mode) return;
+    mode = m;
+    applyMode();
+
+    // mode を切り替えた瞬間に見た目も切り替わるように、ここでジオメトリを更新する
+    // （以前は FULL_VIEW のジオメトリが残って FIXED と同じに見えてた）
+    if (mode === WORLD_AXES_MODE.FIXED) {
+      updateSegmentsFixed(lastCamera);
+    } else if (mode === WORLD_AXES_MODE.FULL_VIEW) {
+      updateSegmentsFullView(lastCamera);
+    }
+  }
+
+  function getMode() {
+    return mode;
   }
 
   function updateMetrics({ radius }) {
-    if (typeof radius === "number" && radius > 0) {
-      sceneRadius = radius;
-    } else {
-      sceneRadius = 1;
-    }
-    rebuildLines();
+    if (typeof radius === "number" && radius > 0) sceneRadius = radius;
+    else sceneRadius = 1;
+
+    // モードに応じて反映
+    if (mode === WORLD_AXES_MODE.FIXED) updateSegmentsFixed(lastCamera);
+    if (mode === WORLD_AXES_MODE.FULL_VIEW) updateSegmentsFullView(lastCamera);
+    // OFF は何もしない
   }
 
+  function updateView({ camera } = {}) {
+    if (camera) lastCamera = camera;
+    if (mode === WORLD_AXES_MODE.FULL_VIEW) {
+      updateSegmentsFullView(lastCamera);
+    } else if (mode === WORLD_AXES_MODE.FIXED) {
+      // FIXED でも camera を受け取ったら clamp を反映
+      updateSegmentsFixed(lastCamera);
+    }
+  }
+
+  // 互換 API: setVisible / toggle
   function setVisible(flag) {
-    visible = !!flag;
-    group.visible = visible;
+    setMode(flag ? WORLD_AXES_MODE.FIXED : WORLD_AXES_MODE.OFF);
   }
 
   function toggle() {
-    setVisible(!visible);
+    setVisible(!group.visible);
   }
+
+  // init
+  initAxes();
+  updateSegmentsFixed(null);
+  applyMode();
 
   return {
     group,
+    setMode,
+    getMode,
     updateMetrics,
+    updateView,
+    // back-compat
     setVisible,
     toggle,
   };
