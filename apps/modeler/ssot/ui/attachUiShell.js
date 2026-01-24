@@ -42,6 +42,19 @@ function normalize3dssJsonName(name) {
   return base + ".3dss.json";
 }
 
+function getSelectedSet(hub) {
+  const arr = hub?.core?.selection?.get?.() ?? [];
+  return new Set(Array.isArray(arr) ? arr : []);
+}
+
+function syncTabButtons(root, hub) {
+  const cur = (hub?.core?.uiState?.get?.().activeTab) || "points";
+  root.querySelectorAll("[data-tab]").forEach((b) => {
+    if (!(b instanceof HTMLElement)) return;
+    b.classList.toggle("tab-active", b.getAttribute("data-tab") === cur);
+  });
+}
+
 function updateToolbar() {
   const doc = hub?.core?.document?.get?.() ?? null;
   const label = hub?.core?.document?.getLabel?.() ?? "";
@@ -176,13 +189,17 @@ function updateToolbar() {
     if (!tbody) return;
     tbody.textContent = "";
 
+    syncTabButtons(root, hub);
+
     const tab = hub?.core?.uiState?.get?.().activeTab || "points";
     const locked = new Set(hub?.core?.lock?.list?.() || []);
+    const selected = getSelectedSet(hub);
+    let firstSelected = null;
 
     const rows = [];
-    if (tab === "points" && doc && Array.isArray(doc.points)) rows.push(...doc.points.map((x) => ({ kind: "point", node: x })));
-    if (tab === "lines" && doc && Array.isArray(doc.lines)) rows.push(...doc.lines.map((x) => ({ kind: "line", node: x })));
-    if (tab === "aux" && doc && Array.isArray(doc.aux)) rows.push(...doc.aux.map((x) => ({ kind: "aux", node: x })));
+    if (tab === "points" && doc && Array.isArray(doc.points)) doc.points.forEach((x, i) => rows.push({ kind: "point", node: x, path: `/points/${i}` }));
+    if (tab === "lines" && doc && Array.isArray(doc.lines)) doc.lines.forEach((x, i) => rows.push({ kind: "line", node: x, path: `/lines/${i}` }));
+    if (tab === "aux" && doc && Array.isArray(doc.aux)) doc.aux.forEach((x, i) => rows.push({ kind: "aux", node: x, path: `/aux/${i}` }));
 
     for (const r of rows) {
       const uuid = r?.node?.meta?.uuid || r?.node?.uuid || "";
@@ -191,11 +208,16 @@ function updateToolbar() {
       const x = Array.isArray(pos) ? pos[0] : 0;
       const y = Array.isArray(pos) ? pos[1] : 0;
       const z = Array.isArray(pos) ? pos[2] : 0;
+      const path = r?.path || "/";
 
       const tr = document.createElement("tr");
       tr.dataset.uuid = uuid;
       tr.dataset.kind = r.kind;
       tr.dataset.locked = locked.has(uuid) ? "true" : "false";
+      if (uuid && selected.has(uuid)) {
+        tr.classList.add("is-selected");
+        if (!firstSelected) firstSelected = tr;
+      }
 
       const tdLock = document.createElement("td");
       tdLock.className = "col-lock";
@@ -228,11 +250,23 @@ function updateToolbar() {
 
       tr.addEventListener("click", () => {
         if (!uuid) return;
-        hub?.core?.selection?.set?.([uuid]);
-        showProperty({ uuid, kind: r.kind, path: "/" });
+        const issueLike = { uuid, kind: r.kind, path };
+        if (typeof hub?.core?.focusByIssue === "function") {
+          hub.core.focusByIssue(issueLike);
+        } else {
+          hub?.core?.selection?.set?.([uuid]);
+          hub?.emit?.("selection", issueLike);
+        }
+        showProperty(issueLike);
       });
 
       tbody.appendChild(tr);
+    }
+
+    if (firstSelected) {
+      try {
+        firstSelected.scrollIntoView({ block: "nearest" });
+      } catch {}
     }
   }
 
@@ -272,7 +306,7 @@ function updateToolbar() {
 
       item.addEventListener("click", () => {
         if (typeof hub?.core?.focusByIssue === "function") hub.core.focusByIssue(it);
-        else if (it?.uuid) showProperty({ uuid: it.uuid, kind: it.kind || "unknown", path: it.path || "/" });
+        if (it?.uuid) showProperty({ uuid: it.uuid, kind: it.kind || "unknown", path: it.path || "/" });
       });
 
       qcList.appendChild(item);
@@ -290,9 +324,7 @@ function updateToolbar() {
     const tab = t.getAttribute("data-tab");
     if (!tab) return;
     hub?.core?.uiState?.set?.({ activeTab: tab });
-    // update active class
-    root.querySelectorAll("[data-tab]").forEach((b) => b.classList.remove("tab-active"));
-    t.classList.add("tab-active");
+    syncTabButtons(root, hub);
     renderOutliner(hub?.core?.document?.get?.());
   });
 
@@ -300,8 +332,14 @@ function updateToolbar() {
   if (typeof hub?.on === "function") {
     hub.on("picked", (hit) => {
       if (!hit || !hit.uuid) return;
-      showProperty({ uuid: hit.uuid, kind: hit.kind || "unknown", path: "/" });
-      renderOutliner(hub?.core?.document?.get?.());
+      const issueLike = { uuid: hit.uuid, kind: hit.kind || "unknown", path: hit.path || "/" };
+      if (typeof hub?.core?.focusByIssue === "function") {
+        hub.core.focusByIssue(issueLike);
+      } else {
+        hub?.core?.selection?.set?.([hit.uuid]);
+        if (typeof hub?.emit === "function") hub.emit("selection", issueLike);
+      }
+      showProperty(issueLike);
     });
     hub.on("document", (doc) => { renderOutliner(doc); updateToolbar(); });
     hub.on("lock", () => renderOutliner(hub?.core?.document?.get?.()));
