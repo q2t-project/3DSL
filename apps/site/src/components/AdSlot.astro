@@ -6,6 +6,14 @@ type Props = {
   slot: string;
   /** Wrapper classes (Tailwind) */
   class?: string;
+
+  /** React風の別名（呼び出し側互換用） */
+  className?: string;
+  /** fluid系のときの layout（例: in-article） */
+  layout?: string;
+  /** 必要なら AdSense の layout key */
+  layoutKey?: string;
+
   /**
    * AdSense format. For most responsive display units: 'auto'
    * (AdSense uses this together with data-full-width-responsive).
@@ -24,19 +32,28 @@ type Props = {
 
 const {
   slot,
-  class: className = '',
+  class: classProp = '',
+  className: classNameProp = '',
   format = 'auto',
   minHeight = 0,
   width = 0,
   height = 0,
   fullWidthResponsive,
+  layout,
+  layoutKey,
 } = Astro.props;
+
+const className = classNameProp || classProp;
 
 const noAds = isNoAdsRequest(Astro.url);
 
 const isDev = import.meta.env.DEV;
 const hasSlot = typeof slot === 'string' && slot.trim().length > 0;
 const isFixed = Number(width) > 0 && Number(height) > 0;
+
+// layout を使うのは基本 “fluid枠” 想定なので format を寄せる
+const effectiveFormat = !isFixed && layout ? 'fluid' : format;
+
 const styleMinHeight = minHeight > 0 ? `min-height:${minHeight}px;` : '';
 const wrapperStyle = styleMinHeight;
 
@@ -58,7 +75,9 @@ const useFullWidthResponsive =
           style={insStyle}
           data-ad-client={ADSENSE_PUBLISHER_ID}
           data-ad-slot={slot}
-          {...(!isFixed ? { 'data-ad-format': format } : {})}
+          {...(!isFixed ? { 'data-ad-format': effectiveFormat } : {})}
+          {...(!isFixed && layout ? { 'data-ad-layout': layout } : {})}
+          {...(!isFixed && layoutKey ? { 'data-ad-layout-key': layoutKey } : {})}
           {...(useFullWidthResponsive ? { 'data-full-width-responsive': 'true' } : {})}
         />
         <script is:inline>

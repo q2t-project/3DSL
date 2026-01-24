@@ -7,6 +7,9 @@ import { getEntry, render } from "astro:content";
 import fs from "node:fs";
 import path from "node:path";
 
+type AnyObj = Record<string, any>;
+type Attachment = { name: string; url: string };
+
 export function getStaticPaths() {
   const items = getLibraryItems();
   return items.map((it) => ({ params: { slug: it.slug } }));
@@ -14,48 +17,48 @@ export function getStaticPaths() {
 
 const slug = String(Astro.params.slug ?? "");
 const item = getLibraryItemBySlug(slug);
-if (!item) {
-  throw new Error(`[library/[slug]] item not found: ${slug}`);
-}
+if (!item) throw new Error(`[library/[slug]] item not found: ${slug}`);
 
 const dataDir = item.data_dir ?? `/_data/library/${slug}`;
 const modelUrl = item.model_url ?? `${dataDir}/model.3dss.json`;
-const viewerUrl = item.viewer_url ?? `/viewer/index.html?model=${encodeURIComponent(modelUrl)}`;
+const viewerUrl =
+  item.viewer_url ?? `/viewer/index.html?model=${encodeURIComponent(modelUrl)}`;
 const peekUrl = `/viewer/peek.html?model=${encodeURIComponent(modelUrl)}`;
 
-function filePathFromPublic(urlPath) {
+function filePathFromPublic(urlPath: string): string {
   const p = String(urlPath || "").replace(/^\/+/, "");
   return path.join(process.cwd(), "public", p);
 }
 
 const metaPath = filePathFromPublic(`${dataDir}/_meta.json`);
-const meta = fs.existsSync(metaPath)
-  ? JSON.parse(fs.readFileSync(metaPath, "utf8"))
+const meta: AnyObj | null = fs.existsSync(metaPath)
+  ? (JSON.parse(fs.readFileSync(metaPath, "utf8")) as AnyObj)
   : null;
 
 const seoTitle = meta?.seo?.title ?? item.meta_title ?? item.title;
-const seoDescription = meta?.seo?.description ?? item.meta_description ?? item.summary ?? "";
+const seoDescription =
+  meta?.seo?.description ?? item.meta_description ?? item.summary ?? "";
 
 // Per-item page config (optional)
-const pageConf = meta?.page ?? {};
-const adAllow = new Set(
-  Array.isArray(pageConf?.ads)
-    ? pageConf.ads
-    : ["mobile_top", "desktop_rail"]
+const pageConf: AnyObj = meta?.page ?? {};
+const adAllow = new Set<string>(
+  Array.isArray(pageConf?.ads) ? (pageConf.ads as string[]) : ["mobile_top", "desktop_rail"]
 );
 const showAdMobileTop = adAllow.has("mobile_top");
 const showAdDesktopRail = adAllow.has("desktop_rail");
 const showAdInline1 = adAllow.has("inline_1");
 
-function listFilesPublicDir(urlDir) {
+function listFilesPublicDir(urlDir: string): Attachment[] {
   const abs = filePathFromPublic(urlDir);
   if (!fs.existsSync(abs)) return [];
-  let ents = [];
+
+  let ents: fs.Dirent[] = [];
   try {
     ents = fs.readdirSync(abs, { withFileTypes: true });
   } catch {
     return [];
   }
+
   return ents
     .filter((d) => d.isFile())
     .map((d) => ({
@@ -68,7 +71,7 @@ function listFilesPublicDir(urlDir) {
 const attachments = listFilesPublicDir(`${dataDir}/attachments`);
 
 // Markdown body (optional)
-let RenderedContent = null;
+let RenderedContent: any = null;
 try {
   const entry = await getEntry("library_items", slug);
   if (entry) {
@@ -79,28 +82,30 @@ try {
   RenderedContent = null;
 }
 
-const tags = Array.isArray(meta?.tags) ? meta.tags : (item.tags ?? []);
+function hasNonEmptyString(x: unknown): x is string {
+  return typeof x === "string" && x.trim().length > 0;
+}
+
+const tags: any[] = Array.isArray(meta?.tags) ? (meta!.tags as any[]) : (item.tags ?? []);
 const descriptionLong = meta?.description ?? "";
 const createdAt = item.created_at ?? meta?.created_at ?? "";
 const updatedAt = item.updated_at ?? meta?.updated_at ?? "";
 
-function hasNonEmptyString(x) {
-  return typeof x === "string" && x.trim().length > 0;
-}
+const authors: AnyObj[] = Array.isArray(meta?.authors) ? (meta!.authors as AnyObj[]) : [];
+const references: AnyObj[] = Array.isArray(meta?.references) ? (meta!.references as AnyObj[]) : [];
+const rights: AnyObj | null = meta?.rights ?? null;
 
-const authors = Array.isArray(meta?.authors) ? meta.authors : [];
-const references = Array.isArray(meta?.references) ? meta.references : [];
-const rights = meta?.rights ?? null;
-
-const referencesMeaningful = references.filter((r) =>
+const referencesMeaningful = references.filter((r: AnyObj) =>
   hasNonEmptyString(r?.title) || hasNonEmptyString(r?.url) || hasNonEmptyString(r?.authors)
 );
 
 const thirdParty = Array.isArray(rights?.third_party)
-  ? rights.third_party.filter((t) =>
+  ? (rights!.third_party as AnyObj[]).filter((t: AnyObj) =>
       hasNonEmptyString(t?.name) || hasNonEmptyString(t?.url) || hasNonEmptyString(t?.license)
     )
   : [];
+---
+
 ---
 
 <Layout title={seoTitle} description={seoDescription}>
