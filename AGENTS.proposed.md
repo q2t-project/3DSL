@@ -1,18 +1,19 @@
-# AGENTS.md change proposal (navigation docs linkage)
+# AGENTS.md 変更案（SSOT 連結の明確化）
 
-AGENTS.md は「人間が編集」ルールなので、ここは提案。
+AGENTS.md は「SSOTそのもの」ではなく「SSOTの場所を指す地図」なので、
+SSOT_POLICY の“頂点”と modeler SSOT を、最小差分で追記する案。
 
-## 提案内容
+## 追記案（最小）
 
-`packages/docs/repo/` に地図・索引・配線（MAP/INDEX/POLICY）を追加したので、AGENTS.md から入口リンクを張る。
+### 1) Repo map (入口)
 
-## 追記候補（差分イメージ）
+- `apps/modeler/ssot: ModelerのSSOT（spec/manifest/policy）`
 
-```diff
-+## Navigation docs (地図/索引)
-+
-+- packages/docs/repo/README.md: 入口
-+- packages/docs/repo/MAP.md: 全体マップ
-+- packages/docs/repo/INDEX.md: 用語/逆引き索引
-+- packages/docs/repo/NAV_POLICY.md: 運用規範
-```
+### 2) System SSOT (真実の場所)
+
+- `Project SSOT Policy: packages/docs/policy/SSOT_POLICY.md`
+- `Modeler SSOT: apps/modeler/ssot/...`
+
+---
+
+※ viewer と modeler の app-local SSOT_POLICY.md は、上記 Project SSOT Policy を参照する前提。

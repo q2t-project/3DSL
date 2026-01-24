@@ -17,7 +17,9 @@ export function getStaticPaths() {
 
 const slug = String(Astro.params.slug ?? "");
 const item = getLibraryItemBySlug(slug);
-if (!item) throw new Error(`[library/[slug]] item not found: ${slug}`);
+if (!item) {
+  throw new Error(`[library/[slug]] item not found: ${slug}`);
+}
 
 const dataDir = item.data_dir ?? `/_data/library/${slug}`;
 const modelUrl = item.model_url ?? `${dataDir}/model.3dss.json`;
@@ -32,7 +34,7 @@ function filePathFromPublic(urlPath: string): string {
 
 const metaPath = filePathFromPublic(`${dataDir}/_meta.json`);
 const meta: AnyObj | null = fs.existsSync(metaPath)
-  ? (JSON.parse(fs.readFileSync(metaPath, "utf8")) as AnyObj)
+  ? JSON.parse(fs.readFileSync(metaPath, "utf8"))
   : null;
 
 const seoTitle = meta?.seo?.title ?? item.meta_title ?? item.title;
@@ -40,9 +42,9 @@ const seoDescription =
   meta?.seo?.description ?? item.meta_description ?? item.summary ?? "";
 
 // Per-item page config (optional)
-const pageConf: AnyObj = meta?.page ?? {};
+const pageConf = meta?.page ?? {};
 const adAllow = new Set<string>(
-  Array.isArray(pageConf?.ads) ? (pageConf.ads as string[]) : ["mobile_top", "desktop_rail"]
+  Array.isArray(pageConf?.ads) ? pageConf.ads : ["mobile_top", "desktop_rail"]
 );
 const showAdMobileTop = adAllow.has("mobile_top");
 const showAdDesktopRail = adAllow.has("desktop_rail");
@@ -82,30 +84,34 @@ try {
   RenderedContent = null;
 }
 
-function hasNonEmptyString(x: unknown): x is string {
-  return typeof x === "string" && x.trim().length > 0;
-}
-
-const tags: any[] = Array.isArray(meta?.tags) ? (meta!.tags as any[]) : (item.tags ?? []);
+const tags = Array.isArray(meta?.tags) ? meta!.tags : item.tags ?? [];
 const descriptionLong = meta?.description ?? "";
 const createdAt = item.created_at ?? meta?.created_at ?? "";
 const updatedAt = item.updated_at ?? meta?.updated_at ?? "";
 
-const authors: AnyObj[] = Array.isArray(meta?.authors) ? (meta!.authors as AnyObj[]) : [];
-const references: AnyObj[] = Array.isArray(meta?.references) ? (meta!.references as AnyObj[]) : [];
+function hasNonEmptyString(x: unknown): x is string {
+  return typeof x === "string" && x.trim().length > 0;
+}
+
+const authors: AnyObj[] = Array.isArray(meta?.authors) ? meta!.authors : [];
+const references: AnyObj[] = Array.isArray(meta?.references) ? meta!.references : [];
 const rights: AnyObj | null = meta?.rights ?? null;
 
-const referencesMeaningful = references.filter((r: AnyObj) =>
-  hasNonEmptyString(r?.title) || hasNonEmptyString(r?.url) || hasNonEmptyString(r?.authors)
+const referencesMeaningful = references.filter(
+  (r) =>
+    hasNonEmptyString(r?.title) ||
+    hasNonEmptyString(r?.url) ||
+    hasNonEmptyString(r?.authors)
 );
 
 const thirdParty = Array.isArray(rights?.third_party)
-  ? (rights!.third_party as AnyObj[]).filter((t: AnyObj) =>
-      hasNonEmptyString(t?.name) || hasNonEmptyString(t?.url) || hasNonEmptyString(t?.license)
+  ? rights.third_party.filter(
+      (t: AnyObj) =>
+        hasNonEmptyString(t?.name) ||
+        hasNonEmptyString(t?.url) ||
+        hasNonEmptyString(t?.license)
     )
   : [];
----
-
 ---
 
 <Layout title={seoTitle} description={seoDescription}>
@@ -125,7 +131,7 @@ const thirdParty = Array.isArray(rights?.third_party)
 
     {showAdMobileTop ? (
       <div class="mt-4 lg:hidden">
-        <AdSlot slot={ADSENSE_SLOTS.slot_300x250} layout="in-article" className="w-full" />
+        <AdSlot slot={ADSENSE_SLOTS.slot_300x250} class="w-full" />
       </div>
     ) : null}
 
@@ -134,7 +140,11 @@ const thirdParty = Array.isArray(rights?.third_party)
         <section class="rounded-2xl border border-neutral-800 bg-neutral-950/40 p-4">
           <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div class="min-w-0">
-              <div class="relative w-full overflow-hidden rounded-xl border border-neutral-800 bg-black h-[min(46vw,220px)] sm:h-[min(56.25vw,280px)]">
+              <a
+                href={viewerUrl}
+                class="group relative block w-full overflow-hidden rounded-xl border border-neutral-800 bg-black h-[min(46vw,220px)] sm:h-[min(56.25vw,280px)] focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
+                aria-label="全画面表示（Viewerへ移動）"
+              >
                 <iframe
                   class="absolute inset-0 block h-full w-full pointer-events-none"
                   src={peekUrl}
@@ -142,20 +152,28 @@ const thirdParty = Array.isArray(rights?.third_party)
                   loading="lazy"
                   allow="fullscreen"
                 />
-              </div>
+                <span
+                  class="absolute right-2 top-2 inline-flex items-center justify-center rounded-lg border border-neutral-700 bg-black/50 px-2 py-1 text-xs text-neutral-100 group-hover:bg-black/65"
+                  aria-hidden="true"
+                >
+                  ⤢
+                </span>
+              </a>
 
-              <div class="mt-2 sm:mt-3 flex flex-wrap gap-2">
+              <div class="mt-2 sm:mt-3 grid grid-cols-1 gap-2">
                 <a
                   href={viewerUrl}
-                  class="inline-flex items-center gap-2 rounded-full border border-neutral-700 bg-neutral-900 px-4 py-2 text-sm text-neutral-100 hover:bg-neutral-800"
+                  class="inline-flex flex-col items-center justify-center rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-3 text-neutral-100 hover:bg-neutral-800"
                 >
-                  Viewerで開く
+                  <span class="text-base font-semibold leading-none">全画面表示</span>
+                  <span class="mt-1 text-xs text-neutral-400">Viewerへ移動</span>
                 </a>
                 <a
                   href={modelUrl}
-                  class="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-transparent px-4 py-2 text-sm text-neutral-300 hover:bg-neutral-900"
+                  class="inline-flex items-center justify-between rounded-xl border border-neutral-800 bg-transparent px-4 py-2 text-xs text-neutral-300 hover:bg-neutral-900"
                 >
-                  model.3dss.json
+                  <span class="text-neutral-500">data</span>
+                  <span class="font-mono">model.3dss.json</span>
                 </a>
               </div>
             </div>
@@ -214,7 +232,7 @@ const thirdParty = Array.isArray(rights?.third_party)
 
         {showAdInline1 ? (
           <div class="mt-8">
-            <AdSlot slot={ADSENSE_SLOTS.slot_300x250} layout="in-article" className="w-full" />
+            <AdSlot slot={ADSENSE_SLOTS.slot_300x250} class="w-full" />
           </div>
         ) : null}
 
@@ -269,7 +287,7 @@ const thirdParty = Array.isArray(rights?.third_party)
                 <div class="mt-4">
                   <div class="text-xs font-semibold text-neutral-400">third-party</div>
                   <ul class="mt-2 list-disc space-y-1 pl-5 text-xs text-neutral-300">
-                    {thirdParty.map((t) => (
+                    {thirdParty.map((t: AnyObj) => (
                       <li>
                         <span>{t.name}</span>
                         {hasNonEmptyString(t?.license) ? <span class="ml-2 text-neutral-400">{t.license}</span> : null}
@@ -290,7 +308,7 @@ const thirdParty = Array.isArray(rights?.third_party)
         <div class="sticky top-6 space-y-6">
           {showAdDesktopRail ? (
             <div class="rounded-2xl border border-neutral-800 bg-neutral-950/40 p-3">
-              <AdSlot slot={ADSENSE_SLOTS.slot_300x600} className="w-full" />
+              <AdSlot slot={ADSENSE_SLOTS.slot_300x600} class="w-full" />
             </div>
           ) : null}
 

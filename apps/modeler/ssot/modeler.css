@@ -1,0 +1,246 @@
+/* modeler.css (SSOT)
+   P0: single-window 3-pane layout (outliner / preview / property)
+*/
+
+:root {
+  color-scheme: dark;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  background: #0b0f14;
+  color: #e6edf3;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Noto Sans JP", sans-serif;
+}
+
+button {
+  background: #1a2330;
+  border: 1px solid #2a3a52;
+  color: #e6edf3;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modeler-root {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.topbar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid #1d2a3a;
+  background: #0f1620;
+}
+
+.topbar-title {
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.topbar-right {
+  opacity: 0.85;
+  font-size: 12px;
+}
+
+.maingrid {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 380px 1fr 340px;
+  gap: 10px;
+  padding: 10px;
+}
+
+.pane {
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid #1d2a3a;
+  border-radius: 12px;
+  background: #0f1620;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+}
+
+.pane-title {
+  padding: 10px 12px;
+  border-bottom: 1px solid #1d2a3a;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pane-sub {
+  font-weight: 400;
+  opacity: 0.7;
+  font-size: 12px;
+  margin-left: 10px;
+}
+
+.pane-body {
+  min-height: 0;
+  overflow: auto;
+}
+
+.pane-preview-body {
+  position: relative;
+  overflow: hidden;
+}
+
+canvas[data-role="modeler-canvas"] {
+  display: block;
+  width: 100%;
+  height: 100%;
+  outline: none;
+}
+
+.hud {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  pointer-events: none;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.outliner-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 10px 10px 0 10px;
+}
+
+.outliner-tabs button {
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+
+.tab-active {
+  background: #22334a;
+  border-color: #3a567c;
+}
+
+.outliner-tablewrap {
+  padding: 10px;
+}
+
+.outliner-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.outliner-table th, .outliner-table td {
+  border-bottom: 1px solid #1d2a3a;
+  padding: 6px 8px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.outliner-table tr[data-locked="true"] {
+  opacity: 0.45;
+}
+
+.col-num {
+  text-align: right;
+  width: 60px;
+}
+
+.col-lock {
+  width: 28px;
+  text-align: center;
+}
+
+.col-uuid {
+  width: 140px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  opacity: 0.85;
+}
+
+.prop-kv {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #1d2a3a;
+  align-items: center;
+}
+
+.prop-actions {
+  padding: 10px 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.qc-panel {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(70vh, 600px);
+  background: #0f1620;
+  border: 1px solid #1d2a3a;
+  border-radius: 12px;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.35);
+}
+
+.qc-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid #1d2a3a;
+}
+
+.qc-body {
+  overflow: auto;
+  padding: 10px 12px;
+}
+
+.qc-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.qc-item {
+  border: 1px solid #1d2a3a;
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.qc-item .qc-line1 {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.qc-item .qc-msg {
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+.qc-sev-error { color: #ff6b6b; }
+.qc-sev-warn { color: #ffd166; }
+.qc-sev-info { color: #9bf6ff; }

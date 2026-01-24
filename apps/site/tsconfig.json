@@ -1,7 +1,9 @@
 {
   "extends": "astro/tsconfigs/strict",
   "compilerOptions": {
-    "types": ["astro/client"]
+    "types": ["astro/client", "node"],
+    "moduleResolution": "Bundler",
+    "module": "ESNext"
   },
   "include": [
     "src/**/*.ts",
@@ -16,6 +18,6 @@
     "public/**",
     "dist/**",
     "node_modules/**",
-    "scripts/**",
+    "scripts/**"
   ]
 }

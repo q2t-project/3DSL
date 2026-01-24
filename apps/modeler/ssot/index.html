@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>3DSD Modeler</title>
+
+  <!-- canonical base: this HTML is served at /modeler_app/index.html (dev: Astro public) -->
+  <base href="/modeler_app/" />
+
+  <script type="importmap">
+    {
+      "imports": {
+        "ajv": "/vendor/ajv/dist/ajv.bundle.js",
+        "three": "/vendor/three/build/three.module.js",
+        "three/addons/": "/vendor/three/examples/jsm/"
+      }
+    }
+  </script>
+
+  <link rel="stylesheet" href="./modeler.css" />
+  <!-- site-level override: keep outside /modeler_app so it can be tuned without touching SSOT -->
+  <link rel="stylesheet" href="/modeler_tuning.css" />
+</head>
+
+<body>
+  <div id="modeler-root" class="modeler-root" data-role="modeler-root">
+
+    <header class="topbar" data-role="topbar">
+      <div class="topbar-title">3DSD Modeler</div>
+      <div class="topbar-actions">
+        <button data-action="open">Open…</button>
+        <button data-action="save" disabled>Save</button>
+        <button data-action="saveas" disabled>Save As…</button>
+        <button data-action="export" disabled>Export 3DSS</button>
+        <button data-action="quickcheck">Quick Check</button>
+      </div>
+      <div class="topbar-right">
+        <span class="topbar-file" data-role="file-label">(no file)</span>
+      </div>
+    </header>
+
+    <main class="maingrid" data-role="maingrid">
+      <!-- Pane A: Outliner (P0) -->
+      <section class="pane pane-outliner" data-role="pane-outliner">
+        <div class="pane-title">Outliner</div>
+        <div class="pane-body">
+          <div class="outliner-tabs">
+            <button data-tab="points" class="tab-active">points</button>
+            <button data-tab="lines">lines</button>
+            <button data-tab="aux">aux</button>
+          </div>
+          <div class="outliner-tablewrap">
+            <table class="outliner-table" data-role="outliner-table">
+              <thead data-role="outliner-thead">
+                <tr>
+                  <th class="col-lock">L</th>
+                  <th>name</th>
+                  <th class="col-num">x</th>
+                  <th class="col-num">y</th>
+                  <th class="col-num">z</th>
+                  <th class="col-uuid">uuid</th>
+                </tr>
+              </thead>
+              <tbody data-role="outliner-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pane B: Preview (P0) -->
+      <section class="pane pane-preview" data-role="pane-preview">
+        <div class="pane-title">
+          Preview
+          <span class="pane-sub" data-role="preview-hint">orbit: drag / zoom: wheel</span>
+        </div>
+        <div class="pane-body pane-preview-body">
+          <canvas id="modeler-canvas" data-role="modeler-canvas" tabindex="0" style="touch-action:none;"></canvas>
+          <div class="hud" data-role="hud"></div>
+        </div>
+      </section>
+
+      <!-- Pane C: Property (P0 placeholder) -->
+      <section class="pane pane-prop" data-role="pane-prop">
+        <div class="pane-title">Property</div>
+        <div class="pane-body">
+          <div class="prop-empty" data-role="prop-empty">
+            Select an item in outliner or preview.
+          </div>
+          <div class="prop-panel" data-role="prop-panel" hidden>
+            <div class="prop-kv"><span>uuid</span><code data-role="prop-uuid"></code></div>
+            <div class="prop-kv"><span>kind</span><code data-role="prop-kind"></code></div>
+            <div class="prop-kv"><span>path</span><code data-role="prop-path"></code></div>
+            <div class="prop-actions">
+              <button data-action="prop-save" disabled>Save</button>
+              <button data-action="prop-cancel">Close</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div class="qc-panel" data-role="qc-panel" hidden>
+      <div class="qc-head">
+        <div class="qc-title">QuickCheck</div>
+        <button data-action="qc-close">Close</button>
+      </div>
+      <div class="qc-body">
+        <div class="qc-summary" data-role="qc-summary">(not run)</div>
+        <div class="qc-list" data-role="qc-list"></div>
+      </div>
+    </div>
+
+    <input type="file" accept=".json,application/json" data-role="file-input" hidden />
+  </div>
+
+  <script type="module" src="./modelerHostBoot.js"></script>
+</body>
+</html>
