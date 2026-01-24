@@ -19,6 +19,47 @@ export function attachUiShell({ root, hub, modelUrl }) {
   const thead = getRoleEl(root, "outliner-thead");
   const tbody = getRoleEl(root, "outliner-tbody");
   const fileLabel = getRoleEl(root, "file-label");
+  const btnSave = root.querySelector('[data-action="save"]');
+  const btnSaveAs = root.querySelector('[data-action="saveas"]');
+  const btnExport = root.querySelector('[data-action="export"]');
+
+function downloadText({ text, filename, mime = "application/octet-stream" }) {
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function normalize3dssJsonName(name) {
+  const base = name && name !== "(unsaved)" && name !== "(no file)" ? name : "model.3dss.json";
+  if (base.endsWith(".3dss.json")) return base;
+  if (base.endsWith(".json")) return base.replace(/\.json$/i, ".3dss.json");
+  return base + ".3dss.json";
+}
+
+function updateToolbar() {
+  const doc = hub?.core?.document?.get?.() ?? null;
+  const label = hub?.core?.document?.getLabel?.() ?? "";
+  const hasDoc = !!doc;
+
+  // For dev ergonomics: enable Save/SaveAs/Export as long as a document is loaded.
+  // "Save" will just download with current label (fallback if unknown).
+  const canSave = hasDoc;
+  const canSaveAs = hasDoc;
+  const canExport = hasDoc;
+
+  if (btnSave) btnSave.disabled = !canSave;
+  if (btnSaveAs) btnSaveAs.disabled = !canSaveAs;
+  if (btnExport) btnExport.disabled = !canExport;
+
+  if (fileLabel) fileLabel.textContent = label || (hasDoc ? "(unsaved)" : "(no file)");
+}
+
   const hud = getRoleEl(root, "hud");
   const fileInput = /** @type {HTMLInputElement} */ (getRoleEl(root, "file-input"));
 
@@ -67,10 +108,50 @@ export function attachUiShell({ root, hub, modelUrl }) {
       return;
     }
 
-    // P0: save/export are not implemented yet
     if (act === "save" || act === "saveas" || act === "export" || act === "prop-save") {
-      hud && (hud.textContent = "Not implemented (P0 shell only)");
+  const doc = hub?.core?.document?.get?.();
+  if (!doc) {
+    hud && (hud.textContent = "No document loaded");
+    return;
+  }
+
+  // Always run QuickCheck first; block output on errors.
+  const issues = hub.core.quickcheck.run();
+  renderQuickCheck(issues);
+  if (qcPanel) qcPanel.hidden = false;
+
+  const hasError = issues.some((it) => it && it.severity === "error");
+  if (hasError) {
+    hud && (hud.textContent = "Blocked: fix errors (see QuickCheck)");
+    return;
+  }
+
+  const label = hub?.core?.document?.getLabel?.() || "(unsaved)";
+
+  let filename = null;
+  if (act === "save") {
+    filename = normalize3dssJsonName(label);
+    if (!filename || filename === "(unsaved)" || filename === "(no file)") {
+      hud && (hud.textContent = "Use Save As...");
+      return;
     }
+  } else if (act === "saveas") {
+    const proposed = normalize3dssJsonName(label);
+    filename = window.prompt("Save As...", proposed);
+    if (!filename) return;
+  } else {
+    // export / prop-save
+    filename = normalize3dssJsonName(label);
+  }
+
+  // Ensure reasonable extension
+  if (!/\.json$/i.test(filename)) filename += ".json";
+
+  const text = JSON.stringify(doc, null, 2) + "\n";
+  downloadText({ text, filename, mime: "application/json" });
+  hud && (hud.textContent = `Saved: ${filename}`);
+  return;
+}
   });
 
   if (fileInput) {
@@ -222,7 +303,7 @@ export function attachUiShell({ root, hub, modelUrl }) {
       showProperty({ uuid: hit.uuid, kind: hit.kind || "unknown", path: "/" });
       renderOutliner(hub?.core?.document?.get?.());
     });
-    hub.on("document", (doc) => renderOutliner(doc));
+    hub.on("document", (doc) => { renderOutliner(doc); updateToolbar(); });
     hub.on("lock", () => renderOutliner(hub?.core?.document?.get?.()));
     hub.on("selection", () => renderOutliner(hub?.core?.document?.get?.()));
   }
@@ -230,6 +311,7 @@ export function attachUiShell({ root, hub, modelUrl }) {
   // ---- boot ----
   doResize();
   startHub(hub);
+  updateToolbar();
   renderOutliner(hub?.core?.document?.get?.());
 
   if (modelUrl && fileLabel) fileLabel.textContent = modelUrl;

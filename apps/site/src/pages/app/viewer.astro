@@ -54,16 +54,16 @@
         </button>
 
         <!-- output actions (library bundle mode) -->
-        <button id="app-viewer-share" class="app-viewer-action" type="button" aria-label="共有" title="共有">
+        <button id="app-viewer-share" class="app-viewer-action" style="display:none" type="button" aria-label="共有" title="共有">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16a3 3 0 0 0-2.62 1.55L8.91 13.7a3.2 3.2 0 0 0 0-3.4l6.47-3.85A3 3 0 1 0 15 5a3 3 0 0 0 .05.55L8.58 9.4a3 3 0 1 0 0 5.2l6.47 3.85A3 3 0 1 0 18 16z"/></svg>
         </button>
-        <button id="app-viewer-copy" class="app-viewer-action" type="button" aria-label="コピー" title="コピー">
+        <button id="app-viewer-copy" class="app-viewer-action" style="display:none" type="button" aria-label="コピー" title="コピー">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.9 12a4.1 4.1 0 0 1 4.1-4.1h4v2H8A2.1 2.1 0 0 0 8 14.1h4v2H8A4.1 4.1 0 0 1 3.9 12zm6.1 1h4v-2h-4v2zm6-5.1h-4v-2h4a4.1 4.1 0 1 1 0 8.2h-4v-2h4a2.1 2.1 0 1 0 0-4.2z"/></svg>
         </button>
         <button id="app-viewer-snap" class="app-viewer-action" type="button" aria-label="スナップショット" title="スナップショット">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3l1.5 2H15l1.5-2H19a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4Zm3 6a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z"/></svg>
         </button>
-        <button id="app-viewer-qr" class="app-viewer-action" type="button" aria-label="QR" title="QR">
+        <button id="app-viewer-qr" class="app-viewer-action" style="display:none" type="button" aria-label="QR" title="QR">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm10 0h2v2h-2v-2zm2 2h2v2h-2v-2zm-2 2h2v2h-2v-2zm4 0h2v2h-2v-2zm0-8h2v2h-2v-2z"/></svg>
         </button>
       </div>
@@ -309,11 +309,11 @@
       const _bundleMode = isLibraryBundleMode();
       // ページ種別でボタンセットを切り替える
       // - standalone /app/viewer: input (open) のみ
-      // - library bundle mode: output (share/copy/qr) のみ
+      // - library bundle mode: snapshot (camera) のみ
       if (openBtn) openBtn.style.display = _bundleMode ? 'none' : '';
-      if (shareBtn) shareBtn.style.display = _bundleMode ? '' : 'none';
-      if (copyBtn) copyBtn.style.display = _bundleMode ? '' : 'none';
-      if (qrBtn) qrBtn.style.display = _bundleMode ? '' : 'none';
+      if (shareBtn) shareBtn.style.display = 'none';
+      if (copyBtn) copyBtn.style.display = 'none';
+      if (qrBtn) qrBtn.style.display = 'none';
       if (snapBtn) snapBtn.style.display = _bundleMode ? '' : 'none';
 
 
@@ -358,15 +358,13 @@
       function currentShareUrl() {
         try {
           const sp = new URLSearchParams(window.location.search || '');
-          const model = sp.get('model') || sp.get('open') || '';
+          const ret = (sp.get('return') || sp.get('back') || '').trim();
+          if (ret && ret.startsWith('/library/')) return new URL(ret, window.location.origin).toString();
+
+          const modelPath = normalizeModelPath(sp.get('model') || sp.get('open') || '');
           const mode = sp.get('mode') || '';
           const src = sp.get('src') || '';
-          const q = new URLSearchParams();
-          if (model) q.set('model', model);
-          if (mode) q.set('mode', mode);
-          if (src) q.set('src', src);
-          const u = new URL('/app/viewer?' + q.toString(), window.location.origin);
-          return u.toString();
+          return buildShareUrlAbsolute(modelPath, { mode, src });
         } catch {
           return window.location.href;
         }
@@ -1002,15 +1000,18 @@
       if (openBtn) openBtn.addEventListener('click', () => openOpenModal());
 
 
-      function buildShareUrlAbsolute() {
+      function buildShareUrlAbsolute(modelPath, options) {
         try {
           const cur = new URL(window.location.href);
+          const ret = (cur.searchParams.get('return') || cur.searchParams.get('back') || '').trim();
+          if (ret && ret.startsWith('/library/')) return new URL(ret, window.location.origin).toString();
+
           const q = new URLSearchParams();
-          const model = cur.searchParams.get('model') || cur.searchParams.get('open') || '';
+          const model = modelPath || cur.searchParams.get('model') || cur.searchParams.get('open') || '';
           if (model) q.set('model', model);
-          const mode = cur.searchParams.get('mode');
+          const mode = options?.mode || cur.searchParams.get('mode');
           if (mode) q.set('mode', mode);
-          const src = cur.searchParams.get('src');
+          const src = options?.src || cur.searchParams.get('src');
           if (src) q.set('src', src);
           const rel = '/app/viewer' + (q.toString() ? ('?' + q.toString()) : '');
           return new URL(rel, window.location.origin).toString();

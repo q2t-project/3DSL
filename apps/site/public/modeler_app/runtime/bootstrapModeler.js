@@ -298,10 +298,18 @@ function createCoreFacade(emitter) {
     return issues;
   }
 
-  function focusByIssue(issue) {
-    // UI will handle actual focus; here we just emit for coordination.
-    emitter.emit("focus", issue);
+function focusByIssue(issue) {
+  // Best-effort focus: select item + switch outliner tab when possible.
+  if (issue && typeof issue === "object") {
+    const { uuid, kind } = issue;
+    if (uuid && (kind === "point" || kind === "line" || kind === "aux")) {
+      setSelection([uuid]);
+      const activeTab = kind === "point" ? "points" : kind === "line" ? "lines" : "aux";
+      setUiState({ activeTab });
+    }
   }
+  emitter.emit("focus", issue);
+}
 
   return {
     document: { get: getDocument, set: setDocument, getLabel: () => docLabel },

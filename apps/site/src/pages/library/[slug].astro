@@ -156,8 +156,7 @@ const thirdParty = Array.isArray(rights?.third_party)
                 />
                 <div class="pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/0 transition group-hover:ring-white/15" aria-hidden="true"></div>
               </a>
-
-              <div class="mt-2 sm:mt-3 flex flex-wrap gap-2">
+              <div class="mt-2 sm:mt-3 flex flex-wrap items-center gap-2">
                 <a
                   href={viewerUrl}
                   class="inline-flex items-center gap-2 rounded-full border border-neutral-700 bg-neutral-900 px-4 py-2 text-sm text-neutral-100 hover:bg-neutral-800"
@@ -170,6 +169,60 @@ const thirdParty = Array.isArray(rights?.third_party)
                 >
                   JSONコード
                 </a>
+
+                <div class="flex items-center gap-2 sm:ml-auto">
+                  <button
+                    type="button"
+                    data-lib-action="share"
+                    class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-neutral-800 bg-neutral-950/30 text-neutral-200 hover:bg-neutral-900"
+                    title="このページを共有"
+                    aria-label="このページを共有"
+                  >
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M18 5a3 3 0 1 0-2.82-4H15a3 3 0 0 0 3 3Z"></path>
+                      <path d="M6 14a3 3 0 1 0 2.82 4H9a3 3 0 0 0-3-3Z"></path>
+                      <path d="M18 19a3 3 0 1 0-2.82 4H15a3 3 0 0 0 3-3Z"></path>
+                      <path d="M8.7 15.7 15.3 19.3"></path>
+                      <path d="M15.3 4.7 8.7 8.3"></path>
+                    </svg>
+                  </button>
+
+                  <button
+                    type="button"
+                    data-lib-action="copy"
+                    class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-neutral-800 bg-neutral-950/30 text-neutral-200 hover:bg-neutral-900"
+                    title="リンクをコピー"
+                    aria-label="リンクをコピー"
+                  >
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M8 8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V8Z"></path>
+                      <path d="M16 6V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2"></path>
+                    </svg>
+                  </button>
+
+                  <button
+                    type="button"
+                    data-lib-action="qr"
+                    class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-neutral-800 bg-neutral-950/30 text-neutral-200 hover:bg-neutral-900"
+                    title="QRを表示"
+                    aria-label="QRを表示"
+                  >
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M6 3h4v4H6z"></path>
+                      <path d="M14 3h4v4h-4z"></path>
+                      <path d="M6 11h4v4H6z"></path>
+                      <path d="M14 11h2"></path>
+                      <path d="M14 14h4"></path>
+                      <path d="M18 11v4"></path>
+                      <path d="M21 14v7"></path>
+                      <path d="M14 18h2"></path>
+                      <path d="M14 21h7"></path>
+                      <path d="M3 3h7"></path>
+                      <path d="M3 11h7"></path>
+                      <path d="M3 19h7"></path>
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -323,9 +376,232 @@ const thirdParty = Array.isArray(rights?.third_party)
                 JSONコード
               </a>
             </div>
+
+            <div class="mt-3 flex items-center justify-center gap-2">
+              <button
+                type="button"
+                data-lib-action="share"
+                class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-neutral-800 bg-neutral-950/30 text-neutral-200 hover:bg-neutral-900"
+                title="このページを共有"
+                aria-label="このページを共有"
+              >
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M18 5a3 3 0 1 0-2.82-4H15a3 3 0 0 0 3 3Z"></path>
+                  <path d="M6 14a3 3 0 1 0 2.82 4H9a3 3 0 0 0-3-3Z"></path>
+                  <path d="M18 19a3 3 0 1 0-2.82 4H15a3 3 0 0 0 3-3Z"></path>
+                  <path d="M8.7 15.7 15.3 19.3"></path>
+                  <path d="M15.3 4.7 8.7 8.3"></path>
+                </svg>
+              </button>
+
+              <button
+                type="button"
+                data-lib-action="copy"
+                class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-neutral-800 bg-neutral-950/30 text-neutral-200 hover:bg-neutral-900"
+                title="リンクをコピー"
+                aria-label="リンクをコピー"
+              >
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M8 8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V8Z"></path>
+                  <path d="M16 6V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2"></path>
+                </svg>
+              </button>
+
+              <button
+                type="button"
+                data-lib-action="qr"
+                class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-neutral-800 bg-neutral-950/30 text-neutral-200 hover:bg-neutral-900"
+                title="QRを表示"
+                aria-label="QRを表示"
+              >
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M6 3h4v4H6z"></path>
+                  <path d="M14 3h4v4h-4z"></path>
+                  <path d="M6 11h4v4H6z"></path>
+                  <path d="M14 11h2"></path>
+                  <path d="M14 14h4"></path>
+                  <path d="M18 11v4"></path>
+                  <path d="M21 14v7"></path>
+                  <path d="M14 18h2"></path>
+                  <path d="M14 21h7"></path>
+                  <path d="M3 3h7"></path>
+                  <path d="M3 11h7"></path>
+                  <path d="M3 19h7"></path>
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </aside>
     </div>
   </div>
+
+  <div
+    id="lib-toast"
+    class="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-4"
+    hidden
+  >
+    <div
+      id="lib-toast-msg"
+      class="pointer-events-auto rounded-full border border-neutral-800 bg-neutral-950/90 px-4 py-2 text-sm text-neutral-100 shadow"
+    >
+      コピーしました
+    </div>
+  </div>
+
+  <div
+    id="lib-qr-modal"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+    hidden
+  >
+    <div class="w-full max-w-sm rounded-2xl border border-neutral-800 bg-neutral-950 p-4 shadow">
+      <div class="flex items-center justify-between">
+        <div class="text-sm font-medium text-neutral-100">QR</div>
+        <button
+          type="button"
+          id="lib-qr-close"
+          class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-neutral-800 bg-neutral-950/30 text-neutral-200 hover:bg-neutral-900"
+          aria-label="閉じる"
+          title="閉じる"
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 6 6 18"></path>
+            <path d="M6 6 18 18"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="mt-4 flex justify-center">
+        <img
+          id="lib-qr-img"
+          alt="QR"
+          class="h-[240px] w-[240px] rounded-xl border border-neutral-800 bg-neutral-900"
+          loading="lazy"
+        />
+      </div>
+
+      <div class="mt-3 break-all text-xs text-neutral-400" id="lib-qr-url"></div>
+
+      <div class="mt-4 flex items-center justify-end gap-2">
+        <button
+          type="button"
+          id="lib-qr-copy"
+          class="inline-flex items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 px-4 py-2 text-sm text-neutral-100 hover:bg-neutral-800"
+        >
+          リンクをコピー
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script is:inline>
+    (() => {
+      const toastEl = document.getElementById("lib-toast");
+      const toastMsgEl = document.getElementById("lib-toast-msg");
+
+      const qrModalEl = document.getElementById("lib-qr-modal");
+      const qrImgEl = document.getElementById("lib-qr-img");
+      const qrUrlEl = document.getElementById("lib-qr-url");
+      const qrCloseBtn = document.getElementById("lib-qr-close");
+      const qrCopyBtn = document.getElementById("lib-qr-copy");
+
+      const canonicalUrl = (() => {
+        const u = new URL(window.location.href);
+        u.hash = "";
+        u.search = "";
+        return u.toString();
+      })();
+
+      const qrPngUrl = (data) =>
+        `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(data)}`;
+
+      let toastTimer = null;
+      const toast = (msg) => {
+        if (!toastEl || !toastMsgEl) return;
+        toastMsgEl.textContent = msg;
+        toastEl.hidden = false;
+        if (toastTimer) window.clearTimeout(toastTimer);
+        toastTimer = window.setTimeout(() => {
+          toastEl.hidden = true;
+          toastTimer = null;
+        }, 1400);
+      };
+
+      const copyToClipboard = async (text) => {
+        try {
+          if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(text);
+            return true;
+          }
+        } catch (e) {}
+        // fallback
+        try {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          ta.setAttribute("readonly", "");
+          ta.style.position = "fixed";
+          ta.style.left = "-9999px";
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          return true;
+        } catch (e) {}
+        return false;
+      };
+
+      const openQr = () => {
+        if (!qrModalEl || !qrImgEl || !qrUrlEl) return;
+        qrImgEl.src = qrPngUrl(canonicalUrl);
+        qrUrlEl.textContent = canonicalUrl;
+        qrModalEl.hidden = false;
+      };
+
+      const closeQr = () => {
+        if (!qrModalEl) return;
+        qrModalEl.hidden = true;
+      };
+
+      document.querySelectorAll('[data-lib-action="share"]').forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          try {
+            if (navigator.share) {
+              await navigator.share({ title: document.title, url: canonicalUrl });
+              return;
+            }
+          } catch (e) {}
+          const ok = await copyToClipboard(canonicalUrl);
+          toast(ok ? "リンクをコピーしました" : "コピーに失敗しました");
+        });
+      });
+
+      document.querySelectorAll('[data-lib-action="copy"]').forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const ok = await copyToClipboard(canonicalUrl);
+          toast(ok ? "リンクをコピーしました" : "コピーに失敗しました");
+        });
+      });
+
+      document.querySelectorAll('[data-lib-action="qr"]').forEach((btn) => {
+        btn.addEventListener("click", () => openQr());
+      });
+
+      if (qrCopyBtn) {
+        qrCopyBtn.addEventListener("click", async () => {
+          const ok = await copyToClipboard(canonicalUrl);
+          toast(ok ? "リンクをコピーしました" : "コピーに失敗しました");
+        });
+      }
+      if (qrCloseBtn) qrCloseBtn.addEventListener("click", () => closeQr());
+      if (qrModalEl) {
+        qrModalEl.addEventListener("click", (e) => {
+          if (e.target === qrModalEl) closeQr();
+        });
+      }
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeQr();
+      });
+    })();
+  </script>
+
 </Layout>
