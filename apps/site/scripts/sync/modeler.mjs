@@ -13,7 +13,14 @@ const siteRoot = path.resolve(__dirname, "..", "..");
 const repoRoot = path.resolve(siteRoot, "..", "..");
 
 const publicDir = path.join(siteRoot, "public");
-const PUBLIC_MODELER = path.join(publicDir, "modeler");
+// NOTE: /modeler is currently used by Astro pages (apps/site/src/pages/modeler).
+// Keep the static modeler bundle under /modeler_app to avoid route collisions.
+// When we migrate the public site route to /modeler, update this destination and
+// remove the Astro page route.
+const PUBLIC_MODELER = path.join(publicDir, "modeler_app");
+
+// Cleanup: old experimental destination (public/modeler) caused collisions.
+const PUBLIC_MODELER_OLD = path.join(publicDir, "modeler");
 
 // SSOT candidates (first match wins)
 const candidates = [
@@ -124,9 +131,13 @@ if (canPruneSource) {
   }
 }
 
+// Cleanup: previous experimental destination (public/modeler) conflicts with
+// Astro route /modeler (apps/site/src/pages/modeler). Remove it before mirroring.
+await rm(PUBLIC_MODELER_OLD, { recursive: true, force: true });
+
 const dst = PUBLIC_MODELER;
 
-// Always mirror SSOT -> public/modeler
+// Always mirror SSOT -> public/modeler_app
 await rm(dst, { recursive: true, force: true });
 await mkdir(path.dirname(dst), { recursive: true });
 const shouldSkipScripts = canPruneSource;
@@ -142,10 +153,10 @@ await cp(src, dst, {
 
 // Vendor dependencies are served from /public/vendor via sync:vendor.
 
-// Remove accidental duplicated modeler tree under public/modeler/ui/* (ui/runtime, ui/scripts, etc.)
+// Remove accidental duplicated modeler tree under public/modeler_app/ui/* (ui/runtime, ui/scripts, etc.)
 // These duplicates break modeler layer checks (ui-layer must not contain runtime/core).
 try {
-  await pruneUiDuplicateTree(dst, "public/modeler");
+  await pruneUiDuplicateTree(dst, "public/modeler_app");
 } catch (e) {
   console.warn("[sync] modeler: public ui-duplicate cleanup skipped:", e?.message ?? e);
 }
@@ -166,7 +177,7 @@ try {
   await fs.promises.writeFile(path.join(dst, ".OWNED_BY_SSOT"), "", "utf8");
 } catch {}
 
-// Guard markers expected by guard-prebuild (public/modeler is treated as deploy SSOT)
+// Guard markers expected by guard-prebuild (public/modeler_app is treated as deploy SSOT)
 try {
   await fs.promises.writeFile(path.join(dst, ".OWNED_BY_PUBLIC"), "", "utf8");
   await fs.promises.writeFile(path.join(dst, ".public-owned"), "", "utf8");
@@ -181,7 +192,7 @@ try {
   throw new Error(`[sync] gen-ports failed after modeler sync: ${e?.message ?? e}`);
 }
 
-// --- StepX: do NOT publish markdown files under /public/modeler ---
+// --- StepX: do NOT publish markdown files under /public/modeler_app ---
 // Docs are served under /docs. Keeping raw .md under /modeler causes conflicts.
 async function removeMarkdownUnder(rootDir) {
   const stack = [rootDir];
@@ -212,4 +223,4 @@ try {
   console.warn("[sync] modeler: markdown cleanup skipped:", e?.message ?? e);
 }
 
-console.log(`[sync] modeler -> site/public OK (src=${path.relative(repoRoot, src)})`);
+console.log(`[sync] modeler -> site/public OK (src=${path.relative(repoRoot, src)}, dst=${path.relative(siteRoot, dst)})`);

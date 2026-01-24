@@ -2,19 +2,16 @@
 /schemas/release/v1.1.3/3DSS_spec.md   /docs/spec/v1.1.3   301
 /viewer/3DSD-viewer.md                /docs/viewer        301
 
+# ---- Modeler ----
+# NOTE: /modeler is currently an Astro page (apps/site/src/pages/modeler).
+# The static modeler bundle lives under /modeler_app (temporary).
+# (Future) when /modeler becomes the bundle base, retire apps/site/src/pages/modeler and update sync/modeler.
+/modeler_app  /modeler_app/index.html  200
+/modeler_app/ /modeler_app/index.html  200
+/modeler_app/* /modeler_app/index.html 200
+
 # Ensure /viewer/* (static viewer bundle) is served as-is.
 /viewer/*  /viewer/:splat  200
 
 /viewer    /app/viewer     302
 /viewer/   /app/viewer     302
-
-# ---- Modeler ----
-/modeler/*      /modeler/:splat   200
-/modeler        /app/modeler      302
-/modeler/       /app/modeler      302
-
-# Deprecated (temporary) route used during /modeler collision.
-/modeler_app    /app/modeler      301
-/modeler_app/   /app/modeler      301
-/modeler_app/*  /modeler/:splat   301
-

@@ -29,8 +29,8 @@
 
 ---
 
-## 3. 公開ルート（bundle base / embed host）
-- bundle base: `/modeler/`（`apps/modeler/ssot` を `apps/site/public/modeler/` に mirror）
+## 4. 公開ルート（bundle base / embed host）
+- bundle base: `/modeler_app/`（`apps/modeler/ssot` を `apps/site/public/modeler_app/` に mirror）
 - embed host: `/app/modeler`（Astro page。layout 隔離のための iframe host）
-- 暫定 alias: `/modeler_app/` は `/modeler/` へ寄せるための一時ルート（将来削除）
+- 予定: `/modeler/` へ移行（Astro 側の `apps/site/src/pages/modeler/**` を退役してから）
 

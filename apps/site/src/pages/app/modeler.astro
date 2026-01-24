@@ -37,11 +37,12 @@
           progressEl.removeAttribute("data-on");
         }
 
-        // Keep /modeler/ for the bundle base; avoid redirect loop by targeting index.html.
+        // NOTE: /modeler is currently used by Astro pages.
+        // Keep the bundle base under /modeler_app (temporary) and target index.html to avoid redirect loops.
         const url = new URL(window.location.href);
         const q = url.search || "";
         const h = url.hash || "";
-        const src = "/modeler/index.html" + q + h;
+        const src = "/modeler_app/index.html" + q + h;
 
         showProgress();
         iframe.src = src;
