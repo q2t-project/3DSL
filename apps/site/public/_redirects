@@ -7,3 +7,14 @@
 
 /viewer    /app/viewer     302
 /viewer/   /app/viewer     302
+
+# ---- Modeler ----
+/modeler/*      /modeler/:splat   200
+/modeler        /app/modeler      302
+/modeler/       /app/modeler      302
+
+# Deprecated (temporary) route used during /modeler collision.
+/modeler_app    /app/modeler      301
+/modeler_app/   /app/modeler      301
+/modeler_app/*  /modeler/:splat   301
+

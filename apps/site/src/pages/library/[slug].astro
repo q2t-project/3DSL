@@ -156,9 +156,12 @@ const thirdParty = Array.isArray(rights?.third_party)
                 <a
                   href={viewerUrl}
                   class="absolute inset-0 block"
-                  aria-label="全画面"
+                  aria-label="全画面表示"
                 >
-</a>
+                  <span class="absolute right-2 top-2 inline-flex items-center justify-center rounded-lg border border-neutral-700 bg-neutral-950/60 px-2 py-1 text-[11px] font-medium text-neutral-200 opacity-0 transition-opacity group-hover:opacity-100">
+                    ⤢ 全画面
+                  </span>
+                </a>
               </div>
 
               <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -167,7 +170,7 @@ const thirdParty = Array.isArray(rights?.third_party)
                   class="inline-flex items-center justify-center gap-2 rounded-xl bg-neutral-100/10 px-4 py-3 text-sm font-semibold text-neutral-50 ring-1 ring-inset ring-neutral-200/15 transition hover:bg-neutral-100/15 active:scale-[0.99]"
                 >
                   <svg viewBox="0 0 24 24" width="16" height="16" class="h-4 w-4 shrink-0" aria-hidden="true"><path fill="currentColor" d="M7 3h4v2H7v4H5V5a2 2 0 0 1 2-2Zm12 0a2 2 0 0 1 2 2v4h-2V5h-4V3h4ZM5 15h2v4h4v2H7a2 2 0 0 1-2-2v-4Zm14 0h2v4a2 2 0 0 1-2 2h-4v-2h4v-4Z"/></svg>
-                  全画面
+                  全画面表示
                 </a>
 
                 <a
@@ -177,12 +180,13 @@ const thirdParty = Array.isArray(rights?.third_party)
                   rel="noreferrer"
                 >
                   <svg viewBox="0 0 24 24" width="16" height="16" class="h-4 w-4 shrink-0" aria-hidden="true"><path fill="currentColor" d="M6 2h9l5 5v15a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm8 1.5V8h4.5L14 3.5ZM7 12h10v2H7v-2Zm0 4h10v2H7v-2Z"/></svg>
-                  JSON
+                  JSONコード
                 </a>
               </div>
 
-              <!-- share / copy / QR: keep icons separated from text so it's obvious these are buttons -->
-              <div class="mt-3 flex flex-wrap gap-2">
+              <!-- share / copy / QR -->
+              <div class="mt-3 flex flex-wrap items-start justify-between gap-3">
+                <div class="flex flex-wrap gap-2">
                 <button
                   id="lib-share"
                   type="button"
@@ -197,21 +201,16 @@ const thirdParty = Array.isArray(rights?.third_party)
                   id="lib-copy"
                   type="button"
                   class="group inline-flex flex-col items-center justify-center gap-1 rounded-xl border border-neutral-800 bg-neutral-950/30 px-3 py-2 text-neutral-200 transition hover:bg-neutral-900/60"
-                  aria-label="コピー"
+                  aria-label="リンクをコピー"
                 >
                   <svg viewBox="0 0 24 24" width="20" height="20" class="h-5 w-5 shrink-0" aria-hidden="true"><path fill="currentColor" d="M3.9 12a4.1 4.1 0 0 1 4.1-4.1h4v2H8A2.1 2.1 0 0 0 8 14.1h4v2H8A4.1 4.1 0 0 1 3.9 12zm6.1 1h4v-2h-4v2zm6-5.1h-4v-2h4a4.1 4.1 0 1 1 0 8.2h-4v-2h4a2.1 2.1 0 1 0 0-4.2z"/></svg>
                   <span class="text-[11px] text-neutral-300">コピー</span>
                 </button>
+                </div>
 
-                <button
-                  id="lib-qr"
-                  type="button"
-                  class="group inline-flex flex-col items-center justify-center gap-1 rounded-xl border border-neutral-800 bg-neutral-950/30 px-3 py-2 text-neutral-200 transition hover:bg-neutral-900/60"
-                  aria-label="QR"
-                >
-                  <svg viewBox="0 0 24 24" width="20" height="20" class="h-5 w-5 shrink-0" aria-hidden="true"><path fill="currentColor" d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm10 0h2v2h-2v-2zm2 2h2v2h-2v-2zm-2 2h2v2h-2v-2zm4 0h2v2h-2v-2zm0-8h2v2h-2v-2z"/></svg>
-                  <span class="text-[11px] text-neutral-300">QR</span>
-                </button>
+                <div class="shrink-0 rounded-xl border border-neutral-800 bg-neutral-950/30 p-2">
+                  <img id="lib-qr-inline" class="h-[76px] w-[76px] rounded-lg border border-neutral-800 bg-neutral-950" alt="" loading="lazy" />
+                </div>
               </div>
             </div>
 
@@ -349,42 +348,40 @@ const thirdParty = Array.isArray(rights?.third_party)
             </div>
           ) : null}
 
+          <div class="rounded-2xl border border-neutral-800 bg-neutral-950/40 p-4">
+            <div class="text-xs font-semibold text-neutral-400">Quick</div>
+            <div class="mt-3 flex flex-col gap-2">
+              <a
+                href={viewerUrl}
+                class="inline-flex items-center justify-center gap-2 rounded-xl bg-neutral-100/10 px-4 py-2.5 text-sm font-semibold text-neutral-50 ring-1 ring-inset ring-neutral-200/15 transition hover:bg-neutral-100/15 active:scale-[0.99]"
+              >
+                <svg viewBox="0 0 24 24" width="16" height="16" class="h-4 w-4 shrink-0" aria-hidden="true"><path fill="currentColor" d="M7 3h4v2H7v4H5V5a2 2 0 0 1 2-2Zm12 0a2 2 0 0 1 2 2v4h-2V5h-4V3h4ZM5 15h2v4h4v2H7a2 2 0 0 1-2-2v-4Zm14 0h2v4a2 2 0 0 1-2 2h-4v-2h4v-4Z"/></svg>
+                全画面表示
+              </a>
+              <a
+                href={modelUrl}
+                class="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-800 bg-neutral-950/30 px-4 py-2.5 text-sm font-medium text-neutral-200 transition hover:bg-neutral-900/60 active:scale-[0.99]"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <svg viewBox="0 0 24 24" width="16" height="16" class="h-4 w-4 shrink-0" aria-hidden="true"><path fill="currentColor" d="M6 2h9l5 5v15a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm8 1.5V8h4.5L14 3.5ZM7 12h10v2H7v-2Zm0 4h10v2H7v-2Z"/></svg>
+                JSONコード
+              </a>
+            </div>
+          </div>
         </div>
       </aside>
     </div>
   </div>
 
-  <!-- Toast + QR modal (library share UI lives on this meta page) -->
+  <!-- Toast (library share UI lives on this meta page) -->
   <div id="lib-toast" class="fixed left-1/2 top-4 z-[60] hidden -translate-x-1/2 rounded-xl border border-neutral-800 bg-neutral-950/90 px-4 py-2 text-sm text-neutral-100 shadow-lg"></div>
-
-  <div id="lib-qr-modal" class="fixed inset-0 z-[70] hidden" aria-hidden="true">
-    <div class="absolute inset-0 bg-black/70" data-close="1"></div>
-    <div class="absolute left-1/2 top-1/2 w-[min(92vw,360px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-neutral-800 bg-neutral-950/95 p-4 shadow-xl">
-      <div class="flex items-center justify-between">
-        <div class="text-sm font-semibold text-neutral-100">QR</div>
-        <button class="rounded-lg border border-neutral-800 bg-neutral-950/40 px-2 py-1 text-sm text-neutral-200 hover:bg-neutral-900/60" type="button" data-close="1" aria-label="閉じる">×</button>
-      </div>
-      <div class="mt-3 flex flex-col items-center">
-        <img id="lib-qr-img" class="h-[220px] w-[220px] rounded-xl border border-neutral-800 bg-neutral-950" alt="QR" />
-        <div id="lib-qr-url" class="mt-3 break-all text-xs text-neutral-300"></div>
-        <div class="mt-3 flex gap-2">
-          <button id="lib-qr-copy" class="rounded-xl bg-neutral-100/10 px-4 py-2 text-sm font-semibold text-neutral-50 ring-1 ring-inset ring-neutral-200/15 hover:bg-neutral-100/15" type="button">コピー</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <script is:inline define:vars={{ pagePath }}>
     (() => {
       const shareBtn = document.getElementById('lib-share');
       const copyBtn = document.getElementById('lib-copy');
-      const qrBtn = document.getElementById('lib-qr');
-
       const toast = document.getElementById('lib-toast');
-      const qrModal = document.getElementById('lib-qr-modal');
-      const qrImg = document.getElementById('lib-qr-img');
-      const qrUrl = document.getElementById('lib-qr-url');
-      const qrCopy = document.getElementById('lib-qr-copy');
+      const qrInline = document.getElementById('lib-qr-inline');
 
       function getShareUrl() {
         try {
@@ -392,6 +389,13 @@ const thirdParty = Array.isArray(rights?.third_party)
         } catch {
           return window.location.href;
         }
+      }
+
+      function setInlineQr() {
+        if (!qrInline) return;
+        const url = getShareUrl();
+        const src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(url)}`;
+        qrInline.setAttribute('src', src);
       }
 
       let toastTimer = 0;
@@ -437,46 +441,18 @@ const thirdParty = Array.isArray(rights?.third_party)
           }
         }
         const ok = await copyText(url);
-        showToast(ok ? 'コピーした' : 'コピーできんかった');
+        showToast(ok ? 'リンクをコピーした' : 'コピーできんかった');
       }
 
       async function copyUrl() {
         const ok = await copyText(getShareUrl());
-        showToast(ok ? 'コピーした' : 'コピーできんかった');
+        showToast(ok ? 'リンクをコピーした' : 'コピーできんかった');
       }
 
-      function openQr() {
-        if (!qrModal || !qrImg || !qrUrl) return;
-        const url = getShareUrl();
-        const src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(url)}`;
-        qrImg.setAttribute('src', src);
-        qrUrl.textContent = url;
-        qrModal.classList.remove('hidden');
-        qrModal.setAttribute('aria-hidden', 'false');
-      }
-
-      function closeQr() {
-        if (!qrModal) return;
-        qrModal.classList.add('hidden');
-        qrModal.setAttribute('aria-hidden', 'true');
-      }
-
+      setInlineQr();
       shareBtn?.addEventListener('click', () => { shareUrl(); });
       copyBtn?.addEventListener('click', () => { copyUrl(); });
-      qrBtn?.addEventListener('click', () => { openQr(); });
-
-      qrCopy?.addEventListener('click', async () => {
-        const ok = await copyText(getShareUrl());
-        showToast(ok ? 'コピーした' : 'コピーできんかった');
-      });
-
-      qrModal?.addEventListener('click', (ev) => {
-        const t = ev.target;
-        if (t && t instanceof HTMLElement && t.dataset && t.dataset.close === '1') closeQr();
-      });
-      window.addEventListener('keydown', (ev) => {
-        if (ev.key === 'Escape') closeQr();
-      });
     })();
   </script>
+
 </Layout>

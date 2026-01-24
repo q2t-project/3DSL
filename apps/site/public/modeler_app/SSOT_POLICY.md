@@ -26,3 +26,11 @@
 ## 3. Generated
 - `apps/modeler/ssot/_generated/**` は直接編集禁止
 - 生成物に差分が出たら generator を直す
+
+---
+
+## 3. 公開ルート（bundle base / embed host）
+- bundle base: `/modeler/`（`apps/modeler/ssot` を `apps/site/public/modeler/` に mirror）
+- embed host: `/app/modeler`（Astro page。layout 隔離のための iframe host）
+- 暫定 alias: `/modeler_app/` は `/modeler/` へ寄せるための一時ルート（将来削除）
+

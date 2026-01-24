@@ -1,0 +1,91 @@
+---
+---
+
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Modeler | 3DSL</title>
+    <meta name="description" content="3DSD Modeler をサイト共通レイアウトから隔離して表示する埋め込みホスト（/app/modeler）。" />
+  </head>
+  <body>
+    <div id="app-modeler-progress" class="app-modeler-progress">
+      <div class="app-modeler-progress-bar"></div>
+    </div>
+
+    <iframe
+      id="app-modeler-iframe"
+      class="app-modeler-iframe"
+      title="3DSD Modeler"
+      loading="eager"
+      allow="clipboard-read; clipboard-write"
+    ></iframe>
+
+    <script>
+      (() => {
+        const iframe = document.getElementById("app-modeler-iframe");
+        const progressEl = document.getElementById("app-modeler-progress");
+
+        function showProgress() {
+          if (!progressEl) return;
+          progressEl.setAttribute("data-on", "1");
+        }
+        function hideProgress() {
+          if (!progressEl) return;
+          progressEl.removeAttribute("data-on");
+        }
+
+        // Keep /modeler/ for the bundle base; avoid redirect loop by targeting index.html.
+        const url = new URL(window.location.href);
+        const q = url.search || "";
+        const h = url.hash || "";
+        const src = "/modeler/index.html" + q + h;
+
+        showProgress();
+        iframe.src = src;
+
+        iframe.addEventListener("load", () => {
+          hideProgress();
+        });
+      })();
+    </script>
+
+    <style>
+      html, body { height: 100%; margin: 0; background: #0b0b0d; }
+      .app-modeler-iframe {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        display: block;
+      }
+
+      .app-modeler-progress {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        z-index: 99999;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+      .app-modeler-progress[data-on] { opacity: 1; }
+      .app-modeler-progress-bar {
+        height: 100%;
+        width: 30%;
+        background: rgba(255, 255, 255, 0.75);
+        filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.2));
+        animation: app-modeler-progress-move 1.0s ease-in-out infinite;
+      }
+      @keyframes app-modeler-progress-move {
+        0% { transform: translateX(-35%); }
+        100% { transform: translateX(335%); }
+      }
+    </style>
+  </body>
+</html>

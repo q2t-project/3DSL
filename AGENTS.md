@@ -12,6 +12,12 @@
 目的: AI/人間が repo を迷わず操作するための地図。
 ※システム仕様SSOTそのものではない。SSOTの“場所”を指す。
 
+## Public Routes（重要な決定のメモ）
+- Viewer bundle base: `/viewer/`
+- Viewer embed host: `/app/viewer`
+- Modeler bundle base: `/modeler/`（※ `/modeler_app/` は暫定で将来削除）
+- Modeler embed host: `/app/modeler`
+
 
 ## DO NOT AUTO-EDIT
 
