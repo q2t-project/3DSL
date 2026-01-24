@@ -26,6 +26,9 @@
   <link rel="stylesheet" href="./viewer.css" />
   <!-- site-level override: keep outside /viewer so it can be tuned without touching SSOT -->
   <link rel="stylesheet" href="/viewer_tuning.css" />
+
+  <!-- Expose AdSense config to the static viewer host (optional) -->
+  <script src="/_data/adsense.js" defer></script>
 </head>
 
 <body>
@@ -41,6 +44,22 @@
   <div id="doc-caption" class="doc-caption" aria-hidden="true">
     <div id="doc-caption-title" data-role="doc-caption-title" class="doc-caption-title">(title)</div>
     <div id="doc-caption-body" data-role="doc-caption-body" class="doc-caption-body">(summary)</div>
+  </div>
+
+  <!-- Mini ad (shown only for library-origin full viewer, gated by viewerHostBoot.js) -->
+  <div id="viewer-mini-ad" class="viewer-mini-ad" data-role="viewer-mini-ad" data-on="0" aria-hidden="true">
+    <button id="viewer-mini-ad-close" class="viewer-mini-ad-close" type="button" aria-label="広告を閉じる">
+      ×
+    </button>
+    <div class="viewer-mini-ad-body">
+      <ins
+        id="viewer-mini-ad-ins"
+        class="adsbygoogle viewer-mini-ad-ins"
+        style="display:inline-block;width:300px;height:250px"
+        data-ad-client=""
+        data-ad-slot=""
+      ></ins>
+    </div>
   </div>
 
   <!-- Left-bottom dock: filters (vertical) + frame controls (row) + frame slider (bottom) -->

@@ -23,9 +23,11 @@ if (!item) {
 
 const dataDir = item.data_dir ?? `/_data/library/${slug}`;
 const modelUrl = item.model_url ?? `${dataDir}/model.3dss.json`;
+// Library -> Viewer entry: mark origin for host-side behaviors (e.g. small ads)
 const viewerUrl =
-  item.viewer_url ?? `/viewer/index.html?model=${encodeURIComponent(modelUrl)}`;
-const peekUrl = `/viewer/peek.html?model=${encodeURIComponent(modelUrl)}`;
+  item.viewer_url ??
+  `/viewer/index.html?model=${encodeURIComponent(modelUrl)}&from=library`;
+const peekUrl = `/viewer/peek.html?model=${encodeURIComponent(modelUrl)}&from=library`;
 
 function filePathFromPublic(urlPath: string): string {
   const p = String(urlPath || "").replace(/^\/+/, "");
@@ -142,38 +144,31 @@ const thirdParty = Array.isArray(rights?.third_party)
             <div class="min-w-0">
               <a
                 href={viewerUrl}
-                class="group relative block w-full overflow-hidden rounded-xl border border-neutral-800 bg-black h-[min(46vw,220px)] sm:h-[min(56.25vw,280px)] focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
-                aria-label="全画面表示（Viewerへ移動）"
+                class="group relative block w-full overflow-hidden rounded-xl border border-neutral-800 bg-black h-[min(46vw,220px)] sm:h-[min(56.25vw,280px)]"
+                aria-label="全画面表示（Viewer）"
               >
                 <iframe
                   class="absolute inset-0 block h-full w-full pointer-events-none"
-                  src={peekUrl}
+                  src={`${peekUrl}&embed=1&noads=1&swipe=1&t=${Date.now()}`}
                   title={`Preview: ${item.title}`}
                   loading="lazy"
                   allow="fullscreen"
                 />
-                <span
-                  class="absolute right-2 top-2 inline-flex items-center justify-center rounded-lg border border-neutral-700 bg-black/50 px-2 py-1 text-xs text-neutral-100 group-hover:bg-black/65"
-                  aria-hidden="true"
-                >
-                  ⤢
-                </span>
+                <div class="pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/0 transition group-hover:ring-white/15" aria-hidden="true"></div>
               </a>
 
-              <div class="mt-2 sm:mt-3 grid grid-cols-1 gap-2">
+              <div class="mt-2 sm:mt-3 flex flex-wrap gap-2">
                 <a
                   href={viewerUrl}
-                  class="inline-flex flex-col items-center justify-center rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-3 text-neutral-100 hover:bg-neutral-800"
+                  class="inline-flex items-center gap-2 rounded-full border border-neutral-700 bg-neutral-900 px-4 py-2 text-sm text-neutral-100 hover:bg-neutral-800"
                 >
-                  <span class="text-base font-semibold leading-none">全画面表示</span>
-                  <span class="mt-1 text-xs text-neutral-400">Viewerへ移動</span>
+                  全画面表示
                 </a>
                 <a
                   href={modelUrl}
-                  class="inline-flex items-center justify-between rounded-xl border border-neutral-800 bg-transparent px-4 py-2 text-xs text-neutral-300 hover:bg-neutral-900"
+                  class="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-transparent px-4 py-2 text-sm text-neutral-300 hover:bg-neutral-900"
                 >
-                  <span class="text-neutral-500">data</span>
-                  <span class="font-mono">model.3dss.json</span>
+                  JSONコード
                 </a>
               </div>
             </div>
@@ -319,13 +314,13 @@ const thirdParty = Array.isArray(rights?.third_party)
                 href={viewerUrl}
                 class="inline-flex items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 px-4 py-2 text-sm text-neutral-100 hover:bg-neutral-800"
               >
-                Viewer
+                全画面表示
               </a>
               <a
                 href={modelUrl}
                 class="inline-flex items-center justify-center rounded-full border border-neutral-800 bg-transparent px-4 py-2 text-sm text-neutral-300 hover:bg-neutral-900"
               >
-                model.3dss.json
+                JSONコード
               </a>
             </div>
           </div>

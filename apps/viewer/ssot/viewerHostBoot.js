@@ -107,6 +107,98 @@ function showFatal(err) {
   document.body.appendChild(pre);
 }
 
+// ---- optional mini ad ----
+
+function isTruthyParam(p, key) {
+  const v = (p.get(key) || "").trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes" || v === "on";
+}
+
+function ensureAdsenseScript(publisherId) {
+  if (!publisherId) return;
+  if (document.querySelector("script[data-3dsl-adsense='1']")) return;
+
+  // Optional meta tag (recommended by AdSense)
+  if (!document.querySelector("meta[name='google-adsense-account']")) {
+    const m = document.createElement("meta");
+    m.setAttribute("name", "google-adsense-account");
+    m.setAttribute("content", publisherId);
+    document.head.appendChild(m);
+  }
+
+  const s = document.createElement("script");
+  s.async = true;
+  s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(publisherId)}`;
+  s.crossOrigin = "anonymous";
+  s.setAttribute("data-3dsl-adsense", "1");
+  document.head.appendChild(s);
+}
+
+function initMiniAd(p) {
+  const root = document.querySelector("[data-role='viewer-mini-ad']");
+  if (!root) return;
+
+  const closeBtn = document.getElementById("viewer-mini-ad-close");
+  const ins = document.getElementById("viewer-mini-ad-ins");
+
+  const hide = () => {
+    try { root.setAttribute("data-on", "0"); } catch {}
+    try { root.setAttribute("aria-hidden", "true"); } catch {}
+  };
+
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => {
+      try { localStorage.setItem("3dsl.viewer.miniAd", "0"); } catch {}
+      hide();
+    });
+  }
+
+  // Gate: only for library-origin full viewer
+  const from = (p.get("from") || "").trim().toLowerCase();
+  const isEmbed = isTruthyParam(p, "embed");
+  const noAds = isTruthyParam(p, "noads");
+  if (from !== "library" || isEmbed || noAds) {
+    hide();
+    return;
+  }
+
+  // Respect user close
+  try {
+    if (localStorage.getItem("3dsl.viewer.miniAd") === "0") {
+      hide();
+      return;
+    }
+  } catch {}
+
+  // Keep the 3D view unobstructed on small screens
+  if (!window.matchMedia || !window.matchMedia("(min-width: 1024px)").matches) {
+    hide();
+    return;
+  }
+
+  const conf = window.__ADSENSE_CONFIG__;
+  const publisherId = conf?.publisherId || "";
+  const slot = conf?.slots?.slot_300x250 || "";
+
+  if (!publisherId || !slot || !ins) {
+    hide();
+    return;
+  }
+
+  ensureAdsenseScript(publisherId);
+
+  try { ins.setAttribute("data-ad-client", publisherId); } catch {}
+  try { ins.setAttribute("data-ad-slot", slot); } catch {}
+
+  try { root.setAttribute("data-on", "1"); } catch {}
+  try { root.setAttribute("aria-hidden", "false"); } catch {}
+
+  try {
+    window.adsbygoogle = window.adsbygoogle || [];
+    window.adsbygoogle.push({});
+  } catch {}
+}
+
 // ---- boot ----
 
 (async () => {
@@ -126,6 +218,9 @@ function showFatal(err) {
       document.body.classList.add("is-embed");
     } catch {}
   }
+
+  // Optional mini ad (only for library-origin full viewer)
+  try { initMiniAd(p); } catch {}
 
   // UI profile (devHarness_full | prod_full)
   // attachUiProfile() is strict: profile is required.
