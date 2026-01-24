@@ -262,6 +262,12 @@ curl.exe -s https://3dsl.pages.dev/__deploy_probe.txt
 * `/policy` にプライバシー・Cookie・広告（AdSense）・問い合わせ先が明示されてる
 * `/docs` に「このサイトの目的／使い方／コンテンツの説明」が一定量ある（薄い判定回避）
 * `/modeler` は「未完成です」感を抑えつつ、現状できること・予定を明記
+
+#### Modeler ルーティング決定（重要）
+（移行ワンショット：`node apps/site/scripts/migrate/modeler-route-migration.mjs`）
+- **bundle base**: `/modeler/`（静的アプリ本体。`apps/modeler/ssot` が SSOT）
+- **embed host**: `/app/modeler`（サイト側レイアウトから隔離して表示するホスト）
+- **暫定**: `/modeler_app/` は `/modeler/` への寄せのための一時ルート（将来削除）
 * 壊れたリンクや 405/500 を残さない（フォーム送信先など）
 
 ---

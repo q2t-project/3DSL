@@ -1,16 +1,25 @@
 ---
-import { ADSENSE_PUBLISHER_ID, isNoAdsRequest } from '../lib/adsense';
+import { ADSENSE_PUBLISHER_ID, isNoAdsRequest } from "../lib/adsense";
 
 type Props = {
   /** Ad unit slot id from AdSense */
   slot: string;
+
   /** Wrapper classes (Tailwind) */
   class?: string;
+
+  /** React-ish alias for class (optional) */
+  className?: string;
+
+  /** Compatibility: allow passing `layout` (ignored) */
+  layout?: string;
+
   /**
    * AdSense format. For most responsive display units: 'auto'
    * (AdSense uses this together with data-full-width-responsive).
    */
   format?: string;
+
   /** Reserve space to reduce layout shift */
   minHeight?: number;
 
@@ -24,33 +33,38 @@ type Props = {
 
 const {
   slot,
-  class: className = '',
-  format = 'auto',
+  class: classProp = "",
+  className = "",
+  // Accept but do not use (kept for backwards-compat)
+  layout: _layout,
+  format = "auto",
   minHeight = 0,
   width = 0,
   height = 0,
   fullWidthResponsive,
 } = Astro.props;
 
+const wrapperClass = String(className || classProp || "");
+
 const noAds = isNoAdsRequest(Astro.url);
 
 const isDev = import.meta.env.DEV;
-const hasSlot = typeof slot === 'string' && slot.trim().length > 0;
+const hasSlot = typeof slot === "string" && slot.trim().length > 0;
 const isFixed = Number(width) > 0 && Number(height) > 0;
-const styleMinHeight = minHeight > 0 ? `min-height:${minHeight}px;` : '';
+const styleMinHeight = minHeight > 0 ? `min-height:${minHeight}px;` : "";
 const wrapperStyle = styleMinHeight;
 
 // For fixed-size units: set explicit ins size.
 const insStyle = isFixed
   ? `display:inline-block;width:${Number(width)}px;height:${Number(height)}px;`
-  : 'display:block';
+  : "display:block";
 
 const useFullWidthResponsive =
-  typeof fullWidthResponsive === 'boolean' ? fullWidthResponsive : !isFixed;
+  typeof fullWidthResponsive === "boolean" ? fullWidthResponsive : !isFixed;
 ---
 
 {!noAds && (hasSlot || isDev) && (
-  <div class={`ad-slot ${className}`} style={wrapperStyle} data-ad-slot={slot || 'UNSET'}>
+  <div class={`ad-slot ${wrapperClass}`} style={wrapperStyle} data-ad-slot={slot || "UNSET"}>
     {hasSlot ? (
       <Fragment>
         <ins
@@ -58,8 +72,8 @@ const useFullWidthResponsive =
           style={insStyle}
           data-ad-client={ADSENSE_PUBLISHER_ID}
           data-ad-slot={slot}
-          {...(!isFixed ? { 'data-ad-format': format } : {})}
-          {...(useFullWidthResponsive ? { 'data-full-width-responsive': 'true' } : {})}
+          {...(!isFixed ? { "data-ad-format": format } : {})}
+          {...(useFullWidthResponsive ? { "data-full-width-responsive": "true" } : {})}
         />
         <script is:inline>
           window.adsbygoogle = window.adsbygoogle || [];

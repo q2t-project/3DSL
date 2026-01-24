@@ -309,11 +309,11 @@
       const _bundleMode = isLibraryBundleMode();
       // ページ種別でボタンセットを切り替える
       // - standalone /app/viewer: input (open) のみ
-      // - library bundle mode: output (share/copy/qr) のみ
+      // - library bundle mode: snapshot (camera) のみ
       if (openBtn) openBtn.style.display = _bundleMode ? 'none' : '';
-      if (shareBtn) shareBtn.style.display = _bundleMode ? '' : 'none';
-      if (copyBtn) copyBtn.style.display = _bundleMode ? '' : 'none';
-      if (qrBtn) qrBtn.style.display = _bundleMode ? '' : 'none';
+      if (shareBtn) shareBtn.style.display = 'none';
+      if (copyBtn) copyBtn.style.display = 'none';
+      if (qrBtn) qrBtn.style.display = 'none';
       if (snapBtn) snapBtn.style.display = _bundleMode ? '' : 'none';
 
 
