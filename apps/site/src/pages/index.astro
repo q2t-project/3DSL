@@ -68,8 +68,8 @@ const featuredPrimary = featured?.[0]?.id ? `/library/${featured[0].id}` : "/lib
   description="3DSL は、概念や関係を三次元の座標に配置し、拡大縮小しながら局面と総体を行き来できる表現基盤です。"
 >
   <!-- Hero: information-dense, business-like UI (surface + clear hierarchy) -->
-  <section class="grid gap-6">
-    <div class="ui-surface p-6 sm:p-8 flex flex-col">
+  <section class="grid gap-6 lg:grid-cols-12">
+    <div class="ui-surface p-6 sm:p-8 lg:col-span-8 flex flex-col">
       <div class="mt-4 max-w-[52ch] prose prose-invert prose-neutral prose-p:my-3 hero-copy home-poem font-content">
         <TopText />
       </div>
@@ -89,6 +89,66 @@ const featuredPrimary = featured?.[0]?.id ? `/library/${featured[0].id}` : "/lib
       </div>
     </div>
 
+    <aside class="lg:col-span-4 grid gap-4">
+	      <div class="ui-surface p-6">
+	        <h2 class="text-lg font-semibold tracking-tight">このサイトでできること</h2>
+        <ul class="mt-3 text-sm text-neutral-300 list-disc pl-5 space-y-2">
+          <li>Library：作品を眺めて、刺さったものだけ詳細へ</li>
+          <li>Viewer：拡大縮小・視点操作で、局面↔総体を行き来</li>
+          <li>Docs / Concept：用語・運用・背景の整理</li>
+        </ul>
+      </div>
+    </aside>
+  </section>
+
+  <!-- Entry cards: consistent UI components -->
+  <section class="mt-10">
+    <div class="flex items-end justify-between gap-3">
+      <h2 class="text-lg font-medium">入口</h2>
+    </div>
+
+    <div class="mt-4 grid gap-4 md:grid-cols-2">
+      <a href="/library" class="ui-card p-6">
+        <div class="flex items-center justify-between">
+	          <h3 class="text-lg font-semibold tracking-tight">Library</h3>
+          
+        </div>
+        <p class="mt-2 text-sm text-neutral-300">
+          サムネで眺めて、刺さったものだけ詳細へ。操作による探索は Viewer へのリンクで行います。
+        </p>
+      </a>
+
+      
+      <a href="/app/viewer" class="ui-card p-6">
+        <div class="flex items-center justify-between">
+	          <h3 class="text-lg font-semibold tracking-tight">Viewer</h3>
+          
+        </div>
+        <p class="mt-2 text-sm text-neutral-300">
+          拡大縮小・視点操作で、局面と総体を往復。言語の積み上げ無しで「何か」を掴む入口。
+        </p>
+      </a>
+
+      <a href="/docs" class="ui-card p-6">
+        <div class="flex items-center justify-between">
+	          <h3 class="text-lg font-semibold tracking-tight">Docs</h3>
+          
+        </div>
+        <p class="mt-2 text-sm text-neutral-300">
+          用語、設計、運用（引用・権利表記）のハブ。クローラにも意味密度を持たせる領域。
+        </p>
+      </a>
+
+      <a href="/concept" class="ui-card p-6">
+        <div class="flex items-center justify-between">
+	          <h3 class="text-lg font-semibold tracking-tight">Concept</h3>
+          
+        </div>
+        <p class="mt-2 text-sm text-neutral-300">
+          分節化と言語化の限界、図＝関係、マルチスケールの意味。抽象の受け皿。
+        </p>
+      </a>
+    </div>
   </section>
 
   <!-- Home: lower half (rewrite) -->
@@ -139,47 +199,43 @@ const featuredPrimary = featured?.[0]?.id ? `/library/${featured[0].id}` : "/lib
         </p>
       </header>
 
-      <div class="mt-8 grid gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-4">
-        <article class="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6 flex flex-col">
-          <h3 class="text-lg sm:text-xl font-semibold tracking-tight">Library</h3>
+      <div class="mt-8 grid gap-4 sm:gap-5 lg:grid-cols-4">
+        <article class="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
+          <h3 class="text-base sm:text-lg font-semibold">Library</h3>
           <p class="mt-2 text-sm text-neutral-200 leading-7">
-            作品（構造モデル）を一覧で眺めて、気になったものを開く場所。
-            短い説明とサムネで、まず全体像を掴んでから深掘りできます。
+            構造モデルを一覧で眺め、興味のあるものを選んで詳しく見られます。
           </p>
-          <div class="mt-5">
+          <div class="mt-4">
             <a class="ui-btn inline-flex" href="/library">作品を見る</a>
           </div>
         </article>
 
-        <article class="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6 flex flex-col">
-          <h3 class="text-lg sm:text-xl font-semibold tracking-tight">Viewer</h3>
+        <article class="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
+          <h3 class="text-base sm:text-lg font-semibold">Viewer</h3>
           <p class="mt-2 text-sm text-neutral-200 leading-7">
-            三次元構造を回転・拡大縮小して、関係性や配置を直感的に読むためのアプリ。
-            点と線を「眺める」ことで、文章だけでは見えにくい構造が浮かびます。
+            回転・拡大縮小しながら、関係性や配置を直感的に把握できます。
           </p>
-          <div class="mt-5">
+          <div class="mt-4">
             <a class="ui-btn inline-flex" href="/viewer">Viewerへ</a>
           </div>
         </article>
 
-        <article class="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6 flex flex-col">
-          <h3 class="text-lg sm:text-xl font-semibold tracking-tight">Docs</h3>
+        <article class="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
+          <h3 class="text-base sm:text-lg font-semibold">Docs</h3>
           <p class="mt-2 text-sm text-neutral-200 leading-7">
-            用語・設計・運用（引用・権利表記）などを文章で整理した読み物。
-            「どう作られていて、どう使うのか」を、迷わない形でまとめています。
+            用語・設計・運用（引用・権利表記）などを文章で整理しています。
           </p>
-          <div class="mt-5">
+          <div class="mt-4">
             <a class="ui-btn inline-flex" href="/docs">Docsを読む</a>
           </div>
         </article>
 
-        <article class="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6 flex flex-col">
-          <h3 class="text-lg sm:text-xl font-semibold tracking-tight">Concept</h3>
+        <article class="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
+          <h3 class="text-base sm:text-lg font-semibold">Concept</h3>
           <p class="mt-2 text-sm text-neutral-200 leading-7">
-            3DSLの背景思想と方針（何を解こうとしているのか、どこまでが得意か）。
-            「三次元にする意味」を、テキストで腰を据えて説明します。
+            背景思想と方針。3DSLの「狙い」と「限界」を言語化します。
           </p>
-          <div class="mt-5">
+          <div class="mt-4">
             <a class="ui-btn inline-flex" href="/concept">Conceptへ</a>
           </div>
         </article>
@@ -196,7 +252,7 @@ const featuredPrimary = featured?.[0]?.id ? `/library/${featured[0].id}` : "/lib
       </header>
 
       <div class="mt-8 grid gap-4 sm:gap-5 lg:grid-cols-3">
-        {featuredItems.map((it) => (
+        {featured.map((it) => (
           <a
             href={`/library/${it.id}`}
             class="block rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6 hover:bg-white/10 transition"
