@@ -588,6 +588,7 @@ async function importNormalize(raw) {
     frameFps: 24,
     // Viewer-aligned world axis mode
     worldAxisMode: "fixed", // "off" | "fixed" | "full_view"
+    // Orbit controls (UI-only)
     // Preview-out chrome
     focusMode: false,
     previewOutMirror: false,
@@ -1005,6 +1006,8 @@ async function importNormalize(raw) {
     // world axis
     const ax = String(next.worldAxisMode || "fixed");
     next.worldAxisMode = (ax === "off" || ax === "fixed" || ax === "full_view") ? ax : "fixed";
+
+    // orbit
 
     // preview-out
     next.focusMode = !!next.focusMode;

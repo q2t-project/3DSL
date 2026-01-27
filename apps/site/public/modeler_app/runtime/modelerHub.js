@@ -141,6 +141,11 @@ export function createModelerHub(rootElOrId, options = {}) {
       return renderer.worldPointOnPlaneZ?.(Number(ndcX), Number(ndcY), Number(planeZ));
     },
 
+    projectToNdc(pos) {
+      if (disposed) return [0,0,0];
+      return renderer.projectToNdc?.(pos) || [0,0,0];
+    },
+
     previewSetPosition(uuid, pos) {
       if (disposed) return;
       renderer.previewSetPosition?.(uuid, pos);

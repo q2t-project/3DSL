@@ -258,6 +258,7 @@ P1（入力体験・下支え）
 - 2026-01-26: 初版（repo snapshot: `3DSL_repo_20260126_221729.zip`）
 - 2026-01-26: Import 寛容化（importNormalize + extras/QuickCheck）を追加
 - 2026-01-27: Transform（Move：planeZ 固定ドラッグ）を最小実装（renderer: worldPointOnPlaneZ / previewSetPosition）
+- 2026-01-27: Preview の既定カメラを viewer の iso-ne に合わせて修正（chirality 整合）＋ Space で再生/停止（toolbar play）
 - 2026-01-27: Text（ラベル表示：point/line/aux）を最小実装（renderer: labelsGroup + makeTextSprite）
 - 2026-01-27: Text（編集UI：marker.text / caption_text の編集拡張 + pose(front/up) 入力ガード）を追加
 - 2026-01-27: Frames（frameIndex入力 + appearance.frames による可視フィルタ）を最小実装

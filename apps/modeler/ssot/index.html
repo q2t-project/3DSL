@@ -49,14 +49,14 @@
             <span data-role="frame-min">0</span>–<span data-role="frame-max">0</span>
           </span>
         </label>
-        <button data-action="tool-move" disabled title="Toggle Move tool (M)">Move</button>
+        <button data-action="tool-move" title="Toggle Move tool (M)">Move</button>
+        <!-- Orbit is a navigation behavior (not a tool). Always available via drag in preview. -->
         <button data-action="export" disabled>Export 3DSS</button>
         <button data-action="quickcheck">Quick Check</button>
         <button data-action="preview-out" disabled>Preview Out</button>
         <button data-action="mirror-mode" title="Preview Out: mirror main canvas stream">Mirror</button>
         <button data-action="focus-mode" title="When Preview Out is open, hide the embedded preview pane">Focus Mode</button>
-        <button data-action="world-axis" title="World axis: Off / Fixed / Full">Axis</button>
-      </div>
+        <button data-action="world-axis" title="World axis: Off / Fixed / Full">Axis</button>      </div>
       <div class="topbar-right">
         <span class="topbar-file" data-role="file-label">(no file)</span>
       </div>
@@ -93,7 +93,6 @@
                   <th class="col-num">x</th>
                   <th class="col-num">y</th>
                   <th class="col-num">z</th>
-                <th class="col-frames" title="frames">F</th>
                   <th class="col-uuid">uuid</th>
                 </tr>
               </thead>
@@ -257,12 +256,6 @@
                   <input class="prop-input" type="number" step="0.1" data-role="prop-z" />
                 </div>
               </div>
-            </div>
-
-            <div class="prop-field" data-role="prop-frames-field">
-              <label class="prop-label">frames</label>
-              <input class="prop-input" type="text" data-role="prop-frames" placeholder="(all)" />
-              <div class="prop-help">Blank means visible on all frames. Use a single integer (e.g. 3) or a comma/space-separated list (e.g. 1,2,5).</div>
             </div>
 
             <div class="prop-field" data-role="prop-line-ends-field" hidden>

@@ -11,7 +11,9 @@
  *  | "undo"
  *  | "redo"
  *  | "play"
+ *  | "tool-move"
  *  | "world-axis"
+ *  | "orbit-mode"
  *  | "quickcheck"
  *  | "preview-out"
  *  | "mirror-mode"
@@ -34,7 +36,9 @@ const TOOLBAR_ACTIONS = [
   "undo",
   "redo",
   "play",
+  "tool-move",
   "world-axis",
+  "orbit-mode",
   "quickcheck",
   "preview-out",
   "mirror-mode",
@@ -78,7 +82,16 @@ function renderQuickCheckImpl({ issues, qcSummary, qcList, onSelectIssue }) {
     item.appendChild(msg);
 
     item.addEventListener("click", () => {
-      if (it?.uuid) onSelectIssue?.({ uuid: it.uuid, kind: it.kind || "unknown", path: it.path || "/" });
+      // Allow selection jump even when issue has no uuid.
+      // Many AJV / import-extras issues are reported as "doc"-level but include
+      // a precise path like: /points/7/appearance/marker/primitive
+      const rawUuid = it?.uuid ? String(it.uuid) : "";
+      const uuid = rawUuid && rawUuid !== "doc" && rawUuid !== "schema" ? rawUuid : null;
+      onSelectIssue?.({
+        uuid,
+        kind: it?.kind || "unknown",
+        path: it?.path || "/",
+      });
     });
 
     qcList.appendChild(item);
@@ -176,6 +189,14 @@ export function createUiToolbarController(deps) {
       return (el instanceof HTMLElement) ? el : null;
     } catch { return null; }
   })();
+
+  const previewHintEl = (() => {
+    try {
+      const el = root.querySelector('[data-role="preview-hint"]');
+      return (el instanceof HTMLElement) ? el : null;
+    } catch { return null; }
+  })();
+
 
   const getFrameRangeFromDoc = (doc) => {
     let min = null;
@@ -482,7 +503,9 @@ export function createUiToolbarController(deps) {
       undo: doc && canUndo,
       redo: doc && canRedo,
       play: doc,
+      "tool-move": doc,
       "world-axis": true,
+      "orbit-mode": true,
       quickcheck: true,
       "preview-out": doc,
       "focus-mode": true,
@@ -533,6 +556,38 @@ export function createUiToolbarController(deps) {
       try { bAxis.textContent = label; } catch {}
     }
 
+    // Orbit enable toggle (Move tool forces orbit off while active)
+    const bOrbit = btnByAction.get("orbit-mode");
+    if (bOrbit) {
+      const st = core.getUiState?.() || {};
+      const userOrbit = (st.orbitEnabled !== false);
+      const tool = String(st.activeTool || "select").toLowerCase();
+      const eff = userOrbit && tool !== "move";
+      bOrbit.classList.toggle("is-active", eff);
+      try { bOrbit.textContent = eff ? "Orbit: ON" : "Orbit: OFF"; } catch {}
+    }
+
+    // Preview hint (reflects effective orbit + move constraints)
+    if (previewHintEl) {
+      const st = core.getUiState?.() || {};
+      const tool = String(st.activeTool || "select").toLowerCase();
+      const userOrbit = (st.orbitEnabled !== false);
+      const eff = userOrbit && tool !== "move";
+      try {
+        previewHintEl.textContent = (tool === "move")
+          ? "move: drag=XY / wheel=Z (orbit off)"
+          : (eff ? "orbit: drag / zoom: wheel (O)" : "orbit: off (O)");
+      } catch {}
+    }
+
+    // Move tool toggle
+    const bMove = btnByAction.get("tool-move");
+    if (bMove) {
+      const tool = String(core.getUiState?.().activeTool || "select").toLowerCase();
+      const on = (tool === "move");
+      bMove.classList.toggle("is-active", on);
+      try { bMove.textContent = on ? "Move: ON" : "Move"; } catch {}
+    }
     // Visual toggle state
     const bFocus = btnByAction.get("focus-mode");
     if (bFocus) bFocus.classList.toggle("is-active", !!focusMode);
@@ -650,6 +705,26 @@ export function createUiToolbarController(deps) {
       return;
     }
 
+
+    if (act === "tool-move") {
+      const st = core.getUiState?.() || {};
+      const cur = String(st.activeTool || "select").toLowerCase();
+      if (cur === "move") {
+        try { core.setUiState?.({ activeTool: "select" }); } catch {}
+        try { setHud && setHud("Tool: Select"); } catch {}
+        requestSync();
+        return;
+      }
+      const sel = core.getSelection?.() || [];
+      if (!Array.isArray(sel) || sel.length !== 1) {
+        try { setHud && setHud("Select 1 item to use Move tool"); } catch {}
+        return;
+      }
+      try { core.setUiState?.({ activeTool: "move" }); } catch {}
+      try { setHud && setHud("Tool: Move (drag in preview)"); } catch {}
+      requestSync();
+      return;
+    }
     if (act === "play") {
       const st = core.getUiState?.() || {};
       const next = !st.framePlaying;
@@ -665,6 +740,16 @@ export function createUiToolbarController(deps) {
       const next = (cur === "off") ? "fixed" : (cur === "fixed") ? "full_view" : "off";
       try { core.setUiState?.({ worldAxisMode: next }); } catch {}
       try { setHud && setHud(`World axis: ${next}`); } catch {}
+      requestSync();
+      return;
+    }
+
+    if (act === "orbit-mode") {
+      const st = core.getUiState?.() || {};
+      const cur = (st.orbitEnabled !== false);
+      const next = !cur;
+      try { core.setUiState?.({ orbitEnabled: next }); } catch {}
+      try { setHud && setHud(next ? "Orbit: ON" : "Orbit: OFF"); } catch {}
       requestSync();
       return;
     }

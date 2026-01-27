@@ -273,6 +273,9 @@ export function attachUiShell({ root, hub, modelUrl }) {
   /** @type {ReturnType<typeof createUiFileController> | null} */
   let fileController = null;
 
+  /** @type {ReturnType<typeof createUiSelectionController> | null} */
+  let selectionController = null;
+
   // Single synchronization point for toolbar enable/disable.
   // Any path that changes document/dirty/selection/history should call this.
   const requestToolbarSync = (() => {
@@ -287,6 +290,18 @@ export function attachUiShell({ root, hub, modelUrl }) {
     };
   })();
 
+  // Bridge: route selection changes through uiSelectionController when available
+  // so dirty-guards + focus behavior stay consistent.
+  const setSelectionUuids = (uuids, issueLike, reason) => {
+    try {
+      if (selectionController && typeof selectionController.setSelectionUuids === "function") {
+        selectionController.setSelectionUuids(uuids, issueLike, reason);
+        return;
+      }
+    } catch {}
+    try { core.setSelection?.(Array.isArray(uuids) ? uuids : []); } catch {}
+  };
+
   const propertyController = createUiPropertyController({
     root,
     core,
@@ -294,18 +309,13 @@ export function attachUiShell({ root, hub, modelUrl }) {
     previewSetPosition: (uuid, pos) => hub.previewSetPosition?.(uuid, pos),
     previewSetLineEnds: (uuid, endA, endB) => hub.previewSetLineEnds?.(uuid, endA, endB),
     previewSetCaptionText: (uuid, captionText, fallbackText) => hub.previewSetCaptionText?.(uuid, captionText, fallbackText),
+    setSelectionUuids,
     signal: sig,
     setHud,
     onDirtyChange: () => {
       fileController?.syncTitle?.();
       requestToolbarSync();
     },
-  });
-
-  const selectionController = createUiSelectionController({
-    core,
-    ensureEditsAppliedOrConfirm: () => propertyController.ensureEditsAppliedOrConfirm(),
-    setHud,
   });
 
   fileController = createUiFileController({
@@ -319,18 +329,26 @@ export function attachUiShell({ root, hub, modelUrl }) {
     return new Set(core.getSelection?.() || []);
   }
 
-const outlinerController = new UiOutlinerController({
-  root,
-  tbody,
-  core,
-  signal: sig,
-  syncTabButtons: () => toolbarController?.syncTabs?.(),
-  getSelectedSet,
-  onRowSelect: (issueLike, ev) => selectionController.selectFromOutliner?.(issueLike, ev),
-  ensureEditsAppliedOrConfirm: () => propertyController.ensureEditsAppliedOrConfirm(),
-  requestToolbarSync,
-  setHud,
-});
+  const outlinerController = new UiOutlinerController({
+    root,
+    tbody,
+    core,
+    signal: sig,
+    syncTabButtons: () => toolbarController?.syncTabs?.(),
+    getSelectedSet,
+    onRowSelect: (issueLike, ev) => selectionController?.selectFromOutliner?.(issueLike, ev),
+    ensureEditsAppliedOrConfirm: () => propertyController.ensureEditsAppliedOrConfirm(),
+    requestToolbarSync,
+    setHud,
+    setSelectionUuids,
+  });
+
+  selectionController = createUiSelectionController({
+    core,
+    ensureEditsAppliedOrConfirm: () => propertyController.ensureEditsAppliedOrConfirm(),
+    setHud,
+    getOutlinerRowOrder: () => outlinerController.getRowOrder?.() || [],
+  });
 
   toolbarController = createUiToolbarController({
     root,
@@ -350,6 +368,7 @@ const outlinerController = new UiOutlinerController({
   });
 
   // --- Cross-controller wiring ---
+
   fileController?.setExtraDirtyProvider?.(() => !!propertyController?.isDirty?.());
   fileController?.setInvoker?.((a) => toolbarController?.invoke?.(a));
   fileController?.attachBeforeUnload?.({ signal: sig });
@@ -358,6 +377,7 @@ const outlinerController = new UiOutlinerController({
   attachUiShortcutController({ signal: sig, core, invoke: (a) => toolbarController?.invoke?.(a) });
   canvasCtl = attachUiCanvasController({
     canvas,
+    core,
     hub,
     signal: sig,
     // NOTE: do not use `||` fallback here: selectionController methods intentionally return void.
@@ -373,6 +393,17 @@ const outlinerController = new UiOutlinerController({
       else selectionController.selectIssue(issueLike);
     },
     onResize: (args) => resizeHub(hub, args.width, args.height, args.dpr),
+    // Needed for Move tool helpers (e.g., wheel-based axis nudges / dimension overlay).
+    ensureEditsAppliedOrConfirm: () => {
+      try {
+        return (typeof fileController?.ensureEditsAppliedOrConfirm === "function")
+          ? fileController.ensureEditsAppliedOrConfirm()
+          : true;
+      } catch {
+        return true;
+      }
+    },
+    setHud,
   });
 
   // --- hub events ---
@@ -497,6 +528,20 @@ const outlinerController = new UiOutlinerController({
                 toolbarController?.syncTabs?.();
                 outlinerController.render(doc);
               }
+            }
+          } catch {}
+
+          // Ensure the selected row is visible (QuickCheck jump / Preview pick).
+          try {
+            const sel = core.getSelection?.() || [];
+            if (Array.isArray(sel) && sel.length === 1) outlinerController.revealUuid?.(sel[0]);
+          } catch {}
+
+          try {
+            const sel = core.getSelection?.() || [];
+            const tool = String(core.getUiState?.().activeTool || "select").toLowerCase();
+            if (tool === "move" && (!Array.isArray(sel) || sel.length !== 1)) {
+              core.setUiState?.({ activeTool: "select" });
             }
           } catch {}
 

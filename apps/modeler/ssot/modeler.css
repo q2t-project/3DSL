@@ -276,15 +276,19 @@ canvas[data-role="modeler-canvas"] {
   box-shadow: inset 3px 0 0 rgba(70, 140, 230, 0.65);
 }
 
+@keyframes outlinerFlash {
+  from { filter: brightness(1.35); }
+  to { filter: brightness(1); }
+}
+
+.outliner-table tr.is-flash td {
+  animation: outlinerFlash 0.65s ease-out 1;
+}
+
+
 .col-num {
   text-align: right;
   width: 60px;
-}
-
-.col-frames {
-  width: 56px;
-  text-align: center;
-  opacity: 0.85;
 }
 
 .col-lock {
@@ -603,3 +607,94 @@ canvas[data-role="modeler-canvas"] {
   cursor: pointer;
 }
 .prop-mini:disabled{opacity:.5;cursor:default;}
+
+
+/* Dimension overlay (Move tool helper) */
+.dim-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.dim-overlay .dim-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.dim-overlay .dim-svg { pointer-events: auto; }
+.dim-overlay .dim-svg .dim-line { stroke-width: 2; fill: none; opacity: 0.9; pointer-events: stroke; }
+.dim-overlay .dim-svg .dim-x { stroke: rgba(80,150,255,0.9); }
+.dim-overlay .dim-svg .dim-y { stroke: rgba(80,220,140,0.9); }
+.dim-overlay .dim-svg .dim-z { stroke: rgba(255,90,90,0.9); }
+
+
+.dim-overlay .dim-controls {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+}
+.dim-overlay .dim-axis {
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.35);
+  color: rgba(255,255,255,0.92);
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1;
+}
+.dim-overlay .dim-axis.is-active {
+  border-color: rgba(255,255,255,0.38);
+  background: rgba(255,255,255,0.10);
+}
+.dim-overlay .dim-help {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  pointer-events: auto;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.35);
+  color: rgba(255,255,255,0.72);
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+
+/* Dimension overlay (Move helper) */
+[data-role="dim-overlay"] {
+  pointer-events: auto;
+}
+
+.dim-line.is-active {
+  stroke-width: 6;
+  stroke-opacity: 1;
+  animation: dimPulse 0.9s infinite;
+  filter: drop-shadow(0 0 6px rgba(255,255,255,0.6));
+}
+
+@keyframes dimPulse {
+  0% { stroke-opacity: 1; }
+  50% { stroke-opacity: 0.45; }
+  100% { stroke-opacity: 1; }
+}
+
+.dim-label {
+  font-size: 14px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: rgba(0,0,0,0.75);
+  stroke-width: 4px;
+  fill: rgba(255,255,255,0.95);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.dim-label.is-active {
+  animation: dimPulse 0.9s infinite;
+  filter: drop-shadow(0 0 6px rgba(255,255,255,0.6));
+}
+

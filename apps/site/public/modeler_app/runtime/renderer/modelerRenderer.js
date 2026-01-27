@@ -359,14 +359,33 @@ export function createRenderer(canvas) {
 
   const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 5000);
   camera.up.set(0, 0, 1); // Z-up (match viewer)
-  camera.position.set(-60, 40, 60);
+  // Match viewer default preset (iso-ne): +X, +Y, +Z quadrant.
+  // This keeps the on-screen axis chirality consistent across viewer/modeler.
+  camera.position.set(60, 40, 60);
   camera.lookAt(0, 0, 0);
 
   const controls = new OrbitControls(camera, canvas);
+  // Navigation layer is always enabled. Reserve left-click for editing/picking.
+  // Use right-drag for orbit rotation, middle-drag for pan, wheel for zoom.
+  try {
+    controls.mouseButtons.LEFT = undefined;
+    controls.mouseButtons.RIGHT = THREE.MOUSE.ROTATE;
+    controls.mouseButtons.MIDDLE = THREE.MOUSE.PAN;
+  } catch {}
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
   controls.target.set(0, 0, 0);
   controls.update();
+
+  function projectToNdc(pos) {
+    try {
+      const v = new THREE.Vector3(Number(pos?.[0])||0, Number(pos?.[1])||0, Number(pos?.[2])||0);
+      v.project(camera);
+      return [v.x, v.y, v.z];
+    } catch {
+      return [0, 0, 0];
+    }
+  }
 
   const focusAnim = {
     active: false,
@@ -1118,7 +1137,7 @@ function previewSetOverride(kind, uuid, payload) {
     renderer.dispose();
   }
 
-  return { start, stop, resize, dispose, setDocument, applyVisibility, pickObjectAt, setSelection, focusOnUuid, worldPointOnPlaneZ, previewSetPosition, previewSetLineEnds, previewSetCaptionText, previewSetOverride, setFrameIndex, setWorldAxisMode };
+  return { start, stop, resize, dispose, setDocument, applyVisibility, pickObjectAt, setSelection, focusOnUuid, worldPointOnPlaneZ, previewSetPosition, previewSetLineEnds, previewSetCaptionText, previewSetOverride, setFrameIndex, setWorldAxisMode, projectToNdc };
 }
 
 // NOTE:

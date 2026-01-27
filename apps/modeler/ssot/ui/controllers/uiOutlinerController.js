@@ -11,53 +11,7 @@ function safePos(node) {
 }
 
 function nameOf(node) {
-  // points: signification.name
-  // lines: signification.caption
-  return String(node?.signification?.name || node?.signification?.caption || node?.name || "");
-}
-
-function framesOf(node) {
-  const f = node?.appearance?.frames ?? node?.frames;
-  if (typeof f === "number") return f;
-  if (Array.isArray(f)) return f.map((x) => Number(x)).filter((x) => Number.isFinite(x));
-  return null;
-}
-
-function fmtFrames(frames) {
-  if (frames == null) return "";
-  if (typeof frames === "number") return String(frames);
-  if (Array.isArray(frames)) return frames.join(",");
-  return "";
-}
-
-function fmtEndpoint(end, pointPosByUuid) {
-  if (end == null) return "";
-  // legacy: string uuid
-  if (typeof end === "string") {
-    const u = String(end);
-    const pos = pointPosByUuid?.get?.(u);
-    const su = u.slice(0, 8);
-    return pos ? `${su} (${pos.join(",")})` : su;
-  }
-  if (Array.isArray(end) && end.length >= 3) {
-    const a = end.slice(0, 3).map((x) => Number(x) || 0);
-    return `[${a.join(",")}]`;
-  }
-  if (typeof end === "object") {
-    const ref = end?.ref;
-    const coord = end?.coord;
-    if (typeof ref === "string") {
-      const u = String(ref);
-      const pos = pointPosByUuid?.get?.(u);
-      const su = u.slice(0, 8);
-      return pos ? `${su} (${pos.join(",")})` : su;
-    }
-    if (Array.isArray(coord) && coord.length >= 3) {
-      const a = coord.slice(0, 3).map((x) => Number(x) || 0);
-      return `[${a.join(",")}]`;
-    }
-  }
-  return "";
+  return String(node?.signification?.name || node?.name || "");
 }
 
 function auxModuleLabel(node) {
@@ -165,9 +119,9 @@ export class UiOutlinerController {
     this.columnCount = 8;
     this.activeHeaderTab = null;
 
-    this.#bindGroupButtons();
-    this.#bindAuthoringButtons();
-    this.#bindTabButtons();
+    this._bindGroupButtons();
+    this._bindAuthoringButtons();
+    this._bindTabButtons();
   }
 
   /**
@@ -179,7 +133,75 @@ export class UiOutlinerController {
   }
 
 
-  #setSelection(uuids, reason = 'outliner') {
+  /**
+   * Scroll the row for the given uuid into view (if present) and briefly flash it.
+   * Used after selection changes triggered outside the Outliner (Preview pick / QuickCheck).
+   */
+  revealUuid(uuid, opts = {}) {
+    const u = String(uuid || "");
+    if (!u || !this.tbody) return;
+
+    const esc = (v) => {
+      const s = String(v);
+      try {
+        if (globalThis.CSS && typeof globalThis.CSS.escape === "function") return globalThis.CSS.escape(s);
+      } catch {}
+      return s.replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
+    };
+
+    let row = null;
+    try {
+      row = this.tbody.querySelector(`tr[data-uuid="${esc(u)}"]`);
+    } catch {
+      try { row = this.tbody.querySelector(`tr[data-uuid="${u}"]`); } catch {}
+    }
+    if (!(row instanceof HTMLElement)) return;
+
+    const center = opts && typeof opts === "object" && "center" in opts ? !!opts.center : true;
+    const flash = opts && typeof opts === "object" && "flash" in opts ? !!opts.flash : true;
+
+    try {
+      row.scrollIntoView({ block: center ? "center" : "nearest", inline: "nearest" });
+    } catch {
+      try { row.scrollIntoView(); } catch {}
+    }
+
+    if (flash) {
+      try {
+        row.classList.remove("is-flash");
+        // force reflow to restart animation
+        void row.offsetWidth;
+        row.classList.add("is-flash");
+        globalThis.setTimeout?.(() => row.classList.remove("is-flash"), 650);
+      } catch {}
+    }
+  }
+
+
+  /**
+   * Ensure the row is visible and flashed, even when selection is unchanged.
+   * Used by hub focus events (QuickCheck / error jump).
+   */
+  revealFlash(uuid, kind) {
+    const u = String(uuid || "");
+    if (!u) return;
+
+    // Optionally switch to the corresponding tab (best-effort).
+    try {
+      const k = String(kind || "").toLowerCase();
+      const want = k === "point" || k === "points" ? "points" : k === "line" || k === "lines" ? "lines" : k === "aux" ? "aux" : null;
+      if (want) {
+        const cur = this.core.getUiState?.().activeTab || "points";
+        if (want !== cur) this.core.setUiState?.({ activeTab: want });
+      }
+    } catch {}
+
+    try { this.render(this.core.getDocument?.()); } catch {}
+    try { this.revealUuid(u, { center: true, flash: true }); } catch {}
+  }
+
+
+  _setSelection(uuids, reason = 'outliner') {
     try {
       if (typeof this.setSelectionUuids === 'function') {
         this.setSelectionUuids(uuids, null, reason);
@@ -189,7 +211,7 @@ export class UiOutlinerController {
     try { this.core.setSelection?.(uuids); } catch {}
   }
 
-  #bindTabButtons() {
+  _bindTabButtons() {
     // NOTE: Tab switching is primarily handled by the toolbar controller,
     // but routing all clicks through the global root handler is fragile
     // (event delegation / nested panels). Bind locally as well so the
@@ -202,7 +224,7 @@ export class UiOutlinerController {
         (ev) => {
           ev.preventDefault();
           ev.stopPropagation();
-          if (!this.#guardEdits()) return;
+          if (!this._guardEdits()) return;
           const tab = btn.getAttribute('data-tab') || 'points';
           this.core.setUiState?.({ activeTab: tab });
           this.syncTabButtons();
@@ -213,7 +235,7 @@ export class UiOutlinerController {
     });
   }
 
-  #ensureHeader(tab) {
+  _ensureHeader(tab) {
     if (!this.thead) return;
     if (this.activeHeaderTab === tab) return;
     this.activeHeaderTab = tab;
@@ -235,47 +257,44 @@ export class UiOutlinerController {
       tr.appendChild(makeTh("name", "col-name"));
       tr.appendChild(makeTh("end_a", "col-end"));
       tr.appendChild(makeTh("end_b", "col-end"));
-      tr.appendChild(makeTh("F", "col-frames", "frames"));
       tr.appendChild(makeTh("uuid", "col-uuid"));
-      this.columnCount = 8;
+      this.columnCount = 7;
     } else if (tab === "aux") {
       tr.appendChild(makeTh("module", "col-name"));
       tr.appendChild(makeTh("x", "col-num"));
       tr.appendChild(makeTh("y", "col-num"));
       tr.appendChild(makeTh("z", "col-num"));
-      tr.appendChild(makeTh("F", "col-frames", "frames"));
       tr.appendChild(makeTh("uuid", "col-uuid"));
-      this.columnCount = 9;
+      this.columnCount = 8;
     } else {
       tr.appendChild(makeTh("name", "col-name"));
       tr.appendChild(makeTh("x", "col-num"));
       tr.appendChild(makeTh("y", "col-num"));
       tr.appendChild(makeTh("z", "col-num"));
-      tr.appendChild(makeTh("F", "col-frames", "frames"));
       tr.appendChild(makeTh("uuid", "col-uuid"));
-      this.columnCount = 9;
+      this.columnCount = 8;
     }
 
     this.thead.textContent = "";
     this.thead.appendChild(tr);
   }
 
-  #guardEdits() {
+  _guardEdits() {
     if (typeof this.ensureEditsAppliedOrConfirm === "function") {
       return !!this.ensureEditsAppliedOrConfirm();
     }
     return true;
   }
 
-  #hud(msg) {
+  _hud(msg) {
     try { typeof this.setHud === "function" && this.setHud(String(msg || "")); } catch {}
   }
 
-  #syncToolbar() {
+  _syncToolbar() {
     try { typeof this.requestToolbarSync === "function" && this.requestToolbarSync(); } catch {}
   }
 
-  #newUuid() {
+  _newUuid() {
     try {
       if (globalThis.crypto && typeof globalThis.crypto.randomUUID === "function") return globalThis.crypto.randomUUID();
     } catch {}
@@ -284,7 +303,7 @@ export class UiOutlinerController {
     return `${r()}-${r().slice(0,4)}-${r().slice(0,4)}-${r().slice(0,4)}-${r()}${r().slice(0,4)}`;
   }
 
-  #bindAuthoringButtons() {
+  _bindAuthoringButtons() {
     const btnAddPoint = this.root.querySelector('[data-action="add-point"]');
     const btnAddLine = this.root.querySelector('[data-action="add-line"]');
     const btnAddAux = this.root.querySelector('[data-action="add-aux"]');
@@ -336,11 +355,11 @@ export class UiOutlinerController {
   }
 
   addPoint() {
-    if (!this.#guardEdits()) return;
+    if (!this._guardEdits()) return;
     const doc = this.core.getDocument?.();
-    if (!doc) { this.#hud("Open a file or create New first"); return; }
+    if (!doc) { this._hud("Open a file or create New first"); return; }
 
-    const uuid = this.#newUuid();
+    const uuid = this._newUuid();
     const n = Array.isArray(doc.points) ? doc.points.length : 0;
     const x = (n % 10) * 4;
     const y = 0;
@@ -357,14 +376,14 @@ export class UiOutlinerController {
       next.points = pts;
       return next;
     });
-    this.#setSelection([uuid], 'add');
-    this.#syncToolbar();
+    this._setSelection([uuid], 'add');
+    this._syncToolbar();
   }
 
   addLine() {
-    if (!this.#guardEdits()) return;
+    if (!this._guardEdits()) return;
     const doc = this.core.getDocument?.();
-    if (!doc) { this.#hud("Open a file or create New first"); return; }
+    if (!doc) { this._hud("Open a file or create New first"); return; }
 
     const selection = Array.isArray(this.core.getSelection?.()) ? this.core.getSelection?.().map(String) : [];
     const pointUuids = new Set((Array.isArray(doc.points) ? doc.points : []).map((p) => uuidOf(p)).filter(Boolean));
@@ -376,9 +395,9 @@ export class UiOutlinerController {
     let bUuid = selectedPoints[1] || "";
     const willCreatePoints = !(aUuid && bUuid);
 
-    const lineUuid = this.#newUuid();
-    const newPointA = willCreatePoints ? this.#newUuid() : null;
-    const newPointB = willCreatePoints ? this.#newUuid() : null;
+    const lineUuid = this._newUuid();
+    const newPointA = willCreatePoints ? this._newUuid() : null;
+    const newPointB = willCreatePoints ? this._newUuid() : null;
 
     this.core.updateDocument?.((cur) => {
       const next = { ...cur };
@@ -396,7 +415,7 @@ export class UiOutlinerController {
       const nL = lines.length;
       lines.push({
         meta: { uuid: lineUuid },
-        signification: { caption: `L${nL + 1}` },
+        signification: { name: `L${nL + 1}` },
         end_a: { ref: aUuid },
         end_b: { ref: bUuid },
       });
@@ -407,15 +426,15 @@ export class UiOutlinerController {
     });
 
     // Prefer selecting the new line (single selection => property panel).
-    this.#setSelection([lineUuid], 'add');
-    this.#syncToolbar();
+    this._setSelection([lineUuid], 'add');
+    this._syncToolbar();
   }
 
   addAux() {
-    if (!this.#guardEdits()) return;
+    if (!this._guardEdits()) return;
     const doc = this.core.getDocument?.();
-    if (!doc) { this.#hud("Open a file or create New first"); return; }
-    const uuid = this.#newUuid();
+    if (!doc) { this._hud("Open a file or create New first"); return; }
+    const uuid = this._newUuid();
     // NOTE: aux has no signification/name in schema; module is the primary identifier.
 
     this.core.updateDocument?.((cur) => {
@@ -429,12 +448,12 @@ export class UiOutlinerController {
       next.aux = arr;
       return next;
     });
-    this.#setSelection([uuid], 'add');
-    this.#syncToolbar();
+    this._setSelection([uuid], 'add');
+    this._syncToolbar();
   }
 
   deleteSelection() {
-    if (!this.#guardEdits()) return;
+    if (!this._guardEdits()) return;
     const doc = this.core.getDocument?.();
     if (!doc) return;
     const sel = Array.isArray(this.core.getSelection?.()) ? this.core.getSelection?.().map(String) : [];
@@ -442,7 +461,7 @@ export class UiOutlinerController {
 
     const locked = new Set(this.core.listLocks?.() || []);
     const targets = sel.filter((u) => !locked.has(u));
-    if (targets.length === 0) { this.#hud("Selection is locked"); return; }
+    if (targets.length === 0) { this._hud("Selection is locked"); return; }
 
     const delSet = new Set(targets);
 
@@ -475,11 +494,11 @@ export class UiOutlinerController {
       return next;
     });
 
-    this.#setSelection([], 'delete');
-    this.#syncToolbar();
+    this._setSelection([], 'delete');
+    this._syncToolbar();
   }
 
-  #bindGroupButtons() {
+  _bindGroupButtons() {
     const btnNew = this.root.querySelector('[data-action="group-new"]');
     const btnAssign = this.root.querySelector('[data-action="group-assign"]');
     const btnUngroup = this.root.querySelector('[data-action="group-ungroup"]');
@@ -544,7 +563,7 @@ export class UiOutlinerController {
     this.syncTabButtons();
 
     const tab = (this.core.getUiState?.().activeTab) || "points";
-    this.#ensureHeader(tab);
+    this._ensureHeader(tab);
     const locked = new Set(this.core.listLocks?.() || []);
     const selected = this.getSelectedSet();
 
@@ -555,17 +574,6 @@ export class UiOutlinerController {
     const groupTree = buildGroupTree(outlinerState.groups);
     const collapsed = new Set(Array.isArray(outlinerState.collapsed) ? outlinerState.collapsed.map(String) : []);
     const itemToGroup = outlinerState.itemToGroup || {};
-
-    // Build point index for line endpoint display.
-    this.pointPosByUuid = new Map();
-    try {
-      for (const p of Array.isArray(doc?.points) ? doc.points : []) {
-        const u = uuidOf(p);
-        if (!u) continue;
-        const [x, y, z] = safePos(p);
-        this.pointPosByUuid.set(String(u), [x, y, z]);
-      }
-    } catch {}
 
     const rows = collectRows(doc, tab);
 
@@ -594,19 +602,19 @@ export class UiOutlinerController {
 
       const hasItems = itemsByGroup.has(gid) && itemsByGroup.get(gid).length > 0;
       // Always show group rows, even if empty, to allow assignment.
-      tbody.appendChild(this.#createGroupRow({ gid, name: g.name, depth, collapsed: collapsed.has(gid), hasItems }));
+      tbody.appendChild(this._createGroupRow({ gid, name: g.name, depth, collapsed: collapsed.has(gid), hasItems }));
 
       if (collapsed.has(gid)) continue;
 
       const list = itemsByGroup.get(gid) || [];
       for (const r of list) {
-        tbody.appendChild(this.#createItemRow({ r, locked, selected, hidden, solo, indentDepth: depth + 1 }));
+        tbody.appendChild(this._createItemRow({ r, locked, selected, hidden, solo, indentDepth: depth + 1 }));
       }
     }
 
     // Render ungrouped items
     for (const r of ungrouped) {
-      tbody.appendChild(this.#createItemRow({ r, locked, selected, hidden, solo, indentDepth: 0 }));
+      tbody.appendChild(this._createItemRow({ r, locked, selected, hidden, solo, indentDepth: 0 }));
     }
 
     // Cache visual order (item rows only) for SHIFT range selection SSOT.
@@ -640,16 +648,16 @@ export class UiOutlinerController {
     } catch {}
   }
 
-  #createGroupRow({ gid, name, depth, collapsed, hasItems }) {
+  _createGroupRow({ gid, name, depth, collapsed, hasItems }) {
     const tr = document.createElement("tr");
     tr.classList.add("is-group-row");
     if (this.selectedGroupId && String(this.selectedGroupId) === String(gid)) tr.classList.add("is-group-selected");
     tr.dataset.groupId = String(gid);
 
     // lock/vis/solo placeholder cells
-    tr.appendChild(this.#createPlainCell(""));
-    tr.appendChild(this.#createPlainCell(""));
-    tr.appendChild(this.#createPlainCell(""));
+    tr.appendChild(this._createPlainCell(""));
+    tr.appendChild(this._createPlainCell(""));
+    tr.appendChild(this._createPlainCell(""));
 
     // main cell (span across the remaining columns)
     const tdName = document.createElement("td");
@@ -718,11 +726,10 @@ export class UiOutlinerController {
     return tr;
   }
 
-  #createItemRow({ r, locked, selected, hidden, solo, indentDepth }) {
+  _createItemRow({ r, locked, selected, hidden, solo, indentDepth }) {
     const uuid = uuidOf(r.node);
     const name = nameOf(r.node);
     const [x, y, z] = safePos(r.node);
-    const frames = framesOf(r.node);
     const path = r.path || "/";
 
     const tr = document.createElement("tr");
@@ -735,9 +742,9 @@ export class UiOutlinerController {
     if (isHidden) tr.classList.add("is-hidden");
     if (solo && String(solo) !== String(uuid)) tr.classList.add("solo-dim");
 
-    tr.appendChild(this.#createLockCell(uuid, locked));
-    tr.appendChild(this.#createVisCell(uuid, isHidden));
-    tr.appendChild(this.#createSoloCell(uuid, solo));
+    tr.appendChild(this._createLockCell(uuid, locked));
+    tr.appendChild(this._createVisCell(uuid, isHidden));
+    tr.appendChild(this._createSoloCell(uuid, solo));
 
     const tdName = document.createElement("td");
     const indent = document.createElement("span");
@@ -754,18 +761,16 @@ export class UiOutlinerController {
     tr.appendChild(tdName);
 
     if (r.kind === "line") {
-      const a = fmtEndpoint(r.node?.end_a, this.pointPosByUuid);
-      const b = fmtEndpoint(r.node?.end_b, this.pointPosByUuid);
-      tr.appendChild(this.#createTextCell(a, "col-end"));
-      tr.appendChild(this.#createTextCell(b, "col-end"));
-      tr.appendChild(this.#createTextCell(fmtFrames(frames), "col-frames"));
-      tr.appendChild(this.#createUuidCell(uuid));
+      const a = r.node?.end_a?.ref || r.node?.end_a || "";
+      const b = r.node?.end_b?.ref || r.node?.end_b || "";
+      tr.appendChild(this._createTextCell(a, "col-end"));
+      tr.appendChild(this._createTextCell(b, "col-end"));
+      tr.appendChild(this._createUuidCell(uuid));
     } else {
-      tr.appendChild(this.#createNumCell(x));
-      tr.appendChild(this.#createNumCell(y));
-      tr.appendChild(this.#createNumCell(z));
-      tr.appendChild(this.#createTextCell(fmtFrames(frames), "col-frames"));
-      tr.appendChild(this.#createUuidCell(uuid));
+      tr.appendChild(this._createNumCell(x));
+      tr.appendChild(this._createNumCell(y));
+      tr.appendChild(this._createNumCell(z));
+      tr.appendChild(this._createUuidCell(uuid));
     }
 
     tr.addEventListener(
@@ -780,13 +785,13 @@ export class UiOutlinerController {
     return tr;
   }
 
-  #createPlainCell(text) {
+  _createPlainCell(text) {
     const td = document.createElement("td");
     td.textContent = String(text ?? "");
     return td;
   }
 
-  #createLockCell(uuid, locked) {
+  _createLockCell(uuid, locked) {
     const td = document.createElement("td");
     td.className = "col-lock";
     td.textContent = locked.has(uuid) ? "🔒" : "🔓";
@@ -830,7 +835,7 @@ export class UiOutlinerController {
     return td;
   }
 
-  #createVisCell(uuid, isHidden) {
+  _createVisCell(uuid, isHidden) {
     const td = document.createElement("td");
     td.className = "col-vis";
     td.textContent = isHidden ? "🙈" : "👁";
@@ -874,7 +879,7 @@ export class UiOutlinerController {
     return td;
   }
 
-  #createSoloCell(uuid, soloUuid) {
+  _createSoloCell(uuid, soloUuid) {
     const td = document.createElement("td");
     td.className = "col-solo";
     const isSolo = soloUuid && String(soloUuid) === String(uuid);
@@ -904,21 +909,21 @@ export class UiOutlinerController {
     return td;
   }
 
-  #createNumCell(v) {
+  _createNumCell(v) {
     const td = document.createElement("td");
     td.className = "col-num";
     td.textContent = String(v ?? 0);
     return td;
   }
 
-  #createTextCell(v, cls = "") {
+  _createTextCell(v, cls = "") {
     const td = document.createElement("td");
     if (cls) td.className = cls;
     td.textContent = String(v ?? "");
     return td;
   }
 
-  #createUuidCell(uuid) {
+  _createUuidCell(uuid) {
     const td = document.createElement("td");
     td.className = "col-uuid";
     td.textContent = uuid ? String(uuid).slice(0, 8) : "";

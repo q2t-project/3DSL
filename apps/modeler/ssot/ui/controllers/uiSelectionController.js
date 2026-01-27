@@ -46,30 +46,63 @@ export function createUiSelectionController({ core, ensureEditsAppliedOrConfirm,
 
   const resolveIssueLike = (issueLike) => {
     if (!issueLike || typeof issueLike !== "object") return null;
-    const uuid = issueLike.uuid ? String(issueLike.uuid) : "";
-    const kind = issueLike.kind ? String(issueLike.kind) : "";
-    const path = issueLike.path ? String(issueLike.path) : "";
 
-    if (uuid) return { uuid, kind: kind || null, path: path || null };
-    if (!path) return null;
+    const rawUuid = issueLike.uuid ? String(issueLike.uuid) : "";
+    const rawKind = issueLike.kind ? String(issueLike.kind) : "";
+    const rawPath = issueLike.path ? String(issueLike.path) : "";
 
-    // QuickCheck path fallback: /points/<idx>, /lines/<idx>, /aux/<idx>
-    const m = path.match(/^\/(points|lines|aux)\/(\d+)$/);
-    if (!m) return null;
+    /** @type {string} */
+    let uuid = rawUuid;
+    /** @type {string} */
+    let kind = String(rawKind || "").toLowerCase();
+    // Treat non-canonical kinds (e.g. "unknown") as missing and infer from uuid/path.
+    if (kind && !["point", "line", "aux", "points", "lines", "aux"].includes(kind)) kind = "";
+    /** @type {string} */
+    let path = rawPath;
 
-    const tab = m[1];
-    const idx = Number(m[2]);
-    if (!Number.isFinite(idx) || idx < 0) return null;
     const doc = core.getDocument?.();
-    if (!doc || typeof doc !== "object") return null;
+    const hasDoc = !!(doc && typeof doc === "object");
 
-    const arr = tab === "points" ? doc.points : tab === "lines" ? doc.lines : doc.aux;
-    if (!Array.isArray(arr) || idx >= arr.length) return null;
-    const node = arr[idx];
-    const u = node?.meta?.uuid || node?.uuid;
-    if (!u) return null;
-    const k = tab === "points" ? "point" : tab === "lines" ? "line" : "aux";
-    return { uuid: String(u), kind: k, path };
+    // Infer kind from path prefix when missing.
+    if (!kind && path) {
+      const pm = path.match(/^\/(points|lines|aux)(?:\/|$)/);
+      if (pm) kind = pm[1] === "points" ? "point" : pm[1] === "lines" ? "line" : "aux";
+    }
+
+    // If uuid is missing, try to resolve from QuickCheck-like path:
+    //   /points/<idx>/..., /lines/<idx>/..., /aux/<idx>/...
+    if (!uuid && path && hasDoc) {
+      const m = path.match(/^\/(points|lines|aux)\/(\d+)(?:\/.*)?$/);
+      if (m) {
+        const tab = m[1];
+        const idx = Number(m[2]);
+        if (Number.isFinite(idx) && idx >= 0) {
+          const arr = tab === "points" ? doc.points : tab === "lines" ? doc.lines : doc.aux;
+          if (Array.isArray(arr) && idx < arr.length) {
+            const node = arr[idx];
+            const u = node?.meta?.uuid || node?.uuid;
+            if (u) {
+              uuid = String(u);
+              if (!kind) kind = tab === "points" ? "point" : tab === "lines" ? "line" : "aux";
+            }
+          }
+        }
+      }
+    }
+
+    // If kind is missing but uuid exists, search the doc to infer kind.
+    if (uuid && !kind && hasDoc) {
+      try {
+        const u = String(uuid);
+        const hitPoint = Array.isArray(doc.points) && doc.points.some((n) => String(n?.meta?.uuid || n?.uuid || "") === u);
+        const hitLine = Array.isArray(doc.lines) && doc.lines.some((n) => String(n?.meta?.uuid || n?.uuid || "") === u);
+        const hitAux = Array.isArray(doc.aux) && doc.aux.some((n) => String(n?.meta?.uuid || n?.uuid || "") === u);
+        kind = hitPoint ? "point" : hitLine ? "line" : hitAux ? "aux" : "";
+      } catch {}
+    }
+
+    if (!uuid) return null;
+    return { uuid: String(uuid), kind: kind || null, path: path || null };
   };
 
   const selectIssue = (issueLike) => {

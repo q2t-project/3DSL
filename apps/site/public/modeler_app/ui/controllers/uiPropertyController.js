@@ -88,36 +88,6 @@ function parseEndpointInput(raw) {
   return { coord: [x, y, z] };
 }
 
-function parseFramesInput(raw) {
-  const s = String(raw ?? "").trim();
-  if (!s) return { value: undefined, error: null }; // undefined => clear frames
-
-  const parts = s.split(/[,\s]+/).filter(Boolean);
-  if (!parts.length) return { value: undefined, error: null };
-
-  const nums = [];
-  for (const p of parts) {
-    const n = Number(p);
-    if (!Number.isFinite(n) || Math.floor(n) !== n) {
-      return { value: undefined, error: "Invalid frames: use integer or comma/space-separated integers" };
-    }
-    nums.push(n);
-  }
-
-  if (nums.length === 1) return { value: nums[0], error: null };
-
-  // Deduplicate while preserving order.
-  const seen = new Set();
-  const arr = [];
-  for (const n of nums) {
-    const k = String(n);
-    if (seen.has(k)) continue;
-    seen.add(k);
-    arr.push(n);
-  }
-  return { value: arr, error: null };
-}
-
 function findByUuid(doc, uuid) {
   if (!doc || !uuid) return { kind: null, node: null };
   if (Array.isArray(doc.points)) {
@@ -299,10 +269,6 @@ export function createUiPropertyController(deps) {
   const inpY = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-y"));
   const inpZ = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-z"));
 
-  const framesField = getRoleEl(root, "prop-frames-field");
-  const inpFrames = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-frames"));
-  const framesHintEl = /** @type {HTMLElement|null} */ (getRoleEl(root, "prop-frames-hint"));
-
   const selPosStep = /** @type {HTMLSelectElement|null} */ (getRoleEl(root, "prop-pos-step"));
   const posStepHintEl = /** @type {HTMLElement|null} */ (getRoleEl(root, "prop-pos-step-hint"));
 
@@ -334,6 +300,10 @@ export function createUiPropertyController(deps) {
   /** @type {{uuid:string, kind:string, path:string} | null} */
   let active = null;
   let dirty = false;
+
+  // Pending focus request (QuickCheck / focusByIssue). Applied after selection sync.
+  /** @type {any|null} */
+  let pendingFocusIssue = null;
 
   // Position stepping UI (visible step selector)
   let posStep = 0.1;
@@ -489,7 +459,6 @@ function previewRevertToBase() {
     if (inpX) inpX.disabled = !en;
     if (inpY) inpY.disabled = !en;
     if (inpZ) inpZ.disabled = !en;
-    if (inpFrames) inpFrames.disabled = !en;
     if (inpEndA) inpEndA.disabled = !en;
     if (inpEndB) inpEndB.disabled = !en;
     if (inpTextContent) inpTextContent.disabled = !en;
@@ -549,7 +518,8 @@ function previewRevertToBase() {
     if (!u) return;
     if (side === "a" && inpEndA) inpEndA.value = u;
     if (side === "b" && inpEndB) inpEndB.value = u;
-    setDirty(true);
+    // Treat as an ordinary input change so preview + dirty behave consistently.
+    onAnyInput();
   }
 
   /**
@@ -564,9 +534,10 @@ function previewRevertToBase() {
       try { setHud?.("Pick a point to set endpoint"); } catch {}
       return true;
     }
-    setEndpointValue(endpointPick, uuid);
+        const side = endpointPick;
+    setEndpointValue(side, uuid);
     setEndpointPick(null);
-    try { setHud?.(`Set end_${endpointPick} = ${uuid.slice(0, 8)}…`); } catch {}
+    try { setHud?.(`Set end_${side} = ${uuid.slice(0, 8)}…`); } catch {}
     return true;
   }
 
@@ -589,7 +560,7 @@ function previewRevertToBase() {
     const linePoseVals = [inpCaptionTextFrontX, inpCaptionTextFrontY, inpCaptionTextFrontZ, inpCaptionTextUpX, inpCaptionTextUpY, inpCaptionTextUpZ].map((el) => el?.value ?? "");
 
     if (textPoseModeEl) {
-      const enabled = active?.kind === "point" || active?.kind === "aux";
+      const enabled = active?.kind === "point";
       if (!enabled) {
         textPoseModeEl.textContent = "";
       } else {
@@ -679,10 +650,10 @@ function previewRevertToBase() {
 
     // Marker text (point/aux)
     if (textField) {
-      textField.hidden = !(isPoint || isAux);
-      textField.style.display = (isPoint || isAux) ? "" : "none";
+      textField.hidden = !isPoint;
+      textField.style.display = isPoint ? "" : "none";
     }
-    if (isPoint || isAux) {
+    if (isPoint) {
       if (inpTextContent) inpTextContent.value = getMarkerTextContent(found.node);
       if (inpTextSize) inpTextSize.value = String(getMarkerTextSize(found.node));
       if (selTextAlign) selTextAlign.value = getMarkerTextAlign(found.node);
@@ -706,10 +677,6 @@ function previewRevertToBase() {
     }
     if (nameLabel) nameLabel.textContent = isLine ? "caption" : "name";
     if (posField) posField.hidden = !(isPoint || isAux);
-    if (framesField) {
-      framesField.hidden = false;
-      framesField.style.display = "";
-    }
     if (lineEndsField) lineEndsField.hidden = !isLine;
     if (captionTextField) { captionTextField.hidden = !isLine; captionTextField.style.display = isLine ? "" : "none"; }
 
@@ -732,14 +699,6 @@ function previewRevertToBase() {
       if (inpX) inpX.value = String(x);
       if (inpY) inpY.value = String(y);
       if (inpZ) inpZ.value = String(z);
-    }
-
-    // frames (point/line/aux): blank means "all frames" (unset).
-    if (inpFrames) {
-      const f = found.node?.appearance?.frames;
-      if (typeof f === "number") inpFrames.value = String(f);
-      else if (Array.isArray(f)) inpFrames.value = f.map(String).join(",");
-      else inpFrames.value = "";
     }
 
     if (isAux) {
@@ -829,6 +788,7 @@ function previewRevertToBase() {
 
     active = { uuid, kind, path };
     setDirty(false);
+    try { previewCaptureBase(uuid, kind); } catch {}
 
     if (uuidEl) uuidEl.textContent = uuid;
     if (kindEl) kindEl.textContent = String(kind);
@@ -836,6 +796,7 @@ function previewRevertToBase() {
 
     fillInputsFromDoc(uuid);
     refreshLockState();
+    flushPendingFocus();
 
     if (selCountHeaderEl) selCountHeaderEl.hidden = true;
 
@@ -852,6 +813,10 @@ function previewRevertToBase() {
 
   function discardEdits() {
     if (!active) return;
+
+    // Revert any draft preview back to current document state.
+    try { previewCaptureBase(active.uuid, active.kind); } catch {}
+    try { previewRevertToBase(); } catch {}
     fillInputsFromDoc(active.uuid);
     setDirty(false);
     setHud("Edits discarded");
@@ -930,48 +895,7 @@ function previewRevertToBase() {
           }
         }
       }
-    } else if (found.kind === "aux") {
-      // marker.text for aux (optional). Empty content removes marker.text.
-      const beforeText = getMarkerText(found.node);
-      const beforeContent = getMarkerTextContent(found.node);
-      const beforeSize = getMarkerTextSize(found.node);
-      const beforeAlign = getMarkerTextAlign(found.node);
-      const beforePose = getMarkerTextPose(found.node);
-      const nextContent = inpTextContent ? String(inpTextContent.value || "").trim() : "";
-      const nextSize = inpTextSize ? num(inpTextSize.value, beforeSize) : beforeSize;
-      const nextAlign = selTextAlign ? String(selTextAlign.value || "") : beforeAlign;
-      const readPose = (frontInputs, upInputs, before) => {
-        const frontVals = frontInputs.map((el) => (el ? String(el.value ?? "").trim() : ""));
-        const upVals = upInputs.map((el) => (el ? String(el.value ?? "").trim() : ""));
-        const allEmpty = frontVals.every((s) => !s) && upVals.every((s) => !s);
-        if (allEmpty) return null;
-        const fb = before?.front || [0,0,0];
-        const ub = before?.up || [0,0,0];
-        const front = frontVals.map((s,i)=> s? num(s, fb[i]) : fb[i]);
-        const up = upVals.map((s,i)=> s? num(s, ub[i]) : ub[i]);
-        const { pose, error } = sanitizePose(front, up);
-        if (error) return { __invalid: true, error };
-        return pose;
-      };
-      const nextPose = readPose([inpTextFrontX, inpTextFrontY, inpTextFrontZ], [inpTextUpX, inpTextUpY, inpTextUpZ], beforePose);
-
-      if (nextPose && nextPose.__invalid) {
-        setHud(nextPose.error || "Invalid pose");
-        return null;
-      }
-      const hasTextInputs = !!(inpTextContent || inpTextSize || selTextAlign || inpTextFrontX || inpTextUpX);
-      if (hasTextInputs) {
-        if (!nextContent) {
-          if (beforeText) patch.ops.push({ path: "/appearance/marker/text", before: beforeText, after: null });
-        } else {
-          const nextText = { content: nextContent, size: nextSize, ...(nextAlign ? { align: nextAlign } : {}), ...(nextPose ? { pose: nextPose } : {}) };
-          const beforeNorm = beforeText ? { content: beforeContent, size: beforeSize, ...(beforeAlign ? { align: beforeAlign } : {}), ...(beforePose ? { pose: beforePose } : {}) } : null;
-          if (JSON.stringify(beforeNorm) !== JSON.stringify(nextText)) {
-            patch.ops.push({ path: "/appearance/marker/text", before: beforeText, after: nextText });
-          }
-        }
-      }
-    } else if (found.kind === "line") {
+        } else if (found.kind === "line") {
       const beforeCaption = getLineCaption(found.node);
       const nextCaption = inpName ? String(inpName.value || "").trim() : "";
       if (beforeCaption !== nextCaption) {
@@ -1029,21 +953,6 @@ function previewRevertToBase() {
       }
     }
 
-    // Frames (appearance.frames) for point/line/aux. Blank input => unset (all frames).
-    {
-      const beforeFrames = found.node?.appearance?.frames;
-      const { value: nextFrames, error: framesError } = parseFramesInput(inpFrames ? inpFrames.value : "");
-      if (framesError) {
-        setHud(framesError);
-        return null;
-      }
-      const beforeNorm = beforeFrames == null ? null : beforeFrames;
-      const afterNorm = nextFrames == null ? null : nextFrames;
-      if (JSON.stringify(beforeNorm) !== JSON.stringify(afterNorm)) {
-        patch.ops.push({ path: "/appearance/frames", before: beforeFrames ?? null, after: nextFrames ?? null });
-      }
-    }
-
     // Aux module
     if (found.kind === "aux") {
       const beforeMod = found.node?.appearance?.module;
@@ -1098,15 +1007,7 @@ function previewRevertToBase() {
       else if (op.path === "/appearance/position" && (found.kind === "point" || found.kind === "aux")) {
         setPos(found.node, op.after);
       }
-      else if (op.path === "/appearance/frames" && (found.kind === "point" || found.kind === "line" || found.kind === "aux")) {
-        if (!found.node.appearance || typeof found.node.appearance !== "object") found.node.appearance = { ...(found.node.appearance || {}) };
-        if (op.after == null) {
-          try { delete found.node.appearance.frames; } catch {}
-        } else {
-          found.node.appearance.frames = op.after;
-        }
-      }
-      else if (op.path === "/appearance/marker/text" && (found.kind === "point" || found.kind === "aux")) {
+      else if (op.path === "/appearance/marker/text" && found.kind === "point") {
         if (!found.node.appearance || typeof found.node.appearance !== "object") found.node.appearance = { ...(found.node.appearance || {}) };
         if (!found.node.appearance.marker || typeof found.node.appearance.marker !== "object") {
           // Keep marker primitive stable; default to none.
@@ -1385,8 +1286,6 @@ function previewRevertToBase() {
   if (inpX) inpX.addEventListener("input", onAnyInput, { signal });
   if (inpY) inpY.addEventListener("input", onAnyInput, { signal });
   if (inpZ) inpZ.addEventListener("input", onAnyInput, { signal });
-  if (inpFrames) inpFrames.addEventListener("input", onAnyInput, { signal });
-  if (inpFrames) inpFrames.addEventListener("input", onAnyInput, { signal });
 
   if (selPosStep) selPosStep.addEventListener(
     "change",
@@ -1421,7 +1320,7 @@ function previewRevertToBase() {
       if (!active || active.kind !== "line") return;
       if (lockedActive) return;
       if (inpEndA) inpEndA.value = "";
-      setDirty(true);
+      onAnyInput();
     },
     { signal }
   );
@@ -1431,7 +1330,7 @@ function previewRevertToBase() {
       if (!active || active.kind !== "line") return;
       if (lockedActive) return;
       if (inpEndB) inpEndB.value = "";
-      setDirty(true);
+      onAnyInput();
     },
     { signal }
   );
@@ -1502,6 +1401,9 @@ function previewRevertToBase() {
     // Keep header info stable, but refresh values from the current document.
     fillInputsFromDoc(active.uuid);
     refreshLockState();
+    try { previewCaptureBase(active.uuid, active.kind); } catch {}
+    try { previewRevertToBase(); } catch {}
+    flushPendingFocus();
   }
 
   function syncFromSelection() {
@@ -1562,6 +1464,116 @@ function previewRevertToBase() {
     showProperty({ uuid });
   }
 
+
+  // Focus a specific field inside Property panel by an issue-like path.
+  // This is used by QuickCheck / focusByIssue to jump to the most relevant input.
+  function applyFocusByIssue(issueLike) {
+    if (!issueLike || typeof issueLike !== "object") return;
+
+    const uuid = issueLike.uuid ? String(issueLike.uuid) : "";
+    if (!uuid) return;
+
+    const kind = (issueLike.kind ? String(issueLike.kind).toLowerCase() : (active?.kind || "")).toLowerCase();
+    const rawPath = issueLike.path ? String(issueLike.path) : "";
+    if (!rawPath) return;
+
+    // Strip array index prefix (/points/<i>, /lines/<i>, /aux/<i>) so mapping stays stable after reorder.
+    const path = rawPath.replace(/^\/(points|lines|aux)\/\d+/, "");
+
+    /** @type {HTMLElement|null} */
+    let target = null;
+
+    const pickVec3Index = (base, idx) => {
+      if (base === "pos") return idx === 0 ? inpX : idx === 1 ? inpY : inpZ;
+      if (base === "front") return idx === 0 ? inpTextFrontX : idx === 1 ? inpTextFrontY : inpTextFrontZ;
+      if (base === "up") return idx === 0 ? inpTextUpX : idx === 1 ? inpTextUpY : inpTextUpZ;
+      if (base === "ctFront") return idx === 0 ? inpCaptionTextFrontX : idx === 1 ? inpCaptionTextFrontY : inpCaptionTextFrontZ;
+      if (base === "ctUp") return idx === 0 ? inpCaptionTextUpX : idx === 1 ? inpCaptionTextUpY : inpCaptionTextUpZ;
+      return null;
+    };
+
+    if (kind === "point") {
+      if (path.startsWith("/signification/name")) target = inpName;
+      else if (path.startsWith("/appearance/position")) {
+        const m = path.match(/^\/appearance\/position\/(\d+)/);
+        target = m ? pickVec3Index("pos", Number(m[1])) : inpX;
+      }
+      else if (path.startsWith("/appearance/marker/text/content")) target = inpTextContent;
+      else if (path.startsWith("/appearance/marker/text/size")) target = inpTextSize;
+      else if (path.startsWith("/appearance/marker/text/align")) target = selTextAlign;
+      else if (path.startsWith("/appearance/marker/text/pose/front")) {
+        const m = path.match(/^\/appearance\/marker\/text\/pose\/front\/(\d+)/);
+        target = m ? pickVec3Index("front", Number(m[1])) : inpTextFrontX;
+      }
+      else if (path.startsWith("/appearance/marker/text/pose/up")) {
+        const m = path.match(/^\/appearance\/marker\/text\/pose\/up\/(\d+)/);
+        target = m ? pickVec3Index("up", Number(m[1])) : inpTextUpX;
+      }
+    }
+    else if (kind === "line") {
+      if (path.startsWith("/signification/caption") || path.startsWith("/signification/name")) target = inpName;
+      else if (path.startsWith("/end_a")) target = inpEndA;
+      else if (path.startsWith("/end_b")) target = inpEndB;
+      else if (path.startsWith("/appearance/caption_text/content")) target = inpCaptionTextContent;
+      else if (path.startsWith("/appearance/caption_text/size")) target = inpCaptionTextSize;
+      else if (path.startsWith("/appearance/caption_text/align")) target = selCaptionTextAlign;
+      else if (path.startsWith("/appearance/caption_text/pose/front")) {
+        const m = path.match(/^\/appearance\/caption_text\/pose\/front\/(\d+)/);
+        target = m ? pickVec3Index("ctFront", Number(m[1])) : inpCaptionTextFrontX;
+      }
+      else if (path.startsWith("/appearance/caption_text/pose/up")) {
+        const m = path.match(/^\/appearance\/caption_text\/pose\/up\/(\d+)/);
+        target = m ? pickVec3Index("ctUp", Number(m[1])) : inpCaptionTextUpX;
+      }
+    }
+    else if (kind === "aux") {
+      if (path.startsWith("/appearance/position")) {
+        const m = path.match(/^\/appearance\/position\/(\d+)/);
+        target = m ? pickVec3Index("pos", Number(m[1])) : inpX;
+      }
+      else if (path.startsWith("/appearance/module")) target = selAuxModule;
+    }
+
+    if (!target || typeof target.focus !== "function") return;
+
+    try { target.scrollIntoView?.({ block: "center", inline: "nearest" }); } catch {}
+    try { target.focus?.({ preventScroll: true }); } catch { try { target.focus?.(); } catch {} }
+
+    // Flash highlight
+    try {
+      target.classList.add("is-flash");
+      const prev = target.__flashTimer;
+      if (prev) clearTimeout(prev);
+      target.__flashTimer = setTimeout(() => {
+        try { target.classList.remove("is-flash"); } catch {}
+      }, 650);
+    } catch {}
+  }
+
+  function flushPendingFocus() {
+    if (!pendingFocusIssue) return;
+    try {
+      const u = pendingFocusIssue?.uuid ? String(pendingFocusIssue.uuid) : "";
+      if (!u || !active?.uuid || u !== String(active.uuid)) return;
+      applyFocusByIssue(pendingFocusIssue);
+      pendingFocusIssue = null;
+    } catch {}
+  }
+
+  function focusFieldByIssue(issueLike) {
+    if (!issueLike || typeof issueLike !== "object") return;
+    const uuid = issueLike.uuid ? String(issueLike.uuid) : "";
+    if (!uuid) return;
+
+    // If selection sync hasn't opened the panel yet, defer until it does.
+    if (!active?.uuid || uuid !== String(active.uuid)) {
+      pendingFocusIssue = issueLike;
+      return;
+    }
+
+    applyFocusByIssue(issueLike);
+  }
+
   // Initialize
   hideAll();
 
@@ -1578,6 +1590,7 @@ function previewRevertToBase() {
     isDirty,
     isActiveLocked: () => !!lockedActive,
     getActiveUuid,
+    focusFieldByIssue,
     // Preview pick override (endpoint pick mode)
     handlePreviewPickOverride,
     isEndpointPickActive: () => !!endpointPick,

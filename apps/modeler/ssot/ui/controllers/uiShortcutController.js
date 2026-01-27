@@ -123,4 +123,33 @@ export function attachUiShortcutController({ signal, core, invoke, ensureEditsAp
     },
     { capture: true, signal }
   );
+
+  // Frame play/pause (Space)
+  window.addEventListener(
+    "keydown",
+    (ev) => {
+      if (shouldIgnoreShortcutTarget(ev.target)) return;
+      if (ev.altKey) return;
+      if (ev.ctrlKey || ev.metaKey) return;
+
+      // M: toggle Move tool (selection drag)
+      if (ev.key === "m" || ev.key === "M") {
+        ev.preventDefault();
+        ev.stopPropagation();
+        invoke?.("tool-move");
+        return;
+      }
+
+      // Space: toggle frame playback
+      if (ev.key !== " ") return;
+
+      // Avoid triggering when a button is focused (Space is click).
+      if (ev.target instanceof HTMLButtonElement) return;
+
+      ev.preventDefault();
+      ev.stopPropagation();
+      invoke?.("play");
+    },
+    { capture: true, signal }
+  );
 }
