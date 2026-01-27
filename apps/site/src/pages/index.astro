@@ -61,6 +61,7 @@ try {
 }
 
 const featuredPrimary = featured?.[0]?.id ? `/library/${featured[0].id}` : "/library";
+const ctaHref = featuredPrimary;
 ---
 
 <Layout
@@ -252,7 +253,7 @@ const featuredPrimary = featured?.[0]?.id ? `/library/${featured[0].id}` : "/lib
       </header>
 
       <div class="mt-8 grid gap-4 sm:gap-5 lg:grid-cols-3">
-        {featured.map((it) => (
+        {featuredItems.map((it) => (
           <a
             href={`/library/${it.id}`}
             class="block rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6 hover:bg-white/10 transition"
