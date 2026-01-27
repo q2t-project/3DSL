@@ -23,6 +23,11 @@ button {
   cursor: pointer;
 }
 
+button.is-active {
+  background: rgba(70, 140, 230, 0.30);
+  border-color: rgba(70, 140, 230, 0.55);
+}
+
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -63,9 +68,50 @@ button:disabled {
 .maingrid {
   min-height: 0;
   display: grid;
-  grid-template-columns: 380px 1fr 340px;
-  gap: 10px;
+  /*
+    NOTE: outliner/property widths are user-adjustable via splitters.
+    Default widths are set as CSS vars on :root.
+  */
+  /* slightly wider outliner by default; splitters are a bit easier to grab */
+  grid-template-columns: var(--pane-outliner-w, 520px) 10px 1fr 10px var(--pane-prop-w, 360px);
+  gap: 8px;
   padding: 10px;
+}
+
+/* When preview-out window is used, the main window can be simplified.
+   Keep Outliner + splitter + Property, hide the embedded preview pane. */
+.modeler-root.is-previewout-active .maingrid {
+  grid-template-columns: var(--pane-outliner-w, 520px) 10px 1fr;
+}
+.modeler-root.is-previewout-active [data-role="pane-preview"],
+.modeler-root.is-previewout-active [data-role="splitter-right"] {
+  display: none !important;
+}
+
+.splitter {
+  align-self: stretch;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  cursor: col-resize;
+  position: relative;
+}
+
+.splitter::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  /* expand hit-area without changing layout */
+  transform: scaleX(1.6);
+}
+
+.splitter:hover {
+  background: rgba(255, 255, 255, 0.10);
+}
+
+.splitter.is-dragging {
+  background: rgba(70, 140, 230, 0.30);
+  border-color: rgba(70, 140, 230, 0.55);
 }
 
 .pane {
@@ -100,6 +146,28 @@ button:disabled {
   overflow: auto;
 }
 
+/* Outliner: keep tabs/actions fixed; scroll only the table area */
+[data-role="outliner-body"]{
+  /*
+    P1: Outliner header must not scroll away.
+    .pane-body sets overflow:auto for generic panes, so we hard-override here.
+  */
+  overflow: hidden !important;
+  display: flex;
+  flex-direction: column;
+}
+
+[data-role="outliner-body"] .outliner-tabs,
+[data-role="outliner-body"] .outliner-actions {
+  flex: 0 0 auto;
+}
+
+[data-role="outliner-body"] .outliner-tablewrap{
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
 .pane-preview-body {
   position: relative;
   overflow: hidden;
@@ -121,6 +189,24 @@ canvas[data-role="modeler-canvas"] {
   opacity: 0.85;
 }
 
+.preview-selection {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  max-width: min(60%, 520px);
+  padding: 6px 10px;
+  background: rgba(15,22,32,0.78);
+  border: 1px solid #1d2a3a;
+  border-radius: 999px;
+  font-size: 12px;
+  opacity: 0.92;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
 .outliner-tabs {
   display: flex;
   gap: 6px;
@@ -139,12 +225,27 @@ canvas[data-role="modeler-canvas"] {
 
 .outliner-tablewrap {
   padding: 10px;
+  /* spreadsheet-like: keep columns readable; allow horizontal scroll */
+  overflow: auto;
+  scrollbar-gutter: stable both-edges;
 }
 
 .outliner-table {
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
   font-size: 12px;
+}
+
+.outliner-table thead th {
+  position: sticky;
+  top: 0;
+  background: #0f1620;
+  z-index: 1;
+}
+
+.outliner-table tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .outliner-table th, .outliner-table td {
@@ -156,6 +257,15 @@ canvas[data-role="modeler-canvas"] {
 
 .outliner-table tr[data-locked="true"] {
   opacity: 0.45;
+}
+
+/* Property panel: locked state */
+[data-role="prop-panel"][data-locked="true"] {
+  opacity: 0.85;
+}
+
+[data-role="prop-panel"][data-locked="true"] input {
+  opacity: 0.7;
 }
 
 .outliner-table tr.is-selected td {
@@ -174,12 +284,109 @@ canvas[data-role="modeler-canvas"] {
 .col-lock {
   width: 28px;
   text-align: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.col-vis,
+.col-solo {
+  width: 28px;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.outliner-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.outliner-actions-sep {
+  width: 1px;
+  height: 22px;
+  align-self: center;
+  background: rgba(255, 255, 255, 0.10);
+  margin: 0 2px;
+}
+
+.outliner-actions button {
+  background: #121a24;
+  color: #e8eef6;
+  border: 1px solid #1d2a3a;
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.outliner-actions button:hover {
+  background: #162131;
+}
+
+.outliner-table tr.is-hidden td {
+  opacity: 0.5;
+}
+
+.outliner-table tr.solo-dim td {
+  opacity: 0.35;
+}
+
+.outliner-table tr.is-group-row td {
+  background: rgba(255, 255, 255, 0.03);
+  font-weight: 600;
+}
+
+.outliner-table tr.is-group-selected td {
+  background: rgba(70, 140, 230, 0.12);
+}
+
+.outliner-caret {
+  display: inline-block;
+  width: 16px;
+  text-align: center;
+  opacity: 0.85;
+  margin-right: 6px;
+}
+
+.outliner-indent {
+  display: inline-block;
+  width: var(--indent, 0px);
 }
 
 .col-uuid {
   width: 140px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   opacity: 0.85;
+}
+
+.col-name {
+  min-width: 180px;
+}
+
+.col-end {
+  min-width: 140px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  opacity: 0.85;
+}
+
+.prop-empty,
+.prop-multi {
+  padding: 12px;
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.prop-multi-title {
+  font-weight: 600;
+  opacity: 0.95;
+}
+
+.prop-multi-sub {
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: 0.75;
 }
 
 .prop-kv {
@@ -197,12 +404,92 @@ canvas[data-role="modeler-canvas"] {
   gap: 8px;
 }
 
+.prop-help {
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: 0.75;
+  line-height: 1.3;
+}
+
+.prop-field {
+  padding: 10px 12px;
+  display: grid;
+  gap: 6px;
+  border-bottom: 1px solid #1d2a3a;
+}
+
+.prop-label {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.prop-input {
+  background: #0b0f14;
+  color: #e8eef6;
+  border: 1px solid #1d2a3a;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font: inherit;
+}
+
+.prop-input:focus {
+  outline: none;
+  border-color: #33507a;
+}
+
+.prop-pos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.prop-line-ends {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.prop-row-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.prop-sub {
+  font-size: 12px;
+  opacity: 0.75;
+  margin-left: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.prop-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.prop-row-key {
+  width: auto;
+  flex: 0 0 auto;
+  font-size: 12px;
+  opacity: 0.75;
+  text-transform: none;
+}
+
+.prop-row .prop-input {
+  flex: 1;
+  min-width: 0;
+}
+
 .qc-panel {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  width: min(560px, calc(100vw - 32px));
-  max-height: min(70vh, 600px);
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  width: min(520px, calc(100% - 24px));
+  max-height: min(60%, 520px);
   background: #0f1620;
   border: 1px solid #1d2a3a;
   border-radius: 12px;
@@ -210,7 +497,9 @@ canvas[data-role="modeler-canvas"] {
   display: grid;
   grid-template-rows: auto 1fr;
   box-shadow: 0 10px 40px rgba(0,0,0,0.35);
+  z-index: 20;
 }
+
 
 .qc-head {
   display: flex;
@@ -252,3 +541,59 @@ canvas[data-role="modeler-canvas"] {
 .qc-sev-error { color: #ff6b6b; }
 .qc-sev-warn { color: #ffd166; }
 .qc-sev-info { color: #9bf6ff; }
+
+.prop-dirty {
+  padding: 8px 12px;
+  font-size: 12px;
+  opacity: 0.9;
+  border-bottom: 1px solid #1d2a3a;
+}
+
+
+/* Ensure [hidden] is always respected even if a layout rule sets display. */
+.prop-field[hidden] {
+  display: none !important;
+}
+
+
+.prop-inline3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
+.prop-inline2{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;}
+
+/* Property: collapsible pose blocks */
+.prop-details{
+  border: 1px solid #1d2a3a;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.03);
+  padding: 6px 8px;
+}
+
+.prop-details > summary{
+  cursor: pointer;
+  font-size: 12px;
+  opacity: 0.85;
+  user-select: none;
+  list-style: none;
+}
+
+.prop-note{
+  font-size: 12px;
+  opacity: 0.7;
+  margin-left: 6px;
+}
+
+/* hide default marker for consistent appearance */
+.prop-details > summary::-webkit-details-marker{display:none;}
+
+.prop-details[open] > summary{opacity: 1.0;}
+
+.prop-details-body{margin-top: 6px;}
+
+.prop-mini{
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.06);
+  color: inherit;
+  cursor: pointer;
+}
+.prop-mini:disabled{opacity:.5;cursor:default;}
