@@ -88,6 +88,36 @@ function parseEndpointInput(raw) {
   return { coord: [x, y, z] };
 }
 
+function parseFramesInput(raw) {
+  const s = String(raw ?? "").trim();
+  if (!s) return { value: undefined, error: null }; // undefined => clear frames
+
+  const parts = s.split(/[,\s]+/).filter(Boolean);
+  if (!parts.length) return { value: undefined, error: null };
+
+  const nums = [];
+  for (const p of parts) {
+    const n = Number(p);
+    if (!Number.isFinite(n) || Math.floor(n) !== n) {
+      return { value: undefined, error: "Invalid frames: use integer or comma/space-separated integers" };
+    }
+    nums.push(n);
+  }
+
+  if (nums.length === 1) return { value: nums[0], error: null };
+
+  // Deduplicate while preserving order.
+  const seen = new Set();
+  const arr = [];
+  for (const n of nums) {
+    const k = String(n);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    arr.push(n);
+  }
+  return { value: arr, error: null };
+}
+
 function findByUuid(doc, uuid) {
   if (!doc || !uuid) return { kind: null, node: null };
   if (Array.isArray(doc.points)) {
@@ -268,6 +298,10 @@ export function createUiPropertyController(deps) {
   const inpX = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-x"));
   const inpY = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-y"));
   const inpZ = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-z"));
+
+  const framesField = getRoleEl(root, "prop-frames-field");
+  const inpFrames = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-frames"));
+  const framesHintEl = /** @type {HTMLElement|null} */ (getRoleEl(root, "prop-frames-hint"));
 
   const selPosStep = /** @type {HTMLSelectElement|null} */ (getRoleEl(root, "prop-pos-step"));
   const posStepHintEl = /** @type {HTMLElement|null} */ (getRoleEl(root, "prop-pos-step-hint"));
@@ -455,6 +489,7 @@ function previewRevertToBase() {
     if (inpX) inpX.disabled = !en;
     if (inpY) inpY.disabled = !en;
     if (inpZ) inpZ.disabled = !en;
+    if (inpFrames) inpFrames.disabled = !en;
     if (inpEndA) inpEndA.disabled = !en;
     if (inpEndB) inpEndB.disabled = !en;
     if (inpTextContent) inpTextContent.disabled = !en;
@@ -671,6 +706,10 @@ function previewRevertToBase() {
     }
     if (nameLabel) nameLabel.textContent = isLine ? "caption" : "name";
     if (posField) posField.hidden = !(isPoint || isAux);
+    if (framesField) {
+      framesField.hidden = false;
+      framesField.style.display = "";
+    }
     if (lineEndsField) lineEndsField.hidden = !isLine;
     if (captionTextField) { captionTextField.hidden = !isLine; captionTextField.style.display = isLine ? "" : "none"; }
 
@@ -693,6 +732,14 @@ function previewRevertToBase() {
       if (inpX) inpX.value = String(x);
       if (inpY) inpY.value = String(y);
       if (inpZ) inpZ.value = String(z);
+    }
+
+    // frames (point/line/aux): blank means "all frames" (unset).
+    if (inpFrames) {
+      const f = found.node?.appearance?.frames;
+      if (typeof f === "number") inpFrames.value = String(f);
+      else if (Array.isArray(f)) inpFrames.value = f.map(String).join(",");
+      else inpFrames.value = "";
     }
 
     if (isAux) {
@@ -982,6 +1029,21 @@ function previewRevertToBase() {
       }
     }
 
+    // Frames (appearance.frames) for point/line/aux. Blank input => unset (all frames).
+    {
+      const beforeFrames = found.node?.appearance?.frames;
+      const { value: nextFrames, error: framesError } = parseFramesInput(inpFrames ? inpFrames.value : "");
+      if (framesError) {
+        setHud(framesError);
+        return null;
+      }
+      const beforeNorm = beforeFrames == null ? null : beforeFrames;
+      const afterNorm = nextFrames == null ? null : nextFrames;
+      if (JSON.stringify(beforeNorm) !== JSON.stringify(afterNorm)) {
+        patch.ops.push({ path: "/appearance/frames", before: beforeFrames ?? null, after: nextFrames ?? null });
+      }
+    }
+
     // Aux module
     if (found.kind === "aux") {
       const beforeMod = found.node?.appearance?.module;
@@ -1035,6 +1097,14 @@ function previewRevertToBase() {
       }
       else if (op.path === "/appearance/position" && (found.kind === "point" || found.kind === "aux")) {
         setPos(found.node, op.after);
+      }
+      else if (op.path === "/appearance/frames" && (found.kind === "point" || found.kind === "line" || found.kind === "aux")) {
+        if (!found.node.appearance || typeof found.node.appearance !== "object") found.node.appearance = { ...(found.node.appearance || {}) };
+        if (op.after == null) {
+          try { delete found.node.appearance.frames; } catch {}
+        } else {
+          found.node.appearance.frames = op.after;
+        }
       }
       else if (op.path === "/appearance/marker/text" && (found.kind === "point" || found.kind === "aux")) {
         if (!found.node.appearance || typeof found.node.appearance !== "object") found.node.appearance = { ...(found.node.appearance || {}) };
@@ -1315,6 +1385,8 @@ function previewRevertToBase() {
   if (inpX) inpX.addEventListener("input", onAnyInput, { signal });
   if (inpY) inpY.addEventListener("input", onAnyInput, { signal });
   if (inpZ) inpZ.addEventListener("input", onAnyInput, { signal });
+  if (inpFrames) inpFrames.addEventListener("input", onAnyInput, { signal });
+  if (inpFrames) inpFrames.addEventListener("input", onAnyInput, { signal });
 
   if (selPosStep) selPosStep.addEventListener(
     "change",

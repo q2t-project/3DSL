@@ -139,6 +139,13 @@ ports:
     surface: "hub.previewSetCaptionText(uuid, captionText, fallbackText) -> void (preview only; captionText={content, size?, align?, pose?} | null)"
     stability: "stable"
 
+
+  - id: "hub.previewSetOverride"
+    caller: "ui"
+    callee: "hub"
+    surface: "hub.previewSetOverride(uuid, override:{position?,endA?,endB?,captionText?}|null) -> void (preview only; null clears override for uuid)"
+    stability: "beta"
+
   - id: "hub.core.controllers"
     caller: "ui"
     callee: "hub"
@@ -166,7 +173,7 @@ ports:
   - id: "hub.renderer.createRenderer"
     caller: "hub"
     callee: "renderer"
-    surface: "createRenderer(canvas) -> renderer (start/stop/resize/dispose/setDocument/applyVisibility/setSelection/pickObjectAt/focusOnUuid/worldPointOnPlaneZ/previewSetPosition/previewSetLineEnds/previewSetCaptionText)"
+    surface: "createRenderer(canvas) -> renderer (start/stop/resize/dispose/setDocument/applyVisibility/setSelection/pickObjectAt/focusOnUuid/worldPointOnPlaneZ/previewSetPosition/previewSetLineEnds/previewSetCaptionText/previewSetOverride)"
     stability: "stable"
 
 # 互換ラッパ（compat）は ports に含めない。deprecated として隔離する。

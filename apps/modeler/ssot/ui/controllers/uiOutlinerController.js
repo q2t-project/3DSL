@@ -11,7 +11,53 @@ function safePos(node) {
 }
 
 function nameOf(node) {
-  return String(node?.signification?.name || node?.name || "");
+  // points: signification.name
+  // lines: signification.caption
+  return String(node?.signification?.name || node?.signification?.caption || node?.name || "");
+}
+
+function framesOf(node) {
+  const f = node?.appearance?.frames ?? node?.frames;
+  if (typeof f === "number") return f;
+  if (Array.isArray(f)) return f.map((x) => Number(x)).filter((x) => Number.isFinite(x));
+  return null;
+}
+
+function fmtFrames(frames) {
+  if (frames == null) return "";
+  if (typeof frames === "number") return String(frames);
+  if (Array.isArray(frames)) return frames.join(",");
+  return "";
+}
+
+function fmtEndpoint(end, pointPosByUuid) {
+  if (end == null) return "";
+  // legacy: string uuid
+  if (typeof end === "string") {
+    const u = String(end);
+    const pos = pointPosByUuid?.get?.(u);
+    const su = u.slice(0, 8);
+    return pos ? `${su} (${pos.join(",")})` : su;
+  }
+  if (Array.isArray(end) && end.length >= 3) {
+    const a = end.slice(0, 3).map((x) => Number(x) || 0);
+    return `[${a.join(",")}]`;
+  }
+  if (typeof end === "object") {
+    const ref = end?.ref;
+    const coord = end?.coord;
+    if (typeof ref === "string") {
+      const u = String(ref);
+      const pos = pointPosByUuid?.get?.(u);
+      const su = u.slice(0, 8);
+      return pos ? `${su} (${pos.join(",")})` : su;
+    }
+    if (Array.isArray(coord) && coord.length >= 3) {
+      const a = coord.slice(0, 3).map((x) => Number(x) || 0);
+      return `[${a.join(",")}]`;
+    }
+  }
+  return "";
 }
 
 function auxModuleLabel(node) {
@@ -189,22 +235,25 @@ export class UiOutlinerController {
       tr.appendChild(makeTh("name", "col-name"));
       tr.appendChild(makeTh("end_a", "col-end"));
       tr.appendChild(makeTh("end_b", "col-end"));
+      tr.appendChild(makeTh("F", "col-frames", "frames"));
       tr.appendChild(makeTh("uuid", "col-uuid"));
-      this.columnCount = 7;
+      this.columnCount = 8;
     } else if (tab === "aux") {
       tr.appendChild(makeTh("module", "col-name"));
       tr.appendChild(makeTh("x", "col-num"));
       tr.appendChild(makeTh("y", "col-num"));
       tr.appendChild(makeTh("z", "col-num"));
+      tr.appendChild(makeTh("F", "col-frames", "frames"));
       tr.appendChild(makeTh("uuid", "col-uuid"));
-      this.columnCount = 8;
+      this.columnCount = 9;
     } else {
       tr.appendChild(makeTh("name", "col-name"));
       tr.appendChild(makeTh("x", "col-num"));
       tr.appendChild(makeTh("y", "col-num"));
       tr.appendChild(makeTh("z", "col-num"));
+      tr.appendChild(makeTh("F", "col-frames", "frames"));
       tr.appendChild(makeTh("uuid", "col-uuid"));
-      this.columnCount = 8;
+      this.columnCount = 9;
     }
 
     this.thead.textContent = "";
@@ -347,7 +396,7 @@ export class UiOutlinerController {
       const nL = lines.length;
       lines.push({
         meta: { uuid: lineUuid },
-        signification: { name: `L${nL + 1}` },
+        signification: { caption: `L${nL + 1}` },
         end_a: { ref: aUuid },
         end_b: { ref: bUuid },
       });
@@ -507,6 +556,17 @@ export class UiOutlinerController {
     const collapsed = new Set(Array.isArray(outlinerState.collapsed) ? outlinerState.collapsed.map(String) : []);
     const itemToGroup = outlinerState.itemToGroup || {};
 
+    // Build point index for line endpoint display.
+    this.pointPosByUuid = new Map();
+    try {
+      for (const p of Array.isArray(doc?.points) ? doc.points : []) {
+        const u = uuidOf(p);
+        if (!u) continue;
+        const [x, y, z] = safePos(p);
+        this.pointPosByUuid.set(String(u), [x, y, z]);
+      }
+    } catch {}
+
     const rows = collectRows(doc, tab);
 
     // Build group -> items mapping for current tab.
@@ -662,6 +722,7 @@ export class UiOutlinerController {
     const uuid = uuidOf(r.node);
     const name = nameOf(r.node);
     const [x, y, z] = safePos(r.node);
+    const frames = framesOf(r.node);
     const path = r.path || "/";
 
     const tr = document.createElement("tr");
@@ -693,15 +754,17 @@ export class UiOutlinerController {
     tr.appendChild(tdName);
 
     if (r.kind === "line") {
-      const a = r.node?.end_a?.ref || r.node?.end_a || "";
-      const b = r.node?.end_b?.ref || r.node?.end_b || "";
+      const a = fmtEndpoint(r.node?.end_a, this.pointPosByUuid);
+      const b = fmtEndpoint(r.node?.end_b, this.pointPosByUuid);
       tr.appendChild(this.#createTextCell(a, "col-end"));
       tr.appendChild(this.#createTextCell(b, "col-end"));
+      tr.appendChild(this.#createTextCell(fmtFrames(frames), "col-frames"));
       tr.appendChild(this.#createUuidCell(uuid));
     } else {
       tr.appendChild(this.#createNumCell(x));
       tr.appendChild(this.#createNumCell(y));
       tr.appendChild(this.#createNumCell(z));
+      tr.appendChild(this.#createTextCell(fmtFrames(frames), "col-frames"));
       tr.appendChild(this.#createUuidCell(uuid));
     }
 

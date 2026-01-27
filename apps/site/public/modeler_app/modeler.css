@@ -281,6 +281,12 @@ canvas[data-role="modeler-canvas"] {
   width: 60px;
 }
 
+.col-frames {
+  width: 56px;
+  text-align: center;
+  opacity: 0.85;
+}
+
 .col-lock {
   width: 28px;
   text-align: center;

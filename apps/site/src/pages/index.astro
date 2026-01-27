@@ -18,7 +18,7 @@ type LibraryIndexItem = {
 
 const libraryIndexUrl = new URL("../../public/_data/library/library_index.json", import.meta.url);
 
-let featured: LibraryIndexItem[] = [];
+let featuredItems: LibraryIndexItem[] = [];
 try {
   const raw = await fs.readFile(libraryIndexUrl, "utf8");
   const parsed = JSON.parse(raw);
@@ -51,16 +51,16 @@ try {
 
   const ok = items.filter(isOk);
   // Prefer curated items first (m:top -> m:default), then fill with the rest.
-  featured = uniq([
+  featuredItems = uniq([
     ...ok.filter(isTop),
     ...ok.filter((it) => !isTop(it) && isDefault(it)),
     ...ok.filter((it) => !isTop(it) && !isDefault(it)),
   ]).slice(0, 3);
 } catch {
-  featured = [];
+  featuredItems = [];
 }
 
-const featuredPrimary = featured?.[0]?.id ? `/library/${featured[0].id}` : "/library";
+const featuredPrimary = featuredItems?.[0]?.id ? `/library/${featuredItems[0].id}` : "/library";
 const ctaHref = featuredPrimary;
 ---
 

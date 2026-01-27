@@ -14,7 +14,7 @@ modeler は次を提供する。
 - frame（時間層）可視性（appearance.frames）の編集と再生プレビュー
 - name / caption / appearance / meta の編集
 - 選択・複数選択・一括変形（Move/Rotate/Scale）
-- 文字（marker.text / caption_text / aux.extension.latex）の向き（text_pose: front/up）を含む正確なプレビュー
+- 文字（marker.text / caption_text / aux.appearance.module.extension.latex）の向き（text_pose: front/up）を含む正確なプレビュー
 - strict validation（スキーマ準拠）と Quick Check
 - ファイル入出力（Open/Save/Save As/Export）
 - Preview Out（二面表示/外部表示：外部ウィンドウへのプレビュー出力）
@@ -532,16 +532,43 @@ points の Outliner は「俯瞰」に徹し、列は次を最小とする。
 
 ## 2.7 aux（補助要素）
 
-- aux は grid/axis/plate/shell/hud/extension を含む。
-- extension.latex を用いる場合、`pose` は必須である（front/up vec3）。
+aux は points/lines とは別枠の「補助要素」であり、背景・注釈・ガイド等を表す。  
+スキーマ上の中心は `aux[].appearance.module` で、**単一キーの object（one-of）**として module 種別を表現する。
 
-### 2.7.1 Outliner（aux）の最小列
+### 2.7.1 module（one-of）の表現（strict）
 
-- type（grid/axis/plate/shell/hud/extension）
-- name（表示名：存在しない場合は type を表示名に用いる）
-- position
-- frames
-- uuid（短縮）
+- `aux[].appearance.module` は次のいずれか **1つだけ**を持つ：
+  - `grid` / `axis` / `plate` / `shell` / `hud` / `extension`
+- 例：
+  - `{ "grid": { "grid_type": "plane", "spacing": 10, "color": "#888" } }`
+  - `{ "axis": { "length": 100 } }`
+  - `{ "extension": { "type": "latex", "latex": { "content": "...", "pose": { "front":[0,1,0], "up":[0,0,1] } } } }`
+
+> NOTE（現行実装 / P0）
+> - UI では module の「種類キー選択」までは対応（`uiPropertyController` の `/appearance/module` patch）。
+> - module ごとの詳細パラメータ編集は P1 以降（現状は空 object `{}` を入れて成立させる）。
+
+### 2.7.2 extension.latex（schema 上の拡張）
+
+- `aux[].appearance.module.extension` は拡張点として `type` と各 payload（例：`latex`）を持つ。
+- `latex` は schema 上、少なくとも次が必須：
+  - `aux[].appearance.module.extension.latex.content`
+  - `aux[].appearance.module.extension.latex.pose`（`front/up` の vec3）
+
+> NOTE（現行実装 / P0）
+> - `extension.latex` の編集 UI と描画は未対応（preview は placeholder 表示のみ）。
+> - P1 で renderer と Property を拡張し、viewer と同等の描画に寄せる。
+
+### 2.7.3 Outliner（aux）の最小列
+
+- kind（固定：aux）
+- name（表示名）
+- module（`aux[].appearance.module` のキー）
+- position（x/y/z の簡易表示）
+- frames（設定有無と簡易表示）
+
+※ 例：`name=Grid`, `module=grid`, `pos=(0,0,0)`, `frames=*`。
+
 
 ## 2.8 frames（時間層）編集
 
@@ -571,9 +598,10 @@ Save/Export 時に frames を正規化する場合、次を推奨する。
 
 modeler は次の pose を、viewer と同等に解釈して描画する。
 
-- point.marker.text.pose
-- line.appearance.caption_text.pose
-- aux.module.extension.latex.pose
+- points[].appearance.marker.text.pose
+- lines[].appearance.caption_text.pose
+- aux[].appearance.module.extension.latex.pose
+- aux[].appearance.marker.text.pose (optional; marker.text を使う場合)
 
 ### 2.9.2 数学的要件（直交化）
 
@@ -834,3 +862,105 @@ QuickCheck の 1件（Issue）は次の payload を持つ。
 ## 7.1 schema_uri とバージョン追従
 ## 7.2 sidecar の互換性方針（modeler 内限定）
 ## 7.3 将来拡張（constraints / blocks / collaboration）
+
+
+# 99 仕様→実装対応表（章別）
+
+この章は **仕様（本ファイル）→ 実装（apps/modeler/ssot）** の参照対応を「章ごと」に整理する。<br>参照は原則 SSOT 側（`apps/modeler/ssot/**`）を示し、`apps/site/public/**` 等のミラーは対象外とする。
+
+## 0章
+
+| 仕様節 | 要点 | 実装参照（ファイル/関数） | 状況 |
+|---|---|---|---|
+| 0.1 | modeler の役割 | apps/modeler/ssot/index.html (UI shell)<br>apps/modeler/ssot/modelerHostBoot.js (entry)<br>apps/modeler/ssot/runtime/bootstrapModeler.js:bootstrapModeler | PARTIAL |
+| 0.2 | common / schema 仕様との関係（スキーマが契約 SSOT） | packages/schemas/3DSS.schema.json (契約)<br>apps/modeler/ssot/runtime/core/coreControllers.js:validator.validateStrict / importNormalize | DONE |
+| 0.3 | 適用範囲 | apps/modeler/ssot/ui/controllers/uiFileController.js (New/Open/Save/Export)<br>apps/modeler/ssot/ui/controllers/uiPropertyController.js (編集)<br>apps/modeler/ssot/ui/controllers/uiOutlinerController.js (追加/削除)<br>apps/modeler/ssot/runtime/renderer/modelerRenderer.js (preview) | PARTIAL |
+| 0.4 | 非対象（本仕様の範囲外） | — (オンライン同期/協調編集などは未実装) | TODO |
+| 0.5 | 設計方針（編集アプリとして） | apps/modeler/ssot/runtime/core/coreControllers.js (single-writer + undo/redo)<br>apps/modeler/ssot/ui/controllers/uiPropertyController.js (未適用dirty) | PARTIAL |
+| 0.6 | アーキテクチャ：レイヤと責務：レイヤと責務 | apps/modeler/ssot/runtime/bootstrapModeler.js (entry)<br>apps/modeler/ssot/runtime/modelerHub.js (hub)<br>apps/modeler/ssot/runtime/core/coreControllers.js (core)<br>apps/modeler/ssot/runtime/renderer/modelerRenderer.js (renderer)<br>apps/modeler/ssot/ui/attachUiShell.js (ui) | DONE |
+| 0.7 | 依存注入（DI）と composition root | apps/modeler/ssot/modelerHost.js:mountModelerHost (composition root)<br>apps/modeler/ssot/ui/attachUiShell.js (DOM収集+controller生成)<br>apps/modeler/ssot/ui/hubOps.js:startHub (hub生成) | DONE |
+| 0.8 | ライフサイクル（start/stop/dispose） | apps/modeler/ssot/runtime/modelerHub.js:createModelerHub (start/stop/resize/dispose)<br>apps/modeler/ssot/runtime/renderer/modelerRenderer.js:createRenderer (start/stop/dispose) | DONE |
+| 0.9 | 状態所有権（single-writer） | apps/modeler/ssot/runtime/core/coreControllers.js:edit (history group) + document.updateDocument<br>apps/modeler/ssot/ui/controllers/uiPropertyController.js (buffer->apply) | PARTIAL |
+
+## 1章
+
+| 仕様節 | 要点 | 実装参照（ファイル/関数） | 状況 |
+|---|---|---|---|
+| 1.1 | モジュール構成 | apps/modeler/ssot/{index.html,modelerHost.js,modelerHostBoot.js,preview_out.html,previewOutBoot.js}<br>apps/modeler/ssot/runtime/**<br>apps/modeler/ssot/ui/** | DONE |
+| 1.2 | Core（editable state と編集トランザクション） | apps/modeler/ssot/runtime/core/coreControllers.js:createCoreControllers<br>apps/modeler/ssot/runtime/core/coreFacade.js (compat)<br>apps/modeler/ssot/runtime/core/validation.js (AJVラッパ) | DONE |
+| 1.3 | 依存関係（core 主導） | apps/modeler/ssot/manifest.yaml (ports)<br>apps/modeler/ssot/ui/hubFacade.js (ui<->hub core surface)<br>apps/modeler/ssot/runtime/modelerHub.js (hub内DI) | DONE |
+| 1.4 | 各モジュールの責務 | apps/modeler/ssot/modelerHost.js:mountModelerHost<br>apps/modeler/ssot/runtime/bootstrapModeler.js<br>apps/modeler/ssot/runtime/modelerHub.js<br>apps/modeler/ssot/runtime/core/coreControllers.js<br>apps/modeler/ssot/runtime/renderer/modelerRenderer.js<br>apps/modeler/ssot/ui/attachUiShell.js + ui/controllers/* | DONE |
+| 1.5 | I/O（modeler 概要） | apps/modeler/ssot/ui/controllers/uiFileController.js<br>apps/modeler/ssot/runtime/core/coreControllers.js:file (open/save/export)<br>apps/modeler/ssot/runtime/bootstrapModeler.js:bootstrapModelerFromUrl | PARTIAL |
+| 1.6 | 禁止事項（modeler 全体） | apps/modeler/ssot/manifest.yaml:dependency_rules + checks<br>apps/modeler/ssot/scripts/check-forbidden-imports.mjs<br>apps/modeler/ssot/scripts/check-single-writer.mjs | DONE |
+| 1.7 | 起動フロー | apps/modeler/ssot/modelerHostBoot.js (boot)<br>apps/modeler/ssot/modelerHost.js:mountModelerHost<br>apps/modeler/ssot/runtime/bootstrapModeler.js:bootstrapModeler | DONE |
+| 1.8 | dev modeler と本番 modeler | apps/site/scripts/sync/modeler.mjs (SSOT->public mirror)<br>apps/modeler/ssot/manifest.yaml:paths | PARTIAL |
+| 1.9 | baseline 起動時の固定条件 | — (coordinate_system/units の固定・チェックは未実装) | TODO |
+| 1.10 | Preview Out（二面表示 / 外部表示） | apps/modeler/ssot/preview_out.html<br>apps/modeler/ssot/previewOutBoot.js<br>apps/modeler/ssot/ui/attachUiShell.js (openPreviewOut / focus-mode) | PARTIAL |
+
+## 2章
+
+| 仕様節 | 要点 | 実装参照（ファイル/関数） | 状況 |
+|---|---|---|---|
+| 2.1 | modeler が扱う入力形式 | apps/modeler/ssot/runtime/core/coreControllers.js:file.openFromFilePicker / file.openFromUrl<br>apps/modeler/ssot/runtime/core/coreControllers.js:importNormalize | DONE |
+| 2.2 | Save / Export（strict）の規則 | apps/modeler/ssot/runtime/core/coreControllers.js:validator.validateStrict<br>apps/modeler/ssot/runtime/core/coreControllers.js:file.saveToHandle / file.exportToDisk | DONE |
+| 2.3 | ドキュメントメタ（document_meta） | apps/modeler/ssot/runtime/core/coreControllers.js:document.getMeta / setMeta<br>apps/modeler/ssot/runtime/core/coreControllers.js:createEmptyDocument | PARTIAL |
+| 2.4 | 要素の識別（uuid / name） | apps/modeler/ssot/runtime/core/coreControllers.js:uuidOf / nameOf / resolveEndpoint<br>apps/modeler/ssot/runtime/renderer/modelerRenderer.js (uuid/kind index) | DONE |
+| 2.5 | points（存在要素） | apps/modeler/ssot/ui/controllers/uiOutlinerController.js:addPoint/deleteSelection<br>apps/modeler/ssot/ui/controllers/uiPropertyController.js (points: position/marker.text)<br>apps/modeler/ssot/runtime/renderer/modelerRenderer.js (points render/pick) | PARTIAL |
+| 2.6 | lines（関係要素） | apps/modeler/ssot/ui/controllers/uiOutlinerController.js:addLine<br>apps/modeler/ssot/ui/controllers/uiPropertyController.js (lines: endpoints/caption)<br>apps/modeler/ssot/runtime/core/coreControllers.js:resolveEndpoint<br>apps/modeler/ssot/runtime/renderer/modelerRenderer.js (lines render/pick) | PARTIAL |
+| 2.7 | aux（補助要素） | apps/modeler/ssot/ui/controllers/uiOutlinerController.js:addAux<br>apps/modeler/ssot/ui/controllers/uiPropertyController.js (aux: module/position/marker)<br>apps/modeler/ssot/runtime/renderer/modelerRenderer.js (aux placeholder box) | PARTIAL |
+| 2.8 | frames（時間層）編集 | apps/modeler/ssot/ui/controllers/uiToolbarController.js (frame slider/play)<br>apps/modeler/ssot/runtime/renderer/modelerRenderer.js:setFrameIndex / applyVisibility<br>apps/modeler/ssot/runtime/modelerHub.js:setFrameIndex | PARTIAL |
+| 2.9 | text_pose（front/up）の解釈（modeler 側） | apps/modeler/ssot/runtime/renderer/modelerRenderer.js:normalizeTextPose / axisTokenToVec3<br>apps/modeler/ssot/runtime/core/coreControllers.js:importNormalize (pose正規化はrenderer側) | PARTIAL |
+
+## 3章
+
+| 仕様節 | 要点 | 実装参照（ファイル/関数） | 状況 |
+|---|---|---|---|
+| 3.1 | 画面レイアウト（PC前提） | apps/modeler/ssot/index.html (layout)<br>apps/modeler/ssot/modeler.css<br>apps/modeler/ssot/ui/attachUiShell.js (split, focus-mode) | PARTIAL |
+| 3.2 | Outliner（points / lines / aux / frames） | apps/modeler/ssot/ui/controllers/uiOutlinerController.js<br>apps/modeler/ssot/ui/controllers/uiSelectionController.js | PARTIAL |
+| 3.3 | PropertyPanel（共通/種別別） | apps/modeler/ssot/ui/controllers/uiPropertyController.js | PARTIAL |
+| 3.4 | 選択（単体/複数/範囲）とフィルタ | apps/modeler/ssot/ui/controllers/uiSelectionController.js (multi)<br>apps/modeler/ssot/runtime/core/coreControllers.js:selection controller | PARTIAL |
+| 3.5 | 変形（Move/Rotate/Scale）と数値入力 | — (数値入力/プロパティ編集は一部対応; gizmo変形は未実装) | TODO |
+| 3.6 | スナップ（OSNAP / グリッド / 軸ロック） | — (snap未実装) | TODO |
+| 3.7 | Undo/Redo とコマンド履歴 UI | apps/modeler/ssot/runtime/core/coreControllers.js:edit (undo/redo)<br>apps/modeler/ssot/ui/controllers/uiToolbarController.js (undo/redo buttons) | PARTIAL |
+| 3.8 | ショートカット（キーマップ） | apps/modeler/ssot/ui/controllers/uiShortcutController.js (key bindings: undo/redo, delete, etc.) | PARTIAL |
+| 3.9 | lock（要素ロック）と誤操作防止 | apps/modeler/ssot/runtime/core/coreControllers.js:lock controller<br>apps/modeler/ssot/ui/controllers/uiOutlinerController.js (🔒 toggle)<br>apps/modeler/ssot/ui/controllers/uiPropertyController.js (lock表示) | PARTIAL |
+| 3.10 | QuickCheck パネル（保存失敗時の導線） | apps/modeler/ssot/runtime/core/coreControllers.js:quickcheck controller<br>apps/modeler/ssot/ui/controllers/uiFileController.js (save failure route)<br>apps/modeler/ssot/ui/controllers/uiToolbarController.js (QuickCheck open) | PARTIAL |
+| 3.11 | Transform（P0：Move/Rotate/Scale）とモード遷移 | — (transform mode state machine未実装) | TODO |
+
+## 4章
+
+| 仕様節 | 要点 | 実装参照（ファイル/関数） | 状況 |
+|---|---|---|---|
+| 4.1 | シーン構成（grid/axis/selection/gizmo） | apps/modeler/ssot/runtime/renderer/modelerRenderer.js (scene init: grid/axis placeholder)<br>apps/modeler/ssot/runtime/renderer/modelerRenderer.js (selection highlight) | PARTIAL |
+| 4.2 | ピッキング（raycast）と優先順位 | apps/modeler/ssot/runtime/renderer/modelerRenderer.js:pickObjectAt | PARTIAL |
+| 4.3 | 変形操作（Move/Rotate/Scale）と作業平面 | — (gizmo transform未実装) | TODO |
+| 4.4 | テキスト描画（pose / align / size） | apps/modeler/ssot/runtime/renderer/modelerRenderer.js (text sprites: align/size/pose) | PARTIAL |
+| 4.5 | カメラ（orbit / fit / reset） | apps/modeler/ssot/runtime/renderer/modelerRenderer.js (orbit controls + focusOnUuid) | PARTIAL |
+| 4.6 | フレーム再生プレビュー（frames の適用） | apps/modeler/ssot/ui/controllers/uiToolbarController.js (play)<br>apps/modeler/ssot/runtime/modelerHub.js:setFrameIndex | PARTIAL |
+
+## 5章
+
+| 仕様節 | 要点 | 実装参照（ファイル/関数） | 状況 |
+|---|---|---|---|
+| 5.1 | 状態機械（mode） | — (明示 mode state machine未実装; focus-mode は ui/attachUiShell.js) | TODO |
+| 5.2 | 入力イベント（mouse/touch/keyboard） | apps/modeler/ssot/ui/controllers/uiCanvasController.js (mouse events)<br>apps/modeler/ssot/ui/controllers/uiShortcutController.js (keyboard) | PARTIAL |
+| 5.3 | single-writer とコマンド境界 | apps/modeler/ssot/scripts/check-single-writer.mjs<br>apps/modeler/ssot/runtime/core/coreControllers.js:edit.applyGroup | PARTIAL |
+| 5.4 | バリデーション（編集時の即時診断） | apps/modeler/ssot/runtime/core/coreControllers.js:validator.validateStrict<br>apps/modeler/ssot/ui/controllers/uiPropertyController.js (apply前 validation via QuickCheck) | PARTIAL |
+| 5.5 | パフォーマンス（大規模データ時） | apps/modeler/ssot/runtime/renderer/modelerRenderer.js (basic perf choices; no perfHud)<br>apps/modeler/ssot/ui/controllers/uiToolbarController.js (DPR toggle?) | TODO |
+
+## 6章
+
+| 仕様節 | 要点 | 実装参照（ファイル/関数） | 状況 |
+|---|---|---|---|
+| 6.1 | ログカテゴリ（BOOT/DOC/EDIT/VALIDATE/IO） | apps/modeler/ssot/runtime/core/coreControllers.js (console logs)<br>apps/modeler/ssot/ui/controllers/* (log points)<br>apps/modeler/ssot/runtime/bootstrapModeler.js | PARTIAL |
+| 6.2 | Quick Check の出力と UI 表示 | apps/modeler/ssot/runtime/core/coreControllers.js:quickcheck.getIssues<br>apps/modeler/ssot/ui/controllers/uiFileController.js (quickcheck panel) | PARTIAL |
+| 6.3 | エラーハンドリング（例外禁止と no-op） | apps/modeler/ssot/runtime/core/coreControllers.js (try/catch around IO)<br>apps/modeler/ssot/runtime/renderer/modelerRenderer.js (defensive checks) | PARTIAL |
+| 6.4 | 外部連携（禁止：追跡/自動アップロード） | apps/modeler/ssot/manifest.yaml:dependency_rules.forbidden | DONE |
+
+## 7章
+
+| 仕様節 | 要点 | 実装参照（ファイル/関数） | 状況 |
+|---|---|---|---|
+| 7.1 | schema_uri とバージョン追従 | packages/schemas/3DSS.schema.json + apps/site sync:schemas<br>apps/modeler/ssot/runtime/core/validation.js (schema loading) | PARTIAL |
+| 7.2 | sidecar の互換性方針（modeler 内限定） | apps/modeler/ssot/ui/attachUiShell.js (uiSidecar)<br>apps/modeler/ssot/runtime/core/coreControllers.js:uiSidecar | PARTIAL |
+| 7.3 | 将来拡張（constraints / blocks / collaboration） | — (未実装) | TODO |

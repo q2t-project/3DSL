@@ -162,7 +162,8 @@ function syncTitle() {
         btnSaveAs.title = !hasDoc ? "Open a file first" : (extra ? "Apply edits before Save As" : "Save As (choose file)" );
       }
       if (btnExport) {
-        btnExport.title = !hasDoc ? "Open a file first" : (extra ? "Apply edits before Export" : "Export (does not clear dirty)" );
+        // NOTE: Export uses strict normalization and clears dirty (same as Save/SaveAs).
+        btnExport.title = !hasDoc ? "Open a file first" : (extra ? "Apply edits before Export" : "Export (marks clean)" );
       }
     } catch {}
   }

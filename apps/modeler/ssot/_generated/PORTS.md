@@ -23,7 +23,7 @@
 
 | id | surface | stability |
 |---|---|---|
-| hub.renderer.createRenderer | createRenderer(canvas) -> renderer (start/stop/resize/dispose/setDocument/applyVisibility/setSelection/pickObjectAt/focusOnUuid/worldPointOnPlaneZ/previewSetPosition/previewSetLineEnds/previewSetCaptionText) | stable |
+| hub.renderer.createRenderer | createRenderer(canvas) -> renderer (start/stop/resize/dispose/setDocument/applyVisibility/setSelection/pickObjectAt/focusOnUuid/worldPointOnPlaneZ/previewSetPosition/previewSetLineEnds/previewSetCaptionText/previewSetOverride) | stable |
 
 ### ui -> hub
 
@@ -36,6 +36,7 @@
 | hub.pickObjectAt | hub.pickObjectAt(ndcX, ndcY) -> hit \| null (hit={uuid, kind, distance, point:[x,y,z]}) | stable |
 | hub.previewSetCaptionText | hub.previewSetCaptionText(uuid, captionText, fallbackText) -> void (preview only; captionText={content, size?, align?, pose?} \| null) | stable |
 | hub.previewSetLineEnds | hub.previewSetLineEnds(uuid, endA, endB) -> void (preview only; endA/endB are endpoint objects: {ref:string}\|{coord:[x,y,z]}\|null) | stable |
+| hub.previewSetOverride | hub.previewSetOverride(uuid, override:{position?,endA?,endB?,captionText?}\|null) -> void (preview only; null clears override for uuid) | beta |
 | hub.previewSetPosition | hub.previewSetPosition(uuid, pos:[x,y,z]) -> void (preview only) | stable |
 | hub.resize | hub.resize(width, height, dpr?) -> void | stable |
 | hub.start | hub.start() -> void | stable |
