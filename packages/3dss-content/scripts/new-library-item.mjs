@@ -106,7 +106,6 @@ function main() {
     recommended: false,
     hidden: false,
     created_at: now,
-    updated_at: now,
   };
   writeJson(path.join(dir, '_meta.json'), meta);
 
