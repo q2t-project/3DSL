@@ -35,8 +35,9 @@
     "check:viewer:ports-conformance": "node ../viewer/ssot/scripts/check-ports-conformance.mjs",
     "check:viewer:generated-clean": "node ../viewer/ssot/scripts/check-generated-clean.mjs",
     "check:viewer:ssot": "npm run check:viewer:forbidden-imports && npm run check:viewer:single-writer && npm run check:viewer:ports-conformance && npm run check:viewer:generated-clean",
-    "check:ssot": "npm run check:vendor-required && npm run check:generated-clean && npm run check:viewer:ssot && npm run check:host:asset-paths && npm run check:route-collisions",
+    "check:ssot": "npm run check:vendor-required && npm run check:generated-clean && npm run check:viewer:ssot && npm run check:modeler:ssot && npm run check:host:asset-paths && npm run check:route-collisions",
     "sync:viewer": "node scripts/sync/viewer.mjs",
+    "sync:modeler": "node scripts/sync/modeler.mjs",
     "sync:schemas": "node scripts/sync/schemas.mjs",
     "sync:vendor": "node scripts/sync/vendor.mjs",
     "sync:3dss-content": "node ../../packages/3dss-content/scripts/build-3dss-content-dist.mjs && node scripts/sync/3dss-content.mjs",
@@ -59,7 +60,11 @@
     "precheck:release": "npm run sync:all",
     "check:release": "npm run check:ssot && npm run check:viewer:regression && npm run validate:3dss:canonical",
     "generate:sitemap": "node scripts/tool/generate-sitemap.mjs",
-    "sync:modeler": "node scripts/sync/modeler.mjs"
+    "check:modeler:forbidden-imports": "node ../modeler/ssot/scripts/check-forbidden-imports.mjs",
+    "check:modeler:single-writer": "node ../modeler/ssot/scripts/check-single-writer.mjs",
+    "check:modeler:ports-conformance": "node ../modeler/ssot/scripts/check-ports-conformance.mjs",
+    "check:modeler:generated-clean": "node ../modeler/ssot/scripts/check-generated-clean.mjs",
+    "check:modeler:ssot": "npm run check:modeler:forbidden-imports && npm run check:modeler:single-writer && npm run check:modeler:ports-conformance && npm run check:modeler:generated-clean"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.6",

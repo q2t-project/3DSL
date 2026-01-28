@@ -59,6 +59,65 @@ Viewer（/viewer/）は「全画面・スクロール無し」が基本設計。
 * `assets/`（任意…本文用の画像など）
 * `attachments/`（任意…PDF などの添付）
 
+### メタ情報の SSOT と dist 注入方式（決定）
+
+#### 背景
+
+`model.3dss.json`（`document_meta`）と `_meta.json` の両方に、タイトル・要約・タグ等の「表示用メタ情報」を持たせると、
+どちらが正（SSOT）かが分からなくなり、更新漏れや不整合が発生しやすい。
+
+このため、Library の表示用メタ情報の SSOT を `_meta.json` に一本化し、配布/サイト用の dist 生成時に
+必要な情報だけを `model.3dss.json` に注入（merge）する運用に統一する。
+
+#### ルール（SSOT）
+
+* `_meta.json` は **表示・公開・SEO・権利情報**の SSOT。
+  * 例：`title` / `summary` / `tags` / `published` / `rights` / `references` / `page.*` など。
+* SSOT 側の `model.3dss.json` は **モデルそのもの（構造データ）**と、必要最小限の **技術メタ情報**のみを持つ。
+  * 例：`document_uuid` / `schema_uri` / `generator` / `coordinate_system` / `units` など。
+* SSOT 側の `model.3dss.json` に、表示用メタ（`document_title` / `document_summary` / `tags` 等）を重複して持たせない。
+
+
+#### 公開/更新の運用ルール（published / published_at / republished_at）
+
+Library の公開状態は `_meta.json` 側でのみ管理し、`model.3dss.json`（3DSS データ本体）には混在させない。
+
+* `published`（boolean）
+  * 現在の公開状態。
+* `published_at`（timestamp_utc）
+  * **初回公開日（固定）**。`published:false -> true` の初回遷移でセットし、それ以降は変更しない。
+* `republished_at`（timestamp_utc）
+  * **更新日**。公開後の更新を表す。
+  * 公開中（`published:true`）に、`title/summary/tags/本文/SEO/権利/添付` 等の **掲載メタ情報のみを変更した場合も更新する**。
+  * 再公開（`published:false -> true`、ただし過去に `published_at` が存在）も更新扱いとして `republished_at` をセットする。
+
+表示上の扱い（/library 一覧など）
+
+* 「公開日」= `published_at`
+* 「更新日」= `republished_at`（無い場合は表示しない、または `published_at` を代替表示）
+* 並び替えの基準 = `republished_at ?? published_at`
+
+キー名は JSON の扱いやすさのため **`republished_at`（ハイフン無し）に統一**する。
+
+
+#### dist 注入（生成物）
+
+`packages/3dss-content/scripts/build-3dss-content-dist.mjs` による dist 生成では、
+`_meta.json` 由来の表示用メタを、配布/サイト用の `model.3dss.json`（dist 側）へ注入して出力してよい。
+
+* dist 側 `model.3dss.json` の `document_meta` に注入してよいもの（例）
+  * `document_title` ← `_meta.json:title`
+  * `document_summary` ← `_meta.json:summary`（または派生）
+  * `tags` ← `_meta.json:tags`
+* dist 側に注入される値は **SSOT の `_meta.json` が正**であり、手編集してはならない。
+
+この方式により、
+
+* Library HTML（SEO/UX）: `_meta.json` を参照
+* Viewer での単体モデル表示: dist 側 `model.3dss.json` に注入済みメタが利用可能
+
+を両立しつつ、SSOT の二重管理を避ける。
+
 ### Markdown に画像を混ぜる
 
 本文は通常の Markdown を使う。

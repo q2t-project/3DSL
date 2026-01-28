@@ -1,0 +1,19 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import Spec from "../../../content/docs_integrated/3DSS_spec.v1.1.4.md";
+---
+
+<Layout
+  title="Latest spec | Docs | 3DSL"
+  description="3DSS_spec.md (latest) を /docs 配下で表示します。"
+>
+  <div class="prose prose-invert prose-neutral max-w-4xl">
+    <h1>Latest spec</h1>
+    <p>
+      参照用の表示ページ。生ファイルは
+      <a href="/schemas/latest/3DSS_spec.md">/schemas/latest/3DSS_spec.md</a>
+      。
+    </p>
+    <Spec />
+  </div>
+</Layout>

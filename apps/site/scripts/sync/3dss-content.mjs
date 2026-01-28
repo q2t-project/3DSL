@@ -89,11 +89,13 @@ if (fs.existsSync(indexPath)) {
     const id = typeof it?.id === "string" ? it.id : (typeof it?.slug === "string" ? it.slug : null);
     if (!id) continue;
 
-    const contentSrc = path.join(dstPublic, "_data", "library", id, "content.md");
-    if (!fs.existsSync(contentSrc)) continue;
+        const contentSrc = path.join(dstPublic, "_data", "library", id, "content.md");
 
-    const bodyRaw = fs.readFileSync(contentSrc, "utf8");
-    const body = patchContentPlaceholders(bodyRaw, id);
+    let body = "";
+    if (fs.existsSync(contentSrc)) {
+      const bodyRaw = fs.readFileSync(contentSrc, "utf8");
+      body = patchContentPlaceholders(bodyRaw, id);
+    }
 
     const fm = [
       "---",
@@ -111,6 +113,7 @@ if (fs.existsSync(indexPath)) {
 
     const outPath = path.join(dstContent, `${id}.md`);
     fs.writeFileSync(outPath, `${fm}${body}`, "utf8");
+
   }
   console.log("[sync] library Markdown -> src/content/library_items OK");
 } else {

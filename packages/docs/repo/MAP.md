@@ -12,6 +12,7 @@
 
 - `apps/site` : サイト（Astro）。`public/**` は配布物なので基本編集禁止。
 - `apps/viewer/ssot` : ViewerのSSOT（runtime/core/ui/contracts）。
+- `apps/modeler/ssot` : ModelerのSSOT（runtime/core/ui/contracts）。
 - `packages/3dss-content` : 3DSS content のSSOT（library/canonical/fixtures）と dist 生成元。
 - `packages/schemas` : schema のSSOT（例: `3DSS.schema.json`）。
 - `packages/docs` : 共有ドキュメント（契約/運用/ポリシー）。
@@ -21,12 +22,18 @@
 ```mermaid
 flowchart LR
   Site[apps/site] -->|embed/route| ViewerHub[apps/viewer/ssot/runtime/viewerHub]
-  ViewerHub --> Core[core]
-  Core --> Renderer[renderer]
+  ViewerHub --> VCore[core]
+  VCore --> VRenderer[renderer]
+
+  Site -->|route| ModelerHost[apps/modeler/ssot (host)]
+  ModelerHost --> MCore[core]
+  MCore --> MRenderer[renderer]
+
   Site --> Content[packages/3dss-content]
   Content -->|sync| Public[apps/site/public]
   Schema[packages/schemas] -->|validate| Content
   Schema -->|validate| ViewerHub
+  Schema -->|validate| ModelerHost
 ```
 
 > 注: ここは “代表的な流れ” のみ。正確なエントリポイントは各README/INDEX側でリンクする。

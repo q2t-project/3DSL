@@ -1,356 +1,586 @@
 // ui/attachUiShell.js
-// Minimal P0 shell wiring for index.html (outliner / preview / quickcheck panel)
+// Modeler UI shell: DOM gather + controller instantiation + hub wiring only.
 
 import { resizeHub, startHub } from "./hubOps.js";
+import { createHubCoreControllers } from "./hubFacade.js";
+
+import { createUiFileController } from "./controllers/uiFileController.js";
+import { createUiPropertyController } from "./controllers/uiPropertyController.js";
+import { createUiSelectionController } from "./controllers/uiSelectionController.js";
+import { createUiToolbarController } from "./controllers/uiToolbarController.js";
+import { UiOutlinerController } from "./controllers/uiOutlinerController.js";
+
+import { attachUiShortcutController } from "./controllers/uiShortcutController.js";
+import { attachUiCanvasController } from "./controllers/uiCanvasController.js";
 
 function getRoleEl(root, role) {
   const el = root.querySelector(`[data-role="${role}"]`);
   return el || null;
 }
 
-function clampDpr(dpr) {
-  const v = Number(dpr);
-  if (!Number.isFinite(v) || v <= 0) return 1;
-  return Math.max(1, Math.min(2, v));
-}
+// NOTE: shortcut handling and canvas wiring moved into controllers.
 
 export function attachUiShell({ root, hub, modelUrl }) {
-  const canvas = /** @type {HTMLCanvasElement} */ (getRoleEl(root, "modeler-canvas"));
-  const thead = getRoleEl(root, "outliner-thead");
+  const ac = new AbortController();
+  const sig = ac.signal;
+  const unsubs = [];
+  let cleaned = false;
+  let canvasCtl = null;
+
+  const core = createHubCoreControllers(hub);
+
+  // --- UI sidecar persistence (localStorage) ---
+  const getDocUuid = () => {
+    try {
+      const d = core.getDocument?.();
+      const u = d?.document_meta?.document_uuid;
+      return (typeof u === "string" && u) ? u : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const sidecarKeyFor = (docUuid) => `modeler.sidecar.${docUuid}`;
+
+  const loadSidecar = () => {
+    const docUuid = getDocUuid();
+    if (!docUuid) return;
+    try {
+      const raw = localStorage.getItem(sidecarKeyFor(docUuid));
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      core.applyUiSidecar?.(parsed);
+    } catch {}
+  };
+
+  const saveSidecar = (() => {
+    let t = 0;
+    return () => {
+      const docUuid = getDocUuid();
+      if (!docUuid) return;
+      if (t) return;
+      t = window.setTimeout(() => {
+        t = 0;
+        try {
+          const payload = core.getUiSidecar?.();
+          if (!payload) return;
+          localStorage.setItem(sidecarKeyFor(docUuid), JSON.stringify(payload));
+        } catch {}
+      }, 150);
+    };
+  })();
+
+  // --- Preview render throttling ---
+  // When Preview Out is used with Focus Mode, the embedded preview pane is hidden.
+  // In that case, stop the main renderer loop to reduce GPU load.
+  let mainPreviewRunning = false;
+  const ensureMainPreview = (shouldRun) => {
+    const run = !!shouldRun;
+    if (run === mainPreviewRunning) return;
+    mainPreviewRunning = run;
+    try {
+      if (run) hub.start?.();
+      else hub.stop?.();
+    } catch {}
+  };
+
+  function cleanupUiShell() {
+    if (cleaned) return;
+    cleaned = true;
+    try { ac.abort(); } catch {}
+    try { canvasCtl && canvasCtl.detach && canvasCtl.detach(); } catch {}
+    for (const off of unsubs) {
+      try { typeof off === "function" && off(); } catch {}
+    }
+  }
+
+  // --- DOM gather ---
+  const canvas = /** @type {HTMLCanvasElement|null} */ (getRoleEl(root, "modeler-canvas"));
   const tbody = getRoleEl(root, "outliner-tbody");
   const fileLabel = getRoleEl(root, "file-label");
-  const btnSave = root.querySelector('[data-action="save"]');
-  const btnSaveAs = root.querySelector('[data-action="saveas"]');
-  const btnExport = root.querySelector('[data-action="export"]');
-
-function downloadText({ text, filename, mime = "application/octet-stream" }) {
-  const blob = new Blob([text], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 0);
-}
-
-function normalize3dssJsonName(name) {
-  const base = name && name !== "(unsaved)" && name !== "(no file)" ? name : "model.3dss.json";
-  if (base.endsWith(".3dss.json")) return base;
-  if (base.endsWith(".json")) return base.replace(/\.json$/i, ".3dss.json");
-  return base + ".3dss.json";
-}
-
-function getSelectedSet(hub) {
-  const arr = hub?.core?.selection?.get?.() ?? [];
-  return new Set(Array.isArray(arr) ? arr : []);
-}
-
-function syncTabButtons(root, hub) {
-  const cur = (hub?.core?.uiState?.get?.().activeTab) || "points";
-  root.querySelectorAll("[data-tab]").forEach((b) => {
-    if (!(b instanceof HTMLElement)) return;
-    b.classList.toggle("tab-active", b.getAttribute("data-tab") === cur);
-  });
-}
-
-function updateToolbar() {
-  const doc = hub?.core?.document?.get?.() ?? null;
-  const label = hub?.core?.document?.getLabel?.() ?? "";
-  const hasDoc = !!doc;
-
-  // For dev ergonomics: enable Save/SaveAs/Export as long as a document is loaded.
-  // "Save" will just download with current label (fallback if unknown).
-  const canSave = hasDoc;
-  const canSaveAs = hasDoc;
-  const canExport = hasDoc;
-
-  if (btnSave) btnSave.disabled = !canSave;
-  if (btnSaveAs) btnSaveAs.disabled = !canSaveAs;
-  if (btnExport) btnExport.disabled = !canExport;
-
-  if (fileLabel) fileLabel.textContent = label || (hasDoc ? "(unsaved)" : "(no file)");
-}
-
   const hud = getRoleEl(root, "hud");
-  const fileInput = /** @type {HTMLInputElement} */ (getRoleEl(root, "file-input"));
+  const previewSelectionEl = getRoleEl(root, "preview-selection");
+
+  const paneOutliner = getRoleEl(root, "pane-outliner");
+  const paneProp = getRoleEl(root, "pane-prop");
+  const splitterLeft = getRoleEl(root, "splitter-left");
+  const splitterRight = getRoleEl(root, "splitter-right");
+
+  const btnSave = /** @type {HTMLButtonElement|null} */ (root.querySelector('[data-action="save"]'));
+  const btnSaveAs = /** @type {HTMLButtonElement|null} */ (root.querySelector('[data-action="saveas"]'));
+  const btnExport = /** @type {HTMLButtonElement|null} */ (root.querySelector('[data-action="export"]'));
+  const fileInput = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "file-input"));
 
   const qcPanel = getRoleEl(root, "qc-panel");
   const qcSummary = getRoleEl(root, "qc-summary");
   const qcList = getRoleEl(root, "qc-list");
 
-  // ---- resize ----
-  function doResize() {
-    if (!canvas) return;
-    const r = canvas.getBoundingClientRect();
-    const dpr = clampDpr(window.devicePixelRatio || 1);
-    resizeHub(hub, Math.floor(r.width), Math.floor(r.height), dpr);
-  }
+  const APP_TITLE = "3DSD Modeler";
+  const setHud = (msg) => { if (hud) hud.textContent = String(msg ?? ""); };
 
-  const ro = new ResizeObserver(() => doResize());
-  if (canvas) ro.observe(canvas);
-  window.addEventListener("resize", doResize);
+  // --- Preview label: show the current single-selection name/caption in the viewport ---
+  const pickText = (v) => {
+    if (typeof v === 'string') return v.trim();
+    if (v && typeof v === 'object') {
+      if (typeof v.ja === 'string' && v.ja.trim()) return v.ja.trim();
+      if (typeof v.en === 'string' && v.en.trim()) return v.en.trim();
+      if (typeof v.default === 'string' && v.default.trim()) return v.default.trim();
+    }
+    return '';
+  };
 
-  // ---- toolbar ----
-  root.addEventListener("click", async (ev) => {
-    const t = ev.target;
-    if (!(t instanceof HTMLElement)) return;
-    const act = t.getAttribute("data-action");
-    if (!act) return;
+  const findByUuid = (doc, uuid) => {
+    const u = String(uuid || '');
+    if (!doc || !u) return { kind: null, node: null };
+    const has = (arr) => Array.isArray(arr) ? arr.find((it) => String(it?.meta?.uuid || it?.uuid || '') === u) : null;
+    const p = has(doc.points); if (p) return { kind: 'point', node: p };
+    const l = has(doc.lines);  if (l) return { kind: 'line', node: l };
+    const a = has(doc.aux);    if (a) return { kind: 'aux', node: a };
+    return { kind: null, node: null };
+  };
 
-    if (act === "quickcheck") {
-      const issues = hub?.core?.quickcheck?.run?.() || [];
-      renderQuickCheck(issues);
-      if (qcPanel) qcPanel.hidden = false;
-      return;
-    }
-    if (act === "qc-close") {
-      if (qcPanel) qcPanel.hidden = true;
-      return;
-    }
-    if (act === "open") {
-      if (fileInput) fileInput.click();
-      return;
-    }
-    if (act === "prop-cancel") {
-      const empty = getRoleEl(root, "prop-empty");
-      const panel = getRoleEl(root, "prop-panel");
-      if (panel) panel.hidden = true;
-      if (empty) empty.hidden = false;
+  const updatePreviewSelectionLabel = () => {
+    if (!previewSelectionEl) return;
+    const sel = core.getSelection?.() || [];
+    if (!Array.isArray(sel) || sel.length !== 1) {
+      previewSelectionEl.hidden = true;
+      previewSelectionEl.textContent = '';
       return;
     }
 
-    if (act === "save" || act === "saveas" || act === "export" || act === "prop-save") {
-  const doc = hub?.core?.document?.get?.();
-  if (!doc) {
-    hud && (hud.textContent = "No document loaded");
-    return;
-  }
+    const uuid = String(sel[0] || '');
+    const doc = core.getDocument?.();
+    const { kind, node } = findByUuid(doc, uuid);
 
-  // Always run QuickCheck first; block output on errors.
-  const issues = hub.core.quickcheck.run();
-  renderQuickCheck(issues);
-  if (qcPanel) qcPanel.hidden = false;
-
-  const hasError = issues.some((it) => it && it.severity === "error");
-  if (hasError) {
-    hud && (hud.textContent = "Blocked: fix errors (see QuickCheck)");
-    return;
-  }
-
-  const label = hub?.core?.document?.getLabel?.() || "(unsaved)";
-
-  let filename = null;
-  if (act === "save") {
-    filename = normalize3dssJsonName(label);
-    if (!filename || filename === "(unsaved)" || filename === "(no file)") {
-      hud && (hud.textContent = "Use Save As...");
-      return;
+    let label = '';
+    if (kind === 'point') {
+      const name = pickText(node?.signification?.name ?? node?.meta?.name ?? node?.name);
+      const text = pickText(node?.marker?.text?.content ?? node?.appearance?.marker?.text?.content);
+      if (name && text && name !== text) label = `${name} / ${text}`;
+      else label = name || text;
     }
-  } else if (act === "saveas") {
-    const proposed = normalize3dssJsonName(label);
-    filename = window.prompt("Save As...", proposed);
-    if (!filename) return;
-  } else {
-    // export / prop-save
-    filename = normalize3dssJsonName(label);
-  }
+    else if (kind === 'line') {
+      const cap = pickText(node?.signification?.caption ?? node?.signification?.name ?? node?.caption ?? node?.name);
+      label = cap ? `line: ${cap}` : '';
+    }
+    else if (kind === 'aux') {
+      const mod = node?.appearance?.module;
+      const key = (mod && typeof mod === 'object') ? (Object.keys(mod)[0] || '') : '';
+      const nm = pickText(node?.meta?.name ?? node?.name);
+      const v = key || nm;
+      label = v ? `aux: ${v}` : '';
+    }
 
-  // Ensure reasonable extension
-  if (!/\.json$/i.test(filename)) filename += ".json";
+    if (!label) label = uuid ? uuid.slice(0, 8) : '';
 
-  const text = JSON.stringify(doc, null, 2) + "\n";
-  downloadText({ text, filename, mime: "application/json" });
-  hud && (hud.textContent = `Saved: ${filename}`);
-  return;
-}
-  });
+    previewSelectionEl.textContent = label;
+    previewSelectionEl.hidden = !label;
+  };
 
-  if (fileInput) {
-    fileInput.addEventListener("change", async () => {
-      const f = fileInput.files && fileInput.files[0];
-      if (!f) return;
-      try {
-        const text = await f.text();
-        const doc = JSON.parse(text);
-        hub?.core?.document?.set?.(doc, { source: "file", label: f.name });
-        if (fileLabel) fileLabel.textContent = f.name;
-      } catch (e) {
-        hud && (hud.textContent = "Open failed: " + String(e?.message || e));
-      } finally {
-        fileInput.value = "";
+  // Observe layout class toggles to stop/start the main renderer when the preview pane is hidden.
+  (function attachPreviewOutFocusObserver() {
+    if (!root || !hub) return;
+    const isFocusHidden = () => {
+      try { return root.classList.contains("is-previewout-active"); } catch { return false; }
+    };
+    // Start running by default.
+    ensureMainPreview(true);
+    const mo = new MutationObserver(() => {
+      // If the embedded preview is hidden, stop the loop; otherwise run.
+      ensureMainPreview(!isFocusHidden());
+      // When re-enabled, make sure we resize once so the canvas catches up.
+      if (!isFocusHidden()) {
+        try { canvasCtl?.resize?.(); } catch {}
       }
     });
-  }
+    try { mo.observe(root, { attributes: true, attributeFilter: ["class"] }); } catch {}
+    unsubs.push(() => { try { mo.disconnect(); } catch {} });
+  })();
 
-  // ---- outliner (minimal) ----
-  function renderOutliner(doc) {
-    if (!tbody) return;
-    tbody.textContent = "";
 
-    syncTabButtons(root, hub);
+  // --- Pane splitters (UI-only): make Outliner / Property widths adjustable ---
+  (function attachSplitters() {
+    if (!root || !(root instanceof HTMLElement)) return;
 
-    const tab = hub?.core?.uiState?.get?.().activeTab || "points";
-    const locked = new Set(hub?.core?.lock?.list?.() || []);
-    const selected = getSelectedSet(hub);
-    let firstSelected = null;
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    const readPx = (k) => {
+      try {
+        const raw = localStorage.getItem(k);
+        if (raw == null) return null;
+        const n = Number(raw);
+        if (!Number.isFinite(n)) return null;
+        if (n <= 0) return null;
+        return n;
+      } catch { return null; }
+    };
+    const writePx = (k, n) => {
+      try { localStorage.setItem(k, String(Math.round(n))); } catch {}
+    };
 
-    const rows = [];
-    if (tab === "points" && doc && Array.isArray(doc.points)) doc.points.forEach((x, i) => rows.push({ kind: "point", node: x, path: `/points/${i}` }));
-    if (tab === "lines" && doc && Array.isArray(doc.lines)) doc.lines.forEach((x, i) => rows.push({ kind: "line", node: x, path: `/lines/${i}` }));
-    if (tab === "aux" && doc && Array.isArray(doc.aux)) doc.aux.forEach((x, i) => rows.push({ kind: "aux", node: x, path: `/aux/${i}` }));
+    const KEY_L = "modeler.paneOutlinerW";
+    const KEY_R = "modeler.panePropW";
 
-    for (const r of rows) {
-      const uuid = r?.node?.meta?.uuid || r?.node?.uuid || "";
-      const name = r?.node?.signification?.name || r?.node?.name || "";
-      const pos = r?.node?.appearance?.position || r?.node?.position || [0, 0, 0];
-      const x = Array.isArray(pos) ? pos[0] : 0;
-      const y = Array.isArray(pos) ? pos[1] : 0;
-      const z = Array.isArray(pos) ? pos[2] : 0;
-      const path = r?.path || "/";
+    const initL = readPx(KEY_L);
+    const initR = readPx(KEY_R);
+    if (typeof initL === "number") root.style.setProperty("--pane-outliner-w", `${clamp(initL, 260, 780)}px`);
+    if (typeof initR === "number") root.style.setProperty("--pane-prop-w", `${clamp(initR, 260, 780)}px`);
 
-      const tr = document.createElement("tr");
-      tr.dataset.uuid = uuid;
-      tr.dataset.kind = r.kind;
-      tr.dataset.locked = locked.has(uuid) ? "true" : "false";
-      if (uuid && selected.has(uuid)) {
-        tr.classList.add("is-selected");
-        if (!firstSelected) firstSelected = tr;
-      }
+    const startDrag = (which, ev) => {
+      const target = ev?.target;
+      if (!(target instanceof HTMLElement)) return;
+      const startX = ev.clientX;
+      const startOutW = paneOutliner?.getBoundingClientRect?.().width ?? 0;
+      const startPropW = paneProp?.getBoundingClientRect?.().width ?? 0;
 
-      const tdLock = document.createElement("td");
-      tdLock.className = "col-lock";
-      tdLock.textContent = locked.has(uuid) ? "🔒" : "";
-      tr.appendChild(tdLock);
+      target.classList.add("is-dragging");
+      try { target.setPointerCapture(ev.pointerId); } catch {}
 
-      const tdName = document.createElement("td");
-      tdName.textContent = name;
-      tr.appendChild(tdName);
-
-      const tdX = document.createElement("td");
-      tdX.className = "col-num";
-      tdX.textContent = String(x ?? 0);
-      tr.appendChild(tdX);
-
-      const tdY = document.createElement("td");
-      tdY.className = "col-num";
-      tdY.textContent = String(y ?? 0);
-      tr.appendChild(tdY);
-
-      const tdZ = document.createElement("td");
-      tdZ.className = "col-num";
-      tdZ.textContent = String(z ?? 0);
-      tr.appendChild(tdZ);
-
-      const tdUuid = document.createElement("td");
-      tdUuid.className = "col-uuid";
-      tdUuid.textContent = uuid ? String(uuid).slice(0, 8) : "";
-      tr.appendChild(tdUuid);
-
-      tr.addEventListener("click", () => {
-        if (!uuid) return;
-        const issueLike = { uuid, kind: r.kind, path };
-        if (typeof hub?.core?.focusByIssue === "function") {
-          hub.core.focusByIssue(issueLike);
+      const onMove = (e) => {
+        const dx = e.clientX - startX;
+        if (which === "left") {
+          const next = clamp(startOutW + dx, 260, 780);
+          root.style.setProperty("--pane-outliner-w", `${next}px`);
+          writePx(KEY_L, next);
         } else {
-          hub?.core?.selection?.set?.([uuid]);
-          hub?.emit?.("selection", issueLike);
+          // right splitter: moving right shrinks property pane
+          const next = clamp(startPropW - dx, 260, 780);
+          root.style.setProperty("--pane-prop-w", `${next}px`);
+          writePx(KEY_R, next);
         }
-        showProperty(issueLike);
+      };
+
+      const onUp = () => {
+        target.classList.remove("is-dragging");
+        target.removeEventListener("pointermove", onMove);
+        target.removeEventListener("pointerup", onUp);
+        target.removeEventListener("pointercancel", onUp);
+      };
+
+      target.addEventListener("pointermove", onMove, { signal: sig });
+      target.addEventListener("pointerup", onUp, { signal: sig, once: true });
+      target.addEventListener("pointercancel", onUp, { signal: sig, once: true });
+    };
+
+    if (splitterLeft) splitterLeft.addEventListener("pointerdown", (ev) => startDrag("left", ev), { signal: sig });
+    if (splitterRight) splitterRight.addEventListener("pointerdown", (ev) => startDrag("right", ev), { signal: sig });
+  })();
+
+
+  // --- Controllers ---
+  /** @type {ReturnType<typeof createUiToolbarController> | null} */
+  let toolbarController = null;
+
+  /** @type {ReturnType<typeof createUiFileController> | null} */
+  let fileController = null;
+
+  /** @type {ReturnType<typeof createUiSelectionController> | null} */
+  let selectionController = null;
+
+  // Single synchronization point for toolbar enable/disable.
+  // Any path that changes document/dirty/selection/history should call this.
+  const requestToolbarSync = (() => {
+    let pending = false;
+    return () => {
+      if (pending) return;
+      pending = true;
+      queueMicrotask(() => {
+        pending = false;
+        toolbarController?.syncActionState?.();
       });
+    };
+  })();
 
-      tbody.appendChild(tr);
-    }
+  // Bridge: route selection changes through uiSelectionController when available
+  // so dirty-guards + focus behavior stay consistent.
+  const setSelectionUuids = (uuids, issueLike, reason) => {
+    try {
+      if (selectionController && typeof selectionController.setSelectionUuids === "function") {
+        selectionController.setSelectionUuids(uuids, issueLike, reason);
+        return;
+      }
+    } catch {}
+    try { core.setSelection?.(Array.isArray(uuids) ? uuids : []); } catch {}
+  };
 
-    if (firstSelected) {
-      try {
-        firstSelected.scrollIntoView({ block: "nearest" });
-      } catch {}
-    }
-  }
-
-  function showProperty({ uuid, kind, path }) {
-    const empty = getRoleEl(root, "prop-empty");
-    const panel = getRoleEl(root, "prop-panel");
-    const u = getRoleEl(root, "prop-uuid");
-    const k = getRoleEl(root, "prop-kind");
-    const p = getRoleEl(root, "prop-path");
-
-    if (panel) panel.hidden = false;
-    if (empty) empty.hidden = true;
-    if (u) u.textContent = String(uuid || "");
-    if (k) k.textContent = String(kind || "");
-    if (p) p.textContent = String(path || "");
-  }
-
-  function renderQuickCheck(issues) {
-    if (qcSummary) qcSummary.textContent = `${issues.length} issues`;
-    if (!qcList) return;
-    qcList.textContent = "";
-    for (const it of issues) {
-      const item = document.createElement("div");
-      item.className = "qc-item";
-      const sev = it?.severity || "info";
-      const sevClass = sev === "error" ? "qc-sev-error" : sev === "warn" ? "qc-sev-warn" : "qc-sev-info";
-
-      const line1 = document.createElement("div");
-      line1.className = "qc-line1";
-      line1.innerHTML = `<span class="${sevClass}">${sev}</span><code>${escapeHtml(it?.uuid || "doc")}</code><code>${escapeHtml(it?.path || "/")}</code>`;
-      item.appendChild(line1);
-
-      const msg = document.createElement("div");
-      msg.className = "qc-msg";
-      msg.textContent = it?.message || "(no message)";
-      item.appendChild(msg);
-
-      item.addEventListener("click", () => {
-        if (typeof hub?.core?.focusByIssue === "function") hub.core.focusByIssue(it);
-        if (it?.uuid) showProperty({ uuid: it.uuid, kind: it.kind || "unknown", path: it.path || "/" });
-      });
-
-      qcList.appendChild(item);
-    }
-  }
-
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  }
-
-  // ---- tabs ----
-  root.addEventListener("click", (ev) => {
-    const t = ev.target;
-    if (!(t instanceof HTMLElement)) return;
-    const tab = t.getAttribute("data-tab");
-    if (!tab) return;
-    hub?.core?.uiState?.set?.({ activeTab: tab });
-    syncTabButtons(root, hub);
-    renderOutliner(hub?.core?.document?.get?.());
+  const propertyController = createUiPropertyController({
+    root,
+    core,
+    // Preview-only helpers (do not mutate core document)
+    previewSetPosition: (uuid, pos) => hub.previewSetPosition?.(uuid, pos),
+    previewSetLineEnds: (uuid, endA, endB) => hub.previewSetLineEnds?.(uuid, endA, endB),
+    previewSetCaptionText: (uuid, captionText, fallbackText) => hub.previewSetCaptionText?.(uuid, captionText, fallbackText),
+    setSelectionUuids,
+    signal: sig,
+    setHud,
+    onDirtyChange: () => {
+      fileController?.syncTitle?.();
+      requestToolbarSync();
+    },
   });
 
-  // ---- selection sync (preview pick) ----
-  if (typeof hub?.on === "function") {
-    hub.on("picked", (hit) => {
-      if (!hit || !hit.uuid) return;
-      const issueLike = { uuid: hit.uuid, kind: hit.kind || "unknown", path: hit.path || "/" };
-      if (typeof hub?.core?.focusByIssue === "function") {
-        hub.core.focusByIssue(issueLike);
-      } else {
-        hub?.core?.selection?.set?.([hit.uuid]);
-        if (typeof hub?.emit === "function") hub.emit("selection", issueLike);
-      }
-      showProperty(issueLike);
-    });
-    hub.on("document", (doc) => { renderOutliner(doc); updateToolbar(); });
-    hub.on("lock", () => renderOutliner(hub?.core?.document?.get?.()));
-    hub.on("selection", () => renderOutliner(hub?.core?.document?.get?.()));
+  fileController = createUiFileController({
+    core,
+    elements: { fileLabel, btnSave, btnSaveAs, btnExport, qcPanel, qcSummary, qcList },
+    appTitle: APP_TITLE,
+    setHud,
+  });
+
+  function getSelectedSet() {
+    return new Set(core.getSelection?.() || []);
   }
 
-  // ---- boot ----
-  doResize();
-  startHub(hub);
-  updateToolbar();
-  renderOutliner(hub?.core?.document?.get?.());
+  const outlinerController = new UiOutlinerController({
+    root,
+    tbody,
+    core,
+    signal: sig,
+    syncTabButtons: () => toolbarController?.syncTabs?.(),
+    getSelectedSet,
+    onRowSelect: (issueLike, ev) => selectionController?.selectFromOutliner?.(issueLike, ev),
+    ensureEditsAppliedOrConfirm: () => propertyController.ensureEditsAppliedOrConfirm(),
+    requestToolbarSync,
+    setHud,
+    setSelectionUuids,
+  });
 
-  if (modelUrl && fileLabel) fileLabel.textContent = modelUrl;
+  selectionController = createUiSelectionController({
+    core,
+    ensureEditsAppliedOrConfirm: () => propertyController.ensureEditsAppliedOrConfirm(),
+    setHud,
+    getOutlinerRowOrder: () => outlinerController.getRowOrder?.() || [],
+  });
+
+  toolbarController = createUiToolbarController({
+    root,
+    core,
+    signal: sig,
+    hub,
+    fileController,
+    propertyController,
+    selectionController,
+    fileInput,
+    qcPanel,
+    qcSummary,
+    qcList,
+    renderOutliner: (doc) => outlinerController.render(doc),
+    setHud,
+    requestToolbarSync,
+  });
+
+  // --- Cross-controller wiring ---
+
+  fileController?.setExtraDirtyProvider?.(() => !!propertyController?.isDirty?.());
+  fileController?.setInvoker?.((a) => toolbarController?.invoke?.(a));
+  fileController?.attachBeforeUnload?.({ signal: sig });
+
+  // --- Input wiring ---
+  attachUiShortcutController({ signal: sig, core, invoke: (a) => toolbarController?.invoke?.(a) });
+  canvasCtl = attachUiCanvasController({
+    canvas,
+    core,
+    hub,
+    signal: sig,
+    // NOTE: do not use `||` fallback here: selectionController methods intentionally return void.
+    onPick: (issueLike, ev) => {
+      // Property controller can temporarily intercept preview picks (e.g., line endpoint pick mode).
+      try {
+        if (typeof propertyController?.handlePreviewPickOverride === "function") {
+          const handled = propertyController.handlePreviewPickOverride(issueLike, ev);
+          if (handled) return;
+        }
+      } catch {}
+      if (typeof selectionController.selectFromPick === "function") selectionController.selectFromPick(issueLike, ev);
+      else selectionController.selectIssue(issueLike);
+    },
+    onResize: (args) => resizeHub(hub, args.width, args.height, args.dpr),
+    // Needed for Move tool helpers (e.g., wheel-based axis nudges / dimension overlay).
+    ensureEditsAppliedOrConfirm: () => {
+      try {
+        return (typeof fileController?.ensureEditsAppliedOrConfirm === "function")
+          ? fileController.ensureEditsAppliedOrConfirm()
+          : true;
+      } catch {
+        return true;
+      }
+    },
+    setHud,
+  });
+
+  // --- hub events ---
+  if (typeof hub?.on === "function") {
+    unsubs.push(hub.on("document", (doc) => {
+      // Restore UI-only state per document_uuid.
+      // Must run before render so locks/visibility/groups are reflected.
+      loadSidecar();
+      // Document updates (including undo/redo) can invalidate the current selection.
+      // Prune selection to existing items to avoid property panel pointing at stale UUIDs.
+      try {
+        const curSel = Array.isArray(core.getSelection?.()) ? core.getSelection?.().filter(Boolean).map(String) : [];
+        if (curSel.length > 0 && doc && typeof doc === "object") {
+          const alive = new Set();
+          const add = (arr) => {
+            if (!Array.isArray(arr)) return;
+            for (const it of arr) {
+              const u = it?.meta?.uuid || it?.uuid;
+              if (u) alive.add(String(u));
+            }
+          };
+          add(doc.points);
+          add(doc.lines);
+          add(doc.aux);
+          const nextSel = curSel.filter((u) => alive.has(u));
+          if (nextSel.length !== curSel.length) {
+            // Route through uiSelectionController when possible so dirty guards and downstream sync stay consistent.
+            try {
+              if (typeof selectionController?.setSelectionUuids === "function") {
+                selectionController.setSelectionUuids(nextSel, null, "doc-prune");
+              } else {
+                core.setSelection?.(nextSel);
+              }
+            } catch {
+              core.setSelection?.(nextSel);
+            }
+          }
+        }
+      } catch {}
+
+      outlinerController.render(doc);
+      toolbarController?.syncTabs?.();
+      requestToolbarSync();
+      fileController?.syncTitle?.();
+      propertyController?.refreshActiveFromDoc?.();
+      updatePreviewSelectionLabel();
+      saveSidecar();
+    }));
+
+    unsubs.push(hub.on("dirty", () => {
+      toolbarController?.syncTabs?.();
+      requestToolbarSync();
+      fileController?.syncTitle?.();
+    }));
+
+    unsubs.push(hub.on("title", () => {
+      fileController?.syncTitle?.();
+      requestToolbarSync();
+    }));
+
+    unsubs.push(hub.on("lock", () => {
+      outlinerController.render(core.getDocument?.());
+      propertyController?.refreshLockState?.();
+      requestToolbarSync();
+      saveSidecar();
+    }));
+
+    unsubs.push(hub.on("visibility", () => {
+      outlinerController.render(core.getDocument?.());
+      saveSidecar();
+    }));
+
+    unsubs.push(hub.on("outliner", () => {
+      outlinerController.render(core.getDocument?.());
+      saveSidecar();
+    }));
+
+    unsubs.push(hub.on("uistate", () => {
+      try { toolbarController?.syncTabs?.(); } catch {}
+      requestToolbarSync();
+      saveSidecar();
+    }));
+
+    // selection -> property sync is intentionally unified here.
+    // Re-entrancy is guarded because propertyController may revert selection synchronously.
+    let handlingSelection = false;
+    let pendingSelection = false;
+
+    const inferTabForUuid = (doc, uuid) => {
+      const u = String(uuid || "");
+      if (!u || !doc) return null;
+      const has = (arr) => Array.isArray(arr) && arr.some((it) => String(it?.meta?.uuid || it?.uuid || "") === u);
+      if (has(doc.points)) return "points";
+      if (has(doc.lines)) return "lines";
+      if (has(doc.aux)) return "aux";
+      return null;
+    };
+
+    const handleSelection = () => {
+      if (handlingSelection) {
+        pendingSelection = true;
+        return;
+      }
+      handlingSelection = true;
+      try {
+        do {
+          pendingSelection = false;
+          const doc = core.getDocument?.();
+          outlinerController.render(doc);
+          propertyController?.syncFromSelection?.();
+          updatePreviewSelectionLabel();
+
+          // If a single item is selected, auto-switch activeTab so the Outliner stays consistent
+          // with the selection source (Preview pick / QuickCheck jump / etc.).
+          try {
+            const sel = core.getSelection?.() || [];
+            if (Array.isArray(sel) && sel.length === 1) {
+              const want = inferTabForUuid(doc, sel[0]);
+              const cur = core.getUiState?.().activeTab || "points";
+              if (want && want !== cur) {
+                core.setUiState?.({ activeTab: want });
+                toolbarController?.syncTabs?.();
+                outlinerController.render(doc);
+              }
+            }
+          } catch {}
+
+          // Ensure the selected row is visible (QuickCheck jump / Preview pick).
+          try {
+            const sel = core.getSelection?.() || [];
+            if (Array.isArray(sel) && sel.length === 1) outlinerController.revealUuid?.(sel[0]);
+          } catch {}
+
+          try {
+            const sel = core.getSelection?.() || [];
+            const tool = String(core.getUiState?.().activeTool || "select").toLowerCase();
+            if (tool === "move" && (!Array.isArray(sel) || sel.length !== 1)) {
+              core.setUiState?.({ activeTool: "select" });
+            }
+          } catch {}
+
+          requestToolbarSync();
+        } while (pendingSelection);
+      } finally {
+        handlingSelection = false;
+      }
+    };
+
+    unsubs.push(hub.on("selection", handleSelection));
+  }
+
+
+  // --- boot ---
+  startHub(hub);
+  // The hub is started by default; reflect that in our throttling state.
+  mainPreviewRunning = true;
+
+  // Stop rendering when the embedded preview pane is collapsed (Focus Mode).
+  // This reduces GPU usage while keeping the editor UI responsive.
+  const syncPreviewRunState = () => {
+    const collapsed = !!(root && root.classList && root.classList.contains("is-previewout-active"));
+    ensureMainPreview(!collapsed);
+  };
+
+  try {
+    const mo = new MutationObserver(() => syncPreviewRunState());
+    mo.observe(root, { attributes: true, attributeFilter: ["class"] });
+    unsubs.push(() => { try { mo.disconnect(); } catch {} });
+  } catch {}
+
+  // Apply once on boot.
+  syncPreviewRunState();
+  toolbarController?.syncTabs?.();
+  fileController?.syncTitle?.();
+  outlinerController.render(core.getDocument?.());
+  updatePreviewSelectionLabel();
+  if (modelUrl) fileController.syncTitle?.();
+
+  return { detach: cleanupUiShell };
 }

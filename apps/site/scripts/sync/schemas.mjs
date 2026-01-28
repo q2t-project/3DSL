@@ -4,6 +4,8 @@
 // Canonical public paths:
 // - /schemas/3DSS.schema.json
 // - /schemas/3DSS_spec.md
+// - /schemas/latest/3DSS.schema.json
+// - /schemas/latest/3DSS_spec.md
 // - /schemas/release/vX.Y.Z/3DSS.schema.json
 //
 // NOTE: the schema $id points to /schemas/release/... so this path must exist.
@@ -26,6 +28,9 @@ const SRC_RELEASE_DIR = path.join(SRC_ROOT, "release");
 const OUT_ROOT = path.join(SITE_ROOT, "public", "schemas");
 const OUT_LATEST_SCHEMA = path.join(OUT_ROOT, "3DSS.schema.json");
 const OUT_SPEC = path.join(OUT_ROOT, "3DSS_spec.md");
+const OUT_LATEST_DIR = path.join(OUT_ROOT, "latest");
+const OUT_LATEST_DIR_SCHEMA = path.join(OUT_LATEST_DIR, "3DSS.schema.json");
+const OUT_LATEST_DIR_SPEC = path.join(OUT_LATEST_DIR, "3DSS_spec.md");
 const OUT_RELEASE_DIR = path.join(OUT_ROOT, "release");
 
 function ensureDir(p) {
@@ -51,6 +56,11 @@ function main() {
 
   copyFile(SRC_LATEST_SCHEMA, OUT_LATEST_SCHEMA);
   if (fs.existsSync(SRC_SPEC)) copyFile(SRC_SPEC, OUT_SPEC);
+
+  // Provide a stable "latest" path for local dev (Astro dev does not honor Cloudflare Pages _redirects).
+  copyFile(SRC_LATEST_SCHEMA, OUT_LATEST_DIR_SCHEMA);
+  if (fs.existsSync(SRC_SPEC)) copyFile(SRC_SPEC, OUT_LATEST_DIR_SPEC);
+
   copyDir(SRC_RELEASE_DIR, OUT_RELEASE_DIR);
 
   console.log(`[sync] schemas: mirrored (packages/schemas -> apps/site/public/schemas)`);

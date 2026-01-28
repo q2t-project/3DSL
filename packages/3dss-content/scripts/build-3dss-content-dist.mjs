@@ -79,8 +79,8 @@ function firstNonEmpty(...vals) {
   return null;
 }
 
-function deriveCreatedAt(meta, dm, id, modelPath) {
-  const explicit = firstNonEmpty(meta?.created_at, dm?.created_at, dm?.createdAt);
+function deriveCreatedAt(dm, id, modelPath) {
+  const explicit = firstNonEmpty(dm?.created_at, dm?.createdAt);
   if (explicit && toEpoch(explicit)) return explicit;
 
   // fallback: id=YYMMDDxx
@@ -106,17 +106,16 @@ function deriveCreatedAt(meta, dm, id, modelPath) {
   return null;
 }
 
-function deriveUpdatedAt(meta, dm, modelPath) {
-  const m = firstNonEmpty(meta?.updated_at, dm?.updated_at, dm?.updatedAt);
-  if (m && toEpoch(m)) return m;
+function derivePublishedAt(meta) {
+  // NOTE: keep updated_at only as a migration fallback (do not output updated_at).
+  const s = firstNonEmpty(meta?.published_at, meta?.publishedAt, meta?.updated_at);
+  return s && toEpoch(s) ? s : null;
+}
 
-  // fallback: file mtime
-  try {
-    const st = fs.statSync(modelPath);
-    return st?.mtime ? new Date(st.mtime).toISOString() : null;
-  } catch {
-    return null;
-  }
+function deriveRepublishedAt(meta) {
+  // NOTE: keep updated_at only as a migration fallback (do not output updated_at).
+  const s = firstNonEmpty(meta?.republished_at, meta?.republishedAt, meta?.updated_at);
+  return s && toEpoch(s) ? s : null;
 }
 
 function uniq(arr) {
@@ -179,16 +178,11 @@ function ensureMeta(metaPath, model, id, modelPath) {
   const modelSummary = firstNonEmpty(dm.summary, dm.document_summary) ?? "";
   const modelTags = Array.isArray(dm.tags) ? dm.tags : [];
 
-  const created_at = deriveCreatedAt({}, dm, id, modelPath);
-  const updated_at = deriveUpdatedAt({}, dm, modelPath) ?? created_at;
-
   const meta = {
     // safety default: do not publish automatically
     published: false,
     summary: modelSummary,
     tags: uniq(modelTags),
-    created_at,
-    updated_at,
     entry_points: [],
     pairs: [],
     rights: null,
@@ -292,8 +286,10 @@ function main() {
     const legacy_model_url = `/3dss/library/${id}/model.3dss.json`;
     const viewer_url = buildViewerUrl(model_url);
 
-    const created_at = deriveCreatedAt(meta, dm, id, modelPath);
-    const updated_at = deriveUpdatedAt(meta, dm, modelPath);
+    const created_at = deriveCreatedAt(dm, id, modelPath);
+
+    const published_at = derivePublishedAt(meta);
+    const republished_at = deriveRepublishedAt(meta) ?? published_at;
 
     // SEO: minimal title/description only (no per-item og image).
     const seo = pickSeo(meta, title, summary);
@@ -310,7 +306,8 @@ function main() {
       title,
       summary,
       created_at,
-      updated_at,
+      published_at,
+      republished_at,
       tags,
       data_dir,
       model_url,
@@ -326,7 +323,7 @@ function main() {
   }
 
   writeJson(path.join(OUT_LIBRARY_DIR, "library_index.json"), {
-    version: 3,
+    version: 4,
     generated_at: new Date().toISOString(),
     items,
   });

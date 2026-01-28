@@ -1,25 +1,29 @@
 manifest_schema_version: "1.0"
 
+# NOTE
+# - /modeler/ は Astro サイト側で利用中のため、modeler 本体の静的バンドルは当面 /modeler_app/ に配置する。
+# - いずれ Astro 側のルート整理後に /modeler/ へ寄せる。
+
 app:
   name: "modeler"
-  ssot_root: "/modeler/manifest.yaml"
-  ssot_policy: "/modeler/SSOT_POLICY.md"
+  ssot_root: "/modeler_app/manifest.yaml"
+  ssot_policy: "/modeler_app/SSOT_POLICY.md"
 
 # 方針A：この manifest は「境界と統治（ports/layers/checks）」の SSOT。
 # 詳細な仕様本文（長文）は docs.human_specs 側に置き、manifest から参照する。
 
 paths:
-  generated_root: "/modeler/_generated"
+  generated_root: "/modeler_app/_generated"
 
 layers:
   - name: host
-    description: "App shell (DOM skeleton / menu / file dialogs)"
+    description: "App shell (DOM skeleton / menu / file dialogs / multi-window glue)"
   - name: entry
-    description: "bootstrap / composition root"
+    description: "bootstrap / composition root (bootstrapModeler + previewOutBoot)"
   - name: hub
     description: "orchestrator (transaction order)"
   - name: core
-    description: "canonical state + edit rules (single-writer) + IR/sidecar"
+    description: "canonical state + edit rules (single-writer) (future: IR/sidecar import tolerance)"
   - name: renderer
     description: "three/webgl execution (no DOM)"
   - name: ui
@@ -65,6 +69,12 @@ ports:
     surface: "bootstrapModeler(rootElOrId, options?) -> hub"
     stability: "stable"
 
+  - id: "entry.bootstrapModelerFromUrl"
+    caller: "host"
+    callee: "entry"
+    surface: "bootstrapModelerFromUrl(rootElOrId, url, options?) -> Promise<hub>"
+    stability: "stable"
+
   # -----------------------------
   # 2) ui -> hub (public runtime API)
   # -----------------------------
@@ -98,34 +108,72 @@ ports:
     surface: "hub.pickObjectAt(ndcX, ndcY) -> hit | null (hit={uuid, kind, distance, point:[x,y,z]})"
     stability: "stable"
 
-  - id: "hub.core.facade"
+  - id: "hub.applyPickAt"
     caller: "ui"
     callee: "hub"
-    surface: "hub.core.* (facade: document/io/quickcheck/selection/lock/frames/transform/commands + focusByIssue)"
+    surface: "hub.applyPickAt({ndcX, ndcY}?) -> issueLike | null (issueLike={uuid, kind, path})"
+    stability: "stable"
+
+
+  - id: "hub.worldPointOnPlaneZ"
+    caller: "ui"
+    callee: "hub"
+    surface: "hub.worldPointOnPlaneZ(ndcX, ndcY, planeZ) -> [x,y,z] | null (3DSS coords)"
+    stability: "stable"
+
+  - id: "hub.previewSetPosition"
+    caller: "ui"
+    callee: "hub"
+    surface: "hub.previewSetPosition(uuid, pos:[x,y,z]) -> void (preview only)"
+    stability: "stable"
+
+  - id: "hub.previewSetLineEnds"
+    caller: "ui"
+    callee: "hub"
+    surface: "hub.previewSetLineEnds(uuid, endA, endB) -> void (preview only; endA/endB are endpoint objects: {ref:string}|{coord:[x,y,z]}|null)"
+    stability: "stable"
+
+  - id: "hub.previewSetCaptionText"
+    caller: "ui"
+    callee: "hub"
+    surface: "hub.previewSetCaptionText(uuid, captionText, fallbackText) -> void (preview only; captionText={content, size?, align?, pose?} | null)"
+    stability: "stable"
+
+
+  - id: "hub.previewSetOverride"
+    caller: "ui"
+    callee: "hub"
+    surface: "hub.previewSetOverride(uuid, override:{position?,endA?,endB?,captionText?}|null) -> void (preview only; null clears override for uuid)"
+    stability: "beta"
+
+  - id: "hub.core.controllers"
+    caller: "ui"
+    callee: "hub"
+    surface: "hub.core.* (controllers: document/file/dirty/uiState/selection/lock/edit/import/validator/quickcheck + focusByIssue)"
+    stability: "stable"
+
+  - id: "hub.on"
+    caller: "ui"
+    callee: "hub"
+    surface: "hub.on(type, fn) -> off()"
     stability: "stable"
 
   # -----------------------------
   # 3) hub -> core (DI boundary)
   # -----------------------------
-  - id: "hub.core.controllers"
+  - id: "hub.core.createControllers"
     caller: "hub"
     callee: "core"
-    surface: "core controllers (document/io/validator/quickcheck/selection/lock/frames/transform/commandManager/sidecar)"
+    surface: "createCoreControllers(emitter) -> core controllers (document/file/dirty/uiState/selection/lock/edit/validator/quickcheck + focusByIssue)"
     stability: "stable"
 
   # -----------------------------
   # 4) hub -> renderer (DI boundary)
   # -----------------------------
-  - id: "hub.renderer.render"
+  - id: "hub.renderer.createRenderer"
     caller: "hub"
     callee: "renderer"
-    surface: "renderer.render(frameContext) -> void"
-    stability: "stable"
-
-  - id: "hub.renderer.pick"
-    caller: "hub"
-    callee: "renderer"
-    surface: "renderer.pickObjectAt(ndcX, ndcY) -> hit | null (hit={uuid, kind, distance, point:[x,y,z]})"
+    surface: "createRenderer(canvas) -> renderer (start/stop/resize/dispose/setDocument/applyVisibility/setSelection/pickObjectAt/focusOnUuid/worldPointOnPlaneZ/previewSetPosition/previewSetLineEnds/previewSetCaptionText/previewSetOverride)"
     stability: "stable"
 
 # 互換ラッパ（compat）は ports に含めない。deprecated として隔離する。
@@ -154,11 +202,11 @@ checks:
 docs:
   human_specs:
     - id: "ssot-policy"
-      path: "/modeler/SSOT_POLICY.md"
+      path: "/modeler_app/SSOT_POLICY.md"
       role: "meta governance rules (human)"
       status: "authoritative"
     - id: "3dsd-modeler"
-      path: "/modeler/3DSD-modeler.md"
+      path: "/modeler_app/3DSD-modeler.md"
       role: "concept + behavior spec (human)"
       status: "authoritative"
     - id: "3dsd-common"
@@ -170,8 +218,18 @@ docs:
       role: "contract SSOT (schema)"
       status: "authoritative"
 
+    # Living report (implementation status vs spec/manifest)
+    - id: "modeler-docs-index"
+      path: "/docs/modeler/README.md"
+      role: "docs entry for modeler"
+      status: "supporting"
+    - id: "implementation-report"
+      path: "/docs/modeler/IMPLEMENTATION_REPORT.md"
+      role: "living report: implementation status vs spec/manifest (human)"
+      status: "supporting"
+
   generated:
     - id: "ports"
-      path: "/modeler/_generated/PORTS.md"
+      path: "/modeler_app/_generated/PORTS.md"
       generator: "node scripts/gen-ports.mjs"
       editable: false

@@ -6,6 +6,7 @@
 
 - Schema SSOT: `packages/schemas/3DSS.schema.json`
 - Viewer SSOT: `apps/viewer/ssot/**`
+- Modeler SSOT: `apps/modeler/ssot/**`
 - Docs SSOT: `packages/docs/**`
 - Content SSOT: `packages/3dss-content/**`
 
@@ -28,6 +29,13 @@
 - 入力/操作系: `apps/viewer/ssot/runtime/core/**`
 - 描画: `apps/viewer/ssot/runtime/renderer/**`
 
+### Modeler
+
+- 起動/ホスト: `apps/modeler/ssot/modelerHost.js`
+- 起動（public entry）: `apps/modeler/ssot/runtime/bootstrapModeler.js`
+- UI shell: `apps/modeler/ssot/ui/attachUiShell.js`
+- 境界/ports: `apps/modeler/ssot/manifest.yaml` / `apps/modeler/ssot/_generated/PORTS.md`
+
 ### Content（3DSS）
 
 - canonical: `packages/3dss-content/canonical/**`
@@ -37,5 +45,6 @@
 ## Keywords（検索キーワード）
 
 - boundary: `check:boundary` / `forbidden-import`
-- sync: `sync:viewer` / `sync:docs` / `sync:schemas` / `sync:3dss-content`
+- modeler:ssot: `check:modeler:ssot`
+- sync: `sync:viewer` / `sync:modeler` / `sync:docs` / `sync:schemas` / `sync:3dss-content`
 - validate: `validate:3dss:canonical` / `fixtures` / `regression`

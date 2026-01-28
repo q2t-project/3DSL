@@ -28,7 +28,8 @@ export async function mountModelerHost(opts = {}) {
   const root = asEl(rootId);
   if (!root) throw new Error("mountModelerHost: root not found");
 
-  // teardown previous hub if any (idempotent)
+  // teardown previous ui + hub if any (idempotent)
+  teardownPrev(root, "__ownedUi");
   teardownPrev(root, "__ownedHub");
 
   // entry.bootstrapModeler (manifest port)
@@ -48,7 +49,8 @@ export async function mountModelerHost(opts = {}) {
   startHub(hub);
 
   // attach shell UI (tabs, outliner rendering, quickcheck panel)
-  attachUiShell({ root, hub, modelUrl });
+  const uiHandle = attachUiShell({ root, hub, modelUrl });
+  setOwnedHandle(root, "__ownedUi", uiHandle);
 
   return hub;
 }

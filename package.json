@@ -13,7 +13,11 @@
     "check:guards": "npm --prefix apps/site run check:guards",
     "fix:guards": "npm --prefix apps/site run fix:guards",
     "build:site": "npm --prefix apps/site run build",
-    "check:release": "npm --prefix apps/site run check:release"
+    "check:release": "npm --prefix apps/site run check:release",
+    "sync:modeler": "npm --prefix apps/site run sync:modeler",
+    "sync:docs": "npm --prefix apps/site run sync:docs",
+    "sync:3dss-content": "npm --prefix apps/site run sync:3dss-content",
+    "check:modeler:ssot": "npm --prefix apps/site run check:modeler:ssot"
   },
   "devDependencies": {
     "@fontsource-variable/noto-sans-jp": "^5.2.10",

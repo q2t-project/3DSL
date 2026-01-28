@@ -2587,6 +2587,106 @@ for (const aux of axs) {
       }
     } catch (_e) {}
     return null;
+
+
+// ------------------------------------------------------------
+// Debug snapshot (for viewer/modeler comparison)
+// - Never throws; returns null on failure.
+// - Intended for internal tooling via postMessage (compare page).
+// ------------------------------------------------------------
+ctx.getDebugPoseSnapshot = (opts = {}) => {
+  if (ctx._disposed) return null;
+  try {
+    const uuids = Array.isArray(opts?.uuids) ? opts.uuids.map(String) : [];
+    const rect = (() => {
+      try { return canvas.getBoundingClientRect?.() ?? null; } catch (_e) { return null; }
+    })();
+    const wCss = Number(rect?.width) || Number(canvas.clientWidth) || 0;
+    const hCss = Number(rect?.height) || Number(canvas.clientHeight) || 0;
+
+    const project = (v3) => {
+      try {
+        const v = v3.clone();
+        v.project(camera);
+        const ndc = { x: v.x, y: v.y, z: v.z };
+        const px = (wCss > 0 && hCss > 0)
+          ? {
+              x: (ndc.x + 1) * 0.5 * wCss,
+              y: (1 - (ndc.y + 1) * 0.5) * hCss
+            }
+          : null;
+        return { ndc, px };
+      } catch (_e) {
+        return null;
+      }
+    };
+
+    const findObj = (uuid) => {
+      const u = String(uuid || "");
+      for (const kind of ["points", "lines", "aux"]) {
+        const m = maps?.[kind];
+        if (!m || typeof m.get !== "function") continue;
+        const o = m.get(u);
+        if (o) return { kind, obj: o };
+      }
+      return null;
+    };
+
+    const items = [];
+    for (const u of uuids) {
+      const hit = findObj(u);
+      if (!hit) continue;
+      const o = hit.obj;
+      const pos = (() => {
+        try {
+          const p = o.getWorldPosition?.(new THREE.Vector3());
+          if (!p) return null;
+          return [p.x, p.y, p.z];
+        } catch (_e) { return null; }
+      })();
+      const proj = pos ? project(new THREE.Vector3(pos[0], pos[1], pos[2])) : null;
+      items.push({ uuid: u, kind: hit.kind, world: pos, screen: proj?.px ?? null, ndc: proj?.ndc ?? null });
+    }
+
+    const cam = (() => {
+      // Prefer engine state if available (keeps semantics stable), fallback to three camera.
+      try {
+        const st = ctx?.getCameraState?.() ?? null;
+        if (st && typeof st === "object") return st;
+      } catch (_e) {}
+      try {
+        return {
+          position: [camera.position.x, camera.position.y, camera.position.z],
+          target: [0, 0, 0],
+          fov: camera.fov,
+          near: camera.near,
+          far: camera.far
+        };
+      } catch (_e) {
+        return null;
+      }
+    })();
+
+    const origin = project(new THREE.Vector3(0, 0, 0));
+    const axis = {
+      x10: project(new THREE.Vector3(10, 0, 0)),
+      y10: project(new THREE.Vector3(0, 10, 0)),
+      z10: project(new THREE.Vector3(0, 0, 10)),
+    };
+
+    return {
+      kind: "viewer",
+      size: { wCss, hCss },
+      cam,
+      origin: { screen: origin?.px ?? null, ndc: origin?.ndc ?? null },
+      axis,
+      items
+    };
+  } catch (_e) {
+    return null;
+  }
+};
+
   };
 
   // 初期サイズだけ合わせとく（0サイズ事故も防ぐ）

@@ -76,12 +76,12 @@ function validateMeta(meta, policy) {
   }
 
   // Minimal keys (staged: warn -> error; unpublished => warn)
-  min(typeof meta.title === 'string', `missing or invalid key: title (string)`);
+  // NOTE: title/created_at are NOT library-meta concerns in v1.1.4+.
+  // - title: comes from model.3dss.json document_meta.title
+  // - created/revised: belong to document_meta
   min(typeof meta.summary === 'string', `missing or invalid key: summary (string)`);
   min(Array.isArray(meta.tags), `missing or invalid key: tags (array)`);
   min(typeof meta.published === 'boolean', `missing or invalid key: published (boolean)`);
-  min(typeof meta.created_at === 'string', `missing or invalid key: created_at (string)`);
-  min(typeof meta.updated_at === 'string', `missing or invalid key: updated_at (string)`);
 
   // Extra type checks (non-fatal in warn mode unless policy=error and they are minimal keys)
   if (Array.isArray(meta.tags)) {
@@ -90,13 +90,6 @@ function validateMeta(meta, policy) {
         issue('warn', `tags[${i}] should be string`);
       }
     }
-  }
-
-  if (typeof meta.created_at === 'string' && meta.created_at && !isDateish(meta.created_at)) {
-    issue('warn', `created_at is not a parseable date: ${meta.created_at}`);
-  }
-  if (typeof meta.updated_at === 'string' && meta.updated_at && !isDateish(meta.updated_at)) {
-    issue('warn', `updated_at is not a parseable date: ${meta.updated_at}`);
   }
 
   // Recommended keys (warn only)
@@ -125,6 +118,26 @@ function validateMeta(meta, policy) {
   if (typeof meta.og_image === 'string' && meta.og_image && typeof meta.seo === 'object' && meta.seo && meta.seo.og_image == null) {
     // ok. no warning.
   }
+
+  const published = meta.published !== false;
+
+  // updated_at is deprecated in v1.1.4 migration; treat as an error to prevent contamination.
+  if (typeof meta.updated_at !== "undefined") {
+    issue("error", `deprecated key present: updated_at (use published_at / republished_at)`);
+  }
+
+  if (published) {
+    min(typeof meta.published_at === "string" && !!meta.published_at.trim(), "missing key: published_at (string)");
+    min(typeof meta.republished_at === "string" && !!meta.republished_at.trim(), "missing key: republished_at (string)");
+
+    if (typeof meta.published_at === "string" && meta.published_at && !isDateish(meta.published_at)) {
+      issue("warn", `published_at is not a parseable date: ${meta.published_at}`);
+    }
+    if (typeof meta.republished_at === "string" && meta.republished_at && !isDateish(meta.republished_at)) {
+      issue("warn", `republished_at is not a parseable date: ${meta.republished_at}`);
+    }
+  }
+
 
   return { warns, errs };
 }
