@@ -47,7 +47,7 @@
     }
   ],
   "provenance": {
-    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
+    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
     "tools": [],
     "generation_note": ""
   },

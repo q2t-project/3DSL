@@ -9,7 +9,7 @@
       "s:concept",
       "m:top"
     ],
-    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
+    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
     "generator": "https://3dsl.jp/",
     "reference": "26010501 3dsl-concept",
     "coordinate_system": "Z+up/freeXY",
