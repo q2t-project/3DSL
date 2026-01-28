@@ -5,7 +5,6 @@
   "tags": [],
   "published": true,
   "created_at": "2026-01-20T04:21:59Z",
-  "updated_at": "2026-01-20T04:21:59Z",
   "hidden": false,
   "recommended": false,
   "seo": {
@@ -59,6 +58,7 @@
   },
   "entry_points": [],
   "pairs": [],
-  "related": []
+  "related": [],
+  "published_at": "2026-01-20T04:21:59Z",
+  "republished_at": "2026-01-20T04:21:59Z"
 }
-
