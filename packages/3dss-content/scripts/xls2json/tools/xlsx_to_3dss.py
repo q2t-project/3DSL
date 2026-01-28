@@ -235,7 +235,7 @@ def _read_sheet(wb, sheet_name: str) -> List[Dict[str, Any]]:
     return rows
 
 def _default_document_meta(schema: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    schema_uri = "https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3"
+    schema_uri = "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4"
     if schema and isinstance(schema, dict):
         sid = schema.get("$id") or ""
         anch = schema.get("$anchor") or ""

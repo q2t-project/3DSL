@@ -1487,7 +1487,10 @@
             ],
             "default": "1.0.0"
           },
-          "updated_at": {
+          "created_at": {
+            "$ref": "#/$defs/validator/timestamp_utc"
+          },
+          "revised_at": {
             "$ref": "#/$defs/validator/timestamp_utc"
           },
           "tags": {
