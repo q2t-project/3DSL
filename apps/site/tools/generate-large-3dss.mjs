@@ -1,5 +1,5 @@
 // tools/generate-large-3dss.mjs
-// 3DSS v1.0.2 向けの巨大サンプル生成スクリプト（ESM）
+// 3DSS v1.1.4 向けの巨大サンプル生成スクリプト（ESM）
 // - points / lines / aux を指定数だけ生成
 // - position は unitless world 座標（units は mm 前提）
 // - Z 座標もランダムで振る
@@ -30,7 +30,7 @@ function isoUtcSeconds() {
 }
 
 // ------------------------------------------------------------
-// points 生成（3DSS v1.0.2 準拠）
+// points 生成（3DSS v1.1.4 準拠）
 // ------------------------------------------------------------
 
 function createPoints(count) {
@@ -81,7 +81,7 @@ function createPoints(count) {
 }
 
 // ------------------------------------------------------------
-// lines 生成（3DSS v1.0.2 準拠）
+// lines 生成（3DSS v1.1.4 準拠）
 // ------------------------------------------------------------
 
 function createLines(count, points) {
@@ -121,7 +121,7 @@ function createLines(count, points) {
         opacity: 0.4,
         renderOrder: 0,
 
-        // arrow: v1.0.2 の oneOf 仕様に準拠
+        // arrow: v1.1.4 の oneOf 仕様に準拠
         // primitive: "none" | "line" | "cone" | "pyramid"
         arrow: {
           primitive: "cone",
@@ -158,7 +158,7 @@ function createLines(count, points) {
 }
 
 // ------------------------------------------------------------
-// aux 生成（3DSS v1.0.2 準拠）
+// aux 生成（3DSS v1.1.4 準拠）
 // ------------------------------------------------------------
 
 function createAux(count) {
@@ -174,7 +174,7 @@ function createAux(count) {
           axis: {
             length: 64,
             labels: true,
-            // axis.arrow も v1.0.2 の oneOf 仕様に合わせる
+            // axis.arrow も v1.1.4 の oneOf 仕様に合わせる
             // primitive: "none" | "line" | "cone" | "pyramid"
             arrow: {
               primitive: "cone",
@@ -213,7 +213,7 @@ export function generate3dss(pointsCount, linesCount, auxCount) {
       updated_at: isoUtcSeconds(),
       tags: ["s:perf_sample"],
       schema_uri:
-        "https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.0.2",
+        "https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.1.4",
       generator: "https://3dsl.jp/sample-generator",
       reference: "performance test sample",
       coordinate_system: "Z+up/freeXY",

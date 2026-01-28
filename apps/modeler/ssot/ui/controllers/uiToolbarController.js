@@ -113,7 +113,7 @@ function createEmptyDoc() {
       document_summary: "",
       document_uuid: newUuid(),
       // Keep aligned with current release fixtures. This is a reasonable default for authoring.
-      schema_uri: "https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
+      schema_uri: "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
       author: "",
       version: "1.0.0",
       coordinate_system: "Z+up/freeXY",
