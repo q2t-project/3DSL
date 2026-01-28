@@ -1,5 +1,5 @@
 ````markdown
-# 3DSS (Three-Dimensional Structural Schema) 仕様書 v1.1.3
+# 3DSS (Three-Dimensional Structural Schema) 仕様書 v1.1.4
 
 ---
 
@@ -8,7 +8,7 @@
 | 項目 | 内容 |
 |------|------|
 | 正式名 | 3DSS（Three-Dimensional Structural Schema） |
-| スキーマURI | https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3 |
+| スキーマURI | https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4 |
 | 準拠仕様 | JSON Schema Draft 2020-12 |
 | ステータス | stable |
 | 発行日 | 2026-01-11 |
@@ -21,9 +21,9 @@
 `lines`（関係要素）・`points`（存在要素）・`aux`（補助要素）・`document_meta`（管理情報）を中核として設計されている。
 
 本仕様書が対象とするのは構造層のスキーマ `3DSS.schema.json` である。
-スキーマの `$id` は `https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#` とし、バージョンは `$anchor`（例：`v1.1.3`）で表す。構造ドキュメント側は `document_meta.schema_uri` に `...json#vX.Y.Z` を格納して、準拠バージョンを明示する。
+スキーマの `$id` は `https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#` とし、バージョンは `$anchor`（例：`v1.1.4`）で表す。構造ドキュメント側は `document_meta.schema_uri` に `...json#vX.Y.Z` を格納して、準拠バージョンを明示する。
 構造ドキュメントのバージョン管理は `document_meta.version`（SemVer）で行い、
-仕様書の版数（本書 v1.1.3）とは区別する。
+仕様書の版数（本書 v1.1.4）とは区別する。
 
 これとは別に、Authoring 層から modeler へ JSON 形式で疎データを受け渡すための
 最小スキーマ `3DSS-prep.schema.json` を定義する（詳細は 2.3節）。
@@ -94,7 +94,7 @@ Normalize 段階では `$defs.validator` 配下に定義された型・書式
 `generator`、`created_at`、`revised_at`、`tags`、`reference`、`coordinate_system`、`units`、
 `i18n`、`creator_memo` などを想定する。
 
-- `schema_uri` には、原則として本スキーマの `$id` に `$anchor`（SemVer）を付けた値（例：`https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3`）を格納する。  
+- `schema_uri` には、原則として本スキーマの `$id` に `$anchor`（SemVer）を付けた値（例：`https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4`）を格納する。  
 - `units` は `"m"`／`"cm"`／`"mm"`／`"non_si:px"` のいずれかをとる列挙値であり、  
   デフォルトは `"non_si:px"` とする。  
 - `i18n` は `"ja"`／`"en"` をとる言語コードであり、デフォルトは `"ja"` とする。
@@ -220,8 +220,8 @@ prep は Authoring 層に属し、基本的に `additionalProperties: true` の�
 ```
 
 ```
-第3章と第4章を v1.1.3 の実スキーマに揃えた版をまとめる。
-（`$defs` の構成やプロパティ名は、いま貼ってくれた 3DSS.schema.json v1.1.3 構造に合わせてある）
+第3章と第4章を v1.1.4 の実スキーマに揃えた版をまとめる。
+（`$defs` の構成やプロパティ名は、いま貼ってくれた 3DSS.schema.json v1.1.4 構造に合わせてある）
 
 ```markdown
 
@@ -281,7 +281,7 @@ prep は Authoring 層に属し、基本的に `additionalProperties: true` の�
 
 ### 3.3 設計指針
 
-3DSS v1.1.3 では、スキーマ設計において **論理的一貫性と拡張可能性** を優先し、表現上の自由度はその範囲で確保する。
+3DSS v1.1.4 では、スキーマ設計において **論理的一貫性と拡張可能性** を優先し、表現上の自由度はその範囲で確保する。
 
 これにより、スキーマは Viewer の描画負荷から独立して構造定義の安定性を維持しつつ、将来の viewer／modeler 実装に対して中立的な基盤となる。
 
@@ -292,7 +292,7 @@ prep は Authoring 層に属し、基本的に `additionalProperties: true` の�
 
 拡張定義の構造本体は `$defs` に集約し、実体側（例：`aux.appearance.module.extension` など）には識別用のフィールドと、それらへの `$ref` のみを記述する。
 
-v1.1.3 における `$defs` の主な構成は次の通りである。
+v1.1.4 における `$defs` の主な構成は次の通りである。
 
 - `$defs.validator`  
   - UUID／URI／タグ／言語コード／単位／SemVer／UTCタイムスタンプ／カラーコード／3次元ベクトル／frames などの共通バリデーションを提供する。  
@@ -343,7 +343,7 @@ v1.1.3 における `$defs` の主な構成は次の通りである。
 
 ### 4.2 共通定義 `$defs` の構成
 
-v1.1.3 における `$defs` の主要な構成要素と役割を整理する。
+v1.1.4 における `$defs` の主要な構成要素と役割を整理する。
 
 | セクション            | 役割の概要 |
 |-----------------------|-----------|
@@ -434,7 +434,7 @@ lines
 * 5 種類のキーのうち、**いずれか 1 つだけ必須**（`oneOf`＋`minProperties:1`＋`maxProperties:1`）
 * 未定義キーは禁止（`additionalProperties:false`）
 
-`required_sets` や `enum_constraint` といった共通制約は v1.1.3 時点では `$defs` に未定義であり、
+`required_sets` や `enum_constraint` といった共通制約は v1.1.4 時点では `$defs` に未定義であり、
 各プロパティの `enum` 定義と本仕様書の表で直接規定する。
 
 ---
@@ -522,7 +522,7 @@ lines
 
 ##### 5.1.4.3 caption_text オブジェクト
 
-`caption_text` は line の `signification.caption` を表示するためのスタイル情報（v1.1.3）。
+`caption_text` は line の `signification.caption` を表示するためのスタイル情報（v1.1.4）。
 
 | プロパティ | 型 | 必須 | デフォルト | 説明 |
 |---|---|---|---|---|
@@ -546,10 +546,10 @@ lines の meta 層は `$defs.meta.core` に準拠し、次の構造をとる。
 #### 5.1.6 参照整合 (Reference Integrity)
 
 * `end_a.ref` / `end_b.ref` は、`points[].meta.uuid` のみを参照することを前提とする。
-* line 間の直接参照（line → line）は v1.1.3 では未サポート。将来拡張領域とする。
+* line 間の直接参照（line → line）は v1.1.4 では未サポート。将来拡張領域とする。
 * 自己参照や循環参照、別ファイルへの越境参照の禁止／許可は、アプリケーション側の検証ポリシで扱う。
 
-JSON Schema v1.1.3 では、UUID 形式のみを検証対象とし、
+JSON Schema v1.1.4 では、UUID 形式のみを検証対象とし、
 参照先の実体存在チェック（参照整合性）は `$defs.validator.ref_integrity` の将来導入候補として仕様レベルで予約しておく。
 
 ---
@@ -711,7 +711,7 @@ points
 | `pose`    | object(text_pose) | `{ "front": [0,1,0], "up": [0,0,1] }` | 表示姿勢。6.5 `text_pose` を参照。 |
 
 > `pose` は `text_pose`（6.5）。`front`（正面＝法線）と `up`（文字の上方向）を vec3 で指定する。JSON Schema では `pose` は必須（ただし default あり）なので、Authoring/Importer は省略時にデフォルトを補完してよいが、正規化（保存/Export）では必ず `{front, up}` を明示する。
-**align の表記ルール（v1.1.3）**
+**align の表記ルール（v1.1.4）**
 
 `align` は `"<h>&<v>"`（`&` 区切り）で指定する。
 
@@ -925,7 +925,7 @@ Viewer は存在すれば描画し、なければ無視してよい。
 スキーマの参照元、生成ツール、座標系、単位系、バージョン、作者、更新日時などを含み、
 ファイルレベルでの整合性と追跡可能性を担保する。
 
-v1.1.3 では、必須フィールドは次の 5 項目である：
+v1.1.4 では、必須フィールドは次の 5 項目である：
 
 * `document_title`
 * `document_uuid`
@@ -969,7 +969,7 @@ document_meta
 | `created_at`        | string(timestamp_utc) | 任意 | –                                       | 作成日時。`YYYY-MM-DDThh:mm:ssZ` 形式。                                                 |
 | `revised_at`        | string(timestamp_utc) | 任意 | –                                       | 最終更新日時。`YYYY-MM-DDThh:mm:ssZ` 形式。                                                 |
 | `tags`              | array(tag)            | 任意 | `[]`                                    | 文書単位のスコープタグ。`s:/m:/x:` 接頭辞を含む。                                                    |
-| `schema_uri`        | string(uri)           | ✅  | –                                       | 準拠スキーマ URI。例：`https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3` |
+| `schema_uri`        | string(uri)           | ✅  | –                                       | 準拠スキーマ URI。例：`https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4` |
 | `generator`         | string(uri-reference) | 任意 | `"https://3dsl.jp/"` | 文書を生成したツールまたはアプリの識別 URI。                                                          |
 | `reference`         | string                | 任意 | `""`                                    | 外部参照・出典・備考など。                                                                     |
 | `coordinate_system` | string(const)         | 任意 | –                                       | 座標系識別子。値は `"Z+up/freeXY"` に限定される（const）。省略時も同一系を前提とする。                            |
@@ -1010,7 +1010,7 @@ UI 上の一時的注釈・コメントは、`meta.creator_memo` などの
 
 本章では、スキーマ全体の整合性を保証する `$defs` 領域の構造を示す。
 
-v1.1.3 では主に次の定義群が用意される：
+v1.1.4 では主に次の定義群が用意される：
 
 * `$defs.validator`：UUID／URI／タグ／言語コード／単位／色／ベクトル／フレーム等の共通検証定義
 * `$defs.spatial`：position / orientation / scale / rotation / offset などの空間属性
@@ -1026,7 +1026,7 @@ v1.1.3 では主に次の定義群が用意される：
 ### 6.1 validator（バリデータ定義群）
 
 `$defs.validator` は、スキーマ全体で再利用する「基本的な値形状」を束ねる領域である。
-v1.1.3 では、以下のキーを持つ（実体はすべて `$defs.validator.*` として定義される）。
+v1.1.4 では、以下のキーを持つ（実体はすべて `$defs.validator.*` として定義される）。
 
 * `uuid`, `uuid_v4`
 * `uri`, `uri_http_like`
@@ -1074,30 +1074,30 @@ v1.1.3 では、以下のキーを持つ（実体はすべて `$defs.validator.*
 
 ---
 
-#### 6.1.3 enum_constraint（列挙値制約）［v1.1.3 では未使用］
+#### 6.1.3 enum_constraint（列挙値制約）［v1.1.4 では未使用］
 
 本節は将来版で `$defs.validator.enum_constraint` を導入するための **節番号予約** として残す。
 
-3DSS v1.1.3 の JSON Schema には
+3DSS v1.1.4 の JSON Schema には
 `$defs.validator.enum_constraint` は定義されておらず、
 列挙値は各プロパティ定義の `enum` と本仕様書の表記で直接規定する。
 
 ---
 
-#### 6.1.4 required_sets（必須項目集合）［v1.1.3 では未使用］
+#### 6.1.4 required_sets（必須項目集合）［v1.1.4 では未使用］
 
 本節は将来版で `$defs.validator.required_sets` を導入するための **節番号予約** として残す。
 
-v1.1.3 では、必須項目は各オブジェクト定義の `required` 配列で直接規定し、
+v1.1.4 では、必須項目は各オブジェクト定義の `required` 配列で直接規定し、
 共通の必須集合を `$defs` 側で束ねることは行わない。
 
 ---
 
-#### 6.1.5 ref_integrity（参照整合性）［v1.1.3 では未使用］
+#### 6.1.5 ref_integrity（参照整合性）［v1.1.4 では未使用］
 
 本節は将来版で `$defs.validator.ref_integrity` を導入するための **節番号予約** として残す。
 
-v1.1.3 の JSON Schema では、参照整合性（`lines` → `points` など）は
+v1.1.4 の JSON Schema では、参照整合性（`lines` → `points` など）は
 型（UUID）レベルまでしか検証されず、
 実際の存在チェックはアプリケーション側の責務とする。
 
@@ -1135,7 +1135,7 @@ v1.1.3 の JSON Schema では、参照整合性（`lines` → `points` など）
 構造層（3DSS 構造定義）そのものを拡張するのではなく、
 Authoring 層や Viewer 補助機能との **接合点** として外側に位置づけられる。
 
-v1.1.3 では `parametric` と `latex` の 2 種を定義する。
+v1.1.4 では `parametric` と `latex` の 2 種を定義する。
 
 | キー           | 用途                                                |
 | ------------ | ------------------------------------------------- |
@@ -1208,7 +1208,7 @@ JSON Schema 上の `default` は定義しないが、
 * `offset` : ローカル原点からのオフセット
 * `axis_signed` : 符号付き軸（`+x`/`-x`/`+y`/`-y`/`+z`/`-z`）。入力ショートハンド／旧表記移行のために利用してよい（`text_pose` の保存形式は vec3 配列）。
 
-3DSS v1.1.3 では座標系は `document_meta.coordinate_system` の const により
+3DSS v1.1.4 では座標系は `document_meta.coordinate_system` の const により
 **`"Z+up/freeXY"` に固定**され、
 
 * Z+：絶対的な「上」方向
@@ -1256,7 +1256,7 @@ JSON Schema 上の `default` は定義しないが、
 
 ### 6.5 text_pose
 
-テキスト（`marker.text` / `caption_text` / `extension.latex`）の **表示姿勢**を指定するための型（v1.1.3）。
+テキスト（`marker.text` / `caption_text` / `extension.latex`）の **表示姿勢**を指定するための型（v1.1.4）。
 
 `text_pose` は次の 2 ベクトル（vec3）で姿勢を表す：
 
@@ -1311,7 +1311,7 @@ JSON Schema 上の `default` は定義しないが、
 
 * 新要素や列挙値（enum）の追加は、該当プロパティ定義（第 5 章）に対して直接 `enum` を拡張し、
   必要に応じて `$defs.validator` 配下の各定義（type や pattern など）を更新する。
-  v1.1.3 時点でも `$defs.validator.enum_constraint` は定義しない。
+  v1.1.4 時点でも `$defs.validator.enum_constraint` は定義しない。
 
 * 既存プロパティの削除は禁止。
   非推奨化には `"deprecated": true` フラグを付与して明示できるが、
@@ -1351,7 +1351,7 @@ JSON Schema 上の `default` は定義しないが、
 * **スキーマ URI ポリシー**：
 
   * 各バージョンの `$id` / `schema_uri` は固定し、Git リポジトリ内でバージョン単位にファイルを保持する。
-  * 例：`3DSS.schema.v1.0.3.json`・`3DSS.schema.v1.1.3.json` などの形で履歴管理してもよい（命名規則は運用に委ねる）。
+  * 例：`3DSS.schema.v1.0.3.json`・`3DSS.schema.v1.1.4.json` などの形で履歴管理してもよい（命名規則は運用に委ねる）。
 
 ---
 
@@ -1449,14 +1449,14 @@ Unicode の文字（\p{L}, \p{N}）も使用できる。
 #### 整合確認要約
 
 * ✅ SemVer に基づくスキーマ／文書バージョンの分離を明示。
-* ✅ `$defs` 拡張ルールと外部スキーマ参照方針を v1.1.3 構造に合わせて整理。
+* ✅ `$defs` 拡張ルールと外部スキーマ参照方針を v1.1.4 構造に合わせて整理。
 * ✅ `enum_constraint` / `required_sets` / `ref_integrity` が予約のみで未定義であることを 6 章と整合。
 * ✅ tags の正規表現を `$defs.validator.tag` と一致。
 * ✅ JSON Schema Draft 2020-12 準拠と、外部仕様との連携方針を再確認。
 
 ---
 
-## 第8章　例（Example, v1.1.3 準拠）
+## 第8章　例（Example, v1.1.4 準拠）
 
 ```json
 {
@@ -1597,7 +1597,7 @@ Unicode の文字（\p{L}, \p{N}）も使用できる。
     "author": "creator@example.com",
     "created_at": "2025-12-12T12:00:00Z",
     "revised_at": "2025-12-12T12:00:00Z",
-    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
+    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
     "coordinate_system": "Z+up/freeXY",
     "units": "non_si:px",
     "i18n": "ja",
@@ -1610,10 +1610,10 @@ Unicode の文字（\p{L}, \p{N}）も使用できる。
 
 * `render_order`（旧 `renderOrder`）
 * `document_meta.document_title` / `document_summary` の localized_string
-* `schema_uri` は `$id` + `$anchor`（例：`.../3DSS.schema.json#v1.1.3`）に揃える（anchor で準拠版を明示する方針）。
+* `schema_uri` は `$id` + `$anchor`（例：`.../3DSS.schema.json#v1.1.4`）に揃える（anchor で準拠版を明示する方針）。
 * `aux.module.grid/axis` の構造
 
-など、v1.1.3 で整理した定義と揃えてある。
+など、v1.1.4 で整理した定義と揃えてある。
 
 ---
 
@@ -1625,7 +1625,7 @@ Unicode の文字（\p{L}, \p{N}）も使用できる。
 | ------- | ---------- | ------------------------------------------------------------------ | ------ |
 | version | date       | note                                                                              | status |
 | ------- | ---------- | --------------------------------------------------------------------------------- | ------ |
-| 1.1.3   | 2026-01-12 | text pose SSOT化(front/up vec3配列) 等） | stable |
+| 1.1.4   | 2026-01-12 | text pose SSOT化(front/up vec3配列) 等） | stable |
 | 1.1.2   | 2026-01-11 | `text_pose` 導入：`marker.text.plane` / `caption_text.plane` / `extension.latex.plane` を `pose(front/up vec3配列)` に置換。`marker.text.align` 正規表記を `&` 区切りに統一（互換入力としてスペース区切りはノーマライズ可）。 | stable |
 | 1.1.1   | 2025-12-25 | 実装時に判明した不具合修正 | stable |
 | 1.1.0   | 2025-12-12 | `$defs` 再編（geometry/labels/meta）、units 既定値の見直し、document_meta の拡張ほか | stable |
