@@ -332,6 +332,47 @@ function installOrbitInput(canvas, cam) {
   // レンダーループ開始は host が握る
   peek.start?.();
 
+
+  // Debug pose snapshot bridge (for /app/compare)
+  // - enabled only when ?debugPose=1
+  // - request: postMessage({ type: '3DSL_GET_DEBUG_POSE', requestId, uuids: [...] }, '*')
+  // - response: postMessage({ type: '3DSL_DEBUG_POSE', requestId, snapshot }, '*')
+  const _enableDebugPose = (() => {
+    try {
+      const sp = new URLSearchParams(globalThis.location?.search ?? "");
+      return sp.get("debugPose") === "1";
+    } catch (_e) {
+      return false;
+    }
+  })();
+
+  if (_enableDebugPose) {
+    const getSnapshot = (msg) => {
+      try {
+        const uuids = Array.isArray(msg?.uuids) ? msg.uuids : [];
+        return peek?.debugPose?.({ uuids }) ?? null;
+      } catch (_e) {
+        return null;
+      }
+    };
+
+    // Direct call hook (for devtools)
+    try { globalThis.__3dslDebugPose = () => getSnapshot({}); } catch (_e) {}
+
+    window.addEventListener("message", (ev) => {
+      const data = ev?.data;
+      if (!data || typeof data !== "object") return;
+      if (data.type !== "3DSL_GET_DEBUG_POSE") return;
+      const requestId = data.requestId;
+      const snapshot = getSnapshot(data);
+      try {
+        ev.source?.postMessage?.({ type: "3DSL_DEBUG_POSE", requestId, snapshot }, "*");
+      } catch (_e) {
+        try { window.parent?.postMessage?.({ type: "3DSL_DEBUG_POSE", requestId, snapshot }, "*"); } catch (_e2) {}
+      }
+    });
+  }
+
   const uninstallInput = installOrbitInput(canvas, peek.camera);
 
   function resizeToCanvas() {
