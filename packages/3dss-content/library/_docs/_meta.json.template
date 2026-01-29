@@ -1,63 +1,21 @@
 {
-  "title": "",
+  "title": "Example title",
   "summary": "",
   "description": "",
   "tags": [],
-  "published": false,
-  "created_at": "2026-01-20T00:00:00+09:00",
-  "hidden": false,
-  "recommended": false,
-  "seo": {
-    "title": "",
-    "description": "",
-    "og_image": ""
-  },
-  "authors": [
-    {
-      "name": "q2t project",
-      "role": "author",
-      "url": ""
-    }
-  ],
-  "rights": {
-    "license": "",
-    "copyright": "",
-    "attribution_required": false,
-    "third_party": [
-      {
-        "name": "",
-        "license": "",
-        "url": "",
-        "note": ""
-      }
-    ]
-  },
-  "references": [
-    {
-      "type": "book|paper|web|dataset|other",
-      "title": "",
-      "authors": "",
-      "year": "",
-      "publisher_or_venue": "",
-      "url": "",
-      "accessed_at": "2026-01-20",
-      "used_for": "model|text|structure|numbers|inspiration",
-      "scope_note": "",
-      "quote_or_derived_note": ""
-    }
-  ],
-  "provenance": {
-    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
-    "tools": [],
-    "generation_note": ""
-  },
-  "links": {
-    "canonical": "",
-    "repo": "",
-    "discussion": ""
-  },
   "entry_points": [],
   "pairs": [],
-  "related": []
+  "rights": null,
+  "related": [],
+  "published": false,
+  "seo": {
+    "title": "Example title",
+    "description": "",
+    "og_image": null
+  },
+  "recommended": false,
+  "hidden": false,
+  "created_at": "2026-01-01T00:00:00Z",
+  "published_at": null,
+  "republished_at": null
 }
-

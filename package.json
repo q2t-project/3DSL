@@ -17,7 +17,8 @@
     "sync:modeler": "npm --prefix apps/site run sync:modeler",
     "sync:docs": "npm --prefix apps/site run sync:docs",
     "sync:3dss-content": "npm --prefix apps/site run sync:3dss-content",
-    "check:modeler:ssot": "npm --prefix apps/site run check:modeler:ssot"
+    "check:modeler:ssot": "npm --prefix apps/site run check:modeler:ssot",
+    "dev:clean": "npm --prefix apps/site run dev:clean"
   },
   "devDependencies": {
     "@fontsource-variable/noto-sans-jp": "^5.2.10",

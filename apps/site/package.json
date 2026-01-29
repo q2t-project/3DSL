@@ -35,7 +35,7 @@
     "check:viewer:ports-conformance": "node ../viewer/ssot/scripts/check-ports-conformance.mjs",
     "check:viewer:generated-clean": "node ../viewer/ssot/scripts/check-generated-clean.mjs",
     "check:viewer:ssot": "npm run check:viewer:forbidden-imports && npm run check:viewer:single-writer && npm run check:viewer:ports-conformance && npm run check:viewer:generated-clean",
-    "check:ssot": "npm run check:vendor-required && npm run check:generated-clean && npm run check:viewer:ssot && npm run check:modeler:ssot && npm run check:host:asset-paths && npm run check:route-collisions",
+    "check:ssot": "npm run check:vendor-required && npm run check:generated-clean && npm run check:viewer:ssot && npm run check:modeler:ssot && npm run check:host:asset-paths && npm run check:route-collisions && npm run check:pages:no-raw-html",
     "sync:viewer": "node scripts/sync/viewer.mjs",
     "sync:modeler": "node scripts/sync/modeler.mjs",
     "sync:schemas": "node scripts/sync/schemas.mjs",
@@ -49,8 +49,8 @@
     "check:guards": "node scripts/guard/prebuild.mjs",
     "fix:guards": "node scripts/guard/fix.mjs",
     "apply:guards": "node scripts/guard/apply.mjs",
-    "predev": "npm run sync:all && npm run check:route-collisions && npm run check:boundary && node scripts/guard/prebuild.mjs",
-    "prebuild": "npm run sync:all && npm run check:route-collisions && npm run check:boundary && node scripts/tool/generate-sitemap.mjs && npm run validate:3dss:canonical && node scripts/guard/prebuild.mjs",
+    "predev": "npm run sync:all && npm run check:route-collisions && npm run check:boundary && npm run check:pages:no-raw-html && node scripts/guard/prebuild.mjs",
+    "prebuild": "npm run sync:all && npm run check:route-collisions && npm run check:boundary && npm run check:pages:no-raw-html && node scripts/tool/generate-sitemap.mjs && npm run validate:3dss:canonical && node scripts/guard/prebuild.mjs",
     "precheck:ssot": "npm run sync:all",
     "precheck:viewer:regression": "npm run sync:all",
     "ci:build": "npm run check:ssot && npm run check:viewer:regression && npm run validate:3dss:canonical && npm run build",
@@ -64,7 +64,10 @@
     "check:modeler:single-writer": "node ../modeler/ssot/scripts/check-single-writer.mjs",
     "check:modeler:ports-conformance": "node ../modeler/ssot/scripts/check-ports-conformance.mjs",
     "check:modeler:generated-clean": "node ../modeler/ssot/scripts/check-generated-clean.mjs",
-    "check:modeler:ssot": "npm run check:modeler:forbidden-imports && npm run check:modeler:single-writer && npm run check:modeler:ports-conformance && npm run check:modeler:generated-clean"
+    "check:modeler:ssot": "npm run check:modeler:forbidden-imports && npm run check:modeler:single-writer && npm run check:modeler:ports-conformance && npm run check:modeler:generated-clean",
+    "clean:dev": "node scripts/tool/clean-dev.mjs",
+    "dev:clean": "npm run clean:dev && npm run dev",
+    "check:pages:no-raw-html": "node scripts/check/pages-no-raw-html.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.6",

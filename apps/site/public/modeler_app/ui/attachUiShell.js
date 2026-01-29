@@ -1,3 +1,6 @@
+// Selection / Focus Contract:
+// See packages/docs/docs/modeler/selection-focus-contract.md
+
 // ui/attachUiShell.js
 // Modeler UI shell: DOM gather + controller instantiation + hub wiring only.
 
@@ -336,6 +339,7 @@ export function attachUiShell({ root, hub, modelUrl }) {
     signal: sig,
     syncTabButtons: () => toolbarController?.syncTabs?.(),
     getSelectedSet,
+    // Selection/Focus contract: packages/docs/docs/modeler/selection-contract.md
     onRowSelect: (issueLike, ev) => selectionController?.selectFromOutliner?.(issueLike, ev),
     ensureEditsAppliedOrConfirm: () => propertyController.ensureEditsAppliedOrConfirm(),
     requestToolbarSync,
@@ -345,7 +349,13 @@ export function attachUiShell({ root, hub, modelUrl }) {
 
   selectionController = createUiSelectionController({
     core,
-    ensureEditsAppliedOrConfirm: () => propertyController.ensureEditsAppliedOrConfirm(),
+    // Preflight selection guard (drafting -> confirm apply/discard/cancel)
+    requestSelectionChange: (nextUuids, { reason = "selection" } = {}) =>
+      propertyController.requestSelectionChange
+        ? propertyController.requestSelectionChange(nextUuids, { reason })
+        : propertyController.ensureEditsAppliedOrConfirm({ reason }),
+    // Back-compat / non-selection usages
+    ensureEditsAppliedOrConfirm: (args) => propertyController.ensureEditsAppliedOrConfirm(args),
     setHud,
     getOutlinerRowOrder: () => outlinerController.getRowOrder?.() || [],
   });
@@ -389,6 +399,7 @@ export function attachUiShell({ root, hub, modelUrl }) {
           if (handled) return;
         }
       } catch {}
+      // Selection/Focus contract: packages/docs/docs/modeler/selection-contract.md
       if (typeof selectionController.selectFromPick === "function") selectionController.selectFromPick(issueLike, ev);
       else selectionController.selectIssue(issueLike);
     },
@@ -405,6 +416,35 @@ export function attachUiShell({ root, hub, modelUrl }) {
     },
     setHud,
   });
+  // --- Host bridge (for /app/modeler quick actions) ---
+  // Parent can postMessage({ type: "3DSL_MODELER_CMD", action }) to control a few safe operations.
+  try {
+    window.addEventListener("message", (ev) => {
+      const data = ev?.data;
+      if (!data || typeof data !== "object") return;
+      if (data.type !== "3DSL_MODELER_CMD") return;
+      // Accept only parent frame as sender (defensive; same-origin not assumed in dev)
+      if (ev.source !== window.parent) return;
+
+      const action = String(data.action || "").toLowerCase();
+      if (!action) return;
+
+      if (action === "reload") {
+        try { window.location.reload(); } catch {}
+        return;
+      }
+      if (action === "export") {
+        try { toolbarController?.invoke?.("export"); } catch {}
+        return;
+      }
+      if (action === "discard") {
+        // Discard buffered (unapplied) property edits.
+        try { toolbarController?.invoke?.("prop-discard"); } catch {}
+        return;
+      }
+    }, { signal: sig });
+  } catch {}
+
 
   // --- hub events ---
   if (typeof hub?.on === "function") {
@@ -553,6 +593,22 @@ export function attachUiShell({ root, hub, modelUrl }) {
     };
 
     unsubs.push(hub.on("selection", handleSelection));
+
+  // --- focus (QuickCheck / error jump) ---
+  // Ensure outliner row is visible even when selection is unchanged.
+  {
+    const handleFocus = (issue) => {
+      try {
+        const uuid = issue && typeof issue === "object" ? issue.uuid : null;
+        const kind = issue && typeof issue === "object" ? issue.kind : null;
+        if (uuid) outlinerController?.revealFlash?.(uuid, kind);
+      } catch {}
+    };
+    // Focus event contract: packages/docs/docs/modeler/selection-contract.md
+    unsubs.push(hub.on("focus", handleFocus));
+  }
+
+
   }
 
 

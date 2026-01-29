@@ -168,36 +168,37 @@ function pickSeo(meta, titleFallback, descFallback) {
   };
 }
 
-function ensureMeta(metaPath, model, id, modelPath) {
-  if (existsFile(metaPath)) return readJson(metaPath);
+function ensureMeta(metaPath, id) {
+  if (!existsFile(metaPath)) {
+    throw new Error(
+      `missing _meta.json (library registry) for item: ${id}
+` +
+        `  expected: ${metaPath}
+` +
+        `  hint: create it via tools/new-library-item.mjs (or add by hand)`
+    );
+  }
 
-  const dm = model?.document_meta ?? {};
-  const rawTitle = firstNonEmpty(dm.title, dm.document_title);
-  const title = rawTitle ?? String(id);
+  const meta = readJson(metaPath);
 
-  const modelSummary = firstNonEmpty(dm.summary, dm.document_summary) ?? "";
-  const modelTags = Array.isArray(dm.tags) ? dm.tags : [];
+  // title/summary/tags/author are SSOT in model. _meta.json may carry them for convenience,
+  // but they are not required here.
+  if (meta?.title != null && (typeof meta.title !== "string" || meta.title.trim().length === 0)) {
+    throw new Error(`invalid _meta.json.title (expected non-empty string|null): ${metaPath}`);
+  }
 
-  const meta = {
-    // safety default: do not publish automatically
-    published: false,
-    summary: modelSummary,
-    tags: uniq(modelTags),
-    entry_points: [],
-    pairs: [],
-    rights: null,
-    related: [],
-    // optional seo skeleton
-    seo: {
-      title,
-      description: modelSummary,
-    },
-  };
+  if (meta?.summary != null && typeof meta.summary !== "string") {
+    throw new Error(`invalid _meta.json.summary (expected string|null): ${metaPath}`);
+  }
 
-  writeJson(metaPath, meta);
-  console.warn(`[build:dist] NOTE generated _meta.json (published:false): ${metaPath}`);
+  if (meta?.tags != null && !Array.isArray(meta.tags)) {
+    throw new Error(`invalid _meta.json.tags (expected array|null): ${metaPath}`);
+  }
+
   return meta;
 }
+
+
 
 function main() {
   if (!fs.existsSync(LIBRARY_DIR)) {
@@ -229,26 +230,25 @@ function main() {
     if (!existsFile(modelPath)) {
       throw new Error(`missing model.3dss.json: ${modelPath}`);
     }
-
     const model = readJson(modelPath);
     const dm = model?.document_meta ?? {};
 
-    // title is required
-    const rawTitle = firstNonEmpty(dm.title, dm.document_title);
-    if (!rawTitle) {
-      throw new Error(`missing document_meta.(title|document_title) in ${modelPath}`);
+    // Guard: display metadata must be SSOT in _meta.json only.
+
+    const meta = ensureMeta(metaPath, id);
+    // Display metadata (title/summary/tags/author/i18n) is SSOT in model.document_meta.
+    const titleFromModel = firstNonEmpty(dm?.document_title, dm?.title);
+    const summaryFromModel = firstNonEmpty(dm?.document_summary, dm?.summary);
+
+    if (meta?.title && titleFromModel && meta.title !== titleFromModel) {
+      console.warn(
+        `[build:dist] WARN meta title differs from model title: id=${id} meta.title="${meta.title}" model.title="${titleFromModel}"`
+      );
     }
-    const title = rawTitle;
 
-    const meta = ensureMeta(metaPath, model, id, modelPath);
-
-    const modelSummary = firstNonEmpty(dm.summary, dm.document_summary) ?? "";
-
-    // summary is primarily for UI; allow _meta.summary, then _meta.description, then model document summary.
-    const summary = firstNonEmpty(meta?.summary, meta?.description, modelSummary) ?? "";
-
-    const modelTags = Array.isArray(dm.tags) ? dm.tags : [];
-    const tags = uniq([...(Array.isArray(meta?.tags) ? meta.tags : []), ...modelTags]);
+    const title = titleFromModel ?? firstNonEmpty(meta?.title) ?? String(id);
+    const summary = summaryFromModel ?? firstNonEmpty(meta?.summary, meta?.description) ?? "";
+    const tags = Array.isArray(dm?.tags) ? dm.tags : Array.isArray(meta?.tags) ? meta.tags : [];
 
     const entry_points = Array.isArray(meta?.entry_points) ? meta.entry_points : [];
     const pairs = Array.isArray(meta?.pairs) ? meta.pairs : [];

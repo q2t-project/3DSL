@@ -301,6 +301,60 @@ export function createUiPropertyController(deps) {
   let active = null;
   let dirty = false;
 
+// Draft state machine (M2/B)
+// This captures the *UI-level* editing lifecycle around the Property panel.
+// - clean: no unapplied edits; no special pending state
+// - drafting: at least one unapplied edit exists (preview override may be active)
+// - applied_pending_save: last action was Apply (committed to core) but document may still be unsaved
+//   (this state is informational; it must never block selection changes)
+const DraftState = Object.freeze({
+  CLEAN: "clean",
+  DRAFTING: "drafting",
+  APPLIED_PENDING_SAVE: "applied_pending_save",
+});
+let draftState = DraftState.CLEAN;
+
+function setDraftState(next, { reason = "" } = {}) {
+  if (!next || next === draftState) return;
+  draftState = next;
+  // try { console.debug("[draftState]", draftState, reason); } catch {}
+}
+
+/**
+ * Draft state transitions (single-writer: this controller).
+ *
+ * Events:
+ * - edit: user changed an input (unapplied buffer becomes dirty)
+ * - discard: user discarded unapplied edits (revert preview back to base)
+ * - clear: system cleared draft lifecycle (hide/multi/selection change)
+ * - apply: user applied edits (core mutated in one history group)
+ * - doc_saved: document saved/cleaned (optional notification)
+ */
+function transitionDraft(event, { reason = "" } = {}) {
+  const ev = String(event || "");
+  if (ev === "edit") {
+    setDraftState(DraftState.DRAFTING, { reason: reason || "edit" });
+    return;
+  }
+  if (ev === "apply") {
+    // After Apply, there are no *unapplied* edits, but the document is typically dirty (needs Save).
+    setDraftState(DraftState.APPLIED_PENDING_SAVE, { reason: reason || "apply" });
+    return;
+  }
+  if (ev === "discard" || ev === "clear") {
+    setDraftState(DraftState.CLEAN, { reason: reason || ev });
+    return;
+  }
+  if (ev === "doc_saved") {
+    // Only meaningful after Apply; otherwise keep current state.
+    if (draftState === DraftState.APPLIED_PENDING_SAVE) {
+      setDraftState(DraftState.CLEAN, { reason: reason || "doc_saved" });
+    }
+    return;
+  }
+}
+
+
   // Pending focus request (QuickCheck / focusByIssue). Applied after selection sync.
   /** @type {any|null} */
   let pendingFocusIssue = null;
@@ -582,18 +636,53 @@ function previewRevertToBase() {
     const n = !!next;
     if (dirty === n) return;
     dirty = n;
+    if (dirty) transitionDraft("edit", { reason: "setDirty" });
+    else {
+      // Only downgrade from drafting -> clean here.
+      // (If we are in applied_pending_save, keep it; this is about *unapplied* buffer only.)
+      if (draftState === DraftState.DRAFTING) transitionDraft("clear", { reason: "setDirty:false" });
+    }
     if (dirtyEl) dirtyEl.hidden = !dirty;
     syncPoseModeBadgesFromInputs();
     try { onDirtyChange && onDirtyChange(dirty); } catch {}
   }
 
+
+// Draft (unapplied) edits lifecycle:
+// - Contract: packages/docs/docs/modeler/selection-contract.md
+// - Minimal check: packages/docs/docs/modeler/smoke-minimal.md
+// - SSOT: this controller owns draft dirty state + draft preview overrides
+// - Rules:
+//   * setDirty(true) only from input edits
+//   * clear/discard always reverts preview override back to captured base
+//   * selection changes must be guarded via ensureEditsAppliedOrConfirm()
+function draftClear({ reason = "" } = {}) {
+  // Cancel endpoint-pick submode if active (it also uses preview overrides).
+  try { cancelEndpointPick?.(); } catch {}
+  // Revert any draft preview back to base document state.
+  try { previewRevertToBase(); } catch {}
+  previewBase = null;
+  setDirty(false);
+  transitionDraft("clear", { reason: `draftClear:${reason}` });
+}
+
+function draftDiscard({ reason = "" } = {}) {
+  if (!active) return;
+  // Re-capture base from current doc (in case doc changed), then revert preview to it.
+  try { previewCaptureBase(active.uuid, active.kind); } catch {}
+  try { previewRevertToBase(); } catch {}
+  fillInputsFromDoc(active.uuid);
+  setDirty(false);
+  transitionDraft("discard", { reason: `draftDiscard:${reason}` });
+  try { setHud(`Edits discarded${reason ? ` (${reason})` : ""}`); } catch {}
+}
+
+
   function hideAll() {
-    // Revert any draft preview back to document state before hiding.
-    previewRevertToBase();
-    previewBase = null;
+    // Selection/visibility change: clear draft lifecycle (revert preview + clear dirty).
+    draftClear({ reason: "hide" });
     active = null;
     lockedActive = false;
-    setDirty(false);
     setInputsEnabled(true);
     if (panelEl) panelEl.hidden = true;
     if (multiEl) multiEl.hidden = true;
@@ -602,12 +691,13 @@ function previewRevertToBase() {
   }
 
   function showMulti(count) {
-    // Revert any draft preview back to document state before switching modes.
-    previewRevertToBase();
-    previewBase = null;
+  // M2/B: unify draft lifecycle on selection=multi/empty
+  if (!resolveDraftBeforeSelectionChange([])) return;
+
+    // Selection mode change: clear draft lifecycle (revert preview + clear dirty).
+    draftClear({ reason: "multi" });
     active = null;
     lockedActive = false;
-    setDirty(false);
     setInputsEnabled(true);
     if (panelEl) panelEl.hidden = true;
     if (emptyEl) emptyEl.hidden = true;
@@ -775,9 +865,8 @@ function previewRevertToBase() {
   }
 
   function showProperty(issueLike) {
-    // Selection changed: revert previous draft preview (if any) back to document state.
-    previewRevertToBase();
-    previewBase = null;
+    // Selection changed: clear previous draft lifecycle (revert preview + clear dirty).
+    draftClear({ reason: "selection" });
     const uuid = issueLike?.uuid ? String(issueLike.uuid) : "";
     if (!uuid) { hideAll(); return; }
 
@@ -812,14 +901,7 @@ function previewRevertToBase() {
   }
 
   function discardEdits() {
-    if (!active) return;
-
-    // Revert any draft preview back to current document state.
-    try { previewCaptureBase(active.uuid, active.kind); } catch {}
-    try { previewRevertToBase(); } catch {}
-    fillInputsFromDoc(active.uuid);
-    setDirty(false);
-    setHud("Edits discarded");
+    draftDiscard({ reason: "manual" });
   }
 
   function buildPatchForActiveEdits() {
@@ -1075,6 +1157,7 @@ function previewRevertToBase() {
     try { if (active) { previewCaptureBase(active.uuid, active.kind); previewRevertToBase(); } } catch {}
 
     setDirty(false);
+    transitionDraft("apply", { reason: "applyActiveEdits" });
     setHud(`Applied: ${patch.target}`);
     return true;
   }
@@ -1083,10 +1166,12 @@ function previewRevertToBase() {
    * 3-way resolution for unapplied edits.
    * @returns {boolean} true if it is safe to proceed.
    */
-  function ensureEditsAppliedOrConfirm() {
-    if (!dirty) return true;
+  function ensureEditsAppliedOrConfirm({ reason = "" } = {}) {
+    // Only drafting (unapplied buffer-dirty) needs resolution here.
+    if (!dirty || draftState !== DraftState.DRAFTING) return true;
 
-    const apply = window.confirm("You have unapplied property edits. Apply them now?\n\nOK = Apply\nCancel = More options");
+    const why = reason ? `\n\nReason: ${String(reason)}` : "";
+    const apply = window.confirm(`You have unapplied property edits. Apply them now?${why}\n\nOK = Apply\nCancel = More options`);
     if (apply) {
       applyActiveEdits();
       return true;
@@ -1094,7 +1179,7 @@ function previewRevertToBase() {
 
     const discard = window.confirm("Discard unapplied edits?\n\nOK = Discard\nCancel = Stay here");
     if (discard) {
-      discardEdits();
+      draftDiscard({ reason: reason || "discard" });
       return true;
     }
 
@@ -1201,6 +1286,7 @@ function previewRevertToBase() {
       }
     } catch {}
     setDirty(true);
+    // setDirty(true) performs the state transition (edit -> drafting).
   }
 
 
@@ -1406,6 +1492,69 @@ function previewRevertToBase() {
     flushPendingFocus();
   }
 
+  
+  /**
+   * Resolve unapplied edits when selection is about to move away from the active uuid.
+   * This is the single gate for "reason=selection":
+   * - Apply or Discard => draftState -> CLEAN, preview reverted, UI proceeds
+   * - Cancel => selection is reverted back to active uuid and UI stays
+   * @returns {boolean} true if it is safe to proceed to the next selection.
+   */
+  function resolveDraftBeforeSelectionChange(nextSelectionUuids) {
+    if (!dirty || draftState !== DraftState.DRAFTING) return true;
+
+    const activeUuid = active?.uuid || null;
+    const nextList = Array.isArray(nextSelectionUuids) ? nextSelectionUuids : [];
+    const nextIsDifferent =
+      (nextList.length !== 1) ||
+      (String(nextList[0] || "") !== String(activeUuid || ""));
+
+    if (!nextIsDifferent) return true;
+
+    const ok = ensureEditsAppliedOrConfirm({ reason: "selection" });
+    if (ok) {
+      // Safety: ensure preview is back to base when leaving the active node.
+      try { previewRevertToBase?.(); } catch {}
+      transitionDraft("clear", { reason: "selection:resolved" });
+      return true;
+    }
+
+    // User cancelled: revert selection and keep UI as-is.
+    if (activeUuid) {
+      try {
+        if (typeof setSelectionUuids === "function") setSelectionUuids([activeUuid], null, "property-revert");
+        else core.setSelection?.([activeUuid]);
+      } catch { try { core.setSelection?.([activeUuid]); } catch {} }
+    }
+    return false;
+  }
+
+  /**
+   * Preflight gate for selection changes (called by uiSelectionController BEFORE core.setSelection).
+   * - Only blocks when draftState=drafting and next selection differs from current active uuid.
+   * - Returns false on Cancel, so the caller must NOT change selection.
+   * - Must never block when draftState=applied_pending_save.
+   */
+  function requestSelectionChange(nextSelectionUuids, { reason = "selection" } = {}) {
+    if (!dirty || draftState !== DraftState.DRAFTING) return true;
+
+    const activeUuid = active?.uuid || null;
+    const nextList = Array.isArray(nextSelectionUuids) ? nextSelectionUuids : [];
+    const nextIsDifferent =
+      (nextList.length !== 1) ||
+      (String(nextList[0] || "") !== String(activeUuid || ""));
+
+    if (!nextIsDifferent) return true;
+
+    const ok = ensureEditsAppliedOrConfirm({ reason });
+    if (!ok) return false;
+
+    // Leaving the active node: ensure preview is back to base.
+    try { previewRevertToBase?.(); } catch {}
+    transitionDraft("clear", { reason: `selection:preflight:${String(reason || "")}` });
+    return true;
+  }
+
   function syncFromSelection() {
     // Selection -> Property state machine (single SSOT event: hub 'selection')
     //
@@ -1422,22 +1571,7 @@ function previewRevertToBase() {
     const list = Array.isArray(sel) ? sel : [];
 
     // Switching away while draft edits exist must be resolved first.
-    if (dirty) {
-      const activeUuid = active?.uuid || null;
-      const nextIsDifferent = (list.length !== 1) || (String(list[0] || "") !== String(activeUuid || ""));
-      if (nextIsDifferent) {
-        const ok = ensureEditsAppliedOrConfirm();
-        if (!ok) {
-          if (activeUuid) {
-            try {
-              if (typeof setSelectionUuids === "function") setSelectionUuids([activeUuid], null, "property-revert");
-              else core.setSelection?.([activeUuid]);
-            } catch { try { core.setSelection?.([activeUuid]); } catch {} }
-          }
-          return;
-        }
-      }
-    }
+    if (!resolveDraftBeforeSelectionChange(list)) return;
 
     if (list.length === 0) {
       hideAll();
@@ -1577,6 +1711,10 @@ function previewRevertToBase() {
   // Initialize
   hideAll();
 
+  function notifyDocumentSaved({ reason = "" } = {}) {
+    transitionDraft("doc_saved", { reason: reason || "notifyDocumentSaved" });
+  }
+
   return {
     showProperty,
     hidePanel: hideAll,
@@ -1584,10 +1722,13 @@ function previewRevertToBase() {
     discardEdits,
     applyActiveEdits,
     ensureEditsAppliedOrConfirm,
+    requestSelectionChange,
     refreshActiveFromDoc,
     refreshLockState,
     syncFromSelection,
     isDirty,
+    notifyDocumentSaved,
+    getDraftState: () => draftState,
     isActiveLocked: () => !!lockedActive,
     getActiveUuid,
     focusFieldByIssue,

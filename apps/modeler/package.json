@@ -1,0 +1,9 @@
+{
+  "name": "modeler",
+  "private": true,
+  "scripts": {
+    "smoke": "node ssot/scripts/smoke/run.mjs"
+  },
+
+  "type": "module"
+}

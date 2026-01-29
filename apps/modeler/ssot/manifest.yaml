@@ -138,6 +138,13 @@ ports:
     callee: "hub"
     surface: "hub.previewSetCaptionText(uuid, captionText, fallbackText) -> void (preview only; captionText={content, size?, align?, pose?} | null)"
     stability: "stable"
+  - id: "hub.projectToNdc"
+    caller: "ui"
+    callee: "hub"
+    surface: "hub.projectToNdc(worldPos:[x,y,z]) -> [ndcX, ndcY, ndcZ] | null"
+    stability: "beta"
+
+
 
 
   - id: "hub.previewSetOverride"

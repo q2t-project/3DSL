@@ -111,8 +111,10 @@ Notes:
 
   const now = new Date().toISOString();
 
-  // _meta.json (library meta): draft by default, no created_at/updated_at
+  // _meta.json (library meta): mirror the current majority shape in packages/3dss-content/library/*.
+  // NOTE: publish timestamps are null by default and should be filled when publishing/republishing.
   const meta = {
+    title: finalTitle,
     summary: "",
     description: "",
     tags: [],
@@ -121,14 +123,16 @@ Notes:
     rights: null,
     related: [],
     published: false,
-    // when published becomes true, published_at/republished_at must be set by tooling
     seo: {
-      title: "",
+      title: finalTitle,
       description: "",
-      og_image: "",
+      og_image: null,
     },
     recommended: false,
     hidden: false,
+    created_at: now,
+    published_at: null,
+    republished_at: null,
   };
   writeJson(path.join(dir, "_meta.json"), meta);
 

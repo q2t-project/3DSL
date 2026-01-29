@@ -404,6 +404,14 @@ export function createUiToolbarController(deps) {
     if (!previewOutWin) {
       try { setHud && setHud("Preview Out: popup blocked"); } catch {}
       return;
+      // D8: avoid "stuck" state when popups are blocked (iOS Safari etc.)
+      try {
+        const ok = window.confirm("Preview Out: popup blocked. Open it in this tab instead?");
+        if (ok) {
+          window.location.href = url;
+        }
+      } catch {}
+
     }
     try { previewOutWin.focus(); } catch {}
 
@@ -619,6 +627,7 @@ export function createUiToolbarController(deps) {
 
     if (act === 'quickcheck') {
       const issues = core.runQuickCheck?.() || [];
+      // Selection/Focus contract: packages/docs/docs/modeler/selection-contract.md
       renderQuickCheckImpl({ issues, qcSummary, qcList, onSelectIssue: (issueLike) => selectionController.selectIssue?.(issueLike) });
       if (qcPanel) qcPanel.hidden = false;
       return;
@@ -631,6 +640,7 @@ export function createUiToolbarController(deps) {
     if (act === 'qc-fix-lines') {
       const res = core.fixBrokenLineEndpoints?.() || { removed: 0 };
       const issues = core.runQuickCheck?.() || [];
+      // Selection/Focus contract: packages/docs/docs/modeler/selection-contract.md
       renderQuickCheckImpl({ issues, qcSummary, qcList, onSelectIssue: (issueLike) => selectionController.selectIssue?.(issueLike) });
       if (qcPanel) qcPanel.hidden = false;
       try { setHud && setHud(`Removed ${res.removed || 0} broken lines`); } catch {}
@@ -893,6 +903,7 @@ export function createUiToolbarController(deps) {
       issues,
       qcSummary,
       qcList,
+      // Selection/Focus contract: packages/docs/docs/modeler/selection-contract.md
       onSelectIssue: (issueLike) => selectionController.selectIssue?.(issueLike),
     }),
   };

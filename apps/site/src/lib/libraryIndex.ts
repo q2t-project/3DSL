@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 export type LibrarySource = {
   title?: string;
@@ -51,12 +51,40 @@ type LibraryIndex = {
   items: LibraryItem[];
 };
 
-const INDEX_ABS = path.join(process.cwd(), "public", "_data", "library", "library_index.json");
+// NOTE:
+// Do not rely on process.cwd() here.
+// Astro dev/build can run with different working directories depending on how
+// npm scripts are invoked. Resolve from this file location instead.
+//
+// This file lives at: apps/site/src/lib/libraryIndex.ts
+// We want to read:     apps/site/public/_data/library/library_index.json
+const INDEX_ABS = fileURLToPath(
+  new URL("../../public/_data/library/library_index.json", import.meta.url)
+);
 
 export function readLibraryIndex(): LibraryIndex {
-  const raw = fs.readFileSync(INDEX_ABS, "utf8");
-  const j = JSON.parse(raw) as LibraryIndex;
-  if (!j?.items || !Array.isArray(j.items)) throw new Error("Invalid library_index.json: items missing");
+  let raw: string;
+  try {
+    raw = fs.readFileSync(INDEX_ABS, "utf8");
+  } catch (e: any) {
+    throw new Error(
+      [
+        "library_index.json not found.",
+        `expected: ${INDEX_ABS}`,
+        "run: npm run sync:3dss-content",
+      ].join("\n"),
+      { cause: e }
+    );
+  }
+
+  let j: LibraryIndex;
+  try {
+    j = JSON.parse(raw) as LibraryIndex;
+  } catch (e: any) {
+    throw new Error(`library_index.json is invalid JSON: ${INDEX_ABS}`, { cause: e });
+  }
+
+  if (!j?.items || !Array.isArray(j.items)) throw new Error(`Invalid library_index.json: items missing: `);
   return j;
 }
 

@@ -1,7 +1,7 @@
 # Modeler 実装状況レポート（Spec/Manifest 差分 + From-now プラン）
 
-- Last updated: 2026-01-27
-- Repo snapshot: `3DSL_repo_20260127_085319.zip`
+- Last updated: 2026-01-29
+- Repo snapshot: `3DSL_repo_20260129_075158.zip`
 - 対象 SSOT
   - 実装: `apps/modeler/ssot/**`
   - 仕様書（human spec）: `apps/modeler/ssot/3DSD-modeler.md`
@@ -237,6 +237,81 @@ P1（入力体験・下支え）
 - hub: `apps/modeler/ssot/runtime/modelerHub.js`（`uistate` を renderer に伝搬）
 - renderer: `apps/modeler/ssot/runtime/renderer/modelerRenderer.js`（`setFrameIndex` + フィルタ）
 
+
+
+A. Libraryカード（レイアウト・情報）
+
+ カード1枚の情報順序が固定（ブレない）
+
+ タイトル（最優先）
+
+ 要約（小さめ、2〜3行で切る）
+
+ タグ（最大8、超えたら +N）
+
+ 日付（published優先、無ければ created 代用だと分かる表記）
+
+ 操作（Viewer / Details）
+
+ hover演出は最小（影/枠がうっすら変わる程度、色点滅とか禁止）
+
+ スマホでカードが押しやすい（タップ領域・余白）
+
+B. クリック導線（最重要）
+
+ カード全面クリック = Viewer（ただし Details 部だけ除外）
+
+ Details はカード内の独立リンク（Viewer遷移を阻害しない）
+
+ Viewer unavailable のカードは：
+
+ カード全面クリック無効（or Details のみ）
+
+ 見た目で無効が分かる（opacity落とす + “Viewer unavailable” 表示）
+
+C. キーボード/ARIA（Viewer unavailable含む）
+
+ フォーカス順が自然
+
+ 検索 → ソート → カード群（左上→右下）→ ページャ
+
+ カードがリンクなら：
+
+ a でフォーカス可能
+
+ aria-label に「タイトル + 動作（Viewerへ）」が入ってる
+
+ Viewer unavailable は：
+
+ フォーカス可能にするなら aria-disabled="true" + クリック無効
+
+ フォーカス不可にするなら、代わりに Details はフォーカス可能
+
+ ページャ：
+
+ Prev/Next は状態に応じて aria-disabled
+
+ disabled時は tab で飛ばす or 押しても何も起きない（どっちかに統一）
+
+D. 例外時（壊れたJSON / 欠損）
+
+ index読めない時でもページは表示される（空状態UI）
+
+ バナーで「読み込み失敗」を出す（短文）
+
+ dev console には詳細（stack）出してOK
+
+E. 目視スモーク（最短）
+
+ npm --prefix apps/site run dev → /library で落ちない
+
+ 検索文字入力で表示が変わる
+
+ ソート変更で並びが変わる
+
+ Viewer遷移が正しい（カード全面 / Details除外）
+ 
+
 ### 4.3 中期（Phase3：I/O と永続化）
 
 - [ ] sidecar を保存・復元（lock / UI 状態 / カメラ等）
@@ -282,4 +357,16 @@ P1（入力体験・下支え）
 - [x] Renderer: add Z-up regression guard (console error once if camera.up deviates from (0,0,1)).
 - [x] UI: document-update selection pruning discards unapplied edits if the active item was removed (prevents stale UUID/UI mismatch).
 - [x] Selection guard unification: property selection revert + shortcut delete + document-prune route through uiSelectionController.setSelectionUuids (no core.setSelection bypass).
+
+---
+
+## UI最終DoD（合否）
+
+|項目|合否|メモ|
+|---|---|---|
+|A. Libraryカード（レイアウト・情報）|[ ] OK / [ ] NG| |
+|B. クリック導線（最重要）|[ ] OK / [ ] NG| |
+|C. キーボード/ARIA（Viewer unavailable含む）|[ ] OK / [ ] NG| |
+|D. 例外時（壊れたJSON / 欠損）|[ ] OK / [ ] NG| |
+|E. 目視スモーク（最短）|[ ] OK / [ ] NG| |
 
