@@ -47,9 +47,6 @@ export function createUiSelectionController({ core, ensureEditsAppliedOrConfirm,
   };
 
   const setSelectionUuids = (uuids, issueLike, reason = "selection") => {
-    const ok = canChangeSelection(uuids, reason);
-    if (!ok) return false;
-
     const next = Array.isArray(uuids) ? uuids.filter(Boolean).map(String) : [];
     const cur = Array.isArray(core.getSelection?.()) ? core.getSelection?.().filter(Boolean).map(String) : [];
 
@@ -57,10 +54,18 @@ export function createUiSelectionController({ core, ensureEditsAppliedOrConfirm,
       cur.length === next.length &&
       cur.every((u, i) => String(u) === String(next[i]));
 
-    // Always run focus for QuickCheck/error-jump semantics, even if selection is unchanged.
-    if (!same) {
-      core.setSelection?.(next);
+    // IMPORTANT:
+    // - If selection is unchanged, do NOT trigger dirty-selection confirmation.
+    // - Still run focus so Outliner reveal/flash + camera focus can happen repeatedly (QuickCheck spam).
+    if (same) {
+      focusIfSingle(next, issueLike);
+      return true;
     }
+
+    const ok = canChangeSelection(next, reason);
+    if (!ok) return false;
+
+    core.setSelection?.(next);
     focusIfSingle(next, issueLike);
     return true;
   };
