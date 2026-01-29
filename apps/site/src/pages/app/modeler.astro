@@ -17,18 +17,39 @@
     </div>
 
 
-    <div class="app-modeler-overlay" role="note" aria-label="Modeler public alpha notice">
-      <div class="app-modeler-badge">β Public Alpha</div>
-      <button class="app-modeler-collapse" type="button" aria-label="Hide notice" title="Hide">×</button>
-      <a class="app-modeler-link" href="/docs/modeler/public-alpha" target="_blank" rel="noopener noreferrer">使い方・注意</a>
-      <a class="app-modeler-link" href="/docs/modeler/IMPLEMENTATION_REPORT" target="_blank" rel="noopener noreferrer">進捗</a>
-      <div class="app-modeler-note">iOS Safari では Save/SaveAs/Export はダウンロード扱い（上書き不可）。</div>
+    <div
+      id="app-modeler-alpha-modal"
+      class="app-modeler-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Modeler public alpha notice"
+      data-open="0"
+    >
+      <div class="app-modeler-modal-backdrop" data-close="1"></div>
+      <div class="app-modeler-modal-card" role="document">
+        <header class="app-modeler-modal-head">
+          <div class="app-modeler-badge">β Public Alpha</div>
+          <button class="app-modeler-modal-close" type="button" data-close="1" aria-label="Close">×</button>
+        </header>
 
-      <div class="app-modeler-actions" role="group" aria-label="Modeler quick actions">
-        <button class="app-modeler-btn" type="button" data-cmd="sample" title="サンプルを開く">Sample</button>
-        <button class="app-modeler-btn" type="button" data-cmd="reload" title="リロード（復帰）">Reload</button>
-        <button class="app-modeler-btn" type="button" data-cmd="discard" title="未適用の編集を破棄">Discard</button>
-        <button class="app-modeler-btn" type="button" data-cmd="export" title="Export（ダウンロード）">Export</button>
+        <div class="app-modeler-modal-body">
+          <p class="app-modeler-note">iOS Safari では Save/SaveAs/Export はダウンロード扱い（上書き不可）。</p>
+          <div class="app-modeler-links">
+            <a class="app-modeler-link" href="/docs/modeler/public-alpha" target="_blank" rel="noopener noreferrer">使い方・注意</a>
+            <a class="app-modeler-link" href="/docs/modeler/IMPLEMENTATION_REPORT" target="_blank" rel="noopener noreferrer">進捗</a>
+          </div>
+
+          <div class="app-modeler-actions" role="group" aria-label="Modeler quick actions">
+            <button class="app-modeler-btn" type="button" data-cmd="sample" title="サンプルを開く">Sample</button>
+            <button class="app-modeler-btn" type="button" data-cmd="reload" title="リロード（復帰）">Reload</button>
+            <button class="app-modeler-btn" type="button" data-cmd="discard" title="未適用の編集を破棄">Discard</button>
+            <button class="app-modeler-btn" type="button" data-cmd="export" title="Export（ダウンロード）">Export</button>
+          </div>
+        </div>
+
+        <footer class="app-modeler-modal-foot">
+          <button class="app-modeler-btn app-modeler-btn-primary" type="button" data-dismiss="1">OK（次回は表示しない）</button>
+        </footer>
       </div>
     </div>
 
@@ -55,28 +76,19 @@
           progressEl.removeAttribute("data-on");
         }
 
-        const overlay = document.querySelector(".app-modeler-overlay");
+        const modal = document.getElementById("app-modeler-alpha-modal");
+        const LS_KEY = "3dsl_modeler_public_alpha_notice_v1";
 
-        function setCollapsed(on) {
-          if (!overlay) return;
-          if (on) overlay.setAttribute("data-collapsed", "1");
-          else overlay.removeAttribute("data-collapsed");
-          try { window.localStorage?.setItem?.("3dsl_modeler_overlay_collapsed", on ? "1" : "0"); } catch {}
+        function openModal() {
+          if (!modal) return;
+          modal.setAttribute("data-open", "1");
         }
-
-        function wireOverlayCollapse() {
-          if (!overlay) return;
-          const btn = overlay.querySelector(".app-modeler-collapse");
-          if (!btn) return;
-          btn.addEventListener("click", () => {
-            const isCollapsed = overlay.getAttribute("data-collapsed") === "1";
-            setCollapsed(!isCollapsed);
-          });
-
-          try {
-            const saved = window.localStorage?.getItem?.("3dsl_modeler_overlay_collapsed");
-            if (saved === "1") setCollapsed(true);
-          } catch {}
+        function closeModal(persist = false) {
+          if (!modal) return;
+          modal.setAttribute("data-open", "0");
+          if (persist) {
+            try { localStorage.setItem(LS_KEY, "1"); } catch {}
+          }
         }
 
         function postCmd(action, payload = null) {
@@ -95,17 +107,25 @@
         }
 
         function wireQuickActions() {
-          if (!overlay) return;
-          overlay.querySelectorAll("[data-cmd]").forEach((btn) => {
+          if (!modal) return;
+          modal.querySelectorAll("[data-cmd]").forEach((btn) => {
             btn.addEventListener("click", () => {
               const cmd = btn.getAttribute("data-cmd");
-              if (cmd === "sample") { openSample(); return; }
-              if (cmd === "reload") { postCmd("reload"); return; }
-              if (cmd === "discard") { postCmd("discard"); return; }
-              if (cmd === "export") { postCmd("export"); return; }
+              if (cmd === "sample") { openSample(); closeModal(true); return; }
+              if (cmd === "reload") { postCmd("reload"); closeModal(true); return; }
+              if (cmd === "discard") { postCmd("discard"); closeModal(true); return; }
+              if (cmd === "export") { postCmd("export"); closeModal(true); return; }
             });
           });
+
+          modal.querySelectorAll("[data-close]").forEach((el) => {
+            el.addEventListener("click", () => closeModal(false));
+          });
+          modal.querySelectorAll("[data-dismiss]").forEach((el) => {
+            el.addEventListener("click", () => closeModal(true));
+          });
         }
+
         // NOTE: /modeler is currently used by Astro pages.
         // Keep the bundle base under /modeler_app (temporary) and target index.html to avoid redirect loops.
         const url = new URL(window.location.href);
@@ -116,7 +136,14 @@
         showProgress();
         iframe.src = src;
         wireQuickActions();
-        wireOverlayCollapse();
+
+        // show once per browser profile
+        try {
+          if (!localStorage.getItem(LS_KEY)) openModal();
+        } catch {
+          // if storage is blocked, still show the notice
+          openModal();
+        }
 
         iframe.addEventListener("load", () => {
           hideProgress();
@@ -127,43 +154,62 @@
     <style>
 
       .app-modeler-overlay {
+        display: none;
+      }
+
+      .app-modeler-modal {
         position: fixed;
-        top: 10px;
-        left: 10px;
+        inset: 0;
         z-index: 99998;
-        display: flex;
-        flex-wrap: wrap;
+        display: none;
         align-items: center;
-        gap: 10px;
-        padding: 10px 12px;
-        border-radius: 12px;
-        background: rgba(20, 20, 24, 0.78);
+        justify-content: center;
+        padding: 16px;
+      }
+      .app-modeler-modal[data-open="1"] { display: flex; }
+
+      .app-modeler-modal-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+      }
+      .app-modeler-modal-card {
+        position: relative;
+        width: min(720px, 100%);
+        border-radius: 14px;
+        padding: 14px 14px 12px;
+        background: rgba(20, 20, 24, 0.92);
         border: 1px solid rgba(255, 255, 255, 0.12);
         color: #eaeaf0;
         backdrop-filter: blur(10px);
-        max-width: calc(100vw - 20px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.35);
       }
 
-      .app-modeler-collapse {
-        height: 28px;
-        width: 28px;
-        border-radius: 999px;
-        border: 1px solid rgba(255, 255, 255, 0.16);
-        background: transparent;
-        color: inherit;
-        cursor: pointer;
-        line-height: 1;
-        display: inline-flex;
+      .app-modeler-modal-head {
+        display: flex;
         align-items: center;
-        justify-content: center;
-        opacity: 0.85;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
       }
-      .app-modeler-collapse:hover { opacity: 1; }
+      .app-modeler-modal-close {
+        height: 36px;
+        width: 36px;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.16);
+        background: rgba(0,0,0,0.18);
+        color: inherit;
+        font-size: 18px;
+        line-height: 1;
+        cursor: pointer;
+      }
+      .app-modeler-modal-body { display: grid; gap: 10px; }
+      .app-modeler-links { display: flex; flex-wrap: wrap; gap: 10px; }
+      .app-modeler-modal-foot { display: flex; justify-content: flex-end; margin-top: 12px; }
 
-      .app-modeler-overlay[data-collapsed="1"] .app-modeler-link,
-      .app-modeler-overlay[data-collapsed="1"] .app-modeler-note,
-      .app-modeler-overlay[data-collapsed="1"] .app-modeler-actions {
-        display: none;
+      .app-modeler-btn-primary {
+        border-color: rgba(255,255,255,0.22);
+        background: rgba(255,255,255,0.10);
       }
       .app-modeler-badge {
         font-weight: 700;
