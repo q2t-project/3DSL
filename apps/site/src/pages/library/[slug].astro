@@ -6,6 +6,7 @@ import { getLibraryItemBySlug, getLibraryItems } from "../../lib/libraryIndex";
 import { getEntry, render } from "astro:content";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 type AnyObj = Record<string, any>;
 type Attachment = { name: string; url: string };
@@ -21,19 +22,17 @@ if (!item) {
   throw new Error(`[library/[slug]] item not found: ${slug}`);
 }
 
-const dataDir = item.data_dir ?? `/_data/library/${slug}`;
-const modelUrl = item.model_url ?? `${dataDir}/model.3dss.json`;
-const viewerUrl =
-  item.viewer_url ?? `/viewer/index.html?model=${encodeURIComponent(modelUrl)}`;
-const peekUrl = `/viewer/peek.html?model=${encodeURIComponent(modelUrl)}`;
-
 // Canonical per-item meta page (used for share/copy/QR on this page)
 const pagePath = `/library/${slug}/`;
 
-function filePathFromPublic(urlPath: string): string {
-  const p = String(urlPath || "").replace(/^\/+/, "");
-  return path.join(process.cwd(), "public", p);
+// NOTE: do not rely on process.cwd(). Resolve from this file location.
+const PUBLIC_DIR = fileURLToPath(new URL("../../public/", import.meta.url));
+function filePathFromPublic(rel) {
+  return path.join(PUBLIC_DIR, rel);
 }
+
+const dataDir = item.data_dir ?? `/_data/library/${slug}`;
+const modelUrl = item.model_url ?? `${dataDir}/model.3dss.json`;
 
 const metaPath = filePathFromPublic(`${dataDir}/_meta.json`);
 const meta: AnyObj | null = fs.existsSync(metaPath)
@@ -43,6 +42,15 @@ const meta: AnyObj | null = fs.existsSync(metaPath)
 const seoTitle = meta?.seo?.title ?? item.meta_title ?? item.title;
 const seoDescription =
   meta?.seo?.description ?? item.meta_description ?? item.summary ?? "";
+
+// Viewer routes
+const appViewerUrl = `/app/viewer?${new URLSearchParams({
+  model: modelUrl,
+  from: "library",
+  return: pagePath,
+  title: seoTitle,
+}).toString()}`;
+const peekUrl = `/viewer/peek.html?model=${encodeURIComponent(modelUrl)}`;
 
 // Per-item page config (optional)
 const pageConf = meta?.page ?? {};
@@ -154,7 +162,7 @@ const thirdParty = Array.isArray(rights?.third_party)
 
                 <!-- clickable preview: keep the mini viewer non-interactive but use it as a clear navigation affordance -->
                 <a
-                  href={viewerUrl}
+                  href={appViewerUrl}
                   class="absolute inset-0 block"
                   aria-label="全画面"
                 >
@@ -163,7 +171,7 @@ const thirdParty = Array.isArray(rights?.third_party)
 
               <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <a
-                  href={viewerUrl}
+                  href={appViewerUrl}
                   class="inline-flex items-center justify-center gap-2 rounded-xl bg-neutral-100/10 px-4 py-3 text-sm font-semibold text-neutral-50 ring-1 ring-inset ring-neutral-200/15 transition hover:bg-neutral-100/15 active:scale-[0.99]"
                 >
                   <svg viewBox="0 0 24 24" width="16" height="16" class="h-4 w-4 shrink-0" aria-hidden="true"><path fill="currentColor" d="M7 3h4v2H7v4H5V5a2 2 0 0 1 2-2Zm12 0a2 2 0 0 1 2 2v4h-2V5h-4V3h4ZM5 15h2v4h4v2H7a2 2 0 0 1-2-2v-4Zm14 0h2v4a2 2 0 0 1-2 2h-4v-2h4v-4Z"/></svg>
