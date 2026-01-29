@@ -29,7 +29,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>3DSL Viewer</title>
+    <title>{titleParam ? `3DSL Viewer — ${titleParam}` : "3DSL Viewer"}</title>
   </head>
 
   <body>
@@ -46,6 +46,7 @@
 
     <div class="app-viewer-topbar" aria-label="ナビゲーション">
       <button id="app-viewer-back" class="app-viewer-back" type="button" aria-label="戻る">← 戻る</button>
+      <div id="app-viewer-title" class="app-viewer-title" aria-label="現在のコンテンツ"></div>
 
       <div class="app-viewer-actions" aria-label="アクション">
         <!-- input action (standalone /app/viewer) -->
@@ -141,6 +142,14 @@
     <script is:inline>
     (() => {
       const iframe = document.getElementById("app-viewer-iframe");
+      const titleEl = document.getElementById("app-viewer-title");
+      const TITLE_PARAM = ${JSON.stringify(titleParam ?? "")};
+
+      if (titleEl) {
+        const t = String(TITLE_PARAM || "").trim();
+        titleEl.textContent = t;
+        if (t) document.title = `3DSL Viewer — ${t}`;
+      }
 
   const progressEl = document.getElementById("app-viewer-progress");
   let progressFallbackTimer = 0;
@@ -176,6 +185,13 @@
       }
 
       const backBtn = document.getElementById("app-viewer-back");
+  const titleEl = document.getElementById("app-viewer-title");
+  const setViewerTitle = (t) => {
+    if (!titleEl) return;
+    titleEl.textContent = t || "";
+    if (t) document.title = `3DSL Viewer — ${t}`;
+  };
+  if (titleParam) setViewerTitle(titleParam);
       if (!iframe) return;
 
       const sp0 = new URLSearchParams(window.location.search);
@@ -1341,7 +1357,19 @@
         user-select: none;
       }
 
-      .app-viewer-actions {
+      .app-viewer-title {
+      flex: 1;
+      min-width: 0;
+      padding: 0 10px;
+      font-size: 13px;
+      line-height: 1.2;
+      color: #cbd5e1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .app-viewer-actions {
         display: flex;
         gap: 8px;
       }
@@ -1687,7 +1715,19 @@
       @media (max-width: 520px) {
         .app-viewer-topbar { left: 8px; top: 8px; gap: 6px; }
         .app-viewer-back { padding: 9px 11px; }
-        .app-viewer-actions { gap: 6px; }
+        .app-viewer-title {
+      flex: 1;
+      min-width: 0;
+      padding: 0 10px;
+      font-size: 13px;
+      line-height: 1.2;
+      color: #cbd5e1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .app-viewer-actions { gap: 6px; }
         .app-viewer-action { width: 40px; height: 40px; }
         .app-viewer-open-row { grid-template-columns: 1fr; }
         .app-viewer-open-fname { max-width: 100%; }
