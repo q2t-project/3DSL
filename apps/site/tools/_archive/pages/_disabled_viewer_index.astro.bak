@@ -1,0 +1,361 @@
+---
+const DEFAULT_MODEL = "/3dss/scenes/default/default.3dss.json";
+const sp = Astro.url.searchParams;
+const embed = sp.get("embed") === "1" || sp.get("embed") === "true";
+const model = sp.get("model") || sp.get("src") || DEFAULT_MODEL;
+
+// prod_full / devHarness_* は必要 DOM が無いと UI 初期化が fail-fast する。
+// このページは prod_full の DOM 契約を満たす（embed=1 の場合のみ prod_minimal）。
+const profile = embed ? "prod_minimal" : "prod_full";
+---
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>3DSL Viewer</title>
+
+    <!-- Viewer SSOT CSS -->
+    <link rel="stylesheet" href="/viewer/viewer.css" />
+
+    <!-- Site-side tuning (optional) -->
+    <link rel="stylesheet" href="/viewer_tuning.css" />
+
+    <style>
+      /* Full-bleed baseline */
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: #000;
+        overflow: hidden;
+      }
+
+      #viewer-canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+        outline: none;
+      }
+
+      /* Minimal, predictable placements (fine-tune in /viewer_tuning.css) */
+      #viewer-topbar {
+        position: fixed;
+        left: 16px;
+        top: 14px;
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        pointer-events: auto;
+        z-index: 40;
+      }
+
+      #viewer-toolbar {
+        position: fixed;
+        left: 50%;
+        bottom: 14px;
+        transform: translateX(-50%);
+        z-index: 40;
+        pointer-events: auto;
+      }
+
+      #gizmo-wrapper {
+        position: fixed;
+        right: 14px;
+        bottom: 14px;
+        width: 140px;
+        height: 140px;
+        z-index: 40;
+        pointer-events: none; /* 内部で有効化 */
+      }
+
+      #gizmo-slot {
+        position: absolute;
+        inset: 0;
+      }
+
+      #gizmo-ui {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      /* Embed mode: canvas + gizmo だけ残す */
+      body.is-embed #viewer-topbar,
+      body.is-embed #viewer-toolbar {
+        display: none !important;
+      }
+
+      body.is-embed #gizmo-ui {
+        display: none !important;
+      }
+
+      /* Fallback overlay */
+      #fallback {
+        position: fixed;
+        left: 10px;
+        top: 10px;
+        z-index: 60;
+        color: #f5f5f5;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        font-size: 12px;
+        white-space: pre-wrap;
+        opacity: 0.92;
+        pointer-events: none;
+      }
+    </style>
+
+    <!-- ImportMap (three.js vendor is served from /viewer/vendor/*) -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/viewer/vendor/three.module.js",
+          "three/addons/": "/viewer/vendor/addons/"
+        }
+      }
+    </script>
+  </head>
+
+  <body class={embed ? "is-embed" : ""}>
+    <canvas id="viewer-canvas" data-role="viewer-canvas"></canvas>
+
+    <!-- Toast / error status (optional in contract, but SSOT CSS expects #viewer-hud) -->
+    <div id="viewer-hud" data-role="viewer-hud"></div>
+
+    <!-- Document caption (prod_full required by domContract.js) -->
+    <div id="doc-caption" class="doc-caption">
+      <div id="doc-caption-title" data-role="doc-caption-title" class="doc-caption-title"></div>
+      <div id="doc-caption-body" data-role="doc-caption-body" class="doc-caption-body"></div>
+    </div>
+
+    <!-- Topbar: Filters (prod_full required) -->
+    <div id="viewer-topbar">
+      <button
+        id="filter-lines"
+        data-role="filter-lines"
+        class="keycap filter-toggle"
+        type="button"
+        title="toggle lines"
+      >
+        Lines
+      </button>
+      <button
+        id="filter-points"
+        data-role="filter-points"
+        class="keycap filter-toggle"
+        type="button"
+        title="toggle points"
+      >
+        Points
+      </button>
+      <button
+        id="filter-aux"
+        data-role="filter-aux"
+        class="keycap filter-toggle"
+        type="button"
+        title="toggle aux"
+      >
+        Aux
+      </button>
+
+      <!-- (optional) viewer settings -->
+      <select id="vs-linewidth-mode" data-role="vs-linewidth-mode" class="keycap" style="margin-left: 10px; display: none">
+        <option value="auto">line: auto</option>
+        <option value="fixed">line: fixed</option>
+      </select>
+      <select id="vs-micro-profile" data-role="vs-micro-profile" class="keycap" style="display: none">
+        <option value="auto">micro: auto</option>
+        <option value="on">micro: on</option>
+        <option value="off">micro: off</option>
+      </select>
+    </div>
+
+    <!-- Bottom toolbar: Frame controls (prod_full required) -->
+    <div id="viewer-toolbar">
+      <div class="frame-block" data-role="frame-block" id="frame-block">
+        <div class="frame-controls" data-role="frame-controls" id="frame-controls">
+          <button id="btn-rew" data-role="btn-rew" class="keycap" type="button" title="rew">
+            ⏮
+          </button>
+          <button id="btn-step-back" data-role="btn-step-back" class="keycap" type="button" title="step back">
+            ◀
+          </button>
+
+          <button id="btn-play" data-role="btn-play" class="keycap" type="button" title="play/pause">
+            <span class="frame-play-icon">▶</span>
+            <span class="frame-pause-icon">⏸</span>
+          </button>
+
+          <button id="btn-step-forward" data-role="btn-step-forward" class="keycap" type="button" title="step forward">
+            ▶
+          </button>
+          <button id="btn-ff" data-role="btn-ff" class="keycap" type="button" title="ff">
+            ⏭
+          </button>
+        </div>
+
+        <div
+          class="frame-slider-wrapper"
+          data-role="frame-slider-wrapper"
+          id="frame-slider-wrapper"
+          style="margin-top: 8px"
+        >
+          <input
+            id="frame-slider"
+            data-role="frame-slider"
+            class="frame-slider"
+            type="range"
+            min="0"
+            max="0"
+            step="1"
+            value="0"
+            aria-label="frame slider"
+          />
+
+          <div
+            id="frame-label-current"
+            data-role="frame-label-current"
+            class="frame-label-current"
+          >
+            0
+          </div>
+
+          <div class="frame-labels" data-role="frame-labels" id="frame-labels">
+            <span
+              id="frame-label-min"
+              data-role="frame-label-min"
+              class="frame-label frame-label-min"
+            >
+              0
+            </span>
+            <span
+              id="frame-label-max"
+              data-role="frame-label-max"
+              class="frame-label frame-label-max"
+            >
+              0
+            </span>
+            <span
+              id="frame-label-zero"
+              data-role="frame-label-zero"
+              class="frame-label frame-label-zero"
+              style="display:none"
+            >
+              0
+            </span>
+            <div id="frame-zero-line" data-role="frame-zero-line" style="display:none"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gizmo wrapper (right-bottom). gizmo-slot is required (all profiles). -->
+    <div id="gizmo-wrapper">
+      <div id="gizmo-slot" data-role="gizmo-slot"></div>
+
+      <div id="gizmo-ui">
+        <!-- mode indicator -->
+        <div class="gizmo-mode-indicator" style="position:absolute; right: 4px; top: 6px;">
+          <span id="gizmo-mode-label" data-role="gizmo-mode-label">mode</span>
+        </div>
+
+        <!-- axis / view rows (optional but recommended) -->
+        <div data-role="gizmo-axis-row" style="position:absolute; left: 6px; bottom: 44px; display:flex; gap: 6px;">
+          <button class="gizmo-axis gizmo-axis-btn" type="button" data-axis="x">X</button>
+          <button class="gizmo-axis gizmo-axis-btn" type="button" data-axis="y">Y</button>
+          <button class="gizmo-axis gizmo-axis-btn" type="button" data-axis="z">Z</button>
+        </div>
+
+        <div data-role="gizmo-view-row" style="position:absolute; right: 6px; bottom: 44px; display:flex; gap: 6px;">
+          <button class="keycap gizmo-view-btn" type="button" data-view="front">F</button>
+          <button class="keycap gizmo-view-btn" type="button" data-view="top">T</button>
+          <button class="keycap gizmo-view-btn" type="button" data-view="right">R</button>
+        </div>
+
+        <!-- toggles (optional) -->
+        <button
+          id="gizmo-presets-toggle"
+          data-role="gizmo-presets-toggle"
+          type="button"
+          style="position:absolute; left: 6px; bottom: 18px;"
+        >
+          Preset
+        </button>
+
+        <button
+          id="world-axes-toggle"
+          data-role="world-axes-toggle"
+          type="button"
+          aria-pressed="false"
+          style="position:absolute; right: 6px; bottom: 18px;"
+        >
+          Axis
+        </button>
+
+        <div id="auto-orbit-slot" data-role="auto-orbit-slot" class="auto-orbit-slot" style="position:absolute; left: 6px; bottom: -18px;">
+          <div class="auto-orbit-pill">
+            <button
+              class="auto-orbit-btn auto-orbit-btn-dir"
+              data-role="auto-orbit-cw"
+              data-dir="cw"
+              type="button"
+              aria-label="auto orbit cw"
+            >
+              ↻
+            </button>
+            <button
+              class="auto-orbit-btn auto-orbit-center"
+              data-role="auto-orbit-toggle"
+              type="button"
+              aria-label="auto orbit toggle"
+            >
+              Auto
+            </button>
+            <button
+              class="auto-orbit-btn auto-orbit-btn-dir"
+              data-role="auto-orbit-ccw"
+              data-dir="ccw"
+              type="button"
+              aria-label="auto orbit ccw"
+            >
+              ↺
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Optional: detail view insertion point -->
+    <div id="viewer-detail" data-role="viewer-detail" style="display:none"></div>
+
+    <div id="fallback"></div>
+
+    <noscript>JavaScript を有効にしてください。</noscript>
+
+    <script type="module">
+      import { mountViewerHost } from "/viewer/viewerHost.js";
+
+      const modelUrl = ${JSON.stringify(model)};
+      const profile = ${JSON.stringify(profile)};
+
+      // NOTE: gizmoWrapperId must point to the element that receives the gizmo sub-canvas.
+      const opts = {
+        canvasId: "viewer-canvas",
+        gizmoWrapperId: "gizmo-slot",
+        timelineRootId: "viewer-toolbar",
+        modelUrl,
+        profile,
+      };
+
+      mountViewerHost(opts);
+    </script>
+  </body>
+</html>

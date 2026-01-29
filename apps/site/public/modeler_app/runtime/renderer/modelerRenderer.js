@@ -359,33 +359,14 @@ export function createRenderer(canvas) {
 
   const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 5000);
   camera.up.set(0, 0, 1); // Z-up (match viewer)
-  // Match viewer default preset (iso-ne): +X, +Y, +Z quadrant.
-  // This keeps the on-screen axis chirality consistent across viewer/modeler.
-  camera.position.set(60, 40, 60);
+  camera.position.set(-60, 40, 60);
   camera.lookAt(0, 0, 0);
 
   const controls = new OrbitControls(camera, canvas);
-  // Navigation layer is always enabled. Reserve left-click for editing/picking.
-  // Use right-drag for orbit rotation, middle-drag for pan, wheel for zoom.
-  try {
-    controls.mouseButtons.LEFT = undefined;
-    controls.mouseButtons.RIGHT = THREE.MOUSE.ROTATE;
-    controls.mouseButtons.MIDDLE = THREE.MOUSE.PAN;
-  } catch {}
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
   controls.target.set(0, 0, 0);
   controls.update();
-
-  function projectToNdc(pos) {
-    try {
-      const v = new THREE.Vector3(Number(pos?.[0])||0, Number(pos?.[1])||0, Number(pos?.[2])||0);
-      v.project(camera);
-      return [v.x, v.y, v.z];
-    } catch {
-      return [0, 0, 0];
-    }
-  }
 
   const focusAnim = {
     active: false,
@@ -1130,6 +1111,86 @@ function previewSetOverride(kind, uuid, payload) {
 }
 
 
+
+// ------------------------------------------------------------
+// Debug snapshot (for viewer/modeler comparison)
+// - Never throws; returns null on failure.
+// ------------------------------------------------------------
+function getDebugPoseSnapshot(opts = {}) {
+  try {
+    const uuids = Array.isArray(opts?.uuids) ? opts.uuids.map(String) : [];
+    const rect = (() => {
+      try { return canvas.getBoundingClientRect?.() ?? null; } catch (_e) { return null; }
+    })();
+    const wCss = Number(rect?.width) || Number(canvas.clientWidth) || 0;
+    const hCss = Number(rect?.height) || Number(canvas.clientHeight) || 0;
+
+    const project = (v3) => {
+      try {
+        const v = v3.clone();
+        v.project(camera);
+        const ndc = { x: v.x, y: v.y, z: v.z };
+        const px = (wCss > 0 && hCss > 0)
+          ? {
+              x: (ndc.x + 1) * 0.5 * wCss,
+              y: (1 - (ndc.y + 1) * 0.5) * hCss
+            }
+          : null;
+        return { ndc, px };
+      } catch (_e) {
+        return null;
+      }
+    };
+
+    const items = [];
+    for (const u of uuids) {
+      const pos = (() => {
+        try {
+          // Prefer cached 3DSS position if available (points/aux).
+          const p = pos3dssByUuid.get(u);
+          if (Array.isArray(p) && p.length >= 3) return [Number(p[0]) || 0, Number(p[1]) || 0, Number(p[2]) || 0];
+        } catch (_e) {}
+        try {
+          const o = objByUuid.get(u);
+          if (!o) return null;
+          const wp = o.getWorldPosition?.(new THREE.Vector3());
+          if (!wp) return null;
+          return [wp.x, wp.y, wp.z];
+        } catch (_e) {
+          return null;
+        }
+      })();
+
+      const proj = pos ? project(new THREE.Vector3(pos[0], pos[1], pos[2])) : null;
+      items.push({ uuid: u, world: pos, screen: proj?.px ?? null, ndc: proj?.ndc ?? null });
+    }
+
+    const origin = project(new THREE.Vector3(0, 0, 0));
+    const axis = {
+      x10: project(new THREE.Vector3(10, 0, 0)),
+      y10: project(new THREE.Vector3(0, 10, 0)),
+      z10: project(new THREE.Vector3(0, 0, 10))
+    };
+
+    return {
+      kind: "modeler",
+      size: { wCss, hCss },
+      cam: {
+        position: [camera.position.x, camera.position.y, camera.position.z],
+        target: [controls.target.x, controls.target.y, controls.target.z],
+        fov: camera.fov,
+        near: camera.near,
+        far: camera.far
+      },
+      origin: { screen: origin?.px ?? null, ndc: origin?.ndc ?? null },
+      axis,
+      items
+    };
+  } catch (_e) {
+    return null;
+  }
+}
+
   function dispose() {
     stop();
     clearGroup();
@@ -1137,7 +1198,7 @@ function previewSetOverride(kind, uuid, payload) {
     renderer.dispose();
   }
 
-  return { start, stop, resize, dispose, setDocument, applyVisibility, pickObjectAt, setSelection, focusOnUuid, worldPointOnPlaneZ, previewSetPosition, previewSetLineEnds, previewSetCaptionText, previewSetOverride, setFrameIndex, setWorldAxisMode, projectToNdc };
+  return { start, stop, resize, dispose, setDocument, applyVisibility, pickObjectAt, setSelection, focusOnUuid, worldPointOnPlaneZ, previewSetPosition, previewSetLineEnds, previewSetCaptionText, previewSetOverride, setFrameIndex, setWorldAxisMode, getDebugPoseSnapshot };
 }
 
 // NOTE:
