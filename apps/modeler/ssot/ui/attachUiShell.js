@@ -324,6 +324,7 @@ export function attachUiShell({ root, hub, modelUrl }) {
   fileController = createUiFileController({
     core,
     elements: { fileLabel, btnSave, btnSaveAs, btnExport, qcPanel, qcSummary, qcList },
+    selectionController,
     appTitle: APP_TITLE,
     setHud,
   });

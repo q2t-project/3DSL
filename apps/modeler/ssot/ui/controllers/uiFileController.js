@@ -76,13 +76,26 @@ function escapeHtml(s) {
   }[c]));
 }
 
-function renderIssuesToQuickCheck({ issues, qcPanel, qcSummary, qcList }) {
+function renderIssuesToQuickCheck({ issues, qcPanel, qcSummary, qcList, onSelectIssue }) {
   if (qcSummary) qcSummary.textContent = `${issues.length} issues`;
   if (!qcList) return;
   qcList.textContent = "";
   for (const it of issues) {
     const item = document.createElement("div");
     item.className = "qc-item";
+    item.tabIndex = 0;
+    item.setAttribute("role", "button");
+    item.style.cursor = "pointer";
+    if (onSelectIssue) {
+      item.addEventListener("click", () => onSelectIssue(it));
+      item.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelectIssue(it);
+        }
+      });
+    }
+
     const sev = it?.severity || "error";
     const sevClass = sev === "error" ? "qc-sev-error" : sev === "warn" ? "qc-sev-warn" : "qc-sev-info";
 
@@ -118,7 +131,7 @@ function renderIssuesToQuickCheck({ issues, qcPanel, qcSummary, qcList }) {
  * }} deps
  */
 export function createUiFileController(deps) {
-  const { core, elements, appTitle, setHud } = deps;
+  const { core, elements, selectionController, appTitle, setHud } = deps;
   const { fileLabel, btnSave, btnSaveAs, btnExport, qcPanel, qcSummary, qcList } = elements || {};
   let extraDirty = null;
   let invoker = null;
@@ -207,7 +220,7 @@ function syncTitle() {
     try {
       if (qcPanel) qcPanel.dataset.source = "schema";
     } catch {}
-    renderIssuesToQuickCheck({ issues, qcPanel, qcSummary, qcList });
+    renderIssuesToQuickCheck({ issues, qcPanel, qcSummary, qcList, onSelectIssue: (it) => selectionController?.selectIssue?.(it) });
   }
 
   async function ensureStrictOk(doc) {
