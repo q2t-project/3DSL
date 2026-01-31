@@ -49,12 +49,18 @@ function fmtCoord(value) {
 export function attachUiCanvasController({ canvas, core, hub, signal, onPick, onResize, ensureEditsAppliedOrConfirm, setHud }) {
   let ro = null;
 
-  // NOTE:
-  // The canvas' *CSS size* must always be driven by its DOM layout.
-  // Some renderers interpret the resize width/height as CSS pixels and apply
-  // them back onto the canvas element. If we inflate width/height to match an
-  // external PreviewOut window, it can accidentally blow up the main layout.
-  // Therefore, we always report the DOM box size here.
+  const getExternalWantedSize = () => {
+    try {
+      const v = globalThis.__modelerPreviewOutWantedSize;
+      if (!v || typeof v !== 'object') return null;
+      const w = Number(v.width);
+      const h = Number(v.height);
+      if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) return null;
+      return { width: Math.floor(w), height: Math.floor(h) };
+    } catch {
+      return null;
+    }
+  };
 
 
   // Dimension overlay (Move helper): show L-chain (0,0,0)->(x,0,0)->(x,y,0)->(x,y,z)
@@ -258,7 +264,12 @@ export function attachUiCanvasController({ canvas, core, hub, signal, onPick, on
     const cssW = Math.max(1, Math.floor(r.width));
     const cssH = Math.max(1, Math.floor(r.height));
 
-    onResize({ width: cssW, height: cssH, dpr });
+    // If a preview-out window is open on an external display, render at the larger size
+    // so the mirrored output remains sharp even when the in-app preview is smaller.
+    const ext = getExternalWantedSize();
+    const w = Math.max(cssW, ext?.width || 0);
+    const h = Math.max(cssH, ext?.height || 0);
+    onResize({ width: w, height: h, dpr });
     try { scheduleDim(); } catch {}
   }
 

@@ -26,6 +26,7 @@
 
   <link rel="stylesheet" href="./modeler.css" />
   <!-- site-level override: keep outside /modeler_app so it can be tuned without touching SSOT -->
+  <link rel="stylesheet" href="/modeler_tuning.css" />
 </head>
 
 <body>
@@ -34,21 +35,28 @@
     <header class="topbar" data-role="topbar">
       <div class="topbar-title">3DSD Modeler</div>
       <div class="topbar-actions">
-        <button class="btn" type="button" data-action="new">New</button>
-        <button class="btn" type="button" data-action="open">Open…</button>
-        <button class="btn" type="button" data-action="save">Save</button>
-        <button class="btn" type="button" data-action="saveas">Save As…</button>
-        <button class="btn" type="button" data-action="export">Export 3DSS</button>
-
-        <span class="topbar-spacer" aria-hidden="true"></span>
-
-        <button class="btn" type="button" data-action="undo">Undo</button>
-        <button class="btn" type="button" data-action="redo">Redo</button>
-
-        <span class="topbar-spacer" aria-hidden="true"></span>
-
-        <button class="btn" type="button" data-action="preview-out">Preview</button>
-      </div>
+        <button data-action="new">New</button>
+        <button data-action="open">Open…</button>
+        <button data-action="save" disabled>Save</button>
+        <button data-action="saveas" disabled>Save As…</button>
+        <button data-action="undo" disabled>Undo</button>
+        <button data-action="redo" disabled>Redo</button>
+        <button data-action="play" disabled title="Play/Pause (Space)">Play</button>
+        <label class="topbar-frame">
+          <span class="topbar-frame-label">frame</span>
+          <input class="topbar-frame-input" type="number" step="1" data-role="frame-index" value="0" />
+          <span class="topbar-frame-range" data-role="frame-range" title="frame range">
+            <span data-role="frame-min">0</span>–<span data-role="frame-max">0</span>
+          </span>
+        </label>
+        <button data-action="tool-move" title="Toggle Move tool (M)">Move</button>
+        <!-- Orbit is a navigation behavior (not a tool). Always available via drag in preview. -->
+        <button data-action="export" disabled>Export 3DSS</button>
+        <button data-action="quickcheck">Quick Check</button>
+        <button data-action="preview-out" disabled>Preview Out</button>
+        <button data-action="mirror-mode" title="Preview Out: mirror main canvas stream">Mirror</button>
+        <button data-action="focus-mode" title="When Preview Out is open, hide the embedded preview pane">Focus Mode</button>
+        <button data-action="world-axis" title="World axis: Off / Fixed / Full">Axis</button>      </div>
       <div class="topbar-right">
         <span class="topbar-file" data-role="file-label">(no file)</span>
       </div>
@@ -59,76 +67,73 @@
       <section class="pane pane-outliner" data-role="pane-outliner">
         <div class="pane-title">Outliner</div>
         <div class="pane-body" data-role="outliner-body">
+          <div class="outliner-tabs">
+            <button data-tab="points" class="tab-active">points</button>
+            <button data-tab="lines">lines</button>
+            <button data-tab="aux">aux</button>
+          </div>
           <div class="outliner-actions">
             <button data-action="add-point" type="button">+ Point</button>
             <button data-action="add-line" type="button">+ Line</button>
+            <button data-action="add-aux" type="button">+ Aux</button>
             <button data-action="delete" type="button">Delete</button>
             <span class="outliner-actions-sep"></span>
             <button data-action="group-new" type="button">New group</button>
             <button data-action="group-assign" type="button">Group selection</button>
             <button data-action="group-ungroup" type="button">Ungroup</button>
           </div>
-          <div class="outliner-dual" data-role="outliner-dual">
-            <section class="outcol outcol-points" aria-label="Points">
-              <div class="outcol-title">
-                <span class="outcol-title-text">POINTS</span>
-                <span class="outcol-order" aria-label="Order (points)">
-                  <button type="button" class="mini-btn" data-action="order-top" data-kind="points" title="Move to top">⤒</button>
-                  <button type="button" class="mini-btn" data-action="order-up" data-kind="points" title="Move up">↑</button>
-                  <button type="button" class="mini-btn" data-action="order-down" data-kind="points" title="Move down">↓</button>
-                  <button type="button" class="mini-btn" data-action="order-bottom" data-kind="points" title="Move to bottom">⤓</button>
-                </span>
-              </div>
-              <div class="outcol-scroll" data-role="outliner-points-scroll">
-                <table class="outliner-table" data-role="outliner-points-table">
-                  <thead>
-                    <tr>
-                      <th class="col-lock">L</th>
-                      <th class="col-name">name</th>
-                      <th class="col-num">x</th>
-                      <th class="col-num">y</th>
-                      <th class="col-num">z</th>
-                      <th class="col-frames">Fr</th>
-                    </tr>
-                  </thead>
-                  <tbody data-role="outliner-points-tbody"></tbody>
-                </table>
-              </div>
-            </section>
-
-            <section class="outcol outcol-lines" aria-label="Lines">
-              <div class="outcol-title">
-                <span class="outcol-title-text">LINES</span>
-                <span class="outcol-order" aria-label="Order (lines)">
-                  <button type="button" class="mini-btn" data-action="order-top" data-kind="lines" title="Move to top">⤒</button>
-                  <button type="button" class="mini-btn" data-action="order-up" data-kind="lines" title="Move up">↑</button>
-                  <button type="button" class="mini-btn" data-action="order-down" data-kind="lines" title="Move down">↓</button>
-                  <button type="button" class="mini-btn" data-action="order-bottom" data-kind="lines" title="Move to bottom">⤓</button>
-                </span>
-              </div>
-              <div class="outcol-scroll" data-role="outliner-lines-scroll">
-                <table class="outliner-table" data-role="outliner-lines-table">
-                  <thead>
-                    <tr>
-                      <th class="col-lock">L</th>
-                      <th class="col-name">caption</th>
-                      <th class="col-end">end_a</th>
-                      <th class="col-end">end_b</th>
-                      <th class="col-frames">Fr</th>
-                    </tr>
-                  </thead>
-                  <tbody data-role="outliner-lines-tbody"></tbody>
-                </table>
-              </div>
-            </section>
+          <div class="outliner-tablewrap">
+            <table class="outliner-table" data-role="outliner-table">
+              <thead data-role="outliner-thead">
+                <tr>
+                  <th class="col-lock">L</th>
+                  <th class="col-vis">V</th>
+                  <th class="col-solo">S</th>
+                  <th class="col-name">name</th>
+                  <th class="col-num">x</th>
+                  <th class="col-num">y</th>
+                  <th class="col-num">z</th>
+                  <th class="col-uuid">uuid</th>
+                </tr>
+              </thead>
+              <tbody data-role="outliner-tbody"></tbody>
+            </table>
           </div>
         </div>
       </section>
 
-      <!-- Splitter: Outliner | Property -->
+      <!-- Splitter: Outliner | Preview -->
       <div class="splitter" data-role="splitter-left" aria-hidden="true"></div>
 
-      <!-- Pane B: Property (center) -->
+      <!-- Pane B: Preview (P0) -->
+      <section class="pane pane-preview" data-role="pane-preview">
+        <div class="pane-title">
+          Preview
+          <span class="pane-sub" data-role="preview-hint">orbit: drag / zoom: wheel</span>
+        </div>
+        <div class="pane-body pane-preview-body">
+          <canvas id="modeler-canvas" data-role="modeler-canvas" tabindex="0" style="touch-action:none;"></canvas>
+          <div class="hud" data-role="hud"></div>
+          <div class="preview-selection" data-role="preview-selection" hidden></div>
+
+<div class="qc-panel" data-role="qc-panel" hidden>
+            <div class="qc-head">
+              <div class="qc-title">QuickCheck</div>
+              <button data-action="qc-fix-lines">Fix broken lines</button>
+              <button data-action="qc-close">Close</button>
+            </div>
+            <div class="qc-body">
+              <div class="qc-summary" data-role="qc-summary">(not run)</div>
+              <div class="qc-list" data-role="qc-list"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Splitter: Preview | Property -->
+      <div class="splitter" data-role="splitter-right" aria-hidden="true"></div>
+
+      <!-- Pane C: Property (P0 placeholder) -->
       <section class="pane pane-prop" data-role="pane-prop">
         <div class="pane-title">
           Property
@@ -149,6 +154,7 @@
           <div class="prop-panel" data-role="prop-panel" hidden>
             <div class="prop-kv"><span>uuid</span><code data-role="prop-uuid"></code></div>
             <div class="prop-kv"><span>kind</span><code data-role="prop-kind"></code></div>
+            <div class="prop-kv"><span>path</span><code data-role="prop-path"></code></div>
 
             
             
@@ -228,6 +234,13 @@
                 <div class="prop-row">
                   <div class="prop-row-key">step</div>
                   <div class="prop-inline2">
+                    <select class="prop-input" data-role="prop-pos-step" title="Step size for wheel/arrow increments">
+                      <option value="0.01">0.01</option>
+                      <option value="0.1">0.1</option>
+                      <option value="1">1</option>
+                      <option value="10">10</option>
+                    </select>
+                    <span class="prop-sub" data-role="prop-pos-step-hint">Shift×10, Ctrl/Alt×0.1</span>
                   </div>
                 </div>
                 <div class="prop-row">
@@ -243,12 +256,6 @@
                   <input class="prop-input" type="number" step="0.1" data-role="prop-z" />
                 </div>
               </div>
-            </div>
-
-            <div class="prop-field" data-role="prop-frames-field" hidden>
-              <label class="prop-label">frames</label>
-              <input class="prop-input" type="text" data-role="prop-frames" placeholder="e.g. 0 / 1,2,3 / 1-10 / 1-3,6" />
-              <div class="prop-help">appearance.frames (int / int[]). Use comma-separated ints or ranges. Empty clears frames.</div>
             </div>
 
             <div class="prop-field" data-role="prop-line-ends-field" hidden>
@@ -337,49 +344,7 @@
           </div>
         </div>
       </section>
-
-      <!-- Splitter: Property | Preview+QuickCheck -->
-      <div class="splitter" data-role="splitter-right" aria-hidden="true"></div>
-
-      <!-- Pane C: QuickCheck (right) -->
-      <section class="pane pane-qc" data-role="pane-qc">
-        <div class="pane-title">
-          QuickCheck
-        </div>
-        <div class="pane-body">
-          <div class="pane-preview-body">
-            <div class="preview-embed" data-role="preview-embed">
-              <div class="preview-embed-head">
-                <div class="preview-embed-title">Preview</div>
-              </div>
-              <div class="preview-embed-body">
-                <!-- Renderer anchor: embedded preview surface (also required for PreviewOut) -->
-                <div class="renderer-anchor" data-role="renderer-anchor" aria-hidden="false">
-                  <canvas class="modeler-canvas" data-role="modeler-canvas" width="1" height="1"></canvas>
-                  <div class="hud" data-role="hud" hidden></div>
-                  <div class="preview-selection" data-role="preview-selection" hidden></div>
-                </div>
-              </div>
-            </div>
-                      <div class="qc-panel" data-role="qc-panel">
-            <div class="qc-head">
-              <button data-action="quickcheck" type="button">Check</button>
-              <button data-action="qc-fix-lines" type="button">Fix broken lines</button>
-              <button data-action="qc-toggle" type="button" title="Toggle issue list">Issues</button>
-            </div>
-            <div class="qc-body">
-              <div class="qc-summary" data-role="qc-summary">(not run)</div>
-              <div class="qc-list" data-role="qc-list"></div>
-            </div>
-          </div>
-        
-          </div>
-
-        </div>
-      </section>
     </main>
-<div class="preview-selection" data-role="preview-selection" hidden></div>
-    </div>
 
     <input type="file" accept=".json,application/json" data-role="file-input" hidden />
   </div>

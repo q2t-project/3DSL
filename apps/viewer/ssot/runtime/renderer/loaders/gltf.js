@@ -11,9 +11,8 @@ async function getGLTFLoaderCtor() {
   if (_GLTFLoaderCtorPromise) return _GLTFLoaderCtorPromise;
   // Use importmap alias from /viewer/*.html:
   //  - "three" -> /vendor/three/build/three.module.js
-  // NOTE: avoid "three/addons/*" here because our vendored three may not ship the
-  // addons alias path (it is equivalent to examples/jsm in upstream docs).
-  _GLTFLoaderCtorPromise = import("/vendor/three/examples/jsm/loaders/GLTFLoader.js")
+  //  - "three/addons/" -> /vendor/three/examples/jsm/
+  _GLTFLoaderCtorPromise = import("three/addons/loaders/GLTFLoader.js")
     .then((m) => {
       if (!m || typeof m.GLTFLoader !== "function") {
         throw new Error("GLTFLoader module loaded but GLTFLoader export is missing");

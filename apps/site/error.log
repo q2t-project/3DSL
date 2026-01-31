@@ -11,7 +11,3 @@
 2026-01-12T04:25:50.937Z - Failed to resolve import: /viewer/vendor/three/build/three.module.js from C:\Users\vrrrm\projects\3DSL\apps\viewer\ssot\runtime\renderer\selectionHighlight.js. Target does not exist.
 2026-01-12T04:25:50.938Z - Failed to resolve import: /viewer/vendor/three/build/three.module.js from C:\Users\vrrrm\projects\3DSL\apps\viewer\ssot\runtime\renderer\worldAxes.js. Target does not exist.
 2026-01-12T04:25:50.941Z - Failed to resolve import: /vendor/three/build/three.module.js from C:\Users\vrrrm\projects\3DSL\apps\viewer\ssot\ui\gizmo.js. Target does not exist.
-2026-01-29T13:15:17.400Z - Failed to resolve import: three/addons/loaders/GLTFLoader.js from C:\Users\vrrrm\projects\3DSL\apps\viewer\ssot\runtime\renderer\loaders\gltf.js. Target does not exist.
-2026-01-29T13:37:54.217Z - Failed to resolve import: three/examples/jsm/loaders/GLTFLoader.js from C:\Users\vrrrm\projects\3DSL\apps\viewer\ssot\runtime\renderer\loaders\gltf.js. Target does not exist.
-2026-01-29T14:27:20.892Z - Failed to resolve import: three/examples/jsm/loaders/GLTFLoader.js from C:\Users\vrrrm\projects\3DSL\apps\viewer\ssot\runtime\renderer\loaders\gltf.js. Target does not exist.
-2026-01-29T14:30:22.837Z - Failed to resolve import: three/examples/jsm/loaders/GLTFLoader.js from C:\Users\vrrrm\projects\3DSL\apps\viewer\ssot\runtime\renderer\loaders\gltf.js. Target does not exist.

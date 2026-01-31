@@ -19,11 +19,6 @@ const modeEl = document.getElementById("previewout-mode");
 const followBtn = /** @type {HTMLButtonElement|null} */ (document.getElementById("previewout-follow"));
 const frameBtn = /** @type {HTMLButtonElement|null} */ (document.getElementById("previewout-frame"));
 const pickBtn = /** @type {HTMLButtonElement|null} */ (document.getElementById("previewout-pick"));
-const axisBtn = /** @type {HTMLButtonElement|null} */ (document.getElementById("previewout-axis"));
-const playBtn = /** @type {HTMLButtonElement|null} */ (document.getElementById("previewout-play"));
-const frameIndexInput = /** @type {HTMLInputElement|null} */ (document.getElementById("previewout-frame-index"));
-const frameMinEl = document.getElementById("previewout-frame-min");
-const frameMaxEl = document.getElementById("previewout-frame-max");
 
 const origin = String(window.location.origin || "");
 
@@ -39,17 +34,9 @@ let renderer = null;
 
 const STORAGE_FOLLOW = "3dsl.modeler.previewout.follow";
 const STORAGE_PICK = "3dsl.modeler.previewout.pick";
-const STORAGE_AXIS = "3dsl.modeler.preview.axisMode";
 
 let followSelection = false;
 let pickEnabled = false;
-/** @type {"off"|"fixed"|"full_view"} */
-let worldAxisMode = "fixed";
-
-let frameIndex = 0;
-let frameMin = 0;
-let frameMax = 0;
-let framePlaying = false;
 
 // Display stability defaults for external window.
 const PREVIEWOUT_MAX_DPR = 1;
@@ -77,24 +64,6 @@ function loadPickFlag() {
   }
 }
 
-function syncFrameUi() {
-  try {
-    if (frameIndexInput) frameIndexInput.value = String(frameIndex);
-    if (frameMinEl) frameMinEl.textContent = String(frameMin);
-    if (frameMaxEl) frameMaxEl.textContent = String(frameMax);
-    if (playBtn) playBtn.textContent = framePlaying ? "Pause" : "Play";
-  } catch {}
-}
-
-function loadAxisMode() {
-  try {
-    const v = String(window.localStorage.getItem(STORAGE_AXIS) || "").toLowerCase();
-    worldAxisMode = (v === "off" || v === "fixed" || v === "full_view") ? /** @type any */ (v) : "fixed";
-  } catch {
-    worldAxisMode = "fixed";
-  }
-}
-
 function syncFollowBtn() {
   if (!followBtn) return;
   followBtn.classList.toggle("is-on", !!followSelection);
@@ -105,13 +74,6 @@ function syncPickBtn() {
   if (!pickBtn) return;
   pickBtn.classList.toggle("is-on", !!pickEnabled);
   pickBtn.textContent = pickEnabled ? "Pick: ON" : "Pick: OFF";
-}
-
-function syncAxisBtn() {
-  if (!axisBtn) return;
-  const label = (worldAxisMode === "full_view") ? "Full" : (worldAxisMode === "fixed" ? "Fixed" : "Off");
-  axisBtn.textContent = `Axis: ${label}`;
-  axisBtn.classList.toggle("is-on", worldAxisMode !== "off");
 }
 
 function setFollowFlag(on) {
@@ -126,14 +88,6 @@ function setPickFlag(on) {
   pickEnabled = !!on;
   try { window.localStorage.setItem(STORAGE_PICK, pickEnabled ? "1" : "0"); } catch {}
   syncPickBtn();
-}
-
-function setAxisMode(mode) {
-  const m = String(mode || "").toLowerCase();
-  worldAxisMode = (m === "off" || m === "fixed" || m === "full_view") ? /** @type {any} */ (m) : "fixed";
-  try { window.localStorage.setItem(STORAGE_AXIS, worldAxisMode); } catch {}
-  try { renderer && renderer.setWorldAxisMode && renderer.setWorldAxisMode(worldAxisMode); } catch {}
-  syncAxisBtn();
 }
 
 let mirrorActive = false;
@@ -159,7 +113,7 @@ function postToOpener(type, payload) {
 }
 
 function setTitle(t) {
-  if (titleEl) titleEl.textContent = t || "(preview)";
+  if (titleEl) titleEl.textContent = t || "(preview out)";
 }
 
 function findNodeNameByUuid(docLike, uuid) {
@@ -242,10 +196,6 @@ function ensureFallbackRenderer() {
   // (Main window remains uncapped.)
   try {
     renderer.setPerformanceOptions?.({ maxFps: PREVIEWOUT_MAX_FPS, maxDpr: PREVIEWOUT_MAX_DPR });
-  } catch {}
-
-  try {
-    renderer.setWorldAxisMode?.(worldAxisMode);
   } catch {}
 
   renderer.start?.();
@@ -384,18 +334,6 @@ function handleMessage(ev) {
     applyFallbackState();
     return;
   }
-  if (type === "modeler-previewout:frame-state") {
-    const st = payload || {};
-    try {
-      frameIndex = Math.trunc(Number(st.frameIndex || 0));
-      frameMin = Math.trunc(Number(st.frameMin || 0));
-      frameMax = Math.trunc(Number(st.frameMax || 0));
-      framePlaying = !!st.framePlaying;
-    } catch {}
-    syncFrameUi();
-    return;
-  }
-
   if (type === "modeler-previewout:selection") {
     selection = Array.isArray(payload.selection) ? payload.selection.map(String) : [];
     updateOverlay();
@@ -403,23 +341,6 @@ function handleMessage(ev) {
     if (followSelection && !mirrorActive) scheduleFollowFrame();
     return;
   }
-
-  if (type === "modeler-previewout:focus") {
-    // Focus is an explicit "jump + frame" request (e.g. QuickCheck click).
-    const issue = payload?.issue || null;
-    const uuid = String(issue?.uuid || "");
-    if (uuid) {
-      selection = [uuid];
-      try { renderer?.setSelection?.(selection); } catch {}
-      updateOverlay();
-    }
-    // Frame once regardless of followSelection, unless the user is currently mirroring main view.
-    if (!mirrorActive) {
-      try { frameSelectionOnce(); } catch {}
-    }
-    return;
-  }
-
   if (type === "modeler-previewout:visibility") {
     visibility = payload.visibility || visibility;
     applyFallbackState();
@@ -440,9 +361,6 @@ function main() {
   syncFollowBtn();
   loadPickFlag();
   syncPickBtn();
-  loadAxisMode();
-  syncFrameUi();
-  syncAxisBtn();
 
   // Always bring up fallback immediately.
   ensureFallbackRenderer();
@@ -461,26 +379,6 @@ function main() {
       { passive: true }
     );
   }
-  if (playBtn) {
-    playBtn.addEventListener("click", () => {
-      try { postToOpener("modeler-previewout:play-toggle", {}); } catch {}
-    });
-  }
-
-  if (frameIndexInput) {
-    frameIndexInput.addEventListener("change", () => {
-      const raw = frameIndexInput.value;
-      let v = 0;
-      if (raw && Number.isFinite(Number(raw))) v = Math.trunc(Number(raw));
-      try { postToOpener("modeler-previewout:frame-set", { frameIndex: v }); } catch {}
-    });
-    frameIndexInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        try { frameIndexInput.blur(); } catch {}
-      }
-    });
-  }
-
   if (frameBtn) {
     frameBtn.addEventListener(
       "click",
@@ -495,21 +393,6 @@ function main() {
       "click",
       () => {
         setPickFlag(!pickEnabled);
-      },
-      { passive: true }
-    );
-  }
-
-  if (axisBtn) {
-    axisBtn.addEventListener(
-      "click",
-      () => {
-        const next = (worldAxisMode === "off")
-          ? "fixed"
-          : (worldAxisMode === "fixed")
-            ? "full_view"
-            : "off";
-        setAxisMode(next);
       },
       { passive: true }
     );
@@ -530,15 +413,7 @@ function main() {
           const ndcX = x * 2 - 1;
           const ndcY = -(y * 2 - 1);
           const hit = renderer?.pickObjectAt?.(ndcX, ndcY);
-          if (hit && hit.uuid) {
-            const u = String(hit.uuid);
-            // Update local selection immediately for responsiveness.
-            selection = [u];
-            try { renderer?.setSelection?.(selection); } catch {}
-            updateOverlay();
-            // Then notify the main window (selection SSOT).
-            postToOpener("modeler-previewout:pick", { uuid: u, kind: String(hit.kind || "unknown") });
-          }
+          if (hit && hit.uuid) postToOpener("modeler-previewout:pick", { uuid: String(hit.uuid), kind: String(hit.kind || "unknown") });
         } catch {}
       },
       { passive: true }

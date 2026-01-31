@@ -1,6 +1,3 @@
-// Selection / Focus Contract:
-// See packages/docs/docs/modeler/selection-focus-contract.md
-
 // ui/attachUiShell.js
 // Modeler UI shell: DOM gather + controller instantiation + hub wiring only.
 
@@ -31,47 +28,6 @@ export function attachUiShell({ root, hub, modelUrl }) {
   let canvasCtl = null;
 
   const core = createHubCoreControllers(hub);
-
-  // --- UI sidecar persistence (localStorage) ---
-  const getDocUuid = () => {
-    try {
-      const d = core.getDocument?.();
-      const u = d?.document_meta?.document_uuid;
-      return (typeof u === "string" && u) ? u : null;
-    } catch {
-      return null;
-    }
-  };
-
-  const sidecarKeyFor = (docUuid) => `modeler.sidecar.${docUuid}`;
-
-  const loadSidecar = () => {
-    const docUuid = getDocUuid();
-    if (!docUuid) return;
-    try {
-      const raw = localStorage.getItem(sidecarKeyFor(docUuid));
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
-      core.applyUiSidecar?.(parsed);
-    } catch {}
-  };
-
-  const saveSidecar = (() => {
-    let t = 0;
-    return () => {
-      const docUuid = getDocUuid();
-      if (!docUuid) return;
-      if (t) return;
-      t = window.setTimeout(() => {
-        t = 0;
-        try {
-          const payload = core.getUiSidecar?.();
-          if (!payload) return;
-          localStorage.setItem(sidecarKeyFor(docUuid), JSON.stringify(payload));
-        } catch {}
-      }, 150);
-    };
-  })();
 
   // --- Preview render throttling ---
   // When Preview Out is used with Focus Mode, the embedded preview pane is hidden.
@@ -276,9 +232,6 @@ export function attachUiShell({ root, hub, modelUrl }) {
   /** @type {ReturnType<typeof createUiFileController> | null} */
   let fileController = null;
 
-  /** @type {ReturnType<typeof createUiSelectionController> | null} */
-  let selectionController = null;
-
   // Single synchronization point for toolbar enable/disable.
   // Any path that changes document/dirty/selection/history should call this.
   const requestToolbarSync = (() => {
@@ -293,18 +246,6 @@ export function attachUiShell({ root, hub, modelUrl }) {
     };
   })();
 
-  // Bridge: route selection changes through uiSelectionController when available
-  // so dirty-guards + focus behavior stay consistent.
-  const setSelectionUuids = (uuids, issueLike, reason) => {
-    try {
-      if (selectionController && typeof selectionController.setSelectionUuids === "function") {
-        selectionController.setSelectionUuids(uuids, issueLike, reason);
-        return;
-      }
-    } catch {}
-    try { core.setSelection?.(Array.isArray(uuids) ? uuids : []); } catch {}
-  };
-
   const propertyController = createUiPropertyController({
     root,
     core,
@@ -312,7 +253,6 @@ export function attachUiShell({ root, hub, modelUrl }) {
     previewSetPosition: (uuid, pos) => hub.previewSetPosition?.(uuid, pos),
     previewSetLineEnds: (uuid, endA, endB) => hub.previewSetLineEnds?.(uuid, endA, endB),
     previewSetCaptionText: (uuid, captionText, fallbackText) => hub.previewSetCaptionText?.(uuid, captionText, fallbackText),
-    setSelectionUuids,
     signal: sig,
     setHud,
     onDirtyChange: () => {
@@ -321,10 +261,17 @@ export function attachUiShell({ root, hub, modelUrl }) {
     },
   });
 
+  let outlinerController = null;
+  const selectionController = createUiSelectionController({
+    core,
+    ensureEditsAppliedOrConfirm: () => propertyController.ensureEditsAppliedOrConfirm(),
+    setHud,
+    getOutlinerRowOrder: () => outlinerController?.getRowOrder?.() || [],
+  });
+
   fileController = createUiFileController({
     core,
     elements: { fileLabel, btnSave, btnSaveAs, btnExport, qcPanel, qcSummary, qcList },
-    selectionController,
     appTitle: APP_TITLE,
     setHud,
   });
@@ -333,33 +280,18 @@ export function attachUiShell({ root, hub, modelUrl }) {
     return new Set(core.getSelection?.() || []);
   }
 
-  const outlinerController = new UiOutlinerController({
-    root,
-    tbody,
-    core,
-    signal: sig,
-    syncTabButtons: () => toolbarController?.syncTabs?.(),
-    getSelectedSet,
-    // Selection/Focus contract: packages/docs/docs/modeler/selection-contract.md
-    onRowSelect: (issueLike, ev) => selectionController?.selectFromOutliner?.(issueLike, ev),
-    ensureEditsAppliedOrConfirm: () => propertyController.ensureEditsAppliedOrConfirm(),
-    requestToolbarSync,
-    setHud,
-    setSelectionUuids,
-  });
-
-  selectionController = createUiSelectionController({
-    core,
-    // Preflight selection guard (drafting -> confirm apply/discard/cancel)
-    requestSelectionChange: (nextUuids, { reason = "selection" } = {}) =>
-      propertyController.requestSelectionChange
-        ? propertyController.requestSelectionChange(nextUuids, { reason })
-        : propertyController.ensureEditsAppliedOrConfirm({ reason }),
-    // Back-compat / non-selection usages
-    ensureEditsAppliedOrConfirm: (args) => propertyController.ensureEditsAppliedOrConfirm(args),
-    setHud,
-    getOutlinerRowOrder: () => outlinerController.getRowOrder?.() || [],
-  });
+  outlinerController = new UiOutlinerController({
+  root,
+  tbody,
+  core,
+  signal: sig,
+  syncTabButtons: () => toolbarController?.syncTabs?.(),
+  getSelectedSet,
+  onRowSelect: (issueLike, ev) => selectionController.selectFromOutliner?.(issueLike, ev),
+  ensureEditsAppliedOrConfirm: () => propertyController.ensureEditsAppliedOrConfirm(),
+  requestToolbarSync,
+  setHud,
+});
 
   toolbarController = createUiToolbarController({
     root,
@@ -379,7 +311,6 @@ export function attachUiShell({ root, hub, modelUrl }) {
   });
 
   // --- Cross-controller wiring ---
-
   fileController?.setExtraDirtyProvider?.(() => !!propertyController?.isDirty?.());
   fileController?.setInvoker?.((a) => toolbarController?.invoke?.(a));
   fileController?.attachBeforeUnload?.({ signal: sig });
@@ -388,7 +319,6 @@ export function attachUiShell({ root, hub, modelUrl }) {
   attachUiShortcutController({ signal: sig, core, invoke: (a) => toolbarController?.invoke?.(a) });
   canvasCtl = attachUiCanvasController({
     canvas,
-    core,
     hub,
     signal: sig,
     // NOTE: do not use `||` fallback here: selectionController methods intentionally return void.
@@ -400,59 +330,15 @@ export function attachUiShell({ root, hub, modelUrl }) {
           if (handled) return;
         }
       } catch {}
-      // Selection/Focus contract: packages/docs/docs/modeler/selection-contract.md
       if (typeof selectionController.selectFromPick === "function") selectionController.selectFromPick(issueLike, ev);
       else selectionController.selectIssue(issueLike);
     },
     onResize: (args) => resizeHub(hub, args.width, args.height, args.dpr),
-    // Needed for Move tool helpers (e.g., wheel-based axis nudges / dimension overlay).
-    ensureEditsAppliedOrConfirm: () => {
-      try {
-        return (typeof fileController?.ensureEditsAppliedOrConfirm === "function")
-          ? fileController.ensureEditsAppliedOrConfirm()
-          : true;
-      } catch {
-        return true;
-      }
-    },
-    setHud,
   });
-  // --- Host bridge (for /app/modeler quick actions) ---
-  // Parent can postMessage({ type: "3DSL_MODELER_CMD", action }) to control a few safe operations.
-  try {
-    window.addEventListener("message", (ev) => {
-      const data = ev?.data;
-      if (!data || typeof data !== "object") return;
-      if (data.type !== "3DSL_MODELER_CMD") return;
-      // Accept only parent frame as sender (defensive; same-origin not assumed in dev)
-      if (ev.source !== window.parent) return;
-
-      const action = String(data.action || "").toLowerCase();
-      if (!action) return;
-
-      if (action === "reload") {
-        try { window.location.reload(); } catch {}
-        return;
-      }
-      if (action === "export") {
-        try { toolbarController?.invoke?.("export"); } catch {}
-        return;
-      }
-      if (action === "discard") {
-        // Discard buffered (unapplied) property edits.
-        try { toolbarController?.invoke?.("prop-discard"); } catch {}
-        return;
-      }
-    }, { signal: sig });
-  } catch {}
-
 
   // --- hub events ---
   if (typeof hub?.on === "function") {
     unsubs.push(hub.on("document", (doc) => {
-      // Restore UI-only state per document_uuid.
-      // Must run before render so locks/visibility/groups are reflected.
-      loadSidecar();
       // Document updates (including undo/redo) can invalidate the current selection.
       // Prune selection to existing items to avoid property panel pointing at stale UUIDs.
       try {
@@ -471,16 +357,15 @@ export function attachUiShell({ root, hub, modelUrl }) {
           add(doc.aux);
           const nextSel = curSel.filter((u) => alive.has(u));
           if (nextSel.length !== curSel.length) {
-            // Route through uiSelectionController when possible so dirty guards and downstream sync stay consistent.
+            // If the active property panel is dirty and the selected item disappears due to
+            // document updates (undo/redo/open), discard drafts to avoid pointing at stale UUIDs.
             try {
-              if (typeof selectionController?.setSelectionUuids === "function") {
-                selectionController.setSelectionUuids(nextSel, null, "doc-prune");
-              } else {
-                core.setSelection?.(nextSel);
+              if (typeof propertyController?.isDirty === "function" && propertyController.isDirty()) {
+                propertyController.discardEdits?.();
+                setHud("Edits discarded (selection invalidated by document update)");
               }
-            } catch {
-              core.setSelection?.(nextSel);
-            }
+            } catch {}
+            core.setSelection?.(nextSel);
           }
         }
       } catch {}
@@ -491,7 +376,6 @@ export function attachUiShell({ root, hub, modelUrl }) {
       fileController?.syncTitle?.();
       propertyController?.refreshActiveFromDoc?.();
       updatePreviewSelectionLabel();
-      saveSidecar();
     }));
 
     unsubs.push(hub.on("dirty", () => {
@@ -509,23 +393,14 @@ export function attachUiShell({ root, hub, modelUrl }) {
       outlinerController.render(core.getDocument?.());
       propertyController?.refreshLockState?.();
       requestToolbarSync();
-      saveSidecar();
     }));
 
     unsubs.push(hub.on("visibility", () => {
       outlinerController.render(core.getDocument?.());
-      saveSidecar();
     }));
 
     unsubs.push(hub.on("outliner", () => {
       outlinerController.render(core.getDocument?.());
-      saveSidecar();
-    }));
-
-    unsubs.push(hub.on("uistate", () => {
-      try { toolbarController?.syncTabs?.(); } catch {}
-      requestToolbarSync();
-      saveSidecar();
     }));
 
     // selection -> property sync is intentionally unified here.
@@ -572,20 +447,6 @@ export function attachUiShell({ root, hub, modelUrl }) {
             }
           } catch {}
 
-          // Ensure the selected row is visible (QuickCheck jump / Preview pick).
-          try {
-            const sel = core.getSelection?.() || [];
-            if (Array.isArray(sel) && sel.length === 1) outlinerController.revealUuid?.(sel[0]);
-          } catch {}
-
-          try {
-            const sel = core.getSelection?.() || [];
-            const tool = String(core.getUiState?.().activeTool || "select").toLowerCase();
-            if (tool === "move" && (!Array.isArray(sel) || sel.length !== 1)) {
-              core.setUiState?.({ activeTool: "select" });
-            }
-          } catch {}
-
           requestToolbarSync();
         } while (pendingSelection);
       } finally {
@@ -594,22 +455,6 @@ export function attachUiShell({ root, hub, modelUrl }) {
     };
 
     unsubs.push(hub.on("selection", handleSelection));
-
-  // --- focus (QuickCheck / error jump) ---
-  // Ensure outliner row is visible even when selection is unchanged.
-  {
-    const handleFocus = (issue) => {
-      try {
-        const uuid = issue && typeof issue === "object" ? issue.uuid : null;
-        const kind = issue && typeof issue === "object" ? issue.kind : null;
-        if (uuid) outlinerController?.revealFlash?.(uuid, kind);
-      } catch {}
-    };
-    // Focus event contract: packages/docs/docs/modeler/selection-contract.md
-    unsubs.push(hub.on("focus", handleFocus));
-  }
-
-
   }
 
 

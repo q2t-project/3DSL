@@ -1,22 +1,4 @@
 {
-<<<<<<< HEAD
-  "name": "3dsd-modeler",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "dev": "node scripts/dev.mjs",
-    "build": "node scripts/build.mjs",
-    "smoke": "node scripts/smoke.mjs",
-    "sync:standalone": "node scripts/sync-standalone.mjs",
-    "dev:full": "npm run sync:standalone && npx serve public"
-  },
-  "devDependencies": {
-    "serve": "^14.2.0"
-  },
-  "dependencies": {
-    "3dsl-root": "file:../.."
-  }
-=======
   "name": "modeler",
   "private": true,
   "scripts": {
@@ -24,5 +6,4 @@
   },
 
   "type": "module"
->>>>>>> origin/main
 }
