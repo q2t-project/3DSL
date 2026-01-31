@@ -1,0 +1,877 @@
+/* modeler.css (SSOT)
+   P0: single-window 3-pane layout (outliner / preview / property)
+*/
+
+:root {
+  color-scheme: dark;
+  --preview-h: 180px;
+  --qc-h: 260px;
+}
+
+html, body {
+  height: 100%;
+  min-height: 100%;
+  margin: 0;
+  background: #0b0f14;
+  color: #e6edf3;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Noto Sans JP", sans-serif;
+}
+
+button {
+  background: #1a2330;
+  border: 1px solid #2a3a52;
+  color: #e6edf3;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button.is-active {
+  background: rgba(70, 140, 230, 0.30);
+  border-color: rgba(70, 140, 230, 0.55);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modeler-root {
+  height: 100vh;
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  /* Layout tuning defaults */
+  --pane-outliner-w: 740px;
+  --pane-qc-w: 360px;
+}
+
+.topbar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid #1d2a3a;
+  background: #0f1620;
+}
+
+.topbar-title {
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.topbar-right {
+  opacity: 0.85;
+  font-size: 12px;
+}
+
+.maingrid {
+  min-height: 0;
+  display: grid;
+  /*
+    NOTE: outliner/property widths are user-adjustable via splitters.
+    Default widths are set as CSS vars on :root.
+  */
+  /* 3-pane layout: Outliner | Property | QuickCheck */
+  grid-template-columns:
+	  var(--pane-outliner-w)
+    10px
+	  minmax(340px, 1fr)
+    10px
+	  var(--pane-qc-w);
+  gap: 8px;
+  padding: 10px;
+}
+
+/* preview-out only: no special casing needed in main window. */
+
+.splitter {
+  align-self: stretch;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  cursor: col-resize;
+  position: relative;
+}
+
+.splitter::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  /* expand hit-area without changing layout */
+  transform: scaleX(1.6);
+}
+
+.splitter:hover {
+  background: rgba(255, 255, 255, 0.10);
+}
+
+.splitter.is-dragging {
+  background: rgba(70, 140, 230, 0.30);
+  border-color: rgba(70, 140, 230, 0.55);
+}
+
+.pane {
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid #1d2a3a;
+  border-radius: 12px;
+  background: #0f1620;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+}
+
+.pane-title {
+  padding: 10px 12px;
+  border-bottom: 1px solid #1d2a3a;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pane-sub {
+  font-weight: 400;
+  opacity: 0.7;
+  font-size: 12px;
+  margin-left: 10px;
+}
+
+.pane-body {
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Property: compact typography */
+.pane-property .pane-body { font-size: 13px; }
+.pane-property .prop-row-key { font-size: 11px; }
+
+/* Outliner: keep tabs/actions fixed; scroll only the table area */
+[data-role="outliner-body"]{
+  /*
+    P1: Outliner header must not scroll away.
+    .pane-body sets overflow:auto for generic panes, so we hard-override here.
+  */
+  overflow: hidden !important;
+  display: flex;
+  flex-direction: column;
+}
+
+[data-role="outliner-body"] .outliner-tabs,
+[data-role="outliner-body"] .outliner-actions {
+  flex: 0 0 auto;
+}
+
+[data-role="outliner-body"] .outliner-tablewrap{
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+[data-role="outliner-body"] .outliner-dual{
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.pane-preview-body {
+  position: relative;
+  overflow: hidden;
+  /* Layout: small embedded preview + fixed QuickCheck slot below */
+  display: flex;
+  flex-direction: column;
+}
+
+
+
+
+
+.preview-embed{
+  flex: 0 0 var(--preview-h);
+  min-height: var(--preview-h);
+  background: #0f1620;
+  border: 1px solid #1d2a3a;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  margin: 0 0 10px 0;
+}
+
+.preview-embed-head{
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-bottom: 1px solid #1d2a3a;
+}
+
+.preview-embed-title{
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.preview-embed-body{
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
+}
+
+.renderer-anchor{
+  position: absolute;
+  inset: 0;
+}
+
+.modeler-canvas{
+  width: 100%;
+  height: var(--qc-h);
+  display: block;
+}
+.outliner-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 10px 10px 0 10px;
+}
+
+.outliner-tabs button {
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+
+.tab-active {
+  background: #22334a;
+  border-color: #3a567c;
+}
+
+/* --- Outliner dual columns --- */
+.outliner-dual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: stretch;
+  gap: 10px;
+  padding: 10px;
+  min-height: 0;
+}
+
+.outcol {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.outcol-title {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  opacity: 0.85;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.outcol-order {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.mini-btn {
+  border: none;
+  background: transparent;
+  color: inherit;
+  opacity: 0.9;
+  padding: 0 4px;
+  height: 18px;
+  line-height: 18px;
+  font-size: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.mini-btn:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.outcol-scroll {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden; /* no horizontal scroll */
+  border: 1px solid #1d2a3a;
+  border-radius: 12px;
+  scrollbar-gutter: stable;
+}
+
+.outliner-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  table-layout: fixed; /* fixed columns */
+}
+
+.outliner-table thead th {
+  position: sticky;
+  top: 0;
+  background: #0f1620;
+  z-index: 1;
+}
+
+.outliner-table tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.outliner-table th, .outliner-table td {
+  border-bottom: 1px solid #1d2a3a;
+  padding: 6px 8px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.outliner-table .col-lock { width: 26px; }
+.outliner-table .col-num { width: 44px; text-align: right; }
+.outliner-table .col-end { width: 56px; }
+.outliner-table .col-frames { width: 38px; }
+
+.cellbtn {
+  width: 26px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  font-size: 0.75em; /* 3/4 */
+}
+
+.cellbtn:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+/* Lock icon: unlocked is the default and should be visually quiet. */
+.outliner-table tr[data-locked="false"] .cellbtn { opacity: 0.30; }
+.outliner-table tr[data-locked="true"] .cellbtn { opacity: 1.0; }
+
+/* Property panel: locked state */
+[data-role="prop-panel"][data-locked="true"] {
+  opacity: 0.85;
+}
+
+[data-role="prop-panel"][data-locked="true"] input {
+  opacity: 0.7;
+}
+
+.outliner-table tr.is-selected td {
+  background: rgba(70, 140, 230, 0.18);
+}
+
+.outliner-table tr.is-selected td:first-child {
+  box-shadow: inset 3px 0 0 rgba(70, 140, 230, 0.65);
+}
+
+@keyframes outlinerFlash {
+  from { filter: brightness(1.35); }
+  to { filter: brightness(1); }
+}
+
+.outliner-table tr.is-flash td {
+  animation: outlinerFlash 0.65s ease-out 1;
+}
+
+
+.col-num {
+  text-align: right;
+  width: 60px;
+}
+
+.col-lock {
+  width: 28px;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.col-vis,
+.col-solo {
+  width: 28px;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.outliner-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.outliner-actions-sep {
+  width: 1px;
+  height: 22px;
+  align-self: center;
+  background: rgba(255, 255, 255, 0.10);
+  margin: 0 2px;
+}
+
+.outliner-actions button {
+  background: #121a24;
+  color: #e8eef6;
+  border: 1px solid #1d2a3a;
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.outliner-actions button:hover {
+  background: #162131;
+}
+
+.outliner-table tr.is-hidden td {
+  opacity: 0.5;
+}
+
+.outliner-table tr.solo-dim td {
+  opacity: 0.35;
+}
+
+.outliner-table tr.is-group-row td {
+  background: rgba(255, 255, 255, 0.03);
+  font-weight: 600;
+}
+
+.outliner-table tr.is-group-selected td {
+  background: rgba(70, 140, 230, 0.12);
+}
+
+.outliner-caret {
+  display: inline-block;
+  width: 16px;
+  text-align: center;
+  opacity: 0.85;
+  margin-right: 6px;
+}
+
+.outliner-indent {
+  display: inline-block;
+  width: var(--indent, 0px);
+}
+
+.col-uuid {
+  width: 140px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  opacity: 0.85;
+}
+
+.col-name {
+  min-width: 180px;
+}
+
+.col-frame {
+  width: 60px;
+  text-align: right;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  opacity: 0.85;
+}
+
+.col-end {
+  min-width: 140px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  opacity: 0.85;
+}
+
+.prop-empty,
+.prop-multi {
+  padding: 12px;
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.prop-multi-title {
+  font-weight: 600;
+  opacity: 0.95;
+}
+
+.prop-multi-sub {
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.prop-kv {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #1d2a3a;
+  align-items: center;
+}
+
+.prop-actions {
+  padding: 10px 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.prop-help {
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: 0.75;
+  line-height: 1.3;
+}
+
+.prop-field {
+  padding: 10px 12px;
+  display: grid;
+  gap: 6px;
+  border-bottom: 1px solid #1d2a3a;
+}
+
+.prop-label {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.prop-input {
+  background: #0b0f14;
+  color: #e8eef6;
+  border: 1px solid #1d2a3a;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font: inherit;
+}
+
+.prop-input:focus {
+  outline: none;
+  border-color: #33507a;
+}
+
+.prop-pos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.prop-line-ends {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.prop-row-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.prop-sub {
+  font-size: 12px;
+  opacity: 0.75;
+  margin-left: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.prop-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Opt-in: stacked label above input (for long/multiline fields) */
+.prop-row-col {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.prop-row-key {
+  width: auto;
+  flex: 0 0 auto;
+  font-size: 12px;
+  opacity: 0.75;
+  text-transform: none;
+}
+
+.prop-row .prop-input {
+  flex: 1;
+  min-width: 0;
+}
+
+
+.qc-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid #1d2a3a;
+}
+
+.qc-body {
+  overflow: auto;
+  padding: 10px 12px;
+}
+
+.qc-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.qc-summary{
+  font-size: 12px;
+  opacity: 0.85;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  white-space: pre-wrap;
+}
+
+.qc-group{
+  margin-top: 6px;
+  font-size: 11px;
+  opacity: 0.7;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.qc-item {
+  border: 1px solid #1d2a3a;
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.qc-item .qc-line1 {
+  display: flex;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.qc-item .qc-msg {
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+.qc-sev-error { color: #ff6b6b; }
+.qc-sev-warn { color: #ffd166; }
+.qc-sev-info { color: #9bf6ff; }
+
+.prop-dirty {
+  padding: 8px 12px;
+  font-size: 12px;
+  opacity: 0.9;
+  border-bottom: 1px solid #1d2a3a;
+}
+
+
+/* Ensure [hidden] is always respected even if a layout rule sets display. */
+.prop-field[hidden] {
+  display: none !important;
+}
+
+
+.prop-inline3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
+.prop-inline2{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;}
+
+/* Property: collapsible pose blocks */
+.prop-details{
+  border: 1px solid #1d2a3a;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.03);
+  padding: 6px 8px;
+}
+
+.prop-details > summary{
+  cursor: pointer;
+  font-size: 12px;
+  opacity: 0.85;
+  user-select: none;
+  list-style: none;
+}
+
+.prop-note{
+  font-size: 12px;
+  opacity: 0.7;
+  margin-left: 6px;
+}
+
+/* hide default marker for consistent appearance */
+.prop-details > summary::-webkit-details-marker{display:none;}
+
+.prop-details[open] > summary{opacity: 1.0;}
+
+.prop-details-body{margin-top: 6px;}
+
+.prop-mini{
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.06);
+  color: inherit;
+  cursor: pointer;
+}
+.prop-mini:disabled{opacity:.5;cursor:default;}
+
+
+/* Dimension overlay (Move tool helper) */
+.dim-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.dim-overlay .dim-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: var(--qc-h);
+}
+
+.dim-overlay .dim-svg { pointer-events: auto; }
+.dim-overlay .dim-svg .dim-line { stroke-width: 2; fill: none; opacity: 0.9; pointer-events: stroke; }
+.dim-overlay .dim-svg .dim-x { stroke: rgba(80,150,255,0.9); }
+.dim-overlay .dim-svg .dim-y { stroke: rgba(80,220,140,0.9); }
+.dim-overlay .dim-svg .dim-z { stroke: rgba(255,90,90,0.9); }
+
+
+.dim-overlay .dim-controls {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+}
+.dim-overlay .dim-axis {
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.35);
+  color: rgba(255,255,255,0.92);
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1;
+}
+.dim-overlay .dim-axis.is-active {
+  border-color: rgba(255,255,255,0.38);
+  background: rgba(255,255,255,0.10);
+}
+.dim-overlay .dim-help {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  pointer-events: auto;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.35);
+  color: rgba(255,255,255,0.72);
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+
+/* Dimension overlay (Move helper) */
+[data-role="dim-overlay"] {
+  pointer-events: auto;
+}
+
+.dim-line.is-active {
+  stroke-width: 6;
+  stroke-opacity: 1;
+  animation: dimPulse 0.9s infinite;
+  filter: drop-shadow(0 0 6px rgba(255,255,255,0.6));
+}
+
+@keyframes dimPulse {
+  0% { stroke-opacity: 1; }
+  50% { stroke-opacity: 0.45; }
+  100% { stroke-opacity: 1; }
+}
+
+.dim-label {
+  font-size: 14px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: rgba(0,0,0,0.75);
+  stroke-width: 4px;
+  fill: rgba(255,255,255,0.95);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.dim-label.is-active {
+  animation: dimPulse 0.9s infinite;
+  filter: drop-shadow(0 0 6px rgba(255,255,255,0.6));
+}
+
+/* QuickCheck pane (right): in-flow, no floating panel */
+.pane-qc .pane-body{
+  min-height: 0;
+  overflow: hidden; /* list scrolls inside */
+  display: flex;
+  flex-direction: column;
+}
+
+.pane-qc .qc-panel{
+  flex: 0 0 var(--qc-h);
+  position: static;
+  width: 100%;
+  height: var(--qc-h);
+  max-height: none;
+  background: #0f1620;
+  border: 1px solid #1d2a3a;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: none;
+}
+
+.pane-qc .qc-head{
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #1d2a3a;
+}
+
+.pane-qc .qc-body{
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px 12px;
+}
+
+/* QuickCheck: folded mode keeps the docked slot stable but hides the list. */
+.pane-qc .qc-panel.is-collapsed .qc-body{
+  overflow: hidden;
+}
+.pane-qc .qc-panel.is-collapsed .qc-list{
+  display: none;
+}
+
+/* Outliner: allow the dual columns area to take the remaining height */
+[data-role="outliner-body"] .outliner-dual{
+  flex: 1 1 auto;
+}
+.outliner-table .col-name,
+.outliner-table .col-caption { width: auto; }
+
+
+/* Outliner inline edit */
+.outliner-table td.is-editing{padding:0;}
+.outliner-table input.cell-edit{width:100%;box-sizing:border-box;border:1px solid var(--ui-border, #444);background:var(--ui-surface, #111);color:inherit;padding:2px 4px;font:inherit;}

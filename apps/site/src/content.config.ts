@@ -16,6 +16,10 @@ const permissive = z.object({}).passthrough();
 const fragments = defineCollection({ type: "content", schema: permissive });
 const text = defineCollection({ type: "content", schema: permissive });
 const docs = defineCollection({ type: "content", schema: permissive });
+// Legacy: docs_integrated was an earlier mirror location.
+// Some pages still import from this folder; keep an explicit collection
+// to avoid deprecated auto-generation warnings.
+const docs_integrated = defineCollection({ type: "content", schema: permissive });
 const faq = defineCollection({ type: "content", schema: permissive });
 const policy = defineCollection({ type: "content", schema: permissive });
 
@@ -45,4 +49,13 @@ const pages = defineCollection({
     .passthrough(),
 });
 
-export const collections = { fragments, text, docs, faq, policy, library_items, pages };
+export const collections = {
+  fragments,
+  text,
+  docs,
+  docs_integrated,
+  faq,
+  policy,
+  library_items,
+  pages,
+};

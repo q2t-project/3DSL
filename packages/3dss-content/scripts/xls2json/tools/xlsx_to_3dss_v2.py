@@ -240,7 +240,7 @@ def _read_document_meta(wb) -> Optional[Dict[str, Any]]:
     return meta if meta else None
 
 def _default_document_meta(schema: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    schema_uri = "https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3"
+    schema_uri = "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4"
     if schema and isinstance(schema, dict):
         sid = schema.get("$id") or ""
         anch = schema.get("$anchor") or ""
@@ -257,7 +257,7 @@ def _default_document_meta(schema: Optional[Dict[str, Any]] = None) -> Dict[str,
         "schema_uri": schema_uri,
         "author": "unknown",
         "version": "1.0.0",
-        "updated_at": datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+        "revised_at": datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
     }
 
 def main():

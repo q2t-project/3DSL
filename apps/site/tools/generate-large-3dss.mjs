@@ -213,7 +213,7 @@ export function generate3dss(pointsCount, linesCount, auxCount) {
       updated_at: isoUtcSeconds(),
       tags: ["s:perf_sample"],
       schema_uri:
-        "https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.0.2",
+        "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
       generator: "https://3dsl.jp/sample-generator",
       reference: "performance test sample",
       coordinate_system: "Z+up/freeXY",

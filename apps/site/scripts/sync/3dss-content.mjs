@@ -75,8 +75,10 @@ for (const ent of fs.readdirSync(srcDist, { withFileTypes: true })) {
 
 console.log("[sync] 3dss-content(dist) -> site/public OK (library -> /_data/library)");
 
-// --- generate Astro content entries for optional per-item Markdown body ---
-// Source of truth: public/_data/library/<id>/content.md
+// --- generate Astro content entries for per-item Markdown body ---
+// Source of truth:
+// - public/_data/library/<id>/content.md (optional long-form body)
+// - public/_data/library/<id>/_meta.json (optional description, etc.)
 // Output: apps/site/src/content/library_items/<id>.md (untracked generated)
 ensureDir(dstContent);
 rmGeneratedMarkdown(dstContent);
@@ -89,11 +91,25 @@ if (fs.existsSync(indexPath)) {
     const id = typeof it?.id === "string" ? it.id : (typeof it?.slug === "string" ? it.slug : null);
     if (!id) continue;
 
-    const contentSrc = path.join(dstPublic, "_data", "library", id, "content.md");
-    if (!fs.existsSync(contentSrc)) continue;
+    const itemDir = path.join(dstPublic, "_data", "library", id);
+    const contentSrc = path.join(itemDir, "content.md");
+    const metaSrc = path.join(itemDir, "_meta.json");
 
-    const bodyRaw = fs.readFileSync(contentSrc, "utf8");
-    const body = patchContentPlaceholders(bodyRaw, id);
+    // Body is optional. Even when content.md is missing, generate a stub entry
+    // so pages can safely call getEntry("library_items", <id>) without errors.
+    let body = "";
+    if (fs.existsSync(contentSrc)) {
+      const bodyRaw = fs.readFileSync(contentSrc, "utf8");
+      body = patchContentPlaceholders(bodyRaw, id);
+    } else if (fs.existsSync(metaSrc)) {
+      try {
+        const m = readJson(metaSrc);
+        const desc = typeof m?.description === "string" ? m.description.trim() : "";
+        body = desc ? `${desc}\n` : "";
+      } catch {
+        body = "";
+      }
+    }
 
     const fm = [
       "---",
@@ -110,7 +126,8 @@ if (fs.existsSync(indexPath)) {
     ].filter(Boolean).join("\n");
 
     const outPath = path.join(dstContent, `${id}.md`);
-    fs.writeFileSync(outPath, `${fm}${body}`, "utf8");
+    // Ensure the file ends with a trailing newline (some markdown tooling expects it).
+    fs.writeFileSync(outPath, `${fm}${body}\n`, "utf8");
   }
   console.log("[sync] library Markdown -> src/content/library_items OK");
 } else {

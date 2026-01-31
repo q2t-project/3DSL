@@ -1,30 +1,20 @@
 ---
 import Layout from "../../../layouts/Layout.astro";
-
-import schemaRaw from "../../../content/docs_integrated/3DSS.schema.json?raw";
-
-let schemaPretty = schemaRaw;
-try {
-  schemaPretty = JSON.stringify(JSON.parse(schemaRaw), null, 2);
-} catch {
-  // keep raw
-}
 ---
 
 <Layout
-  title="Latest schema | Docs | 3DSL"
-  description="3DSS.schema.json (latest) を /docs 配下で表示します。"
+  title="latest schema | Docs | 3DSL"
+  description="3DSS.schema.json (latest) の参照ページ。公開中の最新版は /schemas/3DSS.schema.json を参照。"
 >
-  <div class="prose prose-invert prose-neutral max-w-4xl">
-    <h1>Latest schema</h1>
-    <p>
-      参照用の表示ページ。生ファイルは
-      <a href="/schemas/3DSS.schema.json">/schemas/3DSS.schema.json</a>
-      。
-    </p>
-  </div>
+  <section class="ui-surface p-6 sm:p-10 space-y-6">
+    <h1>latest schema</h1>
 
-  <div class="mt-6 max-w-4xl rounded-2xl border border-white/10 bg-black/30 p-4">
-    <pre class="overflow-auto text-xs leading-relaxed"><code>{schemaPretty}</code></pre>
-  </div>
+    <p class="text-sm text-neutral-200 leading-7">
+      最新版 schema は以下を参照：
+    </p>
+
+    <p>
+      <a href="/schemas/3DSS.schema.json">/schemas/3DSS.schema.json</a>
+    </p>
+  </section>
 </Layout>
