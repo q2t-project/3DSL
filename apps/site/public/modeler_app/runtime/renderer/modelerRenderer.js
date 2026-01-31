@@ -960,6 +960,22 @@ function projectToNdc(pos) {
  * @param {string} uuid
  * @param {[number,number,number]} pos 3DSS position
  */
+  /**
+   * Project a world position (3DSS coords) into NDC.
+   * @param {[number,number,number]} worldPos
+   * @returns {[number,number,number] | null}
+   */
+  function projectToNdc(worldPos) {
+    if (!Array.isArray(worldPos) || worldPos.length < 3) return null;
+    const x = Number(worldPos[0]) || 0;
+    const y = Number(worldPos[1]) || 0;
+    const z = Number(worldPos[2]) || 0;
+    const v = new THREE.Vector3(x, y, z);
+    try { v.project(camera); } catch { return null; }
+    return [v.x, v.y, v.z];
+  }
+
+
 function previewSetPosition(uuid, pos) {
   const u = String(uuid || "");
   if (!u) return;
@@ -1237,7 +1253,11 @@ function getDebugPoseSnapshot(opts = {}) {
     renderer.dispose();
   }
 
+<<<<<<< HEAD
   return { start, stop, resize, dispose, setDocument, applyVisibility, pickObjectAt, setSelection, focusOnUuid, worldPointOnPlaneZ, projectToNdc, previewSetPosition, previewSetLineEnds, previewSetCaptionText, previewSetOverride, setFrameIndex, setWorldAxisMode, getDebugPoseSnapshot };
+=======
+  return { start, stop, resize, dispose, setDocument, applyVisibility, pickObjectAt, setSelection, focusOnUuid, worldPointOnPlaneZ, previewSetPosition, previewSetLineEnds, previewSetCaptionText, previewSetOverride, setFrameIndex, setWorldAxisMode, getDebugPoseSnapshot };
+>>>>>>> origin/main
 }
 
 // NOTE:

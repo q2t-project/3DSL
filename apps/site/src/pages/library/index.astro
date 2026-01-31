@@ -1,388 +1,238 @@
 ---
-import Layout from "../../layouts/Layout.astro";
 import { getLibraryItems } from "../../lib/libraryIndex";
+import Layout from "../../layouts/Layout.astro";
 
+const ITEMS_PER_PAGE = 20;
 const items = getLibraryItems();
 
-const title = "Library | 3DSL";
-const description =
-  "3DSL Library：カードを眺めて入口を選び、詳細や Viewer で深掘りするための一覧です。";
-
-function joinText(it: any) {
-  return [
-    it.title ?? "",
-    it.summary ?? "",
-    ...(it.tags ?? []),
-    ...(it.entry_points ?? []),
-    ...((it.pairs ?? []).flatMap((p: any) => [p.a, p.b])),
-  ]
-    .join(" ")
-    .toLowerCase();
-}
-
-function pad2(n: number) {
-  return String(n).padStart(2, "0");
-}
-
-function formatYmd(raw?: string | null) {
-  if (!raw) return null;
-  const str = String(raw);
-
-  // Prefer stable YYYY-MM-DD extraction (avoid timezone day-shift)
-  const m = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (m) return `${m[1]}/${m[2]}/${m[3]}`;
-
-  // Fallback: Date parse
-  const t = Date.parse(str);
+function fmtDate(s) {
+  if (!s) return null;
+  const t = Date.parse(String(s));
   if (!Number.isFinite(t)) return null;
   const d = new Date(t);
   const y = d.getFullYear();
-  const mm = d.getMonth() + 1;
-  const day = d.getDate();
-  return `${y}/${pad2(mm)}/${pad2(day)}`;
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
 }
 
-function deriveCreatedYmd(it: any) {
-  // prefer explicit created_at
-  const c = formatYmd(it.created_at);
-  if (c) return c;
-
-  // fallback: id=YYMMDDxx
-  const id = String(it.id ?? "");
-  if (/^\d{6}[0-9a-z]{2}$/i.test(id)) {
-    const yy = Number(id.slice(0, 2));
-    const mm = Number(id.slice(2, 4));
-    const dd = Number(id.slice(4, 6));
-    if (Number.isFinite(yy) && mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31) {
-      const y = 2000 + yy;
-      return `${y}/${pad2(mm)}/${pad2(dd)}`;
-    }
-  }
-
-  // last resort: updated
-  return formatYmd(it.updated_at);
+function pickPublished(item) {
+  // 優先: republished_at -> published_at -> created_at
+  return (
+    fmtDate(item?.republished_at) ??
+    fmtDate(item?.published_at) ??
+    fmtDate(item?.created_at)
+  );
 }
 
-function deriveUpdatedYmd(it: any) {
-  const created = deriveCreatedYmd(it);
-  // Some pipelines encode "no update" as a zero-date.
-  const raw = String(it.updated_at ?? "");
-  if (!raw) return null;
-  if (/^0{4}[-\/]0{2}[-\/]0{2}/.test(raw)) return null;
-
-  const updated = formatYmd(raw);
-  if (!updated) return null;
-  if (/^0{4}\/0{2}\/0{2}$/.test(updated)) return null;
-  if (created && updated === created) return null; // "更新ゼロ"扱い
-  return updated;
+function pickPublishedLabel(item) {
+  // published系が無いなら created を代用してる、と分かる表示にする
+  const hasPub = fmtDate(item?.republished_at) || fmtDate(item?.published_at);
+  return hasPub ? "published" : "created";
 }
 
-function uuidBadgeText(id: string) {
-  const s = String(id ?? "");
-  if (!s) return "";
-  // existence > readability: show tail
-  return s.length <= 10 ? s : `…${s.slice(-8)}`;
-}
-
-function toAppViewerUrl(viewerUrl: string) {
-  if (!viewerUrl) return viewerUrl;
-  if (viewerUrl.startsWith("/app/viewer")) return viewerUrl;
-  try {
-    const u = new URL(viewerUrl, "http://x");
-    // contract: prefer `model`, accept legacy `open`
-    let model = u.searchParams.get("model") || u.searchParams.get("open") || "";
-    if (!model) {
-      const p = u.pathname || "";
-      if (/\.(json|3dss\.json)$/i.test(p)) model = p;
-    }
-    if (!model) return viewerUrl;
-
-    const q = new URLSearchParams();
-    q.set("model", model);
-    const mode = u.searchParams.get("mode");
-    if (mode) q.set("mode", mode);
-    const src = u.searchParams.get("src");
-    if (src) q.set("src", src);
-
-    return `/app/viewer?${q.toString()}`;
-  } catch {
-    return viewerUrl;
-  }
-}
 ---
 
-<Layout title={title} description={description}>
-  <div class="lib-page overflow-x-hidden">
-  <section class="ui-surface p-8">
-    <div class="flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h1 class="text-2xl font-medium tracking-tight">Library</h1>
-      </div>
+  <Layout title="Library | 3DSL" description="3DSL Library">
+    <section class="library-page">
+      <!-- controls -->
+      <section class="controls">
+        <input id="search" type="text" placeholder="Search title, summary, tags…" />
+        <select id="sort">
+          <option value="new">Newest</option>
+          <option value="old">Oldest</option>
+          <option value="title">Title (A–Z)</option>
+        </select>
+      </section>
 
-      <div class="w-full sm:w-auto text-xs text-neutral-400 text-right flex items-center justify-end gap-2">
-        <span id="count">表示 {items.length} / {items.length}</span>
+      <!-- cards -->
+      <section id="cards" class="card-grid"></section>
 
-        {/* search (cards-first; optional narrowing) */}
-        <details class="relative" data-swipe-ignore>
-          <summary class="list-none ui-chip px-3 py-1 cursor-pointer" aria-label="検索">
-            <span class="sr-only">検索</span>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
-              <circle cx="11" cy="11" r="7"></circle>
-              <path d="M21 21l-4.35-4.35"></path>
-            </svg>
-          </summary>
-
-          <div class="absolute right-0 mt-2 w-[min(24rem,90vw)] ui-surface p-4 bg-neutral-950/95 shadow-lg">
-            <div class="flex items-center gap-2">
-              <input
-                id="q"
-                class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-cyan-300/30"
-                placeholder="タイトル/説明/入口/タグ"
-              />
-              <button id="help" class="ui-btn shrink-0" type="button" aria-label="検索ヘルプ">
-                ?
-              </button>
-              <button id="clear" class="ui-btn shrink-0" type="button">
-                クリア
-              </button>
-            </div>
-            <p id="helpText" class="mt-2 text-xs text-neutral-400 hidden">
-              基本はカード一覧の流し見でOKです。検索は「特定の言葉が含まれるものだけ見たい」場合に使えます。
-            </p>
-          </div>
-        </details>
-      </div>
-    </div>
-  </section>
-
-  <section
-    id="grid"
-    class="mt-6 lib-grid"
-  >
-    {items.map((it, idx) => {
-      const created = deriveCreatedYmd(it);
-      const updated = deriveUpdatedYmd(it);
-      const viewerBase = toAppViewerUrl(it.viewer_url);
-      const detailUrl = `/library/${it.slug ?? it.id}/`;
-      const summary = String(it.summary ?? "");
-      const badge = uuidBadgeText(it.id);
-
-      return (
-        <article
-          class="card lib-card"
-          data-tags={(it.tags ?? []).join(",")}
-          data-text={joinText(it)}
-          data-detail-url={detailUrl}
-          data-viewer-url={viewerBase}
-          data-idx={String(idx)}
-          tabindex="0"
-          role="link"
-          aria-label={`${it.title} の詳細ページを開く`}
-        >
-          <div class="lib-top">
-            <div title={String(it.id ?? "")}>
-              <span class="lib-uuid-badge">{badge}</span>
-            </div>
-
-            <time class="lib-created" datetime={String(it.created_at ?? "")}>{created}</time>
-
-            {/* slot is kept even when hidden */}
-            <time
-              class={`lib-updated ${updated ? "" : "invisible"}`}
-              datetime={String(it.updated_at ?? "")}
-            >
-              {updated ?? ""}
-            </time>
-
-            <div class="lib-ticker" data-role="ticker" data-scroll="false">
-              <div class="lib-ticker-track" data-role="ticker-track">
-                <span class="lib-ticker-text" data-role="ticker-text">{summary}</span>
-                <span class="lib-ticker-gap" aria-hidden="true"></span>
-                <span class="lib-ticker-text" aria-hidden="true">{summary}</span>
-              </div>
-            </div>
-          </div>
-
-          <a class="lib-title" href={detailUrl} title={it.title}>{it.title}</a>
-          <div class="lib-actions" data-swipe-ignore>
-            <a class="lib-action" href={detailUrl}>詳細</a>
-            <a class="lib-action" href={it.viewer_url} target="_blank" rel="noreferrer">Viewer</a>
-          </div>
-        </article>
-      );
-    })}
-  </section>
-
-  {items.length === 0 && (
-    <p class="mt-6 text-sm text-neutral-400">
-      まだ公開コンテンツがありません。（public/_data/library/library_index.json を用意してください）
-    </p>
-  )}
-
-  <section class="mt-10 ui-surface p-5 text-xs text-neutral-300 leading-relaxed">
-    <strong class="text-neutral-100">著作権について：</strong>
-    Library のスナップショットは、構造理解を目的とした引用（またはライセンス許諾/オリジナル）に基づいて提示します。権利者表示や出典は各カードの詳細ページに記載します。操作による探索はリンク先 Viewer で行ってください。
-  </section>
-
-  </div>
+      <!-- pager -->
+      <nav class="pager">
+        <button id="prev">Prev</button>
+        <span id="page-info"></span>
+        <button id="next">Next</button>
+      </nav>
+    </section>
 
   <script is:inline>
-    const sp = new URLSearchParams(window.location.search);
-    const scrollRaw = sp.get("scroll");
-    if (scrollRaw) {
-      const n = Number(scrollRaw);
-      const scroll = Number.isFinite(n) ? Math.max(0, Math.floor(n)) : null;
-      if (scroll !== null) {
-        requestAnimationFrame(() => window.scrollTo(0, scroll));
-      }
-      sp.delete("scroll");
-      if (sp.get("from") === "library") sp.delete("from");
-      const next = sp.toString();
-      history.replaceState(null, "", `${window.location.pathname}${next ? `?${next}` : ""}`);
+    function fmtDate(s) {
+      if (!s) return null;
+      const t = Date.parse(String(s));
+      if (!Number.isFinite(t)) return null;
+      const d = new Date(t);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${dd}`;
     }
 
-    const q = document.getElementById("q");
-    const clear = document.getElementById("clear");
-    const help = document.getElementById("help");
-    const helpText = document.getElementById("helpText");
-
-    const count = document.getElementById("count");
-    const cards = Array.from(document.querySelectorAll(".card"));
-
-    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
-
-    // Philosophy: cards-first. Search is a lightweight narrowing.
-    const state = { query: "" };
-
-    function apply() {
-      const terms = (state.query || "")
-        .toLowerCase()
-        .split(/\s+/)
-        .filter(Boolean);
-
-      let shown = 0;
-      for (const c of cards) {
-        const text = c.getAttribute("data-text") || "";
-        const okQuery = terms.every((t) => text.includes(t));
-        const ok = okQuery;
-
-        c.style.display = ok ? "" : "none";
-        if (ok) shown++;
-      }
-      if (count) count.textContent = `表示 ${shown} / ${cards.length}`;
-
-      // update tickers for visible cards
-      requestAnimationFrame(updateTickers);
+    function pickPublished(item) {
+      return (
+        fmtDate(item?.republished_at) ??
+        fmtDate(item?.published_at) ??
+        fmtDate(item?.created_at)
+      );
     }
 
-    cards.forEach((card) => {
-      const base = card.dataset.detailUrl;
-      if (!base) return;
+    function pickPublishedLabel(item) {
+      const hasPub = fmtDate(item?.republished_at) || fmtDate(item?.published_at);
+      return hasPub ? "published" : "created";
+    }
 
-      // カードクリックで詳細ページへ
-      card.addEventListener("click", (ev) => {
-        if (ev.defaultPrevented) return;
-        if (ev.button !== 0) return;
-        if (ev.target && ev.target.closest && ev.target.closest("a")) return;
-        if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;
+    const ITEMS = /** @type {any[]} */ ({JSON.stringify(items)});
+      const ITEMS_PER_PAGE = {ITEMS_PER_PAGE};
 
-        ev.preventDefault();
-        window.location.assign(base);
-      });
+      let query = "";
+      let sort = "new";
+      let page = 1;
 
-      // Enter/Spaceでも開ける（アクセシビリティ）
-      card.addEventListener("keydown", (ev) => {
-        if (ev.key !== "Enter" && ev.key !== " ") return;
-        ev.preventDefault();
-        window.location.assign(base);
-      });
-    });
+      const searchEl = document.getElementById("search");
+      const sortEl = document.getElementById("sort");
+      const cardsEl = document.getElementById("cards");
+      const pageInfoEl = document.getElementById("page-info");
 
-    // ticker: animate only when overflow, and de-sync across cards
-    function updateTickers() {
-      if (reduceMotion) return;
+      const prevBtn = document.getElementById("prev");
+      const nextBtn = document.getElementById("next");
 
-      let visibleIndex = 0;
-      for (const card of cards) {
-        if (card.style.display === "none") continue;
+      function dateKey(item) {
+        // ソートは「生文字」やなくて、fmtDateで正規化したYYYY-MM-DDで比較
+        return (
+          fmtDate(item?.republished_at) ||
+          fmtDate(item?.published_at) ||
+          fmtDate(item?.created_at) ||
+          ""
+        );
+      }
 
-        const ticker = card.querySelector('[data-role="ticker"]');
-        const text = card.querySelector('[data-role="ticker-text"]');
-        if (!ticker || !text) continue;
+      function scrollToTop() {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
 
-        const w = ticker.clientWidth || 0;
-        const tw = text.scrollWidth || 0;
+      function apply() {
+        let filtered = ITEMS.filter((it) => {
+          const hay = (
+            it.title +
+            " " +
+            (it.summary || "") +
+            " " +
+            (it.tags || []).join(" ")
+          ).toLowerCase();
+          return hay.includes(query);
+        });
 
-        const shouldScroll = tw > w + 6;
-        ticker.dataset.scroll = shouldScroll ? "true" : "false";
+        filtered.sort((a, b) => {
+          if (sort === "title") {
+            return a.title.localeCompare(b.title, "ja");
+          }
+          const da = dateKey(a);
+          const db = dateKey(b);
+          return sort === "new"
+            ? db.localeCompare(da)
+            : da.localeCompare(db);
+        });
 
-        if (!shouldScroll) {
-          ticker.style.removeProperty("--lib-ticker-gap");
-          ticker.style.removeProperty("--lib-ticker-dist");
-          ticker.style.removeProperty("--lib-ticker-dur");
-          ticker.style.removeProperty("--lib-ticker-delay");
-          continue;
+        const total = filtered.length;
+        const maxPage = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
+        page = Math.min(page, maxPage);
+
+        const slice = filtered.slice(
+          (page - 1) * ITEMS_PER_PAGE,
+          page * ITEMS_PER_PAGE
+        );
+
+        render(slice, page, maxPage);
+      }
+
+      function render(list, page, maxPage) {
+        cardsEl.innerHTML = "";
+
+        for (const it of list) {
+          const card = document.createElement("article");
+          card.className = "card";
+
+          const tagsAll = Array.isArray(it.tags) ? it.tags : [];
+          const tags = tagsAll.slice(0, 2);
+          const rest = Math.max(0, tagsAll.length - 2);
+
+          const published = pickPublished(it);
+          const publishedLabel = pickPublishedLabel(it);
+          const created = fmtDate(it.created_at);
+
+          const detailUrl = it.page || `/library/${it.slug || it.id}/`;
+
+          // summaryは空でも崩れんように
+          const summary = (it.summary || "").trim();
+
+          card.innerHTML = `
+            <a class="card-link" href="${it.viewer_url}">
+              <div class="card-head">
+                <h2 class="card-title">${escapeHtml(it.title || "")}</h2>
+                <button class="card-info" type="button" aria-label="Detail">ⓘ</button>
+              </div>
+
+              <p class="card-summary">${escapeHtml(summary)}</p>
+
+              <div class="card-tags">
+                ${tags.map((t) => `<span>#${escapeHtml(t)}</span>`).join("")}
+                ${rest > 0 ? `<span class="tag-more">+${rest}</span>` : ""}
+              </div>
+
+              <div class="card-dates">
+                ${created ? `<span class="date-chip">created ${created}</span>` : ""}
+                ${published ? `<span class="date-chip">${publishedLabel} ${published}</span>` : ""}
+              </div>
+            </a>
+          `;
+
+          // Detailボタンだけ別遷移（カードクリック=viewer）
+          card.querySelector(".card-info")?.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            window.location.href = detailUrl;
+          });
+
+          cardsEl.appendChild(card);
         }
 
-        const gap = 72; // px: interval between loops
-        const speed = 34; // px/sec: readable but not noisy
-        const dist = tw + gap;
-        const dur = Math.max(8, Math.min(28, dist / speed));
-
-        ticker.style.setProperty("--lib-ticker-gap", `${gap}px`);
-        ticker.style.setProperty("--lib-ticker-dist", `${dist}px`);
-        ticker.style.setProperty("--lib-ticker-dur", `${dur}s`);
-
-        // stagger starts (avoid synchronized motion)
-        const delay = (visibleIndex * 0.37) % dur;
-        ticker.style.setProperty("--lib-ticker-delay", `${-delay}s`);
-
-        visibleIndex++;
+        pageInfoEl.textContent = `${page} / ${maxPage}`;
+        prevBtn.disabled = page <= 1;
+        nextBtn.disabled = page >= maxPage;
       }
-    }
+      searchEl.oninput = (e) => {
+        query = e.target.value.toLowerCase();
+        page = 1;
+        apply();
+      };
 
-    let t = 0;
-    window.addEventListener("resize", () => {
-      window.clearTimeout(t);
-      t = window.setTimeout(updateTickers, 120);
-    });
+      sortEl.onchange = (e) => {
+        sort = e.target.value;
+        page = 1;
+        apply();
+      };
 
-    q?.addEventListener("input", () => {
-      state.query = q.value || "";
+      prevBtn.onclick = () => {
+        page--;
+        apply();
+        scrollToTop();
+      };
+
+      nextBtn.onclick = () => {
+        page++;
+        apply();
+        scrollToTop();
+      };
+
       apply();
-    });
 
-    clear?.addEventListener("click", () => {
-      state.query = "";
-      if (q) q.value = "";
-      apply();
-    });
-    help?.addEventListener("click", () => {
-      helpText?.classList.toggle("hidden");
-    });
-
-
-    // init
-    apply();
+      function escapeHtml(s) {
+        return String(s)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
   </script>
-
-  <style>
-    /* library page backdrop: subtle contrast + a touch of sheen (not loud) */
-    .lib-page{
-      position: relative;
-    }
-    .lib-page::before{
-      content: "";
-      position: absolute;
-      inset: -36px -24px;
-      pointer-events: none;
-      background:
-        radial-gradient(600px 280px at 18% 0%, rgba(56,189,248,0.10), transparent 60%),
-        radial-gradient(520px 240px at 82% 10%, rgba(255,255,255,0.06), transparent 62%),
-        linear-gradient(180deg, rgba(255,255,255,0.02), transparent 55%);
-      opacity: 0.85;
-    }
-    .lib-page > *{ position: relative; }
-  </style>
-
 </Layout>

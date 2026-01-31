@@ -1,20 +1,28 @@
 ---
 import Layout from "../../layouts/Layout.astro";
-import ModelerText from "../../content/text/modeler.md";
 ---
 
 <Layout
   title="Modeler Info | 3DSL"
-  description="3DSL Modeler は、概念と関係を配置し、公開して鍛えていくための制作環境です（公開準備中）。"
+  description="3DSL Modeler の案内（Public Alpha）。"
 >
   <div class="prose prose-invert prose-neutral max-w-3xl">
-    <ModelerText />
+    <h1>Modeler（Public Alpha）</h1>
+    <p>
+      Modeler は概念と関係を配置し、公開して鍛えていくための制作環境です。現在は試験公開として段階的に公開しています。
+    </p>
+
+    <ul>
+      <li><a href="/app/modeler">/app/modeler（アプリ本体）</a></li>
+      <li><a href="/docs/modeler/public-alpha">使い方・注意（Public Alpha）</a></li>
+      <li><a href="/docs/modeler/IMPLEMENTATION_REPORT">Implementation report</a></li>
+    </ul>
   </div>
 
   <section class="mt-8 rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-neutral-300">
-    <div class="font-medium text-neutral-100">ステータス</div>
+    <div class="font-medium text-neutral-100">安全柵</div>
     <p class="mt-2">
-      現在は Viewer と Library を優先して整備しています。Modeler は公開仕様が固まり次第、段階的に公開します。
+      保存はローカルです。自動保存はありません。迷ったら Discard → Save As を推奨します。
     </p>
   </section>
 </Layout>

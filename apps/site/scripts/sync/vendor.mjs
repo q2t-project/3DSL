@@ -21,48 +21,22 @@ function mustExistDir(p) {
 }
 
 async function ensureAjvBundle() {
-  const entry = path.resolve(siteRoot, "scripts", "ajv", "with-formats.entry.mjs");
   const outFile = path.resolve(src, "ajv", "dist", "ajv.bundle.js");
 
-  if (existsSync(outFile)) return { built: false, outFile };
-
-  if (!existsSync(entry)) {
-    console.error("[sync] ajv bundle entry not found: " + entry);
-    console.error("[sync] expected apps/site/scripts/ajv/with-formats.entry.mjs");
+  // Policy: Ajv bundle must be checked into SSOT to keep sync deterministic
+  // and avoid requiring devDependencies (esbuild) in CI/environments.
+  if (!existsSync(outFile)) {
+    console.error("[sync] missing required Ajv bundle in vendor SSOT: " + outFile);
+    console.error("[sync] policy: commit packages/vendor/ajv/dist/ajv.bundle.js to the repo.");
+    console.error("[sync] how to generate (once):");
+    console.error("  npm --prefix apps/site ci");
+    console.error("  node apps/site/scripts/sync/vendor.mjs");
     process.exit(1);
   }
 
-  await mkdir(path.dirname(outFile), { recursive: true });
-
-  let esbuild;
-  try {
-    esbuild = await import("esbuild");
-  } catch (e) {
-    console.error("[sync] cannot import 'esbuild' (required to build ajv.bundle.js).");
-    console.error("[sync] run: npm --prefix apps/site ci  (or npm i) to install devDependencies.");
-    process.exit(1);
-  }
-
-  try {
-    await esbuild.build({
-      entryPoints: [entry],
-      outfile: outFile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: ["es2020"],
-      sourcemap: false,
-      minify: false,
-      logLevel: "silent",
-    });
-  } catch (e) {
-    console.error("[sync] failed to build ajv.bundle.js");
-    console.error(e?.stack || String(e));
-    process.exit(1);
-  }
-
-  return { built: true, outFile };
+  return { built: false, outFile };
 }
+
 
 mustExistDir(src);
 

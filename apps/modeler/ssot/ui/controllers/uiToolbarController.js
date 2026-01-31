@@ -218,7 +218,7 @@ function createEmptyDoc() {
       document_summary: "",
       document_uuid: newUuid(),
       // Keep aligned with current release fixtures. This is a reasonable default for authoring.
-      schema_uri: "https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
+      schema_uri: "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
       author: "",
       version: "1.0.0",
       coordinate_system: "Z+up/freeXY",
@@ -543,6 +543,14 @@ export function createUiToolbarController(deps) {
     if (!previewOutWin) {
       try { setHud && setHud("Preview: popup blocked"); } catch {}
       return;
+      // D8: avoid "stuck" state when popups are blocked (iOS Safari etc.)
+      try {
+        const ok = window.confirm("Preview Out: popup blocked. Open it in this tab instead?");
+        if (ok) {
+          window.location.href = url;
+        }
+      } catch {}
+
     }
     try { previewOutWin.focus(); } catch {}
 
@@ -790,14 +798,30 @@ export function createUiToolbarController(deps) {
 
     if (act === 'quickcheck') {
       const issues = core.runQuickCheck?.() || [];
+<<<<<<< HEAD
       renderQuickCheckImpl({ issues, qcSummary, qcList, ranAt: new Date(), onSelectIssue: (issueLike) => selectionController.selectIssue?.(issueLike) });
+=======
+      // Selection/Focus contract: packages/docs/docs/modeler/selection-contract.md
+      renderQuickCheckImpl({ issues, qcSummary, qcList, onSelectIssue: (issueLike) => selectionController.selectIssue?.(issueLike) });
+      if (qcPanel) qcPanel.hidden = false;
+      return;
+    }
+    if (act === 'qc-close') {
+      if (qcPanel) qcPanel.hidden = true;
+>>>>>>> origin/main
       return;
     }
 
     if (act === 'qc-fix-lines') {
       const res = core.fixBrokenLineEndpoints?.() || { removed: 0 };
       const issues = core.runQuickCheck?.() || [];
+<<<<<<< HEAD
       renderQuickCheckImpl({ issues, qcSummary, qcList, ranAt: new Date(), onSelectIssue: (issueLike) => selectionController.selectIssue?.(issueLike) });
+=======
+      // Selection/Focus contract: packages/docs/docs/modeler/selection-contract.md
+      renderQuickCheckImpl({ issues, qcSummary, qcList, onSelectIssue: (issueLike) => selectionController.selectIssue?.(issueLike) });
+      if (qcPanel) qcPanel.hidden = false;
+>>>>>>> origin/main
       try { setHud && setHud(`Removed ${res.removed || 0} broken lines`); } catch {}
       requestSync();
       return;
@@ -1069,6 +1093,7 @@ export function createUiToolbarController(deps) {
       issues,
       qcSummary,
       qcList,
+      // Selection/Focus contract: packages/docs/docs/modeler/selection-contract.md
       onSelectIssue: (issueLike) => selectionController.selectIssue?.(issueLike),
     }),
   };

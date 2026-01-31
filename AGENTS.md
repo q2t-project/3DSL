@@ -165,6 +165,52 @@ Modeler は「編集体験」そのものが契約であり、挙動変更は特
 
 ---
 
+✅ Library: SSOT / 読み取りルール（確定）
+
+Content SSOT：packages/3dss-content/**（meta.json / model / scripts）
+
+Library index（生成物SSOT）：packages/3dss-content/dist/library/library_index.json（build結果）
+
+Site mirror：apps/site/public/_data/library/library_index.json（syncミラー）
+
+apps/site/public/_data/library/library_index.json は syncでミラーされるだけ（編集禁止）
+
+Astro（server）側は /public 配下を import しない
+
+✅OK：fs.readFileSync(.../public/_data/library/library_index.json) -> JSON.parse
+
+❌NG：import "/_data/library/library_index.json"（Astroの仕様地雷）
+
+/public/_data/** は 配信物。
+import（バンドル化）禁止。読むなら server(fs+JSON.parse) か client(fetch)。
+対象：apps/site/src/**/*.{astro,ts,tsx,js,jsx,md,mdx}
+
+禁止：import ... "/_data/" と import ... "../public/_data/" 系
+
+例外：なし（例外作ると再発する）
+
+server(fs) で読むのはOK（ただし例外時はページ生存）。
+
+✅ 例外時の方針（落ちてもページは生かす）
+
+readLibraryIndex() 失敗時は：
+
+ページ全体を落とさない
+
+代替として items=[] 扱い + バナー表示（エラー内容は短く）
+
+console には詳細を出してよい（devだけ）
+
+✅ ガードレール（CI/predev）
+
+/public/_data/**.json を import してる箇所があれば CIで落とす（ルール化）
+
+既存の check:pages:no-raw-html と同様に、
+check:pages:no-public-json-import みたいなチェックを持つ（※名前は任せる）
+
+
+---
+
 ## Development Progress Hub（進捗管理の拠点）
 
 ### 正式な進捗・差分・今後計画の置き場

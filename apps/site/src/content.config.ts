@@ -19,9 +19,14 @@ const docs = defineCollection({ type: "content", schema: permissive });
 const faq = defineCollection({ type: "content", schema: permissive });
 const policy = defineCollection({ type: "content", schema: permissive });
 
+const docs_integrated = defineCollection({
+  type: "content",
+  schema: permissive,
+});
+
 // Generated from library content sources by sync:3dss-content.
 // Untracked generated files; used only at build time to render Markdown to HTML.
-const library_items = defineCollection({
+const libraryItems = defineCollection({
   type: "content",
   schema: z
     .object({
@@ -45,4 +50,13 @@ const pages = defineCollection({
     .passthrough(),
 });
 
-export const collections = { fragments, text, docs, faq, policy, library_items, pages };
+export const collections = {
+  fragments,
+  text,
+  docs,
+  faq,
+  policy,
+  docs_integrated,
+  library_items: libraryItems,
+  pages,
+};

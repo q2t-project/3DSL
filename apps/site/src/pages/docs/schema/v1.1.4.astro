@@ -1,10 +1,19 @@
 ---
 import Layout from "../../../layouts/Layout.astro";
+
+import schemaRaw from "../../../content/docs_integrated/3DSS.schema.v1.1.4.json?raw";
+
+let schemaPretty = schemaRaw;
+try {
+  schemaPretty = JSON.stringify(JSON.parse(schemaRaw), null, 2);
+} catch {
+  // keep raw
+}
 ---
 
 <Layout
   title="v1.1.4 schema | Docs | 3DSL"
-  description="3DSS.schema.json (v1.1.4) の参照ページ。リリース後に /schemas/release/v1.1.4/ へ配置されます。"
+  description="3DSS.schema.json (v1.1.4) を /docs 配下で表示します。"
 >
   <div class="prose prose-invert prose-neutral max-w-4xl">
     <h1>v1.1.4 schema</h1>
@@ -13,9 +22,9 @@ import Layout from "../../../layouts/Layout.astro";
       <a href="/schemas/release/v1.1.4/3DSS.schema.json">/schemas/release/v1.1.4/3DSS.schema.json</a>
       。
     </p>
-    <p class="text-sm text-neutral-300">
-      NOTE: v1.1.4 リリース運用（packages/schemas/release/v1.1.4 を追加 → sync:schemas 実行）が完了すると、
-      このリンク先に実体が出ます。
-    </p>
+  </div>
+
+  <div class="mt-6 max-w-4xl rounded-2xl border border-white/10 bg-black/30 p-4">
+    <pre class="overflow-auto text-xs leading-relaxed"><code>{schemaPretty}</code></pre>
   </div>
 </Layout>

@@ -3,6 +3,9 @@ import Layout from "../../layouts/Layout.astro";
 import ViewerDoc from "../../content/docs_integrated/3DSD-viewer.md";
 ---
 
+const url = Astro.url;
+const titleParam = url?.searchParams?.get("title") ?? null;
+
 <Layout
   title="Viewer docs | Docs | 3DSL"
   description="3DSD-viewer.md を /docs 配下で表示します。"

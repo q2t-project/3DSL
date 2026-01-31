@@ -106,7 +106,17 @@ export function createModelerHub(rootElOrId, options = {}) {
   });
 
 
-  let disposed = false;
+  
+
+  // wire: focus (QuickCheck jump) -> renderer camera focus
+  emitter.on("focus", (issue) => {
+    try {
+      const uuid = issue && typeof issue === "object" ? issue.uuid : null;
+      if (uuid) renderer.focusOnUuid?.(uuid, { smooth: true, durationMs: 260 });
+    } catch {}
+  });
+
+let disposed = false;
 
   const hub = {
     core,
@@ -162,6 +172,12 @@ export function createModelerHub(rootElOrId, options = {}) {
     },
 
 
+    projectToNdc(worldPos) {
+      if (disposed) return null;
+      try { return renderer.projectToNdc?.(worldPos) ?? null; } catch { return null; }
+    },
+
+
     getDebugPoseSnapshot(opts = {}) {
       if (disposed) return null;
       if (!renderer) return null;
@@ -212,7 +228,7 @@ export function createModelerHub(rootElOrId, options = {}) {
 }
 
 /**
- * Convenience (not in manifest yet):
+ * Convenience helper used by entry.bootstrapModelerFromUrl (declared in manifest.yaml):
  * bootstrap + fetch document + set core.document
  */
 export async function createModelerHubFromUrl(rootElOrId, url, options = {}) {

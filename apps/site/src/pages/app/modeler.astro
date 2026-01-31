@@ -9,11 +9,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Modeler | 3DSL</title>
     <meta name="description" content="3DSD Modeler をサイト共通レイアウトから隔離して表示する埋め込みホスト（/app/modeler）。" />
+    <meta name="robots" content="noindex,nofollow" />
   </head>
   <body>
     <div id="app-modeler-progress" class="app-modeler-progress">
       <div class="app-modeler-progress-bar"></div>
     </div>
+
+
+    <div
+      id="app-modeler-alpha-modal"
+      class="app-modeler-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Modeler public alpha notice"
+      data-open="0"
+    >
+      <div class="app-modeler-modal-backdrop" data-close="1"></div>
+      <div class="app-modeler-modal-card" role="document">
+        <header class="app-modeler-modal-head">
+          <div class="app-modeler-badge">β Public Alpha</div>
+          <button class="app-modeler-modal-close" type="button" data-close="1" aria-label="Close">×</button>
+        </header>
+
+        <div class="app-modeler-modal-body">
+          <p class="app-modeler-note">iOS Safari では Save/SaveAs/Export はダウンロード扱い（上書き不可）。</p>
+          <div class="app-modeler-links">
+            <a class="app-modeler-link" href="/docs/modeler/public-alpha" target="_blank" rel="noopener noreferrer">使い方・注意</a>
+            <a class="app-modeler-link" href="/docs/modeler/IMPLEMENTATION_REPORT" target="_blank" rel="noopener noreferrer">進捗</a>
+          </div>
+
+          <div class="app-modeler-actions" role="group" aria-label="Modeler quick actions">
+            <button class="app-modeler-btn" type="button" data-cmd="sample" title="サンプルを開く">Sample</button>
+            <button class="app-modeler-btn" type="button" data-cmd="reload" title="リロード（復帰）">Reload</button>
+            <button class="app-modeler-btn" type="button" data-cmd="discard" title="未適用の編集を破棄">Discard</button>
+            <button class="app-modeler-btn" type="button" data-cmd="export" title="Export（ダウンロード）">Export</button>
+          </div>
+        </div>
+
+        <footer class="app-modeler-modal-foot">
+          <button class="app-modeler-btn app-modeler-btn-primary" type="button" data-dismiss="1">OK（次回は表示しない）</button>
+        </footer>
+      </div>
+    </div>
+
 
     <iframe
       id="app-modeler-iframe"
@@ -37,6 +76,56 @@
           progressEl.removeAttribute("data-on");
         }
 
+        const modal = document.getElementById("app-modeler-alpha-modal");
+        const LS_KEY = "3dsl_modeler_public_alpha_notice_v1";
+
+        function openModal() {
+          if (!modal) return;
+          modal.setAttribute("data-open", "1");
+        }
+        function closeModal(persist = false) {
+          if (!modal) return;
+          modal.setAttribute("data-open", "0");
+          if (persist) {
+            try { localStorage.setItem(LS_KEY, "1"); } catch {}
+          }
+        }
+
+        function postCmd(action, payload = null) {
+          try {
+            const msg = { type: "3DSL_MODELER_CMD", action, payload };
+            iframe?.contentWindow?.postMessage?.(msg, "*");
+          } catch {}
+        }
+
+        function openSample() {
+          const sampleUrl = "/3dss/fixtures/regression/valid_no_frames.3dss.json";
+          const u = new URL("/modeler_app/index.html", window.location.origin);
+          u.searchParams.set("url", sampleUrl);
+          iframe.src = u.pathname + u.search;
+          showProgress();
+        }
+
+        function wireQuickActions() {
+          if (!modal) return;
+          modal.querySelectorAll("[data-cmd]").forEach((btn) => {
+            btn.addEventListener("click", () => {
+              const cmd = btn.getAttribute("data-cmd");
+              if (cmd === "sample") { openSample(); closeModal(true); return; }
+              if (cmd === "reload") { postCmd("reload"); closeModal(true); return; }
+              if (cmd === "discard") { postCmd("discard"); closeModal(true); return; }
+              if (cmd === "export") { postCmd("export"); closeModal(true); return; }
+            });
+          });
+
+          modal.querySelectorAll("[data-close]").forEach((el) => {
+            el.addEventListener("click", () => closeModal(false));
+          });
+          modal.querySelectorAll("[data-dismiss]").forEach((el) => {
+            el.addEventListener("click", () => closeModal(true));
+          });
+        }
+
         // NOTE: /modeler is currently used by Astro pages.
         // Keep the bundle base under /modeler_app (temporary) and target index.html to avoid redirect loops.
         const url = new URL(window.location.href);
@@ -46,6 +135,15 @@
 
         showProgress();
         iframe.src = src;
+        wireQuickActions();
+
+        // show once per browser profile
+        try {
+          if (!localStorage.getItem(LS_KEY)) openModal();
+        } catch {
+          // if storage is blocked, still show the notice
+          openModal();
+        }
 
         iframe.addEventListener("load", () => {
           hideProgress();
@@ -54,6 +152,95 @@
     </script>
 
     <style>
+
+      .app-modeler-overlay {
+        display: none;
+      }
+
+      .app-modeler-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 99998;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+      }
+      .app-modeler-modal[data-open="1"] { display: flex; }
+
+      .app-modeler-modal-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+      }
+      .app-modeler-modal-card {
+        position: relative;
+        width: min(720px, 100%);
+        border-radius: 14px;
+        padding: 14px 14px 12px;
+        background: rgba(20, 20, 24, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: #eaeaf0;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      }
+
+      .app-modeler-modal-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .app-modeler-modal-close {
+        height: 36px;
+        width: 36px;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.16);
+        background: rgba(0,0,0,0.18);
+        color: inherit;
+        font-size: 18px;
+        line-height: 1;
+        cursor: pointer;
+      }
+      .app-modeler-modal-body { display: grid; gap: 10px; }
+      .app-modeler-links { display: flex; flex-wrap: wrap; gap: 10px; }
+      .app-modeler-modal-foot { display: flex; justify-content: flex-end; margin-top: 12px; }
+
+      .app-modeler-btn-primary {
+        border-color: rgba(255,255,255,0.22);
+        background: rgba(255,255,255,0.10);
+      }
+      .app-modeler-badge {
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(255, 196, 0, 0.16);
+        border: 1px solid rgba(255, 196, 0, 0.35);
+      }
+      .app-modeler-link {
+        color: #eaeaf0;
+        text-decoration: none;
+        font-size: 14px;
+        opacity: 0.92;
+      }
+      .app-modeler-link:hover { opacity: 1; text-decoration: underline; }
+      .app-modeler-actions { display: flex; gap: 8px; align-items: center; }
+      .app-modeler-btn {
+        appearance: none;
+        border: 1px solid rgba(255,255,255,0.18);
+        background: rgba(255,255,255,0.06);
+        color: #eaeaf0;
+        padding: 6px 10px;
+        border-radius: 10px;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .app-modeler-btn:hover { background: rgba(255,255,255,0.10); }
+      .app-modeler-btn:active { transform: translateY(1px); }
+
+
       html, body { height: 100%; margin: 0; background: #0b0b0d; }
       .app-modeler-iframe {
         position: fixed;

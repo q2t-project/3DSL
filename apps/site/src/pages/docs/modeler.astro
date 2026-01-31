@@ -1,21 +1,44 @@
 ---
 import Layout from "../../layouts/Layout.astro";
-import ModelerText from "../../content/text/modeler.md";
 ---
 
 <Layout
   title="Modeler | Docs | 3DSL"
-  description="3DSL Modeler は、概念と関係を配置し、公開して鍛えていくための制作環境です（公開準備中）。"
+  description="3DSL Modeler の公開状況と案内（SSOT: packages/docs）。"
 >
   <div class="prose prose-invert prose-neutral max-w-3xl">
     <h1>Modeler</h1>
-    <ModelerText />
-  </div>
 
-  <section class="mt-8 rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-neutral-300">
-    <div class="font-medium text-neutral-100">ステータス</div>
-    <p class="mt-2">
-      現在は Viewer と Library を優先して整備しています。Modeler は公開仕様が固まり次第、段階的に公開します。
+    <p>
+      このページは Modeler の案内ページです。ドキュメント本文は SSOT（packages/docs）から同期されます。
     </p>
-  </section>
+
+    <section class="not-prose mt-6 rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-neutral-300">
+      <div class="font-medium text-neutral-100">ステータス</div>
+      <p class="mt-2">
+        Modeler は <span class="text-neutral-100">Public Alpha（試験公開）</span> として段階的に公開しています。
+        仕様・UIは更新されます。
+      </p>
+      <ul class="mt-3 list-disc pl-5">
+        <li>
+          <a class="text-neutral-100 underline hover:no-underline" href="/app/modeler">/app/modeler</a>
+          （アプリ本体）
+        </li>
+        <li>
+          <a class="text-neutral-100 underline hover:no-underline" href="/docs/modeler/public-alpha
+        <li><a href="/docs/modeler/known-issues">Known issues</a></li>">Public Alpha（使い方・注意）</a>
+        </li>
+        <li>
+          <a class="text-neutral-100 underline hover:no-underline" href="/docs/modeler/IMPLEMENTATION_REPORT">Implementation report</a>
+        </li>
+      </ul>
+    </section>
+
+    <h2 class="mt-10">まず読む</h2>
+    <ul>
+      <li><a href="/docs/modeler/public-alpha
+        <li><a href="/docs/modeler/known-issues">Known issues</a></li>">Public Alpha（使い方・注意）</a></li>
+      <li><a href="/docs/modeler/IMPLEMENTATION_REPORT">Implementation report</a></li>
+    </ul>
+  </div>
 </Layout>

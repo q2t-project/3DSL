@@ -3,7 +3,7 @@
     "document_title": "Regression valid: only invisible center",
     "document_summary": "Pick guard: center is invisible, no other geometry overlaps.",
     "document_uuid": "22222222-2222-4222-8222-222222222222",
-    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
+    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
     "author": "regression",
     "version": "1.0.0",
     "coordinate_system": "Z+up/freeXY",

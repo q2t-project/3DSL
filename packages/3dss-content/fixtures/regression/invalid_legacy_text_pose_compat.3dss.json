@@ -3,7 +3,7 @@
     "document_title": "Regression fixture: legacy text pose compat",
     "document_summary": "Legacy marker.text.plane + uuid/position alias coverage.",
     "document_uuid": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
-    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.3/3DSS.schema.json#v1.1.3",
+    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
     "author": "regression",
     "version": "1.0.0",
     "coordinate_system": "Z+up/freeXY",

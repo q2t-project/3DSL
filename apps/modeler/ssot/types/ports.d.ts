@@ -110,6 +110,8 @@ export interface ModelerRenderer {
   dispose(): void;
   setDocument(doc: unknown): void;
   pickObjectAt(ndcX: number, ndcY: number): PickHit | null;
+  worldPointOnPlaneZ?(ndcX: number, ndcY: number, planeZ: number): [number, number, number] | null;
+  projectToNdc?(worldPos: [number, number, number]): [number, number, number] | null;
 }
 
 export interface ModelerHub {
@@ -120,4 +122,11 @@ export interface ModelerHub {
   dispose(): void;
   resize(width: number, height: number, dpr?: number): void;
   pickObjectAt(ndcX: number, ndcY: number): PickHit | null;
+  applyPickAt?(opts?: { ndcX?: number; ndcY?: number }): { uuid: string; kind: string; path: string | null } | null;
+  worldPointOnPlaneZ?(ndcX: number, ndcY: number, planeZ: number): [number, number, number] | null;
+  projectToNdc?(worldPos: [number, number, number]): [number, number, number] | null;
+  previewSetPosition?(uuid: string, pos: [number, number, number]): void;
+  previewSetLineEnds?(uuid: string, endA: any, endB: any): void;
+  previewSetCaptionText?(uuid: string, captionText: any, fallbackText?: any): void;
+  previewSetOverride?(uuid: string, override: any | null): void;
 }

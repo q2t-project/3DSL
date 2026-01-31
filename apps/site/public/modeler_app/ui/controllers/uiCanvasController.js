@@ -1,3 +1,6 @@
+// Selection / Focus Contract:
+// See packages/docs/docs/modeler/selection-contract.md
+
 // ui/controllers/uiCanvasController.js
 // Canvas wiring: resize + pick (no business logic).
 

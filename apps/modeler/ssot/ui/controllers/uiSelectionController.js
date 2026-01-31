@@ -1,3 +1,6 @@
+// Selection / Focus Contract:
+// See packages/docs/docs/modeler/selection-contract.md
+
 // ui/controllers/uiSelectionController.js
 
 /**
@@ -10,14 +13,19 @@
 /**
  * @param {{
  *   core: any,
- *   ensureEditsAppliedOrConfirm: (args?: {reason?: string}) => boolean,
+ *   ensureEditsAppliedOrConfirm?: (args?: {reason?: string}) => boolean,
+ *   requestSelectionChange?: (nextSelectionUuids: string[], args?: {reason?: string}) => boolean,
  *   setHud: (msg: string) => void,
  *   getOutlinerRowOrder?: () => string[],
  *   flashOutlinerRow?: (args: {uuid: string, tab?: 'points'|'lines'|'aux'|null}) => void,
  *   focusFieldByIssue?: (issueLike: any) => void,
  * }} deps
  */
+<<<<<<< HEAD
 export function createUiSelectionController({ core, ensureEditsAppliedOrConfirm, setHud, getOutlinerRowOrder, flashOutlinerRow, focusFieldByIssue }) {
+=======
+export function createUiSelectionController({ core, ensureEditsAppliedOrConfirm, requestSelectionChange, setHud, getOutlinerRowOrder }) {
+>>>>>>> origin/main
   /** @type {string|null} */
   let outlinerAnchorUuid = null;
   /** @type {"points"|"lines"|"aux"|null} */
@@ -37,10 +45,32 @@ export function createUiSelectionController({ core, ensureEditsAppliedOrConfirm,
     } catch {}
   };
 
+  const canChangeSelection = (nextUuids, reason = "selection") => {
+    const next = Array.isArray(nextUuids) ? nextUuids.filter(Boolean).map(String) : [];
+    if (typeof requestSelectionChange === "function") return requestSelectionChange(next, { reason });
+    if (typeof ensureEditsAppliedOrConfirm === "function") return ensureEditsAppliedOrConfirm({ reason });
+    return true;
+  };
+
   const setSelectionUuids = (uuids, issueLike, reason = "selection") => {
-    const ok = ensureEditsAppliedOrConfirm?.({ reason });
-    if (!ok) return false;
     const next = Array.isArray(uuids) ? uuids.filter(Boolean).map(String) : [];
+    const cur = Array.isArray(core.getSelection?.()) ? core.getSelection?.().filter(Boolean).map(String) : [];
+
+    const same =
+      cur.length === next.length &&
+      cur.every((u, i) => String(u) === String(next[i]));
+
+    // IMPORTANT:
+    // - If selection is unchanged, do NOT trigger dirty-selection confirmation.
+    // - Still run focus so Outliner reveal/flash + camera focus can happen repeatedly (QuickCheck spam).
+    if (same) {
+      focusIfSingle(next, issueLike);
+      return true;
+    }
+
+    const ok = canChangeSelection(next, reason);
+    if (!ok) return false;
+
     core.setSelection?.(next);
     focusIfSingle(next, issueLike);
     return true;
@@ -92,7 +122,30 @@ export function createUiSelectionController({ core, ensureEditsAppliedOrConfirm,
       }
     }
 
-    // If kind is missing but uuid exists, search the doc to infer kind.
+    
+    // If both uuid and path exist, validate consistency (uuid wins).
+    // When mismatch, keep uuid authoritative but include pathUuid for downstream logs.
+    let pathUuid = null;
+    if (uuid && path && hasDoc) {
+      try {
+        const mm = path.match(/^\/(points|lines|aux)\/(\d+)(?:\/.*)?$/);
+        if (mm) {
+          const tab = mm[1];
+          const idx = Number(mm[2]);
+          const arr = tab === "points" ? doc.points : tab === "lines" ? doc.lines : doc.aux;
+          if (Array.isArray(arr) && Number.isFinite(idx) && idx >= 0 && idx < arr.length) {
+            const node = arr[idx];
+            const u2 = node?.meta?.uuid || node?.uuid;
+            if (u2) pathUuid = String(u2);
+          }
+        }
+      } catch {}
+      if (pathUuid && String(pathUuid) !== String(uuid)) {
+        try { setHud?.(`QuickCheck mismatch: uuid=${uuid} != pathUuid=${pathUuid}`); } catch {}
+      }
+    }
+
+// If kind is missing but uuid exists, search the doc to infer kind.
     if (uuid && !kind && hasDoc) {
       try {
         const u = String(uuid);
@@ -103,12 +156,17 @@ export function createUiSelectionController({ core, ensureEditsAppliedOrConfirm,
       } catch {}
     }
 
+<<<<<<< HEAD
     const sev = issueLike?.severity ? String(issueLike.severity) : null;
     const msg = issueLike?.message ? String(issueLike.message) : null;
 
     // Some issues are doc-level (no uuid) but still provide a precise JSON pointer path.
     if (!uuid) return { uuid: null, kind: kind || null, path: path || null, severity: sev, message: msg };
     return { uuid: String(uuid), kind: kind || null, path: path || null, severity: sev, message: msg };
+=======
+    if (!uuid) return null;
+    return { uuid: String(uuid), kind: kind || null, path: path || null, pathUuid: pathUuid || null };
+>>>>>>> origin/main
   };
 
   const selectIssue = (issueLike) => {
@@ -143,14 +201,13 @@ export function createUiSelectionController({ core, ensureEditsAppliedOrConfirm,
 
     const mod = !!(ev && (ev.ctrlKey || ev.metaKey));
     if (mod) {
-      const ok = ensureEditsAppliedOrConfirm?.({ reason: "selection" });
-      if (!ok) return;
-
       const cur = Array.isArray(core.getSelection?.()) ? core.getSelection?.().map(String) : [];
       const s = new Set(cur);
       if (s.has(uuid)) s.delete(uuid);
       else s.add(uuid);
       const next = Array.from(s);
+      const ok = canChangeSelection(next, "selection");
+      if (!ok) return;
       core.setSelection?.(next);
       focusIfSingle(next, issueLike);
       outlinerAnchorUuid = uuid;
@@ -175,9 +232,6 @@ export function createUiSelectionController({ core, ensureEditsAppliedOrConfirm,
 
     // SHIFT range select (within current tab order)
     if (shift && rowIndex >= 0) {
-      const ok = ensureEditsAppliedOrConfirm?.({ reason: "selection" });
-      if (!ok) return;
-
       // Anchor: last non-shift click within same tab, else current single selection, else clicked row.
       let anchor = null;
       if (outlinerAnchorUuid && outlinerAnchorTab && rowTab && outlinerAnchorTab === rowTab) anchor = outlinerAnchorUuid;
@@ -197,9 +251,13 @@ export function createUiSelectionController({ core, ensureEditsAppliedOrConfirm,
         const s = new Set(cur);
         for (const u of range) s.add(String(u));
         const next = Array.from(s);
+        const ok = canChangeSelection(next, "selection");
+        if (!ok) return;
         core.setSelection?.(next);
         focusIfSingle(next, issueLike);
       } else {
+        const ok = canChangeSelection(range, "selection");
+        if (!ok) return;
         core.setSelection?.(range);
         focusIfSingle(range, issueLike);
       }
@@ -210,14 +268,13 @@ export function createUiSelectionController({ core, ensureEditsAppliedOrConfirm,
 
     // Ctrl/cmd toggle
     if (mod) {
-      const ok = ensureEditsAppliedOrConfirm?.({ reason: "selection" });
-      if (!ok) return;
-
       const cur = Array.isArray(core.getSelection?.()) ? core.getSelection?.().map(String) : [];
       const s = new Set(cur);
       if (s.has(uuid)) s.delete(uuid);
       else s.add(uuid);
       const next = Array.from(s);
+      const ok = canChangeSelection(next, "selection");
+      if (!ok) return;
       core.setSelection?.(next);
       focusIfSingle(next, issueLike);
 

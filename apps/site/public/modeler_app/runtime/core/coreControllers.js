@@ -1348,6 +1348,7 @@ if (importExtras && typeof importExtras === "object") {
     return { removed };
   }
 
+<<<<<<< HEAD
   // Reorder selected items within the outliner list.
   // kind: points/lines/aux (also accepts point/line)
   // mode: top/up/down/bottom
@@ -1429,6 +1430,64 @@ if (importExtras && typeof importExtras === "object") {
 
     if (changed) {
       try { setUiState({ activeTab: k }); } catch {}
+=======
+
+function _findPathByUuidInDoc(doc, uuid, kindHint) {
+  if (!doc || !uuid) return null;
+  const u = String(uuid);
+  const kind = kindHint ? String(kindHint).toLowerCase() : "";
+  const tryList = (arr, base) => {
+    if (!Array.isArray(arr)) return null;
+    for (let i = 0; i < arr.length; i += 1) {
+      const it = arr[i];
+      const id = it?.meta?.uuid || it?.uuid;
+      if (id === u) return `${base}/${i}`;
+    }
+    return null;
+  };
+  if (kind === "point") return tryList(doc.points, "/points");
+  if (kind === "line") return tryList(doc.lines, "/lines");
+  if (kind === "aux") return tryList(doc.aux, "/aux");
+  return tryList(doc.points, "/points") || tryList(doc.lines, "/lines") || tryList(doc.aux, "/aux") || null;
+}
+
+function _resolveIssueLike(issue) {
+  if (!issue || typeof issue !== "object") return null;
+  const rawUuid = issue.uuid ? String(issue.uuid) : "";
+  const rawKind = issue.kind ? String(issue.kind).toLowerCase() : "";
+  const rawPath = issue.path ? String(issue.path) : "";
+
+  let uuid = rawUuid;
+  let kind = rawKind;
+  let path = rawPath;
+
+  const doc = getDocument();
+  const hasDoc = !!(doc && typeof doc === "object");
+
+  // Infer kind from path prefix.
+  if (!kind && path) {
+    const pm = path.match(/^\/(points|lines|aux)(?:\/|$)/);
+    if (pm) kind = pm[1] === "points" ? "point" : pm[1] === "lines" ? "line" : "aux";
+  }
+
+  // Resolve uuid from QuickCheck-like path (index-based).
+  if (!uuid && path && hasDoc) {
+    const m = path.match(/^\/(points|lines|aux)\/(\d+)(?:\/.*)?$/);
+    if (m) {
+      const tab = m[1];
+      const idx = Number(m[2]);
+      if (Number.isFinite(idx) && idx >= 0) {
+        const arr = tab === "points" ? doc.points : tab === "lines" ? doc.lines : doc.aux;
+        if (Array.isArray(arr) && idx < arr.length) {
+          const node = arr[idx];
+          const u = node?.meta?.uuid || node?.uuid;
+          if (u) {
+            uuid = String(u);
+            if (!kind) kind = tab === "points" ? "point" : tab === "lines" ? "line" : "aux";
+          }
+        }
+      }
+>>>>>>> origin/main
     }
     return changed;
   }
@@ -1443,6 +1502,51 @@ if (importExtras && typeof importExtras === "object") {
     }
     emitter.emit("focus", issue);
   }
+<<<<<<< HEAD
+=======
+
+  // Infer kind from uuid by scanning doc.
+  if (uuid && hasDoc && (!kind || (kind !== "point" && kind !== "line" && kind !== "aux"))) {
+    try {
+      const u = String(uuid);
+      const hitPoint = Array.isArray(doc.points) && doc.points.some((n) => String(n?.meta?.uuid || n?.uuid || "") === u);
+      const hitLine = Array.isArray(doc.lines) && doc.lines.some((n) => String(n?.meta?.uuid || n?.uuid || "") === u);
+      const hitAux = Array.isArray(doc.aux) && doc.aux.some((n) => String(n?.meta?.uuid || n?.uuid || "") === u);
+      kind = hitPoint ? "point" : hitLine ? "line" : hitAux ? "aux" : "";
+    } catch {}
+  }
+
+  // Fill path if missing.
+  if (uuid && hasDoc && !path) {
+    try { path = _findPathByUuidInDoc(doc, uuid, kind) || ""; } catch {}
+  }
+
+  if (!uuid) return null;
+  return { uuid: String(uuid), kind: kind || null, path: path || null };
+}
+
+
+function focusByIssue(issue) {
+  // Stable focus: accept issueLike by uuid and/or path.
+  // Ensures: selection + tab switch + focus event (even if selection is unchanged).
+  const resolved = _resolveIssueLike(issue);
+
+  if (resolved?.uuid) {
+    try { setSelection([resolved.uuid]); } catch {}
+    try {
+      const k = String(resolved.kind || "").toLowerCase();
+      const activeTab = k === "point" ? "points" : k === "line" ? "lines" : k === "aux" ? "aux" : null;
+      if (activeTab) setUiState({ activeTab });
+    } catch {}
+    emitter.emit("focus", resolved);
+    return;
+  }
+
+  // Fallback: still emit focus for UI hooks.
+  emitter.emit("focus", issue);
+}
+>>>>>>> origin/main
+
 
   return {
     document: { get: getDocument, set: setDocument, update: updateDocument, getLabel: () => docLabel, setLabel },
