@@ -99,17 +99,13 @@ export function attachUiShell({ root, hub, modelUrl }) {
 
   // --- DOM gather ---
   const canvas = /** @type {HTMLCanvasElement|null} */ (getRoleEl(root, "modeler-canvas"));
-  const pointsTbody = getRoleEl(root, "outliner-points-tbody");
-  const linesTbody = getRoleEl(root, "outliner-lines-tbody");
-  const pointsScroll = getRoleEl(root, "outliner-points-scroll");
-  const linesScroll = getRoleEl(root, "outliner-lines-scroll");
+  const tbody = getRoleEl(root, "outliner-tbody");
   const fileLabel = getRoleEl(root, "file-label");
   const hud = getRoleEl(root, "hud");
   const previewSelectionEl = getRoleEl(root, "preview-selection");
 
   const paneOutliner = getRoleEl(root, "pane-outliner");
   const paneProp = getRoleEl(root, "pane-prop");
-  const paneQc = getRoleEl(root, "pane-qc");
   const splitterLeft = getRoleEl(root, "splitter-left");
   const splitterRight = getRoleEl(root, "splitter-right");
 
@@ -225,19 +221,19 @@ export function attachUiShell({ root, hub, modelUrl }) {
     };
 
     const KEY_L = "modeler.paneOutlinerW";
-    const KEY_R = "modeler.paneQcW";
+    const KEY_R = "modeler.panePropW";
 
     const initL = readPx(KEY_L);
     const initR = readPx(KEY_R);
     if (typeof initL === "number") root.style.setProperty("--pane-outliner-w", `${clamp(initL, 260, 780)}px`);
-    if (typeof initR === "number") root.style.setProperty("--pane-qc-w", `${clamp(initR, 260, 780)}px`);
+    if (typeof initR === "number") root.style.setProperty("--pane-prop-w", `${clamp(initR, 260, 780)}px`);
 
     const startDrag = (which, ev) => {
       const target = ev?.target;
       if (!(target instanceof HTMLElement)) return;
       const startX = ev.clientX;
       const startOutW = paneOutliner?.getBoundingClientRect?.().width ?? 0;
-      const startQcW = paneQc?.getBoundingClientRect?.().width ?? 0;
+      const startPropW = paneProp?.getBoundingClientRect?.().width ?? 0;
 
       target.classList.add("is-dragging");
       try { target.setPointerCapture(ev.pointerId); } catch {}
@@ -249,9 +245,9 @@ export function attachUiShell({ root, hub, modelUrl }) {
           root.style.setProperty("--pane-outliner-w", `${next}px`);
           writePx(KEY_L, next);
         } else {
-          // right splitter: moving right shrinks QC pane
-          const next = clamp(startQcW - dx, 260, 780);
-          root.style.setProperty("--pane-qc-w", `${next}px`);
+          // right splitter: moving right shrinks property pane
+          const next = clamp(startPropW - dx, 260, 780);
+          root.style.setProperty("--pane-prop-w", `${next}px`);
           writePx(KEY_R, next);
         }
       };
@@ -309,10 +305,7 @@ export function attachUiShell({ root, hub, modelUrl }) {
     try { core.setSelection?.(Array.isArray(uuids) ? uuids : []); } catch {}
   };
 
-  /** @type {ReturnType<typeof createUiPropertyController> | null} */
-  let propertyController = null;
-
-  propertyController = createUiPropertyController({
+  const propertyController = createUiPropertyController({
     root,
     core,
     // Preview-only helpers (do not mutate core document)
@@ -328,8 +321,6 @@ export function attachUiShell({ root, hub, modelUrl }) {
     },
   });
 
-<<<<<<< HEAD
-=======
   fileController = createUiFileController({
     core,
     elements: { fileLabel, btnSave, btnSaveAs, btnExport, qcPanel, qcSummary, qcList },
@@ -338,17 +329,13 @@ export function attachUiShell({ root, hub, modelUrl }) {
     setHud,
   });
 
->>>>>>> origin/main
   function getSelectedSet() {
     return new Set(core.getSelection?.() || []);
   }
 
   const outlinerController = new UiOutlinerController({
     root,
-    pointsTbody,
-    linesTbody,
-    pointsScroll,
-    linesScroll,
+    tbody,
     core,
     signal: sig,
     syncTabButtons: () => toolbarController?.syncTabs?.(),
@@ -372,24 +359,6 @@ export function attachUiShell({ root, hub, modelUrl }) {
     ensureEditsAppliedOrConfirm: (args) => propertyController.ensureEditsAppliedOrConfirm(args),
     setHud,
     getOutlinerRowOrder: () => outlinerController.getRowOrder?.() || [],
-    flashOutlinerRow: (args) => {
-      try { return outlinerController.revealUuid?.(args?.uuid, args?.tab === "lines" ? "lines" : args?.tab === "points" ? "points" : ""); } catch {}
-      return false;
-    },
-    focusFieldByIssue: (issueLike) => {
-      try { propertyController.focusFieldByIssue?.(issueLike); } catch {}
-    },
-  });
-
-  fileController = createUiFileController({
-    core,
-    elements: { fileLabel, btnSave, btnSaveAs, btnExport, qcPanel, qcSummary, qcList },
-    appTitle: APP_TITLE,
-    setHud,
-    onQuickCheckPick: (issueLike) => {
-      // QuickCheck click: always go through selection SSOT (flash + focus).
-      try { selectionController?.selectIssue?.(issueLike); } catch {}
-    },
   });
 
   toolbarController = createUiToolbarController({
@@ -417,7 +386,7 @@ export function attachUiShell({ root, hub, modelUrl }) {
 
   // --- Input wiring ---
   attachUiShortcutController({ signal: sig, core, invoke: (a) => toolbarController?.invoke?.(a) });
-  canvasCtl = canvas ? attachUiCanvasController({
+  canvasCtl = attachUiCanvasController({
     canvas,
     core,
     hub,
@@ -447,9 +416,6 @@ export function attachUiShell({ root, hub, modelUrl }) {
       }
     },
     setHud,
-<<<<<<< HEAD
-  }) : null;
-=======
   });
   // --- Host bridge (for /app/modeler quick actions) ---
   // Parent can postMessage({ type: "3DSL_MODELER_CMD", action }) to control a few safe operations.
@@ -480,7 +446,6 @@ export function attachUiShell({ root, hub, modelUrl }) {
     }, { signal: sig });
   } catch {}
 
->>>>>>> origin/main
 
   // --- hub events ---
   if (typeof hub?.on === "function") {
@@ -506,8 +471,16 @@ export function attachUiShell({ root, hub, modelUrl }) {
           add(doc.aux);
           const nextSel = curSel.filter((u) => alive.has(u));
           if (nextSel.length !== curSel.length) {
-            // Route through unified selection bridge so dirty guards and downstream sync stay consistent.
-            try { setSelectionUuids(nextSel, null, "doc-prune"); } catch {}
+            // Route through uiSelectionController when possible so dirty guards and downstream sync stay consistent.
+            try {
+              if (typeof selectionController?.setSelectionUuids === "function") {
+                selectionController.setSelectionUuids(nextSel, null, "doc-prune");
+              } else {
+                core.setSelection?.(nextSel);
+              }
+            } catch {
+              core.setSelection?.(nextSel);
+            }
           }
         }
       } catch {}
@@ -622,17 +595,6 @@ export function attachUiShell({ root, hub, modelUrl }) {
 
     unsubs.push(hub.on("selection", handleSelection));
 
-<<<<<<< HEAD
-    // Focus events are emitted by core (e.g. QuickCheck / Fix broken lines).
-    unsubs.push(hub.on("focus", (issue) => {
-      try {
-        const uuid = String(issue?.uuid || "");
-        const kind = String(issue?.kind || "");
-        if (!uuid) return;
-        outlinerController.revealUuid?.(uuid, kind === "line" ? "lines" : kind === "point" ? "points" : "");
-      } catch {}
-    }));
-=======
   // --- focus (QuickCheck / error jump) ---
   // Ensure outliner row is visible even when selection is unchanged.
   {
@@ -647,7 +609,6 @@ export function attachUiShell({ root, hub, modelUrl }) {
     unsubs.push(hub.on("focus", handleFocus));
   }
 
->>>>>>> origin/main
 
   }
 

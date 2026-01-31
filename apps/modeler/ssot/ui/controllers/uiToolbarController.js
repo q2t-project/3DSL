@@ -19,7 +19,7 @@
  *  | "mirror-mode"
  *  | "focus-mode"
  *  | "qc-fix-lines"
- *  | "qc-toggle"
+ *  | "qc-close"
  *  | "prop-save"      // Apply buffered property edits
  *  | "prop-discard"   // Discard buffered property edits
  *  | "prop-close"     // Close property panel
@@ -44,7 +44,7 @@ const TOOLBAR_ACTIONS = [
   "mirror-mode",
   "focus-mode",
   "qc-fix-lines",
-  "qc-toggle",
+  "qc-close",
   "prop-save",
   "prop-discard",
   "prop-close",
@@ -60,147 +60,42 @@ function escapeHtml(s) {
   }[c]));
 }
 
-function renderQuickCheckImpl({ issues, qcSummary, qcList, onSelectIssue, ranAt }) {
-  const list = Array.isArray(issues) ? issues : [];
-  const counts = { error: 0, warn: 0, info: 0 };
-  const byKind = { point: 0, line: 0, aux: 0, doc: 0, other: 0 };
-  for (const it of list) {
-    const sev = (it?.severity || "info") === "error" ? "error" : (it?.severity || "info") === "warn" ? "warn" : "info";
-    counts[sev] = (counts[sev] || 0) + 1;
-    const k = String(it?.kind || "").toLowerCase();
-    const kind =
-      k === "point" || k === "points" ? "point" :
-      k === "line" || k === "lines" ? "line" :
-      k === "aux" ? "aux" :
-      (!it?.uuid || String(it?.uuid) === "doc" || String(it?.uuid) === "schema") ? "doc" :
-      "other";
-    byKind[kind] = (byKind[kind] || 0) + 1;
-  }
-
-  // Compact summary: designed to remain useful even when the list is collapsed.
-  if (qcSummary) {
-    const t = ranAt instanceof Date && Number.isFinite(ranAt.getTime()) ? ranAt : null;
-    const hhmm = t ? `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}` : null;
-    const parts = [
-      `E${counts.error} W${counts.warn} I${counts.info}`,
-      `P${byKind.point} L${byKind.line} A${byKind.aux} D${byKind.doc}`,
-    ];
-    if (hhmm) parts.push(`@${hhmm}`);
-    qcSummary.textContent = parts.join("  ");
-  }
-
+function renderQuickCheckImpl({ issues, qcSummary, qcList, onSelectIssue }) {
+  if (qcSummary) qcSummary.textContent = `${issues.length} issues`;
   if (!qcList) return;
 
   qcList.textContent = "";
+  for (const it of issues) {
+    const item = document.createElement("div");
+    item.className = "qc-item";
+    const sev = it?.severity || "info";
+    const sevClass = sev === "error" ? "qc-sev-error" : sev === "warn" ? "qc-sev-warn" : "qc-sev-info";
 
-  // Sort: severity desc (error>warn>info), then kind, then uuid/path for stable reading.
-  const sevOrder = { error: 0, warn: 1, info: 2 };
-  const kindOrder = { point: 0, line: 1, aux: 2, doc: 3, other: 4 };
-  const norm = (s) => String(s || "");
-  const sorted = list.slice().sort((a, b) => {
-    const sa = (a?.severity || "info") === "error" ? "error" : (a?.severity || "info") === "warn" ? "warn" : "info";
-    const sb = (b?.severity || "info") === "error" ? "error" : (b?.severity || "info") === "warn" ? "warn" : "info";
-    const oa = sevOrder[sa] ?? 9;
-    const ob = sevOrder[sb] ?? 9;
-    if (oa !== ob) return oa - ob;
+    const line1 = document.createElement("div");
+    line1.className = "qc-line1";
+    line1.innerHTML = `<span class="${sevClass}">${escapeHtml(sev)}</span><code>${escapeHtml(it?.uuid || "doc")}</code><code>${escapeHtml(it?.path || "/")}</code>`;
+    item.appendChild(line1);
 
-    const ka0 = String(a?.kind || "").toLowerCase();
-    const kb0 = String(b?.kind || "").toLowerCase();
-    const ka =
-      ka0 === "point" || ka0 === "points" ? "point" :
-      ka0 === "line" || ka0 === "lines" ? "line" :
-      ka0 === "aux" ? "aux" :
-      (!a?.uuid || String(a?.uuid) === "doc" || String(a?.uuid) === "schema") ? "doc" :
-      "other";
-    const kb =
-      kb0 === "point" || kb0 === "points" ? "point" :
-      kb0 === "line" || kb0 === "lines" ? "line" :
-      kb0 === "aux" ? "aux" :
-      (!b?.uuid || String(b?.uuid) === "doc" || String(b?.uuid) === "schema") ? "doc" :
-      "other";
-    const oka = kindOrder[ka] ?? 9;
-    const okb = kindOrder[kb] ?? 9;
-    if (oka !== okb) return oka - okb;
+    const msg = document.createElement("div");
+    msg.className = "qc-msg";
+    msg.textContent = it?.message || "(no message)";
+    item.appendChild(msg);
 
-    const ua = norm(a?.uuid);
-    const ub = norm(b?.uuid);
-    if (ua !== ub) return ua.localeCompare(ub);
-    return norm(a?.path).localeCompare(norm(b?.path));
-  });
-
-  // Group headers: [severity] · [kind] (N)
-  let curKey = "";
-  let bucket = [];
-  const flushBucket = () => {
-    if (!bucket.length) return;
-    const first = bucket[0];
-    const sev = (first?.severity || "info") === "error" ? "error" : (first?.severity || "info") === "warn" ? "warn" : "info";
-    const k0 = String(first?.kind || "").toLowerCase();
-    const kind =
-      k0 === "point" || k0 === "points" ? "point" :
-      k0 === "line" || k0 === "lines" ? "line" :
-      k0 === "aux" ? "aux" :
-      (!first?.uuid || String(first?.uuid) === "doc" || String(first?.uuid) === "schema") ? "doc" :
-      "other";
-
-    const head = document.createElement("div");
-    head.className = "qc-group";
-    head.textContent = `${sev} · ${kind} (${bucket.length})`;
-    qcList.appendChild(head);
-
-    for (const it of bucket) {
-      const item = document.createElement("div");
-      item.className = "qc-item";
-      const sev2 = (it?.severity || "info") === "error" ? "error" : (it?.severity || "info") === "warn" ? "warn" : "info";
-      const sevClass = sev2 === "error" ? "qc-sev-error" : sev2 === "warn" ? "qc-sev-warn" : "qc-sev-info";
-
-      const line1 = document.createElement("div");
-      line1.className = "qc-line1";
+    item.addEventListener("click", () => {
+      // Allow selection jump even when issue has no uuid.
+      // Many AJV / import-extras issues are reported as "doc"-level but include
+      // a precise path like: /points/7/appearance/marker/primitive
       const rawUuid = it?.uuid ? String(it.uuid) : "";
-      const shownUuid = rawUuid && rawUuid !== "doc" && rawUuid !== "schema" ? rawUuid : "doc";
-      const path = it?.path || "/";
-      const kind2 = it?.kind || "unknown";
-      line1.innerHTML = `<span class="${sevClass}">${escapeHtml(sev2)}</span><code>${escapeHtml(kind2)}</code><code>${escapeHtml(shownUuid)}</code><code>${escapeHtml(path)}</code>`;
-      item.appendChild(line1);
-
-      const msg = document.createElement("div");
-      msg.className = "qc-msg";
-      msg.textContent = it?.message || "(no message)";
-      item.appendChild(msg);
-
-      item.addEventListener("click", () => {
-        const raw = it?.uuid ? String(it.uuid) : "";
-        const uuid = raw && raw !== "doc" && raw !== "schema" ? raw : null;
-        onSelectIssue?.({
-          uuid,
-          kind: it?.kind || "unknown",
-          path: it?.path || "/",
-          severity: sev2,
-          message: it?.message || "",
-        });
+      const uuid = rawUuid && rawUuid !== "doc" && rawUuid !== "schema" ? rawUuid : null;
+      onSelectIssue?.({
+        uuid,
+        kind: it?.kind || "unknown",
+        path: it?.path || "/",
       });
+    });
 
-      qcList.appendChild(item);
-    }
-
-    bucket = [];
-  };
-
-  for (const it of sorted) {
-    const sev = (it?.severity || "info") === "error" ? "error" : (it?.severity || "info") === "warn" ? "warn" : "info";
-    const k0 = String(it?.kind || "").toLowerCase();
-    const kind =
-      k0 === "point" || k0 === "points" ? "point" :
-      k0 === "line" || k0 === "lines" ? "line" :
-      k0 === "aux" ? "aux" :
-      (!it?.uuid || String(it?.uuid) === "doc" || String(it?.uuid) === "schema") ? "doc" :
-      "other";
-    const key = `${sev}|${kind}`;
-    if (curKey && key !== curKey) flushBucket();
-    curKey = key;
-    bucket.push(it);
+    qcList.appendChild(item);
   }
-  flushBucket();
 }
 
 function newUuid() {
@@ -367,7 +262,6 @@ export function createUiToolbarController(deps) {
         if (next < range.min) next = range.min;
       }
       try { core.setUiState?.({ frameIndex: next }); } catch {}
-    try { syncFrameStateToPreviewOut(); } catch {}
     }, dtMs);
   };
 
@@ -383,7 +277,6 @@ export function createUiToolbarController(deps) {
     if (v < -9999) v = -9999;
     if (v > 9999) v = 9999;
     try { core.setUiState?.({ frameIndex: v }); } catch {}
-    try { syncFrameStateToPreviewOut(); } catch {}
     try { requestToolbarSync && requestToolbarSync(); } catch {}
   };
 
@@ -416,18 +309,6 @@ export function createUiToolbarController(deps) {
   let mirrorMode = false;
   try {
     mirrorMode = (localStorage.getItem("modeler.previewOut.mirrorMode") === "1");
-  } catch {}
-
-  // QuickCheck issue list folding (UI-only). Keeps the docked slot stable.
-  let qcCollapsed = true;
-  try {
-    const v = localStorage.getItem("modeler.quickcheck.collapsed");
-    if (v === "0") qcCollapsed = false;
-    if (v === "1") qcCollapsed = true;
-  } catch {}
-
-  try {
-    if (qcPanel) qcPanel.classList.toggle("is-collapsed", !!qcCollapsed);
   } catch {}
 
   const getCanvas = () => {
@@ -464,26 +345,6 @@ export function createUiToolbarController(deps) {
       return false;
     }
   };
-
-  const getFrameState = () => {
-    const doc = core.getDocument?.();
-    const range = getFrameRangeFromDoc(doc);
-    const st = core.getUiState?.() || {};
-    const fi = Math.trunc(Number(st.frameIndex ?? 0));
-    const playing = !!st.framePlaying;
-    const min = range.hasAny ? range.min : 0;
-    const max = range.hasAny ? range.max : 0;
-    return { frameIndex: fi, frameMin: min, frameMax: max, framePlaying: playing };
-  };
-
-  const syncFrameStateToPreviewOut = () => {
-    try {
-      if (!previewOutReady) return;
-      const st = getFrameState();
-      postToPreviewOut("modeler-previewout:frame-state", st);
-    } catch {}
-  };
-
 
   const clearPreviewOutWantedSize = () => {
     try { delete globalThis.__modelerPreviewOutWantedSize; } catch {}
@@ -541,7 +402,7 @@ export function createUiToolbarController(deps) {
     const features = "popup=yes,resizable=yes,scrollbars=no,menubar=no,toolbar=no,location=no,status=no,width=1280,height=720";
     previewOutWin = window.open(url, "3dsl-modeler-previewout", features);
     if (!previewOutWin) {
-      try { setHud && setHud("Preview: popup blocked"); } catch {}
+      try { setHud && setHud("Preview Out: popup blocked"); } catch {}
       return;
       // D8: avoid "stuck" state when popups are blocked (iOS Safari etc.)
       try {
@@ -590,35 +451,8 @@ export function createUiToolbarController(deps) {
       const data = ev.data || {};
       const type = String(data.type || "");
 
-      if (type === "modeler-previewout:play-toggle") {
-        const st = core.getUiState?.() || {};
-        const next = !st.framePlaying;
-        try { core.setUiState?.({ framePlaying: next }); } catch {}
-        try { requestToolbarSync?.(); } catch {}
-        try { syncFrameStateToPreviewOut(); } catch {}
-        return;
-      }
-
-      if (type === "modeler-previewout:frame-set") {
-        const p = data.payload || {};
-        const raw = p.frameIndex;
-        let v = 0;
-        if (Number.isFinite(Number(raw))) v = Math.trunc(Number(raw));
-        const doc = core.getDocument?.();
-        const range = getFrameRangeFromDoc(doc);
-        const min = range.hasAny ? range.min : 0;
-        const max = range.hasAny ? range.max : 0;
-        if (v < min) v = min;
-        if (v > max) v = max;
-        try { core.setUiState?.({ frameIndex: v }); } catch {}
-        try { requestToolbarSync?.(); } catch {}
-        try { syncFrameStateToPreviewOut(); } catch {}
-        return;
-      }
-
       if (type === "modeler-previewout:ready") {
         previewOutReady = true;
-        try { syncFrameStateToPreviewOut(); } catch {}
         sendPreviewOutInit();
         return;
       }
@@ -684,6 +518,7 @@ export function createUiToolbarController(deps) {
       "preview-out": doc,
       "focus-mode": true,
       "qc-fix-lines": true,
+      "qc-close": true,
       "prop-save": propDirty && !propLocked,
       "prop-discard": propDirty,
       "prop-close": true,
@@ -768,12 +603,6 @@ export function createUiToolbarController(deps) {
     if (bMirror) bMirror.classList.toggle("is-active", !!mirrorMode);
     const bOut = btnByAction.get("preview-out");
     if (bOut) bOut.classList.toggle("is-active", !!(previewOutWin && !previewOutWin.closed));
-
-    const bQc = btnByAction.get("qc-toggle");
-    if (bQc) {
-      bQc.classList.toggle("is-active", !qcCollapsed);
-      try { bQc.textContent = qcCollapsed ? "Issues" : "Issues"; } catch {}
-    }
   }
 
   function syncTabs() {
@@ -798,9 +627,6 @@ export function createUiToolbarController(deps) {
 
     if (act === 'quickcheck') {
       const issues = core.runQuickCheck?.() || [];
-<<<<<<< HEAD
-      renderQuickCheckImpl({ issues, qcSummary, qcList, ranAt: new Date(), onSelectIssue: (issueLike) => selectionController.selectIssue?.(issueLike) });
-=======
       // Selection/Focus contract: packages/docs/docs/modeler/selection-contract.md
       renderQuickCheckImpl({ issues, qcSummary, qcList, onSelectIssue: (issueLike) => selectionController.selectIssue?.(issueLike) });
       if (qcPanel) qcPanel.hidden = false;
@@ -808,29 +634,16 @@ export function createUiToolbarController(deps) {
     }
     if (act === 'qc-close') {
       if (qcPanel) qcPanel.hidden = true;
->>>>>>> origin/main
       return;
     }
 
     if (act === 'qc-fix-lines') {
       const res = core.fixBrokenLineEndpoints?.() || { removed: 0 };
       const issues = core.runQuickCheck?.() || [];
-<<<<<<< HEAD
-      renderQuickCheckImpl({ issues, qcSummary, qcList, ranAt: new Date(), onSelectIssue: (issueLike) => selectionController.selectIssue?.(issueLike) });
-=======
       // Selection/Focus contract: packages/docs/docs/modeler/selection-contract.md
       renderQuickCheckImpl({ issues, qcSummary, qcList, onSelectIssue: (issueLike) => selectionController.selectIssue?.(issueLike) });
       if (qcPanel) qcPanel.hidden = false;
->>>>>>> origin/main
       try { setHud && setHud(`Removed ${res.removed || 0} broken lines`); } catch {}
-      requestSync();
-      return;
-    }
-
-    if (act === "qc-toggle") {
-      qcCollapsed = !qcCollapsed;
-      try { localStorage.setItem("modeler.quickcheck.collapsed", qcCollapsed ? "1" : "0"); } catch {}
-      try { if (qcPanel) qcPanel.classList.toggle("is-collapsed", !!qcCollapsed); } catch {}
       requestSync();
       return;
     }
@@ -926,7 +739,6 @@ export function createUiToolbarController(deps) {
       const st = core.getUiState?.() || {};
       const next = !st.framePlaying;
       try { core.setUiState?.({ framePlaying: next }); } catch {}
-      try { syncFrameStateToPreviewOut(); } catch {}
       try { setHud && setHud(next ? "Playing" : "Paused"); } catch {}
       requestSync();
       return;
@@ -1049,8 +861,7 @@ export function createUiToolbarController(deps) {
     const t = ev.target;
     if (!(t instanceof HTMLElement)) return;
 
-    const actEl = t.closest("[data-action]");
-    const act = actEl?.getAttribute("data-action");
+    const act = t.getAttribute("data-action");
     if (act) {
       /** @type {ToolbarAction} */
       const a = /** @type {any} */ (String(act).toLowerCase());
@@ -1063,8 +874,7 @@ export function createUiToolbarController(deps) {
       return;
     }
 
-    const tabEl = t.closest("[data-tab]");
-    const tab = tabEl?.getAttribute("data-tab");
+    const tab = t.getAttribute("data-tab");
     if (tab) {
       // Phase2: prevent losing buffered edits while switching contexts.
       const ok = propertyController.ensureEditsAppliedOrConfirm?.({ reason: "tab" });
@@ -1089,7 +899,7 @@ export function createUiToolbarController(deps) {
     syncTabs,
     syncActionState,
     invoke,
-    renderQuickCheck: (issues) => renderQuickCheckImpl({ ranAt: new Date(),
+    renderQuickCheck: (issues) => renderQuickCheckImpl({
       issues,
       qcSummary,
       qcList,

@@ -76,16 +76,15 @@ export function createModelerHub(rootElOrId, options = {}) {
   const root = asEl(rootElOrId);
   if (!root) throw new Error("bootstrapModeler: root element not found");
   const canvas = getCanvasFromRoot(root);
-  // NOTE: Main window can run without an embedded canvas (UI-only). Preview Out provides rendering.
+  if (!canvas) throw new Error("bootstrapModeler: canvas not found");
 
   const emitter = makeEmitter();
   const core = createCoreControllers(emitter);
-  const renderer = canvas ? createRenderer(canvas, emitter) : null;
+  const renderer = createRenderer(canvas, emitter);
 
   // wire: when doc changes -> renderer
   let lastVisibility = { hidden: [], solo: null };
   emitter.on("document", (doc) => {
-    if (!renderer) return;
     renderer.setDocument(doc);
     // Re-apply UI-only visibility after rebuild.
     renderer.applyVisibility(lastVisibility);
@@ -94,13 +93,11 @@ export function createModelerHub(rootElOrId, options = {}) {
   // wire: UI-only visibility -> renderer
   emitter.on("visibility", (payload) => {
     lastVisibility = payload || { hidden: [], solo: null };
-    if (!renderer) return;
     renderer.applyVisibility(lastVisibility);
   });
 
   // wire: UI state (frameIndex) -> renderer
   emitter.on("uistate", (st) => {
-    if (!renderer) return;
     try { renderer.setFrameIndex?.(st?.frameIndex ?? 0); } catch {}
     try { renderer.setWorldAxisMode?.(st?.worldAxisMode ?? "fixed"); } catch {}
   });
@@ -121,94 +118,68 @@ let disposed = false;
   const hub = {
     core,
 
-    hasRenderer() {
-      return !!renderer;
-    },
-
     on: emitter.on,
 
     start() {
       if (disposed) return;
-      if (!renderer) return;
       renderer.start();
     },
 
     stop() {
       if (disposed) return;
-      if (!renderer) return;
       renderer.stop();
     },
 
     dispose() {
       if (disposed) return;
       disposed = true;
-      if (!renderer) return;
       renderer.dispose();
     },
 
     resize(width, height, dpr) {
       if (disposed) return;
-      if (!renderer) return;
       renderer.resize(width, height, dpr);
     },
 
     pickObjectAt(ndcX, ndcY) {
       if (disposed) return null;
-      if (!renderer) return null;
       return renderer.pickObjectAt(ndcX, ndcY);
     },
 
     worldPointOnPlaneZ(ndcX, ndcY, planeZ) {
       if (disposed) return null;
-      if (!renderer) return null;
       return renderer.worldPointOnPlaneZ?.(Number(ndcX), Number(ndcY), Number(planeZ));
     },
 
-<<<<<<< HEAD
-    // Project 3DSS world position to NDC (for DOM/SVG overlays).
-    projectToNdc(pos) {
-      if (disposed) return null;
-      if (!renderer) return null;
-      return renderer.projectToNdc?.(pos) ?? null;
-=======
 
     projectToNdc(worldPos) {
       if (disposed) return null;
       try { return renderer.projectToNdc?.(worldPos) ?? null; } catch { return null; }
->>>>>>> origin/main
     },
 
 
     getDebugPoseSnapshot(opts = {}) {
       if (disposed) return null;
-<<<<<<< HEAD
-      if (!renderer) return null;
-=======
->>>>>>> origin/main
       try { return renderer.getDebugPoseSnapshot?.(opts) ?? null; } catch (_e) { return null; }
     },
 
     previewSetPosition(uuid, pos) {
       if (disposed) return;
-      if (!renderer) return;
       renderer.previewSetPosition?.(uuid, pos);
     },
 
     previewSetLineEnds(uuid, endA, endB) {
       if (disposed) return;
-      if (!renderer) return;
       renderer.previewSetLineEnds?.(uuid, endA, endB);
     },
 
     previewSetCaptionText(uuid, captionText, fallbackText) {
       if (disposed) return;
-      if (!renderer) return;
       renderer.previewSetCaptionText?.(uuid, captionText, fallbackText);
     },
 
     previewSetOverride(kind, uuid, payload) {
       if (disposed) return;
-      if (!renderer) return;
       renderer.previewSetOverride?.(kind, uuid, payload);
     },
 

@@ -17,15 +17,9 @@
  *   requestSelectionChange?: (nextSelectionUuids: string[], args?: {reason?: string}) => boolean,
  *   setHud: (msg: string) => void,
  *   getOutlinerRowOrder?: () => string[],
- *   flashOutlinerRow?: (args: {uuid: string, tab?: 'points'|'lines'|'aux'|null}) => void,
- *   focusFieldByIssue?: (issueLike: any) => void,
  * }} deps
  */
-<<<<<<< HEAD
-export function createUiSelectionController({ core, ensureEditsAppliedOrConfirm, setHud, getOutlinerRowOrder, flashOutlinerRow, focusFieldByIssue }) {
-=======
 export function createUiSelectionController({ core, ensureEditsAppliedOrConfirm, requestSelectionChange, setHud, getOutlinerRowOrder }) {
->>>>>>> origin/main
   /** @type {string|null} */
   let outlinerAnchorUuid = null;
   /** @type {"points"|"lines"|"aux"|null} */
@@ -156,42 +150,14 @@ export function createUiSelectionController({ core, ensureEditsAppliedOrConfirm,
       } catch {}
     }
 
-<<<<<<< HEAD
-    const sev = issueLike?.severity ? String(issueLike.severity) : null;
-    const msg = issueLike?.message ? String(issueLike.message) : null;
-
-    // Some issues are doc-level (no uuid) but still provide a precise JSON pointer path.
-    if (!uuid) return { uuid: null, kind: kind || null, path: path || null, severity: sev, message: msg };
-    return { uuid: String(uuid), kind: kind || null, path: path || null, severity: sev, message: msg };
-=======
     if (!uuid) return null;
     return { uuid: String(uuid), kind: kind || null, path: path || null, pathUuid: pathUuid || null };
->>>>>>> origin/main
   };
 
   const selectIssue = (issueLike) => {
     const r = resolveIssueLike(issueLike);
-    if (!r) return;
-
-    // Doc-level issue: keep selection, but provide a visible response.
-    if (!r.uuid) {
-      try {
-        const p = r.path ? String(r.path) : "/";
-        const s = r.severity ? String(r.severity) : "info";
-        const m = r.message ? String(r.message) : "";
-        setHud?.(`QuickCheck ${s}: ${p}${m ? ` — ${m}` : ""}`);
-      } catch {}
-      return;
-    }
-
-    // QuickCheck jump: always flash the outliner row and focus the most relevant field.
-    // Even when the selection stays the same, users expect a visible response.
-    try { flashOutlinerRow?.({ uuid: r.uuid, tab: tabFromKind(r.kind) }); } catch {}
-
-    // Selection is the SSOT; focusByIssue is a best-effort hint for viewport/inputs.
+    if (!r?.uuid) return;
     setSelectionUuids([r.uuid], r, "quickcheck");
-
-    try { focusFieldByIssue?.(r); } catch {}
   };
 
   const selectFromPick = (issueLike, ev) => {

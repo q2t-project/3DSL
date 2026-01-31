@@ -11,13 +11,13 @@
 modeler は次を提供する。
 
 - points / lines / aux の作成・編集・削除
-- frame（時間層）可視性（appearance.frames）の編集（再生は Preview Out 側）
+- frame（時間層）可視性（appearance.frames）の編集と再生プレビュー
 - name / caption / appearance / meta の編集
 - 選択・複数選択・一括変形（Move/Rotate/Scale）
 - 文字（marker.text / caption_text / aux.appearance.module.extension.latex）の向き（text_pose: front/up）を含む正確なプレビュー
 - strict validation（スキーマ準拠）と Quick Check
 - ファイル入出力（Open/Save/Save As/Export）
-- Preview Out（二面表示/外部表示：別ウィンドウへのプレビュー出力。再生/フレーム/軸表示/ピック切替など）
+- Preview Out（二面表示/外部表示：外部ウィンドウへのプレビュー出力）
 
 ### 重要な前提（viewer との対称性）
 
@@ -304,32 +304,9 @@ modeler は次を入力として扱う。
   - **core dirty**：変更が “適用済み” として core のドキュメントに入った状態
   - **extra dirty（未適用 dirty）**：UI（例：property パネル）の未適用編集が残っている状態
 - Save / Save As / Export は **extra dirty が残る間は実行しない**（誤保存防止）
-- Save / Save As / Export は **同時実行しない**（連打/二重発火は無視して HUD に通知）
-- Save / Save As が成功したら **clean** に戻す
-- Export は **dirty を解消しない**（保存ではなく共有用の書き出し）
-  - Export は save destination（保存先/ハンドル）を更新しない
+- Save / Save As / Export が成功したら **clean** に戻す
+  - Export は save destination（保存先/ハンドル）を更新しない（あくまで共有用出力）
 - strict validate 失敗で Save/Export がブロックされた場合、dirty/extra dirty は保持し、ユーザー修正を促す
-
-### 2.2.0.1 Save destination（保存先の SSOT）
-
-Save/Save As の「保存先」は、次の 2 つの情報の組で SSOT として扱う。
-
-- **saveHandle**：File System Access API（FSA）で取得したファイルハンドル（存在する場合）
-- **saveLabel**：UI 表示・download fallback 用のファイル名ラベル
-
-保存先の運用規則（固定）：
-
-- **Open（FSA）**：saveHandle/saveLabel を両方セットする
-- **Open（input fallback）**：saveLabel のみセットする（saveHandle は無し）
-- **Save**：
-  - saveHandle があれば **上書き**（overwrite）
-  - saveHandle が無い場合は、saveLabel を用いた **download fallback**（同名で保存）
-  - 保存成功時：saveLabel を更新し **clean** に戻す
-- **Save As**：
-  - FSA が使える場合：常に picker を開き、選んだ先を **新しい保存先**として saveHandle/saveLabel を更新
-  - FSA が無い場合：ファイル名を明示入力し、download fallback（保存先は saveLabel の更新として扱う）
-  - 保存成功時：**clean** に戻す
-- **失敗/キャンセル**：dirty を維持し、保存先（saveHandle/saveLabel）は原則保持（上書き失敗時のみ handle を破棄して Save As へフォールバックしてよい）
 
 
 ### 2.2.1 sidecar（UI 状態・余剰保持）
@@ -604,10 +581,8 @@ frames は次のいずれかである。
 
 ### 2.8.2 UI 入力（範囲・式）と strict 型
 
-- 現行実装では **Property の `frames` テキスト入力**で編集する（points/lines/aux）。
-  - 記法：`1` / `1,2,3` / `1-10` / `1-3,6,9-12`（カンマ区切り＋範囲）
-  - 入力は即時に **sort+unique で正規化**され、`appearance.frames` へ反映される。
-- 仕様上は「FramesEditor」という独立 UI を想定してもよいが、少なくとも **Save/Export では strict 型（integer または integer[]）**に落ちていることを保証する。
+- FramesEditor は、入力利便のため `1-10` 等の範囲表記を受けてもよい。
+- ただし、範囲表記は IR 内で解決し、Save/Export では strict 型（integer または integer[]）へ変換する。
 
 ### 2.8.3 正規化（推奨）
 
@@ -643,95 +618,27 @@ modeler は次の pose を、viewer と同等に解釈して描画する。
 
 modeler は **PC（キーボード＋マウス）前提**とし、スマホUIは対象外とする。
 
-### 3.1.1 既定レイアウト（クリエーター前提：マルチ画面をデフォ）
+### 3.1.1 既定レイアウト（単一ウィンドウ：P0）
 
-modeler は **クリエーター用途ではマルチ画面環境がデフォルト**である、という前提で設計する。
+既定は **単一ウィンドウ内の分割表示**とする。
 
-- **Preview Out（別ウィンドウ）を主系**とする（描画確認・視点操作の主戦場）
-- メインウィンドウは **編集と構造把握に集中**する（Outliner / Property / QuickCheck）
+- 左：Outliner（スプシ）
+- 中：Preview（WebGL）
+- 右：PropertyPanel（＋FramesEditor はタブ/下段等）
 
-※シングル画面環境では、Preview Out を閉じても作業できるようフォールバック（埋め込み Preview）を検討してよい。
+### 3.1.2 プレビューの分離（Detach Preview：P1 任意）
 
-### 3.1.2 メインウィンドウ内の配置（現行：Outliner / Property / QuickCheck）
+マルチモニタ作業支援として、Preview を **別ウィンドウに分離**できてもよい（任意機能）。
 
-現行実装（2026-01 時点）では、メインウィンドウは次の3領域で構成する。
+- 「Detach Preview」で新規ウィンドウを開き、Preview（WebGL）を表示する
+- Core（ドキュメント状態）は単一（single-writer）を維持し、複数ウィンドウ間は hub を介して同期する
+- 分離時も Outliner/Property はメインウィンドウに残す（編集SSOTの散逸を防ぐ）
 
-- 左：Outliner（points / lines を **横並び2カラム**で同時表示）
-- 中：PropertyPanel（詳細編集のSSOT）
-- 右：QuickCheck（固定枠。Check/Fix/Issues と issue list）
+※実装上、WebGL キャンバスの“移動”ではなく、分離先で renderer を再生成し、core の snapshot を購読して描画する方式を推奨する。
 
-要点：
+**スコープ決定**：P0 は 3.1.1 の単一ウィンドウ（3ペイン）を必須とし、Detach Preview は P1（任意機能）として後続フェーズで検討する。
 
-- 既定のプレビューは **Preview Out（別ウィンドウ）** を主系とする（再生/フレーム/軸表示/ピック切替もここ）。
-- メインウィンドウに埋め込み Preview を入れる場合は「補助表示」とし、Outliner/Property の可読性を削らない（将来拡張）。
-
-### 3.1.3 トップバー（固定順）
-
-メインウィンドウのトップバーは、操作を迷わせないため **順序固定**とする。
-
-- `New` / `Open…` / `Save` / `Save As…` / `Export 3DSS`
-- （間を空ける） `Undo` / `Redo`
-- （間を空ける） `Preview`（= Preview Out を開く）
-
-補足：
-
-- `Move` などの Transform モード切替ボタンはトップバーに置かない（ショートカット主導。例：`M`）。
-
-
-## 3.2 Outliner（points / lines / frames）
-
-### 3.2.1 目的
-
-Outliner は **データ構造を俯瞰するための表形式UI**である。
-points と lines を分断して切替表示すると、構造理解が阻害されるため、**両者は同時表示**を基本とする。
-
-- 意味世界との接続（name / caption）を常に表示する
-- uuid 等の機械的識別子の常時表示はしない（Outliner の責務外。Property から参照できればよい）
-
-### 3.2.2 レイアウト（2カラム + 独立スクロール）
-
-Outliner パネル内を左右に2分割し、各カラムは **独立した縦スクロール**を持つ。
-
-- 左：Points カラム（独立スクロール）
-- 右：Lines カラム（独立スクロール）
-- スクロールは **縦方向のみ**（横スクロールは禁止）
-  - 列幅設計・表示項目の選別・文字列切り付けにより、固定幅の中へ収める
-
-### 3.2.3 表示列（最小）
-
-#### Points カラム
-
-- **L（Lock）**：必須（該当要素の編集をブロック。選択は可能）
-- **name**：必須（省略表示。完全表示/編集は Property）
-- **x / y / z**：必須（固定幅・等幅表示。完全表示/編集は Property）
-- **frames**：必須（points にも lines にも必要）
-  - `appearance.frames` を単一値または範囲（min–max）で表示
-
-#### Lines カラム
-
-- **L（Lock）**：必須
-- **caption**：必須（省略表示。完全表示/編集は Property）
-- **a / b**：endpoints（point.name を表示）
-  - 対応 point に name が無い場合は空欄とし、代わりに Points 側の該当行ハイライトで対応を示す
-- **frames**：必須（`appearance.frames`）
-
-### 3.2.4 Points–Lines 連動（endpointsナビ）
-
-Lines 行クリック時：
-
-- line を選択する
-- end_a / end_b の point 行を Points 側で `scrollIntoView` し、短時間ハイライトする
-
-これにより、両カラムが独立スクロールであっても **対応点を同時に参照できる**。
-
-### 3.2.5 aux の扱い
-
-aux は使用頻度・要素数ともに低いため、Outliner 常駐表示の必然性は薄い。
-
-- 既定では Outliner に表示しない
-- 必要なら別の導線（例：検索/フィルタ、Property からの参照、専用ビュー）で扱う
-
-
+## 3.2 Outliner（points / lines / aux / frames）
 ## 3.3 PropertyPanel（共通/種別別）
 ## 3.4 選択（単体/複数/範囲）とフィルタ
 ## 3.5 変形（Move/Rotate/Scale）と数値入力
@@ -782,47 +689,13 @@ lock 要素に対して、modeler は次の操作を拒否する。
 
 ## 3.10 QuickCheck パネル（保存失敗時の導線）
 
-QuickCheck は **編集の合間にまとめて実行する診断（バッチ検証）**であり、常時操作する UI ではない。  
-一方で「見失わない」ことが重要なため、QuickCheck の表示領域（スロット）は **固定（ドック）**とし、表示/非表示でメインのレイアウトが跳ねないことを MUST とする。
+- QuickCheck パネルは常設（ドック）または Save/Export ダイアログ内に表示される。
+- 既定は `error` を強調し、`warn` は折りたたみでよい。
+- 一覧→クリック（または Enter）で Outliner/Property へフォーカスする（2.2.3.2 / 6.2 参照）。
+- “修正→再チェック” のループが途切れないことを重視する（閉じても作業は継続、再表示可能）。
 
-### 3.10.1 配置（現行実装）
 
-- QuickCheck は **右ペイン固定**（pane-qc）とする。
-- 右ペインは **幅固定**（splitter による変更は可）で、QuickCheck 自体の展開/折りたたみで横幅が変わらないこと。
-
-### 3.10.2 折りたたみ前提の情報設計
-
-- QuickCheck には「Issues」トグルを持たせ、**一覧（issue list）だけを折りたたむ**。
-- 既定状態は **折りたたみ（collapsed）**。
-- 折りたたみ時でも必ず以下を表示する：
-  - 最終実行結果の要約（severity/種別の件数：`E/W/I` と `P/L/A/D`）
-  - 最終実行時刻（任意だが推奨）
-- 折りたたみ状態は browser-local に永続化してよい（UI 状態であり 3DSS へ混入させない）。
-
-### 3.10.3 一覧の並び（読みやすさ優先）
-
-- 並び順は次を推奨（現行実装準拠）：
-  1. severity：`error` → `warn` → `info`
-  2. kind：`point` → `line` → `aux` → `document`
-  3. uuid → path
-- 一覧は **グループ見出し**（例：`error · line (N)`）を入れて視認性を上げる。
-
-### 3.10.4 行クリックの挙動（SSOT 固定）
-
-QuickCheck の行クリックは、ユーザーの作業ループを壊さないため **副作用の範囲を固定**する。
-
-- 共通：クリックに対する反応は必ず返す（no-op に見えないこと）。
-- `issue.uuid` が存在する場合：
-  1. Outliner の該当行を **必ず flash**（同一要素連打でも毎回）
-  2. **Selection SSOT** を更新（単一選択）
-  3. Property は `issue.path` をヒントに **該当フィールドへフォーカス（best-effort）**
-  4. PreviewOut の追従（フレーミング/視点移動）は **Follow=ON のときのみ**
-- `issue.uuid` が無い（document issue）の場合：
-  - Selection は変更しない。
-  - HUD/Toast 等で `severity + path (+ message)` を提示し、次の手掛かりを返す。
-
-## 3.11
- Transform（P0：Move/Rotate/Scale）とモード遷移
+## 3.11 Transform（P0：Move/Rotate/Scale）とモード遷移
 
 本節は modeler の最小編集機能として、複数選択を含む Transform 操作（Move/Rotate/Scale）を定義する。
 
@@ -950,28 +823,13 @@ QuickCheck の 1件（Issue）は次の payload を持つ。
 
 ### 6.2.3 表示（UI）要件
 
-#### 折りたたみ前提（QuickCheck はバッチ検証）
-
-- QuickCheck の表示領域は **固定（ドック）**とし、展開/折りたたみでメインレイアウトが跳ねないこと。
-- 一覧（issue list）は折りたたみ可能とし、**既定は折りたたみ**。
-- 折りたたみ時でも、最低限以下を表示する（推奨：モノスペースで短く）：
-  - `E/W/I` 件数（error/warn/info）
-  - `P/L/A/D` 件数（point/line/aux/document）
-  - 最終実行時刻（任意）
-
-#### 一覧の構造
-
-- severity→kind の順でグルーピングし、見出し（`error · line (N)` 等）を付ける。
-- 1件の表示は次を含む：`severity` / `kind` / `uuid(or doc)` / `path` / `message`。
-
-#### 行クリック（SSOT 固定）
-
-- `issue.uuid` がある場合：
-  - Outliner flash（必ず）→ selection 更新（単一）→ property focus（best-effort）
-  - PreviewOut 追従は Follow=ON のときのみ。
-- `issue.uuid` が無い場合：
-  - selection は変更しない。
-  - HUD/Toast 等で `severity + path (+ message)` を提示する。
+- QuickCheck パネル（または Save/Export ダイアログ内）に **一覧**を表示する（severity でフィルタ可能）。
+- 1行クリックで `focusByIssue(issue)` を呼び、該当要素へジャンプする（Outliner で選択＋PropertyPanel を開く＋`path` へスクロール）。
+- `error` が 1件でも残る場合、Save/Export はブロックし、ブロック理由として QuickCheck を提示する。
+- 一覧の操作性（任意だが推奨）：
+  - `↑/↓`：行移動
+  - `Enter`：フォーカス遷移（クリック同等）
+  - `Esc`：一覧を閉じる（修正作業は継続）
 
 
 

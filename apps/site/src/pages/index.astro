@@ -60,13 +60,8 @@ try {
   featuredItems = [];
 }
 
-// Primary CTA: open a single curated example directly in the Viewer (showcase-first).
-// NOTE: A library item is mirrored into `public/_data/library/<id>/model.3dss.json`.
-const showcaseSlug = featuredItems?.[0]?.id || null;
-const showcaseDataDir = showcaseSlug ? `/_data/library/${showcaseSlug}` : null;
-const showcaseModelUrl = showcaseDataDir ? `${showcaseDataDir}/model.3dss.json` : demoModel;
-const featuredPrimary = showcaseSlug ? `/library/${showcaseSlug}` : "/library";
-const ctaHref = `/viewer/index.html?model=${encodeURIComponent(showcaseModelUrl)}`;
+const featuredPrimary = featuredItems?.[0]?.id ? `/library/${featuredItems[0].id}` : "/library";
+const ctaHref = featuredPrimary;
 ---
 
 <Layout
@@ -80,18 +75,11 @@ const ctaHref = `/viewer/index.html?model=${encodeURIComponent(showcaseModelUrl)
         <TopText />
       </div>
 
-      <div class="mt-5 flex flex-wrap items-center gap-3">
-        <a class="ui-btn inline-flex" href={ctaHref}>まず一つ、立体構造を読んでみる（Viewer）</a>
-        <a class="ui-btn inline-flex" href={featuredPrimary}>代表作の解説を見る</a>
-        <a class="ui-btn inline-flex" href="/library">作品一覧（Library）</a>
-        <span class="text-xs text-neutral-400">※ Viewer は鑑賞専用（編集は Modeler）</span>
-      </div>
-
       <div class="mt-6 pt-2">
         <div class="home-peek ui-border ui-shadow" aria-hidden="true" data-swipe-ignore>
           <iframe
             class="home-peek__frame"
-            src={`/viewer/peek.html?embed=1&model=${encodeURIComponent(showcaseModelUrl)}&v=20260110b`}
+            src={`/viewer/peek.html?embed=1&model=${encodeURIComponent(demoModel)}&v=20260110b`}
             loading="lazy"
             title="3DSL demo preview"
             tabindex="-1"
@@ -132,7 +120,7 @@ const ctaHref = `/viewer/index.html?model=${encodeURIComponent(showcaseModelUrl)
       </a>
 
       
-      <a href={ctaHref} class="ui-card p-6">
+      <a href="/app/viewer" class="ui-card p-6">
         <div class="flex items-center justify-between">
 	          <h3 class="text-lg font-semibold tracking-tight">Viewer</h3>
           
@@ -229,7 +217,7 @@ const ctaHref = `/viewer/index.html?model=${encodeURIComponent(showcaseModelUrl)
             回転・拡大縮小しながら、関係性や配置を直感的に把握できます。
           </p>
           <div class="mt-4">
-            <a class="ui-btn inline-flex" href={ctaHref}>Viewerへ</a>
+            <a class="ui-btn inline-flex" href="/viewer">Viewerへ</a>
           </div>
         </article>
 

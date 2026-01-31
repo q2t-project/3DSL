@@ -1,6 +1,6 @@
 {
   "document_meta": {
-    "document_title": "tmp",
+    "document_title": "Draft",
     "document_summary": "",
     "document_uuid": "c02fba95-6d38-4130-9507-e8fac679184d",
     "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
@@ -12,3 +12,4 @@
   "aux": [],
   "frames": []
 }
+
