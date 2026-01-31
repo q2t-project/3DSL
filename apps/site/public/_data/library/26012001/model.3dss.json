@@ -1,0 +1,3333 @@
+{
+  "document_meta": {
+    "document_title": "Brain Regions and the Dynamics of Cognition",
+    "document_summary": "脳は複数の脳領域が相互に関わり合う動的な構造です。本3DSDモデルでは、脳の物質的から認識論までを層別にモデル化していきます。",
+    "document_uuid": "cc068de1-4d9a-40c3-92a0-97c149fd062b",
+    "version": "1.0.0",
+    "tags": [
+      "s:brain",
+      "s:sample",
+      "m:default"
+    ],
+    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
+    "generator": "https://3dsl.jp/",
+    "coordinate_system": "Z+up/freeXY",
+    "units": "non_si:px",
+    "i18n": "ja",
+    "author": "q2t-project",
+    "creator_memo": "demo for brain and epistemology",
+    "revised_at": "2026-01-19T07:44:09Z",
+    "created_at": "2026-01-19T07:44:09Z"
+  },
+  "points": [
+    {
+      "signification": {
+        "name": "鳥距溝L"
+      },
+      "appearance": {
+        "position": [
+          -7.5,
+          -80,
+          5
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "鳥距溝L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "874dc4d8-9915-4155-a22a-b00741a5e8ee",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "楔部L"
+      },
+      "appearance": {
+        "position": [
+          -6,
+          -81,
+          26
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "楔部L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "e33f8a7b-f41c-4445-951e-753facc7165a",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "舌状回L"
+      },
+      "appearance": {
+        "position": [
+          -15,
+          -69,
+          6
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "舌状回L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "0f6fa97b-cc7d-4be7-b503-bae01a57b4e3",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "舌状回L"
+      },
+      "appearance": {
+        "position": [
+          -15,
+          -69,
+          6
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "舌状回L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "d1927e9d-9eae-46f9-8893-c0b4944ca872",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "紡錘状回L"
+      },
+      "appearance": {
+        "position": [
+          -31,
+          -41,
+          -21
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "紡錘状回L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "cb3c276d-5db7-4eeb-a0f4-def8ff14a301",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "後頭葉L"
+      },
+      "appearance": {
+        "position": [
+          -17,
+          -86,
+          29
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "後頭葉L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "0b14f342-8017-4759-a32a-1dfea90f7326",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "横側頭回L"
+      },
+      "appearance": {
+        "position": [
+          -42,
+          -20,
+          9
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "横側頭回L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "af870c5f-49ce-4ff8-ad05-fd9337c89aaa",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "聴覚的連合L"
+      },
+      "appearance": {
+        "position": [
+          -53,
+          -22,
+          6
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "聴覚的連合L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "b54a76cf-b110-4f1e-91cf-217fd087b25e",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "中心後回L"
+      },
+      "appearance": {
+        "position": [
+          -43,
+          -24,
+          48
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "中心後回L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "7417c94c-f662-4f27-bd35-dc8acf34fca6",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "弁蓋部L"
+      },
+      "appearance": {
+        "position": [
+          -48,
+          -10,
+          12
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "弁蓋部L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "665abd81-e272-49a3-910b-7603c10bf84c",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "島皮質L"
+      },
+      "appearance": {
+        "position": [
+          -36,
+          5,
+          2
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "島皮質L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "6bce2f1e-d22b-42da-8ec7-1f5a78bd264c",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "前帯状皮質L"
+      },
+      "appearance": {
+        "position": [
+          -4,
+          34,
+          12
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "前帯状皮質L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "48017fa5-f1b6-4166-81c6-bf1e09b8bc4c",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "後帯状皮質L"
+      },
+      "appearance": {
+        "position": [
+          -5,
+          -44,
+          23
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "後帯状皮質L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "317f7a5f-cb1a-4694-94bc-58f86b990cba",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "楔前部L"
+      },
+      "appearance": {
+        "position": [
+          -8,
+          -57,
+          47
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "楔前部L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "54fab01d-93e4-489e-afc4-380dbe74e51e",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "上頭頂小葉L"
+      },
+      "appearance": {
+        "position": [
+          -8,
+          -57,
+          47
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "上頭頂小葉L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "ca5089ed-effe-4023-9f77-8672fd9846f7",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "下頭頂小葉L"
+      },
+      "appearance": {
+        "position": [
+          -43,
+          -47,
+          45
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "下頭頂小葉L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "5713f9e0-43c2-42bd-99a1-a155834506f7",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "側頭頭頂接合部L"
+      },
+      "appearance": {
+        "position": [
+          -56,
+          -35,
+          29
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "側頭頭頂接合部L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "c0610ee5-1db8-41ae-ad7a-c5b8045b9daf",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "角回L"
+      },
+      "appearance": {
+        "position": [
+          -44,
+          -62,
+          34
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "角回L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "f1db82e9-0724-4527-9fef-44061ddec2cd",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "中側頭回L"
+      },
+      "appearance": {
+        "position": [
+          -56,
+          -35,
+          -4
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "中側頭回L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "368c4e50-1a80-46c5-92ff-2d09780fdff3",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "中側頭回L"
+      },
+      "appearance": {
+        "position": [
+          -37,
+          14,
+          -35
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "中側頭回L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "7aef7670-5693-4f00-903a-a025853e109d",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "海馬L"
+      },
+      "appearance": {
+        "position": [
+          -25,
+          -22,
+          -11
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "海馬L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "d43a7f72-f8b3-4c61-a007-2a9d63801d31",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "扁桃体L"
+      },
+      "appearance": {
+        "position": [
+          -24,
+          -2,
+          -19
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "扁桃体L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "d241fa50-18ce-43c1-87fc-12db60d23a5c",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "視床L"
+      },
+      "appearance": {
+        "position": [
+          -11,
+          -19,
+          7
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "視床L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "6f8f6df3-c446-40ec-a910-9ba33107a0a5",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "尾状核L"
+      },
+      "appearance": {
+        "position": [
+          -12,
+          10,
+          8
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "尾状核L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "d5417863-1a1f-4509-ba16-3668d2efedc9",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "被殻L"
+      },
+      "appearance": {
+        "position": [
+          -24,
+          3,
+          1
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "被殻L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "21e6577c-33f0-4041-9f0c-3ca6aac45ec9",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "GPe_L"
+      },
+      "appearance": {
+        "position": [
+          -18.5,
+          -6.5,
+          3.5
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#88ccff"
+          },
+          "text": {
+            "content": "GPe_L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "5e05a483-b7c2-40c6-b504-23b931198fa2",
+        "tags": [
+          "m:layer_basal_ganglia"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "GPi_L"
+      },
+      "appearance": {
+        "position": [
+          -15.5,
+          -9,
+          4.5
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#4488ff"
+          },
+          "text": {
+            "content": "GPi_L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "5cc62b2c-1f77-421d-b411-2b12721bbd7f",
+        "tags": [
+          "m:layer_basal_ganglia"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "STN_L"
+      },
+      "appearance": {
+        "position": [
+          -16.8,
+          -7.5,
+          0.5
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#4488ff"
+          },
+          "text": {
+            "content": "STN_L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "8f64f97d-e756-4acf-b016-9abd780c734b",
+        "tags": [
+          "m:layer_basal_ganglia",
+          "s:side_L",
+          "m:node_STN"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "小脳L"
+      },
+      "appearance": {
+        "position": [
+          -35,
+          -68,
+          -30
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "小脳L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "c585a69a-51d9-478b-b73d-dabecd0dfe41",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "背外側前頭前野L"
+      },
+      "appearance": {
+        "position": [
+          -34,
+          32,
+          34
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "背外側前頭前野L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "715fe4f9-03e6-429e-bdf3-752941f7bf5a",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "下前頭回L"
+      },
+      "appearance": {
+        "position": [
+          -46,
+          29,
+          13
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "下前頭回L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "f09f7fd8-20b0-4418-a8a2-6c6b63ce437b",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "腹内側前頭前野L"
+      },
+      "appearance": {
+        "position": [
+          -5,
+          53,
+          -9
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "腹内側前頭前野L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "7de8a79c-53ec-4246-ab4c-d21b5062c8d4",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "補足運動野L"
+      },
+      "appearance": {
+        "position": [
+          -6,
+          4,
+          60
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "補足運動野L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "dc635d3d-d510-4231-ab82-b1957aed1db6",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "一次運動野L"
+      },
+      "appearance": {
+        "position": [
+          -39,
+          -7,
+          50
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#ff0000"
+          },
+          "text": {
+            "content": "一次運動野L",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "59d4a0cc-eb3f-46c7-93ae-4449d82f94bb",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "V1R"
+      },
+      "appearance": {
+        "position": [
+          16,
+          -75,
+          8
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "V1R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "5c94760f-5e44-41e7-accc-f749a22f8a02",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "背側視覚路R"
+      },
+      "appearance": {
+        "position": [
+          13,
+          -81,
+          26
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "背側視覚路R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "309739b7-5fba-4ddb-8435-24371110bbd3",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "舌状回R"
+      },
+      "appearance": {
+        "position": [
+          16,
+          -68,
+          -5
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "舌状回R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "ec5111d6-d4e1-4525-9e3d-e5a5b73691bf",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "腹側皮質視覚路R"
+      },
+      "appearance": {
+        "position": [
+          33,
+          -40,
+          -22
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "腹側皮質視覚路R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "f343f4bc-193c-46f5-a390-db5092613e37",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "背側皮質視覚路R"
+      },
+      "appearance": {
+        "position": [
+          24,
+          -82,
+          29
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "背側皮質視覚路R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "c1581dad-bb03-438e-bf53-4a4251c15983",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "横側頭回R"
+      },
+      "appearance": {
+        "position": [
+          46,
+          -18,
+          9
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "横側頭回R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "4fd5a642-83f5-4870-93cb-f7d0c1e18126",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "聴覚的連合R"
+      },
+      "appearance": {
+        "position": [
+          58,
+          -23,
+          5
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "聴覚的連合R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "8c42e727-5bae-4f6f-8959-a389f5650761",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "中心後回R"
+      },
+      "appearance": {
+        "position": [
+          41,
+          -27,
+          51
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "中心後回R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "aac3bcd0-3c19-4160-9a1b-d2f02421ed1e",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "弁蓋部R"
+      },
+      "appearance": {
+        "position": [
+          52,
+          -8,
+          13
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "弁蓋部R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "3d41eea8-1608-464d-bfef-1df96cd7e748",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "島皮質R"
+      },
+      "appearance": {
+        "position": [
+          39,
+          5,
+          1
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "島皮質R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "85d8b619-b716-4be3-8fab-68f6144ec1c8",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "前帯状皮質R"
+      },
+      "appearance": {
+        "position": [
+          8,
+          36,
+          14
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "前帯状皮質R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "cb510b65-e4a3-4846-87b9-e9da5173d4c3",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "後帯状皮質R"
+      },
+      "appearance": {
+        "position": [
+          7,
+          -43,
+          21
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "後帯状皮質R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "ece51ab3-00f2-47ef-a7bb-a61db2519fc8",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "楔前部R"
+      },
+      "appearance": {
+        "position": [
+          10,
+          -57,
+          42
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "楔前部R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "ba8d09eb-9b33-491c-974d-d91e6254e2d3",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "上頭頂小葉R"
+      },
+      "appearance": {
+        "position": [
+          26,
+          -60,
+          61
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "上頭頂小葉R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "ceace3c3-d5c4-4bd3-8456-dcc42e222c03",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "下頭頂小葉R"
+      },
+      "appearance": {
+        "position": [
+          46,
+          -48,
+          48
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "下頭頂小葉R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "a3b33216-ed38-4425-a6b8-5aa1cb700a58",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "側頭頭頂接合部R"
+      },
+      "appearance": {
+        "position": [
+          57,
+          -33,
+          33
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "側頭頭頂接合部R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "42f0cea9-38f4-4715-8399-9e8cf960d6d5",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "角回R"
+      },
+      "appearance": {
+        "position": [
+          45,
+          -61,
+          37
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "角回R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "605c8bc0-7cfb-43a2-a2a9-e923e02ea765",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "中側頭回R"
+      },
+      "appearance": {
+        "position": [
+          57,
+          -33,
+          33
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "中側頭回R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "5ce82752-3003-4700-9fc6-2c6e192bcffe",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "中側頭回R"
+      },
+      "appearance": {
+        "position": [
+          44,
+          13,
+          -34
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "中側頭回R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "5d2d61d2-a366-40e7-b382-f47e18fb0fbb",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "海馬R"
+      },
+      "appearance": {
+        "position": [
+          29,
+          -21,
+          -12
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "海馬R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "ad6674c1-7215-4a92-930a-6014db871eac",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "扁桃体R"
+      },
+      "appearance": {
+        "position": [
+          27,
+          -2,
+          -19
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "扁桃体R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "8d4285d9-70cd-406e-8c6d-3c213a1e7b73",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "視床R"
+      },
+      "appearance": {
+        "position": [
+          13,
+          -19,
+          7
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "視床R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "6dfb69bd-045c-4955-b1c0-1d94a010a6bb",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "尾状核R"
+      },
+      "appearance": {
+        "position": [
+          15,
+          11,
+          8
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "尾状核R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "db68575a-75bf-4e72-851e-322730a555be",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "被殻R"
+      },
+      "appearance": {
+        "position": [
+          28,
+          4,
+          1
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "被殻R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "5a5a5626-ad23-4c75-bbcd-e9ffa3f17bae",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "STN_R"
+      },
+      "appearance": {
+        "position": [
+          -16.8,
+          -7.5,
+          0.5
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#4488ff"
+          },
+          "text": {
+            "content": "STN_R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "5a71e993-69b4-4c38-8f8a-ac33ebbac3d5",
+        "tags": [
+          "m:layer_basal_ganglia",
+          "s:side_R",
+          "m:node_STN"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "小脳R"
+      },
+      "appearance": {
+        "position": [
+          38,
+          -68,
+          -31
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "小脳R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "2cc44178-e298-4006-971b-74ae9c235e55",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "GPe_R"
+      },
+      "appearance": {
+        "position": [
+          18.5,
+          -6.5,
+          3.5
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#88ccff"
+          },
+          "text": {
+            "content": "GPe_R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "a52e99ec-aa5a-4855-ae1d-e1528457edd0",
+        "tags": [
+          "m:layer_basal_ganglia"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "GPi_R"
+      },
+      "appearance": {
+        "position": [
+          15.5,
+          -9,
+          4.5
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#4488ff"
+          },
+          "text": {
+            "content": "GPi_R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 4,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "6c6531c1-7779-4ee6-8574-1b2de960956c",
+        "tags": [
+          "m:layer_basal_ganglia"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "背外側前頭前野R"
+      },
+      "appearance": {
+        "position": [
+          37,
+          32,
+          33
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "背外側前頭前野R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "1ccc5555-51d1-400d-bffc-16c3d58b0a39",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "下前頭回R"
+      },
+      "appearance": {
+        "position": [
+          50,
+          29,
+          13
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "下前頭回R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "ee2d5992-4c9e-4738-899c-5b2c0e667bb7",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "腹内側前頭前野R"
+      },
+      "appearance": {
+        "position": [
+          8,
+          50,
+          -9
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "腹内側前頭前野R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "81277223-0006-4a8b-8f07-9e27fb1660bd",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "補足運動野R"
+      },
+      "appearance": {
+        "position": [
+          8,
+          -1,
+          61
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "補足運動野R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "64b03b34-f929-403d-ad66-4b095aaea81a",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    },
+    {
+      "signification": {
+        "name": "一次運動野R"
+      },
+      "appearance": {
+        "position": [
+          41,
+          -10,
+          51
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "common": {
+            "opacity": 0.5,
+            "color": "#0000ff"
+          },
+          "text": {
+            "content": "一次運動野R",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 2,
+            "align": "center&middle"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "65be1a51-5616-4a60-96f7-9206b5e58c22",
+        "tags": [
+          "x:root"
+        ],
+        "creator_memo": "XXX"
+      }
+    }
+  ],
+  "lines": [
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": "視床L→V1"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "6f8f6df3-c446-40ec-a910-9ba33107a0a5"
+        },
+        "end_b": {
+          "ref": "874dc4d8-9915-4155-a22a-b00741a5e8ee"
+        },
+        "line_style": "solid",
+        "opacity": 0.45,
+        "color": "#22ff22",
+        "caption_text": {
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          },
+          "font_size": 4
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "b51ec0b7-886e-48f8-9246-9137bf045e13",
+        "tags": [
+          "x:l_root_a"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": "V1→V2"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "874dc4d8-9915-4155-a22a-b00741a5e8ee"
+        },
+        "end_b": {
+          "ref": "e33f8a7b-f41c-4445-951e-753facc7165a"
+        },
+        "line_style": "solid",
+        "opacity": 0.45,
+        "color": "#22ff22",
+        "caption_text": {
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          },
+          "font_size": 4
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "6c795ffb-d165-4bdd-ba44-8df4d41e1de6",
+        "tags": [
+          "x:l_root_a"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": ""
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "874dc4d8-9915-4155-a22a-b00741a5e8ee"
+        },
+        "end_b": {
+          "ref": "0f6fa97b-cc7d-4be7-b503-bae01a57b4e3"
+        },
+        "line_style": "solid",
+        "opacity": 0.45,
+        "color": "#22ff22",
+        "caption_text": {
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          },
+          "font_size": 4
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "8f19e12a-ccdb-4ce3-80ce-9f3711967e0f",
+        "tags": [
+          "x:l_root_a"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": "→"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "00000000-0000-0000-0000-000000000000"
+        },
+        "end_b": {
+          "ref": "00000000-0000-0000-0000-000000000000"
+        },
+        "line_style": "solid",
+        "opacity": 0.45,
+        "color": "#22ff22",
+        "caption_text": {
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          },
+          "font_size": 4
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "08b5639e-74f9-4a52-9fd0-ae8992f2278c",
+        "tags": [
+          "x:x"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": "背外側前頭前野L→尾状核L"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "715fe4f9-03e6-429e-bdf3-752941f7bf5a"
+        },
+        "end_b": {
+          "ref": "d5417863-1a1f-4509-ba16-3668d2efedc9"
+        },
+        "line_style": "solid",
+        "opacity": 0.45,
+        "color": "#22ff22",
+        "caption_text": {
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          },
+          "font_size": 4
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "b3d62f14-d5a7-433a-822c-f522138d2d7e",
+        "tags": [
+          "x:x"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": "尾状核L→視床L"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "d5417863-1a1f-4509-ba16-3668d2efedc9"
+        },
+        "end_b": {
+          "ref": "6f8f6df3-c446-40ec-a910-9ba33107a0a5"
+        },
+        "line_style": "solid",
+        "opacity": 0.45,
+        "color": "#22ff22",
+        "caption_text": {
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          },
+          "font_size": 4
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "680963bc-cf5d-42d7-8ea3-ffc9e5cc1a4b",
+        "tags": [
+          "x:x"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": "視床L→補足運動野L"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "6f8f6df3-c446-40ec-a910-9ba33107a0a5"
+        },
+        "end_b": {
+          "ref": "dc635d3d-d510-4231-ab82-b1957aed1db6"
+        },
+        "line_style": "solid",
+        "opacity": 0.45,
+        "color": "#22ff22",
+        "caption_text": {
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          },
+          "font_size": 4
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "074e59a8-9105-4f93-9d7b-a1ab86c43d0b",
+        "tags": [
+          "x:x"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "containment"
+        },
+        "sense": "a_to_b",
+        "caption": "補足運動野L→一次運動野L"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "dc635d3d-d510-4231-ab82-b1957aed1db6"
+        },
+        "end_b": {
+          "ref": "59d4a0cc-eb3f-46c7-93ae-4449d82f94bb"
+        },
+        "line_style": "solid",
+        "opacity": 0.45,
+        "color": "#22ff22",
+        "caption_text": {
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          },
+          "font_size": 4
+        },
+        "line_type": "straight",
+        "frames": [
+          0
+        ]
+      },
+      "meta": {
+        "uuid": "95cc7ca9-f229-4d51-8d34-199ffa332986",
+        "tags": [
+          "x:l_root_a"
+        ]
+      }
+    }
+  ],
+  "aux": []
+}

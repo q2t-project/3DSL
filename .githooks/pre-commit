@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Fast guard: prevent committing generated mirrors.
+npm --prefix apps/site run check:generated-clean

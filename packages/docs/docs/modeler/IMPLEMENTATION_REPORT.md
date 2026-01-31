@@ -1,13 +1,53 @@
 # Modeler 実装状況レポート（Spec/Manifest 差分 + From-now プラン）
 
-- Last updated: 2026-01-27
-- Repo snapshot: `3DSL_repo_20260127_085319.zip`
+- Last updated: 2026-01-31
+- Repo snapshot: `3DSL_repo_20260131_000621.zip`
 - 対象 SSOT
   - 実装: `apps/modeler/ssot/**`
   - 仕様書（human spec）: `apps/modeler/ssot/3DSD-modeler.md`
   - 境界/依存ルール（manifest）: `apps/modeler/ssot/manifest.yaml`
 
 ---
+## 2026-01-31 — M2: 選択同期/QuickCheck/frames/Save-Export 固め
+
+### DONE（アクションプラン A〜D）
+- A: QuickCheck
+  - 右ペイン固定（レイアウト非破壊）＋折りたたみ（summary常時）
+  - 行クリックは `uiSelectionController` 経由に統一（同一行連打でも outliner flash）
+  - Follow=ON のときだけ PreviewOut で framing（OFF は視点不変）
+- B: frames 編集（Property）
+  - `appearance.frames` を points/lines/aux で編集可能（入力→正規化）
+  - Undo/Redo / dirty / Save/SaveAs の粒度が破綻しない
+  - QuickCheck に frames 型不正チェックを追加（number or number[] / 整数のみ）
+- C: 選択同期 “取りこぼしゼロ”
+  - Outliner / PreviewOut pick / QuickCheck / UndoRedo / Open 入口を SSOT 経路に統一
+  - doc更新・Undo/Redo で stale selection を掴まない（pruneを統一）
+  - Undo/Redo の history が確実に積まれるよう core の `updateDocument()` 契約を拡張（in-place mutator を許容）
+- D: Save/SaveAs/Export UX 固め
+  - Save/SaveAs 成功で clean、Export は dirty を解消しない
+  - Save/SaveAs/Export は同時実行ガード（連打でも壊れない）
+  - iOS Safari 対策：ユーザー操作起点を維持する “先に空タブ確保→blobへ遷移” 方式を実装（実機未検証）
+
+### 決定事項（SSOT）
+- Modeler は編集快適性最優先。見映え品質は Viewer で担保。
+- PreviewOut は main レイアウトに干渉しない（resize/size要求を混ぜない）。
+- QuickCheck は “位置固定（右ペイン）＋内容折りたたみ” を正とする。
+
+---
+## 2026-01-30 — 生成物混入（apps/site/public ミラー）ガード強化
+
+### 変更点（決定事項）
+- `apps/site/public/**` のミラー（`modeler_app/`, `_data/`, `schemas/`, `vendor/` など）を **Git 追跡しない**運用へ統一。
+- 誤追跡を検知する check を **CI で落ちるガード**として維持（`check:generated-clean`）。
+
+### 具体対応
+- 誤って追跡されたミラーを `git rm --cached` で index から除外し、`.gitignore` に明示。
+- vendor の `three/examples/jsm/**` を更新する手順を docs へ固定（`packages/docs/docs/ops/vendor_update.md`）。
+
+### 期待効果
+- SSOT 二重化（= 手戻りの温床）を機械的に封じる。
+- sync で再現できる生成物は repo を汚さず、レビュー差分を「SSOT側の変更」に限定できる。
+
 
 ## 0. 結論（要点）
 

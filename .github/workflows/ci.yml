@@ -31,6 +31,10 @@ jobs:
         working-directory: apps/site
         run: npm ci --verbose
 
+      - name: SSOT checks (prevent generated mirrors from being committed)
+        working-directory: apps/site
+        run: npm run check:ssot
+
       - name: Run build (capture logs)
         working-directory: apps/site
         run: |

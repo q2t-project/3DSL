@@ -139,6 +139,10 @@ Modeler は「編集体験」そのものが契約であり、挙動変更は特
 
 ## Commands（よく使う）
 
+* Git hooks（任意だが推奨）
+
+  * `npm run hooks:install`（`.githooks/pre-commit` を有効化）
+
 * dev:
 
   * `npm --prefix apps/site run dev`
@@ -210,3 +214,42 @@ Modeler は「編集体験」そのものが契約であり、挙動変更は特
 * 本書は **迷わないための地図**であり、仕様書ではない
 * 仕様・契約・進捗は必ず SSOT に戻す
 * 不明点が出た場合は「どこが SSOT か」を先に特定する
+
+
+---
+
+## Architecture & App Responsibility (Proposed / Fixed)
+
+This section reflects the **confirmed architecture decision**:
+**Modeler is an independent application (Policy A).**
+
+### Apps Responsibility
+- **apps/viewer/**
+  - Runtime viewer application (read-only).
+  - No editing, no file I/O.
+- **apps/modeler/**
+  - Independent runtime editor application.
+  - Owns editing UI, dirty/undo, save/export.
+  - Must have its own package.json and dev/build/smoke commands.
+- **apps/site/**
+  - Static distribution & documentation hub.
+  - Must not contain viewer/modeler core logic.
+
+### Vendor Policy
+- External libraries (e.g. three.js) are centralized in:
+  - `packages/vendor/<lib>/` (SSOT)
+- `apps/*/public/vendor/` are generated mirrors.
+- public/vendor must never be edited directly.
+
+### Packages Policy
+- Shared logic lives under `packages/`.
+- Packages are the unit of reuse and future publication.
+- Apps depend on packages; never the reverse.
+
+### Sync & SSOT
+- All mirrors are produced by sync scripts.
+- SSOT always lives under packages/.
+- If in doubt, SSOT_POLICY.md overrides local convenience.
+
+---
+

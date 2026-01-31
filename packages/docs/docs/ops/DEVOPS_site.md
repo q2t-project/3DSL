@@ -15,6 +15,7 @@
   - 4. `_redirects` / `_headers`（Pages側ルーティング制御）
   - 5. Deploy Probe（本番がどのコミットか一発で判別）
   - 6. Guardrails（build前に機械で止める）
+    - 6.1 vendor 更新（three/ajv）の固定手順
   - 7. ローカル→デプロイまでの最短ルート
   - 8. よくある詰まりどころ（まずここ見ろ）
   - 9. AdSense 申請前の最低ライン
@@ -142,6 +143,13 @@ curl.exe -s https://3dsl.pages.dev/__deploy_probe.txt
 ---
 
 ## 6) Guardrails（build前に機械で止める）
+
+### 6.1) vendor 更新（three/ajv）の固定手順
+
+vendor 更新はここに固定：
+
+- `packages/docs/docs/ops/vendor_update.md`
+
 
 `apps/site/scripts/guard-prebuild.mjs` が **Astro 実行前に止める**対象：
 
