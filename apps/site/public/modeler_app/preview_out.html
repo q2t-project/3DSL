@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>3DSD Preview Out</title>
+    <title>3DSD Preview</title>
     <script type="importmap">
       {
         "imports": {
@@ -97,6 +97,40 @@
         background: rgba(80, 180, 255, 0.22);
         border-color: rgba(80, 180, 255, 0.45);
       }
+
+      .framectl {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 10px;
+        font-size: 12px;
+        line-height: 1.2;
+        color: rgba(232, 238, 246, 0.9);
+      }
+
+      .framectl-label {
+        opacity: 0.75;
+        font-size: 11px;
+      }
+
+      .framectl-range {
+        opacity: 0.75;
+        font-size: 11px;
+        white-space: nowrap;
+      }
+
+      .num {
+        width: 64px;
+        padding: 3px 6px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(255, 255, 255, 0.06);
+        color: #e8eef6;
+        outline: none;
+      }
     </style>
   </head>
 
@@ -106,13 +140,20 @@
       <canvas id="previewout-canvas"></canvas>
 
       <div class="overlay">
-        <div class="title" id="previewout-title">(preview out)</div>
+        <div class="title" id="previewout-title">(preview)</div>
         <div class="mode" id="previewout-mode">Independent view</div>
         <div class="label" id="previewout-label">(no selection)</div>
 
         <div class="controls">
+          <button class="btn" id="previewout-play" type="button" title="Play/Pause">Play</button>
+          <label class="framectl" title="Frame index">
+            <span class="framectl-label">frame</span>
+            <input class="num" id="previewout-frame-index" type="number" step="1" value="0" />
+            <span class="framectl-range"><span id="previewout-frame-min">0</span>–<span id="previewout-frame-max">0</span></span>
+          </label>
           <button class="btn" id="previewout-follow" type="button">Follow</button>
           <button class="btn" id="previewout-frame" type="button">Frame</button>
+          <button class="btn" id="previewout-axis" type="button" title="World axis: Off / Fixed / Full">Axis: Fixed</button>
           <button class="btn" id="previewout-pick" type="button">Pick: OFF</button>
         </div>
       </div>

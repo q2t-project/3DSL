@@ -8,9 +8,24 @@
 // - Failures: keep dirty, notify, provide retry paths
 // - Fallback: download when FSA is unavailable or fails
 
-function dl(name, text) {
+function dl(name, text, opts = {}) {
   const b = new Blob([text], { type: "application/json" });
   const u = URL.createObjectURL(b);
+
+  const win = opts && opts.preopenedWindow;
+  if (win && !win.closed) {
+    try {
+      win.document.title = String(name || "model.json");
+      win.document.body.innerHTML = `<p style="font-family:system-ui; padding:12px;">Preparing <b>${escapeHtml(name || "model.json")}</b>…</p>`;
+    } catch {}
+    try { win.location.href = u; } catch {}
+    // Keep URL alive long enough for iOS Safari to load/share.
+    setTimeout(() => {
+      try { URL.revokeObjectURL(u); } catch {}
+    }, 60_000);
+    return;
+  }
+
   const a = document.createElement("a");
   a.href = u;
   a.download = name;
@@ -23,6 +38,7 @@ function dl(name, text) {
     try { a.remove(); } catch {}
   }, 0);
 }
+
 
 function ensureExt(name, ext) {
   const s = String(name || "").trim();
@@ -83,6 +99,13 @@ function renderIssuesToQuickCheck({ issues, qcPanel, qcSummary, qcList, onSelect
   for (const it of issues) {
     const item = document.createElement("div");
     item.className = "qc-item";
+<<<<<<< HEAD
+    try {
+      item.dataset.uuid = String(it?.uuid || "");
+      item.dataset.kind = String(it?.kind || it?.nodeKind || "");
+      item.dataset.path = String(it?.path || "");
+    } catch {}
+=======
     item.tabIndex = 0;
     item.setAttribute("role", "button");
     item.style.cursor = "pointer";
@@ -96,6 +119,7 @@ function renderIssuesToQuickCheck({ issues, qcPanel, qcSummary, qcList, onSelect
       });
     }
 
+>>>>>>> origin/main
     const sev = it?.severity || "error";
     const sevClass = sev === "error" ? "qc-sev-error" : sev === "warn" ? "qc-sev-warn" : "qc-sev-info";
 
@@ -128,13 +152,37 @@ function renderIssuesToQuickCheck({ issues, qcPanel, qcSummary, qcList, onSelect
  *  },
  *  appTitle: string,
  *  setHud: (msg: string) => void,
+ *  onQuickCheckPick?: (info: { uuid: string, kind: string, path: string }) => void,
  * }} deps
  */
 export function createUiFileController(deps) {
+<<<<<<< HEAD
+  const { core, elements, appTitle, setHud, onQuickCheckPick } = deps;
+=======
   const { core, elements, selectionController, appTitle, setHud } = deps;
+>>>>>>> origin/main
   const { fileLabel, btnSave, btnSaveAs, btnExport, qcPanel, qcSummary, qcList } = elements || {};
   let extraDirty = null;
   let invoker = null;
+  const inFlight = { save: false, saveas: false, export: false };
+  // QuickCheck: click an issue to select+focus in the main app.
+  if (qcList instanceof HTMLElement) {
+    qcList.addEventListener(
+      "click",
+      (ev) => {
+        const t = ev.target instanceof Element ? ev.target : null;
+        const item = t?.closest?.(".qc-item");
+        if (!(item instanceof HTMLElement)) return;
+        const uuid = String(item.dataset.uuid || "");
+        const kind = String(item.dataset.kind || "");
+        const path = String(item.dataset.path || "");
+        if (!uuid && !path) return;
+        try { onQuickCheckPick && onQuickCheckPick({ uuid, kind, path }); } catch {}
+      },
+      { passive: true }
+    );
+  }
+
 
   function isCoreDirty() {
     return !!core?.isDirty?.();
@@ -176,7 +224,7 @@ function syncTitle() {
       }
       if (btnExport) {
         // NOTE: Export uses strict normalization and clears dirty (same as Save/SaveAs).
-        btnExport.title = !hasDoc ? "Open a file first" : (extra ? "Apply edits before Export" : "Export (marks clean)" );
+        btnExport.title = !hasDoc ? "Open a file first" : (extra ? "Apply edits before Export" : "Export (does not save)" );
       }
     } catch {}
   }
@@ -192,6 +240,22 @@ function syncTitle() {
 
   function canUseSaveFsa() {
     return typeof window !== "undefined" && typeof window.showSaveFilePicker === "function";
+  }
+
+  function preopenDownloadWindowIfNeeded() {
+    // Called synchronously inside a user gesture to keep Safari/iOS download fallback unblocked.
+    if (canUseSaveFsa()) return null;
+    try {
+      const w = window.open("", "_blank", "noopener");
+      if (!w) return null;
+      try {
+        w.document.title = "Preparing…";
+        w.document.body.innerHTML = '<p style="font-family:system-ui; padding:12px;">Preparing file…</p>';
+      } catch {}
+      return w;
+    } catch {
+      return null;
+    }
   }
 
   async function withFocusRestore(fn) {
@@ -283,117 +347,130 @@ function syncTitle() {
     return handle;
   }
 
+
   async function handleFileAction(action, { ensureEditsApplied } = {}) {
     const act = String(action || "").toLowerCase();
     if (!core?.getDocument?.()) return;
     if (ensureEditsApplied && !ensureEditsApplied()) return;
 
-    const doc = core.getDocument();
-    if (!(await ensureStrictOk(doc))) return;
+    if (!Object.prototype.hasOwnProperty.call(inFlight, act)) return;
 
-    const jsonText = JSON.stringify(doc, null, 2);
-
-    // --- Export ---
-    if (act === "export") {
-      // Prefer FSA when available; fallback to download.
-      if (canUseSaveFsa()) {
-        try {
-          const suggestedName = defaultExportName();
-          const handle = await withFocusRestore(() => pickSaveHandle({ suggestedName }));
-          await writeToHandle(handle, jsonText);
-          core?.markClean?.(); // policy: Export resolves dirty
-          syncTitle();
-          setHud(`Exported: ${handle?.name || suggestedName}`);
-          return;
-        } catch (e) {
-          if (isAbortError(e)) {
-            setHud("Export cancelled");
-            return;
-          }
-          // fallback: download
-          const fn = defaultExportName();
-          dl(fn, jsonText);
-          core?.markClean?.(); // policy
-          syncTitle();
-          setHud(`Exported (download): ${fn}`);
-          return;
-        }
-      }
-
-      const fn = defaultExportName();
-      dl(fn, jsonText);
-      core?.markClean?.();
-      syncTitle();
-      setHud(`Exported (download): ${fn}`);
+    if (inFlight[act]) {
+      setHud(`${act} already running`);
       return;
     }
+    inFlight[act] = true;
 
-    // --- Save / SaveAs ---
-    if (act === "save" || act === "saveas") {
-      // FSA path
-      if (canUseSaveFsa()) {
-        // Save: try existing handle first
-        if (act === "save") {
-          const handle = core?.getSaveHandle?.();
-          if (handle) {
-            try {
-              await writeToHandle(handle, jsonText);
-              core?.setSaveLabel?.(handle?.name || defaultSaveName());
-              core?.markClean?.();
-              syncTitle();
-              setHud(`Saved: ${handle?.name || defaultSaveName()}`);
+    // iOS Safari / no-FSA path: pre-open a window synchronously (user gesture),
+    // then navigate it to the Blob URL after async validation work.
+    const preopenedWindow = (act === "save" || act === "saveas" || act === "export")
+      ? preopenDownloadWindowIfNeeded()
+      : null;
+
+    try {
+      const doc = core.getDocument();
+      if (!(await ensureStrictOk(doc))) return;
+
+      const jsonText = JSON.stringify(doc, null, 2);
+
+      // --- Export ---
+      if (act === "export") {
+        // Prefer FSA when available; fallback to download/new-tab.
+        if (canUseSaveFsa()) {
+          try {
+            const suggestedName = defaultExportName();
+            const handle = await withFocusRestore(() => pickSaveHandle({ suggestedName }));
+            await writeToHandle(handle, jsonText);
+            setHud(`Exported: ${handle?.name || suggestedName}`);
+            return;
+          } catch (e) {
+            if (isAbortError(e)) {
+              setHud("Export cancelled");
               return;
-            } catch (e) {
-              // If overwrite failed, fall through to SaveAs
-              core?.clearSaveHandle?.();
-              if (!isAbortError(e)) setHud(`Save failed; trying Save As...`);
+            }
+            const fn = defaultExportName();
+            dl(fn, jsonText, { preopenedWindow });
+            setHud(`Exported (download): ${fn}`);
+            return;
+          }
+        }
+
+        const fn = defaultExportName();
+        dl(fn, jsonText, { preopenedWindow });
+        setHud(`Exported (download): ${fn}`);
+        return;
+      }
+
+      // --- Save / SaveAs ---
+      if (act === "save" || act === "saveas") {
+        // FSA path
+        if (canUseSaveFsa()) {
+          // Save: try existing handle first
+          if (act === "save") {
+            const handle = core?.getSaveHandle?.();
+            if (handle) {
+              try {
+                await writeToHandle(handle, jsonText);
+                core?.setSaveLabel?.(handle?.name || defaultSaveName());
+                core?.markClean?.();
+                syncTitle();
+                setHud(`Saved: ${handle?.name || defaultSaveName()}`);
+                return;
+              } catch (e) {
+                // If overwrite failed, fall through to SaveAs
+                core?.clearSaveHandle?.();
+              }
             }
           }
+
+          // SaveAs / fallback from Save
+          try {
+            const suggestedName = defaultSaveName();
+            const handle = await withFocusRestore(() => pickSaveHandle({ suggestedName }));
+            await writeToHandle(handle, jsonText);
+            core?.setSaveHandle?.(handle);
+            core?.setSaveLabel?.(handle?.name || suggestedName);
+            core?.markClean?.();
+            syncTitle();
+            setHud(`Saved: ${handle?.name || suggestedName}`);
+            return;
+          } catch (e) {
+            if (isAbortError(e)) {
+              setHud(act === "save" ? "Save cancelled" : "Save As cancelled");
+              return;
+            }
+            // Fallback to download
+          }
         }
 
-        // SaveAs (or Save fallback)
-        try {
-          const suggestedName = defaultSaveName();
-          const handle = await withFocusRestore(() => pickSaveHandle({ suggestedName }));
-          await writeToHandle(handle, jsonText);
-          core?.setSaveHandle?.(handle, handle?.name || suggestedName);
-          core?.markClean?.();
-          syncTitle();
-          setHud(act === "saveas" ? `Saved As: ${handle?.name || suggestedName}` : `Saved: ${handle?.name || suggestedName}`);
-          return;
-        } catch (e) {
-          if (isAbortError(e)) {
-            setHud(act === "saveas" ? "Save As cancelled" : "Save cancelled");
+        // Download fallback (no FSA)
+        let fn = defaultSaveName();
+        if (act === "saveas") {
+          const name = window.prompt("Save As filename:", fn);
+          if (!name) {
+            setHud("Save As cancelled");
             return;
           }
-          // fall through to download fallback
-          setHud(`Save failed; using download fallback`);
+          fn = String(name).trim() || fn;
+          core?.setSaveLabel?.(fn);
+        } else {
+          const s = core?.getSaveLabel?.();
+          if (typeof s === "string" && s.trim()) fn = s.trim();
         }
-      }
 
-      // download fallback (no FSA or failed)
-      let fn = defaultSaveName();
-      // For SaveAs without FSA, allow naming.
-      if (act === "saveas") {
-        const name = window.prompt("Save As filename (.json)", fn);
-        if (name == null) {
-          setHud("Save As cancelled");
-          return;
-        }
-        fn = buildSuggestedName({ base: name, kind: "save" });
+        dl(fn, jsonText, { preopenedWindow });
+        core?.markClean?.();
+        syncTitle();
+        setHud(`${act === "save" ? "Saved" : "Saved As"} (download): ${fn}`);
+        return;
       }
-      dl(fn, jsonText);
-      core?.setSaveLabel?.(fn);
-      core?.clearSaveHandle?.();
-      core?.markClean?.();
-      syncTitle();
-      setHud(act === "saveas" ? `Saved As (download): ${fn}` : `Saved (download): ${fn}`);
-      return;
+    } finally {
+      inFlight[act] = false;
     }
-
-    // Unknown action
-    setHud(`Unknown file action: ${act}`);
   }
+
+
+
 
   function attachBeforeUnload({ signal } = {}) {
     const opts = { capture: true };

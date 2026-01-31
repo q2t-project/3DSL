@@ -580,7 +580,7 @@ async function importNormalize(raw) {
   const collapsedGroups = new Set();
   let groupSeq = 1;
   let uiState = {
-    activeTab: "points",
+    activeTab: "all",
     activeTool: "select",
     frameIndex: 0,
     // UI-only playback state (does not affect export/dirty)
@@ -981,7 +981,7 @@ async function importNormalize(raw) {
 
     // Normalize UI-only state.
     const tab = String(next.activeTab || "points");
-    next.activeTab = (tab === "points" || tab === "lines" || tab === "aux") ? tab : "points";
+    next.activeTab = (tab === "all" || tab === "points" || tab === "lines" || tab === "aux") ? tab : "all";
 
     const tool = String(next.activeTool || "select");
     next.activeTool = (tool === "move" || tool === "select") ? tool : "select";
@@ -1059,6 +1059,52 @@ async function importNormalize(raw) {
         });
       }
     }
+
+
+    // frames type validation (warn)
+    const checkFrames = (kind, arr, basePath) => {
+      if (!Array.isArray(arr)) return;
+      for (let i = 0; i < arr.length; i++) {
+        const it = arr[i];
+        const uuid = it?.meta?.uuid ?? null;
+        const frames = it?.appearance?.frames;
+        if (frames == null) continue;
+        const p = `${basePath}/${i}/appearance/frames`;
+        const bad = (msg, actual) =>
+          push({
+            severity: "warn",
+            uuid,
+            kind,
+            path: p,
+            expected: "number or number[] (finite integers)",
+            actual,
+            message: msg
+          });
+
+        if (typeof frames === "number") {
+          if (!Number.isFinite(frames) || !Number.isInteger(frames)) {
+            bad("frames must be a finite integer", frames);
+          }
+          continue;
+        }
+        if (Array.isArray(frames)) {
+          for (let j = 0; j < frames.length; j++) {
+            const v = frames[j];
+            if (!Number.isFinite(v) || !Number.isInteger(v)) {
+              bad(`frames[${j}] must be a finite integer`, v);
+              break;
+            }
+          }
+          continue;
+        }
+        bad("frames must be a number or an array of numbers", typeof frames);
+      }
+    };
+
+    checkFrames("point", doc.points, "/points");
+    checkFrames("line", doc.lines, "/lines");
+    checkFrames("aux", doc.aux, "/aux");
+
 
 
 // Import extras (info): unknown fields stripped during importNormalize()
@@ -1302,6 +1348,89 @@ if (importExtras && typeof importExtras === "object") {
     return { removed };
   }
 
+<<<<<<< HEAD
+  // Reorder selected items within the outliner list.
+  // kind: points/lines/aux (also accepts point/line)
+  // mode: top/up/down/bottom
+  function reorderSelection(kind, mode) {
+    const doc = document3dss;
+    if (!doc || typeof doc !== "object") return false;
+
+    const kRaw = String(kind || "");
+    const k = (kRaw === "point" ? "points" : (kRaw === "line" ? "lines" : kRaw));
+    if (k !== "points" && k !== "lines" && k !== "aux") return false;
+
+    const m = String(mode || "");
+    if (m !== "top" && m !== "up" && m !== "down" && m !== "bottom") return false;
+
+    const sel = Array.isArray(selectionUuids) ? selectionUuids.slice() : [];
+    if (sel.length === 0) return false;
+
+    const selSet = new Set(sel);
+
+    let changed = false;
+    updateDocument((cur) => {
+      const arr = Array.isArray(cur?.[k]) ? cur[k] : [];
+      const idxs = [];
+      for (let i = 0; i < arr.length; i++) {
+        const u = arr[i]?.uuid;
+        if (u && selSet.has(u)) idxs.push(i);
+      }
+      if (idxs.length === 0) return cur;
+
+      const next = cloneDoc(cur);
+      const nextArr = Array.isArray(next?.[k]) ? next[k] : [];
+
+      // Helper: remove indices (descending) and return removed items in original order.
+      const removeByIndices = (indices) => {
+        const sorted = indices.slice().sort((a, b) => a - b);
+        const removed = sorted.map((i) => nextArr[i]).filter(Boolean);
+        for (let i = sorted.length - 1; i >= 0; i--) {
+          nextArr.splice(sorted[i], 1);
+        }
+        return removed;
+      };
+
+      if (m === "top") {
+        const removed = removeByIndices(idxs);
+        if (removed.length) {
+          nextArr.unshift(...removed);
+          changed = true;
+        }
+      } else if (m === "bottom") {
+        const removed = removeByIndices(idxs);
+        if (removed.length) {
+          nextArr.push(...removed);
+          changed = true;
+        }
+      } else if (m === "up") {
+        const sorted = idxs.slice().sort((a, b) => a - b);
+        for (const i of sorted) {
+          if (i <= 0) continue;
+          if (selSet.has(nextArr[i - 1]?.uuid)) continue;
+          const tmp = nextArr[i - 1];
+          nextArr[i - 1] = nextArr[i];
+          nextArr[i] = tmp;
+          changed = true;
+        }
+      } else if (m === "down") {
+        const sorted = idxs.slice().sort((a, b) => b - a);
+        for (const i of sorted) {
+          if (i >= nextArr.length - 1) continue;
+          if (selSet.has(nextArr[i + 1]?.uuid)) continue;
+          const tmp = nextArr[i + 1];
+          nextArr[i + 1] = nextArr[i];
+          nextArr[i] = tmp;
+          changed = true;
+        }
+      }
+
+      return changed ? next : cur;
+    });
+
+    if (changed) {
+      try { setUiState({ activeTab: k }); } catch {}
+=======
 
 function _findPathByUuidInDoc(doc, uuid, kindHint) {
   if (!doc || !uuid) return null;
@@ -1358,8 +1487,23 @@ function _resolveIssueLike(issue) {
           }
         }
       }
+>>>>>>> origin/main
     }
+    return changed;
   }
+
+  function focusByIssue(issue) {
+    // Best-effort focus: select item + switch outliner tab when possible.
+    if (issue && typeof issue === "object") {
+      const { uuid, kind } = issue;
+      if (uuid && (kind === "point" || kind === "line" || kind === "aux")) {
+        setSelection([uuid]);
+      }
+    }
+    emitter.emit("focus", issue);
+  }
+<<<<<<< HEAD
+=======
 
   // Infer kind from uuid by scanning doc.
   if (uuid && hasDoc && (!kind || (kind !== "point" && kind !== "line" && kind !== "aux"))) {
@@ -1401,6 +1545,7 @@ function focusByIssue(issue) {
   // Fallback: still emit focus for UI hooks.
   emitter.emit("focus", issue);
 }
+>>>>>>> origin/main
 
 
   return {
@@ -1427,6 +1572,7 @@ function focusByIssue(issue) {
       canRedo
     },
     selection: { get: () => [...selection], set: setSelection },
+    reorderSelection,
     lock: { toggle: toggleLock, list: listLocks, set: setLocks },
     visibility: {
       toggleHidden,

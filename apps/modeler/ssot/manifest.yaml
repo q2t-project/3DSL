@@ -121,6 +121,12 @@ ports:
     surface: "hub.worldPointOnPlaneZ(ndcX, ndcY, planeZ) -> [x,y,z] | null (3DSS coords)"
     stability: "stable"
 
+  - id: "hub.projectToNdc"
+    caller: "ui"
+    callee: "hub"
+    surface: "hub.projectToNdc(pos:[x,y,z]) -> [x,y,z] | null (NDC)"
+    stability: "beta"
+
   - id: "hub.previewSetPosition"
     caller: "ui"
     callee: "hub"

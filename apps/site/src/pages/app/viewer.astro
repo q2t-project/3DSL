@@ -48,6 +48,16 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
       <button id="app-viewer-back" class="app-viewer-back" type="button" aria-label="戻る">← 戻る</button>
       <div id="app-viewer-title" class="app-viewer-title" aria-label="現在のコンテンツ"></div>
 
+      <div class="app-viewer-badge" title="鑑賞専用（編集は Modeler）">鑑賞専用</div>
+
+      <a
+        class="app-viewer-tutorial"
+        href="/docs/modeler/tutorial"
+        title="構造を作る：3DSL Modeler 最小チュートリアル"
+      >
+        最小チュートリアル
+      </a>
+
       <div class="app-viewer-actions" aria-label="アクション">
         <!-- input action (standalone /app/viewer) -->
         <button id="app-viewer-open" class="app-viewer-action" type="button" aria-label="開く" title="開く">
@@ -69,6 +79,11 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
         </button>
       </div>
 
+    </div>
+
+    <div class="app-viewer-footer" aria-label="補助リンク">
+      <span class="app-viewer-footer-note">Viewer は鑑賞専用です。</span>
+      <a class="app-viewer-footer-link" href="/docs/modeler/tutorial">作り方：最小チュートリアル</a>
     </div>
 
     <div id="app-viewer-open-modal" class="app-viewer-open-modal" hidden>
@@ -1357,6 +1372,65 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
         user-select: none;
       }
 
+<<<<<<< HEAD
+      .app-viewer-badge {
+        padding: 9px 12px;
+        font: 12px/1.1 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        letter-spacing: 0.02em;
+        color: var(--app-viewer-ui-fg);
+        background: color-mix(in srgb, var(--app-viewer-ui-bg) 92%, transparent);
+        border: 1px solid var(--app-viewer-ui-border);
+        border-radius: 999px;
+        user-select: none;
+        opacity: 0.92;
+      }
+
+      .app-viewer-tutorial {
+        padding: 9px 12px;
+        font: 12px/1.1 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        letter-spacing: 0.01em;
+        color: var(--app-viewer-ui-fg);
+        text-decoration: none;
+        background: var(--app-viewer-ui-bg);
+        border: 1px solid var(--app-viewer-ui-border);
+        border-radius: 999px;
+        opacity: 0.92;
+        user-select: none;
+      }
+
+      .app-viewer-tutorial:hover {
+        opacity: 1;
+      }
+
+      .app-viewer-footer {
+        position: fixed;
+        left: 10px;
+        bottom: 10px;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        color: var(--app-viewer-ui-fg);
+        background: var(--app-viewer-ui-bg);
+        border: 1px solid var(--app-viewer-ui-border);
+        font: 12px/1.2 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        max-width: min(92vw, 520px);
+      }
+
+      .app-viewer-footer-note {
+        opacity: 0.9;
+      }
+
+      .app-viewer-footer-link {
+        color: var(--app-viewer-ui-fg);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      .app-viewer-actions {
+=======
       .app-viewer-title {
       flex: 1;
       min-width: 0;
@@ -1370,6 +1444,7 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
     }
 
     .app-viewer-actions {
+>>>>>>> origin/main
         display: flex;
         gap: 8px;
       }

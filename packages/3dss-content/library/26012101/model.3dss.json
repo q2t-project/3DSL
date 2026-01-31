@@ -1,6 +1,6 @@
 {
   "document_meta": {
-    "document_title": "stress test (1000 points, 2000 lines)",
+    "document_title": "描画負荷テスト：1000点・2000線（Stress Test）",
     "document_summary": "Auto-generated for high-load rendering benchmarks.",
     "document_uuid": "aea8ff3b-67c7-4339-9608-3c24a67983b8",
     "version": "1.0.0",

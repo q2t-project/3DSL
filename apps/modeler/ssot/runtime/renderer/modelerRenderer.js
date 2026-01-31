@@ -365,6 +365,11 @@ export function createRenderer(canvas) {
   const controls = new OrbitControls(camera, canvas);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
+  // Match viewer orbit direction (apps/viewer/ssot/ui/orbitMapping.js):
+  // - drag right => yaw right
+  // - drag down  => pitch down
+  // OrbitControls default feels opposite in this setup, so invert rotate speed.
+  controls.rotateSpeed = -1;
   controls.target.set(0, 0, 0);
   controls.update();
 
@@ -735,6 +740,13 @@ if (Array.isArray(doc.aux)) {
 
   function setSelection(selection) {
     const sel = new Set(Array.isArray(selection) ? selection.map(String) : []);
+
+    // Auto-focus on single selection (Preview Out UX):
+    // keep the selected element centered and use a stable zoom distance.
+    if (sel.size === 1) {
+      const u = sel.values().next().value;
+      try { focusOnUuid(u, { smooth: true, durationMs: 220, mode: "fixed" }); } catch {}
+    }
     for (const [uuid, obj] of objByUuid.entries()) {
       const base = baseColorByUuid.get(uuid);
       const isSel = sel.has(uuid);
@@ -774,10 +786,19 @@ if (Array.isArray(doc.aux)) {
     const smooth = !!opts?.smooth;
     const durationMs = Math.max(0, Math.floor(opts?.durationMs ?? 260));
 
-    // Keep the current camera offset, just move the target.
+    // Keep current camera offset by default, but allow a stable zoom distance.
     const off = camera.position.clone().sub(controls.target);
     const nextTarget = pos.clone();
-    const nextCam = pos.clone().add(off);
+
+    let nextCam;
+    if (opts?.mode === "fixed") {
+      const kind = String(obj?.userData?.kind || "");
+      const dir = off.lengthSq() > 1e-9 ? off.clone().normalize() : new THREE.Vector3(-1, 1, 1).normalize();
+      const dist = kind === "line" ? (opts?.lineDist ?? 90) : (opts?.pointDist ?? 70);
+      nextCam = pos.clone().add(dir.multiplyScalar(dist));
+    } else {
+      nextCam = pos.clone().add(off);
+    }
 
     if (!smooth || durationMs <= 0) {
       controls.target.copy(nextTarget);
@@ -914,6 +935,24 @@ function worldPointOnPlaneZ(ndcX, ndcY, planeZ) {
   if (!hit) return null;
 
   return mapThreeTo3dss(hit);
+}
+
+/**
+ * Project a 3DSS world position into NDC.
+ * Used by UI overlays that are rendered in DOM/SVG layers.
+ * @param {[number,number,number]} pos 3DSS position
+ * @returns {[number,number,number] | null} ndc position (three/camera NDC)
+ */
+function projectToNdc(pos) {
+  try {
+    if (!Array.isArray(pos) || pos.length < 3) return null;
+    const v = map3dssToThree([Number(pos[0]) || 0, Number(pos[1]) || 0, Number(pos[2]) || 0]);
+    const p = v.clone();
+    p.project(camera);
+    return [p.x, p.y, p.z];
+  } catch (_e) {
+    return null;
+  }
 }
 
 /**
@@ -1214,7 +1253,7 @@ function getDebugPoseSnapshot(opts = {}) {
     renderer.dispose();
   }
 
-  return { start, stop, resize, dispose, setDocument, applyVisibility, pickObjectAt, setSelection, focusOnUuid, worldPointOnPlaneZ, previewSetPosition, previewSetLineEnds, previewSetCaptionText, previewSetOverride, setFrameIndex, setWorldAxisMode, getDebugPoseSnapshot };
+  return { start, stop, resize, dispose, setDocument, applyVisibility, pickObjectAt, setSelection, focusOnUuid, worldPointOnPlaneZ, projectToNdc, previewSetPosition, previewSetLineEnds, previewSetCaptionText, previewSetOverride, setFrameIndex, setWorldAxisMode, getDebugPoseSnapshot };
 }
 
 // NOTE:

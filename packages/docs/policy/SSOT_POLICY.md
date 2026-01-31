@@ -50,7 +50,29 @@
 - `_generated/**` は **直接編集禁止**
 - 編集したくなったら generator を直す（生成ロジックがSSOT）
 
-### 3.4 UI 状態 / 作業状態
+
+
+### 3.4 Mirrored（site/public へのミラー）
+- `apps/site/public/**` のうち、下記は **sync により生成されるミラー**（作業ツリー上に存在しても **Git 追跡しない**）：
+  - `apps/site/public/viewer/`（SSOT: `apps/viewer/ssot`）
+  - `apps/site/public/modeler_app/`（SSOT: `apps/modeler/ssot`）
+  - `apps/site/public/vendor/`（SSOT: `packages/vendor`）
+  - `apps/site/public/schemas/`（SSOT: `packages/schemas`）
+  - `apps/site/public/_data/`（SSOT: `packages/3dss-content/dist` 等）
+  - `apps/site/public/fixtures/`（SSOT: `packages/3dss-content`）
+
+- Vendor 更新の作業手順は `packages/docs/docs/ops/vendor_update.md` を参照。
+
+- これらが Git で追跡されると **SSOT が二重化**し、差分・レビュー・CI を破壊するため禁止。
+- 検知は `apps/site/scripts/check/generated-clean.mjs`（`npm run check:generated-clean`）で **必ず落とす**。
+
+**復旧手順（誤って追跡した場合）**
+- index から外す（作業ツリーは残す）：
+  - `git rm -r --cached apps/site/public/modeler_app apps/site/public/_data apps/site/public/vendor apps/site/public/schemas apps/site/public/fixtures apps/site/public/viewer`
+- `.gitignore` に上記ミラーを追加
+- `npm run sync:all` → `npm run check:ssot` で整合確認
+
+### 3.5 UI 状態 / 作業状態
 - UI状態（選択、列構成、ロック等）は **契約データへ混入禁止**
 - 永続が要る場合は sidecar（`.sidecar.json` 等）へ隔離
 
@@ -94,3 +116,32 @@
 ## 8. このポリシーの適用範囲
 このポリシーはプロジェクト全体に適用する。
 アプリ固有の例外・追加ルールは `apps/<app>/ssot/SSOT_POLICY.md` に記載する。
+
+---
+
+## X. apps / packages / vendor の確定契約（2026-01-31）
+本プロジェクトの **実行単位（apps）**、**共有単位（packages）**、**外部依存（vendor）** の扱いは次で固定する。
+
+### X.1 apps（ランタイム）
+- `apps/viewer/` : 閲覧専用の Viewer アプリ
+- `apps/modeler/` : 編集用の Modeler アプリ（方針A：独立アプリとして復活【確定】）
+- `apps/site/` : 静的サイト（配布ハブ / docs / library / SEO）
+
+`apps/site` は Viewer / Modeler の実装本体を内包しない（導線と表示に専念）。
+
+### X.2 packages（共有・公開単位）
+- schema / renderer / core / ui / docs など共有資産は `packages/` に集約する。
+- 公開単位（将来の npm 等）は packages を想定し、apps は実行・デモ用途に留める。
+
+### X.3 vendor（外部依存の同梱）
+- three 等の外部ライブラリは **同梱配布**とし、SSOT は `packages/vendor/**` に一本化する。
+- `apps/*/public/vendor/**` は sync により生成されるミラー（生成物）であり、手編集は禁止。
+
+### X.4 public（配信用ミラー）
+
+- `apps/site/public/**` は配布用のミラーであり、SSOT から sync で生成される（手編集は禁止）。
+- `apps/modeler/public/**` は Modeler standalone dev/build 用の配信用ミラーであり、
+  SSOT（`apps/modeler/ssot/**` と `packages/vendor/**`）から sync で生成される（手編集は禁止）。
+
+詳細は `packages/docs/docs/ARCHITECTURE.md` を参照。
+
