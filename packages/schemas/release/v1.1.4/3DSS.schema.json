@@ -1,0 +1,1610 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json",
+  "$anchor": "v1.1.4",
+  "type": "object",
+  "properties": {
+    "lines": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/line/node"
+      }
+    },
+    "points": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/point/node"
+      }
+    },
+    "aux": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/aux/node"
+      }
+    },
+    "document_meta": {
+      "$ref": "#/$defs/meta/document"
+    }
+  },
+  "required": [
+    "document_meta"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "validator": {
+      "schema_uri": {
+        "type": "string",
+        "const": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4"
+      },
+      "uuid": {
+        "type": "string",
+        "pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+      },
+      "uuid_v4": {
+        "type": "string",
+        "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+      },
+      "uri": {
+        "$ref": "#/$defs/validator/uri_http_like"
+      },
+      "uri_http_like": {
+        "type": "string",
+        "pattern": "^(https?|ftp|file)://\\S+$"
+      },
+      "path_ref": {
+        "type": "string",
+        "pattern": "^[\\w./-]+$"
+      },
+      "tag": {
+        "type": "string",
+        "pattern": "^(s|m|x):[^\\s:]+$"
+      },
+      "language_code": {
+        "type": "string",
+        "enum": [
+          "ja",
+          "en"
+        ]
+      },
+      "units": {
+        "type": "string",
+        "enum": [
+          "m",
+          "cm",
+          "mm",
+          "non_si:px"
+        ]
+      },
+      "semver": {
+        "type": "string",
+        "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+      },
+      "timestamp_utc": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+      },
+      "author": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9._-]+(@[a-zA-Z0-9.-]+)?$"
+      },
+      "color_hex": {
+        "type": "string",
+        "pattern": "^#(?:[0-9a-fA-F]{3}){1,2}$"
+      },
+      "vec3": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 3,
+        "maxItems": 3
+      },
+      "frames": {
+        "oneOf": [
+          {
+            "type": "integer",
+            "minimum": -9999,
+            "maximum": 9999
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": -9999,
+              "maximum": 9999
+            },
+            "uniqueItems": true,
+            "minItems": 1,
+            "maxItems": 256
+          }
+        ]
+      }
+    },
+    "spatial": {
+      "position": {
+        "$ref": "#/$defs/validator/vec3"
+      },
+      "orientation": {
+        "$ref": "#/$defs/validator/vec3"
+      },
+      "scale": {
+        "$ref": "#/$defs/validator/vec3"
+      },
+      "rotation": {
+        "$ref": "#/$defs/validator/vec3"
+      },
+      "offset": {
+        "$ref": "#/$defs/validator/vec3"
+      },
+      "axis_signed": {
+        "type": "string",
+        "enum": [
+          "+x",
+          "-x",
+          "+y",
+          "-y",
+          "+z",
+          "-z"
+        ]
+      },
+      "vec3": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 3,
+        "maxItems": 3,
+        "description": "3D vector [x,y,z]."
+      }
+    },
+    "geometry": {
+      "line_geometry": {
+        "type": "object",
+        "properties": {
+          "dimension": {
+            "type": "integer",
+            "enum": [
+              2,
+              3
+            ]
+          },
+          "polyline_points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/validator/vec3"
+            }
+          },
+          "bezier_controls": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 2,
+            "items": {
+              "$ref": "#/$defs/validator/vec3"
+            }
+          },
+          "arc_center": {
+            "$ref": "#/$defs/validator/vec3"
+          },
+          "arc_radius": {
+            "type": "number",
+            "minimum": 0
+          },
+          "arc_angle_start": {
+            "type": "number"
+          },
+          "arc_angle_end": {
+            "type": "number"
+          },
+          "arc_clockwise": {
+            "type": "boolean"
+          },
+          "catmullrom_points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/validator/vec3"
+            }
+          },
+          "catmullrom_tension": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "extension": {
+      "parametric": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "minLength": 1
+          },
+          "version": {
+            "$ref": "#/$defs/validator/semver"
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              ]
+            }
+          },
+          "bindings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "target": {
+                  "$ref": "#/$defs/validator/path_ref"
+                },
+                "expression": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "target",
+                "expression"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "seed": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "additionalProperties": false
+      },
+      "latex": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "minLength": 1
+          },
+          "render_mode": {
+            "type": "string",
+            "enum": [
+              "math",
+              "inline",
+              "block"
+            ]
+          },
+          "font_size": {
+            "type": "number"
+          },
+          "color": {
+            "$ref": "#/$defs/validator/color_hex"
+          },
+          "position": {
+            "$ref": "#/$defs/validator/vec3"
+          },
+          "pose": {
+            "$ref": "#/$defs/text_pose",
+            "default": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        },
+        "required": [
+          "content",
+          "pose"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "labels": {
+      "localized_string": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "ja": {
+                "type": "string"
+              },
+              "en": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "caption_text_style": {
+        "type": "object",
+        "properties": {
+          "font_size": {
+            "type": "number",
+            "minimum": 0.125,
+            "maximum": 256,
+            "default": 8
+          },
+          "pose": {
+            "$ref": "#/$defs/text_pose",
+            "default": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "line": {
+      "relation": {
+        "type": "object",
+        "properties": {
+          "structural": {
+            "type": "string",
+            "enum": [
+              "association",
+              "containment",
+              "hierarchy"
+            ]
+          },
+          "dynamic": {
+            "type": "string",
+            "enum": [
+              "causal",
+              "flow",
+              "influence",
+              "derivation",
+              "transformation",
+              "feedback",
+              "recursion",
+              "reflection"
+            ]
+          },
+          "logical": {
+            "type": "string",
+            "enum": [
+              "equivalence",
+              "negation",
+              "implication",
+              "support",
+              "conflict"
+            ]
+          },
+          "temporal": {
+            "type": "string",
+            "enum": [
+              "precedence",
+              "succession"
+            ]
+          },
+          "meta": {
+            "type": "string",
+            "enum": [
+              "reference"
+            ]
+          }
+        },
+        "minProperties": 1,
+        "maxProperties": 1,
+        "additionalProperties": false
+      },
+      "signification": {
+        "type": "object",
+        "properties": {
+          "relation": {
+            "$ref": "#/$defs/line/relation"
+          },
+          "sense": {
+            "type": "string",
+            "enum": [
+              "a_to_b",
+              "b_to_a",
+              "bidirectional",
+              "neutral"
+            ],
+            "default": "a_to_b"
+          },
+          "caption": {
+            "$ref": "#/$defs/labels/localized_string",
+            "default": ""
+          }
+        },
+        "additionalProperties": false
+      },
+      "endpoint": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "ref": {
+                "$ref": "#/$defs/validator/uuid"
+              }
+            },
+            "required": [
+              "ref"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "coord": {
+                "$ref": "#/$defs/validator/vec3"
+              }
+            },
+            "required": [
+              "coord"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "arrow": {
+        "type": "object",
+        "properties": {
+          "primitive": {
+            "type": "string",
+            "enum": [
+              "none",
+              "line",
+              "cone",
+              "pyramid"
+            ]
+          },
+          "length": {
+            "type": "number",
+            "minimum": 0.0001
+          },
+          "thickness": {
+            "type": "number",
+            "minimum": 0.0001
+          },
+          "radius": {
+            "type": "number",
+            "minimum": 0.0001
+          },
+          "height": {
+            "type": "number",
+            "minimum": 0.0001
+          },
+          "base": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "minimum": 0.0001
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "placement": {
+            "type": "string",
+            "enum": [
+              "end_a",
+              "end_b",
+              "both",
+              "none"
+            ],
+            "default": "end_b"
+          },
+          "auto_orient": {
+            "type": "boolean",
+            "default": true
+          }
+        },
+        "required": [
+          "primitive"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "primitive": {
+                  "const": "line"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "length": {},
+                "thickness": {}
+              },
+              "required": [
+                "length",
+                "thickness"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "primitive": {
+                  "const": "cone"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "radius": {},
+                "height": {}
+              },
+              "required": [
+                "radius",
+                "height"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "primitive": {
+                  "const": "pyramid"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "base": {},
+                "height": {}
+              },
+              "required": [
+                "base",
+                "height"
+              ]
+            }
+          }
+        ]
+      },
+      "effect": {
+        "type": "object",
+        "properties": {
+          "effect_type": {
+            "type": "string",
+            "enum": [
+              "none",
+              "pulse",
+              "flow",
+              "glow"
+            ],
+            "default": "none"
+          },
+          "amplitude": {
+            "type": "number",
+            "minimum": 0,
+            "default": 1
+          },
+          "speed": {
+            "type": "number",
+            "minimum": 0,
+            "default": 1
+          },
+          "duration": {
+            "type": "number",
+            "minimum": 0,
+            "default": 1
+          },
+          "loop": {
+            "type": "boolean",
+            "default": true
+          },
+          "phase": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "default": 0
+          },
+          "easing": {
+            "type": "string",
+            "enum": [
+              "linear",
+              "ease-in",
+              "ease-out",
+              "ease-in-out"
+            ],
+            "default": "linear"
+          },
+          "width": {
+            "type": "number",
+            "default": 1
+          }
+        },
+        "additionalProperties": false
+      },
+      "appearance": {
+        "type": "object",
+        "properties": {
+          "end_a": {
+            "$ref": "#/$defs/line/endpoint"
+          },
+          "end_b": {
+            "$ref": "#/$defs/line/endpoint"
+          },
+          "line_type": {
+            "type": "string",
+            "enum": [
+              "straight",
+              "polyline",
+              "catmullrom",
+              "bezier",
+              "arc"
+            ],
+            "default": "straight"
+          },
+          "geometry": {
+            "$ref": "#/$defs/geometry/line_geometry"
+          },
+          "line_style": {
+            "type": "string",
+            "enum": [
+              "solid",
+              "dashed",
+              "dotted",
+              "double",
+              "none"
+            ],
+            "default": "solid"
+          },
+          "color": {
+            "$ref": "#/$defs/validator/color_hex",
+            "default": "#ffffff"
+          },
+          "opacity": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "default": 0.4
+          },
+          "render_order": {
+            "type": "number",
+            "default": 0
+          },
+          "arrow": {
+            "$ref": "#/$defs/line/arrow"
+          },
+          "effect": {
+            "$ref": "#/$defs/line/effect"
+          },
+          "visible": {
+            "type": "boolean"
+          },
+          "frames": {
+            "$ref": "#/$defs/validator/frames"
+          },
+          "caption_text": {
+            "$ref": "#/$defs/labels/caption_text_style"
+          }
+        },
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "line_type": {
+                  "enum": [
+                    "polyline",
+                    "catmullrom",
+                    "bezier",
+                    "arc"
+                  ]
+                }
+              },
+              "required": [
+                "line_type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "geometry": {}
+              },
+              "required": [
+                "geometry"
+              ]
+            }
+          }
+        ]
+      },
+      "node": {
+        "type": "object",
+        "properties": {
+          "signification": {
+            "$ref": "#/$defs/line/signification"
+          },
+          "appearance": {
+            "$ref": "#/$defs/line/appearance"
+          },
+          "meta": {
+            "$ref": "#/$defs/meta/core"
+          }
+        },
+        "required": [
+          "appearance",
+          "meta"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "point": {
+      "name": {
+        "allOf": [
+          {
+            "$ref": "#/$defs/labels/localized_string"
+          }
+        ],
+        "default": ""
+      },
+      "signification": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "$ref": "#/$defs/point/name"
+          }
+        },
+        "additionalProperties": false
+      },
+      "marker_common": {
+        "type": "object",
+        "properties": {
+          "orientation": {
+            "$ref": "#/$defs/spatial/orientation",
+            "default": [
+              0,
+              0,
+              0
+            ]
+          },
+          "scale": {
+            "$ref": "#/$defs/spatial/scale",
+            "default": [
+              1,
+              1,
+              1
+            ]
+          },
+          "color": {
+            "$ref": "#/$defs/validator/color_hex",
+            "default": "#ffffff"
+          },
+          "opacity": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "default": 0.4
+          },
+          "emissive": {
+            "type": "boolean",
+            "default": false
+          },
+          "wireframe": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "marker_gltf": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "default": ""
+          },
+          "scale": {
+            "$ref": "#/$defs/spatial/scale",
+            "default": [
+              1,
+              1,
+              1
+            ]
+          },
+          "rotation": {
+            "$ref": "#/$defs/spatial/rotation",
+            "default": [
+              0,
+              0,
+              0
+            ]
+          },
+          "offset": {
+            "$ref": "#/$defs/spatial/offset",
+            "default": [
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "marker_text": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "default": ""
+          },
+          "font": {
+            "type": "string",
+            "default": "helvetiker_regular"
+          },
+          "size": {
+            "type": "number",
+            "default": 8
+          },
+          "align": {
+            "type": "string",
+            "enum": [
+              "left&top",
+              "left&middle",
+              "left&baseline",
+              "center&top",
+              "center&middle",
+              "center&baseline",
+              "right&top",
+              "right&middle",
+              "right&baseline"
+            ],
+            "default": "center&middle"
+          },
+          "pose": {
+            "$ref": "#/$defs/text_pose",
+            "default": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "content",
+          "pose"
+        ]
+      },
+      "marker": {
+        "type": "object",
+        "properties": {
+          "common": {
+            "$ref": "#/$defs/point/marker_common"
+          },
+          "primitive": {
+            "type": "string",
+            "enum": [
+              "sphere",
+              "box",
+              "cone",
+              "pyramid",
+              "corona",
+              "none"
+            ]
+          },
+          "radius": {
+            "type": "number",
+            "minimum": 0.0001
+          },
+          "size": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "minimum": 0.0001
+            },
+            "minItems": 3,
+            "maxItems": 3
+          },
+          "height": {
+            "type": "number",
+            "minimum": 0.0001
+          },
+          "base": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "minimum": 0.0001
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "inner_radius": {
+            "type": "number",
+            "minimum": 0.0001
+          },
+          "outer_radius": {
+            "type": "number",
+            "minimum": 0.0001
+          },
+          "gltf": {
+            "$ref": "#/$defs/point/marker_gltf"
+          },
+          "text": {
+            "$ref": "#/$defs/point/marker_text"
+          }
+        },
+        "required": [
+          "primitive"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "primitive": {
+                  "const": "sphere"
+                }
+              },
+              "required": [
+                "primitive"
+              ]
+            },
+            "then": {
+              "properties": {
+                "radius": {}
+              },
+              "required": [
+                "radius"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "primitive": {
+                  "const": "box"
+                }
+              },
+              "required": [
+                "primitive"
+              ]
+            },
+            "then": {
+              "properties": {
+                "size": {}
+              },
+              "required": [
+                "size"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "primitive": {
+                  "const": "cone"
+                }
+              },
+              "required": [
+                "primitive"
+              ]
+            },
+            "then": {
+              "properties": {
+                "radius": {},
+                "height": {}
+              },
+              "required": [
+                "radius",
+                "height"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "primitive": {
+                  "const": "pyramid"
+                }
+              },
+              "required": [
+                "primitive"
+              ]
+            },
+            "then": {
+              "properties": {
+                "base": {},
+                "height": {}
+              },
+              "required": [
+                "base",
+                "height"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "primitive": {
+                  "const": "corona"
+                }
+              },
+              "required": [
+                "primitive"
+              ]
+            },
+            "then": {
+              "properties": {
+                "inner_radius": {},
+                "outer_radius": {}
+              },
+              "required": [
+                "inner_radius",
+                "outer_radius"
+              ]
+            }
+          }
+        ]
+      },
+      "appearance": {
+        "type": "object",
+        "properties": {
+          "position": {
+            "$ref": "#/$defs/spatial/position"
+          },
+          "marker": {
+            "$ref": "#/$defs/point/marker"
+          },
+          "visible": {
+            "type": "boolean"
+          },
+          "frames": {
+            "$ref": "#/$defs/validator/frames"
+          }
+        },
+        "required": [
+          "position"
+        ],
+        "additionalProperties": false
+      },
+      "node": {
+        "type": "object",
+        "properties": {
+          "signification": {
+            "$ref": "#/$defs/point/signification"
+          },
+          "appearance": {
+            "$ref": "#/$defs/point/appearance"
+          },
+          "meta": {
+            "$ref": "#/$defs/meta/core"
+          }
+        },
+        "required": [
+          "appearance",
+          "meta"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "aux": {
+      "module_grid": {
+        "type": "object",
+        "properties": {
+          "grid_type": {
+            "type": "string",
+            "enum": [
+              "cartesian",
+              "polar"
+            ],
+            "default": "cartesian"
+          },
+          "subdivisions": {
+            "type": "integer",
+            "default": 8
+          },
+          "major_step": {
+            "type": "number",
+            "default": 4
+          },
+          "minor_step": {
+            "type": "number",
+            "default": 1
+          },
+          "color_major": {
+            "$ref": "#/$defs/validator/color_hex",
+            "default": "#666666"
+          },
+          "color_minor": {
+            "$ref": "#/$defs/validator/color_hex",
+            "default": "#333333"
+          }
+        },
+        "additionalProperties": false
+      },
+      "module_axis_arrow": {
+        "type": "object",
+        "properties": {
+          "primitive": {
+            "type": "string",
+            "enum": [
+              "none",
+              "line",
+              "cone",
+              "pyramid"
+            ]
+          },
+          "length": {
+            "type": "number",
+            "minimum": 0.0001
+          },
+          "thickness": {
+            "type": "number",
+            "minimum": 0.0001
+          },
+          "radius": {
+            "type": "number",
+            "minimum": 0.0001
+          },
+          "height": {
+            "type": "number",
+            "minimum": 0.0001
+          },
+          "base": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "minimum": 0.0001
+            },
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "required": [
+          "primitive"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "primitive": {
+                  "const": "line"
+                }
+              },
+              "required": [
+                "primitive"
+              ]
+            },
+            "then": {
+              "properties": {
+                "length": {},
+                "thickness": {}
+              },
+              "required": [
+                "length",
+                "thickness"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "primitive": {
+                  "const": "cone"
+                }
+              },
+              "required": [
+                "primitive"
+              ]
+            },
+            "then": {
+              "properties": {
+                "radius": {},
+                "height": {}
+              },
+              "required": [
+                "radius",
+                "height"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "primitive": {
+                  "const": "pyramid"
+                }
+              },
+              "required": [
+                "primitive"
+              ]
+            },
+            "then": {
+              "properties": {
+                "base": {},
+                "height": {}
+              },
+              "required": [
+                "base",
+                "height"
+              ]
+            }
+          }
+        ]
+      },
+      "module_axis": {
+        "type": "object",
+        "properties": {
+          "length": {
+            "type": "number",
+            "default": 64
+          },
+          "labels": {
+            "type": "boolean",
+            "default": true
+          },
+          "arrow": {
+            "$ref": "#/$defs/aux/module_axis_arrow"
+          }
+        },
+        "additionalProperties": false
+      },
+      "module_plate": {
+        "type": "object",
+        "properties": {
+          "plane": {
+            "type": "string",
+            "enum": [
+              "xy",
+              "yz",
+              "zx"
+            ],
+            "default": "xy"
+          },
+          "position": {
+            "$ref": "#/$defs/spatial/position",
+            "default": [
+              0,
+              0,
+              0
+            ]
+          },
+          "size": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 2,
+            "maxItems": 2,
+            "default": [
+              32,
+              32
+            ]
+          },
+          "reflectivity": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "default": 0.5
+          },
+          "opacity": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "default": 0.4
+          }
+        },
+        "additionalProperties": false
+      },
+      "module_shell_effect": {
+        "type": "object",
+        "properties": {
+          "edge_intensity": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "default": 0.5
+          },
+          "rimlight": {
+            "type": "boolean",
+            "default": false
+          },
+          "glow_color": {
+            "$ref": "#/$defs/validator/color_hex",
+            "default": "#ff0000"
+          }
+        },
+        "additionalProperties": false
+      },
+      "module_shell": {
+        "type": "object",
+        "properties": {
+          "shell_type": {
+            "type": "string",
+            "enum": [
+              "sphere",
+              "box",
+              "hemisphere",
+              "quarter_sphere",
+              "eighth_sphere"
+            ],
+            "default": "sphere"
+          },
+          "opacity": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "default": 0.4
+          },
+          "reflectivity": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "default": 0.5
+          },
+          "effect": {
+            "$ref": "#/$defs/aux/module_shell_effect"
+          }
+        },
+        "additionalProperties": false
+      },
+      "module_hud": {
+        "type": "object",
+        "properties": {
+          "follow_camera": {
+            "type": "boolean",
+            "default": true
+          },
+          "scale_with_distance": {
+            "type": "boolean",
+            "default": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "module_extension": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "latex": {
+            "$ref": "#/$defs/extension/latex"
+          },
+          "parametric": {
+            "$ref": "#/$defs/extension/parametric"
+          }
+        },
+        "additionalProperties": false
+      },
+      "module": {
+        "type": "object",
+        "properties": {
+          "grid": {
+            "$ref": "#/$defs/aux/module_grid"
+          },
+          "axis": {
+            "$ref": "#/$defs/aux/module_axis"
+          },
+          "plate": {
+            "$ref": "#/$defs/aux/module_plate"
+          },
+          "shell": {
+            "$ref": "#/$defs/aux/module_shell"
+          },
+          "hud": {
+            "$ref": "#/$defs/aux/module_hud"
+          },
+          "extension": {
+            "$ref": "#/$defs/aux/module_extension"
+          }
+        },
+        "additionalProperties": false
+      },
+      "appearance": {
+        "type": "object",
+        "properties": {
+          "position": {
+            "$ref": "#/$defs/spatial/position",
+            "default": [
+              0,
+              0,
+              0
+            ]
+          },
+          "orientation": {
+            "$ref": "#/$defs/spatial/orientation",
+            "default": [
+              0,
+              0,
+              0
+            ]
+          },
+          "opacity": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "default": 0.4
+          },
+          "module": {
+            "$ref": "#/$defs/aux/module"
+          },
+          "visible": {
+            "type": "boolean"
+          },
+          "frames": {
+            "$ref": "#/$defs/validator/frames"
+          }
+        },
+        "additionalProperties": false
+      },
+      "node": {
+        "type": "object",
+        "properties": {
+          "appearance": {
+            "$ref": "#/$defs/aux/appearance"
+          },
+          "meta": {
+            "$ref": "#/$defs/meta/core"
+          }
+        },
+        "required": [
+          "meta"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "meta": {
+      "core": {
+        "type": "object",
+        "properties": {
+          "uuid": {
+            "$ref": "#/$defs/validator/uuid"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/validator/tag"
+            }
+          },
+          "creator_memo": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid"
+        ],
+        "additionalProperties": false
+      },
+      "document": {
+        "type": "object",
+        "properties": {
+          "document_title": {
+            "$ref": "#/$defs/labels/localized_string"
+          },
+          "document_summary": {
+            "$ref": "#/$defs/labels/localized_string"
+          },
+          "document_uuid": {
+            "$ref": "#/$defs/validator/uuid"
+          },
+          "version": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/validator/semver"
+              }
+            ],
+            "default": "1.0.0"
+          },
+          "created_at": {
+            "$ref": "#/$defs/validator/timestamp_utc"
+          },
+          "revised_at": {
+            "$ref": "#/$defs/validator/timestamp_utc"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/validator/tag"
+            },
+            "default": []
+          },
+          "schema_uri": {
+            "$ref": "#/$defs/validator/schema_uri"
+          },
+          "generator": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/validator/uri"
+              }
+            ],
+            "default": "https://3dsl.jp/"
+          },
+          "reference": {
+            "type": "string",
+            "default": ""
+          },
+          "coordinate_system": {
+            "type": "string",
+            "const": "Z+up/freeXY"
+          },
+          "units": {
+            "$ref": "#/$defs/validator/units",
+            "default": "non_si:px"
+          },
+          "i18n": {
+            "$ref": "#/$defs/validator/language_code",
+            "default": "ja"
+          },
+          "author": {
+            "$ref": "#/$defs/validator/author"
+          },
+          "creator_memo": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "document_title",
+          "document_uuid",
+          "created_at",
+          "revised_at",
+          "schema_uri",
+          "author",
+          "version"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "text_pose": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "front": {
+          "$ref": "#/$defs/spatial/vec3"
+        },
+        "up": {
+          "$ref": "#/$defs/spatial/vec3"
+        }
+      },
+      "required": [
+        "front",
+        "up"
+      ],
+      "description": "Text orientation in 3D space. 'front' is the text's facing direction (normal), 'up' is the direction of the top of the text. Stored form is always vec3."
+    }
+  }
+}
+
+
+
