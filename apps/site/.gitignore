@@ -72,3 +72,11 @@ apps/site/error.log
 apps/site/src/content/docs/
 apps/site/src/content/faq/
 apps/site/src/content/policy/
+
+# generated mirrors (site/public)
+/apps/site/public/modeler_app/
+/apps/site/public/_data/
+/apps/site/public/schemas/
+/apps/site/public/vendor/
+/apps/site/public/fixtures/
+/apps/site/public/viewer
