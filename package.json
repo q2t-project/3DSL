@@ -18,11 +18,7 @@
     "sync:docs": "npm --prefix apps/site run sync:docs",
     "sync:3dss-content": "npm --prefix apps/site run sync:3dss-content",
     "check:modeler:ssot": "npm --prefix apps/site run check:modeler:ssot",
-<<<<<<< HEAD
-    "hooks:install": "git config core.hooksPath .githooks"
-=======
     "dev:clean": "npm --prefix apps/site run dev:clean"
->>>>>>> origin/main
   },
   "devDependencies": {
     "@fontsource-variable/noto-sans-jp": "^5.2.10",
