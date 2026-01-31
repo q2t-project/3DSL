@@ -3,13 +3,25 @@
     "document_title": "Draft2",
     "document_summary": "",
     "document_uuid": "29cccc84-6e9f-4571-9625-1ddb7969c31f",
+    "version": "1.0.0",
     "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
     "author": "vrrrm",
-    "version": "1.0.0"
+    "created_at": "2026-01-31T22:52:06.909Z",
+    "revised_at": "2026-01-31T22:52:06.909Z",
+    "tags": [
+      "m:draft",
+      "s:__",
+      "x:__"
+    ],
+    "generator": "https://3dsl.jp/",
+    "reference": "",
+    "coordinate_system": "Z+up/freeXY",
+    "units": "non_si:px",
+    "i18n": "ja",
+    "creator_memo": "開発中のテスト用コンテンツ（2）。Viewer/UI/リンク導線などの検証に使う仮データで、公開品質の最終版ではありません。"
   },
   "points": [],
   "lines": [],
   "aux": [],
   "frames": []
 }
-
