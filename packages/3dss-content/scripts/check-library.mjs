@@ -81,7 +81,8 @@ function validateMeta(meta, policy) {
   min(Array.isArray(meta.tags), `missing or invalid key: tags (array)`);
   min(typeof meta.published === 'boolean', `missing or invalid key: published (boolean)`);
   min(typeof meta.created_at === 'string', `missing or invalid key: created_at (string)`);
-  min(typeof meta.updated_at === 'string', `missing or invalid key: updated_at (string)`);
+  // NOTE: updated_at was intentionally removed from the 3DSS schema.
+  // Keep it optional here; build/index generation can derive a value when needed.
 
   // Extra type checks (non-fatal in warn mode unless policy=error and they are minimal keys)
   if (Array.isArray(meta.tags)) {
