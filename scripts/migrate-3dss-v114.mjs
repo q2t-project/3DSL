@@ -1,217 +1,175 @@
-#!/usr/bin/env node
-/**
- * migrate-3dss-v114.mjs
- *
- * Purpose
- * - Migrate packages/3dss-content/library/<itemId>/model.3dss.json so `document_meta` conforms to 3DSS schema v1.1.4.
- *
- * Hard rules (SSOT / contamination guard)
- * 1) Keep schema_uri policy: must be
- *    https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4
- * 2) Do not create or keep legacy keys like `updated_at` in model.3dss.json.
- * 3) Do not drop existing meaningful metadata (title/summary/uuid/tags/etc.).
- * 4) Never use filesystem mtime as a timestamp source (git checkout / restore changes it).
- *
- * Timestamp sourcing
- * - created_at:
- *   document_meta.created_at -> library/_meta.json.created_at
- *   (fallback: document_meta.revised_at if present)
- * - revised_at:
- *   document_meta.revised_at -> library/_meta.json.republished_at -> library/_meta.json.published_at
- *   -> library/_meta.json.created_at -> created_at
- *
- * Usage
- *   node scripts/migrate-3dss-v114.mjs --dry-run
- *   node scripts/migrate-3dss-v114.mjs --write
- */
+// scripts/migrate-3dss-v114.mjs
+// Migrate legacy 3DSS models to schema release v1.1.4.
+//
+// Design goals (SSOT-aligned):
+// - Never delete unrelated metadata fields (avoid repo-wide contamination).
+// - Only *add* missing required fields and *pin* schema_uri to v1.1.4.
+// - If an irrecoverable required field is missing (e.g. document_uuid), print NG and skip write.
+//
+// SSOT references:
+// - packages/schemas/release/v1.1.4/3DSS_spec.md
+// - packages/schemas/release/v1.1.4/3DSS.schema.json
 
 import fs from "node:fs";
 import path from "node:path";
-import process from "node:process";
-import crypto from "node:crypto";
+import { execFileSync } from "node:child_process";
 
-const ROOT = process.cwd();
-const LIB_ROOT = path.join(ROOT, "packages", "3dss-content", "library");
+const ROOT = path.resolve("packages/3dss-content/library");
+const DRY_RUN = process.argv.includes("--dry-run");
 
+// v1.1.4 schema_uri is pinned to the release path and fragment.
 const SCHEMA_URI_V114 =
   "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4";
 
-function parseArgs(argv) {
-  const a = new Set(argv.slice(2));
-  return {
-    dryRun: a.has("--dry-run") || (!a.has("--write") && !a.has("--apply")),
-    write: a.has("--write") || a.has("--apply"),
-    verbose: a.has("--verbose"),
-  };
-}
-
 function readJson(fp) {
-  const s = fs.readFileSync(fp, "utf8");
-  return JSON.parse(s);
+  return JSON.parse(fs.readFileSync(fp, "utf-8"));
 }
 
-function writeJsonPretty(fp, obj) {
-  const s = JSON.stringify(obj, null, 2) + "\n";
-  fs.writeFileSync(fp, s, "utf8");
+function writeJson(fp, obj) {
+  fs.writeFileSync(fp, JSON.stringify(obj, null, 2) + "\n", "utf-8");
 }
 
-function isIsoDateTime(s) {
-  if (typeof s !== "string") return false;
-  const t = Date.parse(s);
+function isIsoDate(s) {
+  const t = Date.parse(String(s));
   return Number.isFinite(t);
 }
 
-function pickFirstIso(...vals) {
-  for (const v of vals) {
-    if (isIsoDateTime(v)) return String(v);
-  }
-  return null;
-}
-
-function safeString(v, fallback = "") {
-  return typeof v === "string" ? v : fallback;
-}
-
-function safeStringArray(v) {
-  if (!Array.isArray(v)) return null;
-  const xs = v.filter((x) => typeof x === "string" && x.trim().length);
-  return xs.length ? xs : null;
-}
-
-function readMeta(dir) {
-  const fp = path.join(dir, "_meta.json");
-  if (!fs.existsSync(fp)) return null;
+function gitIsoDate(args) {
+  // Returns ISO string or null.
   try {
-    return readJson(fp);
+    const out = execFileSync("git", args, { encoding: "utf-8" }).trim();
+    if (!out) return null;
+    const t = Date.parse(out);
+    if (!Number.isFinite(t)) return null;
+    return new Date(t).toISOString();
   } catch {
     return null;
   }
 }
 
-function migrateDocumentMeta(docMetaIn, libMeta, itemId) {
-  const docMeta = (docMetaIn && typeof docMetaIn === "object") ? { ...docMetaIn } : {};
+function deriveCreatedAt(modelPath) {
+  // Prefer git first-add date, then file mtime.
+  const first = gitIsoDate([
+    "log",
+    "--diff-filter=A",
+    "--follow",
+    "--format=%aI",
+    "--",
+    modelPath,
+  ]);
+  if (first) return first;
 
-  // Remove explicitly banned legacy keys in model files.
-  delete docMeta.updated_at;
-  delete docMeta.schema_version;
-
-  // schema_uri is a strict const in schema v1.1.4.
-  docMeta.schema_uri = SCHEMA_URI_V114;
-
-  // Required fields - keep existing if valid, otherwise fill from _meta.json / defaults.
-  docMeta.document_title = safeString(
-    docMeta.document_title,
-    safeString(libMeta?.title, `library:${itemId}`)
-  );
-
-  docMeta.document_summary = safeString(
-    docMeta.document_summary,
-    safeString(libMeta?.summary, "")
-  );
-
-  if (typeof docMeta.document_uuid !== "string" || !docMeta.document_uuid.trim()) {
-    docMeta.document_uuid = crypto.randomUUID();
+  try {
+    const st = fs.statSync(modelPath);
+    return new Date(st.mtimeMs).toISOString();
+  } catch {
+    return null;
   }
-
-  docMeta.version = safeString(docMeta.version, "1.0.0");
-
-  const libTags = safeStringArray(libMeta?.tags);
-  docMeta.tags =
-    safeStringArray(docMeta.tags) ??
-    (libTags && libTags.length ? libTags : null) ??
-    (libMeta?.published === false
-      ? ["m:draft", "s:__", "x:__"]
-      : ["s:__", "m:__", "x:__"]); // schema requires >=1 tag
-
-  docMeta.generator = safeString(docMeta.generator, "https://3dsl.jp/");
-  docMeta.reference = safeString(docMeta.reference, safeString(libMeta?.id, ""));
-  docMeta.coordinate_system = safeString(docMeta.coordinate_system, "Z+up/freeXY");
-  docMeta.units = safeString(docMeta.units, "non_si:px");
-  docMeta.i18n = safeString(docMeta.i18n, "ja");
-  docMeta.author = safeString(docMeta.author, safeString(libMeta?.author, "q2t-project"));
-  docMeta.creator_memo = safeString(docMeta.creator_memo, safeString(libMeta?.description, ""));
-
-  // created_at / revised_at (required)
-  const created = pickFirstIso(
-    docMeta.created_at,
-    libMeta?.created_at,
-    docMeta.revised_at
-  );
-  if (!created) {
-    // Never invent timestamps from filesystem state. If we can't infer from existing meta,
-    // leave unchanged and let the user fill it explicitly.
-    return { ...docMetaIn };
-  }
-  docMeta.created_at = created;
-
-  const revised = pickFirstIso(
-    docMeta.revised_at,
-    libMeta?.updated_at,
-    libMeta?.republished_at,
-    libMeta?.published_at,
-    libMeta?.created_at,
-    docMeta.created_at
-  );
-  docMeta.revised_at = revised ?? docMeta.created_at;
-
-  // Final cleanup: drop keys with `undefined` (JSON stringify skips, but keep explicit).
-  for (const k of Object.keys(docMeta)) {
-    if (docMeta[k] === undefined) delete docMeta[k];
-  }
-
-  return docMeta;
 }
 
-function deepEqual(a, b) {
-  return JSON.stringify(a) === JSON.stringify(b);
+function deriveRevisedAt(modelPath) {
+  // Prefer git last-commit date, then file mtime.
+  const last = gitIsoDate(["log", "-1", "--format=%aI", "--", modelPath]);
+  if (last) return last;
+
+  try {
+    const st = fs.statSync(modelPath);
+    return new Date(st.mtimeMs).toISOString();
+  } catch {
+    return null;
+  }
 }
 
-function listLibraryItemDirs() {
-  if (!fs.existsSync(LIB_ROOT)) return [];
-  return fs
-    .readdirSync(LIB_ROOT, { withFileTypes: true })
-    .filter((d) => d.isDirectory())
-    .map((d) => path.join(LIB_ROOT, d.name));
-}
+function normalizeDocumentMeta(docMeta, modelPath) {
+  const dm = (docMeta && typeof docMeta === "object") ? { ...docMeta } : {};
 
-function main() {
-  const { dryRun, write } = parseArgs(process.argv);
-  const dirs = listLibraryItemDirs();
-  const touched = [];
+  // Pin schema_uri (do not invent alternate URIs).
+  dm.schema_uri = SCHEMA_URI_V114;
 
-  for (const dir of dirs) {
-    const itemId = path.basename(dir);
-    const modelFp = path.join(dir, "model.3dss.json");
-    if (!fs.existsSync(modelFp)) continue;
-
-    const model = readJson(modelFp);
-    const libMeta = readMeta(dir);
-
-    const before = model.document_meta;
-    const after = migrateDocumentMeta(before, libMeta, itemId);
-    if (!after) {
-      // Could not infer required timestamps; leave file untouched.
-      continue;
-    }
-
-    if (!deepEqual(before, after)) {
-      model.document_meta = after;
-      const createdAt = after?.created_at;
-      console.log(`[migrate] ${itemId}\\model.3dss.json created_at=${createdAt}`);
-      touched.push(modelFp);
-      if (write && !dryRun) {
-        writeJsonPretty(modelFp, model);
-      }
-    }
+  // created_at
+  if (!isIsoDate(dm.created_at)) {
+    const ca = deriveCreatedAt(modelPath);
+    if (ca) dm.created_at = ca;
   }
 
-  if (dryRun && !write) {
-    console.log("[dry-run] completed");
-  } else {
-    console.log("[write] completed");
+  // revised_at
+  if (!isIsoDate(dm.revised_at)) {
+    const ra = deriveRevisedAt(modelPath) ?? dm.created_at;
+    if (ra) dm.revised_at = ra;
   }
 
-  // Exit non-zero if nothing was changed? No. Keep it simple.
+  // Optional but required-by-schema fields: if missing, keep missing and let validator flag.
+  return dm;
 }
 
-main();
+function validateRequired(dm) {
+  // Required in schema (meta/document):
+  // document_title, document_uuid, created_at, revised_at, schema_uri, author, version
+  const missing = [];
+  if (!dm.document_title) missing.push("document_title");
+  if (!dm.document_uuid) missing.push("document_uuid");
+  if (!isIsoDate(dm.created_at)) missing.push("created_at");
+  if (!isIsoDate(dm.revised_at)) missing.push("revised_at");
+  if (!dm.schema_uri) missing.push("schema_uri");
+  if (!dm.author) missing.push("author");
+  if (!dm.version) missing.push("version");
+  return missing;
+}
+
+function walkLibraryDirs(rootDir) {
+  const out = [];
+  for (const ent of fs.readdirSync(rootDir, { withFileTypes: true })) {
+    if (!ent.isDirectory()) continue;
+    const dir = path.join(rootDir, ent.name);
+    const fp = path.join(dir, "model.3dss.json");
+    if (fs.existsSync(fp)) out.push(fp);
+  }
+  return out;
+}
+
+const files = walkLibraryDirs(ROOT);
+
+let changed = 0;
+let skipped = 0;
+let ng = 0;
+
+for (const fp of files) {
+  const rel = path.relative(process.cwd(), fp);
+  const obj = readJson(fp);
+  const before = JSON.stringify(obj);
+
+  // Preserve everything, only normalize document_meta.
+  const next = { ...obj };
+  next.document_meta = normalizeDocumentMeta(obj.document_meta, rel);
+
+  // Remove legacy key if present at root.
+  if (Object.prototype.hasOwnProperty.call(next, "schema_version")) {
+    delete next.schema_version;
+  }
+
+  const missing = validateRequired(next.document_meta);
+  if (missing.length) {
+    ng++;
+    console.log(`[NG] ${rel} missing required: ${missing.join(", ")}`);
+    continue;
+  }
+
+  const after = JSON.stringify(next);
+  if (after === before) {
+    skipped++;
+    continue;
+  }
+
+  changed++;
+  console.log(
+    `[migrate] ${path.basename(path.dirname(fp))} created_at=${next.document_meta.created_at}`
+  );
+
+  if (!DRY_RUN) writeJson(fp, next);
+}
+
+if (DRY_RUN) {
+  console.log(`[dry-run] completed (changed=${changed}, skipped=${skipped}, ng=${ng})`);
+} else {
+  console.log(`[write] completed (changed=${changed}, skipped=${skipped}, ng=${ng})`);
+}

@@ -1,0 +1,27 @@
+{
+  "document_meta": {
+    "document_title": "tmp",
+    "document_summary": "",
+    "document_uuid": "c02fba95-6d38-4130-9507-e8fac679184d",
+    "version": "1.0.0",
+    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
+    "author": "vrrrm",
+    "created_at": "2026-01-31T22:52:06.896Z",
+    "revised_at": "2026-01-31T22:52:06.896Z",
+    "tags": [
+      "m:draft",
+      "s:__",
+      "x:__"
+    ],
+    "generator": "https://3dsl.jp/",
+    "reference": "",
+    "coordinate_system": "Z+up/freeXY",
+    "units": "non_si:px",
+    "i18n": "ja",
+    "creator_memo": "開発中のテスト用コンテンツ。動作確認・回帰テスト・表示検証のための仮データで、内容や構成は予告なく変更されます。"
+  },
+  "points": [],
+  "lines": [],
+  "aux": [],
+  "frames": []
+}
