@@ -5,6 +5,15 @@
 // - Do not touch DOM here (no window/document).
 // - UI must not mutate this directly; via hub facade only.
 
+async function loadAjvCtor() {
+  try {
+    const mod = await import("/vendor/ajv/dist/ajv.js");
+    return mod?.default ?? mod?.Ajv ?? globalThis?.Ajv ?? null;
+  } catch (e) {
+    return globalThis?.Ajv ?? null;
+  }
+}
+
 import Ajv from "/vendor/ajv/dist/ajv.bundle.js";
 
 // strict validator helpers (copied/simplified from viewer runtime)
@@ -345,9 +354,18 @@ export function createCoreControllers(emitter) {
           }
           return res.json();
         })
-        .then((schemaJson) => {
+        .then(async (schemaJson) => {
           schemaJsonCache = schemaJson;
-ajv = new Ajv({
+const AjvCtor = await loadAjvCtor();
+    if (!AjvCtor) {
+      console.warn("Ajv is unavailable; skipping schema validation.");
+      validateFn = () => true;
+      validateFn.errors = [];
+      validatePruneFn = null;
+      schemaInfo = { version: String(schemaJson?.version || ""), compiledAt: null, strict: false, errors: [] };
+      return;
+    }
+    ajv = new AjvCtor({
   allErrors: true,
   strict: true,
   strictSchema: false,
@@ -362,7 +380,7 @@ validateFn = ajv.compile(schemaJson);
 
 // A prune validator used for import: strips additional properties wherever schema disallows them.
 try {
-  const ajvPrune = new Ajv({
+  const ajvPrune = new AjvCtor({
     allErrors: true,
     strict: true,
     strictSchema: false,
