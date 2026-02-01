@@ -29,7 +29,7 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>3DSL Viewer</title>
+    <title>{titleParam ? `3DSL Viewer — ${titleParam}` : "3DSL Viewer"}</title>
   </head>
 
   <body>
@@ -143,7 +143,7 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
     (() => {
       const iframe = document.getElementById("app-viewer-iframe");
       const titleEl = document.getElementById("app-viewer-title");
-      const TITLE_PARAM = new URLSearchParams(window.location.search || "").get("title") ?? "";
+      const TITLE_PARAM = ${JSON.stringify(titleParam ?? "")};
 
       if (titleEl) {
         const t = String(TITLE_PARAM || "").trim();
@@ -184,24 +184,41 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
         }, 15000);
       }
 
-      const backBtn = document.getElementById("app-viewer-back");
-        } catch {}
+              const backBtn = document.getElementById("app-viewer-back");
 
-        // compat: legacy `open=`
-        if (!inner.has("model") && inner.has("open")) {
-          const v = inner.get("open");
-          if (v) inner.set("model", v);
+        function buildInnerFromSearch(searchParams) {
+          const inner = new URLSearchParams(searchParams.toString());
+
+          // back button (host param)
+          if (backBtn) {
+            const backRaw = searchParams.get("back") || searchParams.get("return") || "";
+            const back = backRaw ? sameOriginPath(backRaw) : "";
+            if (back) {
+              backBtn.hidden = false;
+              backBtn.addEventListener("click", () => {
+                window.location.href = back;
+              });
+            } else {
+              backBtn.hidden = true;
+            }
+          }
+
+          // compat: legacy `open=`
+          if (!inner.has("model") && inner.has("open")) {
+            const v = inner.get("open");
+            if (v) inner.set("model", v);
+          }
+
+          // host-only params (do not pass into iframe)
+          inner.delete("back");
+          inner.delete("return");
+          inner.delete("scroll");
+          // added by the site swipe preview iframe
+          inner.delete("noads");
+          inner.delete("swipe");
+          inner.delete("title");
+          return inner;
         }
-
-        // host-only params (do not pass into iframe)
-        inner.delete("back");
-        inner.delete("return");
-        inner.delete("scroll");
-        // added by the site swipe preview iframe
-        inner.delete("noads");
-        inner.delete("swipe");
-        return inner;
-      }
 
       function updateIframeFromLocation() {
         const sp = new URLSearchParams(window.location.search);
