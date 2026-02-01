@@ -1,6 +1,6 @@
 // runtime/core/validator.js
 // 3DSS.schema.json を Ajv で検証するための薄いラッパ（bootstrapViewer の契約：init(schemaJson)）
-import Ajv from "/vendor/ajv/dist/ajv.js";
+import { Ajv } from "/vendor/ajv/dist/ajv.js";
 let ajv = null;
 let validateFn = null;
 let lastErrors = null;

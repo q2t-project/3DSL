@@ -2,8 +2,8 @@
 import { getLibraryItems } from "../../lib/libraryIndex";
 import Layout from "../../layouts/Layout.astro";
 
-const ITEMS_PER_PAGE = 20;
 const items = getLibraryItems();
+const ITEMS_PER_PAGE = 20;
 
 function fmtDate(s) {
   if (!s) return null;
@@ -56,7 +56,7 @@ function pickPublishedLabel(item) {
       </nav>
     </section>
 
-  <script is:inline define:vars={{ items, itemsPerPage: ITEMS_PER_PAGE }}>
+  <script is:inline define:vars={{ ITEMS: items, ITEMS_PER_PAGE }}>
     function fmtDate(s) {
       if (!s) return null;
       const t = Date.parse(String(s));
@@ -81,10 +81,6 @@ function pickPublishedLabel(item) {
       return hasPub ? "published" : "created";
     }
 
-    // Astro does not interpolate `{...}` inside <script> content.
-    // Pass server-side values via `define:vars`.
-    const ITEMS = /** @type {any[]} */ (items);
-    const ITEMS_PER_PAGE = itemsPerPage;
 
       let query = "";
       let sort = "new";
