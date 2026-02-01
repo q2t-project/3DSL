@@ -139,11 +139,12 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
       </div>
     </div>
 
-    <script is:inline>
+  <script is:inline define:vars={{ titleParam }}>
     (() => {
       const iframe = document.getElementById("app-viewer-iframe");
       const titleEl = document.getElementById("app-viewer-title");
-      const TITLE_PARAM = ${JSON.stringify(titleParam ?? "")};
+    // Pass server-side values via `define:vars`.
+    const TITLE_PARAM = titleParam;
 
       if (titleEl) {
         const t = String(TITLE_PARAM || "").trim();

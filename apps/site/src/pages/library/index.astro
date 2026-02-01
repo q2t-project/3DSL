@@ -56,7 +56,7 @@ function pickPublishedLabel(item) {
       </nav>
     </section>
 
-  <script is:inline>
+  <script is:inline define:vars={{ items, itemsPerPage: ITEMS_PER_PAGE }}>
     function fmtDate(s) {
       if (!s) return null;
       const t = Date.parse(String(s));
@@ -81,8 +81,10 @@ function pickPublishedLabel(item) {
       return hasPub ? "published" : "created";
     }
 
-    const ITEMS = /** @type {any[]} */ ({JSON.stringify(items)});
-      const ITEMS_PER_PAGE = {ITEMS_PER_PAGE};
+    // Astro does not interpolate `{...}` inside <script> content.
+    // Pass server-side values via `define:vars`.
+    const ITEMS = /** @type {any[]} */ (items);
+    const ITEMS_PER_PAGE = itemsPerPage;
 
       let query = "";
       let sort = "new";
