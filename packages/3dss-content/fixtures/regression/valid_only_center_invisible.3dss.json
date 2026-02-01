@@ -8,7 +8,9 @@
     "version": "1.0.0",
     "coordinate_system": "Z+up/freeXY",
     "units": "non_si:px",
-    "generator": "https://3dsl.jp/"
+    "generator": "https://3dsl.jp/",
+    "created_at": "2026-01-01T00:00:00Z",
+    "revised_at": "2026-01-01T00:00:00Z"
   },
   "points": [
     {
@@ -36,4 +38,3 @@
   "lines": [],
   "aux": []
 }
-

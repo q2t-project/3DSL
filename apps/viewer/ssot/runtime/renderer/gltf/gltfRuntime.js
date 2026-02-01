@@ -18,7 +18,7 @@ async function loadGLTFLoaderCtor() {
 
     // three r150+: /addons/
     try {
-      const mod = await import("/vendor/three/addons/loaders/GLTFLoader.js");
+      const mod = await import("/vendor/three/examples/jsm/loaders/GLTFLoader.js");
       if (mod?.GLTFLoader) return mod.GLTFLoader;
     } catch (_e2) {}
 

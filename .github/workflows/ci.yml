@@ -18,6 +18,11 @@ jobs:
           cache: "npm"
           cache-dependency-path: apps/site/package-lock.json
 
+      - name: Guardrails (repo invariants)
+        run: |
+          bash scripts/check/no-root-npm.sh
+          bash scripts/check/site-npm-sanity.sh
+
       - name: Print environment
         working-directory: apps/site
         run: |

@@ -20,15 +20,16 @@ function p(rel) {
 const REQUIRED = [
   // three.js ESM build (browser import)
   "packages/vendor/three/build/three.module.js",
-  // Ajv bundle used by viewer validator (browser import)
-  "packages/vendor/ajv/dist/ajv.bundle.js",
+  // Ajv browser ESM build comes from apps/site dependencies
+  // and is synced into /public/vendor by scripts/sync/vendor.mjs.
+  "apps/site/node_modules/ajv/dist/ajv.js",
   // i18next browser build (used by viewer UI)
   "packages/vendor/i18next/i18next.js",
 ];
 
 const REQUIRED_GENERATED = [
   "apps/site/public/vendor/three/build/three.module.js",
-  "apps/site/public/vendor/ajv/dist/ajv.bundle.js",
+  "apps/site/public/vendor/ajv/dist/ajv.js",
   "apps/site/public/vendor/i18next/i18next.js",
 ];
 
@@ -56,7 +57,7 @@ for (const rel of REQUIRED_GENERATED) {
 if (missing.length || missingGen.length) {
   console.error("[vendor-required] NG: missing required vendor artifacts");
   if (missing.length) {
-    console.error("\nMissing in SSOT (packages/vendor):");
+    console.error("\nMissing in source inputs:");
     for (const m of missing) console.error("  - " + m);
   }
   if (missingGen.length) {
@@ -64,7 +65,7 @@ if (missing.length || missingGen.length) {
     for (const m of missingGen) console.error("  - " + m);
   }
   console.error("\nFix:");
-  console.error("  1) Ensure packages/vendor contains required files (three/build, ajv/dist).");
+  console.error("  1) Run: npm ci (apps/site) so Ajv exists in apps/site/node_modules.");
   console.error("  2) Run: npm run sync:vendor (or npm run sync:all) in apps/site.");
   process.exit(1);
 }
