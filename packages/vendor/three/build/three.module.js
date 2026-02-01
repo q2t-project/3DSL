@@ -1,4 +1,9 @@
-// Minimal ESM entry for vendored three.js.
-// Policy: repo vendors source under packages/vendor/three/src.
-// This entry provides the browser import path expected by /vendor/three/build/three.module.js.
+// Minimal ESM entrypoint for browser imports.
+//
+// This repo vendors THREE as source under packages/vendor/three/src.
+// Upstream npm builds provide packages/vendor/three/build/three.module.js.
+// For this monorepo, we keep a small stable entry that re-exports the public
+// API from src/Three.js, so /vendor/three/build/three.module.js remains a
+// consistent browser import path.
+
 export * from "../src/Three.js";

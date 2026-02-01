@@ -80,3 +80,5 @@ apps/site/src/content/policy/
 /apps/site/public/vendor/
 /apps/site/public/fixtures/
 /apps/site/public/viewer
+
+Logfile.CSV

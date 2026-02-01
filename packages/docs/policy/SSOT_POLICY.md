@@ -84,6 +84,23 @@
 
 ---
 
+## 6.1 npm（依存管理）の運用ルール
+この repo は **monorepo の「根」では npm/yarn/pnpm/bun を一切実行しない**。
+（root に lockfile / node_modules が生成されると SSOT チェックが壊れるため）
+
+運用：
+- site: `npm --prefix apps/site <cmd>`
+- modeler: `npm --prefix apps/modeler <cmd>`
+- viewer: `npm --prefix apps/viewer <cmd>`
+
+強制（ガードレール）：
+- `scripts/check/no-root-npm.(sh|ps1)`
+  - root の `package.json` / lockfile / `node_modules` 等を禁止する。
+- `scripts/check/site-npm-sanity.(cmd|sh)`
+  - site の `package-lock.json` など、最低限の依存状態を検証する。
+
+---
+
 ## 7. 変更フロー（最小）
 - Schema 変更：spec更新、互換/移行の説明、必要なら compat レイヤ
 - Spec 変更：manifest（ports/checks）と齟齬が無いか確認

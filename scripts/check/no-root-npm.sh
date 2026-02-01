@@ -3,7 +3,19 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
-bad=(package.json package-lock.json npm-shrinkwrap.json node_modules)
+# Root of this monorepo must stay "tooling-free".
+# Running npm/yarn/pnpm/bun at repo root creates lockfiles or node_modules that
+# break SSOT sync and leads to "it works on my machine" drift.
+bad=(
+  package.json
+  package-lock.json
+  npm-shrinkwrap.json
+  node_modules
+  yarn.lock
+  pnpm-lock.yaml
+  bun.lock
+  bun.lockb
+)
 found=()
 for f in "${bad[@]}"; do
   if [[ -e "$repo_root/$f" ]]; then

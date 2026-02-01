@@ -5,7 +5,7 @@
 // - Do not touch DOM here (no window/document).
 // - UI must not mutate this directly; via hub facade only.
 
-import Ajv from "/vendor/ajv/dist/ajv.bundle.js";
+import Ajv from "/vendor/ajv/dist/ajv.js";
 
 // strict validator helpers (copied/simplified from viewer runtime)
 // ------------------------------------------------------------
