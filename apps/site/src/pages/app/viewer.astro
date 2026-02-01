@@ -29,7 +29,7 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>{titleParam ? `3DSL Viewer — ${titleParam}` : "3DSL Viewer"}</title>
+    <title>3DSL Viewer</title>
   </head>
 
   <body>
@@ -143,7 +143,7 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
     (() => {
       const iframe = document.getElementById("app-viewer-iframe");
       const titleEl = document.getElementById("app-viewer-title");
-      const TITLE_PARAM = ${JSON.stringify(titleParam ?? "")};
+      const TITLE_PARAM = new URLSearchParams(window.location.search || "").get("title") ?? "";
 
       if (titleEl) {
         const t = String(TITLE_PARAM || "").trim();
