@@ -99,7 +99,7 @@ function deriveCreatedAt(meta, dm, id, modelPath) {
   try {
     const st = fs.statSync(modelPath);
     const d = st?.birthtime ?? st?.mtime;
-    if (d && !Number.isNaN(d.getTime())) return new Date(d).toISOString();
+    if (d && !Number.isNaN(d.getTime())) return new Date(d).toISOString().replace(/\.\d{3}Z$/, "Z");
   } catch {
     // ignore
   }
