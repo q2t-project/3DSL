@@ -175,7 +175,7 @@ def _default_document_meta(schema: Optional[Dict[str, Any]] = None) -> Dict[str,
         "schema_uri": schema_uri,
         "author": "unknown",
         "version": "1.0.0",
-        "": datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+        "revised_at": datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
     }
 
 def main():

@@ -8,7 +8,9 @@
     "version": "1.0.0",
     "coordinate_system": "Z+up/freeXY",
     "units": "non_si:px",
-    "i18n": "en"
+    "i18n": "en",
+    "created_at": "2026-01-01T00:00:00Z",
+    "revised_at": "2026-01-01T00:00:00Z"
   },
   "points": [
     {
@@ -146,4 +148,3 @@
     }
   ]
 }
-

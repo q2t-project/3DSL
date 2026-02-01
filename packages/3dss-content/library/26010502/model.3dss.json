@@ -3,9 +3,22 @@
     "document_title": "26010502-Draft",
     "document_summary": "",
     "document_uuid": "6e252a6b-ed8f-4ef6-a661-e4c23623456f",
+    "version": "1.0.0",
     "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
     "author": "vrrrm",
-    "version": "1.0.0"
+    "created_at": "2026-01-31T22:52:06.896Z",
+    "revised_at": "2026-01-31T22:52:06.896Z",
+    "tags": [
+      "m:draft",
+      "s:__",
+      "x:__"
+    ],
+    "generator": "https://3dsl.jp/",
+    "reference": "",
+    "coordinate_system": "Z+up/freeXY",
+    "units": "non_si:px",
+    "i18n": "ja",
+    "creator_memo": "一覧にも使う短い説明"
   },
   "points": [],
   "lines": [],
