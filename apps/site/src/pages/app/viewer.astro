@@ -139,11 +139,11 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
       </div>
     </div>
 
-    <script is:inline>
+    <script is:inline define:vars={{ titleParam }}>
     (() => {
       const iframe = document.getElementById("app-viewer-iframe");
       const titleEl = document.getElementById("app-viewer-title");
-      const TITLE_PARAM = ${JSON.stringify(titleParam ?? "")};
+      const TITLE_PARAM = String(titleParam ?? "").trim();
 
       if (titleEl) {
         const t = String(TITLE_PARAM || "").trim();
@@ -184,43 +184,29 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
         }, 15000);
       }
 
-              const backBtn = document.getElementById("app-viewer-back");
+      const backBtn = document.getElementById("app-viewer-back");
 
-        function buildInnerFromSearch(searchParams) {
-          const inner = new URLSearchParams(searchParams.toString());
+function buildInnerFromSearch(search) {
+  const inner = new URLSearchParams(search);
 
-          // back button (host param)
-          if (backBtn) {
-            const backRaw = searchParams.get("back") || searchParams.get("return") || "";
-            const back = backRaw ? sameOriginPath(backRaw) : "";
-            if (back) {
-              backBtn.hidden = false;
-              backBtn.addEventListener("click", () => {
-                window.location.href = back;
-              });
-            } else {
-              backBtn.hidden = true;
-            }
-          }
+  // compat: legacy `open=`
+  if (!inner.has("model") && inner.has("open")) {
+    const v = inner.get("open");
+    if (v) inner.set("model", v);
+  }
 
-          // compat: legacy `open=`
-          if (!inner.has("model") && inner.has("open")) {
-            const v = inner.get("open");
-            if (v) inner.set("model", v);
-          }
+  // host-only params (do not pass into iframe)
+  inner.delete("title");
+  inner.delete("back");
+  inner.delete("return");
+  inner.delete("scroll");
+  // added by the site swipe preview iframe
+  inner.delete("noads");
+  inner.delete("swipe");
+  return inner;
+}
 
-          // host-only params (do not pass into iframe)
-          inner.delete("back");
-          inner.delete("return");
-          inner.delete("scroll");
-          // added by the site swipe preview iframe
-          inner.delete("noads");
-          inner.delete("swipe");
-          inner.delete("title");
-          return inner;
-        }
-
-      function updateIframeFromLocation() {
+function updateIframeFromLocation() {
         const sp = new URLSearchParams(window.location.search);
         const inner = buildInnerFromSearch(sp);
         showProgress();
