@@ -5,7 +5,20 @@
 // - Do not touch DOM here (no window/document).
 // - UI must not mutate this directly; via hub facade only.
 
-import Ajv from "/vendor/ajv/dist/ajv.js";
+// NOTE: Ajv browser import compatibility
+//
+// /vendor/ajv/dist/ajv.js may be CommonJS or have a different export shape
+// depending on how vendor sync/bundling was done. A static named import would
+// break the whole runtime at parse time, so we load it dynamically.
+let Ajv = globalThis?.Ajv;
+if (!Ajv) {
+  try {
+    const mod = await import("/vendor/ajv/dist/ajv.js");
+    Ajv = mod?.default ?? mod?.Ajv ?? mod;
+  } catch {
+    Ajv = null;
+  }
+}
 
 // strict validator helpers (copied/simplified from viewer runtime)
 // ------------------------------------------------------------
@@ -347,6 +360,11 @@ export function createCoreControllers(emitter) {
         })
         .then((schemaJson) => {
           schemaJsonCache = schemaJson;
+          if (!Ajv) {
+            throw new Error(
+              "Ajv is unavailable. Vendor sync/bundling is likely missing or incompatible (expected /vendor/ajv/dist/ajv.js)."
+            );
+          }
 ajv = new Ajv({
   allErrors: true,
   strict: true,

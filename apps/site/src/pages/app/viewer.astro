@@ -139,11 +139,11 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
       </div>
     </div>
 
-    <script is:inline>
+    <script is:inline define:vars={{ titleParam }}>
     (() => {
       const iframe = document.getElementById("app-viewer-iframe");
       const titleEl = document.getElementById("app-viewer-title");
-      const TITLE_PARAM = ${JSON.stringify(titleParam ?? "")};
+      const TITLE_PARAM = String(titleParam ?? "").trim();
 
       if (titleEl) {
         const t = String(TITLE_PARAM || "").trim();
@@ -185,53 +185,28 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
       }
 
       const backBtn = document.getElementById("app-viewer-back");
-  const titleEl = document.getElementById("app-viewer-title");
-  const setViewerTitle = (t) => {
-    if (!titleEl) return;
-    titleEl.textContent = t || "";
-    if (t) document.title = `3DSL Viewer — ${t}`;
-  };
-  if (TITLE_PARAM) setViewerTitle(TITLE_PARAM);
-      if (!iframe) return;
 
-      const sp0 = new URLSearchParams(window.location.search);
-      const back = sp0.get("back");
-      const returnTo = sp0.get("return");
-      const scrollRaw = sp0.get("scroll");
+function buildInnerFromSearch(search) {
+  const inner = new URLSearchParams(search);
 
-      let localLoaded = false;
+  // compat: legacy `open=`
+  if (!inner.has("model") && inner.has("open")) {
+    const v = inner.get("open");
+    if (v) inner.set("model", v);
+  }
 
-      function buildInnerFromSearch(sp) {
-        const inner = new URLSearchParams(sp);
-        if (!inner.has("embed")) inner.set("embed", "0");
-        if (!inner.has("mode")) inner.set("mode", "prod");
+  // host-only params (do not pass into iframe)
+  inner.delete("title");
+  inner.delete("back");
+  inner.delete("return");
+  inner.delete("scroll");
+  // added by the site swipe preview iframe
+  inner.delete("noads");
+  inner.delete("swipe");
+  return inner;
+}
 
-        // library bundle: enable snapshot-friendly WebGL options (iframe side)
-        try {
-          const from = inner.get('from') || '';
-          const ret = inner.get('return') || inner.get('back') || '';
-          if (from === 'library' || (ret && ret.startsWith('/library'))) {
-            if (!inner.has('snap')) inner.set('snap', '1');
-          }
-        } catch {}
-
-        // compat: legacy `open=`
-        if (!inner.has("model") && inner.has("open")) {
-          const v = inner.get("open");
-          if (v) inner.set("model", v);
-        }
-
-        // host-only params (do not pass into iframe)
-        inner.delete("back");
-        inner.delete("return");
-        inner.delete("scroll");
-        // added by the site swipe preview iframe
-        inner.delete("noads");
-        inner.delete("swipe");
-        return inner;
-      }
-
-      function updateIframeFromLocation() {
+function updateIframeFromLocation() {
         const sp = new URLSearchParams(window.location.search);
         const inner = buildInnerFromSearch(sp);
         showProgress();

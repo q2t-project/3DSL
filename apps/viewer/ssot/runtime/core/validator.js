@@ -1,6 +1,20 @@
 // runtime/core/validator.js
 // 3DSS.schema.json を Ajv で検証するための薄いラッパ（bootstrapViewer の契約：init(schemaJson)）
-import Ajv from "/vendor/ajv/dist/ajv.js";
+// NOTE: Ajv browser import compatibility
+//
+// In some deployments "/vendor/ajv/dist/ajv.js" is not an ES module (or its
+// export shape differs), which causes the whole viewer runtime to fail at parse
+// time. We therefore load Ajv dynamically and degrade validation gracefully if
+// Ajv is unavailable.
+let Ajv = globalThis?.Ajv;
+if (!Ajv) {
+  try {
+    const mod = await import("/vendor/ajv/dist/ajv.js");
+    Ajv = mod?.default ?? mod?.Ajv ?? mod;
+  } catch {
+    Ajv = null;
+  }
+}
 let ajv = null;
 let validateFn = null;
 let lastErrors = null;
@@ -128,6 +142,16 @@ function checkVersionAndSchemaUri(doc) {
  */
 export function init(schemaJson) {
   if (!schemaJson) throw new Error("validator.init: schemaJson is required");
+  // If Ajv cannot be loaded in the current environment, keep the viewer usable.
+  // We still keep the lightweight version/schema-uri checks.
+  if (!Ajv) {
+    console.warn("validator: Ajv is unavailable; skipping JSON Schema validation.");
+    ajv = null;
+    validateFn = null;
+    schemaInfo = extractSchemaInfo(schemaJson);
+    lastErrors = null;
+    return;
+  }
   ajv = new Ajv({
     allErrors: true,
     // strictは維持
@@ -148,12 +172,10 @@ export function init(schemaJson) {
   lastErrors = null;
 }
 export function validate3DSS(doc) {
-  if (!ajv || !validateFn) {
-    throw new Error("validator not initialized. Call init(schemaJson) first.");
-  }
+  if (!schemaInfo) throw new Error("validator not initialized. Call init(schemaJson) first.");
   lastErrors = null;
-  const ok = validateFn(doc);
-  const ajvErrors = validateFn.errors || [];
+  const ok = validateFn ? validateFn(doc) : true;
+  const ajvErrors = validateFn ? validateFn.errors || [] : [];
   const versionResult = checkVersionAndSchemaUri(doc);
   if (!ok || !versionResult.ok) {
     lastErrors = [...ajvErrors, ...versionResult.errors];

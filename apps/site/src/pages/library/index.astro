@@ -2,8 +2,8 @@
 import { getLibraryItems } from "../../lib/libraryIndex";
 import Layout from "../../layouts/Layout.astro";
 
-const ITEMS_PER_PAGE = 20;
 const items = getLibraryItems();
+const ITEMS_PER_PAGE = 20;
 
 function fmtDate(s) {
   if (!s) return null;
@@ -46,7 +46,7 @@ function pickPublishedLabel(item) {
       </section>
 
       <!-- cards -->
-      <section id="cards" class="card-grid"></section>
+      <section id="cards" class="lib-grid"></section>
 
       <!-- pager -->
       <nav class="pager">
@@ -56,7 +56,7 @@ function pickPublishedLabel(item) {
       </nav>
     </section>
 
-  <script is:inline>
+  <script is:inline define:vars={{ ITEMS: items, ITEMS_PER_PAGE }}>
     function fmtDate(s) {
       if (!s) return null;
       const t = Date.parse(String(s));
@@ -81,8 +81,6 @@ function pickPublishedLabel(item) {
       return hasPub ? "published" : "created";
     }
 
-    const ITEMS = /** @type {any[]} */ ({JSON.stringify(items)});
-      const ITEMS_PER_PAGE = {ITEMS_PER_PAGE};
 
       let query = "";
       let sort = "new";
@@ -149,9 +147,6 @@ function pickPublishedLabel(item) {
         cardsEl.innerHTML = "";
 
         for (const it of list) {
-          const card = document.createElement("article");
-          card.className = "card";
-
           const tagsAll = Array.isArray(it.tags) ? it.tags : [];
           const tags = tagsAll.slice(0, 2);
           const rest = Math.max(0, tagsAll.length - 2);
@@ -162,38 +157,75 @@ function pickPublishedLabel(item) {
 
           const detailUrl = it.page || `/library/${it.slug || it.id}/`;
 
-          // summaryは空でも崩れんように
           const summary = (it.summary || "").trim();
+          const tickerParts = [];
+          if (summary) tickerParts.push(summary);
+          if (tagsAll.length) {
+            const tagStr = tags
+              .map((t) => `#${t}`)
+              .concat(rest > 0 ? [`+${rest}`] : [])
+              .join(" ");
+            tickerParts.push(tagStr);
+          }
+          const tickerText = tickerParts.join("  ");
 
+          const card = document.createElement("a");
+          card.className = "lib-card";
+          card.href = it.viewer_url;
+          card.setAttribute("data-slug", String(it.slug || it.id || ""));
+
+          const badgeText = String(it.id || it.slug || "");
+          const createdText = created ? `c ${created}` : "";
+          const updatedText = published ? `${publishedLabel} ${published}` : "";
+
+          // NOTE: CSS側が .lib-ticker-track の 2x content を前提にしてる。
           card.innerHTML = `
-            <a class="card-link" href="${it.viewer_url}">
-              <div class="card-head">
-                <h2 class="card-title">${escapeHtml(it.title || "")}</h2>
-                <button class="card-info" type="button" aria-label="Detail">ⓘ</button>
+            <div class="lib-top">
+              <span class="lib-uuid-badge" role="button" tabindex="0" aria-label="Detail">${escapeHtml(badgeText)}</span>
+              <span class="lib-created">${escapeHtml(createdText)}</span>
+              <span class="lib-updated">${escapeHtml(updatedText)}</span>
+              <div class="lib-ticker" data-scroll="false">
+                <div class="lib-ticker-track">
+                  <span>${escapeHtml(tickerText)}</span>
+                  <span class="lib-ticker-gap"></span>
+                  <span>${escapeHtml(tickerText)}</span>
+                </div>
               </div>
-
-              <p class="card-summary">${escapeHtml(summary)}</p>
-
-              <div class="card-tags">
-                ${tags.map((t) => `<span>#${escapeHtml(t)}</span>`).join("")}
-                ${rest > 0 ? `<span class="tag-more">+${rest}</span>` : ""}
-              </div>
-
-              <div class="card-dates">
-                ${created ? `<span class="date-chip">created ${created}</span>` : ""}
-                ${published ? `<span class="date-chip">${publishedLabel} ${published}</span>` : ""}
-              </div>
-            </a>
+            </div>
+            <div class="lib-title">${escapeHtml(it.title || "")}</div>
           `;
 
-          // Detailボタンだけ別遷移（カードクリック=viewer）
-          card.querySelector(".card-info")?.addEventListener("click", (e) => {
+          // uuid badge: detailへ
+          const badge = card.querySelector(".lib-uuid-badge");
+          const goDetail = (e) => {
             e.preventDefault();
             e.stopPropagation();
             window.location.href = detailUrl;
+          };
+          badge?.addEventListener("click", goDetail);
+          badge?.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") goDetail(e);
           });
 
           cardsEl.appendChild(card);
+        }
+
+        // ticker auto-scroll: overflow したやつだけ走らせる
+        for (const el of cardsEl.querySelectorAll(".lib-ticker")) {
+          const track = el.querySelector(".lib-ticker-track");
+          if (!track) continue;
+          const w = el.clientWidth;
+          const sw = track.scrollWidth / 2; // 2x content
+          if (sw > w + 8) {
+            const dist = Math.max(0, sw - w);
+            el.style.setProperty("--lib-ticker-dist", `${dist}px`);
+            // 速度: 40px/s くらい
+            const dur = Math.max(6, Math.ceil(dist / 40));
+            el.style.setProperty("--lib-ticker-dur", `${dur}s`);
+            el.setAttribute("data-scroll", "true");
+          } else {
+            el.setAttribute("data-scroll", "false");
+          }
         }
 
         pageInfoEl.textContent = `${page} / ${maxPage}`;
