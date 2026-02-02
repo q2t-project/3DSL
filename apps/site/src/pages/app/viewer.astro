@@ -29,7 +29,7 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>{titleParam ? `3DSL Viewer — ${titleParam}` : "3DSL Viewer"}</title>
+    <title>3DSL Viewer</title>
   </head>
 
   <body>
@@ -139,11 +139,11 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
       </div>
     </div>
 
-    <script is:inline define:vars={{ titleParam }}>
+    <script is:inline>
     (() => {
       const iframe = document.getElementById("app-viewer-iframe");
       const titleEl = document.getElementById("app-viewer-title");
-      const TITLE_PARAM = String(titleParam ?? "").trim();
+      const TITLE_PARAM = new URLSearchParams(window.location.search || "").get("title") ?? "";
 
       if (titleEl) {
         const t = String(TITLE_PARAM || "").trim();
@@ -163,6 +163,10 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
   }
 
       let loadToastArmed = false;
+
+      // Whether the current document was loaded via postMessage (local file / recent local).
+      // Used only to avoid mixing URL-based share logic for local documents.
+      let localLoaded = false;
 
       function armLoadToast(){ loadToastArmed = true; }
       function disarmLoadToast(){ loadToastArmed = false; }
@@ -185,28 +189,44 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
       }
 
       const backBtn = document.getElementById("app-viewer-back");
+      let back = "";
+      let returnTo = "";
+      let scrollRaw = "";
+      try {
+        const sp = new URLSearchParams(window.location.search || "");
+        back = sp.get("back") ?? "";
+        returnTo = sp.get("return") ?? "";
+        scrollRaw = sp.get("scroll") ?? "";
+      } catch {}
 
-function buildInnerFromSearch(search) {
-  const inner = new URLSearchParams(search);
+      if (backBtn) {
+        // Hide when the host didn't provide any navigation intent.
+        backBtn.style.display = back || returnTo ? "" : "none";
+      }
 
-  // compat: legacy `open=`
-  if (!inner.has("model") && inner.has("open")) {
-    const v = inner.get("open");
-    if (v) inner.set("model", v);
-  }
+      function buildInnerFromSearch(sp) {
+        const inner = new URLSearchParams(String(sp || ""));
 
-  // host-only params (do not pass into iframe)
-  inner.delete("title");
-  inner.delete("back");
-  inner.delete("return");
-  inner.delete("scroll");
-  // added by the site swipe preview iframe
-  inner.delete("noads");
-  inner.delete("swipe");
-  return inner;
-}
+        // host-only params (do not pass into iframe)
+        inner.delete("title");
 
-function updateIframeFromLocation() {
+        // compat: legacy `open=`
+        if (!inner.has("model") && inner.has("open")) {
+          const v = inner.get("open");
+          if (v) inner.set("model", v);
+        }
+
+        // host-only params (do not pass into iframe)
+        inner.delete("back");
+        inner.delete("return");
+        inner.delete("scroll");
+        // added by the site swipe preview iframe
+        inner.delete("noads");
+        inner.delete("swipe");
+        return inner;
+      }
+
+      function updateIframeFromLocation() {
         const sp = new URLSearchParams(window.location.search);
         const inner = buildInnerFromSearch(sp);
         showProgress();
