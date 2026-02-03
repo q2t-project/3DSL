@@ -285,32 +285,31 @@
   display: block;
   color: inherit;
   text-decoration: none;
+  /* reserve space for the top-right viewer button */
+  padding-right: 52px; /* 32px + margins */
 }
 
 .lib-open{
   position: absolute;
-  top: 6px;
-  right: 6px;
+  top: 10px;
+  right: 10px;
   z-index: 3;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
   border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.28);
-  color: rgba(255,255,255,0.78);
-  font-size: 14px;
-  line-height: 1;
+  border: 1px solid rgba(255,255,255,0.20);
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(6px);
+  color: rgba(255,255,255,0.90);
   text-decoration: none;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
 }
 
 .lib-open:hover{
-  border-color: rgba(255,255,255,0.22);
-  background: rgba(0,0,0,0.34);
-  color: rgba(255,255,255,0.92);
+  border-color: rgba(255,255,255,0.35);
+  background: rgba(0,0,0,0.75);
 }
 
 .lib-open:focus-visible{
@@ -318,6 +317,11 @@
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.06),
     0 0 0 3px rgba(56,189,248,0.18);
+}
+
+.lib-open .icon{
+  font-size: 16px;
+  line-height: 1;
 }
 
 .lib-card:hover{

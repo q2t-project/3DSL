@@ -181,7 +181,9 @@ function pickPublishedLabel(item) {
               <div class="lib-title">${escapeHtml(title)}</div>
             </a>
 
-            <a class="lib-open" href="${it.viewer_url}" aria-label="Open in Viewer">⛶</a>
+            <a class="lib-open" href="${it.viewer_url}" title="Viewerで開く" aria-label="Viewerで開く">
+              <span class="icon" aria-hidden="true">⛶</span>
+            </a>
           `;
 
           cardsEl.appendChild(card);
