@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>3DSD Modeler</title>
+
+  <!-- NOTE:
+       ここで <base href="/modeler/"> を固定すると、現状の暫定配信先 `/modeler_app/` で
+       CSS/JS の参照が `/modeler/*` に飛んで 404 になりやすい。
+       なので base は置かず、相対パス (./modeler.css, ./modelerHostBoot.js) で両対応する。
+
+       - 現在: `/modeler_app/` (Astro の /modeler ルート衝突回避の仮)
+       - 最終: `/modeler/` へ寄せる
+  -->
+
+  <script type="importmap">
+    {
+      "imports": {
+        "ajv": "/vendor/ajv/dist/ajv.bundle.js",
+        "three": "/vendor/three/build/three.module.js",
+        "three/addons/": "/vendor/three/examples/jsm/"
+      }
+    }
+  </script>
+
+  <link rel="stylesheet" href="./modeler.css" />
+  <!-- site-level override: keep outside /modeler_app so it can be tuned without touching SSOT -->
+</head>
+
+<body>
+  <div id="modeler-root" class="modeler-root" data-role="modeler-root">
+
+    <header class="topbar" data-role="topbar">
+      <div class="topbar-title">3DSD Modeler</div>
+      <div class="topbar-actions">
+        <button class="btn" type="button" data-action="new">New</button>
+        <button class="btn" type="button" data-action="open">Open…</button>
+        <button class="btn" type="button" data-action="save">Save</button>
+        <button class="btn" type="button" data-action="saveas">Save As…</button>
+        <button class="btn" type="button" data-action="export">Export 3DSS</button>
+
+        <span class="topbar-spacer" aria-hidden="true"></span>
+
+        <button class="btn" type="button" data-action="undo">Undo</button>
+        <button class="btn" type="button" data-action="redo">Redo</button>
+
+        <span class="topbar-spacer" aria-hidden="true"></span>
+
+        <button class="btn" type="button" data-action="preview-out">Preview</button>
+      </div>
+      <div class="topbar-right">
+        <span class="topbar-file" data-role="file-label">(no file)</span>
+      </div>
+    </header>
+
+    <main class="maingrid" data-role="maingrid">
+      <!-- Pane A: Outliner (P0) -->
+      <section class="pane pane-outliner" data-role="pane-outliner">
+        <div class="pane-title">Outliner</div>
+        <div class="pane-body" data-role="outliner-body">
+          <div class="outliner-actions">
+            <button data-action="add-point" type="button">+ Point</button>
+            <button data-action="add-line" type="button">+ Line</button>
+            <button data-action="delete" type="button">Delete</button>
+            <span class="outliner-actions-sep"></span>
+            <button data-action="group-new" type="button">New group</button>
+            <button data-action="group-assign" type="button">Group selection</button>
+            <button data-action="group-ungroup" type="button">Ungroup</button>
+          </div>
+          <div class="outliner-dual" data-role="outliner-dual">
+            <section class="outcol outcol-points" aria-label="Points">
+              <div class="outcol-title">
+                <span class="outcol-title-text">POINTS</span>
+                <span class="outcol-order" aria-label="Order (points)">
+                  <button type="button" class="mini-btn" data-action="order-top" data-kind="points" title="Move to top">⤒</button>
+                  <button type="button" class="mini-btn" data-action="order-up" data-kind="points" title="Move up">↑</button>
+                  <button type="button" class="mini-btn" data-action="order-down" data-kind="points" title="Move down">↓</button>
+                  <button type="button" class="mini-btn" data-action="order-bottom" data-kind="points" title="Move to bottom">⤓</button>
+                </span>
+              </div>
+              <div class="outcol-scroll" data-role="outliner-points-scroll">
+                <table class="outliner-table" data-role="outliner-points-table">
+                  <thead>
+                    <tr>
+                      <th class="col-lock">L</th>
+                      <th class="col-name">name</th>
+                      <th class="col-num">x</th>
+                      <th class="col-num">y</th>
+                      <th class="col-num">z</th>
+                      <th class="col-frames">Fr</th>
+                    </tr>
+                  </thead>
+                  <tbody data-role="outliner-points-tbody"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="outcol outcol-lines" aria-label="Lines">
+              <div class="outcol-title">
+                <span class="outcol-title-text">LINES</span>
+                <span class="outcol-order" aria-label="Order (lines)">
+                  <button type="button" class="mini-btn" data-action="order-top" data-kind="lines" title="Move to top">⤒</button>
+                  <button type="button" class="mini-btn" data-action="order-up" data-kind="lines" title="Move up">↑</button>
+                  <button type="button" class="mini-btn" data-action="order-down" data-kind="lines" title="Move down">↓</button>
+                  <button type="button" class="mini-btn" data-action="order-bottom" data-kind="lines" title="Move to bottom">⤓</button>
+                </span>
+              </div>
+              <div class="outcol-scroll" data-role="outliner-lines-scroll">
+                <table class="outliner-table" data-role="outliner-lines-table">
+                  <thead>
+                    <tr>
+                      <th class="col-lock">L</th>
+                      <th class="col-name">caption</th>
+                      <th class="col-end">end_a</th>
+                      <th class="col-end">end_b</th>
+                      <th class="col-frames">Fr</th>
+                    </tr>
+                  </thead>
+                  <tbody data-role="outliner-lines-tbody"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <!-- Splitter: Outliner | Property -->
+      <div class="splitter" data-role="splitter-left" aria-hidden="true"></div>
+
+      <!-- Pane B: Property (center) -->
+      <section class="pane pane-prop" data-role="pane-prop">
+        <div class="pane-title">
+          Property
+          <span class="pane-sub" data-role="prop-selection-count" hidden></span>
+        </div>
+        <div class="pane-body">
+          <div class="prop-empty" data-role="prop-empty">
+            Select an item in outliner or preview.
+          </div>
+
+          <div class="prop-multi" data-role="prop-multi" hidden>
+            <div class="prop-multi-title">
+              <span data-role="prop-multi-count">0</span> items selected
+            </div>
+            <div class="prop-multi-sub">Single selection only. Select one item to edit properties.</div>
+          </div>
+
+          <div class="prop-panel" data-role="prop-panel" hidden>
+            <div class="prop-kv"><span>uuid</span><code data-role="prop-uuid"></code></div>
+            <div class="prop-kv"><span>kind</span><code data-role="prop-kind"></code></div>
+
+            
+            
+
+            <div class="prop-dirty" data-role="prop-dirty" hidden>Unapplied edits</div>
+
+            <div class="prop-field">
+              <label class="prop-label" data-role="prop-name-label">name</label>
+              <input class="prop-input" type="text" data-role="prop-name" placeholder="(empty)" />
+            </div>
+
+            <div class="prop-field" data-role="prop-text-field" hidden>
+              <label class="prop-label">text (marker.text)</label>
+              <div class="prop-pos">
+                <div class="prop-row">
+                  <div class="prop-row-key">content</div>
+                  <input class="prop-input" type="text" data-role="prop-text-content" placeholder="(empty)" />
+                </div>
+                <div class="prop-row">
+                  <div class="prop-row-key">size</div>
+                  <input class="prop-input" type="number" step="0.1" min="0" data-role="prop-text-size" />
+                </div>
+                <div class="prop-row">
+                  <div class="prop-row-key">align</div>
+                  <select class="prop-input" data-role="prop-text-align">
+                    <option value="">(default)</option>
+                    <option value="left&baseline">left&baseline</option>
+                    <option value="left&middle">left&middle</option>
+                    <option value="center&middle">center&middle</option>
+                    <option value="right&baseline">right&baseline</option>
+                    <option value="right&middle">right&middle</option>
+                  </select>
+                </div>
+
+                <details class="prop-details" data-role="prop-text-pose">
+                  <summary>pose (front/up) <span class="prop-note" data-role="prop-text-pose-mode"></span></summary>
+                  <div class="prop-details-body">
+                    <div class="prop-row">
+                      <div class="prop-row-key">front</div>
+                      <div class="prop-inline3">
+                        <input class="prop-input" type="number" step="0.1" data-role="prop-text-front-x" placeholder="x" />
+                        <input class="prop-input" type="number" step="0.1" data-role="prop-text-front-y" placeholder="y" />
+                        <input class="prop-input" type="number" step="0.1" data-role="prop-text-front-z" placeholder="z" />
+                      </div>
+                    </div>
+                    <div class="prop-row">
+                      <div class="prop-row-key">up</div>
+                      <div class="prop-inline3">
+                        <input class="prop-input" type="number" step="0.1" data-role="prop-text-up-x" placeholder="x" />
+                        <input class="prop-input" type="number" step="0.1" data-role="prop-text-up-y" placeholder="y" />
+                        <input class="prop-input" type="number" step="0.1" data-role="prop-text-up-z" placeholder="z" />
+                      </div>
+                    </div>
+                  </div>
+                </details>
+
+              </div>
+              <div class="prop-help">Empty content removes marker.text (renderer falls back to name).</div>
+            </div>
+
+            <div class="prop-field" data-role="prop-aux-module-field" hidden>
+              <label class="prop-label">aux.module</label>
+              <select class="prop-input" data-role="prop-aux-module">
+                <option value="grid">grid</option>
+                <option value="axis">axis</option>
+                <option value="plate">plate</option>
+                <option value="shell">shell</option>
+                <option value="hud">hud</option>
+                <option value="extension">extension</option>
+              </select>
+            </div>
+
+
+            <div class="prop-field" data-role="prop-pos-field">
+              <label class="prop-label">position</label>
+              <div class="prop-pos">
+                <div class="prop-row">
+                  <div class="prop-row-key">step</div>
+                  <div class="prop-inline2">
+                  </div>
+                </div>
+                <div class="prop-row">
+                  <div class="prop-row-key">x</div>
+                  <input class="prop-input" type="number" step="0.1" data-role="prop-x" />
+                </div>
+                <div class="prop-row">
+                  <div class="prop-row-key">y</div>
+                  <input class="prop-input" type="number" step="0.1" data-role="prop-y" />
+                </div>
+                <div class="prop-row">
+                  <div class="prop-row-key">z</div>
+                  <input class="prop-input" type="number" step="0.1" data-role="prop-z" />
+                </div>
+              </div>
+            </div>
+
+            <div class="prop-field" data-role="prop-frames-field" hidden>
+              <label class="prop-label">frames</label>
+              <input class="prop-input" type="text" data-role="prop-frames" placeholder="e.g. 0 / 1,2,3 / 1-10 / 1-3,6" />
+              <div class="prop-help">appearance.frames (int / int[]). Use comma-separated ints or ranges. Empty clears frames.</div>
+            </div>
+
+            <div class="prop-field" data-role="prop-line-ends-field" hidden>
+              <label class="prop-label">endpoints</label>
+              <div class="prop-line-ends">
+                <div class="prop-row-col">
+                  <div class="prop-row">
+                    <div class="prop-row-key">a</div>
+                    <div class="prop-inline2">
+                      <input class="prop-input" type="text" data-role="prop-line-end-a" list="prop-points-datalist" placeholder="end_a (point uuid)" />
+                      <button class="prop-mini" type="button" data-role="prop-line-end-a-pick" title="Pick a point from preview">Pick</button>
+                      <button class="prop-mini" type="button" data-role="prop-line-end-a-clear" title="Clear end_a">×</button>
+                    </div>
+                  </div>
+                  <div class="prop-sub" data-role="prop-line-end-a-resolved"></div>
+                </div>
+                <div class="prop-row-col">
+                  <div class="prop-row">
+                    <div class="prop-row-key">b</div>
+                    <div class="prop-inline2">
+                      <input class="prop-input" type="text" data-role="prop-line-end-b" list="prop-points-datalist" placeholder="end_b (point uuid)" />
+                      <button class="prop-mini" type="button" data-role="prop-line-end-b-pick" title="Pick a point from preview">Pick</button>
+                      <button class="prop-mini" type="button" data-role="prop-line-end-b-clear" title="Clear end_b">×</button>
+                    </div>
+                  </div>
+                  <div class="prop-sub" data-role="prop-line-end-b-resolved"></div>
+                </div>
+              </div>
+              <div class="prop-help" data-role="prop-line-ends-hint" hidden>Pick mode: click a point in preview (ESC to cancel).</div>
+              <datalist id="prop-points-datalist" data-role="prop-points-datalist"></datalist>
+            </div>
+
+            <div class="prop-field" data-role="prop-caption-text-field" hidden>
+              <label class="prop-label">caption_text (line)</label>
+              <div class="prop-pos">
+                <div class="prop-row">
+                  <div class="prop-row-key">content</div>
+                  <input class="prop-input" type="text" data-role="prop-caption-text-content" placeholder="(empty)" />
+                </div>
+                <div class="prop-row">
+                  <div class="prop-row-key">size</div>
+                  <input class="prop-input" type="number" step="0.1" min="0" data-role="prop-caption-text-size" />
+                </div>
+                <div class="prop-row">
+                  <div class="prop-row-key">align</div>
+                  <select class="prop-input" data-role="prop-caption-text-align">
+                    <option value="">(default)</option>
+                    <option value="left&baseline">left&baseline</option>
+                    <option value="left&middle">left&middle</option>
+                    <option value="center&middle">center&middle</option>
+                    <option value="right&baseline">right&baseline</option>
+                    <option value="right&middle">right&middle</option>
+                  </select>
+                </div>
+
+                <details class="prop-details" data-role="prop-caption-text-pose">
+                  <summary>pose (front/up) <span class="prop-note" data-role="prop-caption-text-pose-mode"></span></summary>
+                  <div class="prop-details-body">
+                    <div class="prop-row">
+                      <div class="prop-row-key">front</div>
+                      <div class="prop-inline3">
+                        <input class="prop-input" type="number" step="0.1" data-role="prop-caption-text-front-x" placeholder="x" />
+                        <input class="prop-input" type="number" step="0.1" data-role="prop-caption-text-front-y" placeholder="y" />
+                        <input class="prop-input" type="number" step="0.1" data-role="prop-caption-text-front-z" placeholder="z" />
+                      </div>
+                    </div>
+                    <div class="prop-row">
+                      <div class="prop-row-key">up</div>
+                      <div class="prop-inline3">
+                        <input class="prop-input" type="number" step="0.1" data-role="prop-caption-text-up-x" placeholder="x" />
+                        <input class="prop-input" type="number" step="0.1" data-role="prop-caption-text-up-y" placeholder="y" />
+                        <input class="prop-input" type="number" step="0.1" data-role="prop-caption-text-up-z" placeholder="z" />
+                      </div>
+                    </div>
+                  </div>
+                </details>
+              </div>
+              <div class="prop-help">Empty content removes appearance.caption_text (renderer falls back to caption).</div>
+            </div>
+
+            <div class="prop-actions">
+              <button data-action="prop-save" disabled>Apply</button>
+              <button data-action="prop-discard" disabled>Discard</button>
+              <button data-action="prop-close">Close</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Splitter: Property | Preview+QuickCheck -->
+      <div class="splitter" data-role="splitter-right" aria-hidden="true"></div>
+
+      <!-- Pane C: QuickCheck (right) -->
+      <section class="pane pane-qc" data-role="pane-qc">
+        <div class="pane-title">
+          QuickCheck
+        </div>
+        <div class="pane-body">
+          <div class="pane-preview-body">
+            <div class="preview-embed" data-role="preview-embed">
+              <div class="preview-embed-head">
+                <div class="preview-embed-title">Preview</div>
+              </div>
+              <div class="preview-embed-body">
+                <!-- Renderer anchor: embedded preview surface (also required for PreviewOut) -->
+                <div class="renderer-anchor" data-role="renderer-anchor" aria-hidden="false">
+                  <canvas class="modeler-canvas" data-role="modeler-canvas" width="1" height="1"></canvas>
+                  <div class="hud" data-role="hud" hidden></div>
+                  <div class="preview-selection" data-role="preview-selection" hidden></div>
+                </div>
+              </div>
+            </div>
+                      <div class="qc-panel" data-role="qc-panel">
+            <div class="qc-head">
+              <button data-action="quickcheck" type="button">Check</button>
+              <button data-action="qc-fix-lines" type="button">Fix broken lines</button>
+              <button data-action="qc-toggle" type="button" title="Toggle issue list">Issues</button>
+            </div>
+            <div class="qc-body">
+              <div class="qc-summary" data-role="qc-summary">(not run)</div>
+              <div class="qc-list" data-role="qc-list"></div>
+            </div>
+          </div>
+        
+          </div>
+
+        </div>
+      </section>
+    </main>
+<div class="preview-selection" data-role="preview-selection" hidden></div>
+    </div>
+
+    <input type="file" accept=".json,application/json" data-role="file-input" hidden />
+  </div>
+
+  <script type="module" src="./modelerHostBoot.js"></script>
+
+</body>
+</html>
+

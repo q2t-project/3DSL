@@ -495,7 +495,10 @@ export function createUiToolbarController(deps) {
     const doc = hasDoc();
     const coreDirty = !!fileController?.isCoreDirty?.();
     const dirty = coreDirty; // 'Save' reflects core-applied edits only
-    const propDirty = !!propertyController?.isDirty?.();
+    // Only treat property draft-dirty as blocking when there is an active item.
+    // (If selection is empty, stale dirty must not disable Save/Export.)
+    const propActive = !!propertyController?.getActiveUuid?.();
+    const propDirty = propActive && !!propertyController?.isDirty?.();
     const propLocked = !!propertyController?.isActiveLocked?.();
 
     const canUndo = !!core?.canUndo?.();
