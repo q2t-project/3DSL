@@ -618,6 +618,8 @@ export function createUiToolbarController(deps) {
   /** @param {ToolbarAction} action */
   async function invoke(action) {
     const act = String(action || "").toLowerCase();
+    try { console.log("[toolbar] act=", act); } catch {}
+    try { console.log("[toolbar] invoke=", typeof invoke, typeof deps?.invoke); } catch {}
     if (!act) return;
 
     // Toolbars are synced from a single place (attachUiShell).
@@ -866,8 +868,11 @@ export function createUiToolbarController(deps) {
     const t = ev.target;
     if (!(t instanceof HTMLElement)) return;
 
-    const act = t.getAttribute("data-action");
+    // Use closest() so clicks on nested elements (icons/spans) still trigger.
+    const actEl = t.closest?.('[data-action]');
+    const act = actEl && (actEl instanceof HTMLElement) ? actEl.getAttribute("data-action") : null;
     if (act) {
+      try { console.log("[toolbar] click data-action=", act); } catch {}
       /** @type {ToolbarAction} */
       const a = /** @type {any} */ (String(act).toLowerCase());
       // NOTE: many sub-panels (e.g., Outliner) also use data-action attributes.
@@ -879,7 +884,8 @@ export function createUiToolbarController(deps) {
       return;
     }
 
-    const tab = t.getAttribute("data-tab");
+    const tabEl = t.closest?.('[data-tab]');
+    const tab = tabEl && (tabEl instanceof HTMLElement) ? tabEl.getAttribute("data-tab") : null;
     if (tab) {
       // Phase2: prevent losing buffered edits while switching contexts.
       const ok = propertyController.ensureEditsAppliedOrConfirm?.({ reason: "tab" });

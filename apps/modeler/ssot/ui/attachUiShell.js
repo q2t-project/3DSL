@@ -120,7 +120,27 @@ export function attachUiShell({ root, hub, modelUrl }) {
   const qcList = getRoleEl(root, "qc-list");
 
   const APP_TITLE = "3DSD Modeler";
-  const setHud = (msg) => { if (hud) hud.textContent = String(msg ?? ""); };
+  let hudTimer = null;
+  const setHud = (msg) => {
+    if (!hud) return;
+    const s = String(msg ?? "");
+    hud.textContent = s;
+    // HUD is used as a lightweight toast for debugging and user feedback.
+    // Keep it visible briefly when a message is set.
+    try {
+      if (hudTimer) clearTimeout(hudTimer);
+      hudTimer = null;
+    } catch {}
+    hud.hidden = !s;
+    if (s) {
+      try {
+        hudTimer = setTimeout(() => {
+          try { hud.textContent = ""; } catch {}
+          try { hud.hidden = true; } catch {}
+        }, 2500);
+      } catch {}
+    }
+  };
 
   // --- Preview label: show the current single-selection name/caption in the viewport ---
   const pickText = (v) => {
