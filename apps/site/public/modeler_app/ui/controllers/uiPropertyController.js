@@ -162,7 +162,7 @@ function getMarkerTextContent(node) {
 
 function getMarkerTextSize(node) {
   const t = getMarkerText(node);
-  return Number.isFinite(Number(t?.size)) ? Number(t.size) : 8;
+  return Number.isFinite(Number(t?.size)) ? Number(t.size) : 10;
 }
 
 function getMarkerTextAlign(node) {
@@ -192,7 +192,7 @@ function getCaptionTextContent(node) {
 function getCaptionTextSize(node) {
   const ct = getCaptionText(node);
   const s = ct?.size;
-  return Number.isFinite(Number(s)) ? Number(s) : 8;
+  return Number.isFinite(Number(s)) ? Number(s) : 0;
 }
 function getCaptionTextAlign(node) {
   const ct = getCaptionText(node);
@@ -207,88 +207,6 @@ function getCaptionTextPose(node) {
   const up = Array.isArray(pose.up) ? pose.up.map((v) => num(v)) : null;
   if (!front || front.length !== 3 || !up || up.length !== 3) return null;
   return { front: [num(front[0]), num(front[1]), num(front[2])], up: [num(up[0]), num(up[1]), num(up[2])] };
-}
-
-function getFrames(node) {
-  return node?.appearance?.frames;
-}
-
-function formatFrames(frames) {
-  if (frames == null) return "";
-  if (typeof frames === "number" && Number.isFinite(frames)) return String(Math.trunc(frames));
-  if (typeof frames === "string") {
-    const t = frames.trim();
-    if (!t) return "";
-    if (Number.isFinite(Number(t))) return String(Math.trunc(Number(t)));
-    return t;
-  }
-  if (Array.isArray(frames)) {
-    return frames
-      .map((v) => (typeof v === "number" && Number.isFinite(v)) ? Math.trunc(v) : (Number.isFinite(Number(v)) ? Math.trunc(Number(v)) : null))
-      .filter((v) => v != null)
-      .join(",");
-  }
-  return "";
-}
-
-function normalizeFramesValue(frames) {
-  if (frames == null) return null;
-  if (typeof frames === "number" && Number.isFinite(frames)) return Math.trunc(frames);
-  if (typeof frames === "string") {
-    const t = frames.trim();
-    if (!t) return null;
-    if (Number.isFinite(Number(t))) return Math.trunc(Number(t));
-    return null;
-  }
-  if (Array.isArray(frames)) {
-    const out = [];
-    for (const v of frames) {
-      if (typeof v === "number" && Number.isFinite(v)) out.push(Math.trunc(v));
-      else if (typeof v === "string" && v.trim() && Number.isFinite(Number(v))) out.push(Math.trunc(Number(v)));
-    }
-    out.sort((a, b) => a - b);
-    const uniq = out.filter((v, i) => i === 0 || v !== out[i - 1]);
-    if (uniq.length === 0) return null;
-    if (uniq.length === 1) return uniq[0];
-    return uniq;
-  }
-  return null;
-}
-
-/**
- * @param {string} raw
- * @returns {{value: null | number | number[], error: string | null}}
- */
-function parseFramesInput(raw) {
-  const s = String(raw || "").trim();
-  if (!s) return { value: null, error: null };
-
-  // Accept: "1", "1,2,3", "1-10", "1-3,6,9-12"
-  const tokens = s.split(/[\s,]+/).map((t) => t.trim()).filter(Boolean);
-  /** @type {number[]} */
-  const nums = [];
-  for (const tok of tokens) {
-    const m = tok.match(/^(-?\d+)\s*-\s*(-?\d+)$/);
-    if (m) {
-      const a = Number(m[1]);
-      const b = Number(m[2]);
-      if (!Number.isFinite(a) || !Number.isFinite(b)) return { value: null, error: `Invalid frames token: ${tok}` };
-      const lo = Math.trunc(Math.min(a, b));
-      const hi = Math.trunc(Math.max(a, b));
-      if (hi - lo > 10_000) return { value: null, error: `Frames range too large: ${tok}` };
-      for (let v = lo; v <= hi; v += 1) nums.push(v);
-      continue;
-    }
-    if (!/^[-+]?\d+$/.test(tok)) return { value: null, error: `Invalid frames token: ${tok}` };
-    const n = Math.trunc(Number(tok));
-    if (!Number.isFinite(n)) return { value: null, error: `Invalid frames token: ${tok}` };
-    nums.push(n);
-  }
-  nums.sort((a, b) => a - b);
-  const uniq = nums.filter((v, i) => i === 0 || v !== nums[i - 1]);
-  if (uniq.length === 0) return { value: null, error: null };
-  if (uniq.length === 1) return { value: uniq[0], error: null };
-  return { value: uniq, error: null };
 }
 
 
@@ -346,15 +264,13 @@ export function createUiPropertyController(deps) {
   const inpTextUpY = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-text-up-y"));
   const inpTextUpZ = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-text-up-z"));
   const textPoseModeEl = /** @type {HTMLElement|null} */ (getRoleEl(root, "prop-text-pose-mode"));
-  const btnTextPoseApply = /** @type {HTMLButtonElement|null} */ (root.querySelector('[data-action="pose-apply-point"]'));
-  const btnTextPoseReset = /** @type {HTMLButtonElement|null} */ (root.querySelector('[data-action="pose-reset-point"]'));
   const posField = getRoleEl(root, "prop-pos-field");
   const inpX = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-x"));
   const inpY = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-y"));
   const inpZ = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-z"));
 
-  const framesField = getRoleEl(root, "prop-frames-field");
-  const inpFrames = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-frames"));
+  const selPosStep = /** @type {HTMLSelectElement|null} */ (getRoleEl(root, "prop-pos-step"));
+  const posStepHintEl = /** @type {HTMLElement|null} */ (getRoleEl(root, "prop-pos-step-hint"));
 
   const lineEndsField = getRoleEl(root, "prop-line-ends-field");
   const inpEndA = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-line-end-a"));
@@ -380,19 +296,103 @@ export function createUiPropertyController(deps) {
   const inpCaptionTextUpY = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-caption-text-up-y"));
   const inpCaptionTextUpZ = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-caption-text-up-z"));
   const captionTextPoseModeEl = /** @type {HTMLElement|null} */ (getRoleEl(root, "prop-caption-text-pose-mode"));
-  const btnCaptionPoseApply = /** @type {HTMLButtonElement|null} */ (root.querySelector('[data-action="pose-apply-line"]'));
-  const btnCaptionPoseReset = /** @type {HTMLButtonElement|null} */ (root.querySelector('[data-action="pose-reset-line"]'));
 
   /** @type {{uuid:string, kind:string, path:string} | null} */
   let active = null;
   let dirty = false;
 
+// Draft state machine (M2/B)
+// This captures the *UI-level* editing lifecycle around the Property panel.
+// - clean: no unapplied edits; no special pending state
+// - drafting: at least one unapplied edit exists (preview override may be active)
+// - applied_pending_save: last action was Apply (committed to core) but document may still be unsaved
+//   (this state is informational; it must never block selection changes)
+const DraftState = Object.freeze({
+  CLEAN: "clean",
+  DRAFTING: "drafting",
+  APPLIED_PENDING_SAVE: "applied_pending_save",
+});
+let draftState = DraftState.CLEAN;
+
+function setDraftState(next, { reason = "" } = {}) {
+  if (!next || next === draftState) return;
+  draftState = next;
+  // try { console.debug("[draftState]", draftState, reason); } catch {}
+}
+
+/**
+ * Draft state transitions (single-writer: this controller).
+ *
+ * Events:
+ * - edit: user changed an input (unapplied buffer becomes dirty)
+ * - discard: user discarded unapplied edits (revert preview back to base)
+ * - clear: system cleared draft lifecycle (hide/multi/selection change)
+ * - apply: user applied edits (core mutated in one history group)
+ * - doc_saved: document saved/cleaned (optional notification)
+ */
+function transitionDraft(event, { reason = "" } = {}) {
+  const ev = String(event || "");
+  if (ev === "edit") {
+    setDraftState(DraftState.DRAFTING, { reason: reason || "edit" });
+    return;
+  }
+  if (ev === "apply") {
+    // After Apply, there are no *unapplied* edits, but the document is typically dirty (needs Save).
+    setDraftState(DraftState.APPLIED_PENDING_SAVE, { reason: reason || "apply" });
+    return;
+  }
+  if (ev === "discard" || ev === "clear") {
+    setDraftState(DraftState.CLEAN, { reason: reason || ev });
+    return;
+  }
+  if (ev === "doc_saved") {
+    // Only meaningful after Apply; otherwise keep current state.
+    if (draftState === DraftState.APPLIED_PENDING_SAVE) {
+      setDraftState(DraftState.CLEAN, { reason: reason || "doc_saved" });
+    }
+    return;
+  }
+}
+
+
   // Pending focus request (QuickCheck / focusByIssue). Applied after selection sync.
   /** @type {any|null} */
   let pendingFocusIssue = null;
 
-  // Position stepping: fixed (wheel: ±1, Shift: ±10)
-  const POS_STEP = 1;
+  // Position stepping UI (visible step selector)
+  let posStep = 0.1;
+  const POS_STEP_LS_KEY = "3dsl.modeler.posStep";
+
+  function clampPosStep(v) {
+    const n = Number(v);
+    if (!Number.isFinite(n) || n <= 0) return 0.1;
+    // Keep it reasonable; UI offers 0.01..10
+    return Math.min(10, Math.max(0.01, n));
+  }
+
+  function syncPosStepUi() {
+    posStep = clampPosStep(posStep);
+    try {
+      if (selPosStep) selPosStep.value = String(posStep);
+    } catch {}
+    try {
+      if (inpX) inpX.step = String(posStep);
+      if (inpY) inpY.step = String(posStep);
+      if (inpZ) inpZ.step = String(posStep);
+    } catch {}
+  }
+
+  function loadPosStepFromStorage() {
+    try {
+      const raw = localStorage.getItem(POS_STEP_LS_KEY);
+      if (raw != null && raw !== "") posStep = clampPosStep(raw);
+    } catch {}
+    syncPosStepUi();
+  }
+
+  function savePosStepToStorage() {
+    try { localStorage.setItem(POS_STEP_LS_KEY, String(posStep)); } catch {}
+  }
 
 
   // Draft preview scheduling (avoid spamming renderer on wheel/keydown repeats).
@@ -513,7 +513,6 @@ function previewRevertToBase() {
     if (inpX) inpX.disabled = !en;
     if (inpY) inpY.disabled = !en;
     if (inpZ) inpZ.disabled = !en;
-    if (inpFrames) inpFrames.disabled = !en;
     if (inpEndA) inpEndA.disabled = !en;
     if (inpEndB) inpEndB.disabled = !en;
     if (inpTextContent) inpTextContent.disabled = !en;
@@ -637,18 +636,53 @@ function previewRevertToBase() {
     const n = !!next;
     if (dirty === n) return;
     dirty = n;
+    if (dirty) transitionDraft("edit", { reason: "setDirty" });
+    else {
+      // Only downgrade from drafting -> clean here.
+      // (If we are in applied_pending_save, keep it; this is about *unapplied* buffer only.)
+      if (draftState === DraftState.DRAFTING) transitionDraft("clear", { reason: "setDirty:false" });
+    }
     if (dirtyEl) dirtyEl.hidden = !dirty;
     syncPoseModeBadgesFromInputs();
     try { onDirtyChange && onDirtyChange(dirty); } catch {}
   }
 
+
+// Draft (unapplied) edits lifecycle:
+// - Contract: packages/docs/docs/modeler/selection-contract.md
+// - Minimal check: packages/docs/docs/modeler/smoke-minimal.md
+// - SSOT: this controller owns draft dirty state + draft preview overrides
+// - Rules:
+//   * setDirty(true) only from input edits
+//   * clear/discard always reverts preview override back to captured base
+//   * selection changes must be guarded via ensureEditsAppliedOrConfirm()
+function draftClear({ reason = "" } = {}) {
+  // Cancel endpoint-pick submode if active (it also uses preview overrides).
+  try { cancelEndpointPick?.(); } catch {}
+  // Revert any draft preview back to base document state.
+  try { previewRevertToBase(); } catch {}
+  previewBase = null;
+  setDirty(false);
+  transitionDraft("clear", { reason: `draftClear:${reason}` });
+}
+
+function draftDiscard({ reason = "" } = {}) {
+  if (!active) return;
+  // Re-capture base from current doc (in case doc changed), then revert preview to it.
+  try { previewCaptureBase(active.uuid, active.kind); } catch {}
+  try { previewRevertToBase(); } catch {}
+  fillInputsFromDoc(active.uuid);
+  setDirty(false);
+  transitionDraft("discard", { reason: `draftDiscard:${reason}` });
+  try { setHud(`Edits discarded${reason ? ` (${reason})` : ""}`); } catch {}
+}
+
+
   function hideAll() {
-    // Revert any draft preview back to document state before hiding.
-    previewRevertToBase();
-    previewBase = null;
+    // Selection/visibility change: clear draft lifecycle (revert preview + clear dirty).
+    draftClear({ reason: "hide" });
     active = null;
     lockedActive = false;
-    setDirty(false);
     setInputsEnabled(true);
     if (panelEl) panelEl.hidden = true;
     if (multiEl) multiEl.hidden = true;
@@ -657,12 +691,13 @@ function previewRevertToBase() {
   }
 
   function showMulti(count) {
-    // Revert any draft preview back to document state before switching modes.
-    previewRevertToBase();
-    previewBase = null;
+  // M2/B: unify draft lifecycle on selection=multi/empty
+  if (!resolveDraftBeforeSelectionChange([])) return;
+
+    // Selection mode change: clear draft lifecycle (revert preview + clear dirty).
+    draftClear({ reason: "multi" });
     active = null;
     lockedActive = false;
-    setDirty(false);
     setInputsEnabled(true);
     if (panelEl) panelEl.hidden = true;
     if (emptyEl) emptyEl.hidden = true;
@@ -732,7 +767,6 @@ function previewRevertToBase() {
     }
     if (nameLabel) nameLabel.textContent = isLine ? "caption" : "name";
     if (posField) posField.hidden = !(isPoint || isAux);
-    if (framesField) framesField.hidden = !(isPoint || isLine || isAux);
     if (lineEndsField) lineEndsField.hidden = !isLine;
     if (captionTextField) { captionTextField.hidden = !isLine; captionTextField.style.display = isLine ? "" : "none"; }
 
@@ -755,12 +789,6 @@ function previewRevertToBase() {
       if (inpX) inpX.value = String(x);
       if (inpY) inpY.value = String(y);
       if (inpZ) inpZ.value = String(z);
-    }
-
-    if (isPoint || isLine || isAux) {
-      if (inpFrames) inpFrames.value = formatFrames(getFrames(found.node));
-    } else {
-      if (inpFrames) inpFrames.value = "";
     }
 
     if (isAux) {
@@ -837,9 +865,8 @@ function previewRevertToBase() {
   }
 
   function showProperty(issueLike) {
-    // Selection changed: revert previous draft preview (if any) back to document state.
-    previewRevertToBase();
-    previewBase = null;
+    // Selection changed: clear previous draft lifecycle (revert preview + clear dirty).
+    draftClear({ reason: "selection" });
     const uuid = issueLike?.uuid ? String(issueLike.uuid) : "";
     if (!uuid) { hideAll(); return; }
 
@@ -852,14 +879,9 @@ function previewRevertToBase() {
     setDirty(false);
     try { previewCaptureBase(uuid, kind); } catch {}
 
-    if (uuidEl) {
-      // Reduce visual noise: show shortened UUID in the header.
-      uuidEl.textContent = (uuid.length > 14) ? `${uuid.slice(0, 8)}…${uuid.slice(-4)}` : uuid;
-      try { uuidEl.title = uuid; } catch {}
-    }
+    if (uuidEl) uuidEl.textContent = uuid;
     if (kindEl) kindEl.textContent = String(kind);
-    // path is intentionally not shown in UI (kept only for debugging / issue context).
-    if (pathEl) { try { pathEl.textContent = ""; } catch {} }
+    if (pathEl) pathEl.textContent = String(path);
 
     fillInputsFromDoc(uuid);
     refreshLockState();
@@ -879,18 +901,10 @@ function previewRevertToBase() {
   }
 
   function discardEdits() {
-    if (!active) return;
-
-    // Revert any draft preview back to current document state.
-    try { previewCaptureBase(active.uuid, active.kind); } catch {}
-    try { previewRevertToBase(); } catch {}
-    fillInputsFromDoc(active.uuid);
-    setDirty(false);
-    setHud("Edits discarded");
+    draftDiscard({ reason: "manual" });
   }
 
-  function buildPatchForActiveEdits(opts = {}) {
-    const includePose = opts.includePose !== false;
+  function buildPatchForActiveEdits() {
     if (!active) return null;
     const uuid = active.uuid;
     const doc = core.getDocument?.();
@@ -931,11 +945,9 @@ function previewRevertToBase() {
         if (error) return { __invalid: true, error };
         return pose;
       };
-      const nextPose = includePose
-        ? readPose([inpTextFrontX, inpTextFrontY, inpTextFrontZ], [inpTextUpX, inpTextUpY, inpTextUpZ], beforePose)
-        : beforePose;
+      const nextPose = readPose([inpTextFrontX, inpTextFrontY, inpTextFrontZ], [inpTextUpX, inpTextUpY, inpTextUpZ], beforePose);
 
-      if (includePose && nextPose && nextPose.__invalid) {
+      if (nextPose && nextPose.__invalid) {
         setHud(nextPose.error || "Invalid pose");
         return null;
       }
@@ -952,13 +964,13 @@ function previewRevertToBase() {
             content: nextContent,
             size: nextSize,
             ...(nextAlign ? { align: nextAlign } : {}),
-            ...((includePose && nextPose) ? { pose: nextPose } : {}),
+            ...(nextPose ? { pose: nextPose } : {}),
           };
           const beforeNorm = beforeText ? {
             content: beforeContent,
             size: beforeSize,
             ...(beforeAlign ? { align: beforeAlign } : {}),
-            ...((includePose && beforePose) ? { pose: beforePose } : {}),
+            ...(beforePose ? { pose: beforePose } : {}),
           } : null;
           if (JSON.stringify(beforeNorm) !== JSON.stringify(nextText)) {
             patch.ops.push({ path: "/appearance/marker/text", before: beforeText, after: nextText });
@@ -994,11 +1006,9 @@ function previewRevertToBase() {
         if (error) return { __invalid: true, error };
         return pose;
       };
-      const nextCTPose = includePose
-        ? readPose([inpCaptionTextFrontX, inpCaptionTextFrontY, inpCaptionTextFrontZ], [inpCaptionTextUpX, inpCaptionTextUpY, inpCaptionTextUpZ], beforeCTPose)
-        : beforeCTPose;
+      const nextCTPose = readPose([inpCaptionTextFrontX, inpCaptionTextFrontY, inpCaptionTextFrontZ], [inpCaptionTextUpX, inpCaptionTextUpY, inpCaptionTextUpZ], beforeCTPose);
 
-      if (includePose && nextCTPose && nextCTPose.__invalid) {
+      if (nextCTPose && nextCTPose.__invalid) {
         setHud(nextCTPose.error || "Invalid pose");
         return null;
       }
@@ -1007,8 +1017,8 @@ function previewRevertToBase() {
         if (!nextCTContent) {
           if (beforeCT) patch.ops.push({ path: "/appearance/caption_text", before: beforeCT, after: null });
         } else {
-          const nextCT = { content: nextCTContent, size: nextCTSize, ...(nextCTAlign ? { align: nextCTAlign } : {}), ...((includePose && nextCTPose) ? { pose: nextCTPose } : {}) };
-          const beforeNorm = beforeCT ? { content: beforeCTContent, size: beforeCTSize, ...(beforeCTAlign ? { align: beforeCTAlign } : {}), ...((includePose && beforeCTPose) ? { pose: beforeCTPose } : {}) } : null;
+          const nextCT = { content: nextCTContent, size: nextCTSize, ...(nextCTAlign ? { align: nextCTAlign } : {}), ...(nextCTPose ? { pose: nextCTPose } : {}) };
+          const beforeNorm = beforeCT ? { content: beforeCTContent, size: beforeCTSize, ...(beforeCTAlign ? { align: beforeCTAlign } : {}), ...(beforeCTPose ? { pose: beforeCTPose } : {}) } : null;
           if (JSON.stringify(beforeNorm) !== JSON.stringify(nextCT)) {
             patch.ops.push({ path: "/appearance/caption_text", before: beforeCT, after: nextCT });
           }
@@ -1022,20 +1032,6 @@ function previewRevertToBase() {
       const nextPos = [inpX ? num(inpX.value) : 0, inpY ? num(inpY.value) : 0, inpZ ? num(inpZ.value) : 0];
       if (beforePos[0] != nextPos[0] || beforePos[1] != nextPos[1] || beforePos[2] != nextPos[2]) {
         patch.ops.push({ path: "/appearance/position", before: beforePos, after: nextPos });
-      }
-    }
-
-    // Frames (appearance.frames)
-    if (found.kind === "point" || found.kind === "line" || found.kind === "aux") {
-      const beforeFrames = normalizeFramesValue(getFrames(found.node));
-      const parsed = inpFrames ? parseFramesInput(String(inpFrames.value || "")) : { value: beforeFrames, error: null };
-      if (parsed.error) {
-        setHud(parsed.error);
-        return null;
-      }
-      const nextFrames = normalizeFramesValue(parsed.value);
-      if (JSON.stringify(beforeFrames) !== JSON.stringify(nextFrames)) {
-        patch.ops.push({ path: "/appearance/frames", before: beforeFrames, after: nextFrames });
       }
     }
 
@@ -1122,14 +1118,6 @@ function previewRevertToBase() {
           found.node.appearance.module = { [k]: {} };
         }
       }
-      else if (op.path === "/appearance/frames" && (found.kind === "point" || found.kind === "line" || found.kind === "aux")) {
-        if (!found.node.appearance || typeof found.node.appearance !== "object") found.node.appearance = { ...(found.node.appearance || {}) };
-        if (op.after == null) {
-          try { delete found.node.appearance.frames; } catch {}
-        } else {
-          found.node.appearance.frames = op.after;
-        }
-      }
       else if (op.path === "/end_a" && found.kind === "line") {
         if (op.after && typeof op.after === "object") {
           found.node.end_a = op.after;
@@ -1145,22 +1133,19 @@ function previewRevertToBase() {
     return clone;
   }
 
-  function applyActiveEdits(opts = {}) {
-    const includePose = opts.includePose !== false;
-    const quiet = !!opts.quiet;
-
+  function applyActiveEdits() {
     if (!active) return false;
     if (lockedActive) {
-      if (!quiet) setHud(`Locked: ${active.uuid}`);
+      setHud(`Locked: ${active.uuid}`);
       return false;
     }
-    const patch = buildPatchForActiveEdits({ includePose });
+    const patch = buildPatchForActiveEdits();
     if (!patch) {
       setDirty(false);
       return false;
     }
 
-    // Coalesce all mutations triggered by a single apply into one undo step.
+    // Coalesce all mutations triggered by a single Apply into one undo step.
     try { core.beginHistoryGroup?.(); } catch {}
     try {
       core.updateDocument?.((doc) => applyPatch(doc, patch));
@@ -1172,7 +1157,8 @@ function previewRevertToBase() {
     try { if (active) { previewCaptureBase(active.uuid, active.kind); previewRevertToBase(); } } catch {}
 
     setDirty(false);
-    if (!quiet) setHud(`Applied: ${patch.target}`);
+    transitionDraft("apply", { reason: "applyActiveEdits" });
+    setHud(`Applied: ${patch.target}`);
     return true;
   }
 
@@ -1180,24 +1166,27 @@ function previewRevertToBase() {
    * 3-way resolution for unapplied edits.
    * @returns {boolean} true if it is safe to proceed.
    */
-  function ensureEditsAppliedOrConfirm() {
-    // Most fields auto-apply. The only remaining draft is pose, which is explicit.
-    // For safety, callers can just proceed; history actions will discard pose drafts.
-    return true;
+  function ensureEditsAppliedOrConfirm({ reason = "" } = {}) {
+    // Only drafting (unapplied buffer-dirty) needs resolution here.
+    if (!dirty || draftState !== DraftState.DRAFTING) return true;
+
+    const why = reason ? `\n\nReason: ${String(reason)}` : "";
+    const apply = window.confirm(`You have unapplied property edits. Apply them now?${why}\n\nOK = Apply\nCancel = More options`);
+    if (apply) {
+      applyActiveEdits();
+      return true;
+    }
+
+    const discard = window.confirm("Discard unapplied edits?\n\nOK = Discard\nCancel = Stay here");
+    if (discard) {
+      draftDiscard({ reason: reason || "discard" });
+      return true;
+    }
+
+    return false;
   }
 
-  let autoApplyTimer = 0;
-
-  function isPoseTarget(t) {
-    return !!t && (
-      t === inpTextFrontX || t === inpTextFrontY || t === inpTextFrontZ ||
-      t === inpTextUpX || t === inpTextUpY || t === inpTextUpZ ||
-      t === inpCaptionTextFrontX || t === inpCaptionTextFrontY || t === inpCaptionTextFrontZ ||
-      t === inpCaptionTextUpX || t === inpCaptionTextUpY || t === inpCaptionTextUpZ
-    );
-  }
-
-  function onAnyInput(ev) {
+  function onAnyInput() {
     if (!active) return;
     if (lockedActive) {
       try { setHud(`Locked: ${active.uuid}`); } catch {}
@@ -1206,9 +1195,8 @@ function previewRevertToBase() {
       return;
     }
 
-    const poseTouched = isPoseTarget(ev?.target);
-
-    // Preview feedback (best-effort): reflect edits in preview without mutating core.
+    // Draft preview (P1): reflect edits in preview without mutating core.
+    // Apply is the only commit point.
     try {
       const doc = core.getDocument?.();
 
@@ -1246,7 +1234,7 @@ function previewRevertToBase() {
           return pose;
         };
         const pose = readPose([inpCaptionTextFrontX, inpCaptionTextFrontY, inpCaptionTextFrontZ], [inpCaptionTextUpX, inpCaptionTextUpY, inpCaptionTextUpZ], beforeCTPose);
-        if (poseTouched && pose && pose.__invalid) {
+        if (pose && pose.__invalid) {
           try { setHud(pose.error || "Invalid pose"); } catch {}
           // Do not update preview on invalid input.
         } else {
@@ -1297,20 +1285,8 @@ function previewRevertToBase() {
         }
       }
     } catch {}
-
-    // Pose edits stay local (explicit Apply in the pose section).
-    if (poseTouched) {
-      setDirty(true);
-      return;
-    }
-
-    // Everything else auto-applies (debounced to avoid undo spam).
-    setDirty(false);
-    if (autoApplyTimer) clearTimeout(autoApplyTimer);
-    autoApplyTimer = setTimeout(() => {
-      autoApplyTimer = 0;
-      try { applyActiveEdits({ includePose: false, quiet: true }); } catch {}
-    }, 150);
+    setDirty(true);
+    // setDirty(true) performs the state transition (edit -> drafting).
   }
 
 
@@ -1322,9 +1298,11 @@ function previewRevertToBase() {
         if (!active) return;
         if (lockedActive) return;
         if (ev.key === "Enter" && !ev.ctrlKey && !ev.metaKey) {
-          // Enter: advance focus for fast numeric entry (Shift+Enter keeps focus)
+          // Enter: Apply and advance (Shift+Enter keeps focus)
+          if (!dirty) return;
           ev.preventDefault();
           const keep = ev.shiftKey;
+          applyActiveEdits();
           queueMicrotask(() => {
             try {
               if (keep) {
@@ -1345,10 +1323,10 @@ function previewRevertToBase() {
         if (ev.key === "ArrowUp" || ev.key === "ArrowDown") {
           // Arrow keys: fine/coarse stepping with modifiers
           ev.preventDefault();
-          const base = POS_STEP;
+          const base = posStep;
           // NOTE: On Windows/Chrome, Alt can get eaten by the browser/menu.
           // Accept Ctrl as an alias for fine stepping.
-          const mul = ev.shiftKey ? 10 : 1;
+          const mul = ev.shiftKey ? 10 : ((ev.altKey || ev.ctrlKey) ? 0.1 : 1);
           const delta = base * mul * (ev.key === "ArrowUp" ? 1 : -1);
           const cur = Number(inp.value || "0") || 0;
           const next = cur + delta;
@@ -1368,8 +1346,8 @@ function previewRevertToBase() {
         if (document.activeElement !== inp) return;
         // Prevent page scroll while editing numbers.
         ev.preventDefault();
-        const base = POS_STEP;
-        const mul = ev.shiftKey ? 10 : 1;
+        const base = posStep;
+        const mul = ev.shiftKey ? 10 : ((ev.altKey || ev.ctrlKey) ? 0.1 : 1);
         // Some devices use deltaX when Shift is held (horizontal scroll).
         const d = (Math.abs(ev.deltaY) >= Math.abs(ev.deltaX)) ? ev.deltaY : ev.deltaX;
         const dir = d < 0 ? 1 : -1;
@@ -1383,50 +1361,8 @@ function previewRevertToBase() {
     );
   }
 
-  // Text size stepping (wheel): powers-of-two ladder around 8
-  function attachTextSizeWheelHandlers(inp) {
-    if (!inp) return;
-    const ladder = [0.125, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256];
-    const pickNext = (cur, dir) => {
-      if (!Number.isFinite(cur) || cur <= 0) return 8;
-      // Exact match -> move by one
-      const eps = 1e-9;
-      for (let i = 0; i < ladder.length; i += 1) {
-        if (Math.abs(ladder[i] - cur) < eps) {
-          const ni = Math.max(0, Math.min(ladder.length - 1, i + dir));
-          return ladder[ni];
-        }
-      }
-      // Not exact -> jump to nearest bracket
-      if (dir > 0) {
-        for (const v of ladder) if (v > cur) return v;
-        return ladder[ladder.length - 1];
-      }
-      for (let i = ladder.length - 1; i >= 0; i -= 1) {
-        if (ladder[i] < cur) return ladder[i];
-      }
-      return ladder[0];
-    };
 
-    inp.addEventListener(
-      "wheel",
-      (ev) => {
-        if (!active) return;
-        if (lockedActive) return;
-        if (document.activeElement !== inp) return;
-        ev.preventDefault();
-        const d = (Math.abs(ev.deltaY) >= Math.abs(ev.deltaX)) ? ev.deltaY : ev.deltaX;
-        const dir = d < 0 ? 1 : -1;
-        const cur = Number(inp.value || "0");
-        const next = pickNext(cur, dir);
-        inp.value = String(next);
-        onAnyInput();
-      },
-      { signal, passive: false }
-    );
-  }
-
-
+  loadPosStepFromStorage();
 
   if (inpName) inpName.addEventListener("input", onAnyInput, { signal });
   if (inpTextContent) inpTextContent.addEventListener("input", onAnyInput, { signal });
@@ -1436,15 +1372,28 @@ function previewRevertToBase() {
   if (inpX) inpX.addEventListener("input", onAnyInput, { signal });
   if (inpY) inpY.addEventListener("input", onAnyInput, { signal });
   if (inpZ) inpZ.addEventListener("input", onAnyInput, { signal });
-  if (inpFrames) inpFrames.addEventListener("input", onAnyInput, { signal });
+
+  if (selPosStep) selPosStep.addEventListener(
+    "change",
+    () => {
+      posStep = clampPosStep(selPosStep.value);
+      syncPosStepUi();
+      savePosStepToStorage();
+      // Keep focus on the active numeric field if any.
+      try {
+        const el = document.activeElement;
+        if (el === inpX || el === inpY || el === inpZ) {
+          el.focus();
+          el.select?.();
+        }
+      } catch {}
+    },
+    { signal }
+  );
 
   attachPosInputKeyHandlers(inpX);
   attachPosInputKeyHandlers(inpY);
   attachPosInputKeyHandlers(inpZ);
-
-  attachTextSizeWheelHandlers(inpTextSize);
-  attachTextSizeWheelHandlers(inpCaptionTextSize);
-
   if (inpEndA) inpEndA.addEventListener("input", onAnyInput, { signal });
   if (inpEndB) inpEndB.addEventListener("input", onAnyInput, { signal });
 
@@ -1495,32 +1444,12 @@ function previewRevertToBase() {
     } else {
       if (inpEndB) inpEndB.value = uuid;
     }
-    // Endpoints are immediate-apply fields.
-    onAnyInput();
+    setDirty(true);
     const which = endpointPick;
     setEndpointPick(null);
     try { setHud(`Set end_${which} = ${uuid.slice(0, 8)}…`); } catch {}
     return true;
   }
-
-  // Pose apply/reset (localized; other fields auto-apply)
-  function applyPoseOnly() {
-    if (!active) return;
-    applyActiveEdits({ includePose: true, quiet: false });
-  }
-  function resetPoseOnly() {
-    if (!active) return;
-    // Re-read from doc and revert preview; clears pose dirty.
-    fillInputsFromDoc(active.uuid);
-    setDirty(false);
-    try { previewCaptureBase(active.uuid, active.kind); } catch {}
-    try { previewRevertToBase(); } catch {}
-  }
-
-  if (btnTextPoseApply) btnTextPoseApply.addEventListener("click", (ev) => { ev.preventDefault(); applyPoseOnly(); }, { signal });
-  if (btnTextPoseReset) btnTextPoseReset.addEventListener("click", (ev) => { ev.preventDefault(); resetPoseOnly(); }, { signal });
-  if (btnCaptionPoseApply) btnCaptionPoseApply.addEventListener("click", (ev) => { ev.preventDefault(); applyPoseOnly(); }, { signal });
-  if (btnCaptionPoseReset) btnCaptionPoseReset.addEventListener("click", (ev) => { ev.preventDefault(); resetPoseOnly(); }, { signal });
 
   // Keyboard helpers within property editor:
   // - Ctrl/Cmd+Enter: Apply
@@ -1544,7 +1473,7 @@ function previewRevertToBase() {
         }
         if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) {
           ev.preventDefault();
-          applyActiveEdits({ includePose: true });
+          applyActiveEdits();
         }
       },
       { signal }
@@ -1563,6 +1492,69 @@ function previewRevertToBase() {
     flushPendingFocus();
   }
 
+  
+  /**
+   * Resolve unapplied edits when selection is about to move away from the active uuid.
+   * This is the single gate for "reason=selection":
+   * - Apply or Discard => draftState -> CLEAN, preview reverted, UI proceeds
+   * - Cancel => selection is reverted back to active uuid and UI stays
+   * @returns {boolean} true if it is safe to proceed to the next selection.
+   */
+  function resolveDraftBeforeSelectionChange(nextSelectionUuids) {
+    if (!dirty || draftState !== DraftState.DRAFTING) return true;
+
+    const activeUuid = active?.uuid || null;
+    const nextList = Array.isArray(nextSelectionUuids) ? nextSelectionUuids : [];
+    const nextIsDifferent =
+      (nextList.length !== 1) ||
+      (String(nextList[0] || "") !== String(activeUuid || ""));
+
+    if (!nextIsDifferent) return true;
+
+    const ok = ensureEditsAppliedOrConfirm({ reason: "selection" });
+    if (ok) {
+      // Safety: ensure preview is back to base when leaving the active node.
+      try { previewRevertToBase?.(); } catch {}
+      transitionDraft("clear", { reason: "selection:resolved" });
+      return true;
+    }
+
+    // User cancelled: revert selection and keep UI as-is.
+    if (activeUuid) {
+      try {
+        if (typeof setSelectionUuids === "function") setSelectionUuids([activeUuid], null, "property-revert");
+        else core.setSelection?.([activeUuid]);
+      } catch { try { core.setSelection?.([activeUuid]); } catch {} }
+    }
+    return false;
+  }
+
+  /**
+   * Preflight gate for selection changes (called by uiSelectionController BEFORE core.setSelection).
+   * - Only blocks when draftState=drafting and next selection differs from current active uuid.
+   * - Returns false on Cancel, so the caller must NOT change selection.
+   * - Must never block when draftState=applied_pending_save.
+   */
+  function requestSelectionChange(nextSelectionUuids, { reason = "selection" } = {}) {
+    if (!dirty || draftState !== DraftState.DRAFTING) return true;
+
+    const activeUuid = active?.uuid || null;
+    const nextList = Array.isArray(nextSelectionUuids) ? nextSelectionUuids : [];
+    const nextIsDifferent =
+      (nextList.length !== 1) ||
+      (String(nextList[0] || "") !== String(activeUuid || ""));
+
+    if (!nextIsDifferent) return true;
+
+    const ok = ensureEditsAppliedOrConfirm({ reason });
+    if (!ok) return false;
+
+    // Leaving the active node: ensure preview is back to base.
+    try { previewRevertToBase?.(); } catch {}
+    transitionDraft("clear", { reason: `selection:preflight:${String(reason || "")}` });
+    return true;
+  }
+
   function syncFromSelection() {
     // Selection -> Property state machine (single SSOT event: hub 'selection')
     //
@@ -1579,22 +1571,7 @@ function previewRevertToBase() {
     const list = Array.isArray(sel) ? sel : [];
 
     // Switching away while draft edits exist must be resolved first.
-    if (dirty) {
-      const activeUuid = active?.uuid || null;
-      const nextIsDifferent = (list.length !== 1) || (String(list[0] || "") !== String(activeUuid || ""));
-      if (nextIsDifferent) {
-        const ok = ensureEditsAppliedOrConfirm();
-        if (!ok) {
-          if (activeUuid) {
-            try {
-              if (typeof setSelectionUuids === "function") setSelectionUuids([activeUuid], null, "property-revert");
-              else core.setSelection?.([activeUuid]);
-            } catch { try { core.setSelection?.([activeUuid]); } catch {} }
-          }
-          return;
-        }
-      }
-    }
+    if (!resolveDraftBeforeSelectionChange(list)) return;
 
     if (list.length === 0) {
       hideAll();
@@ -1734,6 +1711,10 @@ function previewRevertToBase() {
   // Initialize
   hideAll();
 
+  function notifyDocumentSaved({ reason = "" } = {}) {
+    transitionDraft("doc_saved", { reason: reason || "notifyDocumentSaved" });
+  }
+
   return {
     showProperty,
     hidePanel: hideAll,
@@ -1741,10 +1722,13 @@ function previewRevertToBase() {
     discardEdits,
     applyActiveEdits,
     ensureEditsAppliedOrConfirm,
+    requestSelectionChange,
     refreshActiveFromDoc,
     refreshLockState,
     syncFromSelection,
     isDirty,
+    notifyDocumentSaved,
+    getDraftState: () => draftState,
     isActiveLocked: () => !!lockedActive,
     getActiveUuid,
     focusFieldByIssue,

@@ -4,10 +4,13 @@
 
 :root {
   color-scheme: dark;
+  --preview-h: 180px;
+  --qc-h: 260px;
 }
 
 html, body {
   height: 100%;
+  min-height: 100%;
   margin: 0;
   background: #0b0f14;
   color: #e6edf3;
@@ -34,9 +37,13 @@ button:disabled {
 }
 
 .modeler-root {
-  height: 100%;
+  height: 100vh;
+  min-height: 100vh;
   display: grid;
   grid-template-rows: auto 1fr;
+  /* Layout tuning defaults */
+  --pane-outliner-w: 740px;
+  --pane-qc-w: 360px;
 }
 
 .topbar {
@@ -72,21 +79,18 @@ button:disabled {
     NOTE: outliner/property widths are user-adjustable via splitters.
     Default widths are set as CSS vars on :root.
   */
-  /* slightly wider outliner by default; splitters are a bit easier to grab */
-  grid-template-columns: var(--pane-outliner-w, 520px) 10px 1fr 10px var(--pane-prop-w, 360px);
+  /* 3-pane layout: Outliner | Property | QuickCheck */
+  grid-template-columns:
+	  var(--pane-outliner-w)
+    10px
+	  minmax(340px, 1fr)
+    10px
+	  var(--pane-qc-w);
   gap: 8px;
   padding: 10px;
 }
 
-/* When preview-out window is used, the main window can be simplified.
-   Keep Outliner + splitter + Property, hide the embedded preview pane. */
-.modeler-root.is-previewout-active .maingrid {
-  grid-template-columns: var(--pane-outliner-w, 520px) 10px 1fr;
-}
-.modeler-root.is-previewout-active [data-role="pane-preview"],
-.modeler-root.is-previewout-active [data-role="splitter-right"] {
-  display: none !important;
-}
+/* preview-out only: no special casing needed in main window. */
 
 .splitter {
   align-self: stretch;
@@ -146,6 +150,10 @@ button:disabled {
   overflow: auto;
 }
 
+/* Property: compact typography */
+.pane-property .pane-body { font-size: 13px; }
+.pane-property .prop-row-key { font-size: 11px; }
+
 /* Outliner: keep tabs/actions fixed; scroll only the table area */
 [data-role="outliner-body"]{
   /*
@@ -168,45 +176,65 @@ button:disabled {
   overflow: auto;
 }
 
+[data-role="outliner-body"] .outliner-dual{
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .pane-preview-body {
   position: relative;
   overflow: hidden;
+  /* Layout: small embedded preview + fixed QuickCheck slot below */
+  display: flex;
+  flex-direction: column;
 }
 
-canvas[data-role="modeler-canvas"] {
-  display: block;
-  width: 100%;
-  height: 100%;
-  outline: none;
+
+
+
+
+.preview-embed{
+  flex: 0 0 var(--preview-h);
+  min-height: var(--preview-h);
+  background: #0f1620;
+  border: 1px solid #1d2a3a;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  margin: 0 0 10px 0;
 }
 
-.hud {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  pointer-events: none;
+.preview-embed-head{
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-bottom: 1px solid #1d2a3a;
+}
+
+.preview-embed-title{
   font-size: 12px;
   opacity: 0.85;
 }
 
-.preview-selection {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  max-width: min(60%, 520px);
-  padding: 6px 10px;
-  background: rgba(15,22,32,0.78);
-  border: 1px solid #1d2a3a;
-  border-radius: 999px;
-  font-size: 12px;
-  opacity: 0.92;
-  pointer-events: none;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.preview-embed-body{
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
 }
 
+.renderer-anchor{
+  position: absolute;
+  inset: 0;
+}
 
+.modeler-canvas{
+  width: 100%;
+  height: var(--qc-h);
+  display: block;
+}
 .outliner-tabs {
   display: flex;
   gap: 6px;
@@ -223,18 +251,71 @@ canvas[data-role="modeler-canvas"] {
   border-color: #3a567c;
 }
 
-.outliner-tablewrap {
+/* --- Outliner dual columns --- */
+.outliner-dual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: stretch;
+  gap: 10px;
   padding: 10px;
-  /* spreadsheet-like: keep columns readable; allow horizontal scroll */
-  overflow: auto;
-  scrollbar-gutter: stable both-edges;
+  min-height: 0;
+}
+
+.outcol {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.outcol-title {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  opacity: 0.85;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.outcol-order {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.mini-btn {
+  border: none;
+  background: transparent;
+  color: inherit;
+  opacity: 0.9;
+  padding: 0 4px;
+  height: 18px;
+  line-height: 18px;
+  font-size: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.mini-btn:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.outcol-scroll {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden; /* no horizontal scroll */
+  border: 1px solid #1d2a3a;
+  border-radius: 12px;
+  scrollbar-gutter: stable;
 }
 
 .outliner-table {
-  width: max-content;
-  min-width: 100%;
+  width: 100%;
   border-collapse: collapse;
   font-size: 12px;
+  table-layout: fixed; /* fixed columns */
 }
 
 .outliner-table thead th {
@@ -253,11 +334,34 @@ canvas[data-role="modeler-canvas"] {
   padding: 6px 8px;
   text-align: left;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.outliner-table tr[data-locked="true"] {
-  opacity: 0.45;
+.outliner-table .col-lock { width: 26px; }
+.outliner-table .col-num { width: 44px; text-align: right; }
+.outliner-table .col-end { width: 56px; }
+.outliner-table .col-frames { width: 38px; }
+
+.cellbtn {
+  width: 26px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  font-size: 0.75em; /* 3/4 */
 }
+
+.cellbtn:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+/* Lock icon: unlocked is the default and should be visually quiet. */
+.outliner-table tr[data-locked="false"] .cellbtn { opacity: 0.30; }
+.outliner-table tr[data-locked="true"] .cellbtn { opacity: 1.0; }
 
 /* Property panel: locked state */
 [data-role="prop-panel"][data-locked="true"] {
@@ -375,6 +479,13 @@ canvas[data-role="modeler-canvas"] {
   min-width: 180px;
 }
 
+.col-frame {
+  width: 60px;
+  text-align: right;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  opacity: 0.85;
+}
+
 .col-end {
   min-width: 140px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
@@ -475,6 +586,14 @@ canvas[data-role="modeler-canvas"] {
 }
 
 .prop-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Opt-in: stacked label above input (for long/multiline fields) */
+.prop-row-col {
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -492,22 +611,6 @@ canvas[data-role="modeler-canvas"] {
 .prop-row .prop-input {
   flex: 1;
   min-width: 0;
-}
-
-.qc-panel {
-  position: absolute;
-  left: 12px;
-  bottom: 12px;
-  width: min(520px, calc(100% - 24px));
-  max-height: min(60%, 520px);
-  background: #0f1620;
-  border: 1px solid #1d2a3a;
-  border-radius: 12px;
-  overflow: hidden;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.35);
-  z-index: 20;
 }
 
 
@@ -530,6 +633,21 @@ canvas[data-role="modeler-canvas"] {
   margin-top: 10px;
 }
 
+.qc-summary{
+  font-size: 12px;
+  opacity: 0.85;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  white-space: pre-wrap;
+}
+
+.qc-group{
+  margin-top: 6px;
+  font-size: 11px;
+  opacity: 0.7;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .qc-item {
   border: 1px solid #1d2a3a;
   border-radius: 10px;
@@ -538,8 +656,9 @@ canvas[data-role="modeler-canvas"] {
 
 .qc-item .qc-line1 {
   display: flex;
-  justify-content: space-between;
-  gap: 10px;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
   font-size: 12px;
 }
 
@@ -619,7 +738,7 @@ canvas[data-role="modeler-canvas"] {
   position: absolute;
   inset: 0;
   width: 100%;
-  height: 100%;
+  height: var(--qc-h);
 }
 
 .dim-overlay .dim-svg { pointer-events: auto; }
@@ -698,3 +817,61 @@ canvas[data-role="modeler-canvas"] {
   filter: drop-shadow(0 0 6px rgba(255,255,255,0.6));
 }
 
+/* QuickCheck pane (right): in-flow, no floating panel */
+.pane-qc .pane-body{
+  min-height: 0;
+  overflow: hidden; /* list scrolls inside */
+  display: flex;
+  flex-direction: column;
+}
+
+.pane-qc .qc-panel{
+  flex: 0 0 var(--qc-h);
+  position: static;
+  width: 100%;
+  height: var(--qc-h);
+  max-height: none;
+  background: #0f1620;
+  border: 1px solid #1d2a3a;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: none;
+}
+
+.pane-qc .qc-head{
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #1d2a3a;
+}
+
+.pane-qc .qc-body{
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px 12px;
+}
+
+/* QuickCheck: folded mode keeps the docked slot stable but hides the list. */
+.pane-qc .qc-panel.is-collapsed .qc-body{
+  overflow: hidden;
+}
+.pane-qc .qc-panel.is-collapsed .qc-list{
+  display: none;
+}
+
+/* Outliner: allow the dual columns area to take the remaining height */
+[data-role="outliner-body"] .outliner-dual{
+  flex: 1 1 auto;
+}
+.outliner-table .col-name,
+.outliner-table .col-caption { width: auto; }
+
+
+/* Outliner inline edit */
+.outliner-table td.is-editing{padding:0;}
+.outliner-table input.cell-edit{width:100%;box-sizing:border-box;border:1px solid var(--ui-border, #444);background:var(--ui-surface, #111);color:inherit;padding:2px 4px;font:inherit;}

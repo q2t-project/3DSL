@@ -38,7 +38,7 @@
 | hub.previewSetLineEnds | hub.previewSetLineEnds(uuid, endA, endB) -> void (preview only; endA/endB are endpoint objects: {ref:string}\|{coord:[x,y,z]}\|null) | stable |
 | hub.previewSetOverride | hub.previewSetOverride(uuid, override:{position?,endA?,endB?,captionText?}\|null) -> void (preview only; null clears override for uuid) | beta |
 | hub.previewSetPosition | hub.previewSetPosition(uuid, pos:[x,y,z]) -> void (preview only) | stable |
-| hub.projectToNdc | hub.projectToNdc(pos:[x,y,z]) -> [x,y,z] \| null (NDC) | beta |
+| hub.projectToNdc | hub.projectToNdc(worldPos:[x,y,z]) -> [ndcX, ndcY, ndcZ] \| null | beta |
 | hub.resize | hub.resize(width, height, dpr?) -> void | stable |
 | hub.start | hub.start() -> void | stable |
 | hub.stop | hub.stop() -> void | stable |
