@@ -267,9 +267,34 @@ function syncTitle() {
   }
 
   async function writeToHandle(handle, jsonText) {
+    const s = (typeof jsonText === "string") ? jsonText : "";
+    if (!s) throw new Error("Empty JSON text");
+
+    // Write as Blob for better compatibility across browsers.
+    // Also use the explicit write command to avoid silent 0-byte writes.
+    const blob = new Blob([s], { type: "application/json" });
+    console.log("[file] write blob bytes=", blob.size, "name=", handle?.name);
+
     const writable = await handle.createWritable();
-    await writable.write(jsonText);
-    await writable.close();
+    try {
+      await writable.write({ type: "write", position: 0, data: blob });
+      // Ensure the file is at least blob.size.
+      try { await writable.truncate(blob.size); } catch {}
+    } finally {
+      await writable.close();
+    }
+
+    // Post-check: confirm actual written size when possible.
+    try {
+      const f = await handle.getFile?.();
+      if (f && typeof f.size === "number") {
+        console.log("[file] wrote bytes=", f.size, "name=", handle?.name);
+        if (f.size === 0) throw new Error("Wrote 0 bytes");
+      }
+    } catch (e) {
+      // Bubble up so callers can fallback to download.
+      throw e;
+    }
   }
 
   async function pickSaveHandle({ suggestedName }) {
@@ -292,8 +317,10 @@ function syncTitle() {
     if (!doc) { setHud("Save blocked: no document"); return; }
     if (ensureEditsApplied && !ensureEditsApplied()) { setHud("Save blocked: apply edits first"); return; }
 
-    // NOTE: file pickers / downloads can require transient user-activation.
-    // Avoid awaiting validator initialization before opening pickers.
+    if (!(await ensureStrictOk(doc))) return;
+
+    const jsonText = JSON.stringify(doc, null, 2);
+    console.log("[file] json chars=", typeof jsonText === "string" ? jsonText.length : -1, "act=", act);
 
     // --- Export ---
     if (act === "export") {
@@ -302,8 +329,6 @@ function syncTitle() {
         try {
           const suggestedName = defaultExportName();
           const handle = await withFocusRestore(() => pickSaveHandle({ suggestedName }));
-          if (!(await ensureStrictOk(doc))) return;
-          const jsonText = JSON.stringify(doc, null, 2);
           await writeToHandle(handle, jsonText);
           core?.markClean?.(); // policy: Export resolves dirty
           syncTitle();
@@ -315,8 +340,6 @@ function syncTitle() {
             return;
           }
           // fallback: download
-          if (!(await ensureStrictOk(doc))) return;
-          const jsonText = JSON.stringify(doc, null, 2);
           const fn = defaultExportName();
           dl(fn, jsonText);
           core?.markClean?.(); // policy
@@ -326,8 +349,6 @@ function syncTitle() {
         }
       }
 
-      if (!(await ensureStrictOk(doc))) return;
-      const jsonText = JSON.stringify(doc, null, 2);
       const fn = defaultExportName();
       dl(fn, jsonText);
       core?.markClean?.();
@@ -345,8 +366,6 @@ function syncTitle() {
           const handle = core?.getSaveHandle?.();
           if (handle) {
             try {
-              if (!(await ensureStrictOk(doc))) return;
-              const jsonText = JSON.stringify(doc, null, 2);
               await writeToHandle(handle, jsonText);
               core?.setSaveLabel?.(handle?.name || defaultSaveName());
               core?.markClean?.();
@@ -365,8 +384,6 @@ function syncTitle() {
         try {
           const suggestedName = defaultSaveName();
           const handle = await withFocusRestore(() => pickSaveHandle({ suggestedName }));
-          if (!(await ensureStrictOk(doc))) return;
-          const jsonText = JSON.stringify(doc, null, 2);
           await writeToHandle(handle, jsonText);
           core?.setSaveHandle?.(handle, handle?.name || suggestedName);
           core?.markClean?.();
@@ -384,8 +401,6 @@ function syncTitle() {
       }
 
       // download fallback (no FSA or failed)
-      if (!(await ensureStrictOk(doc))) return;
-      const jsonText = JSON.stringify(doc, null, 2);
       let fn = defaultSaveName();
       // For SaveAs without FSA, allow naming.
       if (act === "saveas") {
