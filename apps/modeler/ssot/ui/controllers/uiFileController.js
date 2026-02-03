@@ -289,8 +289,8 @@ function syncTitle() {
     // This keeps Save/Export usable even if the UI is currently driven by hub events.
     const doc0 = core?.getDocument?.() ?? null;
     const doc = doc0 || (typeof getFallbackDocument === "function" ? (getFallbackDocument() ?? null) : null);
-    if (!doc) return;
-    if (ensureEditsApplied && !ensureEditsApplied()) return;
+    if (!doc) { setHud("Save blocked: no document"); return; }
+    if (ensureEditsApplied && !ensureEditsApplied()) { setHud("Save blocked: apply edits first"); return; }
 
     if (!(await ensureStrictOk(doc))) return;
 
