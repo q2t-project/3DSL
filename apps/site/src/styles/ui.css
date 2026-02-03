@@ -340,21 +340,16 @@
     0 0 0 3px rgba(56,189,248,0.18);
 }
 
-/* top meta row: 4 fixed slots */
-.lib-top{
-  display: grid;
-  font-size: 0;
+/* top meta row: wrap-friendly (no overlap with ticker) */
+.lib-meta{
+  display: flex;
   align-items: center;
-  gap: 3px;
-  grid-template-columns: 56px 62px 62px 1fr;
+  gap: 6px;
+  flex-wrap: wrap;
   padding: 2px 6px 1px;
 }
 @media (min-width: 640px){
-  .lib-top{
-    gap: 4px;
-    grid-template-columns: 62px 64px 64px 1fr;
-    padding: 3px 8px 2px;
-  }
+  .lib-meta{ padding: 3px 8px 2px; }
 }
 
 /* UUID badge: existence > readability */
@@ -382,9 +377,6 @@
   line-height: 1;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
 }
 .lib-created{ color: rgba(255,255,255,0.70); }
 .lib-updated{ color: rgba(224,247,255,0.84); font-style: italic; }
@@ -409,6 +401,10 @@
   align-items: center;
   will-change: transform;
   transform: translate3d(0,0,0);
+}
+
+.lib-ticker-seg{
+  flex: 0 0 auto;
 }
 
 .lib-ticker-gap{

@@ -173,17 +173,18 @@ function pickPublishedLabel(item) {
           // Viewer への直行は右上の別リンクに分離（a の入れ子を避ける）
           card.innerHTML = `
             <a class="lib-main" href="${detailUrl}" aria-label="Open details: ${escapeHtml(title)}">
-              <div class="lib-top">
+              <div class="lib-meta">
                 <span class="lib-uuid-badge">${escapeHtml(String(it.id || it.slug || ""))}</span>
-                <span class="lib-created">${created ? `c ${escapeHtml(created)}` : ""}</span>
-                <span class="lib-updated">${published ? `${escapeHtml(publishedLabel)} ${escapeHtml(published)}` : ""}</span>
-                <div class="lib-ticker" data-scroll="false">
-                  <span class="lib-ticker-track">
-                    <span class="lib-ticker-seg lib-ticker-a">${escapeHtml(tickerText)}</span>
-                    <span class="lib-ticker-gap"></span>
-                    <span class="lib-ticker-seg lib-ticker-b">${escapeHtml(tickerText)}</span>
-                  </span>
-                </div>
+                <span class="lib-created" title="${created ? `created ${escapeHtml(created)}` : ""}">${created ? `c ${escapeHtml(created)}` : ""}</span>
+                <span class="lib-updated" title="${published ? `${escapeHtml(publishedLabel)} ${escapeHtml(published)}` : ""}">${published ? `${escapeHtml(publishedLabel)} ${escapeHtml(published)}` : ""}</span>
+              </div>
+
+              <div class="lib-ticker" data-scroll="false" aria-label="Summary and tags">
+                <span class="lib-ticker-track">
+                  <span class="lib-ticker-seg lib-ticker-a">${escapeHtml(tickerText)}</span>
+                  <span class="lib-ticker-gap"></span>
+                  <span class="lib-ticker-seg lib-ticker-b">${escapeHtml(tickerText)}</span>
+                </span>
               </div>
 
               <div class="lib-title">${escapeHtml(title)}</div>
@@ -251,11 +252,14 @@ function updateTickers() {
       continue;
     }
 
-    const gapW = gap ? gap.getBoundingClientRect().width : 0;
-    const dist = Math.ceil(segA.getBoundingClientRect().width + gapW);
+    // NOTE: measure with scrollWidth (more reliable than getBoundingClientRect when
+    // flex/grid shrink happens).
+    const gapW = gap ? Math.ceil(gap.getBoundingClientRect().width) : 0;
+    const segW = Math.ceil(segA.scrollWidth || segA.getBoundingClientRect().width);
+    const dist = segW + gapW;
 
-    const boxW = Math.floor(el.getBoundingClientRect().width);
-    const should = dist > boxW + 8;
+    const boxW = Math.floor(el.clientWidth || el.getBoundingClientRect().width);
+    const should = dist > boxW + 4;
 
     if (!should) {
       el.dataset.scroll = "false";
