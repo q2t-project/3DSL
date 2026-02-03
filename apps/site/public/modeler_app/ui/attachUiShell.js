@@ -29,6 +29,11 @@ export function attachUiShell({ root, hub, modelUrl }) {
 
   const core = createHubCoreControllers(hub);
 
+  // Kick validator initialization early so Save/Export keeps user-activation.
+  // (If initialization happens during a Save click, the async boundary can
+  // consume the transient activation and block file pickers/downloads.)
+  try { core?.ensureValidatorInitialized?.(); } catch {}
+
   // --- UI sidecar persistence (localStorage) ---
   const getDocUuid = () => {
     try {
@@ -120,24 +125,7 @@ export function attachUiShell({ root, hub, modelUrl }) {
   const qcList = getRoleEl(root, "qc-list");
 
   const APP_TITLE = "3DSD Modeler";
-  // Minimal HUD/toast revival for debugging (and lightweight UX feedback).
-  // - non-empty message: show
-  // - auto-hide after a short delay
-  let hudTimer = 0;
-  const setHud = (msg) => {
-    if (!hud) return;
-    const s = String(msg ?? "");
-    try { hud.textContent = s; } catch {}
-    try { hud.hidden = !s; } catch {}
-    if (hudTimer) { try { clearTimeout(hudTimer); } catch {} hudTimer = 0; }
-    if (s) {
-      hudTimer = window.setTimeout(() => {
-        hudTimer = 0;
-        try { hud.textContent = ""; } catch {}
-        try { hud.hidden = true; } catch {}
-      }, 2500);
-    }
-  };
+  const setHud = (msg) => { if (hud) hud.textContent = String(msg ?? ""); };
 
   // --- Preview label: show the current single-selection name/caption in the viewport ---
   const pickText = (v) => {
