@@ -120,25 +120,22 @@ export function attachUiShell({ root, hub, modelUrl }) {
   const qcList = getRoleEl(root, "qc-list");
 
   const APP_TITLE = "3DSD Modeler";
-  let hudTimer = null;
+  // Minimal HUD/toast revival for debugging (and lightweight UX feedback).
+  // - non-empty message: show
+  // - auto-hide after a short delay
+  let hudTimer = 0;
   const setHud = (msg) => {
     if (!hud) return;
     const s = String(msg ?? "");
-    hud.textContent = s;
-    // HUD is used as a lightweight toast for debugging and user feedback.
-    // Keep it visible briefly when a message is set.
-    try {
-      if (hudTimer) clearTimeout(hudTimer);
-      hudTimer = null;
-    } catch {}
-    hud.hidden = !s;
+    try { hud.textContent = s; } catch {}
+    try { hud.hidden = !s; } catch {}
+    if (hudTimer) { try { clearTimeout(hudTimer); } catch {} hudTimer = 0; }
     if (s) {
-      try {
-        hudTimer = setTimeout(() => {
-          try { hud.textContent = ""; } catch {}
-          try { hud.hidden = true; } catch {}
-        }, 2500);
-      } catch {}
+      hudTimer = window.setTimeout(() => {
+        hudTimer = 0;
+        try { hud.textContent = ""; } catch {}
+        try { hud.hidden = true; } catch {}
+      }, 2500);
     }
   };
 

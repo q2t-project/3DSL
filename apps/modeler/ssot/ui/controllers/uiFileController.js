@@ -285,7 +285,7 @@ function syncTitle() {
 
   async function handleFileAction(action, { ensureEditsApplied, getFallbackDocument } = {}) {
     const act = String(action || "").toLowerCase();
-    try { console.log("[file] handleFileAction", act); } catch {}
+    console.log("[file] handleFileAction", act);
     // Prefer core document; fall back to a hub-provided cache when available.
     // This keeps Save/Export usable even if the UI is currently driven by hub events.
     const doc0 = core?.getDocument?.() ?? null;
