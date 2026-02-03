@@ -382,6 +382,9 @@
   line-height: 1;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 .lib-created{ color: rgba(255,255,255,0.70); }
 .lib-updated{ color: rgba(224,247,255,0.84); font-style: italic; }
