@@ -5,6 +5,15 @@ import Layout from "../../layouts/Layout.astro";
 const items = getLibraryItems();
 const ITEMS_PER_PAGE = 20;
 
+function withReturn(url, ret) {
+  const u = String(url || "");
+  const r = String(ret || "");
+  if (!u || !r) return u;
+  const sep = u.includes("?") ? (u.endsWith("?") || u.endsWith("&") ? "" : "&") : "?";
+  return `${u}${sep}return=${encodeURIComponent(r)}`;
+}
+
+
 function fmtDate(s) {
   if (!s) return null;
   const t = Date.parse(String(s));
@@ -57,6 +66,14 @@ function pickPublishedLabel(item) {
     </section>
 
   <script is:inline define:vars={{ ITEMS: items, ITEMS_PER_PAGE }}>
+    function withReturn(url, ret) {
+      const u = String(url || "");
+      const r = String(ret || "");
+      if (!u || !r) return u;
+      const sep = u.includes("?") ? (u.endsWith("?") || u.endsWith("&") ? "" : "&") : "?";
+      return `${u}${sep}return=${encodeURIComponent(r)}`;
+    }
+
     function fmtDate(s) {
       if (!s) return null;
       const t = Date.parse(String(s));
@@ -161,8 +178,10 @@ function pickPublishedLabel(item) {
           const tagsAll = Array.isArray(it.tags) ? it.tags : [];
           const tickerText = [summary, ...tagsAll.map((t) => `#${t}`)].filter(Boolean).join(" · ");
 
-          const viewerUrl = String(it.viewer_url || "");
-          const openHtml = viewerUrl
+          const viewerUrl0 = String(it.viewer_url || "");
+          const returnTo = (typeof window !== "undefined") ? (window.location.pathname + window.location.search) : "/library/";
+          const viewerUrl = withReturn(viewerUrl0, returnTo);
+          const openHtml = viewerUrl0
             ? `
             <a class="lib-open" href="${escapeHtml(viewerUrl)}" title="Viewerで開く" aria-label="Viewerで開く">
               <span class="icon" aria-hidden="true">⛶</span>
