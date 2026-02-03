@@ -275,7 +275,56 @@ function initMiniAd(p) {
     });
   }
 
+
+  function wireBackButton() {
+    const btn = document.getElementById("viewer-back");
+    if (!btn) return;
+    const sp = new URLSearchParams(location.search);
+    const ret = sp.get("return");
+
+    const isSafeReturn = (u) => {
+      if (typeof u !== "string") return false;
+      const t = u.trim();
+      if (!t) return false;
+      // allow same-origin absolute, or root-relative paths
+      if (t.startsWith("/")) return true;
+      try {
+        const uu = new URL(t, location.href);
+        return uu.origin === location.origin;
+      } catch (_e) {
+        return false;
+      }
+    };
+
+    const safeRet = isSafeReturn(ret) ? new URL(ret, location.href).toString() : "";
+
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (safeRet) {
+        location.href = safeRet;
+        return;
+      }
+      try {
+        if (document.referrer) {
+          const r = new URL(document.referrer);
+          if (r.origin === location.origin) {
+            location.href = r.toString();
+            return;
+          }
+        }
+      } catch (_e) {}
+      if (history.length > 1) {
+        history.back();
+        return;
+      }
+      location.href = "/library/";
+    });
+  }
+
+
   wireMessageApi();
+  wireBackButton();
 
   await remount({
     mode,
