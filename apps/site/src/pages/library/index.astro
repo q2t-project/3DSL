@@ -161,6 +161,14 @@ function pickPublishedLabel(item) {
           const tagsAll = Array.isArray(it.tags) ? it.tags : [];
           const tickerText = [summary, ...tagsAll.map((t) => `#${t}`)].filter(Boolean).join(" · ");
 
+          const viewerUrl = String(it.viewer_url || "");
+          const openHtml = viewerUrl
+            ? `
+            <a class="lib-open" href="${viewerUrl}" title="Viewerで開く" aria-label="Viewerで開く">
+              <span class="icon" aria-hidden="true">⛶</span>
+            </a>`
+            : "";
+
           // B案: クリックの主導線は「詳細（メタ情報）ページ」
           // Viewer への直行は右上の別リンクに分離（a の入れ子を避ける）
           card.innerHTML = `
@@ -181,18 +189,71 @@ function pickPublishedLabel(item) {
               <div class="lib-title">${escapeHtml(title)}</div>
             </a>
 
-            <a class="lib-open" href="${it.viewer_url}" title="Viewerで開く" aria-label="Viewerで開く">
-              <span class="icon" aria-hidden="true">⛶</span>
-            </a>
+            ${openHtml}
           `;
 
           cardsEl.appendChild(card);
         }
 
+        scheduleTickerUpdate();
+
         pageInfoEl.textContent = `${page} / ${maxPage}`;
         prevBtn.disabled = page <= 1;
         nextBtn.disabled = page >= maxPage;
       }
+      // Ticker wiring: enable scroll animation only when text overflows,
+      // and set CSS variables for distance/duration.
+      let tickerRaf = 0;
+
+      function scheduleTickerUpdate() {
+        if (tickerRaf) cancelAnimationFrame(tickerRaf);
+        tickerRaf = requestAnimationFrame(updateTickers);
+      }
+
+      function updateTickers() {
+        tickerRaf = 0;
+        const tickers = cardsEl.querySelectorAll(".lib-ticker");
+        for (const t of tickers) {
+          const track = t.querySelector(".lib-ticker-track");
+          if (!track) continue;
+
+          // Reset first to get accurate measurement
+          t.dataset.scroll = "false";
+          t.style.removeProperty("--lib-ticker-dist");
+          t.style.removeProperty("--lib-ticker-dur");
+
+          // If empty, nothing to do
+          const raw = (track.textContent || "").trim();
+          if (!raw) continue;
+
+          // We render duplicated text: [text][gap][text]
+          // We animate by the width of the first half.
+          const full = track.scrollWidth;
+          const half = Math.floor(full / 2);
+
+          // Determine if overflow exists (ticker box narrower than first half)
+          const boxW = t.clientWidth;
+          const needs = half > boxW + 6;
+
+          if (!needs) continue;
+
+          // Speed: px per second (tune here)
+          const speed = 42;
+          const dist = Math.max(120, half);
+          const dur = Math.max(6, Math.round(dist / speed));
+
+          // Small per-card delay to avoid all tickers moving in sync
+          const delay = ((Math.random() * 6) - 3).toFixed(1);
+
+          t.dataset.scroll = "true";
+          t.style.setProperty("--lib-ticker-dist", `${dist}px`);
+          t.style.setProperty("--lib-ticker-dur", `${dur}s`);
+          t.style.setProperty("--lib-ticker-delay", `${delay}s`);
+        }
+      }
+
+      window.addEventListener("resize", scheduleTickerUpdate, { passive: true });
+
       searchEl.oninput = (e) => {
         query = e.target.value.toLowerCase();
         page = 1;
