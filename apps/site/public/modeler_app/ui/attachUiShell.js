@@ -390,7 +390,17 @@ export function attachUiShell({ root, hub, modelUrl }) {
 
   // --- Cross-controller wiring ---
 
-  fileController?.setExtraDirtyProvider?.(() => !!propertyController?.isDirty?.());
+  // Draft (unapplied) edits should only block Save/Export when there is an active item being edited.
+  // Guard against edge cases where the property panel is not active but a stale dirty flag remains.
+  fileController?.setExtraDirtyProvider?.(() => {
+    try {
+      const active = propertyController?.getActiveUuid?.();
+      if (!active) return false;
+      return !!propertyController?.isDirty?.();
+    } catch {
+      return false;
+    }
+  });
   fileController?.setInvoker?.((a) => toolbarController?.invoke?.(a));
   fileController?.attachBeforeUnload?.({ signal: sig });
 
