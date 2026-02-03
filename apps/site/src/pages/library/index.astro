@@ -175,8 +175,11 @@ function pickPublishedLabel(item) {
             <a class="lib-main" href="${detailUrl}" aria-label="Open details: ${escapeHtml(title)}">
               <div class="lib-meta">
                 <span class="lib-uuid-badge">${escapeHtml(String(it.id || it.slug || ""))}</span>
-                <span class="lib-created" title="${created ? `created ${escapeHtml(created)}` : ""}">${created ? `c ${escapeHtml(created)}` : ""}</span>
-                <span class="lib-updated" title="${published ? `${escapeHtml(publishedLabel)} ${escapeHtml(published)}` : ""}">${published ? `${escapeHtml(publishedLabel)} ${escapeHtml(published)}` : ""}</span>
+                ${published
+                  ? `<span class="lib-date">${escapeHtml(publishedLabel)} ${escapeHtml(published)}</span>`
+                  : created
+                    ? `<span class="lib-date">created ${escapeHtml(created)}</span>`
+                    : ``}
               </div>
 
               <div class="lib-ticker" data-scroll="false" aria-label="Summary and tags">
@@ -240,43 +243,30 @@ function scheduleTickerUpdate() {
 function updateTickers() {
   const tickers = cardsEl.querySelectorAll(".lib-ticker");
   for (const el of tickers) {
-    const segA = el.querySelector(".lib-ticker-a");
-    const gap = el.querySelector(".lib-ticker-gap");
-    if (!segA) continue;
+    const track = el.querySelector(".lib-ticker-track");
+    if (!track) continue;
 
-    const text = (segA.textContent || "").trim();
-    if (!text) {
+    const boxW = el.clientWidth || el.getBoundingClientRect().width;
+    const trackW = track.scrollWidth;
+
+    if (trackW <= boxW + 2) {
       el.dataset.scroll = "false";
       el.style.removeProperty("--lib-ticker-dist");
       el.style.removeProperty("--lib-ticker-dur");
       continue;
     }
 
-    // NOTE: measure with scrollWidth (more reliable than getBoundingClientRect when
-    // flex/grid shrink happens).
-    const gapW = gap ? Math.ceil(gap.getBoundingClientRect().width) : 0;
-    const segW = Math.ceil(segA.scrollWidth || segA.getBoundingClientRect().width);
-    const dist = segW + gapW;
+    const dist = trackW - boxW;
+    const dur = Math.max(10, Math.round(dist / 40));
 
-    const boxW = Math.floor(el.clientWidth || el.getBoundingClientRect().width);
-    const should = dist > boxW + 4;
-
-    if (!should) {
-      el.dataset.scroll = "false";
-      el.style.removeProperty("--lib-ticker-dist");
-      el.style.removeProperty("--lib-ticker-dur");
-      continue;
-    }
-
-    const dur = Math.max(8, Math.min(28, dist / 48));
     el.dataset.scroll = "true";
-    el.style.setProperty("--lib-ticker-dist", dist + "px");
-    el.style.setProperty("--lib-ticker-dur", dur.toFixed(2) + "s");
-    el.style.setProperty("--lib-ticker-delay", "0.2s");
+    el.style.setProperty("--lib-ticker-dist", `${dist}px`);
+    el.style.setProperty("--lib-ticker-dur", `${dur}s`);
   }
 }
 
 window.addEventListener("resize", scheduleTickerUpdate, { passive: true });
+("resize", scheduleTickerUpdate, { passive: true });
       apply();
 
       function escapeHtml(s) {

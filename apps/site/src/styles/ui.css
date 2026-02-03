@@ -461,3 +461,38 @@
   }
 }
 
+
+
+/* ---- Library fixes ---- */
+
+/* prevent ⛶ overlap */
+.lib-meta, .lib-ticker, .lib-title { padding-right: 52px; }
+
+/* unified date chip */
+.lib-date{
+  font-size: 10.5px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: rgba(255,255,255,0.75);
+}
+
+/* ticker: clean animation */
+.lib-ticker{
+  overflow: hidden;
+  white-space: nowrap;
+}
+.lib-ticker-track{
+  display: inline-flex;
+  width: max-content;
+  flex: 0 0 auto;
+  gap: 24px;
+  will-change: transform;
+}
+.lib-ticker[data-scroll="true"] .lib-ticker-track{
+  animation: libTickerClean var(--lib-ticker-dur, 14s) linear infinite;
+}
+@keyframes libTickerClean{
+  from{ transform: translateX(0); }
+  to{ transform: translateX(calc(-1 * var(--lib-ticker-dist, 0px))); }
+}
