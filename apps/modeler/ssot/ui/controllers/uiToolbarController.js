@@ -488,17 +488,16 @@ export function createUiToolbarController(deps) {
   );
 
   function hasDoc() {
-    return !!core?.getDocument?.();
+    // Prefer core document; fall back to last hub-emitted doc.
+    // This keeps toolbar state usable even if UI rendering is currently driven by hub events.
+    return !!(core?.getDocument?.() || lastDoc);
   }
 
   function syncActionState() {
     const doc = hasDoc();
     const coreDirty = !!fileController?.isCoreDirty?.();
     const dirty = coreDirty; // 'Save' reflects core-applied edits only
-    // Only treat property draft-dirty as blocking when there is an active item.
-    // (If selection is empty, stale dirty must not disable Save/Export.)
-    const propActive = !!propertyController?.getActiveUuid?.();
-    const propDirty = propActive && !!propertyController?.isDirty?.();
+    const propDirty = !!propertyController?.isDirty?.();
     const propLocked = !!propertyController?.isActiveLocked?.();
 
     const canUndo = !!core?.canUndo?.();
@@ -768,7 +767,10 @@ export function createUiToolbarController(deps) {
     }
 
     if (act === "save" || act === "saveas" || act === "export") {
-      await fileController.handleFileAction?.(act, { ensureEditsApplied: () => propertyController.ensureEditsAppliedOrConfirm?.({ reason: "file" }) });
+      await fileController.handleFileAction?.(act, {
+        ensureEditsApplied: () => propertyController.ensureEditsAppliedOrConfirm?.({ reason: "file" }),
+        getFallbackDocument: () => lastDoc,
+      });
       requestSync();
       return;
     }

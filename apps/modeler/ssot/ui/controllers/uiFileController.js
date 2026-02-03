@@ -283,12 +283,15 @@ function syncTitle() {
     return handle;
   }
 
-  async function handleFileAction(action, { ensureEditsApplied } = {}) {
+  async function handleFileAction(action, { ensureEditsApplied, getFallbackDocument } = {}) {
     const act = String(action || "").toLowerCase();
-    if (!core?.getDocument?.()) return;
+    // Prefer core document; fall back to a hub-provided cache when available.
+    // This keeps Save/Export usable even if the UI is currently driven by hub events.
+    const doc0 = core?.getDocument?.() ?? null;
+    const doc = doc0 || (typeof getFallbackDocument === "function" ? (getFallbackDocument() ?? null) : null);
+    if (!doc) return;
     if (ensureEditsApplied && !ensureEditsApplied()) return;
 
-    const doc = core.getDocument();
     if (!(await ensureStrictOk(doc))) return;
 
     const jsonText = JSON.stringify(doc, null, 2);
