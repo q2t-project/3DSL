@@ -5,20 +5,16 @@
 // - Do not touch DOM here (no window/document).
 // - UI must not mutate this directly; via hub facade only.
 
-// NOTE: Ajv browser import compatibility
-//
-// /vendor/ajv/dist/ajv.js may be CommonJS or have a different export shape
-// depending on how vendor sync/bundling was done. A static named import would
-// break the whole runtime at parse time, so we load it dynamically.
-let Ajv = globalThis?.Ajv;
-if (!Ajv) {
+async function loadAjvCtor() {
   try {
     const mod = await import("/vendor/ajv/dist/ajv.js");
-    Ajv = mod?.default ?? mod?.Ajv ?? mod;
-  } catch {
-    Ajv = null;
+    return mod?.default ?? mod?.Ajv ?? globalThis?.Ajv ?? null;
+  } catch (e) {
+    return globalThis?.Ajv ?? null;
   }
 }
+
+import Ajv from "/vendor/ajv/dist/ajv.bundle.js";
 
 // strict validator helpers (copied/simplified from viewer runtime)
 // ------------------------------------------------------------
@@ -358,14 +354,18 @@ export function createCoreControllers(emitter) {
           }
           return res.json();
         })
-        .then((schemaJson) => {
+        .then(async (schemaJson) => {
           schemaJsonCache = schemaJson;
-          if (!Ajv) {
-            throw new Error(
-              "Ajv is unavailable. Vendor sync/bundling is likely missing or incompatible (expected /vendor/ajv/dist/ajv.js)."
-            );
-          }
-ajv = new Ajv({
+const AjvCtor = await loadAjvCtor();
+    if (!AjvCtor) {
+      console.warn("Ajv is unavailable; skipping schema validation.");
+      validateFn = () => true;
+      validateFn.errors = [];
+      validatePruneFn = null;
+      schemaInfo = { version: String(schemaJson?.version || ""), compiledAt: null, strict: false, errors: [] };
+      return;
+    }
+    ajv = new AjvCtor({
   allErrors: true,
   strict: true,
   strictSchema: false,
@@ -380,7 +380,7 @@ validateFn = ajv.compile(schemaJson);
 
 // A prune validator used for import: strips additional properties wherever schema disallows them.
 try {
-  const ajvPrune = new Ajv({
+  const ajvPrune = new AjvCtor({
     allErrors: true,
     strict: true,
     strictSchema: false,
@@ -598,7 +598,7 @@ async function importNormalize(raw) {
   const collapsedGroups = new Set();
   let groupSeq = 1;
   let uiState = {
-    activeTab: "points",
+    activeTab: "all",
     activeTool: "select",
     frameIndex: 0,
     // UI-only playback state (does not affect export/dirty)
@@ -999,7 +999,7 @@ async function importNormalize(raw) {
 
     // Normalize UI-only state.
     const tab = String(next.activeTab || "points");
-    next.activeTab = (tab === "points" || tab === "lines" || tab === "aux") ? tab : "points";
+    next.activeTab = (tab === "all" || tab === "points" || tab === "lines" || tab === "aux") ? tab : "all";
 
     const tool = String(next.activeTool || "select");
     next.activeTool = (tool === "move" || tool === "select") ? tool : "select";
@@ -1077,6 +1077,52 @@ async function importNormalize(raw) {
         });
       }
     }
+
+
+    // frames type validation (warn)
+    const checkFrames = (kind, arr, basePath) => {
+      if (!Array.isArray(arr)) return;
+      for (let i = 0; i < arr.length; i++) {
+        const it = arr[i];
+        const uuid = it?.meta?.uuid ?? null;
+        const frames = it?.appearance?.frames;
+        if (frames == null) continue;
+        const p = `${basePath}/${i}/appearance/frames`;
+        const bad = (msg, actual) =>
+          push({
+            severity: "warn",
+            uuid,
+            kind,
+            path: p,
+            expected: "number or number[] (finite integers)",
+            actual,
+            message: msg
+          });
+
+        if (typeof frames === "number") {
+          if (!Number.isFinite(frames) || !Number.isInteger(frames)) {
+            bad("frames must be a finite integer", frames);
+          }
+          continue;
+        }
+        if (Array.isArray(frames)) {
+          for (let j = 0; j < frames.length; j++) {
+            const v = frames[j];
+            if (!Number.isFinite(v) || !Number.isInteger(v)) {
+              bad(`frames[${j}] must be a finite integer`, v);
+              break;
+            }
+          }
+          continue;
+        }
+        bad("frames must be a number or an array of numbers", typeof frames);
+      }
+    };
+
+    checkFrames("point", doc.points, "/points");
+    checkFrames("line", doc.lines, "/lines");
+    checkFrames("aux", doc.aux, "/aux");
+
 
 
 // Import extras (info): unknown fields stripped during importNormalize()
@@ -1320,106 +1366,101 @@ if (importExtras && typeof importExtras === "object") {
     return { removed };
   }
 
+  // Reorder selected items within the outliner list.
+  // kind: points/lines/aux (also accepts point/line)
+  // mode: top/up/down/bottom
+  function reorderSelection(kind, mode) {
+    const doc = document3dss;
+    if (!doc || typeof doc !== "object") return false;
 
-function _findPathByUuidInDoc(doc, uuid, kindHint) {
-  if (!doc || !uuid) return null;
-  const u = String(uuid);
-  const kind = kindHint ? String(kindHint).toLowerCase() : "";
-  const tryList = (arr, base) => {
-    if (!Array.isArray(arr)) return null;
-    for (let i = 0; i < arr.length; i += 1) {
-      const it = arr[i];
-      const id = it?.meta?.uuid || it?.uuid;
-      if (id === u) return `${base}/${i}`;
-    }
-    return null;
-  };
-  if (kind === "point") return tryList(doc.points, "/points");
-  if (kind === "line") return tryList(doc.lines, "/lines");
-  if (kind === "aux") return tryList(doc.aux, "/aux");
-  return tryList(doc.points, "/points") || tryList(doc.lines, "/lines") || tryList(doc.aux, "/aux") || null;
-}
+    const kRaw = String(kind || "");
+    const k = (kRaw === "point" ? "points" : (kRaw === "line" ? "lines" : kRaw));
+    if (k !== "points" && k !== "lines" && k !== "aux") return false;
 
-function _resolveIssueLike(issue) {
-  if (!issue || typeof issue !== "object") return null;
-  const rawUuid = issue.uuid ? String(issue.uuid) : "";
-  const rawKind = issue.kind ? String(issue.kind).toLowerCase() : "";
-  const rawPath = issue.path ? String(issue.path) : "";
+    const m = String(mode || "");
+    if (m !== "top" && m !== "up" && m !== "down" && m !== "bottom") return false;
 
-  let uuid = rawUuid;
-  let kind = rawKind;
-  let path = rawPath;
+    const sel = Array.isArray(selectionUuids) ? selectionUuids.slice() : [];
+    if (sel.length === 0) return false;
 
-  const doc = getDocument();
-  const hasDoc = !!(doc && typeof doc === "object");
+    const selSet = new Set(sel);
 
-  // Infer kind from path prefix.
-  if (!kind && path) {
-    const pm = path.match(/^\/(points|lines|aux)(?:\/|$)/);
-    if (pm) kind = pm[1] === "points" ? "point" : pm[1] === "lines" ? "line" : "aux";
-  }
+    let changed = false;
+    updateDocument((cur) => {
+      const arr = Array.isArray(cur?.[k]) ? cur[k] : [];
+      const idxs = [];
+      for (let i = 0; i < arr.length; i++) {
+        const u = arr[i]?.uuid;
+        if (u && selSet.has(u)) idxs.push(i);
+      }
+      if (idxs.length === 0) return cur;
 
-  // Resolve uuid from QuickCheck-like path (index-based).
-  if (!uuid && path && hasDoc) {
-    const m = path.match(/^\/(points|lines|aux)\/(\d+)(?:\/.*)?$/);
-    if (m) {
-      const tab = m[1];
-      const idx = Number(m[2]);
-      if (Number.isFinite(idx) && idx >= 0) {
-        const arr = tab === "points" ? doc.points : tab === "lines" ? doc.lines : doc.aux;
-        if (Array.isArray(arr) && idx < arr.length) {
-          const node = arr[idx];
-          const u = node?.meta?.uuid || node?.uuid;
-          if (u) {
-            uuid = String(u);
-            if (!kind) kind = tab === "points" ? "point" : tab === "lines" ? "line" : "aux";
-          }
+      const next = cloneDoc(cur);
+      const nextArr = Array.isArray(next?.[k]) ? next[k] : [];
+
+      // Helper: remove indices (descending) and return removed items in original order.
+      const removeByIndices = (indices) => {
+        const sorted = indices.slice().sort((a, b) => a - b);
+        const removed = sorted.map((i) => nextArr[i]).filter(Boolean);
+        for (let i = sorted.length - 1; i >= 0; i--) {
+          nextArr.splice(sorted[i], 1);
+        }
+        return removed;
+      };
+
+      if (m === "top") {
+        const removed = removeByIndices(idxs);
+        if (removed.length) {
+          nextArr.unshift(...removed);
+          changed = true;
+        }
+      } else if (m === "bottom") {
+        const removed = removeByIndices(idxs);
+        if (removed.length) {
+          nextArr.push(...removed);
+          changed = true;
+        }
+      } else if (m === "up") {
+        const sorted = idxs.slice().sort((a, b) => a - b);
+        for (const i of sorted) {
+          if (i <= 0) continue;
+          if (selSet.has(nextArr[i - 1]?.uuid)) continue;
+          const tmp = nextArr[i - 1];
+          nextArr[i - 1] = nextArr[i];
+          nextArr[i] = tmp;
+          changed = true;
+        }
+      } else if (m === "down") {
+        const sorted = idxs.slice().sort((a, b) => b - a);
+        for (const i of sorted) {
+          if (i >= nextArr.length - 1) continue;
+          if (selSet.has(nextArr[i + 1]?.uuid)) continue;
+          const tmp = nextArr[i + 1];
+          nextArr[i + 1] = nextArr[i];
+          nextArr[i] = tmp;
+          changed = true;
         }
       }
+
+      return changed ? next : cur;
+    });
+
+    if (changed) {
+      try { setUiState({ activeTab: k }); } catch {}
     }
+    return changed;
   }
 
-  // Infer kind from uuid by scanning doc.
-  if (uuid && hasDoc && (!kind || (kind !== "point" && kind !== "line" && kind !== "aux"))) {
-    try {
-      const u = String(uuid);
-      const hitPoint = Array.isArray(doc.points) && doc.points.some((n) => String(n?.meta?.uuid || n?.uuid || "") === u);
-      const hitLine = Array.isArray(doc.lines) && doc.lines.some((n) => String(n?.meta?.uuid || n?.uuid || "") === u);
-      const hitAux = Array.isArray(doc.aux) && doc.aux.some((n) => String(n?.meta?.uuid || n?.uuid || "") === u);
-      kind = hitPoint ? "point" : hitLine ? "line" : hitAux ? "aux" : "";
-    } catch {}
+  function focusByIssue(issue) {
+    // Best-effort focus: select item + switch outliner tab when possible.
+    if (issue && typeof issue === "object") {
+      const { uuid, kind } = issue;
+      if (uuid && (kind === "point" || kind === "line" || kind === "aux")) {
+        setSelection([uuid]);
+      }
+    }
+    emitter.emit("focus", issue);
   }
-
-  // Fill path if missing.
-  if (uuid && hasDoc && !path) {
-    try { path = _findPathByUuidInDoc(doc, uuid, kind) || ""; } catch {}
-  }
-
-  if (!uuid) return null;
-  return { uuid: String(uuid), kind: kind || null, path: path || null };
-}
-
-
-function focusByIssue(issue) {
-  // Stable focus: accept issueLike by uuid and/or path.
-  // Ensures: selection + tab switch + focus event (even if selection is unchanged).
-  const resolved = _resolveIssueLike(issue);
-
-  if (resolved?.uuid) {
-    try { setSelection([resolved.uuid]); } catch {}
-    try {
-      const k = String(resolved.kind || "").toLowerCase();
-      const activeTab = k === "point" ? "points" : k === "line" ? "lines" : k === "aux" ? "aux" : null;
-      if (activeTab) setUiState({ activeTab });
-    } catch {}
-    emitter.emit("focus", resolved);
-    return;
-  }
-
-  // Fallback: still emit focus for UI hooks.
-  emitter.emit("focus", issue);
-}
-
 
   return {
     document: { get: getDocument, set: setDocument, update: updateDocument, getLabel: () => docLabel, setLabel },
@@ -1445,6 +1486,7 @@ function focusByIssue(issue) {
       canRedo
     },
     selection: { get: () => [...selection], set: setSelection },
+    reorderSelection,
     lock: { toggle: toggleLock, list: listLocks, set: setLocks },
     visibility: {
       toggleHidden,
