@@ -150,6 +150,7 @@ export function createUiToolbarController(deps) {
     signal,
     hub,
     fileController,
+    invoke: invokeExternal,
     propertyController,
     selectionController,
     fileInput,
@@ -619,10 +620,6 @@ export function createUiToolbarController(deps) {
   async function invoke(action) {
     const act = String(action || "").toLowerCase();
     if (!act) return;
-
-    console.log("[toolbar] act=", act);
-    const deps = null;
-    console.log("[toolbar] invoke=", typeof invoke, typeof deps?.invoke);
 
     // Toolbars are synced from a single place (attachUiShell).
     // This controller only *requests* a sync when it mutates state.

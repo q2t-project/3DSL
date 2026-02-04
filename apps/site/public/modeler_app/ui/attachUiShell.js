@@ -377,11 +377,6 @@ export function attachUiShell({ root, hub, modelUrl }) {
     signal: sig,
     hub,
     fileController,
-    // Wire toolbar actions to fileController via a stable invoke hook.
-    invoke: (act) => {
-      try { return fileController?.handleFileAction?.(act); } catch {}
-      return false;
-    },
     propertyController,
     selectionController,
     fileInput,

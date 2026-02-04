@@ -255,6 +255,7 @@ export function createUiToolbarController(deps) {
     signal,
     hub,
     fileController,
+    invoke: invokeExternal,
     propertyController,
     selectionController,
     fileInput,
