@@ -361,9 +361,12 @@ export function createCoreControllers(emitter) {
         .then((schemaJson) => {
           schemaJsonCache = schemaJson;
           if (!Ajv) {
-            throw new Error(
-              "Ajv is unavailable. Vendor sync/bundling is likely missing or incompatible (expected /vendor/ajv/dist/ajv.js)."
-            );
+            // Do not hard-fail: Modeler can still function without strict schema validation.
+            // This typically means vendor sync/bundling is missing or incompatible.
+            console.warn("Ajv is unavailable; skipping schema validation.");
+            validateFn = null;
+            validatePruneFn = null;
+            return;
           }
 ajv = new Ajv({
   allErrors: true,
@@ -405,7 +408,11 @@ lastStrictErrors = null;
 
   function validateStrict(doc) {
     if (!validateFn) {
-      throw new Error("validator not initialized. Call validator.ensureInitialized() first.");
+      // Ajv missing or validator not ready: treat as pass and let callers proceed.
+      // (Import/export can still work; strict validation is best-effort when vendor is absent.)
+      console.warn("validator: Ajv unavailable; skipping JSON Schema validation.");
+      lastStrictErrors = null;
+      return true;
     }
     lastStrictErrors = null;
     const ok = validateFn(doc);

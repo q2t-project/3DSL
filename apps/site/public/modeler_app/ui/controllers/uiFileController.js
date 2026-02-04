@@ -267,32 +267,25 @@ function syncTitle() {
   }
 
   async function writeToHandle(handle, jsonText) {
-    const s = (typeof jsonText === "string") ? jsonText : "";
-    if (!s) throw new Error("Empty JSON text");
+    const text = String(jsonText ?? "");
+    if (!text) throw new Error("writeToHandle: empty jsonText");
 
-    // Write as Blob for better compatibility across browsers.
-    // Also use the explicit write command to avoid silent 0-byte writes.
-    const blob = new Blob([s], { type: "application/json" });
-    console.log("[file] write blob bytes=", blob.size, "name=", handle?.name);
+    // Prefer a Blob write with an explicit write op. Some environments have shown
+    // silent 0-byte results with string writes.
+    const blob = new Blob([text], { type: "application/json" });
+    console.log("[file] write blob bytes=", blob.size, "name=", handle?.name || "(no name)");
 
     const writable = await handle.createWritable();
-    try {
-      await writable.write({ type: "write", position: 0, data: blob });
-      // Ensure the file is at least blob.size.
-      try { await writable.truncate(blob.size); } catch {}
-    } finally {
-      await writable.close();
-    }
+    await writable.write({ type: "write", position: 0, data: blob });
+    await writable.close();
 
-    // Post-check: confirm actual written size when possible.
+    // Verify the written size; if it is 0, treat as failure and let caller fallback.
     try {
-      const f = await handle.getFile?.();
-      if (f && typeof f.size === "number") {
-        console.log("[file] wrote bytes=", f.size, "name=", handle?.name);
-        if (f.size === 0) throw new Error("Wrote 0 bytes");
-      }
+      const f = await handle.getFile();
+      console.log("[file] wrote bytes=", f?.size ?? -1, "name=", f?.name || handle?.name || "(no name)");
+      if ((f?.size ?? 0) === 0) throw new Error("writeToHandle: wrote 0 bytes");
     } catch (e) {
-      // Bubble up so callers can fallback to download.
+      // Re-throw so callers can fallback to download.
       throw e;
     }
   }
@@ -320,7 +313,7 @@ function syncTitle() {
     if (!(await ensureStrictOk(doc))) return;
 
     const jsonText = JSON.stringify(doc, null, 2);
-    console.log("[file] json chars=", typeof jsonText === "string" ? jsonText.length : -1, "act=", act);
+    console.log("[file] json chars=", jsonText ? jsonText.length : 0, "act=", act);
 
     // --- Export ---
     if (act === "export") {
