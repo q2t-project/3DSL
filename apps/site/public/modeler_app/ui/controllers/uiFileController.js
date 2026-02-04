@@ -143,6 +143,31 @@ export function createUiFileController(deps) {
   let extraDirty = null;
   let invoker = null;
 
+  function defaultSaveName() {
+    // Prefer the last known file label/handle name.
+    const base = (
+      core?.getSaveLabel?.() ||
+      core?.getDocumentLabel?.() ||
+      core?.getDisplayLabel?.() ||
+      core?.getSaveHandle?.()?.name ||
+      core?.getFileHandle?.()?.name ||
+      "model.json"
+    );
+    return buildSuggestedName({ base, kind: "save" });
+  }
+
+  function defaultExportName() {
+    const base = (
+      core?.getSaveLabel?.() ||
+      core?.getDocumentLabel?.() ||
+      core?.getDisplayLabel?.() ||
+      core?.getSaveHandle?.()?.name ||
+      core?.getFileHandle?.()?.name ||
+      "model.json"
+    );
+    return buildSuggestedName({ base, kind: "export" });
+  }
+
   function isCoreDirty() {
     return !!core?.isDirty?.();
   }
@@ -243,12 +268,8 @@ function syncTitle() {
     } catch (e) {
       // Kick off initialization in the background (best-effort), but don't await.
       try { core.ensureValidatorInitialized?.(); } catch {}
-      // IMPORTANT: do NOT block Save/SaveAs/Export when AJV can't be loaded.
-      // This matches Viewer behavior and prevents "button reacts but nothing happens".
-      // We still notify (console + HUD), but proceed.
-      console.warn("[validator] AJV is unavailable; skipping JSON Schema validation.", e);
       setHud(`AJV is unavailable; skipping JSON Schema validation.`);
-      return true;
+      return false;
     }
   }
 
