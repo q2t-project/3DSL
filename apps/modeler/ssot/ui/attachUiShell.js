@@ -29,11 +29,6 @@ export function attachUiShell({ root, hub, modelUrl }) {
 
   const core = createHubCoreControllers(hub);
 
-  // Kick validator initialization early so Save/Export keeps user-activation.
-  // (If initialization happens during a Save click, the async boundary can
-  // consume the transient activation and block file pickers/downloads.)
-  try { core?.ensureValidatorInitialized?.(); } catch {}
-
   // --- UI sidecar persistence (localStorage) ---
   const getDocUuid = () => {
     try {
@@ -382,6 +377,11 @@ export function attachUiShell({ root, hub, modelUrl }) {
     signal: sig,
     hub,
     fileController,
+    // Wire toolbar actions to fileController via a stable invoke hook.
+    invoke: (act) => {
+      try { return fileController?.handleFileAction?.(act); } catch {}
+      return false;
+    },
     propertyController,
     selectionController,
     fileInput,
