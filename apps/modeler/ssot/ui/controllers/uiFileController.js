@@ -243,8 +243,8 @@ function syncTitle() {
     } catch (e) {
       // Kick off initialization in the background (best-effort), but don't await.
       try { core.ensureValidatorInitialized?.(); } catch {}
-      setHud(`AJV is unavailable; skipping JSON Schema validation.`);
-      return false;
+      setHud(`AJV is unavailable; skipping JSON Schema validation (Save/Export will proceed).`);
+      return true;
     }
   }
 

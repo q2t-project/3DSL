@@ -888,7 +888,10 @@ export function createUiToolbarController(deps) {
     const t = ev.target;
     if (!(t instanceof HTMLElement)) return;
 
-    const act = t.getAttribute("data-action");
+    const el = t.closest("[data-action],[data-tab]");
+    if (!el || !root.contains(el)) return;
+
+    const act = el.getAttribute("data-action");
     if (act) {
       /** @type {ToolbarAction} */
       const a = /** @type {any} */ (String(act).toLowerCase());
