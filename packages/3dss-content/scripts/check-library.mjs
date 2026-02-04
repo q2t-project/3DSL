@@ -18,56 +18,6 @@ const LIBRARY_DIR = path.join(ROOT, 'library');
 
 const ID_RE = /^\d{6}[0-9a-z]{2}$/;
 
-
-function validateDocumentMeta(dm, policy, id) {
-  const warns = [];
-  const errs = [];
-
-  const issue = (kind, msg) => {
-    if (kind === 'error') errs.push(msg);
-    else warns.push(msg);
-  };
-
-  const min = (condition, msg) => {
-    if (condition) return;
-    issue(policy === 'error' ? 'error' : 'warn', msg);
-  };
-
-  if (!isPlainObject(dm)) {
-    errs.push(`model.document_meta must be an object`);
-    return { warns, errs };
-  }
-
-  const title = (typeof dm.document_title === 'string' && dm.document_title.trim().length > 0)
-    ? dm.document_title
-    : ((typeof dm.title === 'string' && dm.title.trim().length > 0) ? dm.title : null);
-
-    const summary = (typeof dm.document_summary === 'string')
-    ? dm.document_summary
-    : ((typeof dm.summary === 'string') ? dm.summary : null);
-
-
-  min(Boolean(title), `missing document_meta title: document_title or title (non-empty string)`);
-  min(summary !== null, `missing document_meta summary: document_summary or summary (string)`);
-  min(Array.isArray(dm.tags), `missing or invalid document_meta.tags (array)`);
-
-  // created/revised are required for stable ordering and display (SSOT)
-  min(typeof dm.created_at === 'string', `missing or invalid document_meta.created_at (string, ISO8601)`);
-  min(typeof dm.revised_at === 'string', `missing or invalid document_meta.revised_at (string, ISO8601)`);
-
-  // If tags exists, ensure elements are strings.
-  if (Array.isArray(dm.tags)) {
-    for (let i = 0; i < dm.tags.length; i++) {
-      if (typeof dm.tags[i] !== 'string') {
-        min(false, `invalid document_meta.tags[${i}] (string)`);
-        break;
-      }
-    }
-  }
-
-  return { warns, errs };
-}
-
 function readJson(p) {
   const s = fs.readFileSync(p, 'utf8');
   return JSON.parse(s);
@@ -99,7 +49,8 @@ function isDateish(v) {
 }
 
 function validateMeta(meta, policy) {
-  // policy: "warn" | "error"
+  // _meta.json is a ledger only.
+  // It must NOT contain display metadata or timeline fields that belong to model.document_meta.
   const warns = [];
   const errs = [];
 
@@ -108,71 +59,121 @@ function validateMeta(meta, policy) {
     else warns.push(msg);
   };
 
-  const min = (condition, msg) => {
-    if (condition) return;
-    issue(policy === 'error' ? 'error' : 'warn', msg);
-  };
-
   if (!isPlainObject(meta)) {
     errs.push(`_meta.json must be an object`);
     return { warns, errs };
   }
 
-  // Mechanically reject SSOT-contaminating keys.
-  const forbiddenKeys = new Set(['title', 'summary', 'tags', 'created_at', 'updated_at']);
-  for (const k of Object.keys(meta)) {
-    if (forbiddenKeys.has(k)) {
-      errs.push(`forbidden key in _meta.json: ${k} (SSOT is model.document_meta)`);
-    }
-  }
-
-  // Allow-list (ledger-only). Unknown keys are rejected to prevent drift.
-  const allowedKeys = new Set([
+  // Allowlist (top-level). Unknown keys are rejected to prevent drift.
+  const ALLOW = new Set([
     'published', 'published_at', 'republished_at',
-    'description', 'hidden', 'recommended',
-    'seo', 'authors', 'rights', 'references',
-    'provenance', 'links', 'page',
-    'entry_points', 'pairs', 'related'
+    'description',
+    'seo',
+    'rights',
+    'references',
+    'entry_points',
+    'pairs',
+    'related',
+    'page',
+    'recommended',
+    'hidden',
+    'provenance',
+    'links',
+    'authors',
   ]);
+
+  const FORBIDDEN = new Set(['title', 'summary', 'tags', 'created_at', 'updated_at']);
+
   for (const k of Object.keys(meta)) {
-    if (!allowedKeys.has(k)) {
-      errs.push(`unknown key in _meta.json: ${k}`);
+    if (FORBIDDEN.has(k)) {
+      issue('error', `forbidden key in _meta.json: ${k}`);
+      continue;
+    }
+    if (!ALLOW.has(k)) {
+      issue('error', `unknown key in _meta.json: ${k}`);
     }
   }
 
-  // published flag
-  min(typeof meta.published === 'boolean', `missing or invalid key: published (boolean)`);
+  // published
+  if (typeof meta.published !== 'boolean') {
+    issue(policy === 'error' ? 'error' : 'warn', `missing or invalid key: published (boolean)`);
+  }
+
+  const isPublished = (meta.published === true);
 
   // published_at / republished_at rules
-  const isPublished = meta.published === true;
   if (isPublished) {
-    min(typeof meta.published_at === 'string', `missing or invalid key: published_at (string, ISO8601)`);
-    min(typeof meta.republished_at === 'string', `missing or invalid key: republished_at (string, ISO8601)`);
+    if (typeof meta.published_at !== 'string' || !meta.published_at) {
+      issue('error', `published:true requires published_at (timestamp_utc)`);
+    } else if (!isDateish(meta.published_at)) {
+      issue('error', `published_at is not a parseable date: ${meta.published_at}`);
+    }
+
+    if (typeof meta.republished_at !== 'string' || !meta.republished_at) {
+      issue('error', `published:true requires republished_at (timestamp_utc)`);
+    } else if (!isDateish(meta.republished_at)) {
+      issue('error', `republished_at is not a parseable date: ${meta.republished_at}`);
+    }
   } else {
-    // When unpublished, these should generally be absent (not null).
-    if ('published_at' in meta) issue('warn', `unpublished item should omit key: published_at`);
-    if ('republished_at' in meta) issue('warn', `unpublished item should omit key: republished_at`);
-    if (meta.published_at === null) issue('error', `published_at must not be null (omit the key)`);
-    if (meta.republished_at === null) issue('error', `republished_at must not be null (omit the key)`);
+    // For unpublished items, forbid null-ish date keys (keep ledger clean)
+    if (meta.published_at != null) {
+      issue('warn', `unpublished item should omit published_at (do not set null)`);
+    }
+    if (meta.republished_at != null) {
+      issue('warn', `unpublished item should omit republished_at (do not set null)`);
+    }
   }
 
-  // Optional type checks (ledger fields)
-  if ('description' in meta) min(typeof meta.description === 'string', `invalid key: description (string)`);
-  if ('hidden' in meta) min(typeof meta.hidden === 'boolean', `invalid key: hidden (boolean)`);
-  if ('recommended' in meta) min(typeof meta.recommended === 'boolean', `invalid key: recommended (boolean)`);
-  if ('seo' in meta) min(isPlainObject(meta.seo), `invalid key: seo (object)`);
-  if ('authors' in meta) min(Array.isArray(meta.authors), `invalid key: authors (array)`);
-  if ('rights' in meta) min(isPlainObject(meta.rights), `invalid key: rights (object)`);
-  if ('references' in meta) min(Array.isArray(meta.references), `invalid key: references (array)`);
-  if ('provenance' in meta) min(isPlainObject(meta.provenance), `invalid key: provenance (object)`);
-  if ('links' in meta) min(isPlainObject(meta.links), `invalid key: links (object)`);
-  if ('page' in meta) min(isPlainObject(meta.page), `invalid key: page (object)`);
-  if ('entry_points' in meta) min(Array.isArray(meta.entry_points), `invalid key: entry_points (array)`);
-  if ('pairs' in meta) min(Array.isArray(meta.pairs), `invalid key: pairs (array)`);
-  if ('related' in meta) min(Array.isArray(meta.related), `invalid key: related (array)`);
+  // Optional shapes
+  if (meta.seo != null && !isPlainObject(meta.seo)) {
+    issue('warn', `seo should be an object when present`);
+  }
+  if (meta.entry_points != null && !Array.isArray(meta.entry_points)) {
+    issue('warn', `entry_points should be an array when present`);
+  }
+  if (meta.pairs != null && !Array.isArray(meta.pairs)) {
+    issue('warn', `pairs should be an array when present`);
+  }
+  if (meta.related != null && !Array.isArray(meta.related)) {
+    issue('warn', `related should be an array when present`);
+  }
+  if (meta.references != null && !Array.isArray(meta.references)) {
+    issue('warn', `references should be an array when present`);
+  }
 
   return { warns, errs };
 }
+
+function validateDocumentMeta(dm, isPublished) {
+  const warns = [];
+  const errs = [];
+
+  if (!isPlainObject(dm)) {
+    errs.push(`model.3dss.json missing document_meta`);
+    return { warns, errs };
+  }
+
+  const req = (cond, msg) => {
+    if (cond) return;
+    if (isPublished) errs.push(msg);
+    else warns.push(msg);
+  };
+
+  // Fixed field names (no fallback):
+  // - document_title
+  // - document_summary
+  // - tags
+  // - created_at
+  // - revised_at
+  req(typeof dm.document_title === 'string' && dm.document_title.trim().length > 0, `missing or invalid document_meta.document_title (string, non-empty)`);
+  req(typeof dm.document_summary === 'string', `missing or invalid document_meta.document_summary (string)`);
+  req(Array.isArray(dm.tags) && dm.tags.every((t) => typeof t === 'string'), `missing or invalid document_meta.tags (string[])`);
+  req(typeof dm.created_at === 'string' && dm.created_at && isDateish(dm.created_at), `missing or invalid document_meta.created_at (timestamp_utc)`);
+  req(typeof dm.revised_at === 'string' && dm.revised_at && isDateish(dm.revised_at), `missing or invalid document_meta.revised_at (timestamp_utc)`);
+
+  return { warns, errs };
+}
+
 
 
 function main() {
@@ -246,20 +247,26 @@ function main() {
       continue;
     }
 
+    const isPublished = (meta && typeof meta === 'object' && meta.published === true);
 
-    // document_meta contract (SSOT for title/summary/tags/created/revised)
-    const dmCheck = validateDocumentMeta(dm, policy, id);
-    for (const w of dmCheck.warns) console.warn(`[warn] ${id}: ${w}`);
-    for (const e of dmCheck.errs) { console.error(`[error] ${id}: ${e}`); errCount++; }
-    if (dmCheck.errs.length > 0) continue;
-
-    // Meta staged validation
+    // Meta (ledger) validation
     const { warns, errs } = validateMeta(meta, policy);
     for (const w of warns) {
       console.warn(`[warn] ${id}: ${w}`);
       warnCount++;
     }
     for (const er of errs) {
+      console.error(`[error] ${id}: ${er}`);
+      errCount++;
+    }
+
+    // Model document_meta contract (SSOT for display + timeline)
+    const dmCheck = validateDocumentMeta(dm, isPublished);
+    for (const w of dmCheck.warns) {
+      console.warn(`[warn] ${id}: ${w}`);
+      warnCount++;
+    }
+    for (const er of dmCheck.errs) {
       console.error(`[error] ${id}: ${er}`);
       errCount++;
     }

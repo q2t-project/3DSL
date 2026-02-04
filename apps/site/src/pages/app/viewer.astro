@@ -458,10 +458,7 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
           const res = await fetch(u.toString(), { method: 'GET', credentials: 'omit', cache: 'force-cache' });
           if (!res.ok) throw new Error('fetch failed');
           const json = await res.json();
-          title = normalizeTitle(json?.document_meta?.document_title)
-            || normalizeTitle(json?.document_meta?.title)
-            || normalizeTitle(json?.document_meta?.name)
-            || '';
+          title = normalizeTitle(json?.document_meta?.document_title) || '';
         } catch {}
 
         if (!title) {

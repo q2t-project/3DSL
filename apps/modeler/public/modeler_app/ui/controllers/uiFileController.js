@@ -267,47 +267,22 @@ function syncTitle() {
     renderIssuesToQuickCheck({ issues, qcPanel, qcSummary, qcList });
   }
 
-  async function ensureStrictOk(doc) {
+  // IMPORTANT: keep this synchronous.
+  // File picker / programmatic download often require a direct user activation.
+  // Any `await` before invoking them can break the gesture and make SaveAs/Export
+  // appear to do nothing.
+  function ensureStrictOk(doc) {
     try {
-      await core?.ensureValidatorInitialized?.();
-      const ok = !!core?.validateStrict?.(doc);
-      if (ok) {
-        // If QuickCheck is open due to schema errors, close it when recovered.
-        try {
-          if (qcPanel && qcPanel.dataset.source === "schema") {
-            qcPanel.hidden = true;
-            delete qcPanel.dataset.source;
-            if (qcSummary) qcSummary.textContent = "";
-            if (qcList) qcList.textContent = "";
-          }
-        } catch {}
-        return true;
-      }
-      const errs = core?.getStrictErrors?.() || [];
-      showStrictErrors(errs);
-      setHud("Schema errors (see QuickCheck)");
+      const ok = core.validateStrict?.(doc);
+      if (ok) return true;
+      setHud("Validation failed: fix issues before saving");
       return false;
     } catch (e) {
-      setHud(`Validator error: ${e?.message || e}`);
+      // Kick off initialization in the background (best-effort), but don't await.
+      try { core.ensureValidatorInitialized?.(); } catch {}
+      setHud(`AJV is unavailable; skipping JSON Schema validation.`);
       return false;
     }
-  }
-
-  function guessBaseName() {
-    // Prefer current save label; fallback to document label.
-    const s = core?.getSaveLabel?.();
-    if (typeof s === "string" && s.trim()) return s.trim();
-    const d = core?.getDocumentLabel?.();
-    if (typeof d === "string" && d.trim() && d.trim() !== "(no file)") return d.trim();
-    return "model";
-  }
-
-  function defaultSaveName() {
-    return buildSuggestedName({ base: guessBaseName(), kind: "save" });
-  }
-
-  function defaultExportName() {
-    return buildSuggestedName({ base: guessBaseName(), kind: "export" });
   }
 
   async function writeToHandle(handle, jsonText) {
@@ -349,7 +324,7 @@ function syncTitle() {
 
     try {
       const doc = core.getDocument();
-      if (!(await ensureStrictOk(doc))) return;
+      if (!ensureStrictOk(doc)) return;
 
       const jsonText = JSON.stringify(doc, null, 2);
 

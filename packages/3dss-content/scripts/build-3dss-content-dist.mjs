@@ -181,25 +181,18 @@ function ensureMeta(metaPath, id) {
 
   const meta = readJson(metaPath);
 
-  // Ledger-only. Core display fields are SSOT in model.document_meta.
-  const forbidden = ['title', 'summary', 'tags', 'created_at', 'updated_at'];
-  for (const k of forbidden) {
-    if (Object.prototype.hasOwnProperty.call(meta ?? {}, k)) {
-      throw new Error(`forbidden _meta.json key: ${k} (SSOT is model.document_meta): ${metaPath}`);
-    }
+  // title/summary/tags/author are SSOT in model. _meta.json may carry them for convenience,
+  // but they are not required here.
+  if (meta?.title != null && (typeof meta.title !== "string" || meta.title.trim().length === 0)) {
+    throw new Error(`invalid _meta.json.title (expected non-empty string|null): ${metaPath}`);
   }
 
-  // Minimal sanity for published workflow
-  if (typeof meta?.published !== 'boolean') {
-    throw new Error(`missing or invalid _meta.json.published (boolean): ${metaPath}`);
+  if (meta?.summary != null && typeof meta.summary !== "string") {
+    throw new Error(`invalid _meta.json.summary (expected string|null): ${metaPath}`);
   }
-  if (meta.published === true) {
-    if (typeof meta.published_at !== 'string') throw new Error(`missing _meta.json.published_at (string): ${metaPath}`);
-    if (typeof meta.republished_at !== 'string') throw new Error(`missing _meta.json.republished_at (string): ${metaPath}`);
-  } else {
-    // unpublished: dates should generally be absent (not null)
-    if (meta.published_at === null) throw new Error(`_meta.json.published_at must not be null (omit the key): ${metaPath}`);
-    if (meta.republished_at === null) throw new Error(`_meta.json.republished_at must not be null (omit the key): ${metaPath}`);
+
+  if (meta?.tags != null && !Array.isArray(meta.tags)) {
+    throw new Error(`invalid _meta.json.tags (expected array|null): ${metaPath}`);
   }
 
   return meta;
@@ -240,22 +233,36 @@ function main() {
     const model = readJson(modelPath);
     const dm = model?.document_meta ?? {};
 
-    // Guard: display metadata must be SSOT in _meta.json only.
-
     const meta = ensureMeta(metaPath, id);
-    // Display metadata (title/summary/tags/author/i18n) is SSOT in model.document_meta.
-    const titleFromModel = firstNonEmpty(dm?.document_title, dm?.title);
-    const summaryFromModel = firstNonEmpty(dm?.document_summary, dm?.summary);
 
-    if (meta?.title && titleFromModel && meta.title !== titleFromModel) {
-      console.warn(
-        `[build:dist] WARN meta title differs from model title: id=${id} meta.title="${meta.title}" model.title="${titleFromModel}"`
-      );
+    // Contract (SSOT):
+    // - Display metadata is SSOT in model.document_meta with fixed field names.
+    //   - document_title (string, non-empty)
+    //   - document_summary (string)
+    //   - tags (string[])
+    //   - created_at (timestamp_utc)
+    //   - revised_at (timestamp_utc)
+    // - _meta.json is a ledger for publish/rights/references/attachments/SEO only.
+    //   It must NOT contain title/summary/tags/created_at/updated_at.
+    for (const k of ["title", "summary", "tags", "created_at", "updated_at"]) {
+      if (meta?.[k] != null) {
+        throw new Error(`[build:dist] forbidden key in _meta.json: id=${id} key=${k}`);
+      }
     }
 
-    const title = titleFromModel ?? firstNonEmpty(meta?.title) ?? String(id);
-    const summary = summaryFromModel ?? firstNonEmpty(meta?.summary, meta?.description) ?? "";
-    const tags = Array.isArray(dm?.tags) ? dm.tags : Array.isArray(meta?.tags) ? meta.tags : [];
+    const title = String(dm?.document_title || "");
+    if (!title.trim()) {
+      throw new Error(`[build:dist] missing model.document_meta.document_title: id=${id}`);
+    }
+    if (typeof dm?.document_summary !== "string") {
+      throw new Error(`[build:dist] missing model.document_meta.document_summary: id=${id}`);
+    }
+    const summary = dm.document_summary;
+
+    const tags = dm?.tags;
+    if (!Array.isArray(tags) || tags.some((t) => typeof t !== "string")) {
+      throw new Error(`[build:dist] invalid model.document_meta.tags (string[]): id=${id}`);
+    }
 
     const entry_points = Array.isArray(meta?.entry_points) ? meta.entry_points : [];
     const pairs = Array.isArray(meta?.pairs) ? meta.pairs : [];
@@ -293,7 +300,13 @@ function main() {
     const legacy_model_url = `/3dss/library/${id}/model.3dss.json`;
     const viewer_url = buildViewerUrl(model_url);
 
-    const created_at = deriveCreatedAt(dm, id, modelPath);
+    const created_at = String(dm?.created_at || "");
+    const revised_at = String(dm?.revised_at || "");
+    if (!created_at.trim()) throw new Error(`[build:dist] missing model.document_meta.created_at: id=${id}`);
+    if (!revised_at.trim()) throw new Error(`[build:dist] missing model.document_meta.revised_at: id=${id}`);
+    if (!Number.isFinite(Date.parse(created_at))) throw new Error(`[build:dist] created_at is not a parseable date: id=${id} created_at=${created_at}`);
+    if (!Number.isFinite(Date.parse(revised_at))) throw new Error(`[build:dist] revised_at is not a parseable date: id=${id} revised_at=${revised_at}`);
+
 
     const published_at = derivePublishedAt(meta);
     const republished_at = deriveRepublishedAt(meta) ?? published_at;
