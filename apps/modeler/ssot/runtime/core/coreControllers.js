@@ -11,13 +11,24 @@
 // depending on how vendor sync/bundling was done. A static named import would
 // break the whole runtime at parse time, so we load it dynamically.
 let Ajv = globalThis?.Ajv;
+let AjvAddFormats = null;
 if (!Ajv) {
-  try {
-    const mod = await import("/vendor/ajv/dist/ajv.js");
-    Ajv = mod?.default ?? mod?.Ajv ?? mod;
-  } catch {
-    Ajv = null;
+  // Try a few URL shapes so the runtime works both when hosted at site-root
+  // and when the app is served from a subdirectory without a root-level /vendor.
+  const urls = [
+    "/vendor/ajv/dist/ajv.js",
+    "../vendor/ajv/dist/ajv.js",
+    "./vendor/ajv/dist/ajv.js",
+  ];
+  for (const u of urls) {
+    try {
+      const mod = await import(u);
+      Ajv = mod?.default ?? mod?.Ajv ?? mod;
+      AjvAddFormats = mod?.addFormats ?? mod?.default?.addFormats ?? null;
+      if (Ajv) break;
+    } catch {}
   }
+  if (!Ajv) Ajv = null;
 }
 
 // strict validator helpers (copied/simplified from viewer runtime)
@@ -361,12 +372,9 @@ export function createCoreControllers(emitter) {
         .then((schemaJson) => {
           schemaJsonCache = schemaJson;
           if (!Ajv) {
-            // Do not hard-fail: Modeler can still function without strict schema validation.
-            // This typically means vendor sync/bundling is missing or incompatible.
-            console.warn("Ajv is unavailable; skipping schema validation.");
-            validateFn = null;
-            validatePruneFn = null;
-            return;
+            throw new Error(
+              "Ajv is unavailable. Vendor sync/bundling is likely missing or incompatible (expected /vendor/ajv/dist/ajv.js)."
+            );
           }
 ajv = new Ajv({
   allErrors: true,
@@ -379,6 +387,11 @@ ajv = new Ajv({
   useDefaults: false,
   coerceTypes: false,
 });
+
+// Optional: enable JSON Schema "format" when available (ajv-formats).
+if (typeof AjvAddFormats === "function") {
+  try { AjvAddFormats(ajv); } catch {}
+}
 validateFn = ajv.compile(schemaJson);
 
 // A prune validator used for import: strips additional properties wherever schema disallows them.
@@ -394,6 +407,9 @@ try {
     useDefaults: false,
     coerceTypes: false,
   });
+	  if (typeof AjvAddFormats === "function") {
+	    try { AjvAddFormats(ajvPrune); } catch {}
+	  }
   validatePruneFn = ajvPrune.compile(schemaJson);
 } catch {
   validatePruneFn = null;
@@ -408,11 +424,7 @@ lastStrictErrors = null;
 
   function validateStrict(doc) {
     if (!validateFn) {
-      // Ajv missing or validator not ready: treat as pass and let callers proceed.
-      // (Import/export can still work; strict validation is best-effort when vendor is absent.)
-      console.warn("validator: Ajv unavailable; skipping JSON Schema validation.");
-      lastStrictErrors = null;
-      return true;
+      throw new Error("validator not initialized. Call validator.ensureInitialized() first.");
     }
     lastStrictErrors = null;
     const ok = validateFn(doc);
