@@ -867,7 +867,10 @@ export function createUiToolbarController(deps) {
     const t = ev.target;
     if (!(t instanceof HTMLElement)) return;
 
-    const act = t.getAttribute("data-action");
+    // Use closest() so clicks on nested elements (e.g. <span> inside <button>)
+    // still resolve to the intended toolbar button.
+    const actEl = t.closest?.("[data-action]");
+    const act = (actEl instanceof HTMLElement) ? actEl.getAttribute("data-action") : null;
     if (act) {
       /** @type {ToolbarAction} */
       const a = /** @type {any} */ (String(act).toLowerCase());
@@ -880,7 +883,8 @@ export function createUiToolbarController(deps) {
       return;
     }
 
-    const tab = t.getAttribute("data-tab");
+    const tabEl = t.closest?.("[data-tab]");
+    const tab = (tabEl instanceof HTMLElement) ? tabEl.getAttribute("data-tab") : null;
     if (tab) {
       // Phase2: prevent losing buffered edits while switching contexts.
       const ok = propertyController.ensureEditsAppliedOrConfirm?.({ reason: "tab" });
