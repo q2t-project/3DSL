@@ -13,17 +13,18 @@
 let Ajv = globalThis?.Ajv;
 let AjvAddFormats = null;
 if (!Ajv) {
-  // IMPORTANT (policy alignment with viewer):
-  // - Prefer a single canonical vendor location: /vendor/ajv/dist/ajv.js
-  // - If it is missing (e.g. modeler-only deploy without vendor sync), we *must not*
-  //   crash the runtime. We will run in "no validation" mode with a warning.
-  try {
-    const mod = await import("/vendor/ajv/dist/ajv.js");
-    Ajv = mod?.default ?? mod?.Ajv ?? mod;
-    AjvAddFormats = mod?.addFormats ?? mod?.default?.addFormats ?? null;
-  } catch {
-    Ajv = null;
+  // Viewer と同じ思想: 参照先は常に site-root の /vendor に統一する。
+  // (subdir 相対で探し回ると 404 スパム + 挙動がブレる)
+  const urls = ["/vendor/ajv/dist/ajv.js"];
+  for (const u of urls) {
+    try {
+      const mod = await import(u);
+      Ajv = mod?.default ?? mod?.Ajv ?? mod;
+      AjvAddFormats = mod?.addFormats ?? mod?.default?.addFormats ?? null;
+      if (Ajv) break;
+    } catch {}
   }
+  if (!Ajv) Ajv = null;
 }
 
 // strict validator helpers (copied/simplified from viewer runtime)
@@ -366,79 +367,73 @@ export function createCoreControllers(emitter) {
         })
         .then((schemaJson) => {
           schemaJsonCache = schemaJson;
-          // Always extract schema info so we can at least verify version/schema_uri,
-          // even when Ajv isn't available (standalone hosting, vendor missing, etc.).
-          schemaInfo = extractSchemaInfo(schemaJson);
-
           if (!Ajv) {
-            // No Ajv -> validation is disabled. Keep runtime usable and let UI show warnings.
-            // NOTE: this is intentionally non-fatal; Save/Export will fall back to
-            // version/schema_uri checks only.
-            console.warn("Ajv is unavailable; skipping JSON Schema validation.");
-            ajv = null;
-            validateFn = null;
-            validatePruneFn = null;
+            // Viewer と同じ方針: Ajv が無い時は validation をスキップして動作継続。
+            // ここで throw すると Open 時点で UI が壊れるので NG。
+            console.warn(
+              "Ajv is unavailable; skipping JSON Schema validation (expected /vendor/ajv/dist/ajv.js)."
+            );
+            // keep validateFn = null
             lastStrictErrors = null;
+            schemaInfo = null;
             return;
           }
+ajv = new Ajv({
+  allErrors: true,
+  strict: true,
+  strictSchema: false,
+  strictTypes: true,
+  strictRequired: false,
+  validateSchema: false,
+  removeAdditional: false,
+  useDefaults: false,
+  coerceTypes: false,
+});
 
-          ajv = new Ajv({
-            allErrors: true,
-            strict: true,
-            strictSchema: false,
-            strictTypes: true,
-            strictRequired: false,
-            validateSchema: false,
-            removeAdditional: false,
-            useDefaults: false,
-            coerceTypes: false,
-          });
+// Optional: enable JSON Schema "format" when available (ajv-formats).
+if (typeof AjvAddFormats === "function") {
+  try { AjvAddFormats(ajv); } catch {}
+}
+validateFn = ajv.compile(schemaJson);
 
-          // Optional: enable JSON Schema "format" when available (ajv-formats).
-          if (typeof AjvAddFormats === "function") {
-            try { AjvAddFormats(ajv); } catch {}
-          }
-          validateFn = ajv.compile(schemaJson);
+// A prune validator used for import: strips additional properties wherever schema disallows them.
+try {
+  const ajvPrune = new Ajv({
+    allErrors: true,
+    strict: true,
+    strictSchema: false,
+    strictTypes: true,
+    strictRequired: false,
+    validateSchema: false,
+    removeAdditional: "all",
+    useDefaults: false,
+    coerceTypes: false,
+  });
+	  if (typeof AjvAddFormats === "function") {
+	    try { AjvAddFormats(ajvPrune); } catch {}
+	  }
+  validatePruneFn = ajvPrune.compile(schemaJson);
+} catch {
+  validatePruneFn = null;
+}
 
-          // A prune validator used for import: strips additional properties wherever schema disallows them.
-          try {
-            const ajvPrune = new Ajv({
-              allErrors: true,
-              strict: true,
-              strictSchema: false,
-              strictTypes: true,
-              strictRequired: false,
-              validateSchema: false,
-              removeAdditional: "all",
-              useDefaults: false,
-              coerceTypes: false,
-            });
-            if (typeof AjvAddFormats === "function") {
-              try { AjvAddFormats(ajvPrune); } catch {}
-            }
-            validatePruneFn = ajvPrune.compile(schemaJson);
-          } catch {
-            validatePruneFn = null;
-          }
-
-	        lastStrictErrors = null;
+schemaInfo = extractSchemaInfo(schemaJson);
+lastStrictErrors = null;
         });
     }
     return validatorInitPromise;
   }
 
   function validateStrict(doc) {
-    lastStrictErrors = null;
-    const ver = checkVersionAndSchemaUri(doc, schemaInfo);
-
-    // If Ajv is unavailable, we can only enforce schema_uri/version consistency.
     if (!validateFn) {
-      if (!ver.ok) lastStrictErrors = [...ver.errors];
-      return ver.ok;
+      // Ajv が無い環境でも editor を止めない。Viewer 側と同じ。
+      lastStrictErrors = null;
+      return true;
     }
-
+    lastStrictErrors = null;
     const ok = validateFn(doc);
     const ajvErrors = validateFn.errors || [];
+    const ver = checkVersionAndSchemaUri(doc, schemaInfo);
     if (!ok || !ver.ok) {
       lastStrictErrors = [...ajvErrors, ...ver.errors];
       return false;
