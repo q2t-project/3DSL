@@ -13,18 +13,36 @@
 let Ajv = globalThis?.Ajv;
 let AjvAddFormats = null;
 if (!Ajv) {
-  // Viewer と同じ思想: 参照先は常に site-root の /vendor に統一する。
-  // (subdir 相対で探し回ると 404 スパム + 挙動がブレる)
-  const urls = ["/vendor/ajv/dist/ajv.js"];
+  // Vendor philosophy (same as Viewer): shared vendor assets live at the
+  // site-root (/vendor/**). Do NOT use relative fallbacks here.
+  // Relative URLs are resolved under /modeler_app/** and cause 404 spam like:
+  //   /modeler_app/vendor/ajv/dist/ajv.js
+  // which is not where shared vendors are hosted.
+  const urls = [
+    "/vendor/ajv/dist/ajv.js",
+  ];
+  let lastErr = null;
+  let lastUrl = "";
   for (const u of urls) {
     try {
       const mod = await import(u);
       Ajv = mod?.default ?? mod?.Ajv ?? mod;
       AjvAddFormats = mod?.addFormats ?? mod?.default?.addFormats ?? null;
       if (Ajv) break;
+    } catch (e) {
+      lastErr = e;
+      lastUrl = String(u || "");
+    }
+  }
+  if (!Ajv) {
+    Ajv = null;
+    try {
+      globalThis.__modelerAjvLoadError = {
+        url: lastUrl || "/vendor/ajv/dist/ajv.js",
+        message: lastErr ? String(lastErr?.message || lastErr) : "",
+      };
     } catch {}
   }
-  if (!Ajv) Ajv = null;
 }
 
 // strict validator helpers (copied/simplified from viewer runtime)
@@ -368,15 +386,9 @@ export function createCoreControllers(emitter) {
         .then((schemaJson) => {
           schemaJsonCache = schemaJson;
           if (!Ajv) {
-            // Viewer と同じ方針: Ajv が無い時は validation をスキップして動作継続。
-            // ここで throw すると Open 時点で UI が壊れるので NG。
-            console.warn(
-              "Ajv is unavailable; skipping JSON Schema validation (expected /vendor/ajv/dist/ajv.js)."
+            throw new Error(
+              "Ajv is unavailable. Vendor sync/bundling is likely missing or incompatible (expected /vendor/ajv/dist/ajv.js)."
             );
-            // keep validateFn = null
-            lastStrictErrors = null;
-            schemaInfo = null;
-            return;
           }
 ajv = new Ajv({
   allErrors: true,
@@ -426,9 +438,7 @@ lastStrictErrors = null;
 
   function validateStrict(doc) {
     if (!validateFn) {
-      // Ajv が無い環境でも editor を止めない。Viewer 側と同じ。
-      lastStrictErrors = null;
-      return true;
+      throw new Error("validator not initialized. Call validator.ensureInitialized() first.");
     }
     lastStrictErrors = null;
     const ok = validateFn(doc);
