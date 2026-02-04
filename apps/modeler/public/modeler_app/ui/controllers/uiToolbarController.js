@@ -273,6 +273,24 @@ export function createUiToolbarController(deps) {
     if (el instanceof HTMLButtonElement) btnByAction.set(el.getAttribute('data-action'), el);
   });
 
+  // Bind direct handlers for toolbar action buttons.
+  // Event delegation via `root` can miss clicks when nested elements (icons/spans)
+  // are involved, or when other controllers stop propagation.
+  for (const a of TOOLBAR_ACTIONS) {
+    const b = btnByAction.get(a);
+    if (!b) continue;
+    b.addEventListener(
+      "click",
+      (ev) => {
+        try { ev.preventDefault(); } catch {}
+        try { ev.stopPropagation(); } catch {}
+        if (b.disabled) return;
+        void invoke(a);
+      },
+      { signal }
+    );
+  }
+
   const frameInput = (() => {
     try {
       const el = root.querySelector('[data-role="frame-index"]');

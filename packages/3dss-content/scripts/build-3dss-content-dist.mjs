@@ -181,21 +181,19 @@ function ensureMeta(metaPath, id) {
 
   const meta = readJson(metaPath);
 
-  // title/summary/tags/author are SSOT in model. _meta.json may carry them for convenience,
-  // but they are not required here.
-  if (meta?.title != null && (typeof meta.title !== "string" || meta.title.trim().length === 0)) {
-    throw new Error(`invalid _meta.json.title (expected non-empty string|null): ${metaPath}`);
+    // _meta.json is a registry/ledger only.
+  // SSOT for title/summary/tags is model.document_meta. To prevent drift, forbid these keys in _meta.json.
+  if (Object.prototype.hasOwnProperty.call(meta, "title")) {
+    throw new Error(`forbidden key in _meta.json: title (SSOT is model.document_meta): ${metaPath}`);
+  }
+  if (Object.prototype.hasOwnProperty.call(meta, "summary")) {
+    throw new Error(`forbidden key in _meta.json: summary (SSOT is model.document_meta): ${metaPath}`);
+  }
+  if (Object.prototype.hasOwnProperty.call(meta, "tags")) {
+    throw new Error(`forbidden key in _meta.json: tags (SSOT is model.document_meta): ${metaPath}`);
   }
 
-  if (meta?.summary != null && typeof meta.summary !== "string") {
-    throw new Error(`invalid _meta.json.summary (expected string|null): ${metaPath}`);
-  }
-
-  if (meta?.tags != null && !Array.isArray(meta.tags)) {
-    throw new Error(`invalid _meta.json.tags (expected array|null): ${metaPath}`);
-  }
-
-  return meta;
+return meta;
 }
 
 
@@ -233,22 +231,16 @@ function main() {
     const model = readJson(modelPath);
     const dm = model?.document_meta ?? {};
 
-    // Guard: display metadata must be SSOT in _meta.json only.
+    // SSOT: title/summary/tags live in model.document_meta; _meta.json is registry/ledger only.
 
     const meta = ensureMeta(metaPath, id);
     // Display metadata (title/summary/tags/author/i18n) is SSOT in model.document_meta.
     const titleFromModel = firstNonEmpty(dm?.document_title, dm?.title);
     const summaryFromModel = firstNonEmpty(dm?.document_summary, dm?.summary);
 
-    if (meta?.title && titleFromModel && meta.title !== titleFromModel) {
-      console.warn(
-        `[build:dist] WARN meta title differs from model title: id=${id} meta.title="${meta.title}" model.title="${titleFromModel}"`
-      );
-    }
-
-    const title = titleFromModel ?? firstNonEmpty(meta?.title) ?? String(id);
-    const summary = summaryFromModel ?? firstNonEmpty(meta?.summary, meta?.description) ?? "";
-    const tags = Array.isArray(dm?.tags) ? dm.tags : Array.isArray(meta?.tags) ? meta.tags : [];
+    const title = titleFromModel ?? String(id);
+    const summary = summaryFromModel ?? "";
+    const tags = Array.isArray(dm?.tags) ? dm.tags : [];
 
     const entry_points = Array.isArray(meta?.entry_points) ? meta.entry_points : [];
     const pairs = Array.isArray(meta?.pairs) ? meta.pairs : [];

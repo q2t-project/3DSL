@@ -83,20 +83,20 @@ function main() {
   }
   fs.mkdirSync(dir, { recursive: true });
 
-  const now = new Date().toISOString();
-
   // required file: _meta.json
-  // NOTE: keys here are aligned with build-3dss-content-dist.mjs expectations (meta.seo.* supported)
+  // NOTE: _meta.json is a registry/ledger only.
+  // SSOT for title/summary/tags is model.3dss.json (model.document_meta).
   const meta = {
-    title,
-    summary: '',
     description: '',
-    tags: [],
     entry_points: [],
     pairs: [],
     rights: null,
     related: [],
-    published: true,
+    page: null,
+    published: false,
+    // When you flip published=true, also set published_at/republished_at (ISO 8601).
+    // published_at: "2026-01-05T00:00:00Z",
+    // republished_at: "2026-01-05T00:00:00Z",
     seo: {
       title: '',
       description: '',
@@ -105,8 +105,6 @@ function main() {
     // editorial flags (optional)
     recommended: false,
     hidden: false,
-    created_at: now,
-    updated_at: now,
   };
   writeJson(path.join(dir, '_meta.json'), meta);
 
@@ -114,6 +112,7 @@ function main() {
     document_meta: {
       document_title: title,
       document_summary: '',
+      tags: [],
       document_uuid: crypto.randomUUID(),
       schema_uri: 'https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4',
       author: process.env.USERNAME || process.env.USER || 'unknown',

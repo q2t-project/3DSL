@@ -48,7 +48,7 @@ function isDateish(v) {
   return Number.isFinite(t);
 }
 
-function validateMeta(meta, policy) {
+function validateMeta(meta, dm, policy) {
   // policy: "warn" | "error"  (controls severity for minimal-key violations)
   const warns = [];
   const errs = [];
@@ -76,29 +76,43 @@ function validateMeta(meta, policy) {
   }
 
   // Minimal keys (staged: warn -> error; unpublished => warn)
-  min(typeof meta.title === 'string', `missing or invalid key: title (string)`);
-  min(typeof meta.summary === 'string', `missing or invalid key: summary (string)`);
-  min(Array.isArray(meta.tags), `missing or invalid key: tags (array)`);
   min(typeof meta.published === 'boolean', `missing or invalid key: published (boolean)`);
-  min(typeof meta.created_at === 'string', `missing or invalid key: created_at (string)`);
+
+  // When published=true, require published_at/republished_at (dates for list sort + label)
+  if (meta.published === true) {
+    min(isDateish(meta.published_at), `missing or invalid key: published_at (ISO 8601 string) when published=true`);
+    min(isDateish(meta.republished_at), `missing or invalid key: republished_at (ISO 8601 string) when published=true`);
+  }
+
+  // Forbid drift-prone display metadata in _meta.json (SSOT is model.document_meta)
+  if (Object.prototype.hasOwnProperty.call(meta, 'title')) {
+    issue(minPolicy === 'error' ? 'error' : 'warn', `forbidden key: title (SSOT is model.document_meta)`);
+  }
+  if (Object.prototype.hasOwnProperty.call(meta, 'summary')) {
+    issue(minPolicy === 'error' ? 'error' : 'warn', `forbidden key: summary (SSOT is model.document_meta)`);
+  }
+  if (Object.prototype.hasOwnProperty.call(meta, 'tags')) {
+    issue(minPolicy === 'error' ? 'error' : 'warn', `forbidden key: tags (SSOT is model.document_meta)`);
+  }
+
+  // Model display metadata must exist when published=true (SSOT)
+  const title = (dm && (dm.document_title ?? dm.title));
+  const summary = (dm && (dm.document_summary ?? dm.summary));
+  const tags = (dm && dm.tags);
+
+  if (meta.published === true) {
+    min(typeof title === 'string' && title.trim().length > 0, `model.document_meta missing title (document_title/title) when published=true`);
+    min(typeof summary === 'string', `model.document_meta missing summary (document_summary/summary) when published=true`);
+    min(Array.isArray(tags), `model.document_meta missing tags (array) when published=true`);
+  } else {
+    // drafts: warn only
+    if (!(typeof title === 'string' && title.trim().length > 0)) warns.push(`draft: model.document_meta title is missing (document_title/title)`);
+    if (!(typeof summary === 'string')) warns.push(`draft: model.document_meta summary is missing (document_summary/summary)`);
+    if (!(Array.isArray(tags))) warns.push(`draft: model.document_meta tags is missing (array)`);
+  }
+
   // NOTE: updated_at was intentionally removed from the 3DSS schema.
   // Keep it optional here; build/index generation can derive a value when needed.
-
-  // Extra type checks (non-fatal in warn mode unless policy=error and they are minimal keys)
-  if (Array.isArray(meta.tags)) {
-    for (let i = 0; i < meta.tags.length; i++) {
-      if (typeof meta.tags[i] !== 'string') {
-        issue('warn', `tags[${i}] should be string`);
-      }
-    }
-  }
-
-  if (typeof meta.created_at === 'string' && meta.created_at && !isDateish(meta.created_at)) {
-    issue('warn', `created_at is not a parseable date: ${meta.created_at}`);
-  }
-  if (typeof meta.updated_at === 'string' && meta.updated_at && !isDateish(meta.updated_at)) {
-    issue('warn', `updated_at is not a parseable date: ${meta.updated_at}`);
-  }
 
   // Recommended keys (warn only)
   if (typeof meta.description !== 'string') {
@@ -119,13 +133,6 @@ function validateMeta(meta, policy) {
     warns.push(`related should be an array when present`);
   }
 
-  // Legacy hints (warn only)
-  if (meta.summary == null && typeof meta.description === 'string') {
-    warns.push(`legacy: description is present but summary is missing (add summary for list UI)`);
-  }
-  if (typeof meta.og_image === 'string' && meta.og_image && typeof meta.seo === 'object' && meta.seo && meta.seo.og_image == null) {
-    // ok. no warning.
-  }
 
   return { warns, errs };
 }
@@ -202,7 +209,7 @@ function main() {
     }
 
     // Meta staged validation
-    const { warns, errs } = validateMeta(meta, policy);
+    const { warns, errs } = validateMeta(meta, dm, policy);
     for (const w of warns) {
       console.warn(`[warn] ${id}: ${w}`);
       warnCount++;

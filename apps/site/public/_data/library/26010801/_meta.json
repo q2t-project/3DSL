@@ -1,13 +1,11 @@
 {
-  "title": "tmp",
-  "published": false,
-  "summary": "",
   "description": "開発中のテスト用コンテンツ。動作確認・回帰テスト・表示検証のための仮データで、内容や構成は予告なく変更されます。",
-  "tags": [],
+  "seo": {
+    "title": "",
+    "description": ""
+  },
   "pairs": [],
-  "seo_title": "",
-  "seo_description": "",
   "recommended": false,
   "hidden": true,
-  "created_at": "2026-01-08T14:28:23.046Z"
+  "published": false
 }

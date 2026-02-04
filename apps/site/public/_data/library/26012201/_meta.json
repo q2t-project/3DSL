@@ -1,19 +1,17 @@
 {
-  "title": "26012201",
-  "summary": "構造と分類",
   "description": "構造一般および分類一般を存在論および認識論的に再構成",
-  "tags": [],
-  "entry_points": [],
-  "pairs": [],
-  "rights": null,
-  "related": [],
-  "published": true,
   "seo": {
     "title": "",
     "description": "",
     "og_image": ""
   },
+  "entry_points": [],
+  "pairs": [],
+  "related": [],
+  "rights": null,
   "recommended": false,
   "hidden": false,
-  "created_at": "2026-01-22T08:25:17.924Z"
+  "published": true,
+  "published_at": "2026-01-22T05:23:41Z",
+  "republished_at": "2026-01-22T05:23:41Z"
 }

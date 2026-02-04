@@ -27,34 +27,31 @@
 
 ### 2.1 MUST（公開ライブラリとして成立する最低限）
 
-#### `title` (string)
-- コンテンツの表示名（一覧・詳細の主タイトル）
-
-#### `summary` (string)
-- 一覧カード用の短い説明（1〜2行想定）
-
-#### `description` (string)
-- 詳細説明（長文OK）
-- `summary` と同文でも成立するが、可能なら役割分け（summary=短い/description=詳しい）
-
-#### `tags` (string[])
-- 検索/分類ラベル
-- ルール（推奨）：3〜10個、表記ゆれを減らす（英小文字 or 日本語に寄せる）
-
 #### `published` (boolean)
 - 公開スイッチ（一覧に出すか）
 - `false`：非公開（作業中/検証中/PR preview 用）
 - `true`：公開（library一覧に載る対象）
 
-#### `created_at` (string, ISO 8601)
-- 初版の作成日時
-- 原則：アイテム作成時から変えない
+#### `published_at` (string, ISO 8601)
+- 初回公開日（published=true になった最初の日付）
+- 原則：一度公開したら以後変更しない
 
-#### `updated_at` (string, ISO 8601)
-- 更新日時
-- 内容を更新したら更新する
+#### `republished_at` (string, ISO 8601)
+- 再公開日（表示・並び替えに使う更新日）
+- 公開中に内容/メタを更新したら更新する
 
----
+#### `description` (string)
+- 詳細説明（長文OK）
+- **注意**：一覧カード用の `summary` は model 側（`model.3dss.json / document_meta.document_summary`）が SSOT
+
+#### 禁止フィールド（コンタミ源）
+`_meta.json` は台帳専用。次は **置かない**（SSOT は model 側）。
+
+- `title`
+- `summary`
+- `tags`
+- `created_at`
+- `updated_at`
 
 ### 2.2 WANT（品質・運用・将来拡張）
 

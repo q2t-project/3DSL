@@ -168,6 +168,26 @@ export function createUiToolbarController(deps) {
     if (el instanceof HTMLButtonElement) btnByAction.set(el.getAttribute('data-action'), el);
   });
 
+  // Bind direct handlers for toolbar action buttons.
+  // Event delegation via `root` can miss clicks when nested elements (icons/spans)
+  // are inside the button, or when other controllers attach handlers on ancestors.
+  for (const a of TOOLBAR_ACTIONS) {
+    const b = btnByAction.get(a);
+    if (!b) continue;
+    b.addEventListener(
+      "click",
+      (ev) => {
+        try {
+          ev.preventDefault();
+          ev.stopPropagation();
+        } catch {}
+        if (b.disabled) return;
+        void invoke(a);
+      },
+      { signal }
+    );
+  }
+
   const frameInput = (() => {
     try {
       const el = root.querySelector('[data-role="frame-index"]');
@@ -867,10 +887,7 @@ export function createUiToolbarController(deps) {
     const t = ev.target;
     if (!(t instanceof HTMLElement)) return;
 
-    // Use closest() so clicks on nested elements (e.g. <span> inside <button>)
-    // still resolve to the intended toolbar button.
-    const actEl = t.closest?.("[data-action]");
-    const act = (actEl instanceof HTMLElement) ? actEl.getAttribute("data-action") : null;
+    const act = t.getAttribute("data-action");
     if (act) {
       /** @type {ToolbarAction} */
       const a = /** @type {any} */ (String(act).toLowerCase());
@@ -883,8 +900,7 @@ export function createUiToolbarController(deps) {
       return;
     }
 
-    const tabEl = t.closest?.("[data-tab]");
-    const tab = (tabEl instanceof HTMLElement) ? tabEl.getAttribute("data-tab") : null;
+    const tab = t.getAttribute("data-tab");
     if (tab) {
       // Phase2: prevent losing buffered edits while switching contexts.
       const ok = propertyController.ensureEditsAppliedOrConfirm?.({ reason: "tab" });
