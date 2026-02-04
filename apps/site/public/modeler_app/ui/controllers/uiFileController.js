@@ -332,12 +332,18 @@ function syncTitle() {
           try {
             handle = await withFocusRestore(() => pickSaveHandle({ suggestedName }));
           } catch (err) {
+            // User cancelled the picker: treat as normal.
+            if (isAbortError(err)) {
+              setHud("Export cancelled");
+              return;
+            }
             reportErr(`[file] ${act} picker failed`, err);
-            // Fallback: download export (policy: export may mark clean).
+            // Picker failed for a non-cancel reason: fallback to download.
+            // Policy: export may mark clean.
             dl(suggestedName, jsonText);
             core?.markClean?.();
             syncTitle();
-            setHud(`Downloaded: ${suggestedName}`);
+            setHud(`Exported (download): ${suggestedName}`);
             return;
           }
           if (!handle) {
@@ -402,13 +408,19 @@ function syncTitle() {
           try {
             handle = await withFocusRestore(() => pickSaveHandle({ suggestedName }));
           } catch (err) {
+            // User cancelled the picker: treat as normal.
+            if (isAbortError(err)) {
+              setHud(act === "saveas" ? "Save As cancelled" : "Save cancelled");
+              return;
+            }
             reportErr(`[file] ${act} picker failed`, err);
-            // Fallback: download (still a "save" from user's perspective).
+            // Picker failed for a non-cancel reason: fallback to download.
+            // Still a "save" from user's perspective.
             dl(suggestedName, jsonText);
             core?.setSaveHandle?.(null, "");
             core?.markClean?.();
             syncTitle();
-            setHud(`Downloaded: ${suggestedName}`);
+            setHud(`Saved (download): ${suggestedName}`);
             return;
           }
           if (!handle) {
