@@ -243,7 +243,11 @@ function syncTitle() {
     } catch (e) {
       // Kick off initialization in the background (best-effort), but don't await.
       try { core.ensureValidatorInitialized?.(); } catch {}
-      setHud(`AJV is unavailable; skipping JSON Schema validation (Save/Export will proceed).`);
+      // IMPORTANT: do NOT block Save/SaveAs/Export when AJV can't be loaded.
+      // This matches Viewer behavior and prevents "button reacts but nothing happens".
+      // We still notify (console + HUD), but proceed.
+      console.warn("[validator] AJV is unavailable; skipping JSON Schema validation.", e);
+      setHud(`AJV is unavailable; skipping JSON Schema validation.`);
       return true;
     }
   }
