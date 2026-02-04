@@ -178,3 +178,59 @@ Library の公開状態は `_meta.json` 側でのみ管理し、`model.3dss.json
 * `apps/site/src/content/library_items/<id>.md` を生成（`content.md` がある場合のみ）
 
 Astro は `library_items` コレクションを通じて Markdown を HTML 化し、個別ページに埋め込む。
+
+
+---
+
+## model.document_meta（表示系SSOT）
+
+Library の一覧カード/個別ページが表示する **core（タイトル・要約・タグ・作成/改訂日）** は、`packages/3dss-content/library/<id>/model.3dss.json` の `document_meta` を **唯一のSSOT** とする。
+
+### 必須フィールド（公開/非公開に関わらず）
+
+- `document_title` (string) もしくは `title` (string)
+- `document_summary` (string) もしくは `summary` (string)
+- `tags` (string[])
+- `created_at` (string, ISO8601)
+- `revised_at` (string, ISO8601)
+
+### 表示・並び替えの読み取り優先順位（core）
+
+- title: `document_title ?? title`
+- summary: `document_summary ?? summary`
+- tags: `tags`
+- created: `created_at`
+- revised: `revised_at`
+
+---
+
+## _meta.json（公開台帳・権利・参照・添付）
+
+`packages/3dss-content/library/<id>/_meta.json` は **台帳**。公開状態と周辺情報のみを持つ。
+
+### 許可キー（トップレベル）
+
+- `published` (boolean)
+- `published_at` (string, ISO8601) ※ `published:true` のとき必須
+- `republished_at` (string, ISO8601) ※ `published:true` のとき必須
+- `description` (string)
+- `hidden` (boolean)
+- `recommended` (boolean)
+- `seo` (object)
+- `authors` (array)
+- `rights` (object)
+- `references` (array)
+- `provenance` (object)
+- `links` (object)
+- `page` (object) ※ 添付/本文などを置く
+- `entry_points` / `pairs` / `related` (array)
+
+### 禁止キー（機械的に弾く）
+
+- `title`
+- `summary`
+- `tags`
+- `created_at`
+- `updated_at`
+
+これらは `model.3dss.json` の `document_meta` にのみ置く。

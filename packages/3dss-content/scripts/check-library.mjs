@@ -18,6 +18,56 @@ const LIBRARY_DIR = path.join(ROOT, 'library');
 
 const ID_RE = /^\d{6}[0-9a-z]{2}$/;
 
+
+function validateDocumentMeta(dm, policy, id) {
+  const warns = [];
+  const errs = [];
+
+  const issue = (kind, msg) => {
+    if (kind === 'error') errs.push(msg);
+    else warns.push(msg);
+  };
+
+  const min = (condition, msg) => {
+    if (condition) return;
+    issue(policy === 'error' ? 'error' : 'warn', msg);
+  };
+
+  if (!isPlainObject(dm)) {
+    errs.push(`model.document_meta must be an object`);
+    return { warns, errs };
+  }
+
+  const title = (typeof dm.document_title === 'string' && dm.document_title.trim().length > 0)
+    ? dm.document_title
+    : ((typeof dm.title === 'string' && dm.title.trim().length > 0) ? dm.title : null);
+
+    const summary = (typeof dm.document_summary === 'string')
+    ? dm.document_summary
+    : ((typeof dm.summary === 'string') ? dm.summary : null);
+
+
+  min(Boolean(title), `missing document_meta title: document_title or title (non-empty string)`);
+  min(summary !== null, `missing document_meta summary: document_summary or summary (string)`);
+  min(Array.isArray(dm.tags), `missing or invalid document_meta.tags (array)`);
+
+  // created/revised are required for stable ordering and display (SSOT)
+  min(typeof dm.created_at === 'string', `missing or invalid document_meta.created_at (string, ISO8601)`);
+  min(typeof dm.revised_at === 'string', `missing or invalid document_meta.revised_at (string, ISO8601)`);
+
+  // If tags exists, ensure elements are strings.
+  if (Array.isArray(dm.tags)) {
+    for (let i = 0; i < dm.tags.length; i++) {
+      if (typeof dm.tags[i] !== 'string') {
+        min(false, `invalid document_meta.tags[${i}] (string)`);
+        break;
+      }
+    }
+  }
+
+  return { warns, errs };
+}
+
 function readJson(p) {
   const s = fs.readFileSync(p, 'utf8');
   return JSON.parse(s);
@@ -48,8 +98,8 @@ function isDateish(v) {
   return Number.isFinite(t);
 }
 
-function validateMeta(meta, dm, policy) {
-  // policy: "warn" | "error"  (controls severity for minimal-key violations)
+function validateMeta(meta, policy) {
+  // policy: "warn" | "error"
   const warns = [];
   const errs = [];
 
@@ -58,16 +108,9 @@ function validateMeta(meta, dm, policy) {
     else warns.push(msg);
   };
 
-  // In strict (policy=error), we still want drafts to be iteratable.
-  // If an item explicitly marks itself unpublished, downgrade minimal-key
-  // violations to warnings.
-  const pub = isPlainObject(meta) ? meta.published : null;
-  const isUnpublished = (pub === false || pub === 0 || pub === 'false' || pub === '0');
-  const minPolicy = isUnpublished ? 'warn' : policy;
-
   const min = (condition, msg) => {
     if (condition) return;
-    issue(minPolicy === 'error' ? 'error' : 'warn', msg);
+    issue(policy === 'error' ? 'error' : 'warn', msg);
   };
 
   if (!isPlainObject(meta)) {
@@ -75,67 +118,62 @@ function validateMeta(meta, dm, policy) {
     return { warns, errs };
   }
 
-  // Minimal keys (staged: warn -> error; unpublished => warn)
+  // Mechanically reject SSOT-contaminating keys.
+  const forbiddenKeys = new Set(['title', 'summary', 'tags', 'created_at', 'updated_at']);
+  for (const k of Object.keys(meta)) {
+    if (forbiddenKeys.has(k)) {
+      errs.push(`forbidden key in _meta.json: ${k} (SSOT is model.document_meta)`);
+    }
+  }
+
+  // Allow-list (ledger-only). Unknown keys are rejected to prevent drift.
+  const allowedKeys = new Set([
+    'published', 'published_at', 'republished_at',
+    'description', 'hidden', 'recommended',
+    'seo', 'authors', 'rights', 'references',
+    'provenance', 'links', 'page',
+    'entry_points', 'pairs', 'related'
+  ]);
+  for (const k of Object.keys(meta)) {
+    if (!allowedKeys.has(k)) {
+      errs.push(`unknown key in _meta.json: ${k}`);
+    }
+  }
+
+  // published flag
   min(typeof meta.published === 'boolean', `missing or invalid key: published (boolean)`);
 
-  // When published=true, require published_at/republished_at (dates for list sort + label)
-  if (meta.published === true) {
-    min(isDateish(meta.published_at), `missing or invalid key: published_at (ISO 8601 string) when published=true`);
-    min(isDateish(meta.republished_at), `missing or invalid key: republished_at (ISO 8601 string) when published=true`);
-  }
-
-  // Forbid drift-prone display metadata in _meta.json (SSOT is model.document_meta)
-  if (Object.prototype.hasOwnProperty.call(meta, 'title')) {
-    issue(minPolicy === 'error' ? 'error' : 'warn', `forbidden key: title (SSOT is model.document_meta)`);
-  }
-  if (Object.prototype.hasOwnProperty.call(meta, 'summary')) {
-    issue(minPolicy === 'error' ? 'error' : 'warn', `forbidden key: summary (SSOT is model.document_meta)`);
-  }
-  if (Object.prototype.hasOwnProperty.call(meta, 'tags')) {
-    issue(minPolicy === 'error' ? 'error' : 'warn', `forbidden key: tags (SSOT is model.document_meta)`);
-  }
-
-  // Model display metadata must exist when published=true (SSOT)
-  const title = (dm && (dm.document_title ?? dm.title));
-  const summary = (dm && (dm.document_summary ?? dm.summary));
-  const tags = (dm && dm.tags);
-
-  if (meta.published === true) {
-    min(typeof title === 'string' && title.trim().length > 0, `model.document_meta missing title (document_title/title) when published=true`);
-    min(typeof summary === 'string', `model.document_meta missing summary (document_summary/summary) when published=true`);
-    min(Array.isArray(tags), `model.document_meta missing tags (array) when published=true`);
+  // published_at / republished_at rules
+  const isPublished = meta.published === true;
+  if (isPublished) {
+    min(typeof meta.published_at === 'string', `missing or invalid key: published_at (string, ISO8601)`);
+    min(typeof meta.republished_at === 'string', `missing or invalid key: republished_at (string, ISO8601)`);
   } else {
-    // drafts: warn only
-    if (!(typeof title === 'string' && title.trim().length > 0)) warns.push(`draft: model.document_meta title is missing (document_title/title)`);
-    if (!(typeof summary === 'string')) warns.push(`draft: model.document_meta summary is missing (document_summary/summary)`);
-    if (!(Array.isArray(tags))) warns.push(`draft: model.document_meta tags is missing (array)`);
+    // When unpublished, these should generally be absent (not null).
+    if ('published_at' in meta) issue('warn', `unpublished item should omit key: published_at`);
+    if ('republished_at' in meta) issue('warn', `unpublished item should omit key: republished_at`);
+    if (meta.published_at === null) issue('error', `published_at must not be null (omit the key)`);
+    if (meta.republished_at === null) issue('error', `republished_at must not be null (omit the key)`);
   }
 
-  // NOTE: updated_at was intentionally removed from the 3DSS schema.
-  // Keep it optional here; build/index generation can derive a value when needed.
-
-  // Recommended keys (warn only)
-  if (typeof meta.description !== 'string') {
-    warns.push(`recommended: description (string) for SEO / long summary`);
-  }
-
-  // Optional structured keys (warn only when shape is wrong)
-  if (meta.seo != null && !isPlainObject(meta.seo)) {
-    warns.push(`seo should be an object when present`);
-  }
-  if (meta.entry_points != null && !Array.isArray(meta.entry_points)) {
-    warns.push(`entry_points should be an array when present`);
-  }
-  if (meta.pairs != null && !Array.isArray(meta.pairs)) {
-    warns.push(`pairs should be an array when present`);
-  }
-  if (meta.related != null && !Array.isArray(meta.related)) {
-    warns.push(`related should be an array when present`);
-  }
-
+  // Optional type checks (ledger fields)
+  if ('description' in meta) min(typeof meta.description === 'string', `invalid key: description (string)`);
+  if ('hidden' in meta) min(typeof meta.hidden === 'boolean', `invalid key: hidden (boolean)`);
+  if ('recommended' in meta) min(typeof meta.recommended === 'boolean', `invalid key: recommended (boolean)`);
+  if ('seo' in meta) min(isPlainObject(meta.seo), `invalid key: seo (object)`);
+  if ('authors' in meta) min(Array.isArray(meta.authors), `invalid key: authors (array)`);
+  if ('rights' in meta) min(isPlainObject(meta.rights), `invalid key: rights (object)`);
+  if ('references' in meta) min(Array.isArray(meta.references), `invalid key: references (array)`);
+  if ('provenance' in meta) min(isPlainObject(meta.provenance), `invalid key: provenance (object)`);
+  if ('links' in meta) min(isPlainObject(meta.links), `invalid key: links (object)`);
+  if ('page' in meta) min(isPlainObject(meta.page), `invalid key: page (object)`);
+  if ('entry_points' in meta) min(Array.isArray(meta.entry_points), `invalid key: entry_points (array)`);
+  if ('pairs' in meta) min(Array.isArray(meta.pairs), `invalid key: pairs (array)`);
+  if ('related' in meta) min(Array.isArray(meta.related), `invalid key: related (array)`);
 
   return { warns, errs };
 }
+
 
 function main() {
   const args = process.argv.slice(2);
@@ -208,8 +246,15 @@ function main() {
       continue;
     }
 
+
+    // document_meta contract (SSOT for title/summary/tags/created/revised)
+    const dmCheck = validateDocumentMeta(dm, policy, id);
+    for (const w of dmCheck.warns) console.warn(`[warn] ${id}: ${w}`);
+    for (const e of dmCheck.errs) { console.error(`[error] ${id}: ${e}`); errCount++; }
+    if (dmCheck.errs.length > 0) continue;
+
     // Meta staged validation
-    const { warns, errs } = validateMeta(meta, dm, policy);
+    const { warns, errs } = validateMeta(meta, policy);
     for (const w of warns) {
       console.warn(`[warn] ${id}: ${w}`);
       warnCount++;

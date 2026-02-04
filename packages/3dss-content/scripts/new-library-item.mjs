@@ -83,28 +83,37 @@ function main() {
   }
   fs.mkdirSync(dir, { recursive: true });
 
+  const now = new Date().toISOString();
+
   // required file: _meta.json
-  // NOTE: _meta.json is a registry/ledger only.
-  // SSOT for title/summary/tags is model.3dss.json (model.document_meta).
+  // NOTE: keys here are aligned with build-3dss-content-dist.mjs expectations (meta.seo.* supported)
   const meta = {
+    // Ledger-only: do NOT put title/summary/tags/created/updated here.
+    // Core display fields are SSOT in model.3dss.json document_meta.
     description: '',
-    entry_points: [],
-    pairs: [],
-    rights: null,
-    related: [],
-    page: null,
     published: false,
-    // When you flip published=true, also set published_at/republished_at (ISO 8601).
-    // published_at: "2026-01-05T00:00:00Z",
-    // republished_at: "2026-01-05T00:00:00Z",
+    // editorial flags (optional)
+    recommended: false,
+    hidden: false,
     seo: {
       title: '',
       description: '',
       og_image: '',
     },
-    // editorial flags (optional)
-    recommended: false,
-    hidden: false,
+    authors: [
+      { name: 'q2t project', role: 'author', url: '' },
+    ],
+    rights: null,
+    references: [],
+    links: { canonical: '', repo: '', discussion: '' },
+    provenance: {
+      schema_uri: 'https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4',
+      tools: [],
+      generation_note: '',
+    },
+    entry_points: [],
+    pairs: [],
+    related: [],
   };
   writeJson(path.join(dir, '_meta.json'), meta);
 
@@ -113,6 +122,8 @@ function main() {
       document_title: title,
       document_summary: '',
       tags: [],
+      created_at: now,
+      revised_at: now,
       document_uuid: crypto.randomUUID(),
       schema_uri: 'https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4',
       author: process.env.USERNAME || process.env.USER || 'unknown',

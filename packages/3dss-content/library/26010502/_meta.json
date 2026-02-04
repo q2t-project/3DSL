@@ -1,5 +1,7 @@
 {
   "description": "一覧にも使う短い説明",
-  "hidden": true,
-  "published": false
+  "meta_title": "",
+  "meta_description": "",
+  "published": false,
+  "hidden": true
 }

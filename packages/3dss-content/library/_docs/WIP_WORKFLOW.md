@@ -94,6 +94,5 @@ npm --prefix apps/site run sync:3dss-content
 
 - [ ] WIP が repo 内に入ってない（**原則 repo 外**）
 - [ ] `model.3dss.json` は library の ID フォルダ配下にある
-- [ ] `_meta.json` の必須キーが埋まっている（published/(published_at/republished_at when published=true)）
 - [ ] `published` の意図が一致している（false=非公開、true=公開）
 - [ ] 参考文献/第三者素材の出典が `_meta.json` に入っている（必要な場合）
