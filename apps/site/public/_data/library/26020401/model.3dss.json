@@ -1,0 +1,35 @@
+{
+  "document_meta": {
+    "document_title": "サンプル: 26020401",
+    "document_summary": "library item のフォルダ構成サンプル（model/_meta/content/assets/attachments）",
+    "tags": [
+      "sample",
+      "structure",
+      "docmeta"
+    ],
+    "created_at": "2026-02-04T00:00:00Z",
+    "revised_at": "2026-02-04T00:00:00Z"
+  },
+  "scene": {
+    "points": [
+      {
+        "meta": {
+          "uuid": "p-0001"
+        },
+        "signification": {
+          "name": {
+            "ja": "点A"
+          }
+        },
+        "appearance": {
+          "position": [
+            0,
+            0,
+            0
+          ]
+        }
+      }
+    ],
+    "lines": []
+  }
+}

@@ -4,12 +4,14 @@
   "pairs": [],
   "rights": null,
   "related": [],
-  "published": false,
+  "published": true,
   "seo": {
-    "title": "26012801",
+    "title": "",
     "description": "",
-    "og_image": null
+    "og_image": ""
   },
   "recommended": false,
-  "hidden": false
+  "hidden": false,
+  "published_at": "2026-01-23T11:42:39Z",
+  "republished_at": "2026-01-23T11:42:39Z"
 }
