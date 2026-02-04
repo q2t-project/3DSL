@@ -385,10 +385,17 @@ export function createCoreControllers(emitter) {
         })
         .then((schemaJson) => {
           schemaJsonCache = schemaJson;
+
+          // NOTE (philosophy): keep the app usable even if vendor bundling is broken.
+          // This matches Viewer behavior: warn and skip validation, but do not block
+          // Open/Save/SaveAs/Export.
           if (!Ajv) {
-            throw new Error(
-              "Ajv is unavailable. Vendor sync/bundling is likely missing or incompatible (expected /vendor/ajv/dist/ajv.js)."
+            console.warn(
+              "validator: Ajv is unavailable; skipping JSON Schema validation (expected /vendor/ajv/dist/ajv.js)."
             );
+            validateFn = null;
+            validatePruneFn = null;
+            return;
           }
 ajv = new Ajv({
   allErrors: true,
@@ -437,8 +444,11 @@ lastStrictErrors = null;
   }
 
   function validateStrict(doc) {
+    // If Ajv is unavailable, keep the app usable and treat the model as
+    // "schema-ok" (warn-only), matching Viewer behavior.
     if (!validateFn) {
-      throw new Error("validator not initialized. Call validator.ensureInitialized() first.");
+      lastStrictErrors = null;
+      return true;
     }
     lastStrictErrors = null;
     const ok = validateFn(doc);
