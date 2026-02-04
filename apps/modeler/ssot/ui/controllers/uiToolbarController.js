@@ -639,6 +639,7 @@ export function createUiToolbarController(deps) {
   /** @param {ToolbarAction} action */
   async function invoke(action) {
     const act = String(action || "").toLowerCase();
+    try { console.debug('[toolbar] action', act); } catch {}
     if (!act) return;
 
     // Toolbars are synced from a single place (attachUiShell).
@@ -883,41 +884,33 @@ export function createUiToolbarController(deps) {
     }
   }
 
-  // Topbar: keep listeners scoped to the topbar to avoid cross-controller collisions.
-  // Also use closest() so clicks on nested elements (spans/icons) still resolve.
-  const topbarActions = root.querySelector('[data-role="topbar"] .topbar-actions') || root;
-  topbarActions.addEventListener(
-    "click",
-    async (ev) => {
-      const target = ev.target;
-      if (!(target instanceof Element)) return;
+  root.addEventListener("click", async (ev) => {
+    const t = ev.target;
+    if (!(t instanceof HTMLElement)) return;
 
-      const el = target.closest("[data-action],[data-tab]");
-      if (!(el instanceof HTMLElement)) return;
-
-      const act = el.getAttribute("data-action");
-      if (act) {
-        /** @type {ToolbarAction} */
-        const a = /** @type {any} */ (String(act).toLowerCase());
-        if (TOOLBAR_ACTIONS.includes(a)) {
-          // Do not await: keep user-gesture continuity for File System Access API.
-          void invoke(a);
-        }
-        return;
+    const act = t.getAttribute("data-action");
+    if (act) {
+      /** @type {ToolbarAction} */
+      const a = /** @type {any} */ (String(act).toLowerCase());
+      // NOTE: many sub-panels (e.g., Outliner) also use data-action attributes.
+      // The toolbar controller should only own TOOLBAR_ACTIONS. Unknown actions
+      // are ignored here so that dedicated controllers can handle them.
+      if (TOOLBAR_ACTIONS.includes(a)) {
+        await invoke(a);
       }
+      return;
+    }
 
-      const tab = el.getAttribute("data-tab");
-      if (tab) {
-        // Phase2: prevent losing buffered edits while switching contexts.
-        const ok = propertyController.ensureEditsAppliedOrConfirm?.({ reason: "tab" });
-        if (!ok) return;
-        core.setUiState?.({ activeTab: tab });
-        syncTabs();
-        renderOutliner(core.getDocument?.());
-      }
-    },
-    { signal },
-  );
+    const tab = t.getAttribute("data-tab");
+    if (tab) {
+      // Phase2: prevent losing buffered edits while switching contexts.
+      const ok = propertyController.ensureEditsAppliedOrConfirm?.({ reason: "tab" });
+      if (!ok) return;
+      core.setUiState?.({ activeTab: tab });
+      syncTabs();
+      renderOutliner(core.getDocument?.());
+    }
+  }, { signal });
 
   if (fileInput) {
     fileInput.addEventListener("change", () => { void handleFileInputChange(); }, { signal });

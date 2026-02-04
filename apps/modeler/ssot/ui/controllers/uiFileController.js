@@ -24,6 +24,13 @@ function dl(name, text) {
   }, 0);
 }
 
+function reportErr(prefix, err) {
+  try {
+    const name = err && err.name ? String(err.name) : "";
+    const msg = err && err.message ? String(err.message) : String(err);
+    console.error(`${prefix}${name ? " [" + name + "]" : ""}: ${msg}`, err);
+  } catch {}
+}
 function ensureExt(name, ext) {
   const s = String(name || "").trim();
   if (!s) return "model" + ext;
@@ -296,7 +303,22 @@ function syncTitle() {
       if (canUseSaveFsa()) {
         try {
           const suggestedName = defaultExportName();
-          const handle = await withFocusRestore(() => pickSaveHandle({ suggestedName }));
+          let handle;
+          try {
+            handle = await withFocusRestore(() => pickSaveHandle({ suggestedName }));
+          } catch (err) {
+            reportErr(`[file] ${act} picker failed`, err);
+            // Fallback: download export (policy: export may mark clean).
+            dl(suggestedName, jsonText);
+            core?.markClean?.();
+            syncTitle();
+            setHud(`Downloaded: ${suggestedName}`);
+            return;
+          }
+          if (!handle) {
+            setHud("Cancelled");
+            return;
+          }
           await writeToHandle(handle, jsonText);
           core?.markClean?.(); // policy: Export resolves dirty
           syncTitle();
@@ -351,7 +373,23 @@ function syncTitle() {
         // SaveAs (or Save fallback)
         try {
           const suggestedName = defaultSaveName();
-          const handle = await withFocusRestore(() => pickSaveHandle({ suggestedName }));
+          let handle;
+          try {
+            handle = await withFocusRestore(() => pickSaveHandle({ suggestedName }));
+          } catch (err) {
+            reportErr(`[file] ${act} picker failed`, err);
+            // Fallback: download (still a "save" from user's perspective).
+            dl(suggestedName, jsonText);
+            core?.setSaveHandle?.(null, "");
+            core?.markClean?.();
+            syncTitle();
+            setHud(`Downloaded: ${suggestedName}`);
+            return;
+          }
+          if (!handle) {
+            setHud("Cancelled");
+            return;
+          }
           await writeToHandle(handle, jsonText);
           core?.setSaveHandle?.(handle, handle?.name || suggestedName);
           core?.markClean?.();
