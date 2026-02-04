@@ -2,8 +2,10 @@
   "published": false,
   "description": "開発中のテスト用コンテンツ。動作確認・回帰テスト・表示検証のための仮データで、内容や構成は予告なく変更されます。",
   "pairs": [],
-  "seo_title": "",
-  "seo_description": "",
   "recommended": false,
-  "hidden": true
+  "hidden": true,
+  "seo": {
+    "title": "",
+    "description": ""
+  }
 }

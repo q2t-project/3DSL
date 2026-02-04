@@ -71,6 +71,7 @@ function validateMeta(meta, policy) {
     'seo',
     'rights',
     'references',
+    'attachments',
     'entry_points',
     'pairs',
     'related',
