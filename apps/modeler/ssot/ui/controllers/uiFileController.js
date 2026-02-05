@@ -303,15 +303,19 @@ function syncTitle() {
     }
   }
 
-  async function pickSaveHandle({ suggestedName }) {
+  // IMPORTANT:
+  // - showSaveFilePicker MUST be invoked synchronously in direct response to
+  //   a user gesture. Wrapping it inside an `async` helper can accidentally
+  //   insert an await boundary elsewhere and make the picker silently fail.
+  // - Therefore this function returns the Promise directly.
+  function pickSaveHandle({ suggestedName }) {
     // @ts-ignore
-    const handle = await window.showSaveFilePicker({
+    return window.showSaveFilePicker({
       suggestedName,
       types: [
         { description: "3DSS JSON", accept: { "application/json": [".json"] } },
       ],
     });
-    return handle;
   }
 
   async function handleFileAction(action, { ensureEditsApplied, getFallbackDocument } = {}) {
