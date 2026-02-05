@@ -283,14 +283,30 @@ function syncTitle() {
     const text = String(jsonText ?? "");
     if (!text) throw new Error("writeToHandle: empty jsonText");
 
+    // Request explicit read/write permission if available.
+    // If permission is denied, bail out BEFORE touching the file.
+    if (typeof handle?.requestPermission === "function") {
+      const perm = await handle.requestPermission({ mode: "readwrite" }).catch(() => "prompt");
+      if (perm && perm !== "granted") throw new Error("writeToHandle: permission not granted");
+    }
+
     // Prefer a Blob write with an explicit write op. Some environments have shown
     // silent 0-byte results with string writes.
     const blob = new Blob([text], { type: "application/json" });
     console.log("[file] write blob bytes=", blob.size, "name=", handle?.name || "(no name)");
 
-    const writable = await handle.createWritable();
-    await writable.write({ type: "write", position: 0, data: blob });
-    await writable.close();
+    // Avoid truncating the target file until the write succeeds.
+    // - keepExistingData: prevents the browser from zeroing the file up-front.
+    // - after write, we truncate to the exact size.
+    const writable = await handle.createWritable({ keepExistingData: true });
+    try {
+      await writable.write({ type: "write", position: 0, data: blob });
+      if (typeof writable.truncate === "function") {
+        await writable.truncate(blob.size);
+      }
+    } finally {
+      await writable.close().catch(() => {});
+    }
 
     // Verify the written size; if it is 0, treat as failure and let caller fallback.
     try {
@@ -323,16 +339,10 @@ function syncTitle() {
     if (!doc) { setHud("Save blocked: no document"); return; }
     if (ensureEditsApplied && !ensureEditsApplied()) { setHud("Save blocked: apply edits first"); return; }
 
-    // NOTE: Do NOT run validation or stringify before opening a file picker.
-    // Browsers require showSaveFilePicker()/showOpenFilePicker() to be called
-    // directly in the user-activation stack. Ajv init/validation can take time
-    // and would break that activation (picker will not appear).
-    const getJsonTextStrict = () => {
-      if (!ensureStrictOk(doc)) return "";
-      const jsonText = JSON.stringify(doc, null, 2);
-      console.log("[file] json chars=", jsonText ? jsonText.length : 0, "act=", act);
-      return jsonText;
-    };
+    if (!ensureStrictOk(doc)) return;
+
+    const jsonText = JSON.stringify(doc, null, 2);
+    console.log("[file] json chars=", jsonText ? jsonText.length : 0, "act=", act);
 
     // --- Export ---
     if (act === "export") {
@@ -352,8 +362,6 @@ function syncTitle() {
             reportErr(`[file] ${act} picker failed`, err);
             // Picker failed for a non-cancel reason: fallback to download.
             // Policy: export may mark clean.
-            const jsonText = getJsonTextStrict();
-            if (!jsonText) return;
             dl(suggestedName, jsonText);
             core?.markClean?.();
             syncTitle();
@@ -364,8 +372,6 @@ function syncTitle() {
             setHud("Cancelled");
             return;
           }
-          const jsonText = getJsonTextStrict();
-          if (!jsonText) return;
           await writeToHandle(handle, jsonText);
           core?.markClean?.(); // policy: Export resolves dirty
           syncTitle();
@@ -378,8 +384,6 @@ function syncTitle() {
           }
           // fallback: download
           const fn = defaultExportName();
-          const jsonText = getJsonTextStrict();
-          if (!jsonText) return;
           dl(fn, jsonText);
           core?.markClean?.(); // policy
           syncTitle();
@@ -389,11 +393,7 @@ function syncTitle() {
       }
 
       const fn = defaultExportName();
-      {
-        const jsonText = getJsonTextStrict();
-        if (!jsonText) return;
-        dl(fn, jsonText);
-      }
+      dl(fn, jsonText);
       core?.markClean?.();
       syncTitle();
       setHud(`Exported (download): ${fn}`);
@@ -409,8 +409,6 @@ function syncTitle() {
           const handle = core?.getSaveHandle?.();
           if (handle) {
             try {
-              const jsonText = getJsonTextStrict();
-              if (!jsonText) return;
               await writeToHandle(handle, jsonText);
               core?.setSaveLabel?.(handle?.name || defaultSaveName());
               core?.markClean?.();
@@ -440,8 +438,6 @@ function syncTitle() {
             reportErr(`[file] ${act} picker failed`, err);
             // Picker failed for a non-cancel reason: fallback to download.
             // Still a "save" from user's perspective.
-            const jsonText = getJsonTextStrict();
-            if (!jsonText) return;
             dl(suggestedName, jsonText);
             core?.setSaveHandle?.(null, "");
             core?.markClean?.();
@@ -480,11 +476,7 @@ function syncTitle() {
         }
         fn = buildSuggestedName({ base: name, kind: "save" });
       }
-      {
-        const jsonText = getJsonTextStrict();
-        if (!jsonText) return;
-        dl(fn, jsonText);
-      }
+      dl(fn, jsonText);
       core?.setSaveLabel?.(fn);
       core?.clearSaveHandle?.();
       core?.markClean?.();
