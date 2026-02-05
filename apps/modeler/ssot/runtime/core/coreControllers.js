@@ -10,7 +10,8 @@
 // /vendor/ajv/dist/ajv.js may be CommonJS or have a different export shape
 // depending on how vendor sync/bundling was done. A static named import would
 // break the whole runtime at parse time, so we load it dynamically.
-let Ajv = globalThis?.Ajv;
+// Ajv can be exposed as a global (UMD) or via ESM exports.
+let Ajv = globalThis?.Ajv || globalThis?.ajv;
 let AjvAddFormats = null;
 if (!Ajv) {
   // Vendor philosophy (same as Viewer): shared vendor assets live at the
@@ -18,7 +19,10 @@ if (!Ajv) {
   // Relative URLs are resolved under /modeler_app/** and cause 404 spam like:
   //   /modeler_app/vendor/ajv/dist/ajv.js
   // which is not where shared vendors are hosted.
+  // Prefer bundled build first (this is what our importmap points to).
+  // Fall back to plain ajv.js if present.
   const urls = [
+    "/vendor/ajv/dist/ajv.bundle.js",
     "/vendor/ajv/dist/ajv.js",
   ];
   let lastErr = null;
@@ -54,12 +58,23 @@ async function ensureAjvLoaded() {
     Ajv = mod?.default || mod?.Ajv || mod;
   } catch (_) {}
 
-  // 2) Fallback: load vendor copy (UMD/CJS) and pick up global exports under globalThis.ajv.
+  // 2) Fallback: load vendor copies directly.
+  //    - If it is UMD, it may populate globalThis.Ajv or globalThis.ajv
+  //    - If it is ESM, we must read exports from the returned module
   if (!Ajv) {
     try {
-      await import("/vendor/ajv/dist/ajv.js");
-      const g = globalThis.ajv;
-      Ajv = g?.default || g?.Ajv || g;
+      const urls = [
+        "/vendor/ajv/dist/ajv.bundle.js",
+        "/vendor/ajv/dist/ajv.js",
+      ];
+      for (const u of urls) {
+        try {
+          const mod = await import(u);
+          const g = globalThis.Ajv || globalThis.ajv;
+          Ajv = mod?.default || mod?.Ajv || g?.default || g?.Ajv || g || mod;
+          if (Ajv) break;
+        } catch (_) {}
+      }
     } catch (_) {}
   }
 
