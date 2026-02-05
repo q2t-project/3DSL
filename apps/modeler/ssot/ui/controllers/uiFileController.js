@@ -260,17 +260,23 @@ function syncTitle() {
   // Any `await` before invoking them can break the gesture and make SaveAs/Export
   // appear to do nothing.
   function ensureStrictOk(doc) {
-    try {
-      const ok = core.validateStrict?.(doc);
-      if (ok) return true;
-      setHud("Validation failed: fix issues before saving");
-      return false;
-    } catch (e) {
-      // Kick off initialization in the background (best-effort), but don't await.
+    // UI policy (Modeler Beta I/O): Save/SaveAs/Export are *strictly* gated.
+    // core.validateStrict() is best-effort (it returns true when AJV isn't loaded),
+    // so we must explicitly require the validator to be ready.
+    const ready = !!core?.isValidatorReady?.();
+    if (!ready) {
+      // Kick off initialization (best-effort), but don't await.
       try { core.ensureValidatorInitialized?.(); } catch {}
-      setHud(`AJV is unavailable; skipping JSON Schema validation.`);
+      showStrictErrors([{ message: "AJV validator is unavailable (vendor not loaded)." }]);
+      setHud("Validation unavailable: cannot save/export");
       return false;
     }
+
+    const ok = !!core.validateStrict?.(doc);
+    if (ok) return true;
+    showStrictErrors(core.getStrictErrors?.() ?? []);
+    setHud("Validation failed: fix issues before saving");
+    return false;
   }
 
   async function writeToHandle(handle, jsonText) {

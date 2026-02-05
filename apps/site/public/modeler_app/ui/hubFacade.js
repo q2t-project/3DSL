@@ -81,6 +81,7 @@ export function createHubCoreControllers(hub) {
 
     // strict validator
     ensureValidatorInitialized: () => core?.validator?.ensureInitialized?.(),
+    isValidatorReady: () => core?.validator?.isReady?.() ?? false,
     validateStrict: (doc) => core?.validator?.validate?.(doc),
     getStrictErrors: () => core?.validator?.getErrors?.() ?? [],
 

@@ -1507,7 +1507,15 @@ function focusByIssue(issue) {
     uiSidecar: { get: getUiSidecar, apply: applyUiSidecar },
     quickcheck: { run: runQuickCheck, fixBrokenLineEndpoints },
     import: { normalize: importNormalize, getExtras: getImportExtras, clearExtras: clearImportExtras },
-    validator: { ensureInitialized: ensureValidatorInitialized, validate: validateStrict, getErrors: getStrictErrors, getSchemaInfo },
+    // NOTE: UI may require "strict" gating for Save/Export.
+    // validate() is best-effort (returns true when AJV isn't available), so expose readiness.
+    validator: {
+      ensureInitialized: ensureValidatorInitialized,
+      validate: validateStrict,
+      getErrors: getStrictErrors,
+      getSchemaInfo,
+      isReady: () => !!validateFn,
+    },
     focusByIssue
   };
 }
