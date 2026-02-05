@@ -1,5 +1,14 @@
 # Library 個別ページ方針
 
+## 関連SSOT
+
+- 登録手順（SSOT）: `packages/docs/docs/library/workflow.md`
+- `_meta.json` フィールド辞書（SSOT）: `packages/docs/docs/library/meta-fields.md`
+
+このページは **Library 詳細ページの表示方針**（SEO/UX/ページ構造）を固定する。
+データ定義や運用手順のSSOTは上のドキュメントに集約する。
+
+
 ## 目的
 
 Library の各コンテンツを **検索エンジンが読める HTML ページ**として公開しつつ、3D モデルの体験（Viewer）も成立させる。
@@ -15,6 +24,13 @@ Library の各コンテンツを **検索エンジンが読める HTML ページ
 * 個別データ: `/_data/library/<id>/...`
 
 個別ページは **HTML（Astro）**で構成し、モデル本体・本文・画像等は `/_data/library/<id>/` から参照する。
+
+
+### 表示メタのSSOT（重要）
+
+- **表示に使うタイトル/要約/タグ/created/revised は `model.3dss.json` の `document_meta` がSSOT**。
+- `_meta.json` は「公開台帳（published/published_at/republished_at）」と「出典/権利/制作情報/添付等」を扱う。
+- `_meta.json` に表示メタ（title/summary/tags/created_at/updated_at 等）を重複させるのは **コンタミ** として禁止（チェックで弾く）。
 
 ## レイアウト思想
 

@@ -18,3 +18,10 @@ sync 時に余計なルートや衝突の元になるので作らんようにし
 
 - `apps/site/scripts/sync/docs.mjs` は、`packages/docs/docs/{policy,faq}` を検出したら **NGで停止**する（混入禁止）
 
+
+## Library
+
+- 方針（詳細ページ）: `packages/docs/docs/library/page-policy.md`
+- 登録手順: `packages/docs/docs/library/workflow.md`
+- `_meta.json` フィールド辞書: `packages/docs/docs/library/meta-fields.md`
+- 運用 Cheatsheet: `packages/docs/docs/library/ops-cheatsheet.md`

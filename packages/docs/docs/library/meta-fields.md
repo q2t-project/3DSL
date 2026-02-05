@@ -1,4 +1,6 @@
-# _meta.json フィールド辞書（SSOT）
+# `_meta.json` フィールド辞書（SSOT）
+
+（SSOT置き場: `packages/docs/docs/library/meta-fields.md`）
 
 このドキュメントは、`packages/3dss-content/library/<ID>/_meta.json` の **フィールド意味（SSOT）** を固定する。
 
