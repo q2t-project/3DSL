@@ -10,8 +10,7 @@
 // /vendor/ajv/dist/ajv.js may be CommonJS or have a different export shape
 // depending on how vendor sync/bundling was done. A static named import would
 // break the whole runtime at parse time, so we load it dynamically.
-// Ajv can be exposed as a global (UMD) or via ESM exports.
-let Ajv = globalThis?.Ajv || globalThis?.ajv;
+let Ajv = globalThis?.Ajv;
 let AjvAddFormats = null;
 if (!Ajv) {
   // Vendor philosophy (same as Viewer): shared vendor assets live at the
@@ -19,10 +18,10 @@ if (!Ajv) {
   // Relative URLs are resolved under /modeler_app/** and cause 404 spam like:
   //   /modeler_app/vendor/ajv/dist/ajv.js
   // which is not where shared vendors are hosted.
-  // Prefer bundled build first (this is what our importmap points to).
-  // Fall back to plain ajv.js if present.
   const urls = [
+    // Prefer our bundled, import()-safe build when present.
     "/vendor/ajv/dist/ajv.bundle.js",
+    // Legacy filename (kept for backward compatibility).
     "/vendor/ajv/dist/ajv.js",
   ];
   let lastErr = null;
@@ -30,7 +29,8 @@ if (!Ajv) {
   for (const u of urls) {
     try {
       const mod = await import(u);
-      Ajv = mod?.default ?? mod?.Ajv ?? mod;
+      // Ajv may be exposed as a default export, a named export, or a global (UMD).
+      Ajv = mod?.default ?? mod?.Ajv ?? globalThis.ajv ?? globalThis.Ajv ?? mod;
       AjvAddFormats = mod?.addFormats ?? mod?.default?.addFormats ?? null;
       if (Ajv) break;
     } catch (e) {
@@ -58,9 +58,8 @@ async function ensureAjvLoaded() {
     Ajv = mod?.default || mod?.Ajv || mod;
   } catch (_) {}
 
-  // 2) Fallback: load vendor copies directly.
-  //    - If it is UMD, it may populate globalThis.Ajv or globalThis.ajv
-  //    - If it is ESM, we must read exports from the returned module
+  // 2) Fallback: load vendor copy and pick up global exports.
+  // Cloudflare vendor sync may produce either ajv.bundle.js (preferred) or ajv.js (legacy).
   if (!Ajv) {
     try {
       const urls = [
@@ -70,8 +69,7 @@ async function ensureAjvLoaded() {
       for (const u of urls) {
         try {
           const mod = await import(u);
-          const g = globalThis.Ajv || globalThis.ajv;
-          Ajv = mod?.default || mod?.Ajv || g?.default || g?.Ajv || g || mod;
+          Ajv = Ajv || mod?.default || mod?.Ajv || globalThis.ajv || globalThis.Ajv;
           if (Ajv) break;
         } catch (_) {}
       }
@@ -432,9 +430,12 @@ export function createCoreControllers(emitter) {
           schemaJsonCache = schemaJson;
           return ensureAjvLoaded().then(() => {
           if (!Ajv) {
-            throw new Error(
-              "Ajv is unavailable. Vendor sync/bundling is likely missing or incompatible (expected /vendor/ajv/dist/ajv.js)."
+            // Do NOT hard-fail the app when vendor Ajv is missing. Validation becomes a best-effort feature.
+            // (Save/SaveAs/Export strict-gate will be skipped until Ajv is restored.)
+            console.warn(
+              "validator.init: Ajv is unavailable; skipping schema validation (check /vendor/ajv/dist/ajv.bundle.js or /vendor/ajv/dist/ajv.js)."
             );
+            return;
           }
 ajv = new Ajv({
   allErrors: true,
