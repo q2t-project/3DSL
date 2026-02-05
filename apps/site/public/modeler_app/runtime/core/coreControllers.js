@@ -45,6 +45,36 @@ if (!Ajv) {
   }
 }
 
+async function ensureAjvLoaded() {
+  if (Ajv) return true;
+
+  // 1) Prefer importmap alias ("ajv") when available.
+  try {
+    const mod = await import("ajv");
+    Ajv = mod?.default || mod?.Ajv || mod;
+  } catch (_) {}
+
+  // 2) Fallback: load vendor copy (UMD/CJS) and pick up global exports under globalThis.ajv.
+  if (!Ajv) {
+    try {
+      await import("/vendor/ajv/dist/ajv.js");
+      const g = globalThis.ajv;
+      Ajv = g?.default || g?.Ajv || g;
+    } catch (_) {}
+  }
+
+  // Formats are optional for our validation gate.
+  if (typeof AjvAddFormats !== "function") {
+    AjvAddFormats = (ajvInstance) => ajvInstance;
+  }
+
+  if (Ajv && !globalThis.Ajv) globalThis.Ajv = Ajv;
+  if (AjvAddFormats && !globalThis.AjvAddFormats) globalThis.AjvAddFormats = AjvAddFormats;
+
+  return !!Ajv;
+}
+
+
 // strict validator helpers (copied/simplified from viewer runtime)
 // ------------------------------------------------------------
 function parseSemverMajor(v) {
@@ -385,6 +415,7 @@ export function createCoreControllers(emitter) {
         })
         .then((schemaJson) => {
           schemaJsonCache = schemaJson;
+          return ensureAjvLoaded().then(() => {
           if (!Ajv) {
             throw new Error(
               "Ajv is unavailable. Vendor sync/bundling is likely missing or incompatible (expected /vendor/ajv/dist/ajv.js)."
@@ -431,6 +462,7 @@ try {
 
 schemaInfo = extractSchemaInfo(schemaJson);
 lastStrictErrors = null;
+          });
         });
     }
     return validatorInitPromise;
@@ -1507,15 +1539,7 @@ function focusByIssue(issue) {
     uiSidecar: { get: getUiSidecar, apply: applyUiSidecar },
     quickcheck: { run: runQuickCheck, fixBrokenLineEndpoints },
     import: { normalize: importNormalize, getExtras: getImportExtras, clearExtras: clearImportExtras },
-    // NOTE: UI may require "strict" gating for Save/Export.
-    // validate() is best-effort (returns true when AJV isn't available), so expose readiness.
-    validator: {
-      ensureInitialized: ensureValidatorInitialized,
-      validate: validateStrict,
-      getErrors: getStrictErrors,
-      getSchemaInfo,
-      isReady: () => !!validateFn,
-    },
+    validator: { ensureInitialized: ensureValidatorInitialized, validate: validateStrict, getErrors: getStrictErrors, getSchemaInfo },
     focusByIssue
   };
 }
