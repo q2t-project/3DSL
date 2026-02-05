@@ -19,25 +19,40 @@ if (!Ajv) {
   //   /modeler_app/vendor/ajv/dist/ajv.js
   // which is not where shared vendors are hosted.
   const urls = [
-    // Preferred: bundled vendor (built for browsers)
-    "/vendor/ajv/dist/ajv.bundle.js",
-    // Shim ESM module (loads bundle + exports globals)
+    // Preferred: ESM shim (exports the Ajv constructor)
     "/vendor/ajv/dist/ajv.js",
+    // Fallback: bundled vendor (IIFE that sets globalThis.Ajv)
+    "/vendor/ajv/dist/ajv.bundle.js",
   ];
   let lastErr = null;
   let lastUrl = "";
   for (const u of urls) {
     try {
       const mod = await import(u);
-      Ajv = mod?.default ?? mod?.Ajv ?? mod;
-      AjvAddFormats = mod?.addFormats ?? mod?.default?.addFormats ?? null;
-      if (Ajv) break;
+
+      // ESM shim: default export is the Ajv constructor.
+      // IIFE bundle: module exports are empty, but it sets globalThis.Ajv.
+      let candidate = mod?.default ?? mod?.Ajv ?? mod;
+      if (typeof candidate !== "function") {
+        const g = globalThis?.Ajv;
+        if (typeof g === "function") candidate = g;
+      }
+      Ajv = candidate;
+
+      // Formats are optional; if provided, capture them.
+      AjvAddFormats =
+        mod?.addFormats ??
+        mod?.default?.addFormats ??
+        globalThis?.AjvAddFormats ??
+        null;
+
+      if (typeof Ajv === "function") break;
     } catch (e) {
       lastErr = e;
       lastUrl = String(u || "");
     }
   }
-  if (!Ajv) {
+  if (typeof Ajv !== "function") {
     Ajv = null;
     try {
       globalThis.__modelerAjvLoadError = {
@@ -49,20 +64,21 @@ if (!Ajv) {
 }
 
 async function ensureAjvLoaded() {
-  if (Ajv) return true;
+  if (typeof Ajv === "function") return true;
 
   // 1) Prefer importmap alias ("ajv") when available.
   try {
     const mod = await import("ajv");
-    Ajv = mod?.default || mod?.Ajv || mod;
+    const c = mod?.default || mod?.Ajv || mod;
+    if (typeof c === "function") Ajv = c;
   } catch (_) {}
 
-  // 2) Fallback: load vendor copy (UMD/CJS) and pick up global exports under globalThis.ajv.
-  if (!Ajv) {
+  // 2) Fallback: load vendor copy and pick up global exports.
+  if (typeof Ajv !== "function") {
     try {
       await import("/vendor/ajv/dist/ajv.js");
-      const g = globalThis.ajv;
-      Ajv = g?.default || g?.Ajv || g;
+      const g = globalThis.Ajv;
+      if (typeof g === "function") Ajv = g;
     } catch (_) {}
   }
 
@@ -71,10 +87,10 @@ async function ensureAjvLoaded() {
     AjvAddFormats = (ajvInstance) => ajvInstance;
   }
 
-  if (Ajv && !globalThis.Ajv) globalThis.Ajv = Ajv;
+  if (typeof Ajv === "function" && !globalThis.Ajv) globalThis.Ajv = Ajv;
   if (AjvAddFormats && !globalThis.AjvAddFormats) globalThis.AjvAddFormats = AjvAddFormats;
 
-  return !!Ajv;
+  return typeof Ajv === "function";
 }
 
 
@@ -419,12 +435,20 @@ export function createCoreControllers(emitter) {
         .then((schemaJson) => {
           schemaJsonCache = schemaJson;
           return ensureAjvLoaded().then(() => {
-          if (!Ajv) {
-            throw new Error(
-              "Ajv is unavailable. Vendor sync/bundling is likely missing or incompatible (expected /vendor/ajv/dist/ajv.js)."
-            );
-          }
-ajv = new Ajv({
+            if (typeof Ajv !== "function") {
+              // Validation is best-effort. If AJV cannot be loaded (missing vendor,
+              // blocked import, etc.), do not hard-fail Open/Save/Export.
+              console.warn(
+                "validator.init: Ajv is unavailable; skipping schema validation (check /vendor/ajv/dist/ajv.js)"
+              );
+              validateFn = null;
+              validatePruneFn = null;
+              schemaInfo = extractSchemaInfo(schemaJson);
+              lastStrictErrors = null;
+              return;
+            }
+
+            ajv = new Ajv({
   allErrors: true,
   strict: true,
   strictSchema: false,
@@ -434,17 +458,17 @@ ajv = new Ajv({
   removeAdditional: false,
   useDefaults: false,
   coerceTypes: false,
-});
+            });
 
-// Optional: enable JSON Schema "format" when available (ajv-formats).
-if (typeof AjvAddFormats === "function") {
-  try { AjvAddFormats(ajv); } catch {}
-}
-validateFn = ajv.compile(schemaJson);
+            // Optional: enable JSON Schema "format" when available (ajv-formats).
+            if (typeof AjvAddFormats === "function") {
+              try { AjvAddFormats(ajv); } catch {}
+            }
+            validateFn = ajv.compile(schemaJson);
 
-// A prune validator used for import: strips additional properties wherever schema disallows them.
-try {
-  const ajvPrune = new Ajv({
+            // A prune validator used for import: strips additional properties wherever schema disallows them.
+            try {
+              const ajvPrune = new Ajv({
     allErrors: true,
     strict: true,
     strictSchema: false,
@@ -454,17 +478,17 @@ try {
     removeAdditional: "all",
     useDefaults: false,
     coerceTypes: false,
-  });
-	  if (typeof AjvAddFormats === "function") {
-	    try { AjvAddFormats(ajvPrune); } catch {}
-	  }
-  validatePruneFn = ajvPrune.compile(schemaJson);
-} catch {
-  validatePruneFn = null;
-}
+              });
+              if (typeof AjvAddFormats === "function") {
+                try { AjvAddFormats(ajvPrune); } catch {}
+              }
+              validatePruneFn = ajvPrune.compile(schemaJson);
+            } catch {
+              validatePruneFn = null;
+            }
 
-schemaInfo = extractSchemaInfo(schemaJson);
-lastStrictErrors = null;
+            schemaInfo = extractSchemaInfo(schemaJson);
+            lastStrictErrors = null;
           });
         });
     }
