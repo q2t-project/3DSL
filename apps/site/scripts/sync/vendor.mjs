@@ -2,6 +2,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { mkdir, cp, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
+import { createRequire } from "node:module";
 import esbuild from "esbuild";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -32,65 +33,49 @@ function mustExistFile(p, hint) {
 
 mustExistDir(src);
 
-// Ajv is sourced from apps/site/node_modules to avoid committing large build artifacts
-// under packages/vendor. It is still mirrored into /public/vendor for runtime use.
-const ajvSrcDist = path.resolve(siteRoot, "node_modules", "ajv", "dist");
-mustExistDir(ajvSrcDist);
-mustExistFile(
-  path.resolve(ajvSrcDist, "ajv.js"),
-  "[sync] run: npm --prefix apps/site ci",
-);
-
-// Ajv-formats (optional but used by some schemas)
-const ajvFormatsSrcDist = path.resolve(siteRoot, "node_modules", "ajv-formats", "dist");
-mustExistDir(ajvFormatsSrcDist);
-mustExistFile(
-  path.resolve(ajvFormatsSrcDist, "ajv-formats.js"),
-  "[sync] run: npm --prefix apps/site ci",
-);
+// Ajv is sourced from apps/site/node_modules and bundled into an ESM file for browser import.
+// We do NOT rely on ajv/dist/ajv.js being ESM-compatible as-is.
+const require = createRequire(import.meta.url);
+const ajvEntry = require.resolve("ajv/dist/ajv.js", { paths: [siteRoot] });
+const ajvFormatsEntry = require.resolve("ajv-formats", { paths: [siteRoot] });
+mustExistFile(ajvEntry, "[sync] run: (cd apps/site && npm ci)");
+mustExistFile(ajvFormatsEntry, "[sync] run: (cd apps/site && npm ci)");
 
 // rm first to prevent stale vendor files
 await rm(dst, { recursive: true, force: true });
 await mkdir(path.dirname(dst), { recursive: true });
 await cp(src, dst, { recursive: true, force: true });
 
-// Overwrite Ajv dist with the node_modules build.
+// Bundle Ajv (+ ajv-formats) for runtime use.
+// Output path is what the runtime imports: /vendor/ajv/dist/ajv.js
+const ajvOutDir = path.resolve(dst, "ajv", "dist");
 await rm(path.resolve(dst, "ajv"), { recursive: true, force: true });
-await mkdir(path.resolve(dst, "ajv", "dist"), { recursive: true });
-await cp(ajvSrcDist, path.resolve(dst, "ajv", "dist"), { recursive: true, force: true });
+await mkdir(ajvOutDir, { recursive: true });
 
-// Bundle Ajv for browser ESM import.
-// - ajv/dist/ajv.js from node_modules is CJS; browsers cannot import it directly.
-// - we keep ajv.js for debugging, but runtime import should use ajv.bundle.js.
-await esbuild.build({
-  entryPoints: [path.resolve(ajvSrcDist, "ajv.js")],
-  outfile: path.resolve(dst, "ajv", "dist", "ajv.bundle.js"),
-  bundle: true,
-  format: "esm",
-  platform: "browser",
-  sourcemap: false,
-  minify: true,
-});
-
-// Mirror + bundle ajv-formats as ESM.
-await rm(path.resolve(dst, "ajv-formats"), { recursive: true, force: true });
-await mkdir(path.resolve(dst, "ajv-formats", "dist"), { recursive: true });
-await cp(ajvFormatsSrcDist, path.resolve(dst, "ajv-formats", "dist"), { recursive: true, force: true });
-await esbuild.build({
-  entryPoints: [path.resolve(ajvFormatsSrcDist, "ajv-formats.js")],
-  outfile: path.resolve(dst, "ajv-formats", "dist", "ajv-formats.bundle.js"),
-  bundle: true,
-  format: "esm",
-  platform: "browser",
-  sourcemap: false,
-  minify: true,
-});
-
-// Create a stable "dist" marker for runtime troubleshooting.
+const shimPath = path.resolve(ajvOutDir, "__entry_ajv_esbuild__.mjs");
 await writeFile(
-  path.resolve(dst, "ajv", "dist", "__build_marker.txt"),
-  `builtAt=${new Date().toISOString()}\n`,
+  shimPath,
+  [
+    `import Ajv from ${JSON.stringify(ajvEntry)};`,
+    `import addFormats from ${JSON.stringify(ajvFormatsEntry)};`,
+    `export default Ajv;`,
+    `export { addFormats };`,
+    "",
+  ].join("\n"),
   "utf8",
 );
+
+await esbuild.build({
+  entryPoints: [shimPath],
+  bundle: true,
+  format: "esm",
+  platform: "browser",
+  target: ["es2020"],
+  outfile: path.resolve(ajvOutDir, "ajv.js"),
+  logLevel: "silent",
+});
+
+// Keep the entry shim out of the published vendor directory.
+await rm(shimPath, { force: true });
 
 console.log("[sync] vendor -> site/public OK");
