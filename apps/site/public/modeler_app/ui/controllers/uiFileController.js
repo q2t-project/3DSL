@@ -263,10 +263,12 @@ function syncTitle() {
     // UI policy (Modeler Beta I/O): Save/SaveAs/Export are *strictly* gated.
     // core.validateStrict() is best-effort (it returns true when AJV isn't loaded),
     // so we must explicitly require the validator to be ready.
-    const ready = !!core?.isValidatorReady?.();
+    // NOTE: core.validateStrict() is best-effort and returns true when AJV isn't loaded.
+    // For Save/SaveAs/Export we require AJV to be *actually* loaded.
+    const ready = !!core?.validator?.getSchemaInfo?.();
     if (!ready) {
       // Kick off initialization (best-effort), but don't await.
-      try { core.ensureValidatorInitialized?.(); } catch {}
+      try { core?.validator?.ensureInitialized?.().catch(() => {}); } catch {}
       showStrictErrors([{ message: "AJV validator is unavailable (vendor not loaded)." }]);
       setHud("Validation unavailable: cannot save/export");
       return false;
@@ -283,30 +285,14 @@ function syncTitle() {
     const text = String(jsonText ?? "");
     if (!text) throw new Error("writeToHandle: empty jsonText");
 
-    // Request explicit read/write permission if available.
-    // If permission is denied, bail out BEFORE touching the file.
-    if (typeof handle?.requestPermission === "function") {
-      const perm = await handle.requestPermission({ mode: "readwrite" }).catch(() => "prompt");
-      if (perm && perm !== "granted") throw new Error("writeToHandle: permission not granted");
-    }
-
     // Prefer a Blob write with an explicit write op. Some environments have shown
     // silent 0-byte results with string writes.
     const blob = new Blob([text], { type: "application/json" });
     console.log("[file] write blob bytes=", blob.size, "name=", handle?.name || "(no name)");
 
-    // Avoid truncating the target file until the write succeeds.
-    // - keepExistingData: prevents the browser from zeroing the file up-front.
-    // - after write, we truncate to the exact size.
-    const writable = await handle.createWritable({ keepExistingData: true });
-    try {
-      await writable.write({ type: "write", position: 0, data: blob });
-      if (typeof writable.truncate === "function") {
-        await writable.truncate(blob.size);
-      }
-    } finally {
-      await writable.close().catch(() => {});
-    }
+    const writable = await handle.createWritable();
+    await writable.write({ type: "write", position: 0, data: blob });
+    await writable.close();
 
     // Verify the written size; if it is 0, treat as failure and let caller fallback.
     try {

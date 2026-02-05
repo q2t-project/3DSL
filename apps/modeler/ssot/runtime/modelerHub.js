@@ -82,6 +82,14 @@ export function createModelerHub(rootElOrId, options = {}) {
   const core = createCoreControllers(emitter);
   const renderer = createRenderer(canvas, emitter);
 
+  // Preload schema validator early so Save/SaveAs/Export can do a synchronous strict gate
+  // without breaking File System Access user-activation requirements.
+  // If this fails, UI will block strict-gated actions and show the reason.
+  try {
+    const p = core?.validator?.ensureInitialized?.();
+    if (p && typeof p.then === "function") p.catch(() => {});
+  } catch (_) {}
+
   // wire: when doc changes -> renderer
   let lastVisibility = { hidden: [], solo: null };
   emitter.on("document", (doc) => {
