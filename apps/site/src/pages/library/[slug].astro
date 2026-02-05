@@ -25,7 +25,7 @@ if (!item) {
 const pagePath = `/library/${slug}/`;
 
 // NOTE: do not rely on process.cwd(). Resolve from this file location.
-const PUBLIC_DIR = fileURLToPath(new URL("../../public/", import.meta.url));
+const PUBLIC_DIR = fileURLToPath(new URL("../../../public/", import.meta.url));
 function filePathFromPublic(rel: string) {
   const clean = String(rel).replace(/^\/+/, "");
   return path.join(PUBLIC_DIR, clean);
