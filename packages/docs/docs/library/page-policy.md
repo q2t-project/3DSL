@@ -13,7 +13,7 @@
 
 Library の各コンテンツを **検索エンジンが読める HTML ページ**として公開しつつ、3D モデルの体験（Viewer）も成立させる。
 
-* SEO: タイトル/要約/本文/参考文献/権利情報を HTML に載せる
+* SEO: タイトル/要約/テキスト/参考文献/権利情報を HTML に載せる
 * UX: 最初の画面で「何のモデルか」が分かり、必要なら Viewer で拡大して見られる
 * 運用: 1 つの共通テンプレートで回し、コンテンツごとの差分はメタ情報で制御する
 
@@ -23,7 +23,7 @@ Library の各コンテンツを **検索エンジンが読める HTML ページ
 * 個別ページ: `/library/<id>/`（`<id>` は `packages/3dss-content/library/<id>` のフォルダ名）
 * 個別データ: `/_data/library/<id>/...`
 
-個別ページは **HTML（Astro）**で構成し、モデル本体・本文・画像等は `/_data/library/<id>/` から参照する。
+個別ページは **HTML（Astro）**で構成し、モデル本体・テキスト・画像等は `/_data/library/<id>/` から参照する。
 
 
 ### 表示メタのSSOT（重要）
@@ -35,7 +35,7 @@ Library の各コンテンツを **検索エンジンが読める HTML ページ
 ## レイアウト思想
 
 Viewer（/viewer/）は「全画面・スクロール無し」が基本設計。
-一方、Library 個別ページは **「スクロール前提」**で、情報の階層（概要 → 本文 → 参考/添付）を成立させる。
+一方、Library 個別ページは **「スクロール前提」**で、情報の階層（概要 → テキスト → 参考/添付）を成立させる。
 
 ### ファーストビュー（スクロール無しで把握できる範囲）
 
@@ -47,7 +47,7 @@ Viewer（/viewer/）は「全画面・スクロール無し」が基本設計。
 
 ### スクロール後（深掘り）
 
-* 本文（Markdown）… 画像を挟み込み可能
+* テキスト（Markdown）… 画像を挟み込み可能
 * 添付ファイル（PDF 等）
 * 参考文献/出典/権利情報（_meta.json 由来）
 
@@ -57,7 +57,7 @@ Viewer（/viewer/）は「全画面・スクロール無し」が基本設計。
 2. （モバイル）上部広告（任意）
 3. プレビュー（iframe: `/viewer/peek.html?model=...`）
 4. 概要カード：タグ、日付、作者、説明、主要リンク
-5. 本文（任意）
+5. テキスト（任意）
 6. （任意）インライン広告
 7. 添付（任意）
 8. 参考文献/権利（任意）
@@ -71,8 +71,8 @@ Viewer（/viewer/）は「全画面・スクロール無し」が基本設計。
 
 * `model.3dss.json`（必須）
 * `_meta.json`（推奨/実質必須）
-* `content.md`（任意…本文）
-* `assets/`（任意…本文用の画像など）
+* `content.md`（任意…テキスト）
+* `assets/`（任意…テキスト用の画像など）
 * `attachments/`（任意…PDF などの添付）
 
 ### メタ情報の SSOT（決定）
@@ -118,7 +118,7 @@ Library の公開状態は `_meta.json` 側でのみ管理する。
   * **初回公開日（固定）**。`published:false -> true` の初回遷移でセットし、それ以降は変更しない。
 * `republished_at`（timestamp_utc）
   * **更新日**。公開後の更新を表す。
-  * 公開中（`published:true`）に、`document_title/document_summary/tags/本文/SEO/権利/添付` 等の掲載要素を変更した場合に更新する。
+  * 公開中（`published:true`）に、`document_title/document_summary/tags/テキスト/SEO/権利/添付` 等の掲載要素を変更した場合に更新する。
 
 表示上の扱い（/library 一覧など）
 
@@ -138,14 +138,14 @@ dist 生成（`packages/3dss-content/scripts/build-3dss-content-dist.mjs`）で�
 
 ### Markdown に画像を混ぜる
 
-本文は通常の Markdown を使う。
+テキストは通常の Markdown を使う。
 
 ```md
-本文…
+テキスト…
 
 ![説明文](/_data/library/<id>/assets/figure-01.png)
 
-本文…
+テキスト…
 ```
 
 推奨は **絶対パス**（`/_data/library/<id>/...`）。

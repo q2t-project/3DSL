@@ -453,6 +453,38 @@
   overflow: hidden;
 }
 
+/* tags (public meaning tags only; prefixes removed in JS) */
+.lib-tags{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 10px 8px;
+  padding-right: 52px; /* keep clear of the ⛶ button */
+}
+
+.lib-tag{
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.72);
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lib-tag-more{
+  color: rgba(255,255,255,0.55);
+  border-color: rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.18);
+}
+
 @media (min-width: 640px){
   .lib-title{
     padding: 8px 12px 12px;

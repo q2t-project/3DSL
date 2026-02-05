@@ -25,8 +25,8 @@
 <ID>/
   model.3dss.json          # 必須（表示メタSSOT: document_meta）
   _meta.json               # 必須（公開台帳 + 出典/権利/制作情報など）
-  content.md               # 任意（本文。無い場合は本文なし）
-  assets/                  # 任意（本文中で参照する画像、OGP等）
+  content.md               # 任意（テキスト。無い場合テキストなし）
+  assets/                  # 任意（テキスト中で参照する画像、OGP等）
   attachments/             # 任意（PDF等の添付。詳細ページで列挙表示）
 ```
 
@@ -77,11 +77,11 @@ npm --prefix apps/site run new:library-item -- --title "..."
 
 ---
 
-## 5. `content.md` の書き方（本文 + 画像 + 添付リンク）
+## 5. `content.md` の書き方（テキスト + 画像 + 添付リンク）
 
-### 5.1 本文
+### 5.1 テキスト
 
-`content.md` は通常の Markdown。見出し・本文・箇条書き等を使える。
+`content.md` は通常の Markdown。見出し・テキスト・箇条書き等を使える。
 
 ### 5.2 画像（PNG/JPG/SVG 等）
 
@@ -98,7 +98,7 @@ npm --prefix apps/site run new:library-item -- --title "..."
 添付は `attachments/` に置く。
 詳細ページは `attachments/` を列挙して「添付ファイル」として表示する設計。
 
-本文中からリンクも貼れる（相対パス）。
+テキスト中からリンクも貼れる（相対パス）。
 
 例:
 

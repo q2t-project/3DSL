@@ -214,6 +214,27 @@ try {
 }
 
 const tags = Array.isArray(meta?.tags) ? meta!.tags : item.tags ?? [];
+
+// document_meta.tags are scoped by prefix (s:/m:/x:).
+// For public library pages we avoid leaking prefix-based technical tags into UI.
+// - show only meaning tags (m:*)
+// - hide reserved internal placement tags (m:top, m:default)
+// - render without the prefix (e.g. "m:concept" -> "concept")
+const RESERVED_INTERNAL_TAGS = new Set(["m:top", "m:default"]);
+function toDisplayTag(raw: unknown): string | null {
+  const t = String(raw ?? "").trim();
+  if (!t) return null;
+  if (RESERVED_INTERNAL_TAGS.has(t)) return null;
+  const m = t.match(/^(s|m|x):(.+)$/);
+  if (!m) return t; // already user-facing
+  const prefix = m[1];
+  const body = m[2];
+  if (prefix !== "m") return null; // structural/meta tags are internal here
+  return body;
+}
+const displayTags = (Array.isArray(tags) ? tags : [])
+  .map(toDisplayTag)
+  .filter((x): x is string => typeof x === "string" && x.length > 0);
 const descriptionLong = meta?.description ?? "";
 const createdAt = item.created_at ?? meta?.created_at ?? "";
 const updatedAt = item.updated_at ?? meta?.updated_at ?? "";
@@ -342,9 +363,9 @@ const thirdParty = Array.isArray(rights?.third_party)
                 <p class="text-sm leading-relaxed text-neutral-200">{descriptionLong}</p>
               ) : null}
 
-              {Array.isArray(tags) && tags.length ? (
+              {Array.isArray(displayTags) && displayTags.length ? (
                 <div class="mt-3 flex flex-wrap gap-2">
-                  {tags.map((t) => (
+                  {displayTags.map((t) => (
                     <span class="rounded-full border border-neutral-800 bg-neutral-900 px-2 py-0.5 text-xs text-neutral-300">{t}</span>
                   ))}
                 </div>
