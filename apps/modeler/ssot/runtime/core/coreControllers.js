@@ -19,7 +19,9 @@ if (!Ajv) {
   //   /modeler_app/vendor/ajv/dist/ajv.js
   // which is not where shared vendors are hosted.
   const urls = [
+    // Preferred: bundled vendor (built for browsers)
     "/vendor/ajv/dist/ajv.bundle.js",
+    // Shim ESM module (loads bundle + exports globals)
     "/vendor/ajv/dist/ajv.js",
   ];
   let lastErr = null;
@@ -56,15 +58,6 @@ async function ensureAjvLoaded() {
   } catch (_) {}
 
   // 2) Fallback: load vendor copy (UMD/CJS) and pick up global exports under globalThis.ajv.
-  if (!Ajv) {
-    try {
-      // Prefer ESM bundle when present.
-      const mod = await import("/vendor/ajv/dist/ajv.bundle.js");
-      Ajv = mod?.default || mod?.Ajv || mod;
-    } catch (_) {}
-  }
-
-  // 3) Last resort: load vendor copy (UMD/CJS) and pick up global exports under globalThis.ajv.
   if (!Ajv) {
     try {
       await import("/vendor/ajv/dist/ajv.js");
@@ -423,68 +416,56 @@ export function createCoreControllers(emitter) {
           }
           return res.json();
         })
-        .then(async (schemaJson) => {
+        .then((schemaJson) => {
           schemaJsonCache = schemaJson;
-
-          await ensureAjvLoaded();
+          return ensureAjvLoaded().then(() => {
           if (!Ajv) {
-            // Do not hard-fail the whole app; skip strict validation when Ajv is missing.
-            console.warn(
-              "validator.init: Ajv is unavailable; skipping schema validation (check /vendor/ajv/dist/ajv.bundle.js or /vendor/ajv/dist/ajv.js)."
+            throw new Error(
+              "Ajv is unavailable. Vendor sync/bundling is likely missing or incompatible (expected /vendor/ajv/dist/ajv.js)."
             );
-            validateFn = null;
-            validatePruneFn = null;
-            schemaInfo = extractSchemaInfo(schemaJson);
-            lastStrictErrors = null;
-            return;
           }
+ajv = new Ajv({
+  allErrors: true,
+  strict: true,
+  strictSchema: false,
+  strictTypes: true,
+  strictRequired: false,
+  validateSchema: false,
+  removeAdditional: false,
+  useDefaults: false,
+  coerceTypes: false,
+});
 
-          const ajv = new Ajv({
-            allErrors: true,
-            strict: true,
-            strictSchema: false,
-            strictTypes: true,
-            strictRequired: false,
-            validateSchema: false,
-            removeAdditional: false,
-            useDefaults: false,
-            coerceTypes: false,
+// Optional: enable JSON Schema "format" when available (ajv-formats).
+if (typeof AjvAddFormats === "function") {
+  try { AjvAddFormats(ajv); } catch {}
+}
+validateFn = ajv.compile(schemaJson);
+
+// A prune validator used for import: strips additional properties wherever schema disallows them.
+try {
+  const ajvPrune = new Ajv({
+    allErrors: true,
+    strict: true,
+    strictSchema: false,
+    strictTypes: true,
+    strictRequired: false,
+    validateSchema: false,
+    removeAdditional: "all",
+    useDefaults: false,
+    coerceTypes: false,
+  });
+	  if (typeof AjvAddFormats === "function") {
+	    try { AjvAddFormats(ajvPrune); } catch {}
+	  }
+  validatePruneFn = ajvPrune.compile(schemaJson);
+} catch {
+  validatePruneFn = null;
+}
+
+schemaInfo = extractSchemaInfo(schemaJson);
+lastStrictErrors = null;
           });
-
-          // Optional: enable JSON Schema "format" when available (ajv-formats).
-          if (typeof AjvAddFormats === "function") {
-            try {
-              AjvAddFormats(ajv);
-            } catch {}
-          }
-
-          validateFn = ajv.compile(schemaJson);
-
-          // A prune validator used for import: strips additional properties wherever schema disallows them.
-          try {
-            const ajvPrune = new Ajv({
-              allErrors: true,
-              strict: true,
-              strictSchema: false,
-              strictTypes: true,
-              strictRequired: false,
-              validateSchema: false,
-              removeAdditional: "all",
-              useDefaults: false,
-              coerceTypes: false,
-            });
-            if (typeof AjvAddFormats === "function") {
-              try {
-                AjvAddFormats(ajvPrune);
-              } catch {}
-            }
-            validatePruneFn = ajvPrune.compile(schemaJson);
-          } catch {
-            validatePruneFn = null;
-          }
-
-          schemaInfo = extractSchemaInfo(schemaJson);
-          lastStrictErrors = null;
         });
     }
     return validatorInitPromise;
