@@ -303,19 +303,15 @@ function syncTitle() {
     }
   }
 
-  // IMPORTANT:
-  // - showSaveFilePicker MUST be invoked synchronously in direct response to
-  //   a user gesture. Wrapping it inside an `async` helper can accidentally
-  //   insert an await boundary elsewhere and make the picker silently fail.
-  // - Therefore this function returns the Promise directly.
-  function pickSaveHandle({ suggestedName }) {
+  async function pickSaveHandle({ suggestedName }) {
     // @ts-ignore
-    return window.showSaveFilePicker({
+    const handle = await window.showSaveFilePicker({
       suggestedName,
       types: [
         { description: "3DSS JSON", accept: { "application/json": [".json"] } },
       ],
     });
+    return handle;
   }
 
   async function handleFileAction(action, { ensureEditsApplied, getFallbackDocument } = {}) {
@@ -327,10 +323,16 @@ function syncTitle() {
     if (!doc) { setHud("Save blocked: no document"); return; }
     if (ensureEditsApplied && !ensureEditsApplied()) { setHud("Save blocked: apply edits first"); return; }
 
-    if (!ensureStrictOk(doc)) return;
-
-    const jsonText = JSON.stringify(doc, null, 2);
-    console.log("[file] json chars=", jsonText ? jsonText.length : 0, "act=", act);
+    // NOTE: Do NOT run validation or stringify before opening a file picker.
+    // Browsers require showSaveFilePicker()/showOpenFilePicker() to be called
+    // directly in the user-activation stack. Ajv init/validation can take time
+    // and would break that activation (picker will not appear).
+    const getJsonTextStrict = () => {
+      if (!ensureStrictOk(doc)) return "";
+      const jsonText = JSON.stringify(doc, null, 2);
+      console.log("[file] json chars=", jsonText ? jsonText.length : 0, "act=", act);
+      return jsonText;
+    };
 
     // --- Export ---
     if (act === "export") {
@@ -350,6 +352,8 @@ function syncTitle() {
             reportErr(`[file] ${act} picker failed`, err);
             // Picker failed for a non-cancel reason: fallback to download.
             // Policy: export may mark clean.
+            const jsonText = getJsonTextStrict();
+            if (!jsonText) return;
             dl(suggestedName, jsonText);
             core?.markClean?.();
             syncTitle();
@@ -360,6 +364,8 @@ function syncTitle() {
             setHud("Cancelled");
             return;
           }
+          const jsonText = getJsonTextStrict();
+          if (!jsonText) return;
           await writeToHandle(handle, jsonText);
           core?.markClean?.(); // policy: Export resolves dirty
           syncTitle();
@@ -372,6 +378,8 @@ function syncTitle() {
           }
           // fallback: download
           const fn = defaultExportName();
+          const jsonText = getJsonTextStrict();
+          if (!jsonText) return;
           dl(fn, jsonText);
           core?.markClean?.(); // policy
           syncTitle();
@@ -381,7 +389,11 @@ function syncTitle() {
       }
 
       const fn = defaultExportName();
-      dl(fn, jsonText);
+      {
+        const jsonText = getJsonTextStrict();
+        if (!jsonText) return;
+        dl(fn, jsonText);
+      }
       core?.markClean?.();
       syncTitle();
       setHud(`Exported (download): ${fn}`);
@@ -397,6 +409,8 @@ function syncTitle() {
           const handle = core?.getSaveHandle?.();
           if (handle) {
             try {
+              const jsonText = getJsonTextStrict();
+              if (!jsonText) return;
               await writeToHandle(handle, jsonText);
               core?.setSaveLabel?.(handle?.name || defaultSaveName());
               core?.markClean?.();
@@ -426,6 +440,8 @@ function syncTitle() {
             reportErr(`[file] ${act} picker failed`, err);
             // Picker failed for a non-cancel reason: fallback to download.
             // Still a "save" from user's perspective.
+            const jsonText = getJsonTextStrict();
+            if (!jsonText) return;
             dl(suggestedName, jsonText);
             core?.setSaveHandle?.(null, "");
             core?.markClean?.();
@@ -464,7 +480,11 @@ function syncTitle() {
         }
         fn = buildSuggestedName({ base: name, kind: "save" });
       }
-      dl(fn, jsonText);
+      {
+        const jsonText = getJsonTextStrict();
+        if (!jsonText) return;
+        dl(fn, jsonText);
+      }
       core?.setSaveLabel?.(fn);
       core?.clearSaveHandle?.();
       core?.markClean?.();
