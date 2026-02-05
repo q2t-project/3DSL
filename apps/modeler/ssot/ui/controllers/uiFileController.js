@@ -263,12 +263,10 @@ function syncTitle() {
     // UI policy (Modeler Beta I/O): Save/SaveAs/Export are *strictly* gated.
     // core.validateStrict() is best-effort (it returns true when AJV isn't loaded),
     // so we must explicitly require the validator to be ready.
-    // NOTE: core.validateStrict() is best-effort and returns true when AJV isn't loaded.
-    // For Save/SaveAs/Export we require AJV to be *actually* loaded.
-    const ready = !!core?.validator?.getSchemaInfo?.();
+    const ready = !!core?.isValidatorReady?.();
     if (!ready) {
       // Kick off initialization (best-effort), but don't await.
-      try { core?.validator?.ensureInitialized?.().catch(() => {}); } catch {}
+      try { core.ensureValidatorInitialized?.(); } catch {}
       showStrictErrors([{ message: "AJV validator is unavailable (vendor not loaded)." }]);
       setHud("Validation unavailable: cannot save/export");
       return false;
@@ -325,13 +323,13 @@ function syncTitle() {
     if (!doc) { setHud("Save blocked: no document"); return; }
     if (ensureEditsApplied && !ensureEditsApplied()) { setHud("Save blocked: apply edits first"); return; }
 
-    if (!ensureStrictOk(doc)) return;
-
     const jsonText = JSON.stringify(doc, null, 2);
     console.log("[file] json chars=", jsonText ? jsonText.length : 0, "act=", act);
 
     // --- Export ---
     if (act === "export") {
+      await core.ensureValidatorInitialized?.();
+      if (!ensureStrictOk(doc)) return;
       // Prefer FSA when available; fallback to download.
       if (canUseSaveFsa()) {
         try {
@@ -358,6 +356,8 @@ function syncTitle() {
             setHud("Cancelled");
             return;
           }
+          await core.ensureValidatorInitialized?.();
+          if (!ensureStrictOk(doc)) return;
           await writeToHandle(handle, jsonText);
           core?.markClean?.(); // policy: Export resolves dirty
           syncTitle();
@@ -394,6 +394,9 @@ function syncTitle() {
         if (act === "save") {
           const handle = core?.getSaveHandle?.();
           if (handle) {
+            await core.ensureValidatorInitialized?.();
+              if (!ensureStrictOk(doc)) return;
+
             try {
               await writeToHandle(handle, jsonText);
               core?.setSaveLabel?.(handle?.name || defaultSaveName());
@@ -435,6 +438,8 @@ function syncTitle() {
             setHud("Cancelled");
             return;
           }
+          await core.ensureValidatorInitialized?.();
+          if (!ensureStrictOk(doc)) return;
           await writeToHandle(handle, jsonText);
           core?.setSaveHandle?.(handle, handle?.name || suggestedName);
           core?.markClean?.();
@@ -462,6 +467,8 @@ function syncTitle() {
         }
         fn = buildSuggestedName({ base: name, kind: "save" });
       }
+      await core.ensureValidatorInitialized?.();
+      if (!ensureStrictOk(doc)) return;
       dl(fn, jsonText);
       core?.setSaveLabel?.(fn);
       core?.clearSaveHandle?.();
