@@ -175,8 +175,8 @@ function pickPublishedLabel(item) {
 
           const title = String(it.title || "");
           const summary = (it.summary || "").trim();
-          const tagsAll = Array.isArray(it.tags) ? it.tags : [];
-          const tickerText = [summary, ...tagsAll.map((t) => `#${t}`)].filter(Boolean).join(" · ");
+	          // Ticker must show summary only (tags are rendered elsewhere).
+	          const tickerText = summary;
 
           const viewerUrl0 = String(it.viewer_url || "");
           const returnTo = (typeof window !== "undefined") ? (window.location.pathname + window.location.search) : "/library/";
@@ -201,7 +201,7 @@ function pickPublishedLabel(item) {
                     : ``}
               </div>
 
-              <div class="lib-ticker" data-scroll="false" aria-label="Summary and tags">
+	              <div class="lib-ticker" data-scroll="false" aria-label="Summary">
                 <span class="lib-ticker-track">
                   <span class="lib-ticker-seg lib-ticker-a">${escapeHtml(tickerText)}</span>
                   <span class="lib-ticker-gap"></span>
