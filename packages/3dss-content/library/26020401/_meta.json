@@ -1,26 +1,6 @@
 {
-  "published": false,
-  "description": "このアイテムは library item のフォルダ構成サンプル。公開台帳(_meta.json)は公開日・SEO・権利・参照・添付の管理に限定する。",
-  "seo": {
-    "title": "3DSL Library Sample 26020401",
-    "description": "Sample library item structure for 3dss-content.",
-    "og_image": "./assets/preview.png"
-  },
-  "rights": {
-    "license": "CC0-1.0",
-    "third_party": []
-  },
-  "references": [
-    {
-      "title": "3DSL / 3DSS",
-      "note": "internal sample"
-    }
-  ],
-  "attachments": [
-    {
-      "path": "./attachments/README.txt",
-      "label": "添付サンプル",
-      "mime": "text/plain"
-    }
-  ]
+  "published": true,
+  "published_at": "2026-02-05T10:51:12Z",
+  "republished_at": "2026-02-05T10:51:12Z",
+  "description": "。"
 }
