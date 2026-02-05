@@ -373,7 +373,7 @@ export function attachUiProfile(hub, opts) {
       const elCapTitle = el('docCaptionTitle');
       const elCapBody = el('docCaptionBody');
 
-      // meta-file の本文用コンテナ（h3残すために内側だけ更新）
+      // meta-file のテキスト用コンテナ（h3残すために内側だけ更新）
       const ensureBodySlot = (root, key) => {
         if (!root) return null;
         let slot = root.querySelector(`[data-role="${key}"]`);

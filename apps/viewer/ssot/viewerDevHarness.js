@@ -108,7 +108,7 @@ function escapeHtml(s) {
 }
 
 
-// MODEL パネル用：ログ 1 行をラベル＆本文に分解
+// MODEL パネル用：ログ 1 行をラベル＆テキストに分解
 function formatModelLogLine(rawLine) {
   const line = String(rawLine || "").trim();
 
@@ -127,7 +127,7 @@ function formatModelLogLine(rawLine) {
   if (m) {
     return {
       label: "MODEL",
-      mode: "stacked",       // ラベルの下に本文を縦積み
+      mode: "stacked",
       html: `<div class="model-log-mono">${escapeHtml(m[1])}</div>`,
     };
   }
