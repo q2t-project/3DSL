@@ -3,7 +3,6 @@ import Layout from "../../layouts/Layout.astro";
 import AdSlot from "../../components/AdSlot.astro";
 import { ADSENSE_SLOTS } from "../../lib/adsense";
 import { getLibraryItemBySlug, getLibraryItems } from "../../lib/libraryIndex";
-import { getEntry, render } from "astro:content";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,8 +26,9 @@ const pagePath = `/library/${slug}/`;
 
 // NOTE: do not rely on process.cwd(). Resolve from this file location.
 const PUBLIC_DIR = fileURLToPath(new URL("../../public/", import.meta.url));
-function filePathFromPublic(rel) {
-  return path.join(PUBLIC_DIR, rel);
+function filePathFromPublic(rel: string) {
+  const clean = String(rel).replace(/^\/+/, "");
+  return path.join(PUBLIC_DIR, clean);
 }
 
 const dataDir = item.data_dir ?? `/_data/library/${slug}`;
@@ -83,16 +83,134 @@ function listFilesPublicDir(urlDir: string): Attachment[] {
 
 const attachments = listFilesPublicDir(`${dataDir}/attachments`);
 
-// Markdown body (optional)
-let RenderedContent: any = null;
+// Markdown body (optional): SSOT is public/_data/library/<id>/content.md
+const contentPath = filePathFromPublic(`${dataDir}/content.md`);
+let bodyHtml = "";
 try {
-  const entry = await getEntry("library_items", slug);
-  if (entry) {
-    const rendered = await render(entry);
-    RenderedContent = rendered.Content;
+  if (fs.existsSync(contentPath)) {
+    const mdRaw = fs.readFileSync(contentPath, "utf8");
+
+    // Normalize relative links: ./assets/* ./attachments/* -> /_data/library/<id>/...
+    const md = String(mdRaw)
+      .replaceAll("/_data/library/<ID>/", `/_data/library/${slug}/`)
+      .replaceAll("/_data/library/{{ID}}/", `/_data/library/${slug}/`)
+      .replaceAll("./assets/", `/_data/library/${slug}/assets/`)
+      .replaceAll("./attachments/", `/_data/library/${slug}/attachments/`);
+
+    function escapeHtml(x: string) {
+      return x
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
+
+    function escapeInline(t: string) {
+      // links: [text](url)
+      const parts: string[] = [];
+      let rest = t;
+
+      const pushText = (x: string) => parts.push(escapeHtml(x));
+
+      while (rest.length) {
+        const m = rest.match(/\[([^\]]+)\]\(([^)]+)\)/);
+        if (!m || m.index == null) {
+          pushText(rest);
+          break;
+        }
+        const idx = m.index;
+        if (idx > 0) pushText(rest.slice(0, idx));
+        const label = escapeHtml(m[1]);
+        const url = m[2].trim();
+        const safeUrl = url.startsWith("javascript:") ? "#" : url;
+        parts.push(`<a href="${escapeHtml(safeUrl)}" class="hover:underline">${label}</a>`);
+        rest = rest.slice(idx + m[0].length);
+      }
+
+      return parts.join("");
+    }
+
+    function mdToHtml(src: string) {
+      const lines = src.replaceAll("\r\n", "\n").split("\n");
+      let out: string[] = [];
+      let inCode = false;
+      let codeBuf: string[] = [];
+      let inList = false;
+
+      const flushList = () => {
+        if (inList) {
+          out.push("</ul>");
+          inList = false;
+        }
+      };
+
+      const flushCode = () => {
+        if (inCode) {
+          out.push(`<pre><code>${escapeHtml(codeBuf.join("\n"))}</code></pre>`);
+          inCode = false;
+          codeBuf = [];
+        }
+      };
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i] ?? "";
+
+        if (line.startsWith("```")) {
+          if (inCode) {
+            flushCode();
+          } else {
+            flushList();
+            inCode = true;
+            codeBuf = [];
+          }
+          continue;
+        }
+
+        if (inCode) {
+          codeBuf.push(line);
+          continue;
+        }
+
+        const h = line.match(/^(#{1,6})\s+(.*)$/);
+        if (h) {
+          flushList();
+          const lvl = h[1].length;
+          out.push(`<h${lvl}>${escapeHtml(h[2].trim())}</h${lvl}>`);
+          continue;
+        }
+
+        const li = line.match(/^[-*]\s+(.*)$/);
+        if (li) {
+          if (!inList) {
+            out.push("<ul>");
+            inList = true;
+          }
+          out.push(`<li>${escapeInline(li[1].trim())}</li>`);
+          continue;
+        }
+
+        if (!line.trim()) {
+          flushList();
+          continue;
+        }
+
+        flushList();
+        out.push(`<p>${escapeInline(line.trim())}</p>`);
+      }
+
+      flushList();
+      flushCode();
+      return out.join("\n");
+    }
+
+    const html0 = mdToHtml(md);
+    bodyHtml = html0.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_all, alt, url) => {
+      const u = String(url).trim();
+      const safe = u.startsWith("javascript:") ? "" : u;
+      return `<img src="${escapeHtml(safe)}" alt="${escapeHtml(String(alt ?? ""))}" loading="lazy" />`;
+    });
   }
 } catch {
-  RenderedContent = null;
+  bodyHtml = "";
 }
 
 const tags = Array.isArray(meta?.tags) ? meta!.tags : item.tags ?? [];
@@ -262,11 +380,11 @@ const thirdParty = Array.isArray(rights?.third_party)
           </div>
         </section>
 
-        {RenderedContent ? (
+        {bodyHtml ? (
           <section class="mt-8 rounded-2xl border border-neutral-800 bg-neutral-950/40 p-5">
             <h2 class="text-base font-semibold text-neutral-100">本文</h2>
             <div class="prose prose-invert mt-4 max-w-none">
-              <RenderedContent />
+              <div set:html={bodyHtml} />
             </div>
           </section>
         ) : null}

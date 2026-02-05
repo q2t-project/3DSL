@@ -24,22 +24,6 @@ const docs_integrated = defineCollection({
   schema: permissive,
 });
 
-// Generated from library content sources by sync:3dss-content.
-// Untracked generated files; used only at build time to render Markdown to HTML.
-const libraryItems = defineCollection({
-  type: "content",
-  schema: z
-    .object({
-      id: z.string(),
-      title: z.string().optional(),
-      summary: z.string().optional(),
-      tags: z.array(z.string()).optional(),
-      created_at: z.string().optional(),
-      updated_at: z.string().optional(),
-    })
-    .passthrough(),
-});
-
 const pages = defineCollection({
   type: "content",
   schema: z
@@ -57,6 +41,5 @@ export const collections = {
   faq,
   policy,
   docs_integrated,
-  library_items: libraryItems,
   pages,
 };
