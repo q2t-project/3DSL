@@ -360,14 +360,12 @@ function transitionDraft(event, { reason = "" } = {}) {
   let pendingFocusIssue = null;
 
   // Position stepping UI (visible step selector)
-  // Default to 1.0 for ergonomics: wheel/arrow edits are meant to move in whole units.
-  let posStep = 1;
-  // NOTE: v2 key to reset older default (0.1) that proved too fine for normal use.
-  const POS_STEP_LS_KEY = "3dsl.modeler.posStep.v2";
+  let posStep = 0.1;
+  const POS_STEP_LS_KEY = "3dsl.modeler.posStep";
 
   function clampPosStep(v) {
     const n = Number(v);
-    if (!Number.isFinite(n) || n <= 0) return 1;
+    if (!Number.isFinite(n) || n <= 0) return 0.1;
     // Keep it reasonable; UI offers 0.01..10
     return Math.min(10, Math.max(0.01, n));
   }
@@ -1169,24 +1167,19 @@ function draftDiscard({ reason = "" } = {}) {
    * @returns {boolean} true if it is safe to proceed.
    */
   function ensureEditsAppliedOrConfirm({ reason = "" } = {}) {
-    // Only drafting (unapplied buffer-dirty) needs resolution here.
-    if (!dirty || draftState !== DraftState.DRAFTING) return true;
+  // Only drafting (unapplied buffer-dirty) needs resolution here.
+  if (!dirty || draftState !== DraftState.DRAFTING) return true;
 
-    const why = reason ? `\n\nReason: ${String(reason)}` : "";
-    const apply = window.confirm(`You have unapplied property edits. Apply them now?${why}\n\nOK = Apply\nCancel = More options`);
-    if (apply) {
-      applyActiveEdits();
-      return true;
-    }
+  // UX policy: never block with confirm dialogs during editing.
+  // Resolve silently. Prefer Apply; if Apply fails, Discard.
+  try {
+    const ok = applyActiveEdits();
+    if (ok) return true;
+  } catch {}
 
-    const discard = window.confirm("Discard unapplied edits?\n\nOK = Discard\nCancel = Stay here");
-    if (discard) {
-      draftDiscard({ reason: reason || "discard" });
-      return true;
-    }
-
-    return false;
-  }
+  try { draftDiscard({ reason: reason || "auto-discard" }); } catch {}
+  return true;
+}
 
   function onAnyInput() {
     if (!active) return;
