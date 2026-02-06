@@ -655,7 +655,7 @@ function previewRevertToBase() {
 // - Rules:
 //   * setDirty(true) only from input edits
 //   * clear/discard always reverts preview override back to captured base
-//   * selection changes must be guarded via ensureEditsAppliedOrConfirm()
+//   * selection changes must be guarded via ensureEditsResolvedSilently()
 function draftClear({ reason = "" } = {}) {
   // Cancel endpoint-pick submode if active (it also uses preview overrides).
   try { cancelEndpointPick?.(); } catch {}
@@ -1163,27 +1163,32 @@ function draftDiscard({ reason = "" } = {}) {
   }
 
   /**
-   * 3-way resolution for unapplied edits.
-   * @returns {boolean} true if it is safe to proceed.
+   * Resolve unapplied (draft) edits without blocking the UI.
+   *
+   * Policy:
+   * - NEVER show confirm prompts for draft edits during normal modeling operations.
+   * - Draft edits are committed (Apply) by default so selection/UX stays fluid.
+   * - If commit is impossible (e.g. locked), the draft is discarded to unblock UI.
+   *
+   * @returns {boolean} always true (kept for compatibility with callers).
    */
-  function ensureEditsAppliedOrConfirm({ reason = "" } = {}) {
+  function ensureEditsResolvedSilently({ reason = "" } = {}) {
     // Only drafting (unapplied buffer-dirty) needs resolution here.
     if (!dirty || draftState !== DraftState.DRAFTING) return true;
 
-    const why = reason ? `\n\nReason: ${String(reason)}` : "";
-    const apply = window.confirm(`You have unapplied property edits. Apply them now?${why}\n\nOK = Apply\nCancel = More options`);
-    if (apply) {
-      applyActiveEdits();
-      return true;
+    // Default: auto-apply.
+    const ok = applyActiveEdits();
+    if (!ok) {
+      // If commit fails (e.g. locked), discard draft to unblock.
+      try { draftDiscard({ reason: reason || "auto-discard" }); } catch {}
     }
+    return true;
+  }
 
-    const discard = window.confirm("Discard unapplied edits?\n\nOK = Discard\nCancel = Stay here");
-    if (discard) {
-      draftDiscard({ reason: reason || "discard" });
-      return true;
-    }
-
-    return false;
+  // Back-compat name used widely across controllers.
+  // (Historically this function prompted the user; it now resolves silently.)
+  function ensureEditsAppliedOrConfirm({ reason = "" } = {}) {
+    return ensureEditsResolvedSilently({ reason });
   }
 
   function onAnyInput() {
@@ -1496,8 +1501,7 @@ function draftDiscard({ reason = "" } = {}) {
   /**
    * Resolve unapplied edits when selection is about to move away from the active uuid.
    * This is the single gate for "reason=selection":
-   * - Apply or Discard => draftState -> CLEAN, preview reverted, UI proceeds
-   * - Cancel => selection is reverted back to active uuid and UI stays
+   * - Draft edits are auto-applied (or discarded if locked) so UI proceeds without prompts.
    * @returns {boolean} true if it is safe to proceed to the next selection.
    */
   function resolveDraftBeforeSelectionChange(nextSelectionUuids) {
@@ -1511,28 +1515,18 @@ function draftDiscard({ reason = "" } = {}) {
 
     if (!nextIsDifferent) return true;
 
-    const ok = ensureEditsAppliedOrConfirm({ reason: "selection" });
-    if (ok) {
-      // Safety: ensure preview is back to base when leaving the active node.
-      try { previewRevertToBase?.(); } catch {}
-      transitionDraft("clear", { reason: "selection:resolved" });
-      return true;
-    }
+    ensureEditsResolvedSilently({ reason: "selection" });
 
-    // User cancelled: revert selection and keep UI as-is.
-    if (activeUuid) {
-      try {
-        if (typeof setSelectionUuids === "function") setSelectionUuids([activeUuid], null, "property-revert");
-        else core.setSelection?.([activeUuid]);
-      } catch { try { core.setSelection?.([activeUuid]); } catch {} }
-    }
-    return false;
+    // Safety: ensure preview is back to base when leaving the active node.
+    try { previewRevertToBase?.(); } catch {}
+    transitionDraft("clear", { reason: "selection:resolved" });
+    return true;
   }
 
   /**
    * Preflight gate for selection changes (called by uiSelectionController BEFORE core.setSelection).
    * - Only blocks when draftState=drafting and next selection differs from current active uuid.
-   * - Returns false on Cancel, so the caller must NOT change selection.
+   * - Draft edits are resolved silently (auto-apply; discard if locked).
    * - Must never block when draftState=applied_pending_save.
    */
   function requestSelectionChange(nextSelectionUuids, { reason = "selection" } = {}) {
@@ -1546,8 +1540,7 @@ function draftDiscard({ reason = "" } = {}) {
 
     if (!nextIsDifferent) return true;
 
-    const ok = ensureEditsAppliedOrConfirm({ reason });
-    if (!ok) return false;
+    ensureEditsResolvedSilently({ reason });
 
     // Leaving the active node: ensure preview is back to base.
     try { previewRevertToBase?.(); } catch {}
@@ -1565,8 +1558,7 @@ function draftDiscard({ reason = "" } = {}) {
     //  1              | property open for that uuid
     //
     // Transition rule when buffer-dirty:
-    // - If selection moves away from the active uuid, require Apply/Discard.
-    // - If user cancels, revert selection back to the active uuid.
+    // - If selection moves away from the active uuid, auto-apply (or discard if locked).
     const sel = core.getSelection?.() || [];
     const list = Array.isArray(sel) ? sel : [];
 
