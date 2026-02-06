@@ -12,6 +12,34 @@
 // break the whole runtime at parse time, so we load it dynamically.
 let Ajv = globalThis?.Ajv;
 let AjvAddFormats = null;
+
+// CoreControllers state (module-scope; initialized by createCoreControllers)
+let emitter = { on() { return () => {}; }, emit() {} };
+
+// AJV loader state
+let AjvModule = Ajv || null;
+let ajv = null;
+let validateFn = null;
+let validatePruneFn = null;
+let lastStrictErrors = null;
+let schemaInfo = {};
+let schemaJsonCache = null;
+let validatorInitPromise = null;
+
+// Document + file identity
+let document3dss = null;
+let docLabel = "";
+let saveLabel = "";
+let saveHandle = null;
+
+// History
+let history = [];
+let historyIndex = -1;
+let savedHistoryIndex = -999;
+
+// Import extras (unknown fields preserved for QC)
+let importExtras = null;
+
 if (!Ajv) {
   // Vendor philosophy (same as Viewer): shared vendor assets live at the
   // site-root (/vendor/**). Do NOT use relative fallbacks here.
@@ -48,8 +76,11 @@ if (!Ajv) {
   }
 }
 
+// Keep AjvModule in sync with loaded vendor.
+AjvModule = AjvModule || Ajv || null;
+
   async function ensureAjvLoaded() {
-    if (typeof AjvModule !== "undefined") return true;
+    if (AjvModule) return true;
 
     // Try ESM shim first (exports globalThis.Ajv / globalThis.AjvAddFormats),
     // then fall back to the raw bundle (side-effect only).
@@ -97,12 +128,12 @@ async function ensureValidatorInitialized(schemaUrl = "/schemas/3DSS.schema.json
         .then((schemaJson) => {
           schemaJsonCache = schemaJson;
           return ensureAjvLoaded().then(() => {
-          if (!Ajv) {
+          if (!AjvModule) {
             throw new Error(
               "Ajv is unavailable. Vendor sync/bundling is likely missing or incompatible (expected /vendor/ajv/dist/ajv.js)."
             );
           }
-ajv = new Ajv({
+ajv = new AjvModule({
   allErrors: true,
   strict: true,
   strictSchema: false,
@@ -1169,7 +1200,8 @@ function focusByIssue(issue) {
   // Fallback: still emit focus for UI hooks.
   emitter.emit("focus", issue);
 }
-
+export function createCoreControllers(emitterArg = null) {
+  if (emitterArg && typeof emitterArg.emit === "function") emitter = emitterArg;
 
   return {
     document: { get: getDocument, set: setDocument, update: updateDocument, getLabel: () => docLabel, setLabel },
