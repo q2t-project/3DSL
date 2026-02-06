@@ -401,23 +401,31 @@ export function attachUiCanvasController({ canvas, core, hub, signal, onPick, on
   }
 
   // Pick forwarding (selection)
+  // NOTE: the dimension overlay (dimEl) can sit above the canvas. If it intercepts pointer events,
+  // preview picking breaks. Forward pointerdown from dimEl as well, except when clicking axis buttons.
   if (canvas && typeof hub?.applyPickAt === "function") {
-    canvas.addEventListener(
-      "pointerdown",
-      (ev) => {
-        if (ev.button !== 0) return;
+    /** @param {PointerEvent} ev */
+    const handlePickPointerDown = (ev) => {
+      if (!ev || ev.button !== 0) return;
 
-        // Move tool position edits are performed via the dimension overlay + wheel.
+      // Ignore clicks on overlay controls (axis buttons)
+      try {
+        const t = /** @type {any} */ (ev.target);
+        if (t && typeof t.closest === "function") {
+          if (t.closest('[data-role="dim-x"], [data-role="dim-y"], [data-role="dim-z"]')) return;
+        }
+      } catch {}
 
-        const r = canvas.getBoundingClientRect();
-        if (!r || r.width <= 0 || r.height <= 0) return;
-        const ndcX = ((ev.clientX - r.left) / r.width) * 2 - 1;
-        const ndcY = -(((ev.clientY - r.top) / r.height) * 2 - 1);
-        const issueLike = hub.applyPickAt({ ndcX, ndcY });
-        if (issueLike && issueLike.uuid) onPick(issueLike, ev);
-      },
-      { signal }
-    );
+      const r = canvas.getBoundingClientRect();
+      if (!r || r.width <= 0 || r.height <= 0) return;
+      const ndcX = ((ev.clientX - r.left) / r.width) * 2 - 1;
+      const ndcY = -(((ev.clientY - r.top) / r.height) * 2 - 1);
+      const issueLike = hub.applyPickAt({ ndcX, ndcY });
+      if (issueLike && issueLike.uuid) onPick(issueLike, ev);
+    };
+
+    canvas.addEventListener("pointerdown", handlePickPointerDown, { signal });
+    if (dimEl) dimEl.addEventListener("pointerdown", handlePickPointerDown, { signal });
   }
 
   // Run initial resize once.

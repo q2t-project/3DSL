@@ -360,12 +360,14 @@ function transitionDraft(event, { reason = "" } = {}) {
   let pendingFocusIssue = null;
 
   // Position stepping UI (visible step selector)
-  let posStep = 0.1;
-  const POS_STEP_LS_KEY = "3dsl.modeler.posStep";
+  // Default to 1.0 for ergonomics: wheel/arrow edits are meant to move in whole units.
+  let posStep = 1;
+  // NOTE: v2 key to reset older default (0.1) that proved too fine for normal use.
+  const POS_STEP_LS_KEY = "3dsl.modeler.posStep.v2";
 
   function clampPosStep(v) {
     const n = Number(v);
-    if (!Number.isFinite(n) || n <= 0) return 0.1;
+    if (!Number.isFinite(n) || n <= 0) return 1;
     // Keep it reasonable; UI offers 0.01..10
     return Math.min(10, Math.max(0.01, n));
   }
@@ -655,7 +657,7 @@ function previewRevertToBase() {
 // - Rules:
 //   * setDirty(true) only from input edits
 //   * clear/discard always reverts preview override back to captured base
-//   * selection changes must be guarded via ensureEditsResolvedSilently()
+//   * selection changes must be guarded via ensureEditsAppliedOrConfirm()
 function draftClear({ reason = "" } = {}) {
   // Cancel endpoint-pick submode if active (it also uses preview overrides).
   try { cancelEndpointPick?.(); } catch {}
@@ -1163,32 +1165,27 @@ function draftDiscard({ reason = "" } = {}) {
   }
 
   /**
-   * Resolve unapplied (draft) edits without blocking the UI.
-   *
-   * Policy:
-   * - NEVER show confirm prompts for draft edits during normal modeling operations.
-   * - Draft edits are committed (Apply) by default so selection/UX stays fluid.
-   * - If commit is impossible (e.g. locked), the draft is discarded to unblock UI.
-   *
-   * @returns {boolean} always true (kept for compatibility with callers).
+   * 3-way resolution for unapplied edits.
+   * @returns {boolean} true if it is safe to proceed.
    */
-  function ensureEditsResolvedSilently({ reason = "" } = {}) {
+  function ensureEditsAppliedOrConfirm({ reason = "" } = {}) {
     // Only drafting (unapplied buffer-dirty) needs resolution here.
     if (!dirty || draftState !== DraftState.DRAFTING) return true;
 
-    // Default: auto-apply.
-    const ok = applyActiveEdits();
-    if (!ok) {
-      // If commit fails (e.g. locked), discard draft to unblock.
-      try { draftDiscard({ reason: reason || "auto-discard" }); } catch {}
+    const why = reason ? `\n\nReason: ${String(reason)}` : "";
+    const apply = window.confirm(`You have unapplied property edits. Apply them now?${why}\n\nOK = Apply\nCancel = More options`);
+    if (apply) {
+      applyActiveEdits();
+      return true;
     }
-    return true;
-  }
 
-  // Back-compat name used widely across controllers.
-  // (Historically this function prompted the user; it now resolves silently.)
-  function ensureEditsAppliedOrConfirm({ reason = "" } = {}) {
-    return ensureEditsResolvedSilently({ reason });
+    const discard = window.confirm("Discard unapplied edits?\n\nOK = Discard\nCancel = Stay here");
+    if (discard) {
+      draftDiscard({ reason: reason || "discard" });
+      return true;
+    }
+
+    return false;
   }
 
   function onAnyInput() {
@@ -1501,7 +1498,8 @@ function draftDiscard({ reason = "" } = {}) {
   /**
    * Resolve unapplied edits when selection is about to move away from the active uuid.
    * This is the single gate for "reason=selection":
-   * - Draft edits are auto-applied (or discarded if locked) so UI proceeds without prompts.
+   * - Apply or Discard => draftState -> CLEAN, preview reverted, UI proceeds
+   * - Cancel => selection is reverted back to active uuid and UI stays
    * @returns {boolean} true if it is safe to proceed to the next selection.
    */
   function resolveDraftBeforeSelectionChange(nextSelectionUuids) {
@@ -1515,18 +1513,28 @@ function draftDiscard({ reason = "" } = {}) {
 
     if (!nextIsDifferent) return true;
 
-    ensureEditsResolvedSilently({ reason: "selection" });
+    const ok = ensureEditsAppliedOrConfirm({ reason: "selection" });
+    if (ok) {
+      // Safety: ensure preview is back to base when leaving the active node.
+      try { previewRevertToBase?.(); } catch {}
+      transitionDraft("clear", { reason: "selection:resolved" });
+      return true;
+    }
 
-    // Safety: ensure preview is back to base when leaving the active node.
-    try { previewRevertToBase?.(); } catch {}
-    transitionDraft("clear", { reason: "selection:resolved" });
-    return true;
+    // User cancelled: revert selection and keep UI as-is.
+    if (activeUuid) {
+      try {
+        if (typeof setSelectionUuids === "function") setSelectionUuids([activeUuid], null, "property-revert");
+        else core.setSelection?.([activeUuid]);
+      } catch { try { core.setSelection?.([activeUuid]); } catch {} }
+    }
+    return false;
   }
 
   /**
    * Preflight gate for selection changes (called by uiSelectionController BEFORE core.setSelection).
    * - Only blocks when draftState=drafting and next selection differs from current active uuid.
-   * - Draft edits are resolved silently (auto-apply; discard if locked).
+   * - Returns false on Cancel, so the caller must NOT change selection.
    * - Must never block when draftState=applied_pending_save.
    */
   function requestSelectionChange(nextSelectionUuids, { reason = "selection" } = {}) {
@@ -1540,7 +1548,8 @@ function draftDiscard({ reason = "" } = {}) {
 
     if (!nextIsDifferent) return true;
 
-    ensureEditsResolvedSilently({ reason });
+    const ok = ensureEditsAppliedOrConfirm({ reason });
+    if (!ok) return false;
 
     // Leaving the active node: ensure preview is back to base.
     try { previewRevertToBase?.(); } catch {}
@@ -1558,7 +1567,8 @@ function draftDiscard({ reason = "" } = {}) {
     //  1              | property open for that uuid
     //
     // Transition rule when buffer-dirty:
-    // - If selection moves away from the active uuid, auto-apply (or discard if locked).
+    // - If selection moves away from the active uuid, require Apply/Discard.
+    // - If user cancels, revert selection back to the active uuid.
     const sel = core.getSelection?.() || [];
     const list = Array.isArray(sel) ? sel : [];
 

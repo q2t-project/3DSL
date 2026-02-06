@@ -358,10 +358,20 @@
                   <canvas class="modeler-canvas" data-role="modeler-canvas" width="1" height="1"></canvas>
                   <div class="hud" data-role="hud" hidden></div>
                   <div class="preview-selection" data-role="preview-selection" hidden></div>
+                  <div class="dim-overlay" data-role="dim-overlay" hidden>
+                    <svg class="dim-svg" data-role="dim-svg" aria-hidden="true"></svg>
+                    <div class="dim-controls" aria-hidden="false">
+                      <button class="dim-axis" data-role="dim-x" type="button" title="Select X axis for wheel edits">X</button>
+                      <button class="dim-axis" data-role="dim-y" type="button" title="Select Y axis for wheel edits">Y</button>
+                      <button class="dim-axis" data-role="dim-z" type="button" title="Select Z axis for wheel edits">Z</button>
+                      <div class="dim-help">Move tool: pick axis (X/Y/Z) then wheel. Drag = XY.</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-                      <div class="qc-panel" data-role="qc-panel">
+          </div>
+          <div class="qc-panel" data-role="qc-panel">
             <div class="qc-head">
               <button data-action="quickcheck" type="button">Check</button>
               <button data-action="qc-fix-lines" type="button">Fix broken lines</button>
