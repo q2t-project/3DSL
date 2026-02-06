@@ -12,110 +12,349 @@
 // break the whole runtime at parse time, so we load it dynamically.
 let Ajv = globalThis?.Ajv;
 let AjvAddFormats = null;
-
-// CoreControllers state (module-scope; initialized by createCoreControllers)
-let emitter = { on() { return () => {}; }, emit() {} };
-
-// AJV loader state
-let AjvModule = Ajv || null;
-let ajv = null;
-let validateFn = null;
-let validatePruneFn = null;
-let lastStrictErrors = null;
-let schemaInfo = {};
-let schemaJsonCache = null;
-let validatorInitPromise = null;
-
-// Document + file identity
-let document3dss = null;
-let docLabel = "";
-let saveLabel = "";
-let saveHandle = null;
-
-// History
-let history = [];
-let historyIndex = -1;
-let savedHistoryIndex = -999;
-
-// Import extras (unknown fields preserved for QC)
-let importExtras = null;
-
 if (!Ajv) {
-  // Vendor philosophy (same as Viewer): shared vendor assets live at the
-  // site-root (/vendor/**). Do NOT use relative fallbacks here.
-  // Relative URLs are resolved under /modeler_app/** and cause 404 spam like:
-  //   /modeler_app/vendor/ajv/dist/ajv.js
-  // which is not where shared vendors are hosted.
-  const urls = [
-    // Preferred: bundled vendor (built for browsers)
-    "/vendor/ajv/dist/ajv.bundle.js",
-    // Shim ESM module (loads bundle + exports globals)
-    "/vendor/ajv/dist/ajv.js",
-  ];
-  let lastErr = null;
-  let lastUrl = "";
-  for (const u of urls) {
-    try {
-      const mod = await import(u);
-      Ajv = mod?.default ?? mod?.Ajv ?? mod;
-      AjvAddFormats = mod?.addFormats ?? mod?.default?.addFormats ?? null;
-      if (Ajv) break;
-    } catch (e) {
-      lastErr = e;
-      lastUrl = String(u || "");
-    }
-  }
-  if (!Ajv) {
+  // IMPORTANT (policy alignment with viewer):
+  // - Prefer a single canonical vendor location: /vendor/ajv/dist/ajv.js
+  // - If it is missing (e.g. modeler-only deploy without vendor sync), we *must not*
+  //   crash the runtime. We will run in "no validation" mode with a warning.
+  try {
+    const mod = await import("/vendor/ajv/dist/ajv.js");
+    Ajv = mod?.default ?? mod?.Ajv ?? mod;
+    AjvAddFormats = mod?.addFormats ?? mod?.default?.addFormats ?? null;
+  } catch {
     Ajv = null;
-    try {
-      globalThis.__modelerAjvLoadError = {
-        url: lastUrl || "/vendor/ajv/dist/ajv.js",
-        message: lastErr ? String(lastErr?.message || lastErr) : "",
-      };
-    } catch {}
   }
 }
 
-// Keep AjvModule in sync with loaded vendor.
-AjvModule = AjvModule || Ajv || null;
+// strict validator helpers (copied/simplified from viewer runtime)
+// ------------------------------------------------------------
+function parseSemverMajor(v) {
+  if (typeof v !== "string") return null;
+  const m = v.trim().match(/^(\d+)\./);
+  return m ? Number(m[1]) : null;
+}
 
-  async function ensureAjvLoaded() {
-    if (AjvModule) return true;
+function normalizeSchemaBase(uri) {
+  if (typeof uri !== "string") return null;
+  const s = uri.trim();
+  if (!s) return null;
+  const base = s.split("#")[0];
+  return base || null;
+}
 
-    // Try ESM shim first (exports globalThis.Ajv / globalThis.AjvAddFormats),
-    // then fall back to the raw bundle (side-effect only).
-    const candidates = [
-      "/vendor/ajv/dist/ajv.js",
-      "/modeler_app/vendor/ajv/dist/ajv.js",
-      "/vendor/ajv/dist/ajv.bundle.js",
-      "/modeler_app/vendor/ajv/dist/ajv.bundle.js",
-    ];
+function extractVersionFromFragment(uri) {
+  if (typeof uri !== "string") return { version: null, major: null };
+  const i = uri.indexOf("#v");
+  if (i < 0) return { version: null, major: null };
+  const version = uri.slice(i + 2);
+  return { version, major: parseSemverMajor(version) };
+}
 
-    let lastErr = null;
+function extractVersionFromAnchor(anchor) {
+  if (typeof anchor !== "string") return null;
+  const a = anchor.trim();
+  const m = a.match(/^v?(\d+\.\d+\.\d+)$/);
+  return m ? m[1] : null;
+}
 
-    for (const url of candidates) {
-      try {
-        const mod = await import(/* @vite-ignore */ url);
+function extractSchemaInfo(schemaJson) {
+  const $id = schemaJson?.$id || "";
+  const baseUri = normalizeSchemaBase($id);
 
-        // Prefer module exports (ajv.js shim), but accept globals (bundle side-effect).
-        const AjvCtor = mod?.default || mod?.Ajv || globalThis.Ajv;
-        const addFormatsFn = mod?.addFormats || globalThis.AjvAddFormats || null;
+  let version = extractVersionFromFragment($id).version;
+  if (!version) version = extractVersionFromAnchor(schemaJson?.$anchor);
 
-        if (typeof AjvCtor === "function") {
-          AjvModule = AjvCtor;
-          AjvAddFormats = typeof addFormatsFn === "function" ? addFormatsFn : null;
-          return true;
-        }
-      } catch (e) {
-        lastErr = e;
-      }
-    }
+  const major = parseSemverMajor(version);
+  return { $id: $id || null, baseUri, version: version || null, major };
+}
 
-    console.warn("[core] AJV vendor import failed.", lastErr);
-    return false;
+function checkVersionAndSchemaUri(doc, schemaInfo) {
+  const errors = [];
+  const dm = doc && doc.document_meta;
+  if (!dm) {
+    errors.push({
+      instancePath: "",
+      keyword: "required",
+      message: "document_meta is required"
+    });
+    return { ok: false, errors };
   }
 
-async function ensureValidatorInitialized(schemaUrl = "/schemas/3DSS.schema.json") {
+  if (schemaInfo?.baseUri) {
+    const gotBase = normalizeSchemaBase(dm.schema_uri || "");
+    const uriV = extractVersionFromFragment(dm.schema_uri || "");
+
+    if (gotBase && gotBase !== schemaInfo.baseUri) {
+      errors.push({
+        instancePath: "/document_meta/schema_uri",
+        keyword: "schema_uri",
+        message: `schema_uri base mismatch: expected '${schemaInfo.baseUri}', got '${gotBase}'`
+      });
+    }
+    if (schemaInfo.major != null) {
+      if (!uriV.version) {
+        errors.push({
+          instancePath: "/document_meta/schema_uri",
+          keyword: "schema_uri",
+          message: "schema_uri must include '#v<major.minor.patch>' (e.g. ...#v1.0.2)"
+        });
+      } else if (uriV.major == null) {
+        errors.push({
+          instancePath: "/document_meta/schema_uri",
+          keyword: "schema_uri",
+          message: `invalid schema_uri version '${uriV.version}'`
+        });
+      } else if (uriV.major !== schemaInfo.major) {
+        errors.push({
+          instancePath: "/document_meta/schema_uri",
+          keyword: "schema_uri",
+          message: `schema_uri major mismatch: expected ${schemaInfo.major}, got ${uriV.major}`
+        });
+      }
+    }
+  }
+
+  if (schemaInfo?.major != null) {
+    if (typeof dm.version !== "string") {
+      errors.push({
+        instancePath: "/document_meta/version",
+        keyword: "type",
+        message: "document_meta.version must be a string"
+      });
+    } else {
+      const docMajor = parseSemverMajor(dm.version);
+      if (docMajor == null) {
+        errors.push({
+          instancePath: "/document_meta/version",
+          keyword: "format",
+          message: `invalid semver version '${dm.version}'`
+        });
+      } else if (docMajor !== schemaInfo.major) {
+        errors.push({
+          instancePath: "/document_meta/version",
+          keyword: "version",
+          message: `major version mismatch: expected ${schemaInfo.major}, got ${docMajor}`
+        });
+      }
+    }
+  }
+
+  return { ok: errors.length === 0, errors };
+}
+
+function safePos(node) {
+  const p = node?.appearance?.position || node?.position;
+  if (Array.isArray(p) && p.length >= 3) return [Number(p[0]) || 0, Number(p[1]) || 0, Number(p[2]) || 0];
+  return [0, 0, 0];
+}
+
+function uuidOf(node) {
+  return node?.meta?.uuid || node?.uuid || null;
+}
+
+// Normalize older/loose docs into current schema expectations (best-effort).
+function normalizeDocInPlace(doc) {
+  if (!doc || typeof doc !== "object") return;
+
+  // ---- Lines (migrate legacy signification fields + endpoints) ----
+  if (Array.isArray(doc.lines)) {
+    for (const l of doc.lines) {
+      if (!l || typeof l !== "object") continue;
+
+      // endpoint: allow legacy string form (uuid)
+      if (typeof l.end_a === "string") l.end_a = { ref: l.end_a };
+      if (typeof l.end_b === "string") l.end_b = { ref: l.end_b };
+
+      // signification: current schema uses signification.caption (localized_string)
+      const sig = l.signification;
+      if (sig && typeof sig === "object") {
+        // legacy: signification.name -> signification.caption
+        if (sig.caption == null && typeof sig.name === "string") {
+          sig.caption = sig.name;
+        }
+
+        // legacy: { caption: { default: "..." } }
+        if (sig.caption && typeof sig.caption === "object") {
+          const cap = sig.caption;
+          const ja = typeof cap.ja === "string" ? cap.ja : "";
+          const en = typeof cap.en === "string" ? cap.en : "";
+          if (ja || en) {
+            sig.caption = { ...(ja ? { ja } : {}), ...(en ? { en } : {}) };
+          } else if (typeof cap.default === "string") {
+            sig.caption = cap.default;
+          } else {
+            sig.caption = "";
+          }
+        }
+
+        // schema does not allow "name" in line.signification
+        if ("name" in sig) delete sig.name;
+      } else if (typeof sig === "string") {
+        l.signification = { caption: sig };
+      }
+    }
+  }
+
+  // ---- Aux (migrate legacy module field + ensure appearance) ----
+  if (Array.isArray(doc.aux)) {
+    for (const a of doc.aux) {
+      if (!a || typeof a !== "object") continue;
+
+      // aux schema has no signification
+      if (a.signification) delete a.signification;
+
+      // legacy: top-level module (string or object)
+      let legacyModuleKey = null;
+      if (typeof a.module === "string") legacyModuleKey = a.module;
+      else if (a.module && typeof a.module === "object") {
+        const k = Object.keys(a.module)[0];
+        if (k) legacyModuleKey = k;
+      }
+      if ("module" in a) delete a.module;
+
+      if (!a.appearance || typeof a.appearance !== "object") a.appearance = {};
+      const ap = a.appearance;
+
+      if (!Array.isArray(ap.position) || ap.position.length < 3) ap.position = [0, 0, 0];
+      if (!Array.isArray(ap.orientation) || ap.orientation.length < 3) ap.orientation = [0, 0, 0];
+      if (typeof ap.opacity !== "number") ap.opacity = 0.4;
+      if (typeof ap.visible !== "boolean") ap.visible = true;
+
+      // legacy: appearance.module as string
+      if (typeof ap.module === "string") ap.module = { [ap.module]: {} };
+
+      // keep only one known key if multiple were present
+      if (ap.module && typeof ap.module === "object") {
+        const keys = Object.keys(ap.module).filter((k) => ["grid", "axis", "plate", "shell", "hud", "extension"].includes(k));
+        const keep = keys[0] || legacyModuleKey;
+        if (!keep) {
+          delete ap.module;
+        } else {
+          ap.module = { [keep]: (ap.module[keep] && typeof ap.module[keep] === "object") ? ap.module[keep] : {} };
+        }
+      } else if (legacyModuleKey) {
+        ap.module = { [legacyModuleKey]: {} };
+      }
+    }
+  }
+}
+// Import extras helpers (collect unknown fields stripped during prune)
+function jsonPtrEscape(s) {
+  return String(s).replace(/~/g, "~0").replace(/\//g, "~1");
+}
+
+function summarizeValue(v, maxLen = 2000) {
+  // Keep small primitives/objects as-is; cap large objects to avoid memory blowups.
+  if (v == null) return v;
+  const t = typeof v;
+  if (t === "string") {
+    if (v.length <= maxLen) return v;
+    return { __truncated: true, type: "string", length: v.length, prefix: v.slice(0, maxLen) };
+  }
+  if (t === "number" || t === "boolean") return v;
+  try {
+    const s = JSON.stringify(v);
+    if (typeof s === "string" && s.length <= maxLen) return v;
+    return { __truncated: true, type: Array.isArray(v) ? "array" : "object", length: (s && s.length) || null, prefix: (s || "").slice(0, maxLen) };
+  } catch {
+    return { __truncated: true, type: Array.isArray(v) ? "array" : "object", note: "unserializable" };
+  }
+}
+
+function collectRemovedExtras(original, pruned, path, out, limit, stats) {
+  if (!stats) stats = { total: 0 };
+  if (!out || out.length >= limit) return stats;
+
+  const isObj = (x) => x && typeof x === "object" && !Array.isArray(x);
+
+  if (isObj(original) && isObj(pruned)) {
+    for (const k of Object.keys(original)) {
+      const nextPath = `${path}/${jsonPtrEscape(k)}`;
+      if (!(k in pruned)) {
+        stats.total += 1;
+        if (out.length < limit) out.push({ path: nextPath || "/", value: summarizeValue(original[k]) });
+        if (out.length >= limit) return stats;
+      } else {
+        collectRemovedExtras(original[k], pruned[k], nextPath, out, limit, stats);
+        if (out.length >= limit) return stats;
+      }
+    }
+    return stats;
+  }
+
+  if (Array.isArray(original) && Array.isArray(pruned)) {
+    const n = Math.min(original.length, pruned.length);
+    for (let i = 0; i < n; i++) {
+      collectRemovedExtras(original[i], pruned[i], `${path}/${i}`, out, limit, stats);
+      if (out.length >= limit) return stats;
+    }
+    // If elements were dropped (rare), record them.
+    if (original.length > pruned.length) {
+      for (let i = pruned.length; i < original.length; i++) {
+        stats.total += 1;
+        if (out.length < limit) out.push({ path: `${path}/${i}`, value: summarizeValue(original[i]) });
+        if (out.length >= limit) return stats;
+      }
+    }
+    return stats;
+  }
+
+  return stats;
+}
+function buildIndexByUuid(doc) {
+  const idx = new Map();
+  if (doc?.points && Array.isArray(doc.points)) {
+    for (const p of doc.points) {
+      const u = uuidOf(p);
+      if (!u) continue;
+      idx.set(u, p);
+    }
+  }
+  return idx;
+}
+
+function resolveEndpoint(ep, pointIdx) {
+  if (!ep || typeof ep !== "object") return null;
+  if (Array.isArray(ep.coord) && ep.coord.length >= 3) return [Number(ep.coord[0])||0, Number(ep.coord[1])||0, Number(ep.coord[2])||0];
+  const ref = ep.ref;
+  if (typeof ref === "string" && pointIdx && pointIdx.has(ref)) return safePos(pointIdx.get(ref));
+  return null;
+}
+
+export function createCoreControllers(emitter) {
+  let document3dss = null;
+  let docLabel = "(no file)";
+  // Save destination SSOT.
+  // - null => no destination (Save behaves like Save As)
+  // - string => current destination label (filename / handle label)
+  let saveLabel = null;
+  let saveHandle = null;
+  let isDirty = false;
+  // History SSOT (for undo/redo + clean/dirty computation)
+  const cloneDoc = (v) => {
+    try {
+      if (typeof structuredClone === "function") return structuredClone(v);
+    } catch {}
+    return JSON.parse(JSON.stringify(v));
+  };
+  let history = [];
+  let historyIndex = -1; // points to current snapshot
+  let savedHistoryIndex = -1; // snapshot index at last successful Save/Save As
+  const APP_TITLE = "3DSD Modeler";
+
+  // ---- strict validator (schema-based; Export/Save are strict) ----
+  let schemaInfo = { $id: null, baseUri: null, version: null, major: null };
+  let ajv = null;
+  let validateFn = null;
+  let lastStrictErrors = null;
+  let validatorInitPromise = null;
+  let schemaJsonCache = null;
+  let validatePruneFn = null;
+
+  // Import extras: unknown fields stripped during importNormalize()
+  let importExtras = null;
+
+  async function ensureValidatorInitialized(schemaUrl = "/schemas/3DSS.schema.json") {
     if (validateFn) return;
     if (!validatorInitPromise) {
       validatorInitPromise = fetch(schemaUrl)
@@ -127,71 +366,79 @@ async function ensureValidatorInitialized(schemaUrl = "/schemas/3DSS.schema.json
         })
         .then((schemaJson) => {
           schemaJsonCache = schemaJson;
-          return ensureAjvLoaded().then(() => {
-          if (!AjvModule) {
-            throw new Error(
-              "Ajv is unavailable. Vendor sync/bundling is likely missing or incompatible (expected /vendor/ajv/dist/ajv.js)."
-            );
+          // Always extract schema info so we can at least verify version/schema_uri,
+          // even when Ajv isn't available (standalone hosting, vendor missing, etc.).
+          schemaInfo = extractSchemaInfo(schemaJson);
+
+          if (!Ajv) {
+            // No Ajv -> validation is disabled. Keep runtime usable and let UI show warnings.
+            // NOTE: this is intentionally non-fatal; Save/Export will fall back to
+            // version/schema_uri checks only.
+            console.warn("Ajv is unavailable; skipping JSON Schema validation.");
+            ajv = null;
+            validateFn = null;
+            validatePruneFn = null;
+            lastStrictErrors = null;
+            return;
           }
-ajv = new AjvModule({
-  allErrors: true,
-  strict: true,
-  strictSchema: false,
-  strictTypes: true,
-  strictRequired: false,
-  validateSchema: false,
-  removeAdditional: false,
-  useDefaults: false,
-  coerceTypes: false,
-});
 
-// Optional: enable JSON Schema "format" when available (ajv-formats).
-if (typeof AjvAddFormats === "function") {
-  try { AjvAddFormats(ajv); } catch {}
-}
-validateFn = ajv.compile(schemaJson);
-
-// A prune validator used for import: strips additional properties wherever schema disallows them.
-try {
-  const ajvPrune = new Ajv({
-    allErrors: true,
-    strict: true,
-    strictSchema: false,
-    strictTypes: true,
-    strictRequired: false,
-    validateSchema: false,
-    removeAdditional: "all",
-    useDefaults: false,
-    coerceTypes: false,
-  });
-	  if (typeof AjvAddFormats === "function") {
-	    try { AjvAddFormats(ajvPrune); } catch {}
-	  }
-  validatePruneFn = ajvPrune.compile(schemaJson);
-} catch {
-  validatePruneFn = null;
-}
-
-schemaInfo = extractSchemaInfo(schemaJson);
-lastStrictErrors = null;
+          ajv = new Ajv({
+            allErrors: true,
+            strict: true,
+            strictSchema: false,
+            strictTypes: true,
+            strictRequired: false,
+            validateSchema: false,
+            removeAdditional: false,
+            useDefaults: false,
+            coerceTypes: false,
           });
+
+          // Optional: enable JSON Schema "format" when available (ajv-formats).
+          if (typeof AjvAddFormats === "function") {
+            try { AjvAddFormats(ajv); } catch {}
+          }
+          validateFn = ajv.compile(schemaJson);
+
+          // A prune validator used for import: strips additional properties wherever schema disallows them.
+          try {
+            const ajvPrune = new Ajv({
+              allErrors: true,
+              strict: true,
+              strictSchema: false,
+              strictTypes: true,
+              strictRequired: false,
+              validateSchema: false,
+              removeAdditional: "all",
+              useDefaults: false,
+              coerceTypes: false,
+            });
+            if (typeof AjvAddFormats === "function") {
+              try { AjvAddFormats(ajvPrune); } catch {}
+            }
+            validatePruneFn = ajvPrune.compile(schemaJson);
+          } catch {
+            validatePruneFn = null;
+          }
+
+	        lastStrictErrors = null;
         });
     }
     return validatorInitPromise;
   }
 
   function validateStrict(doc) {
-    // Modeler/Viewer philosophy: validation is best-effort.
-    // If AJV cannot be loaded (missing vendor, blocked import, etc.),
-    // do NOT hard-fail critical user actions (Open/Save/Export).
-    if (!validateFn) {
-      lastStrictErrors = null;
-      return true;
-    }
     lastStrictErrors = null;
+    const ver = checkVersionAndSchemaUri(doc, schemaInfo);
+
+    // If Ajv is unavailable, we can only enforce schema_uri/version consistency.
+    if (!validateFn) {
+      if (!ver.ok) lastStrictErrors = [...ver.errors];
+      return ver.ok;
+    }
+
     const ok = validateFn(doc);
     const ajvErrors = validateFn.errors || [];
-    const ver = checkVersionAndSchemaUri(doc, schemaInfo);
     if (!ok || !ver.ok) {
       lastStrictErrors = [...ajvErrors, ...ver.errors];
       return false;
@@ -1200,8 +1447,7 @@ function focusByIssue(issue) {
   // Fallback: still emit focus for UI hooks.
   emitter.emit("focus", issue);
 }
-export function createCoreControllers(emitterArg = null) {
-  if (emitterArg && typeof emitterArg.emit === "function") emitter = emitterArg;
+
 
   return {
     document: { get: getDocument, set: setDocument, update: updateDocument, getLabel: () => docLabel, setLabel },
