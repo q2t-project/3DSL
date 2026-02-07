@@ -1,17 +1,7 @@
 {
-  "description": "",
-  "entry_points": [],
-  "pairs": [],
-  "rights": null,
-  "related": [],
+  "description": "3DSLの空間の基底となる存在論的座標系q-Q-tと認識論的座標系φ-ψ-μ",
   "published": true,
-  "seo": {
-    "title": "",
-    "description": "",
-    "og_image": ""
-  },
-  "recommended": false,
-  "hidden": false,
+  "recommended": true,
   "published_at": "2026-01-23T11:42:39Z",
   "republished_at": "2026-01-23T11:42:39Z"
 }

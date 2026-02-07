@@ -286,9 +286,49 @@ function syncTitle() {
   }
 
   async function writeToHandle(handle, jsonText) {
-    const writable = await handle.createWritable();
-    await writable.write(jsonText);
-    await writable.close();
+    const text = String(jsonText ?? "");
+    if (!text) throw new Error("writeToHandle: empty jsonText");
+
+    // Prefer a Blob write. Some environments have shown silent 0-byte results with
+    // certain write forms; we therefore verify and retry with alternative forms.
+    const blob = new Blob([text], { type: "application/json" });
+    console.log("[file] write blob bytes=", blob.size, "name=", handle?.name || "(no name)");
+
+    async function writeOnce(mode) {
+      // keepExistingData:false is the safest for overwrites when supported.
+      // @ts-ignore
+      const writable = await handle.createWritable({ keepExistingData: false });
+      if (mode === "blob") {
+        await writable.write(blob);
+      } else {
+        await writable.write(text);
+      }
+      await writable.close();
+    }
+
+    async function readSize() {
+      try {
+        const f = await handle.getFile();
+        return { size: (f?.size ?? 0), name: (f?.name || handle?.name || "(no name)") };
+      } catch {
+        return { size: 0, name: (handle?.name || "(no name)") };
+      }
+    }
+
+    // 1st attempt: blob
+    await writeOnce("blob");
+    let s1 = await readSize();
+    console.log("[file] wrote bytes=", s1.size, "name=", s1.name);
+    if (s1.size > 0) return;
+
+    // 2nd attempt: string (some FS backends behave better with text)
+    console.warn("[file] wrote 0 bytes; retrying with string write");
+    await writeOnce("text");
+    let s2 = await readSize();
+    console.log("[file] wrote bytes=", s2.size, "name=", s2.name);
+    if (s2.size > 0) return;
+
+    throw new Error("writeToHandle: wrote 0 bytes (after retry)");
   }
 
   async function pickSaveHandle({ suggestedName }) {
