@@ -17,10 +17,20 @@ function dl(name, text) {
   a.rel = "noopener";
   a.style.display = "none";
   document.body.appendChild(a);
-  a.click();
-  // IMPORTANT: do NOT revoke immediately.
-  // Some browsers/backends can start the download asynchronously; revoking too early
-  // can produce a 0-byte file.
+
+  // NOTE: Some environments can produce a 0-byte download if we revoke the
+  // object URL too early. Do not revoke immediately; delay cleanup.
+  // (A tiny leak is preferable to corrupting the user's file.)
+  try {
+    // Prefer a trusted click path.
+    a.click();
+  } catch {
+    // Fallback for some browsers.
+    try { a.dispatchEvent(new MouseEvent("click")); } catch {}
+  }
+
+  // Cleanup: wait long enough for the browser to fully consume the blob.
+  // 60s is conservative but still bounded.
   setTimeout(() => {
     try { URL.revokeObjectURL(u); } catch {}
     try { a.remove(); } catch {}
