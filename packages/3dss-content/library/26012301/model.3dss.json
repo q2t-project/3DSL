@@ -41,13 +41,13 @@
             "pose": {
               "front": [
                 0,
-                1,
-                0
+                0,
+                1
               ],
               "up": [
                 0,
-                0,
-                1
+                1,
+                0
               ]
             }
           }
@@ -185,7 +185,7 @@
         "marker": {
           "primitive": "none",
           "text": {
-            "size": 8,
+            "size": 16,
             "content": "量",
             "pose": {
               "front": [
@@ -214,13 +214,13 @@
       "appearance": {
         "position": [
           64,
-          0,
+          32,
           0
         ],
         "marker": {
           "primitive": "none",
           "text": {
-            "size": 8,
+            "size": 16,
             "content": "質",
             "pose": {
               "front": [
@@ -255,7 +255,7 @@
         "marker": {
           "primitive": "none",
           "text": {
-            "size": 8,
+            "size": 16,
             "content": "時間",
             "pose": {
               "front": [
@@ -284,13 +284,13 @@
       "appearance": {
         "position": [
           -64,
-          0,
+          32,
           0
         ],
         "marker": {
           "primitive": "none",
           "text": {
-            "size": 8,
+            "size": 16,
             "content": "φ",
             "pose": {
               "front": [
@@ -319,13 +319,13 @@
       "appearance": {
         "position": [
           -128,
-          64,
+          96,
           0
         ],
         "marker": {
           "primitive": "none",
           "text": {
-            "size": 8,
+            "size": 16,
             "content": "ψ",
             "pose": {
               "front": [
@@ -360,7 +360,7 @@
         "marker": {
           "primitive": "none",
           "text": {
-            "size": 8,
+            "size": 16,
             "content": "μ",
             "pose": {
               "front": [

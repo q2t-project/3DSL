@@ -9,23 +9,31 @@
 // - Fallback: download when FSA is unavailable or fails
 
 function dl(name, text) {
-  const payload = String(text ?? "");
-  if (!payload) throw new Error("dl: empty payload");
-  const fn = String(name || "untitled.3dss.json");
-  const url =
-    "data:application/json;charset=utf-8," +
-    encodeURIComponent(payload);
+  const s = String(text ?? "");
+  if (!s) throw new Error("dl: empty text");
+
+  // Prefer data: URL to avoid Blob URL revoke timing races that can yield 0-byte files.
+  // Data URL size limits vary; keep a conservative fallback threshold.
+  const bytes = new TextEncoder().encode(s).length;
+  const useDataUrl = bytes <= 1_500_000; // ~1.5MB
   const a = document.createElement("a");
-  a.href = url;
-  a.download = fn;
+  a.download = name;
   a.rel = "noopener";
   a.style.display = "none";
-  document.body.appendChild(a);
-  try {
-    a.click();
-  } finally {
-    try { a.remove(); } catch {}
+
+  if (useDataUrl) {
+    a.href = "data:application/json;charset=utf-8," + encodeURIComponent(s);
+  } else {
+    const b = new Blob([s], { type: "application/json" });
+    const u = URL.createObjectURL(b);
+    a.href = u;
+    // Cleanup later; not immediate.
+    setTimeout(() => { try { URL.revokeObjectURL(u); } catch {} }, 120_000);
   }
+
+  document.body.appendChild(a);
+  try { a.click(); } catch { try { a.dispatchEvent(new MouseEvent("click")); } catch {} }
+  a.remove();
 }
 
 function reportErr(prefix, err) {
@@ -287,35 +295,38 @@ function syncTitle() {
   const text = String(jsonText ?? "");
   if (!text) throw new Error("writeToHandle: empty jsonText");
 
-  // Non-destructive overwrite:
-  // - keepExistingData:true to avoid early truncate-to-zero
-  // - write at position 0
-  // - truncate to final length (removes tail if shorter than old file)
-  // - verify size
-  // @ts-ignore
-  const writable = await handle.createWritable({ keepExistingData: true });
+  const blob = new Blob([text], { type: "application/json" });
+  const expected = blob.size;
+
+  async function verifySize() {
+    const f = await handle.getFile();
+    const size = f?.size ?? 0;
+    if (size !== expected) {
+      throw new Error(`writeToHandle: size mismatch expected=${expected} actual=${size}`);
+    }
+  }
+
+  // Non-destructive overwrite: write from position 0, then truncate to final size.
+  // This avoids the "truncate first -> 0-byte file left behind" failure mode.
+  let writable = await handle.createWritable({ keepExistingData: true });
   try {
-    // @ts-ignore
-    await writable.write({ type: "write", position: 0, data: text });
-    await writable.truncate(text.length);
+    try {
+      await writable.write({ type: "write", position: 0, data: blob });
+    } catch (e) {
+      // Some implementations may not support the structured write; retry with a simple write.
+      await writable.write(blob);
+    }
+    await writable.truncate(expected);
     await writable.close();
   } catch (e) {
     try { await writable.abort(); } catch {}
     throw e;
   }
 
-  try {
-    const f = await handle.getFile();
-    if ((f?.size ?? 0) !== text.length) {
-      throw new Error(`writeToHandle: size mismatch (got ${f?.size ?? 0}, expected ${text.length})`);
-    }
-  } catch (e) {
-    // If getFile is unavailable or inconsistent, surface as failure so caller can handle.
-    throw e;
-  }
+  await verifySize();
 }
 
-async function pickSaveHandle({ suggestedName }) {
+  async function pickSaveHandle({ suggestedName }) {
     // @ts-ignore
     const handle = await window.showSaveFilePicker({
       suggestedName,
@@ -342,10 +353,8 @@ async function pickSaveHandle({ suggestedName }) {
     console.log("[file] json chars=", jsonText ? jsonText.length : 0, "act=", act);
 
     // --- Export ---
-    if (act === "export") {
-  // Export: download only (does NOT affect Save destination or dirty state).
+if (act === "export") {
   if (!doc) throw new Error("No document");
-  const suggestedName = `${(core.getSuggestedSaveName?.() || "untitled")}.3dss.json`;
 
   await core.ensureValidatorInitialized?.();
   if (!ensureStrictOk(doc)) {
@@ -353,11 +362,17 @@ async function pickSaveHandle({ suggestedName }) {
     return;
   }
 
-  const fn = suggestedName;
+  const h = core.getSaveHandle?.() || null;
+  const base = core.getSuggestedSaveName?.() || "untitled";
+  const fn = (h?.name && typeof h.name === "string" && h.name.length > 0)
+    ? h.name
+    : `${base}.3dss.json`;
+
   dl(fn, jsonText);
   setHud(`Exported (download): ${fn}`);
   return;
 }
+
 
     // --- Save / SaveAs ---
     if (act === "save" || act === "saveas") {
@@ -380,9 +395,7 @@ async function pickSaveHandle({ suggestedName }) {
             throw e;
           }
 } else {
-  // No FSA available: do not attempt download as a substitute for Save/SaveAs.
-  // (Export is the only download-based path.)
-  setHud(act === "saveas" ? "Save As unavailable (no File System Access)" : "Save unavailable (no File System Access)");
+  setHud(act === "saveas" ? "Save As unavailable: FSA not supported" : "Save unavailable: FSA not supported");
   return;
 }
       }
@@ -395,23 +408,20 @@ async function pickSaveHandle({ suggestedName }) {
 
       if (canFsa && handle) {
         try {
-await writeToHandle(handle, jsonText);
-// Keep handle for subsequent Save (both SaveAs and first Save that picked a handle).
-core.setSaveHandle?.(handle);
+          await writeToHandle(handle, jsonText);
+          core.setSaveHandle?.(handle);
           setHud(act === "saveas" ? `Saved As: ${handle?.name || suggestedName}` : `Saved: ${handle?.name || suggestedName}`);
           core.setDirty?.(false);
           return;
 } catch (e) {
   console.error("[file] save write failed", e);
-  // If Save As failed, do not keep the new handle.
-  if (act === "saveas") core.clearSaveHandle?.();
   setHud(act === "saveas" ? "Save As failed" : "Save failed");
   return;
 }
       }
-// No handle available.
-setHud(act === "saveas" ? "Save As unavailable" : "Save unavailable");
-return;
+
+      setHud(act === "saveas" ? "Save As unavailable" : "Save unavailable");
+      return;
     }
 
     // Unknown action
