@@ -9,11 +9,33 @@
 // - Fallback: download when FSA is unavailable or fails
 
 function dl(name, text) {
-  // Intentionally disabled:
-  // Chrome/Windows download path can yield 0-byte files; do not use.
-  throw new Error("dl() is disabled; use FSA persistence instead");
-}
+  const b = new Blob([text], { type: "application/json" });
+  const u = URL.createObjectURL(b);
+  const a = document.createElement("a");
+  a.href = u;
+  a.download = name;
+  a.rel = "noopener";
+  a.style.display = "none";
+  document.body.appendChild(a);
 
+  // NOTE: Some environments can produce a 0-byte download if we revoke the
+  // object URL too early. Do not revoke immediately; delay cleanup.
+  // (A tiny leak is preferable to corrupting the user's file.)
+  try {
+    // Prefer a trusted click path.
+    a.click();
+  } catch {
+    // Fallback for some browsers.
+    try { a.dispatchEvent(new MouseEvent("click")); } catch {}
+  }
+
+  // Cleanup: wait long enough for the browser to fully consume the blob.
+  // 60s is conservative but still bounded.
+  setTimeout(() => {
+    try { URL.revokeObjectURL(u); } catch {}
+    try { a.remove(); } catch {}
+  }, 60_000);
+}
 
 function reportErr(prefix, err) {
   try {
@@ -343,58 +365,27 @@ function syncTitle() {
     console.log("[file] json chars=", jsonText ? jsonText.length : 0, "act=", act);
 
     // --- Export ---
-if (act === "export") {
-  if (!doc) throw new Error("No document");
+    if (act === "export") {
+      // Export is FSA-only to avoid Chrome/Windows download 0-byte issues.
+      if (!doc) throw new Error("No document");
+      const suggestedName = `${(core.getSuggestedSaveName?.() || "export")}.3dss.json`;
 
-  // Export is FSA-only to avoid 0-byte downloads on some Chrome/Windows paths.
-  if (!window.isSecureContext || !("showSaveFilePicker" in window)) {
-    setHud("Export unavailable: File System Access API not supported");
-    return;
-  }
+      const canFsa = canUseSaveFsa();
+      if (!canFsa) {
+        setHud("Export unavailable: File System Access API not supported");
+        return;
+      }
 
-  await core.ensureValidatorInitialized?.();
-  if (!ensureStrictOk(doc)) {
-    setHud("Export blocked: schema invalid");
-    return;
-  }
-
-  const h = core.getSaveHandle?.() || null;
-  const base = core.getSuggestedSaveName?.() || "untitled";
-  const suggestedName =
-    (h?.name && typeof h.name === "string" && h.name.trim().length > 0)
-      ? h.name
-      : `${base}.3dss.json`;
-
-  let handle;
-  try {
-    handle = await window.showSaveFilePicker({
-      suggestedName,
-      types: [{
-        description: "3DSS JSON",
-        accept: { "application/json": [".json"] },
-      }],
-    });
-  } catch (e) {
-    // user canceled
-    setHud("Export canceled");
-    return;
-  }
-
-  try {
-    await writeToHandle(handle, jsonText);
-  } catch (e) {
-    console.error("[file] export write failed", e);
-    setHud("Export failed");
-    return;
-  }
-
-  // Export must NOT update save destination and must NOT mark clean.
-  setHud(`Exported: ${handle?.name || suggestedName}`);
-  return;
-}
-
-          throw e;
+      let handle = null;
+      // showSaveFilePicker must be invoked under user activation.
+      try {
+        handle = await withFocusRestore(() => pickSaveHandle({ suggestedName }));
+      } catch (e) {
+        if (e && (e.name === "AbortError" || e.code === 20)) {
+          setHud("Export cancelled");
+          return;
         }
+        throw e;
       }
 
       await core.ensureValidatorInitialized?.();
@@ -403,29 +394,17 @@ if (act === "export") {
         return;
       }
 
-      if (!canFsa || !handle) {
-        const fn = suggestedName;
-        dl(fn, jsonText);
-        setHud(`Exported (download): ${fn}`);
-        return;
-      }
-
       try {
         await writeToHandle(handle, jsonText);
         setHud(`Exported: ${handle?.name || suggestedName}`);
       } catch (e) {
-        // File System Access can occasionally produce a 0-byte file depending on
-        // backend / permissions. Fall back to download so the user isn't left
-        // with an empty file.
-        console.error("[file] export write failed; NO download fallback", e);
-        const fn = suggestedName;
-        dl(fn, jsonText);
-        setHud(`Exported (download fallback): ${fn}`);
+        console.error("[file] export write failed", e);
+        setHud("Export failed");
       }
       return;
     }
 
-    // --- Save / SaveAs ---
+// --- Save / SaveAs ---
     if (act === "save" || act === "saveas") {
       if (!doc) throw new Error("No document");
       const suggestedName = `${core.getSuggestedSaveName?.() || "untitled"}.3dss.json`;
@@ -470,8 +449,10 @@ if (act === "export") {
           core.setDirty?.(false);
           return;
         } catch (e) {
-          console.error("[file] save write failed", e);
-// If Save As failed via FSA, do not keep the handle.
+          console.error("[file] save write failed; fallback to download", e);
+          const fn = suggestedName;
+          dl(fn, jsonText);
+          // If Save As failed via FSA, do not keep the handle.
           if (act === "saveas") core.clearSaveHandle?.();
           setHud(act === "saveas" ? `Saved As (download fallback): ${fn}` : `Saved (download fallback): ${fn}`);
           core.setDirty?.(false);
