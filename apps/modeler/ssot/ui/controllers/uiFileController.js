@@ -293,50 +293,58 @@ function syncTitle() {
   }
 
   async function writeToHandle(handle, jsonText) {
-    const text = String(jsonText ?? "");
-    if (!text) throw new Error("writeToHandle: empty jsonText");
+  const text = String(jsonText ?? "");
+  if (!text) throw new Error("writeToHandle: empty jsonText");
 
-    // Prefer a Blob write. Some environments have shown silent 0-byte results with
-    // certain write forms; we therefore verify and retry with alternative forms.
-    const blob = new Blob([text], { type: "application/json" });
-    console.log("[file] write blob bytes=", blob.size, "name=", handle?.name || "(no name)");
+  const blob = new Blob([text], { type: "application/json" });
+  const want = blob.size;
+  console.log("[file] write blob bytes=", want, "name=", handle?.name || "(no name)");
 
-    async function writeOnce(mode) {
-      // keepExistingData:false is the safest for overwrites when supported.
-      // @ts-ignore
-      const writable = await handle.createWritable({ keepExistingData: false });
-      if (mode === "blob") {
-        await writable.write(blob);
+  async function writeOnce(kind) {
+    // IMPORTANT: avoid destructive truncate-first behavior.
+    // Use keepExistingData:true + overwrite from position 0, then truncate to final size.
+    // @ts-ignore
+    const writable = await handle.createWritable({ keepExistingData: true });
+    try {
+      if (kind === "blob") {
+        await writable.write({ type: "write", position: 0, data: blob });
+        await writable.truncate(want);
       } else {
-        await writable.write(text);
+        await writable.write({ type: "write", position: 0, data: text });
+        await writable.truncate(text.length);
       }
       await writable.close();
+    } catch (e) {
+      try { await writable.abort(); } catch {}
+      throw e;
     }
-
-    async function readSize() {
-      try {
-        const f = await handle.getFile();
-        return { size: (f?.size ?? 0), name: (f?.name || handle?.name || "(no name)") };
-      } catch {
-        return { size: 0, name: (handle?.name || "(no name)") };
-      }
-    }
-
-    // 1st attempt: blob
-    await writeOnce("blob");
-    let s1 = await readSize();
-    console.log("[file] wrote bytes=", s1.size, "name=", s1.name);
-    if (s1.size > 0) return;
-
-    // 2nd attempt: string (some FS backends behave better with text)
-    console.warn("[file] wrote 0 bytes; retrying with string write");
-    await writeOnce("text");
-    let s2 = await readSize();
-    console.log("[file] wrote bytes=", s2.size, "name=", s2.name);
-    if (s2.size > 0) return;
-
-    throw new Error("writeToHandle: wrote 0 bytes (after retry)");
   }
+
+  async function readSize() {
+    try {
+      const f = await handle.getFile();
+      return { size: (f?.size ?? 0), name: (f?.name || handle?.name || "(no name)") };
+    } catch {
+      return { size: 0, name: (handle?.name || "(no name)") };
+    }
+  }
+
+  // 1st attempt: blob
+  await writeOnce("blob");
+  let s1 = await readSize();
+  console.log("[file] wrote bytes=", s1.size, "want=", want, "name=", s1.name);
+  if (s1.size === want && want > 0) return;
+
+  // 2nd attempt: text (some backends behave better)
+  console.warn("[file] size mismatch; retrying with text write", { wrote: s1.size, want });
+  await writeOnce("text");
+  let s2 = await readSize();
+  console.log("[file] wrote bytes=", s2.size, "want=", want, "name=", s2.name);
+  if (s2.size > 0) return;
+
+  throw new Error("writeToHandle: wrote 0 bytes (after retry)");
+}
+
 
   async function pickSaveHandle({ suggestedName }) {
     // @ts-ignore
@@ -377,6 +385,7 @@ function syncTitle() {
       if (canFsa) {
         try {
           handle = await withFocusRestore(() => pickSaveHandle({ suggestedName }));
+            pickedNewHandle = true;
         } catch (e) {
           if (e && (e.name === "AbortError" || e.code === 20)) {
             setHud("Export cancelled");
@@ -421,12 +430,14 @@ function syncTitle() {
       const canFsa = canUseSaveFsa();
 
       let handle = core.getSaveHandle?.() || null;
+      let pickedNewHandle = false;
 
       // Save As (or first Save) needs a picker. Do it BEFORE any awaited work so user activation is preserved.
       if (act === "saveas" || (act === "save" && !handle)) {
         if (canFsa) {
           try {
             handle = await withFocusRestore(() => pickSaveHandle({ suggestedName }));
+            pickedNewHandle = true;
           } catch (e) {
             if (e && (e.name === "AbortError" || e.code === 20)) {
               setHud(act === "saveas" ? "Save As cancelled" : "Save cancelled");
@@ -440,7 +451,6 @@ function syncTitle() {
           dl(fn, jsonText);
           if (act === "saveas") core.clearSaveHandle?.();
           setHud(act === "saveas" ? `Saved As (download): ${fn}` : `Saved (download): ${fn}`);
-          core.setDirty?.(false);
           return;
         }
       }
@@ -454,7 +464,7 @@ function syncTitle() {
       if (canFsa && handle) {
         try {
           await writeToHandle(handle, jsonText);
-          if (act === "saveas") core.setSaveHandle?.(handle);
+          if (pickedNewHandle || act === "saveas") core.setSaveHandle?.(handle);
           setHud(act === "saveas" ? `Saved As: ${handle?.name || suggestedName}` : `Saved: ${handle?.name || suggestedName}`);
           core.setDirty?.(false);
           return;
@@ -465,7 +475,6 @@ function syncTitle() {
           // If Save As failed via FSA, do not keep the handle.
           if (act === "saveas") core.clearSaveHandle?.();
           setHud(act === "saveas" ? `Saved As (download fallback): ${fn}` : `Saved (download fallback): ${fn}`);
-          core.setDirty?.(false);
           return;
         }
       }

@@ -1,13 +1,11 @@
 {
   "document_meta": {
-    "document_title": "相対三軸座標系",
-    "document_summary": "",
+    "document_title": "3DSL三軸座標系",
+    "document_summary": "3DSLにおける三軸座標系の定義を示した3Dモデルです。",
     "document_uuid": "de39108b-ecfc-45c9-b750-6e55ba62b287",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "tags": [
-      "s:__",
-      "m:__",
-      "x:__"
+      "m:存在論","m:認識論"
     ],
     "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
     "generator": "https://3dsl.jp/",
@@ -15,50 +13,45 @@
     "units": "non_si:px",
     "i18n": "ja",
     "author": "q2t-project",
-    "creator_memo": "__",
     "created_at": "2026-01-23T11:42:39Z",
-    "revised_at": "2026-01-23T11:42:39Z",
+    "revised_at": "2026-02-07T12:50:18Z",
     "reference": ""
   },
   "points": [
     {
       "signification": {
-        "name": "R0"
+        "name": "絶対的原点"
       },
       "appearance": {
         "position": [
-          128,
+          0,
           0,
           0
         ],
         "marker": {
-          "primitive": "none",
-          "gltf": {
-            "url": "./assets/righthand_model.glb",
-            "scale": [
-              1,
-              1,
-              1
-            ],
-            "rotation": [
-              0,
-              0,
-              0
-            ],
-            "offset": [
-              0,
-              0,
-              0
-            ]
-          },
+          "primitive": "sphere",
+          "radius": 8,
           "common": {
             "opacity": 0.2,
-            "color": "#ffffff"
+            "color": "#ff0000"
+          },
+          "text": {
+            "size": 16,
+            "content": "絶対的原点",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
-        },
-        "frames": [
-          0
-        ]
+        }
       },
       "meta": {
         "tags": [],
