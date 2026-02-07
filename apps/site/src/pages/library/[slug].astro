@@ -154,6 +154,14 @@ try {
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i] ?? "";
 
+        // Thematic break (---, ***, ___). Must be on its own line.
+        // This is frequently used in our library markdown, and should render as <hr>.
+        if (/^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
+          flushList();
+          out.push("<hr />");
+          continue;
+        }
+
         if (line.startsWith("```")) {
           if (inCode) {
             flushCode();
@@ -404,7 +412,7 @@ const thirdParty = Array.isArray(rights?.third_party)
         {bodyHtml ? (
           <section class="mt-8 rounded-2xl border border-neutral-800 bg-neutral-950/40 p-5">
             <h2 class="text-base font-semibold text-neutral-100">テキスト</h2>
-            <div class="prose prose-invert mt-4 max-w-none">
+            <div class="library-md prose prose-invert mt-4 max-w-none">
               <div set:html={bodyHtml} />
             </div>
           </section>
