@@ -2,34 +2,34 @@
   "document_meta": {
     "document_title": "サンプル: 26020401",
     "document_summary": "library item のフォルダ構成サンプル（model/_meta/content/assets/attachments）",
-    "tags": [
-      "sample",
-      "structure",
-      "docmeta"
-    ],
+    "document_uuid": "e504f16a-a021-40bc-ab84-20d7718b5ab6",
+    "version": "1.0.0",
     "created_at": "2026-02-04T00:00:00Z",
-    "revised_at": "2026-02-04T00:00:00Z"
-  },
-  "scene": {
-    "points": [
-      {
-        "meta": {
-          "uuid": "p-0001"
-        },
-        "signification": {
-          "name": {
-            "ja": "点A"
-          }
-        },
-        "appearance": {
-          "position": [
-            0,
-            0,
-            0
-          ]
-        }
-      }
+    "revised_at": "2026-02-04T00:00:00Z",
+    "tags": [
+      "s:sample",
+      "m:structure",
+      "x:docmeta"
     ],
-    "lines": []
-  }
+    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
+    "author": "q2t"
+  },
+  "points": [
+    {
+      "meta": {
+        "uuid": "f22fd887-7843-41da-9f57-eb54493b1964"
+      },
+      "signification": {
+        "name": "点A"
+      },
+      "appearance": {
+        "position": [
+          0,
+          0,
+          0
+        ]
+      }
+    }
+  ],
+  "lines": []
 }
