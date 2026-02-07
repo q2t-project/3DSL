@@ -12,12 +12,12 @@ function dl(name, text) {
   const payload = String(text ?? "");
   if (!payload) throw new Error("dl: empty payload");
 
-  // Root cause (0-byte downloads observed): Blob URL + early revoke and/or
-  // backend timing quirks. For small payloads, prefer a data: URL (no revoke,
-  // no blob consumption race). For large payloads, use blob URL with delayed
-  // cleanup.
-  const SMALL_LIMIT = 2 * 1024 * 1024; // 2MB
+  // Prefer data: URL for small payloads to avoid Blob URL consumption races.
+  // (No revoke needed; extremely robust across hosted contexts.)
+  const SMALL_LIMIT = 2 * 1024 * 1024; // 2MB (plenty for 3DSS JSON)
   const isSmall = payload.length <= SMALL_LIMIT;
+
+  try { console.log("[file] dl payload bytes=", new Blob([payload]).size, "name=", name, "small=", isSmall); } catch {}
 
   const a = document.createElement("a");
   a.download = name;
@@ -40,16 +40,16 @@ function dl(name, text) {
     try { a.dispatchEvent(new MouseEvent("click")); } catch {}
   }
 
-  // Cleanup:
-  // - data: URL: nothing to revoke
-  // - blob URL: delay revocation generously (avoid race)
+  // Cleanup: data URL can be removed after a short delay. Blob URL needs
+  // generous revocation delay to avoid 0-byte downloads.
   setTimeout(() => {
     if (blobUrl) {
       try { URL.revokeObjectURL(blobUrl); } catch {}
     }
     try { a.remove(); } catch {}
-  }, blobUrl ? 120_000 : 0);
+  }, blobUrl ? 300_000 : 5_000);
 }
+
 
 function reportErr(prefix, err) {
   try {
@@ -169,7 +169,6 @@ export function createUiFileController(deps) {
   const { fileLabel, btnSave, btnSaveAs, btnExport, qcPanel, qcSummary, qcList } = elements || {};
   let extraDirty = null;
   let invoker = null;
-  let ioBusy = false;
 
   function defaultSaveName() {
     // Prefer the last known file label/handle name.
@@ -251,7 +250,20 @@ function syncTitle() {
   }
 
   function canUseSaveFsa() {
-    return typeof window !== "undefined" && typeof window.showSaveFilePicker === "function";
+    // NOTE: File System Access API has produced 0-byte files in some hosted (Cloudflare Pages) contexts.
+    // Until proven stable in that environment, we *default* to disabling FSA writes outside localhost.
+    // You can opt-in explicitly with ?fsa=1 or localStorage.modeler_enable_fsa="1".
+    try {
+      if (typeof window === "undefined") return false;
+      if (typeof window.showSaveFilePicker !== "function") return false;
+      const host = String(window.location?.hostname || "");
+      const isLocal = host === "localhost" || host === "127.0.0.1" || host === "[::1]";
+      const qs = new URLSearchParams(window.location?.search || "");
+      const optIn = qs.get("fsa") === "1" || window.localStorage?.getItem("modeler_enable_fsa") === "1";
+      return isLocal || optIn;
+    } catch {
+      return false;
+    }
   }
 
   async function withFocusRestore(fn) {
@@ -317,25 +329,14 @@ function syncTitle() {
     console.log("[file] write blob bytes=", blob.size, "name=", handle?.name || "(no name)");
 
     async function writeOnce(mode) {
-      // CRITICAL:
-      // Some backends truncate the file at createWritable({keepExistingData:false})
-      // BEFORE the first write. If a later step silently fails, the user is left
-      // with a 0-byte file.
-      //
-      // To make failures non-destructive, keep existing data until we've written
-      // the full payload, then explicitly truncate to the new size.
+      // keepExistingData:false is the safest for overwrites when supported.
       // @ts-ignore
-      const writable = await handle.createWritable({ keepExistingData: true });
-      const data = (mode === "blob") ? blob : text;
-
-      // Use an explicit position write to ensure overwrite from start.
-      // @ts-ignore
-      await writable.write({ type: "write", position: 0, data });
-
-      // Ensure no tail remains if the new payload is shorter.
-      const newSize = (mode === "blob") ? blob.size : (new Blob([text]).size);
-      // @ts-ignore
-      await writable.truncate(newSize);
+      const writable = await handle.createWritable({ keepExistingData: false });
+      if (mode === "blob") {
+        await writable.write(blob);
+      } else {
+        await writable.write(text);
+      }
       await writable.close();
     }
 
@@ -376,12 +377,6 @@ function syncTitle() {
   }
 
   async function handleFileAction(action, { ensureEditsApplied, getFallbackDocument } = {}) {
-    if (ioBusy) {
-      setHud("File I/O in progress...");
-      return;
-    }
-    ioBusy = true;
-    try {
     const act = String(action || "").toLowerCase();
     // Prefer core document; fall back to a hub-provided cache when available.
     // This keeps Save/Export usable even if the UI is currently driven by hub events.
@@ -513,9 +508,6 @@ function syncTitle() {
 
     // Unknown action
     setHud(`Unknown file action: ${act}`);
-  } finally {
-    ioBusy = false;
-  }
   }
 
   function attachBeforeUnload({ signal } = {}) {
