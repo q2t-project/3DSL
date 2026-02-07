@@ -54,14 +54,70 @@
         }
       },
       "meta": {
-        "tags": [],
-        "creator_memo": "__",
-        "uuid": "3dd94c76-1c7b-4b81-993e-25c26d73b114"
+        "uuid": "bee089fb-dd81-4b02-b235-1e334b987a85"
       }
     },
+
     {
       "signification": {
-        "name": "L0"
+        "name": "存在論的座標系"
+      },
+      "appearance": {
+        "position": [
+          128,
+          0,
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "gltf": {
+            "url": "./assets/righthand_model.glb",
+            "scale": [
+              1,
+              1,
+              1
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "offset": [
+              0,
+              0,
+              0
+            ]
+          },
+          "common": {
+            "opacity": 0.2,
+            "color": "#ffffff"
+          },
+          "text": {
+            "size": 16,
+            "content": "存在論的座標系",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "e0adb87c-1392-4eb8-8071-dfd047aebd3e"
+      }
+    },
+
+    {
+      "signification": {
+        "name": "認識論的座標系"
       },
       "appearance": {
         "position": [
@@ -92,17 +148,240 @@
           "common": {
             "opacity": 0.2,
             "color": "#ffffff"
+          },
+          "text": {
+            "size": 16,
+            "content": "認識論的座標系",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
           }
-        },
-        "frames": [
-          0
-        ]
+        }
       },
       "meta": {
-        "tags": [],
-        "creator_memo": "__",
-        "uuid": "a8d4fbd0-5cc6-4f48-9490-1464b16af4d1"
+        "uuid": "cd8348e8-92f4-4fcb-b637-df0ea06d0538"
+      }
+    },
+
+    {
+      "signification": {
+        "name": "量"
+      },
+      "appearance": {
+        "position": [
+          128,
+          0,
+          64
+        ],
+        "marker": {
+          "primitive": "none",
+          "text": {
+            "size": 8,
+            "content": "量",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "e6569e85-d2a2-4b27-9c53-55889986ee4b"
+      }
+    },
+
+    {
+      "signification": {
+        "name": "質"
+      },
+      "appearance": {
+        "position": [
+          64,
+          0,
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "text": {
+            "size": 8,
+            "content": "質",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "d47c28d5-3bde-4101-8917-e743dbe22ff7"
+      }
+    },
+
+    {
+      "signification": {
+        "name": "時間"
+      },
+      "appearance": {
+        "position": [
+          128,
+          64,
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "text": {
+            "size": 8,
+            "content": "時間",
+            "pose": {
+              "front": [
+                1,
+                0,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "80f1dcbb-c7ef-496d-9ad8-5c4769028e8a"
+      }
+    },
+
+    {
+      "signification": {
+        "name": "φ"
+      },
+      "appearance": {
+        "position": [
+          -64,
+          0,
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "text": {
+            "size": 8,
+            "content": "φ",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "cca99ba2-74e6-4b0e-bcba-95d4366f59e8"
+      }
+    },
+
+    {
+      "signification": {
+        "name": "ψ"
+      },
+      "appearance": {
+        "position": [
+          -128,
+          64,
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "text": {
+            "size": 8,
+            "content": "ψ",
+            "pose": {
+              "front": [
+                1,
+                0,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "2c42dbb9-347e-4cab-8d49-a5acca5a580a"
+      }
+    },
+
+    {
+      "signification": {
+        "name": "μ"
+      },
+      "appearance": {
+        "position": [
+          -128,
+          0,
+          64
+        ],
+        "marker": {
+          "primitive": "none",
+          "text": {
+            "size": 8,
+            "content": "μ",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "5c73b61b-41d0-4dc5-87b8-7e28ae145915"
       }
     }
+
+
   ]
 }
