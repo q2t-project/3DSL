@@ -40,7 +40,15 @@ function ensureDir(p) {
 
 function readJson(p) {
   const s = fs.readFileSync(p, "utf8");
-  return JSON.parse(s);
+  if (!s || !s.trim()) {
+    throw new Error(`Invalid JSON (empty file): ${p}`);
+  }
+  try {
+    return JSON.parse(s);
+  } catch (e) {
+    const msg = e && typeof e.message === "string" ? e.message : String(e);
+    throw new Error(`Invalid JSON (${msg}): ${p}`);
+  }
 }
 
 function writeJson(p, obj) {

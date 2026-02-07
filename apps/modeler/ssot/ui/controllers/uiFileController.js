@@ -18,10 +18,15 @@ function dl(name, text) {
   a.style.display = "none";
   document.body.appendChild(a);
   a.click();
+  // IMPORTANT: do not revoke the object URL immediately.
+  // Some browsers/backends can produce a 0-byte download if the URL is revoked
+  // before the download pipeline has consumed it.
+  // A generous delay is cheap and avoids "empty file" regressions.
+  const CLEANUP_MS = 60_000;
   setTimeout(() => {
     try { URL.revokeObjectURL(u); } catch {}
     try { a.remove(); } catch {}
-  }, 0);
+  }, CLEANUP_MS);
 }
 
 function reportErr(prefix, err) {
