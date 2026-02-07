@@ -9,47 +9,33 @@
 // - Fallback: download when FSA is unavailable or fails
 
 function dl(name, text) {
-  const payload = String(text ?? "");
-  if (!payload) throw new Error("dl: empty payload");
-
-  // Prefer data: URL for small payloads to avoid Blob URL consumption races.
-  // (No revoke needed; extremely robust across hosted contexts.)
-  const SMALL_LIMIT = 2 * 1024 * 1024; // 2MB (plenty for 3DSS JSON)
-  const isSmall = payload.length <= SMALL_LIMIT;
-
-  try { console.log("[file] dl payload bytes=", new Blob([payload]).size, "name=", name, "small=", isSmall); } catch {}
-
+  const b = new Blob([text], { type: "application/json" });
+  const u = URL.createObjectURL(b);
   const a = document.createElement("a");
+  a.href = u;
   a.download = name;
   a.rel = "noopener";
   a.style.display = "none";
   document.body.appendChild(a);
 
-  let blobUrl = null;
-  if (isSmall) {
-    a.href = `data:application/json;charset=utf-8,${encodeURIComponent(payload)}`;
-  } else {
-    const b = new Blob([payload], { type: "application/json" });
-    blobUrl = URL.createObjectURL(b);
-    a.href = blobUrl;
-  }
-
+  // NOTE: Some environments can produce a 0-byte download if we revoke the
+  // object URL too early. Do not revoke immediately; delay cleanup.
+  // (A tiny leak is preferable to corrupting the user's file.)
   try {
+    // Prefer a trusted click path.
     a.click();
   } catch {
+    // Fallback for some browsers.
     try { a.dispatchEvent(new MouseEvent("click")); } catch {}
   }
 
-  // Cleanup: data URL can be removed after a short delay. Blob URL needs
-  // generous revocation delay to avoid 0-byte downloads.
+  // Cleanup: wait long enough for the browser to fully consume the blob.
+  // 60s is conservative but still bounded.
   setTimeout(() => {
-    if (blobUrl) {
-      try { URL.revokeObjectURL(blobUrl); } catch {}
-    }
+    try { URL.revokeObjectURL(u); } catch {}
     try { a.remove(); } catch {}
-  }, blobUrl ? 300_000 : 5_000);
+  }, 60_000);
 }
-
 
 function reportErr(prefix, err) {
   try {
@@ -250,20 +236,7 @@ function syncTitle() {
   }
 
   function canUseSaveFsa() {
-    // NOTE: File System Access API has produced 0-byte files in some hosted (Cloudflare Pages) contexts.
-    // Until proven stable in that environment, we *default* to disabling FSA writes outside localhost.
-    // You can opt-in explicitly with ?fsa=1 or localStorage.modeler_enable_fsa="1".
-    try {
-      if (typeof window === "undefined") return false;
-      if (typeof window.showSaveFilePicker !== "function") return false;
-      const host = String(window.location?.hostname || "");
-      const isLocal = host === "localhost" || host === "127.0.0.1" || host === "[::1]";
-      const qs = new URLSearchParams(window.location?.search || "");
-      const optIn = qs.get("fsa") === "1" || window.localStorage?.getItem("modeler_enable_fsa") === "1";
-      return isLocal || optIn;
-    } catch {
-      return false;
-    }
+    return typeof window !== "undefined" && typeof window.showSaveFilePicker === "function";
   }
 
   async function withFocusRestore(fn) {

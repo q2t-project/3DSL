@@ -1,5 +1,5 @@
 // apps/modeler/ssot/runtime/persistDocument.js
-// SSOT for all persistence: Save / SaveAs (FSA only), Export (download only)
+// SSOT for persistence: Save/SaveAs (FSA only), Export (download only)
 export async function persistDocument({
   mode,              // "save" | "saveAs" | "export"
   payload,           // string (JSON)
@@ -12,7 +12,7 @@ export async function persistDocument({
     return { ok: false, reason: "empty-payload" };
   }
 
-  // --- Export: download only (data URL) ---
+  // Export: download only (data URL)
   if (mode === "export") {
     const name = filenameHint || "untitled.3dss.json";
     const url =
@@ -28,7 +28,7 @@ export async function persistDocument({
     return { ok: true };
   }
 
-  // --- Save / SaveAs: FSA only ---
+  // Save / SaveAs: FSA only
   if (!window.isSecureContext || !("showSaveFilePicker" in window)) {
     return { ok: false, reason: "fsa-unavailable" };
   }
