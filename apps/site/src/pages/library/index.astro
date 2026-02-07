@@ -66,6 +66,25 @@ function pickPublishedLabel(item) {
     </section>
 
   <script is:inline define:vars={{ ITEMS: items, ITEMS_PER_PAGE }}>
+    // Tag display policy (public Library cards)
+    // - document_meta.tags are scoped by prefix (s:/m:/x:)
+    // - for public UI we:
+    //   * show only meaning tags (m:*)
+    //   * hide reserved internal placement tags (m:top, m:default)
+    //   * render without the prefix (e.g. "m:concept" -> "concept")
+    const RESERVED_INTERNAL_TAGS = new Set(["m:top", "m:default"]);
+    function toDisplayTag(raw) {
+      const t = String(raw ?? "").trim();
+      if (!t) return null;
+      if (RESERVED_INTERNAL_TAGS.has(t)) return null;
+      const m = t.match(/^(s|m|x):(.+)$/);
+      if (!m) return t; // already user-facing
+      const prefix = m[1];
+      const body = m[2];
+      if (prefix !== "m") return null;
+      return body;
+    }
+
     function withReturn(url, ret) {
       const u = String(url || "");
       const r = String(ret || "");
@@ -127,12 +146,15 @@ function pickPublishedLabel(item) {
 
       function apply() {
         let filtered = ITEMS.filter((it) => {
+          const displayTags = (Array.isArray(it.tags) ? it.tags : [])
+            .map(toDisplayTag)
+            .filter((x) => typeof x === "string" && x.length > 0);
           const hay = (
             it.title +
             " " +
             (it.summary || "") +
             " " +
-            (it.tags || []).join(" ")
+            (displayTags || []).join(" ")
           ).toLowerCase();
           return hay.includes(query);
         });
@@ -175,8 +197,12 @@ function pickPublishedLabel(item) {
 
           const title = String(it.title || "");
           const summary = (it.summary || "").trim();
-          const tagsAll = Array.isArray(it.tags) ? it.tags : [];
-          const tickerText = [summary, ...tagsAll.map((t) => `#${t}`)].filter(Boolean).join(" · ");
+	          // Ticker must show summary only (tags are rendered elsewhere).
+	          const tickerText = summary;
+
+          const displayTags = (Array.isArray(it.tags) ? it.tags : [])
+            .map(toDisplayTag)
+            .filter((x) => typeof x === "string" && x.length > 0);
 
           const viewerUrl0 = String(it.viewer_url || "");
           const returnTo = (typeof window !== "undefined") ? (window.location.pathname + window.location.search) : "/library/";
@@ -201,7 +227,7 @@ function pickPublishedLabel(item) {
                     : ``}
               </div>
 
-              <div class="lib-ticker" data-scroll="false" aria-label="Summary and tags">
+	              <div class="lib-ticker" data-scroll="false" aria-label="Summary">
                 <span class="lib-ticker-track">
                   <span class="lib-ticker-seg lib-ticker-a">${escapeHtml(tickerText)}</span>
                   <span class="lib-ticker-gap"></span>
@@ -210,6 +236,19 @@ function pickPublishedLabel(item) {
               </div>
 
               <div class="lib-title">${escapeHtml(title)}</div>
+
+              ${Array.isArray(displayTags) && displayTags.length
+                ? (() => {
+                    const max = 8;
+                    const shown = displayTags.slice(0, max);
+                    const more = Math.max(0, displayTags.length - max);
+                    const pills = shown
+                      .map((t) => `<span class="lib-tag">${escapeHtml(t)}</span>`)
+                      .join("");
+                    const morePill = more > 0 ? `<span class="lib-tag lib-tag-more">+${more}</span>` : "";
+                    return `<div class="lib-tags">${pills}${morePill}</div>`;
+                  })()
+                : ""}
             </a>
 
             ${openHtml}
@@ -285,7 +324,6 @@ function updateTickers() {
 }
 
 window.addEventListener("resize", scheduleTickerUpdate, { passive: true });
-("resize", scheduleTickerUpdate, { passive: true });
       apply();
 
       function escapeHtml(s) {

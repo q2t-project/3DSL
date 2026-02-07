@@ -1,4 +1,6 @@
-# _meta.json フィールド辞書（SSOT）
+# `_meta.json` フィールド辞書（SSOT）
+
+（SSOT置き場: `packages/docs/docs/library/meta-fields.md`）
 
 このドキュメントは、`packages/3dss-content/library/<ID>/_meta.json` の **フィールド意味（SSOT）** を固定する。
 
@@ -42,7 +44,7 @@ _meta.json は **台帳**。表示メタ（title/summary/tags）やモデルの�
 
 #### `republished_at` (string, ISO 8601)
 - **更新日**
-- 公開後に、本文/SEO/権利/参照/添付/導線など「掲載要素」を更新したら更新する
+- 公開後に、テキスト/SEO/権利/参照/添付/導線など「掲載要素」を更新したら更新する
 - `published:false` の間は **キー自体を持たない**（`null` は作らない）
 
 ### 2.2 WANT（品質・運用・将来拡張）

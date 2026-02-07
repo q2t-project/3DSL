@@ -2,7 +2,6 @@
 // Migration helper for v1.1.4 planning:
 // - 3dss.json: document_meta.updated_at -> revised_at, add created_at, delete updated_at
 // - library _meta.json: updated_at -> republished_at (published only), add published_at (published only), delete updated_at
-// - library _docs/_meta.json.template: same key changes (keep published false, drop updated_at placeholder)
 //
 // NOTE: This script intentionally ignores generated mirrors (apps/site/public, docs_integrated, dist, etc).
 // Run from repo root: `node packages/3dss-content/scripts/migrate-v1.1.4.mjs [--apply]`
@@ -159,21 +158,6 @@ function migrateLibraryMeta(filePath, obj) {
   return { changed, notes };
 }
 
-function migrateMetaTemplate(filePath, obj) {
-  // Targets library/_docs/_meta.json.template
-  if (!isObject(obj)) return { changed: false, notes: ["not an object"] };
-  const notes = [];
-  let changed = false;
-
-  if (Object.prototype.hasOwnProperty.call(obj, "updated_at")) {
-    delete obj.updated_at;
-    notes.push("template: deleted updated_at placeholder");
-    changed = true;
-  }
-
-  // Keep published default false; do not add published_at/republished_at placeholders (avoid future confusion)
-  return { changed, notes };
-}
 
 function isUnder(p, rel) {
   const abs = path.resolve(p);
@@ -201,9 +185,6 @@ async function main() {
       rel.endsWith("/_meta.json") &&
       !rel.includes("/_docs/");
 
-    const isMetaTemplate =
-      rel === "packages/3dss-content/library/_docs/_meta.json.template";
-
     const is3dssJson =
       rel.endsWith(".3dss.json") &&
       (rel.startsWith("packages/3dss-content/scenes/") ||
@@ -211,14 +192,13 @@ async function main() {
         rel.startsWith("packages/3dss-content/library/") ||
         rel.startsWith("packages/3dss-content/scripts/"));
 
-    if (!isLibraryMeta && !isMetaTemplate && !is3dssJson) continue;
+    if (!isLibraryMeta && !is3dssJson) continue;
 
     const { obj, raw } = await readJson(filePath);
 
     let result = { changed: false, notes: [] };
 
     if (isLibraryMeta) result = migrateLibraryMeta(filePath, obj);
-    else if (isMetaTemplate) result = migrateMetaTemplate(filePath, obj);
     else if (is3dssJson) result = migrate3dssDocumentMeta(filePath, obj);
 
     if (result.changed) {

@@ -87,16 +87,9 @@ function extractModelUrlFromIndex(indexJson) {
 }
 
 async function pickDefaultModelUrl() {
-  // 1) library index (most stable in this project)
-  try {
-    const idx = await fetchJson(`/_data/library/library_index.json?t=${Date.now()}`);
-    const u = extractModelUrlFromIndex(idx);
-    if (u) return u;
-  } catch {}
-
-  // 2) known historical sample path (if present)
   return "/3dss/scenes/default/default.3dss.json";
 }
+
 
 function showFatal(err) {
   console.error(err);

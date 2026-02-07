@@ -17,7 +17,7 @@
   <script type="importmap">
     {
       "imports": {
-        "ajv": "/vendor/ajv/dist/ajv.bundle.js",
+        "ajv": "/vendor/ajv/dist/ajv.js",
         "three": "/vendor/three/build/three.module.js",
         "three/addons/": "/vendor/three/examples/jsm/"
       }
@@ -46,6 +46,8 @@
         <button class="btn" type="button" data-action="redo">Redo</button>
 
         <span class="topbar-spacer" aria-hidden="true"></span>
+
+        <button class="btn" type="button" data-action="tool-move">Move</button>
 
         <button class="btn" type="button" data-action="preview-out">Preview</button>
       </div>
@@ -189,17 +191,17 @@
                     <div class="prop-row">
                       <div class="prop-row-key">front</div>
                       <div class="prop-inline3">
-                        <input class="prop-input" type="number" step="0.1" data-role="prop-text-front-x" placeholder="x" />
-                        <input class="prop-input" type="number" step="0.1" data-role="prop-text-front-y" placeholder="y" />
-                        <input class="prop-input" type="number" step="0.1" data-role="prop-text-front-z" placeholder="z" />
+                        <input class="prop-input" type="number" step="1" data-role="prop-text-front-x" placeholder="x" />
+                        <input class="prop-input" type="number" step="1" data-role="prop-text-front-y" placeholder="y" />
+                        <input class="prop-input" type="number" step="1" data-role="prop-text-front-z" placeholder="z" />
                       </div>
                     </div>
                     <div class="prop-row">
                       <div class="prop-row-key">up</div>
                       <div class="prop-inline3">
-                        <input class="prop-input" type="number" step="0.1" data-role="prop-text-up-x" placeholder="x" />
-                        <input class="prop-input" type="number" step="0.1" data-role="prop-text-up-y" placeholder="y" />
-                        <input class="prop-input" type="number" step="0.1" data-role="prop-text-up-z" placeholder="z" />
+                        <input class="prop-input" type="number" step="1" data-role="prop-text-up-x" placeholder="x" />
+                        <input class="prop-input" type="number" step="1" data-role="prop-text-up-y" placeholder="y" />
+                        <input class="prop-input" type="number" step="1" data-role="prop-text-up-z" placeholder="z" />
                       </div>
                     </div>
                   </div>
@@ -310,17 +312,17 @@
                     <div class="prop-row">
                       <div class="prop-row-key">front</div>
                       <div class="prop-inline3">
-                        <input class="prop-input" type="number" step="0.1" data-role="prop-caption-text-front-x" placeholder="x" />
-                        <input class="prop-input" type="number" step="0.1" data-role="prop-caption-text-front-y" placeholder="y" />
-                        <input class="prop-input" type="number" step="0.1" data-role="prop-caption-text-front-z" placeholder="z" />
+                        <input class="prop-input" type="number" step="1" data-role="prop-caption-text-front-x" placeholder="x" />
+                        <input class="prop-input" type="number" step="1" data-role="prop-caption-text-front-y" placeholder="y" />
+                        <input class="prop-input" type="number" step="1" data-role="prop-caption-text-front-z" placeholder="z" />
                       </div>
                     </div>
                     <div class="prop-row">
                       <div class="prop-row-key">up</div>
                       <div class="prop-inline3">
-                        <input class="prop-input" type="number" step="0.1" data-role="prop-caption-text-up-x" placeholder="x" />
-                        <input class="prop-input" type="number" step="0.1" data-role="prop-caption-text-up-y" placeholder="y" />
-                        <input class="prop-input" type="number" step="0.1" data-role="prop-caption-text-up-z" placeholder="z" />
+                        <input class="prop-input" type="number" step="1" data-role="prop-caption-text-up-x" placeholder="x" />
+                        <input class="prop-input" type="number" step="1" data-role="prop-caption-text-up-y" placeholder="y" />
+                        <input class="prop-input" type="number" step="1" data-role="prop-caption-text-up-z" placeholder="z" />
                       </div>
                     </div>
                   </div>

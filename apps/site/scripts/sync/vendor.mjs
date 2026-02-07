@@ -2,7 +2,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { mkdir, cp, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import esbuild from "esbuild";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const siteRoot = path.resolve(__dirname, "..", "..");
@@ -32,64 +31,62 @@ function mustExistFile(p, hint) {
 
 mustExistDir(src);
 
-// Ajv is sourced from apps/site/node_modules to avoid committing large build artifacts
-// under packages/vendor. It is still mirrored into /public/vendor for runtime use.
-const ajvSrcDist = path.resolve(siteRoot, "node_modules", "ajv", "dist");
-mustExistDir(ajvSrcDist);
-mustExistFile(
-  path.resolve(ajvSrcDist, "ajv.js"),
-  "[sync] run: npm --prefix apps/site ci",
-);
-
-// Ajv-formats (optional but used by some schemas)
-const ajvFormatsSrcDist = path.resolve(siteRoot, "node_modules", "ajv-formats", "dist");
-mustExistDir(ajvFormatsSrcDist);
-mustExistFile(
-  path.resolve(ajvFormatsSrcDist, "ajv-formats.js"),
-  "[sync] run: npm --prefix apps/site ci",
-);
+// Ajv is bundled for browser use.
+// NOTE: node_modules/ajv/dist/ajv.js is CommonJS and cannot be imported directly in browser ESM.
+// We generate /public/vendor/ajv/dist/ajv.bundle.js (IIFE) + a small ESM shim at /public/vendor/ajv/dist/ajv.js.
+const ajvPkgDir = path.resolve(siteRoot, "node_modules", "ajv");
+mustExistDir(ajvPkgDir);
+const hasAjvFormats = existsSync(path.resolve(siteRoot, "node_modules", "ajv-formats"));
 
 // rm first to prevent stale vendor files
 await rm(dst, { recursive: true, force: true });
 await mkdir(path.dirname(dst), { recursive: true });
 await cp(src, dst, { recursive: true, force: true });
 
-// Overwrite Ajv dist with the node_modules build.
+// Bundle Ajv for browser runtime.
+const ajvDstDist = path.resolve(dst, "ajv", "dist");
 await rm(path.resolve(dst, "ajv"), { recursive: true, force: true });
-await mkdir(path.resolve(dst, "ajv", "dist"), { recursive: true });
-await cp(ajvSrcDist, path.resolve(dst, "ajv", "dist"), { recursive: true, force: true });
+await mkdir(ajvDstDist, { recursive: true });
 
-// Bundle Ajv for browser ESM import.
-// - ajv/dist/ajv.js from node_modules is CJS; browsers cannot import it directly.
-// - we keep ajv.js for debugging, but runtime import should use ajv.bundle.js.
-await esbuild.build({
-  entryPoints: [path.resolve(ajvSrcDist, "ajv.js")],
-  outfile: path.resolve(dst, "ajv", "dist", "ajv.bundle.js"),
+const { build } = await import("esbuild");
+
+const entry = [
+  'import Ajv from "ajv";',
+  hasAjvFormats ? 'import addFormats from "ajv-formats";' : '',
+  'globalThis.Ajv = Ajv;',
+  hasAjvFormats ? 'globalThis.AjvAddFormats = addFormats;' : 'globalThis.AjvAddFormats = null;',
+  // also keep a convenience factory
+  'globalThis.__createAjv = function createAjv(opts){',
+  '  const a = new Ajv(opts || {});',
+  '  if (globalThis.AjvAddFormats) globalThis.AjvAddFormats(a);',
+  '  return a;',
+  '};',
+].filter(Boolean).join("\n");
+
+await build({
   bundle: true,
-  format: "esm",
-  platform: "browser",
-  sourcemap: false,
   minify: true,
+  sourcemap: false,
+  platform: "browser",
+  target: ["es2019"],
+  format: "iife",
+  outfile: path.resolve(ajvDstDist, "ajv.bundle.js"),
+  stdin: {
+    contents: entry,
+    resolveDir: siteRoot,
+    sourcefile: "ajv-bundle-entry.js",
+  },
 });
 
-// Mirror + bundle ajv-formats as ESM.
-await rm(path.resolve(dst, "ajv-formats"), { recursive: true, force: true });
-await mkdir(path.resolve(dst, "ajv-formats", "dist"), { recursive: true });
-await cp(ajvFormatsSrcDist, path.resolve(dst, "ajv-formats", "dist"), { recursive: true, force: true });
-await esbuild.build({
-  entryPoints: [path.resolve(ajvFormatsSrcDist, "ajv-formats.js")],
-  outfile: path.resolve(dst, "ajv-formats", "dist", "ajv-formats.bundle.js"),
-  bundle: true,
-  format: "esm",
-  platform: "browser",
-  sourcemap: false,
-  minify: true,
-});
-
-// Create a stable "dist" marker for runtime troubleshooting.
+// ESM shim: allows `import("/vendor/ajv/dist/ajv.js")` to work in browser.
 await writeFile(
-  path.resolve(dst, "ajv", "dist", "__build_marker.txt"),
-  `builtAt=${new Date().toISOString()}\n`,
+  path.resolve(ajvDstDist, "ajv.js"),
+  [
+    'import "./ajv.bundle.js";',
+    'export default globalThis.Ajv;',
+    'export const Ajv = globalThis.Ajv;',
+    'export const addFormats = globalThis.AjvAddFormats;',
+  ].join("\n") + "\n",
   "utf8",
 );
 

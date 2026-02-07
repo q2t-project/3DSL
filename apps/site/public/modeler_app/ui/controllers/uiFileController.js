@@ -9,19 +9,31 @@
 // - Fallback: download when FSA is unavailable or fails
 
 function dl(name, text) {
-  const b = new Blob([text], { type: "application/json" });
-  const u = URL.createObjectURL(b);
+  const s = String(text ?? "");
+  if (!s) throw new Error("dl: empty text");
+
+  // Prefer data: URL to avoid Blob URL revoke timing races that can yield 0-byte files.
+  // Data URL size limits vary; keep a conservative fallback threshold.
+  const bytes = new TextEncoder().encode(s).length;
+  const useDataUrl = bytes <= 1_500_000; // ~1.5MB
   const a = document.createElement("a");
-  a.href = u;
   a.download = name;
   a.rel = "noopener";
   a.style.display = "none";
+
+  if (useDataUrl) {
+    a.href = "data:application/json;charset=utf-8," + encodeURIComponent(s);
+  } else {
+    const b = new Blob([s], { type: "application/json" });
+    const u = URL.createObjectURL(b);
+    a.href = u;
+    // Cleanup later; not immediate.
+    setTimeout(() => { try { URL.revokeObjectURL(u); } catch {} }, 120_000);
+  }
+
   document.body.appendChild(a);
-  a.click();
-  setTimeout(() => {
-    try { URL.revokeObjectURL(u); } catch {}
-    try { a.remove(); } catch {}
-  }, 0);
+  try { a.click(); } catch { try { a.dispatchEvent(new MouseEvent("click")); } catch {} }
+  a.remove();
 }
 
 function reportErr(prefix, err) {
@@ -280,28 +292,39 @@ function syncTitle() {
   }
 
   async function writeToHandle(handle, jsonText) {
-    const text = String(jsonText ?? "");
-    if (!text) throw new Error("writeToHandle: empty jsonText");
+  const text = String(jsonText ?? "");
+  if (!text) throw new Error("writeToHandle: empty jsonText");
 
-    // Prefer a Blob write with an explicit write op. Some environments have shown
-    // silent 0-byte results with string writes.
-    const blob = new Blob([text], { type: "application/json" });
-    console.log("[file] write blob bytes=", blob.size, "name=", handle?.name || "(no name)");
+  const blob = new Blob([text], { type: "application/json" });
+  const expected = blob.size;
 
-    const writable = await handle.createWritable();
-    await writable.write({ type: "write", position: 0, data: blob });
-    await writable.close();
-
-    // Verify the written size; if it is 0, treat as failure and let caller fallback.
-    try {
-      const f = await handle.getFile();
-      console.log("[file] wrote bytes=", f?.size ?? -1, "name=", f?.name || handle?.name || "(no name)");
-      if ((f?.size ?? 0) === 0) throw new Error("writeToHandle: wrote 0 bytes");
-    } catch (e) {
-      // Re-throw so callers can fallback to download.
-      throw e;
+  async function verifySize() {
+    const f = await handle.getFile();
+    const size = f?.size ?? 0;
+    if (size !== expected) {
+      throw new Error(`writeToHandle: size mismatch expected=${expected} actual=${size}`);
     }
   }
+
+  // Non-destructive overwrite: write from position 0, then truncate to final size.
+  // This avoids the "truncate first -> 0-byte file left behind" failure mode.
+  let writable = await handle.createWritable({ keepExistingData: true });
+  try {
+    try {
+      await writable.write({ type: "write", position: 0, data: blob });
+    } catch (e) {
+      // Some implementations may not support the structured write; retry with a simple write.
+      await writable.write(blob);
+    }
+    await writable.truncate(expected);
+    await writable.close();
+  } catch (e) {
+    try { await writable.abort(); } catch {}
+    throw e;
+  }
+
+  await verifySize();
+}
 
   async function pickSaveHandle({ suggestedName }) {
     // @ts-ignore
@@ -323,149 +346,81 @@ function syncTitle() {
     if (!doc) { setHud("Save blocked: no document"); return; }
     if (ensureEditsApplied && !ensureEditsApplied()) { setHud("Save blocked: apply edits first"); return; }
 
-    if (!ensureStrictOk(doc)) return;
-
-    const jsonText = JSON.stringify(doc, null, 2);
+    let jsonText = JSON.stringify(doc, null, 2);
+    if (typeof jsonText !== "string" || jsonText.length === 0) {
+      throw new Error("Export produced empty JSON");
+    }
     console.log("[file] json chars=", jsonText ? jsonText.length : 0, "act=", act);
 
     // --- Export ---
-    if (act === "export") {
-      // Prefer FSA when available; fallback to download.
-      if (canUseSaveFsa()) {
-        try {
-          const suggestedName = defaultExportName();
-          let handle;
-          try {
-            handle = await withFocusRestore(() => pickSaveHandle({ suggestedName }));
-          } catch (err) {
-            // User cancelled the picker: treat as normal.
-            if (isAbortError(err)) {
-              setHud("Export cancelled");
-              return;
-            }
-            reportErr(`[file] ${act} picker failed`, err);
-            // Picker failed for a non-cancel reason: fallback to download.
-            // Policy: export may mark clean.
-            dl(suggestedName, jsonText);
-            core?.markClean?.();
-            syncTitle();
-            setHud(`Exported (download): ${suggestedName}`);
-            return;
-          }
-          if (!handle) {
-            setHud("Cancelled");
-            return;
-          }
-          await writeToHandle(handle, jsonText);
-          core?.markClean?.(); // policy: Export resolves dirty
-          syncTitle();
-          setHud(`Exported: ${handle?.name || suggestedName}`);
-          return;
-        } catch (e) {
-          if (isAbortError(e)) {
-            setHud("Export cancelled");
-            return;
-          }
-          // fallback: download
-          const fn = defaultExportName();
-          dl(fn, jsonText);
-          core?.markClean?.(); // policy
-          syncTitle();
-          setHud(`Exported (download): ${fn}`);
-          return;
-        }
-      }
+if (act === "export") {
+  if (!doc) throw new Error("No document");
 
-      const fn = defaultExportName();
-      dl(fn, jsonText);
-      core?.markClean?.();
-      syncTitle();
-      setHud(`Exported (download): ${fn}`);
-      return;
-    }
+  await core.ensureValidatorInitialized?.();
+  if (!ensureStrictOk(doc)) {
+    setHud("Export blocked: schema invalid");
+    return;
+  }
+
+  const h = core.getSaveHandle?.() || null;
+  const base = core.getSuggestedSaveName?.() || "untitled";
+  const fn = (h?.name && typeof h.name === "string" && h.name.length > 0)
+    ? h.name
+    : `${base}.3dss.json`;
+
+  dl(fn, jsonText);
+  setHud(`Exported (download): ${fn}`);
+  return;
+}
+
 
     // --- Save / SaveAs ---
     if (act === "save" || act === "saveas") {
-      // FSA path
-      if (canUseSaveFsa()) {
-        // Save: try existing handle first
-        if (act === "save") {
-          const handle = core?.getSaveHandle?.();
-          if (handle) {
-            try {
-              await writeToHandle(handle, jsonText);
-              core?.setSaveLabel?.(handle?.name || defaultSaveName());
-              core?.markClean?.();
-              syncTitle();
-              setHud(`Saved: ${handle?.name || defaultSaveName()}`);
-              return;
-            } catch (e) {
-              // If overwrite failed, fall through to SaveAs
-              core?.clearSaveHandle?.();
-              if (!isAbortError(e)) setHud(`Save failed; trying Save As...`);
-            }
-          }
-        }
+      if (!doc) throw new Error("No document");
+      const suggestedName = `${core.getSuggestedSaveName?.() || "untitled"}.3dss.json`;
+      const canFsa = canUseSaveFsa();
 
-        // SaveAs (or Save fallback)
-        try {
-          const suggestedName = defaultSaveName();
-          let handle;
+      let handle = core.getSaveHandle?.() || null;
+
+      // Save As (or first Save) needs a picker. Do it BEFORE any awaited work so user activation is preserved.
+      if (act === "saveas" || (act === "save" && !handle)) {
+        if (canFsa) {
           try {
             handle = await withFocusRestore(() => pickSaveHandle({ suggestedName }));
-          } catch (err) {
-            // User cancelled the picker: treat as normal.
-            if (isAbortError(err)) {
+          } catch (e) {
+            if (e && (e.name === "AbortError" || e.code === 20)) {
               setHud(act === "saveas" ? "Save As cancelled" : "Save cancelled");
               return;
             }
-            reportErr(`[file] ${act} picker failed`, err);
-            // Picker failed for a non-cancel reason: fallback to download.
-            // Still a "save" from user's perspective.
-            dl(suggestedName, jsonText);
-            core?.setSaveHandle?.(null, "");
-            core?.markClean?.();
-            syncTitle();
-            setHud(`Saved (download): ${suggestedName}`);
-            return;
+            throw e;
           }
-          if (!handle) {
-            setHud("Cancelled");
-            return;
-          }
-          await writeToHandle(handle, jsonText);
-          core?.setSaveHandle?.(handle, handle?.name || suggestedName);
-          core?.markClean?.();
-          syncTitle();
-          setHud(act === "saveas" ? `Saved As: ${handle?.name || suggestedName}` : `Saved: ${handle?.name || suggestedName}`);
-          return;
-        } catch (e) {
-          if (isAbortError(e)) {
-            setHud(act === "saveas" ? "Save As cancelled" : "Save cancelled");
-            return;
-          }
-          // fall through to download fallback
-          setHud(`Save failed; using download fallback`);
-        }
+} else {
+  setHud(act === "saveas" ? "Save As unavailable: FSA not supported" : "Save unavailable: FSA not supported");
+  return;
+}
       }
 
-      // download fallback (no FSA or failed)
-      let fn = defaultSaveName();
-      // For SaveAs without FSA, allow naming.
-      if (act === "saveas") {
-        const name = window.prompt("Save As filename (.json)", fn);
-        if (name == null) {
-          setHud("Save As cancelled");
-          return;
-        }
-        fn = buildSuggestedName({ base: name, kind: "save" });
+      await core.ensureValidatorInitialized?.();
+      if (!ensureStrictOk(doc)) {
+        setHud(act === "saveas" ? "Save As blocked: schema invalid" : "Save blocked: schema invalid");
+        return;
       }
-      dl(fn, jsonText);
-      core?.setSaveLabel?.(fn);
-      core?.clearSaveHandle?.();
-      core?.markClean?.();
-      syncTitle();
-      setHud(act === "saveas" ? `Saved As (download): ${fn}` : `Saved (download): ${fn}`);
+
+      if (canFsa && handle) {
+        try {
+          await writeToHandle(handle, jsonText);
+          core.setSaveHandle?.(handle);
+          setHud(act === "saveas" ? `Saved As: ${handle?.name || suggestedName}` : `Saved: ${handle?.name || suggestedName}`);
+          core.setDirty?.(false);
+          return;
+} catch (e) {
+  console.error("[file] save write failed", e);
+  setHud(act === "saveas" ? "Save As failed" : "Save failed");
+  return;
+}
+      }
+
+      setHud(act === "saveas" ? "Save As unavailable" : "Save unavailable");
       return;
     }
 

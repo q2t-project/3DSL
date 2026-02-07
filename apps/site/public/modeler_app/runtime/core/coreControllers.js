@@ -13,77 +13,18 @@
 let Ajv = globalThis?.Ajv;
 let AjvAddFormats = null;
 if (!Ajv) {
-  // Vendor philosophy (same as Viewer): shared vendor assets live at the
-  // site-root (/vendor/**). Do NOT use relative fallbacks here.
-  // Relative URLs are resolved under /modeler_app/** and cause 404 spam like:
-  //   /modeler_app/vendor/ajv/dist/ajv.js
-  // which is not where shared vendors are hosted.
-  const urls = [
-    "/vendor/ajv/dist/ajv.bundle.js",
-    "/vendor/ajv/dist/ajv.js",
-  ];
-  let lastErr = null;
-  let lastUrl = "";
-  for (const u of urls) {
-    try {
-      const mod = await import(u);
-      Ajv = mod?.default ?? mod?.Ajv ?? mod;
-      AjvAddFormats = mod?.addFormats ?? mod?.default?.addFormats ?? null;
-      if (Ajv) break;
-    } catch (e) {
-      lastErr = e;
-      lastUrl = String(u || "");
-    }
-  }
-  if (!Ajv) {
-    Ajv = null;
-    try {
-      globalThis.__modelerAjvLoadError = {
-        url: lastUrl || "/vendor/ajv/dist/ajv.js",
-        message: lastErr ? String(lastErr?.message || lastErr) : "",
-      };
-    } catch {}
-  }
-}
-
-async function ensureAjvLoaded() {
-  if (Ajv) return true;
-
-  // 1) Prefer importmap alias ("ajv") when available.
+  // IMPORTANT (policy alignment with viewer):
+  // - Prefer a single canonical vendor location: /vendor/ajv/dist/ajv.js
+  // - If it is missing (e.g. modeler-only deploy without vendor sync), we *must not*
+  //   crash the runtime. We will run in "no validation" mode with a warning.
   try {
-    const mod = await import("ajv");
-    Ajv = mod?.default || mod?.Ajv || mod;
-  } catch (_) {}
-
-  // 2) Fallback: load vendor copy (UMD/CJS) and pick up global exports under globalThis.ajv.
-  if (!Ajv) {
-    try {
-      // Prefer ESM bundle when present.
-      const mod = await import("/vendor/ajv/dist/ajv.bundle.js");
-      Ajv = mod?.default || mod?.Ajv || mod;
-    } catch (_) {}
+    const mod = await import("/vendor/ajv/dist/ajv.js");
+    Ajv = mod?.default ?? mod?.Ajv ?? mod;
+    AjvAddFormats = mod?.addFormats ?? mod?.default?.addFormats ?? null;
+  } catch {
+    Ajv = null;
   }
-
-  // 3) Last resort: load vendor copy (UMD/CJS) and pick up global exports under globalThis.ajv.
-  if (!Ajv) {
-    try {
-      await import("/vendor/ajv/dist/ajv.js");
-      const g = globalThis.ajv;
-      Ajv = g?.default || g?.Ajv || g;
-    } catch (_) {}
-  }
-
-  // Formats are optional for our validation gate.
-  if (typeof AjvAddFormats !== "function") {
-    AjvAddFormats = (ajvInstance) => ajvInstance;
-  }
-
-  if (Ajv && !globalThis.Ajv) globalThis.Ajv = Ajv;
-  if (AjvAddFormats && !globalThis.AjvAddFormats) globalThis.AjvAddFormats = AjvAddFormats;
-
-  return !!Ajv;
 }
-
 
 // strict validator helpers (copied/simplified from viewer runtime)
 // ------------------------------------------------------------
@@ -423,23 +364,25 @@ export function createCoreControllers(emitter) {
           }
           return res.json();
         })
-        .then(async (schemaJson) => {
+        .then((schemaJson) => {
           schemaJsonCache = schemaJson;
+          // Always extract schema info so we can at least verify version/schema_uri,
+          // even when Ajv isn't available (standalone hosting, vendor missing, etc.).
+          schemaInfo = extractSchemaInfo(schemaJson);
 
-          await ensureAjvLoaded();
           if (!Ajv) {
-            // Do not hard-fail the whole app; skip strict validation when Ajv is missing.
-            console.warn(
-              "validator.init: Ajv is unavailable; skipping schema validation (check /vendor/ajv/dist/ajv.bundle.js or /vendor/ajv/dist/ajv.js)."
-            );
+            // No Ajv -> validation is disabled. Keep runtime usable and let UI show warnings.
+            // NOTE: this is intentionally non-fatal; Save/Export will fall back to
+            // version/schema_uri checks only.
+            console.warn("Ajv is unavailable; skipping JSON Schema validation.");
+            ajv = null;
             validateFn = null;
             validatePruneFn = null;
-            schemaInfo = extractSchemaInfo(schemaJson);
             lastStrictErrors = null;
             return;
           }
 
-          const ajv = new Ajv({
+          ajv = new Ajv({
             allErrors: true,
             strict: true,
             strictSchema: false,
@@ -453,11 +396,8 @@ export function createCoreControllers(emitter) {
 
           // Optional: enable JSON Schema "format" when available (ajv-formats).
           if (typeof AjvAddFormats === "function") {
-            try {
-              AjvAddFormats(ajv);
-            } catch {}
+            try { AjvAddFormats(ajv); } catch {}
           }
-
           validateFn = ajv.compile(schemaJson);
 
           // A prune validator used for import: strips additional properties wherever schema disallows them.
@@ -474,34 +414,31 @@ export function createCoreControllers(emitter) {
               coerceTypes: false,
             });
             if (typeof AjvAddFormats === "function") {
-              try {
-                AjvAddFormats(ajvPrune);
-              } catch {}
+              try { AjvAddFormats(ajvPrune); } catch {}
             }
             validatePruneFn = ajvPrune.compile(schemaJson);
           } catch {
             validatePruneFn = null;
           }
 
-          schemaInfo = extractSchemaInfo(schemaJson);
-          lastStrictErrors = null;
+	        lastStrictErrors = null;
         });
     }
     return validatorInitPromise;
   }
 
   function validateStrict(doc) {
-    // Modeler/Viewer philosophy: validation is best-effort.
-    // If AJV cannot be loaded (missing vendor, blocked import, etc.),
-    // do NOT hard-fail critical user actions (Open/Save/Export).
-    if (!validateFn) {
-      lastStrictErrors = null;
-      return true;
-    }
     lastStrictErrors = null;
+    const ver = checkVersionAndSchemaUri(doc, schemaInfo);
+
+    // If Ajv is unavailable, we can only enforce schema_uri/version consistency.
+    if (!validateFn) {
+      if (!ver.ok) lastStrictErrors = [...ver.errors];
+      return ver.ok;
+    }
+
     const ok = validateFn(doc);
     const ajvErrors = validateFn.errors || [];
-    const ver = checkVersionAndSchemaUri(doc, schemaInfo);
     if (!ok || !ver.ok) {
       lastStrictErrors = [...ajvErrors, ...ver.errors];
       return false;

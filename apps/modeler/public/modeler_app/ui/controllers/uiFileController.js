@@ -286,12 +286,38 @@ function syncTitle() {
   }
 
   async function writeToHandle(handle, jsonText) {
-    const writable = await handle.createWritable();
-    await writable.write(jsonText);
+  const text = String(jsonText ?? "");
+  if (!text) throw new Error("writeToHandle: empty jsonText");
+
+  // Non-destructive overwrite:
+  // - keepExistingData:true to avoid early truncate-to-zero
+  // - write at position 0
+  // - truncate to final length (removes tail if shorter than old file)
+  // - verify size
+  // @ts-ignore
+  const writable = await handle.createWritable({ keepExistingData: true });
+  try {
+    // @ts-ignore
+    await writable.write({ type: "write", position: 0, data: text });
+    await writable.truncate(text.length);
     await writable.close();
+  } catch (e) {
+    try { await writable.abort(); } catch {}
+    throw e;
   }
 
-  async function pickSaveHandle({ suggestedName }) {
+  try {
+    const f = await handle.getFile();
+    if ((f?.size ?? 0) !== text.length) {
+      throw new Error(`writeToHandle: size mismatch (got ${f?.size ?? 0}, expected ${text.length})`);
+    }
+  } catch (e) {
+    // If getFile is unavailable or inconsistent, surface as failure so caller can handle.
+    throw e;
+  }
+}
+
+async function pickSaveHandle({ suggestedName }) {
     // @ts-ignore
     const handle = await window.showSaveFilePicker({
       suggestedName,

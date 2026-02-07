@@ -1167,24 +1167,19 @@ function draftDiscard({ reason = "" } = {}) {
    * @returns {boolean} true if it is safe to proceed.
    */
   function ensureEditsAppliedOrConfirm({ reason = "" } = {}) {
-    // Only drafting (unapplied buffer-dirty) needs resolution here.
-    if (!dirty || draftState !== DraftState.DRAFTING) return true;
+  // Only drafting (unapplied buffer-dirty) needs resolution here.
+  if (!dirty || draftState !== DraftState.DRAFTING) return true;
 
-    const why = reason ? `\n\nReason: ${String(reason)}` : "";
-    const apply = window.confirm(`You have unapplied property edits. Apply them now?${why}\n\nOK = Apply\nCancel = More options`);
-    if (apply) {
-      applyActiveEdits();
-      return true;
-    }
+  // UX policy: never block with confirm dialogs during editing.
+  // Resolve silently. Prefer Apply; if Apply fails, Discard.
+  try {
+    const ok = applyActiveEdits();
+    if (ok) return true;
+  } catch {}
 
-    const discard = window.confirm("Discard unapplied edits?\n\nOK = Discard\nCancel = Stay here");
-    if (discard) {
-      draftDiscard({ reason: reason || "discard" });
-      return true;
-    }
-
-    return false;
-  }
+  try { draftDiscard({ reason: reason || "auto-discard" }); } catch {}
+  return true;
+}
 
   function onAnyInput() {
     if (!active) return;

@@ -102,7 +102,7 @@ body {
 .model-log-label--layers { border-color: #eedd3d; }
 .model-log-label--frame  { border-color: #d13dee; }
 
-/* 本文 */
+/* テキスト */
 .model-log-text {
   line-height: 1.4;
 }
