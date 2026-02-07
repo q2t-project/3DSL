@@ -9,32 +9,46 @@
 // - Fallback: download when FSA is unavailable or fails
 
 function dl(name, text) {
-  const b = new Blob([text], { type: "application/json" });
-  const u = URL.createObjectURL(b);
+  const payload = String(text ?? "");
+  if (!payload) throw new Error("dl: empty payload");
+
+  // Root cause (0-byte downloads observed): Blob URL + early revoke and/or
+  // backend timing quirks. For small payloads, prefer a data: URL (no revoke,
+  // no blob consumption race). For large payloads, use blob URL with delayed
+  // cleanup.
+  const SMALL_LIMIT = 2 * 1024 * 1024; // 2MB
+  const isSmall = payload.length <= SMALL_LIMIT;
+
   const a = document.createElement("a");
-  a.href = u;
   a.download = name;
   a.rel = "noopener";
   a.style.display = "none";
   document.body.appendChild(a);
 
-  // NOTE: Some environments can produce a 0-byte download if we revoke the
-  // object URL too early. Do not revoke immediately; delay cleanup.
-  // (A tiny leak is preferable to corrupting the user's file.)
+  let blobUrl = null;
+  if (isSmall) {
+    a.href = `data:application/json;charset=utf-8,${encodeURIComponent(payload)}`;
+  } else {
+    const b = new Blob([payload], { type: "application/json" });
+    blobUrl = URL.createObjectURL(b);
+    a.href = blobUrl;
+  }
+
   try {
-    // Prefer a trusted click path.
     a.click();
   } catch {
-    // Fallback for some browsers.
     try { a.dispatchEvent(new MouseEvent("click")); } catch {}
   }
 
-  // Cleanup: wait long enough for the browser to fully consume the blob.
-  // 60s is conservative but still bounded.
+  // Cleanup:
+  // - data: URL: nothing to revoke
+  // - blob URL: delay revocation generously (avoid race)
   setTimeout(() => {
-    try { URL.revokeObjectURL(u); } catch {}
+    if (blobUrl) {
+      try { URL.revokeObjectURL(blobUrl); } catch {}
+    }
     try { a.remove(); } catch {}
-  }, 60_000);
+  }, blobUrl ? 120_000 : 0);
 }
 
 function reportErr(prefix, err) {
@@ -155,6 +169,7 @@ export function createUiFileController(deps) {
   const { fileLabel, btnSave, btnSaveAs, btnExport, qcPanel, qcSummary, qcList } = elements || {};
   let extraDirty = null;
   let invoker = null;
+  let ioBusy = false;
 
   function defaultSaveName() {
     // Prefer the last known file label/handle name.
@@ -302,14 +317,25 @@ function syncTitle() {
     console.log("[file] write blob bytes=", blob.size, "name=", handle?.name || "(no name)");
 
     async function writeOnce(mode) {
-      // keepExistingData:false is the safest for overwrites when supported.
+      // CRITICAL:
+      // Some backends truncate the file at createWritable({keepExistingData:false})
+      // BEFORE the first write. If a later step silently fails, the user is left
+      // with a 0-byte file.
+      //
+      // To make failures non-destructive, keep existing data until we've written
+      // the full payload, then explicitly truncate to the new size.
       // @ts-ignore
-      const writable = await handle.createWritable({ keepExistingData: false });
-      if (mode === "blob") {
-        await writable.write(blob);
-      } else {
-        await writable.write(text);
-      }
+      const writable = await handle.createWritable({ keepExistingData: true });
+      const data = (mode === "blob") ? blob : text;
+
+      // Use an explicit position write to ensure overwrite from start.
+      // @ts-ignore
+      await writable.write({ type: "write", position: 0, data });
+
+      // Ensure no tail remains if the new payload is shorter.
+      const newSize = (mode === "blob") ? blob.size : (new Blob([text]).size);
+      // @ts-ignore
+      await writable.truncate(newSize);
       await writable.close();
     }
 
@@ -350,6 +376,12 @@ function syncTitle() {
   }
 
   async function handleFileAction(action, { ensureEditsApplied, getFallbackDocument } = {}) {
+    if (ioBusy) {
+      setHud("File I/O in progress...");
+      return;
+    }
+    ioBusy = true;
+    try {
     const act = String(action || "").toLowerCase();
     // Prefer core document; fall back to a hub-provided cache when available.
     // This keeps Save/Export usable even if the UI is currently driven by hub events.
@@ -481,6 +513,9 @@ function syncTitle() {
 
     // Unknown action
     setHud(`Unknown file action: ${act}`);
+  } finally {
+    ioBusy = false;
+  }
   }
 
   function attachBeforeUnload({ signal } = {}) {
