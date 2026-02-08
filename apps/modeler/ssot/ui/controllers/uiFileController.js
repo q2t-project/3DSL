@@ -273,19 +273,20 @@ function syncTitle() {
   // Any `await` before invoking them can break the gesture and make SaveAs/Export
   // appear to do nothing.
   function ensureStrictOk(doc) {
-    // UI policy (Modeler Beta I/O): Save/SaveAs/Export are *strictly* gated.
-    // core.validateStrict() is best-effort (it returns true when AJV isn't loaded),
-    // so we must explicitly require the validator to be ready.
-    const ready = !!core?.isValidatorReady?.();
-    if (!ready) {
-      // Kick off initialization (best-effort), but don't await.
-      try { core.ensureValidatorInitialized?.(); } catch {}
-      showStrictErrors([{ message: "AJV validator is unavailable (vendor not loaded)." }]);
-      setHud("Validation unavailable: cannot save/export");
-      return false;
-    }
+  // UI policy:
+  // - When validator is ready: strictly gate Save/SaveAs/Export.
+  // - When validator is NOT ready (vendor missing): DO NOT block persistence.
+  //   Blocking after the user already picked a file can leave a 0-byte file behind.
+  const ready = !!core?.isValidatorReady?.();
+  if (!ready) {
+    // Best-effort init (don't await here; keep UX responsive).
+    try { core.ensureValidatorInitialized?.(); } catch {}
+    setHud("Validation unavailable (AJV not loaded): saving/exporting anyway");
+    return true;
+  }
 
-    const ok = !!core.validateStrict?.(doc);
+  const ok = !!core.validateStrict?.(doc);
+
     if (ok) return true;
     showStrictErrors(core.getStrictErrors?.() ?? []);
     setHud("Validation failed: fix issues before saving");
@@ -366,31 +367,36 @@ function syncTitle() {
 
     // --- Export ---
     if (act === "export") {
-      // Export is FSA-only to avoid Chrome/Windows download 0-byte issues.
+      // Export: prefer File System Access API when available; otherwise download.
       if (!doc) throw new Error("No document");
-      const suggestedName = `${(core.getSuggestedSaveName?.() || "export")}.3dss.json`;
+      const suggestedName = `${(core.getSuggestedSaveName?.() || "export")}.3dss.export.json`;
 
       const canFsa = canUseSaveFsa();
-      if (!canFsa) {
-        setHud("Export unavailable: File System Access API not supported");
-        return;
-      }
-
       let handle = null;
-      // showSaveFilePicker must be invoked under user activation.
-      try {
-        handle = await withFocusRestore(() => pickSaveHandle({ suggestedName }));
-      } catch (e) {
-        if (e && (e.name === "AbortError" || e.code === 20)) {
-          setHud("Export cancelled");
-          return;
-        }
-        throw e;
-      }
 
+      // IMPORTANT: showSaveFilePicker must be invoked under user activation.
       await core.ensureValidatorInitialized?.();
       if (!ensureStrictOk(doc)) {
         setHud("Export blocked: schema invalid");
+        return;
+      }
+
+      if (canFsa) {
+        try {
+          handle = await withFocusRestore(() => pickSaveHandle({ suggestedName }));
+        } catch (e) {
+          if (e && (e.name === "AbortError" || e.code === 20)) {
+            setHud("Export cancelled");
+            return;
+          }
+          throw e;
+        }
+      }
+
+      if (!canFsa || !handle) {
+        const fn = suggestedName;
+        dl(fn, jsonText);
+        setHud(`Exported (download): ${fn}`);
         return;
       }
 
@@ -398,13 +404,18 @@ function syncTitle() {
         await writeToHandle(handle, jsonText);
         setHud(`Exported: ${handle?.name || suggestedName}`);
       } catch (e) {
-        console.error("[file] export write failed", e);
-        setHud("Export failed");
+        // File System Access can occasionally produce a 0-byte file depending on
+        // backend / permissions. Fall back to download so the user isn't left
+        // with an empty file.
+        console.error("[file] export write failed; fallback to download", e);
+        const fn = suggestedName;
+        dl(fn, jsonText);
+        setHud(`Exported (download fallback): ${fn}`);
       }
       return;
     }
 
-// --- Save / SaveAs ---
+    // --- Save / SaveAs ---
     if (act === "save" || act === "saveas") {
       if (!doc) throw new Error("No document");
       const suggestedName = `${core.getSuggestedSaveName?.() || "untitled"}.3dss.json`;
@@ -413,7 +424,13 @@ function syncTitle() {
       let handle = core.getSaveHandle?.() || null;
 
       // Save As (or first Save) needs a picker. Do it BEFORE any awaited work so user activation is preserved.
-      if (act === "saveas" || (act === "save" && !handle)) {
+      if (act === "saveas" || (act === "save" && !handle)) {      await core.ensureValidatorInitialized?.();
+      if (!ensureStrictOk(doc)) {
+        setHud(act === "saveas" ? "Save As blocked: schema invalid" : "Save blocked: schema invalid");
+        return;
+      }
+
+
         if (canFsa) {
           try {
             handle = await withFocusRestore(() => pickSaveHandle({ suggestedName }));
@@ -435,11 +452,6 @@ function syncTitle() {
         }
       }
 
-      await core.ensureValidatorInitialized?.();
-      if (!ensureStrictOk(doc)) {
-        setHud(act === "saveas" ? "Save As blocked: schema invalid" : "Save blocked: schema invalid");
-        return;
-      }
 
       if (canFsa && handle) {
         try {
