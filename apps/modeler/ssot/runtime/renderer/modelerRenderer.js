@@ -674,10 +674,8 @@ if (Array.isArray(doc.aux)) {
     if (Array.isArray(doc.lines)) {
       for (const ln of doc.lines) {
         const u = uuidOf(ln);
-        const endAObj = ln?.appearance?.end_a ?? ln?.end_a;
-        const endBObj = ln?.appearance?.end_b ?? ln?.end_b;
-        const a = resolveEndpoint(endAObj, pointIdx);
-        const b = resolveEndpoint(endBObj, pointIdx);
+        const a = resolveEndpoint(ln?.appearance?.end_a ?? ln?.end_a, pointIdx);
+        const b = resolveEndpoint(ln?.appearance?.end_b ?? ln?.end_b, pointIdx);
         if (!a || !b) continue;
         const aV = map3dssToThree(a);
         const bV = map3dssToThree(b);
@@ -689,8 +687,8 @@ if (Array.isArray(doc.aux)) {
         line.userData.kind = "line";
         line.userData.__docVisible = (ln?.appearance?.visible !== false);
         line.userData.__docFrames = ln?.appearance?.frames ?? null;
-        line.userData.endARef = typeof endAObj?.ref === "string" ? endAObj.ref : null;
-        line.userData.endBRef = typeof endBObj?.ref === "string" ? endBObj.ref : null;
+        line.userData.endARef = typeof ln?.end_a?.ref === "string" ? ln.end_a.ref : null;
+        line.userData.endBRef = typeof ln?.end_b?.ref === "string" ? ln.end_b.ref : null;
         line.userData.a3dss = Array.isArray(a) ? [...a] : null;
         line.userData.b3dss = Array.isArray(b) ? [...b] : null;
         modelGroup.add(line);

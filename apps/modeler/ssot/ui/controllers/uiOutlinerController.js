@@ -461,10 +461,8 @@ export class UiOutlinerController {
       order.push(uuid);
 
       const cap = captionOf(ln);
-      const endAObj = ln?.appearance?.end_a ?? ln?.end_a;
-      const endBObj = ln?.appearance?.end_b ?? ln?.end_b;
-      const a = refOf(endAObj) || (typeof endAObj === "string" ? endAObj : "");
-      const b = refOf(endBObj) || (typeof endBObj === "string" ? endBObj : "");
+      const a = refOf(ln?.appearance?.end_a ?? ln?.end_a) || (typeof (ln?.appearance?.end_a ?? ln?.end_a) === "string" ? (ln?.appearance?.end_a ?? ln?.end_a) : "");
+      const b = refOf(ln?.appearance?.end_b ?? ln?.end_b) || (typeof (ln?.appearance?.end_b ?? ln?.end_b) === "string" ? (ln?.appearance?.end_b ?? ln?.end_b) : "");
       const frames = frameLabel(ln);
 
       const tr = document.createElement("tr");
@@ -567,7 +565,9 @@ export class UiOutlinerController {
         doc.lines.push({
           meta: { uuid },
           signification: { name: '' },
-          appearance: { end_a: { ref: '' }, end_b: { ref: '' } },
+          end_a: { ref: '' },
+          end_b: { ref: '' },
+          appearance: {},
         });
       });
       if (typeof this.setSelectionUuids === 'function') this.setSelectionUuids([uuid], { uuid, kind: 'line' }, 'outliner-add');

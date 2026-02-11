@@ -160,26 +160,35 @@ function normalizeDocInPlace(doc) {
   if (Array.isArray(doc.lines)) {
     for (const l of doc.lines) {
       if (!l || typeof l !== "object") continue;
+      // endpoints: schema SSOT is appearance.end_a / appearance.end_b (endpoint object: {ref: uuid})
+      // accept legacy forms:
+      // - top-level end_a/end_b as string or {ref}
+      // - appearance.end_a/end_b as string or {ref}
+      const aRaw = l?.appearance?.end_a ?? l.end_a;
+      const bRaw = l?.appearance?.end_b ?? l.end_b;
 
-      // endpoints:
-// - Schema contract (v1.1.x): line.appearance.end_a / end_b
-// - Legacy drafts (modeler internal): line.end_a / end_b
-// We migrate legacy -> schema shape so import pruning does not destroy endpoint data.
-if (!l.appearance || typeof l.appearance !== "object") l.appearance = {};
-const ap = l.appearance;
+      const normEndpoint = (v) => {
+        if (!v) return null;
+        if (typeof v === "string") return { ref: v };
+        if (typeof v === "object" && typeof v.ref === "string") return { ref: v.ref };
+        return null;
+      };
 
-// Normalize legacy string form (uuid)
-const legacyA = (typeof l.end_a === "string") ? { ref: l.end_a } : l.end_a;
-const legacyB = (typeof l.end_b === "string") ? { ref: l.end_b } : l.end_b;
+      const a = normEndpoint(aRaw);
+      const b = normEndpoint(bRaw);
+      if (a || b) {
+        l.appearance = l.appearance && typeof l.appearance === "object" ? l.appearance : {};
+        if (a) l.appearance.end_a = a;
+        else delete l.appearance.end_a;
+        if (b) l.appearance.end_b = b;
+        else delete l.appearance.end_b;
+      }
 
-if (ap.end_a == null && legacyA != null) ap.end_a = legacyA;
-if (ap.end_b == null && legacyB != null) ap.end_b = legacyB;
+      // delete legacy top-level fields to avoid being stripped later (and to keep SSOT clean)
+      if ("end_a" in l) delete l.end_a;
+      if ("end_b" in l) delete l.end_b;
 
-// If legacy fields exist, remove them to stay schema-valid
-if ("end_a" in l) delete l.end_a;
-if ("end_b" in l) delete l.end_b;
-
-// signification: current schema uses signification.caption (localized_string)
+      // signification: current schema uses signification.caption (localized_string)
       const sig = l.signification;
       if (sig && typeof sig === "object") {
         // legacy: signification.name -> signification.caption
@@ -499,9 +508,6 @@ async function importNormalize(raw) {
 
   const original = (raw && typeof raw === "object") ? cloneDoc(raw) : raw;
   let candidate = (raw && typeof raw === "object") ? cloneDoc(raw) : {};
-
-  // Pre-normalize (schema migration) BEFORE pruning so legacy fields can be moved into schema-allowed locations.
-  try { normalizeDocInPlace(candidate); } catch {}
 
   // Prune unknown fields (best-effort)
   try {
@@ -1268,17 +1274,17 @@ if (importExtras && typeof importExtras === "object") {
     collectUuids(doc.lines, "lines");
     collectUuids(doc.aux, "aux");
 
-    // line endpoints ref integrity (prefer schema: appearance.end_a/end_b; legacy fallback: top-level end_a/end_b)
+    // line endpoints ref integrity (prefer line.end_a/end_b; legacy fallback: appearance.end_a/end_b)
     const pointUuids = new Set((Array.isArray(doc.points) ? doc.points : []).map((p) => uuidOf(p)).filter(Boolean));
 
     const getRef = (line, key) => {
-      const primary = line?.appearance?.[key]?.ref;
-      if (typeof primary === "string" && primary) return { ref: primary, path: `/appearance/${key}/ref` };
-      const legacy = line?.[key]?.ref;
-      if (typeof legacy === "string" && legacy) return { ref: legacy, path: `/${key}/ref` };
-      if (primary != null) return { ref: primary, path: `/appearance/${key}/ref` };
-      if (legacy != null) return { ref: legacy, path: `/${key}/ref` };
-      return { ref: null, path: `/appearance/${key}/ref` };
+      const primary = line?.[key]?.ref;
+      if (typeof primary === "string" && primary) return { ref: primary, path: `/${key}/ref` };
+      const legacy = line?.appearance?.[key]?.ref;
+      if (typeof legacy === "string" && legacy) return { ref: legacy, path: `/appearance/${key}/ref` };
+      if (primary != null) return { ref: primary, path: `/${key}/ref` };
+      if (legacy != null) return { ref: legacy, path: `/appearance/${key}/ref` };
+      return { ref: null, path: `/${key}/ref` };
     };
 
     let brokenLineCount = 0;
@@ -1351,8 +1357,8 @@ if (importExtras && typeof importExtras === "object") {
       if (!cur || typeof cur !== "object" || !Array.isArray(cur.lines)) return cur;
       const next = { ...cur };
       next.lines = cur.lines.filter((ln) => {
-        const a = ln?.appearance?.end_a?.ref ?? ln?.end_a?.ref;
-        const b = ln?.appearance?.end_b?.ref ?? ln?.end_b?.ref;
+        const a = ln?.end_a?.ref;
+        const b = ln?.end_b?.ref;
         const okA = (typeof a === "string" && a) ? pointUuids.has(a) : (a == null);
         const okB = (typeof b === "string" && b) ? pointUuids.has(b) : (b == null);
         const keep = okA && okB;
