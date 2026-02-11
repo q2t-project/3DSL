@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>3DSL Viewer</title>
+  <script>
+    // Wrapper: redirect to canonical viewer app (/viewer/), preserving query/hash.
+    (function () {
+      var target = "/viewer/index.html" + (location.search || "") + (location.hash || "");
+      try { location.replace(target); } catch (e) { location.href = target; }
+    })();
+  </script>
+</head>
+<body>
+  <noscript>
+    <p><a href="/viewer/index.html">Open Viewer</a></p>
+  </noscript>
+</body>
+</html>

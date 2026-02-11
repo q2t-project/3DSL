@@ -2,6 +2,12 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* Tailwind v4 source scanning scope
+   - Restrict to `src/` to avoid picking up log strings in `scripts/` like "[clean:dev]".
+   - Keeping this tight prevents accidental class generation and downstream CSS-minify warnings.
+*/
+@source "../**/*.{astro,html,js,ts,md,mdx}";
+
 
 /* ==============================
    Global foundation (SSOT)

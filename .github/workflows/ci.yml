@@ -40,7 +40,7 @@ jobs:
         working-directory: apps/site
         run: |
           mkdir -p ci-logs
-          npm --loglevel verbose run ci:build --if-present 2>&1 | tee ci-logs/ci-build.log
+          npm --loglevel verbose run ci:dod --if-present 2>&1 | tee ci-logs/ci-build.log
 
       - name: Upload build log artifact
         if: ${{ always() }}

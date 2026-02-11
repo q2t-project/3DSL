@@ -9,6 +9,7 @@
 - Modeler SSOT: `apps/modeler/ssot/**`
 - Docs SSOT: `packages/docs/**`
 - Content SSOT: `packages/3dss-content/**`
+- Premium SSOT: `packages/docs/docs/contracts/SSOT_PREMIUM_POLICY.md`
 
 ## 生成物 / ミラー
 
@@ -28,6 +29,7 @@
 - 起動/ハブ: `apps/viewer/ssot/runtime/viewerHub.js`（※ファイル名は実体を参照）
 - 入力/操作系: `apps/viewer/ssot/runtime/core/**`
 - 描画: `apps/viewer/ssot/runtime/renderer/**`
+- premium 方針（アクセス制御 / addon 注入）: `packages/docs/docs/contracts/SSOT_PREMIUM_POLICY.md`
 
 ### Modeler
 

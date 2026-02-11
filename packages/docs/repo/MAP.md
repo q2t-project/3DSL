@@ -5,6 +5,7 @@
 ## 入口（まずここ）
 
 - ルール: `AGENTS.md`
+- Modeler 作業ガイド: `AGENTS_MODELER.md`
 - 地図: `packages/docs/repo/MAP.md`（このページ）
 - 索引: `packages/docs/repo/INDEX.md`
 

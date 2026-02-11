@@ -432,8 +432,8 @@ function previewCaptureBase(uuid, kind) {
     }
 
     if (k === "line") {
-      const aObj = found.node?.end_a;
-      const bObj = found.node?.end_b;
+      const aObj = found.node?.appearance?.end_a;
+      const bObj = found.node?.appearance?.end_b;
       const a = (aObj && typeof aObj === "object") ? (typeof aObj.ref === "string" ? aObj.ref : (Array.isArray(aObj.coord) ? aObj.coord.join(",") : "")) : String(aObj || "");
       const b = (bObj && typeof bObj === "object") ? (typeof bObj.ref === "string" ? bObj.ref : (Array.isArray(bObj.coord) ? bObj.coord.join(",") : "")) : String(bObj || "");
       base.endA = parseEndpointInput(a);
@@ -802,8 +802,8 @@ function draftDiscard({ reason = "" } = {}) {
     }
 
     if (isLine) {
-      const aObj = found.node?.end_a;
-      const bObj = found.node?.end_b;
+      const aObj = found.node?.appearance?.end_a;
+      const bObj = found.node?.appearance?.end_b;
       const a = (aObj && typeof aObj === "object") ? (typeof aObj.ref === "string" ? aObj.ref : (Array.isArray(aObj.coord) ? aObj.coord.join(",") : "")) : String(aObj || "");
       const b = (bObj && typeof bObj === "object") ? (typeof bObj.ref === "string" ? bObj.ref : (Array.isArray(bObj.coord) ? bObj.coord.join(",") : "")) : String(bObj || "");
       if (inpEndA) inpEndA.value = a;
@@ -1049,8 +1049,8 @@ function draftDiscard({ reason = "" } = {}) {
     if (found.kind === "line") {
       const pointUuids = new Set((Array.isArray(doc?.points) ? doc.points : []).map((p) => String(uuidOf(p) || "")).filter(Boolean));
 
-      const beforeA = found.node?.end_a || null;
-      const beforeB = found.node?.end_b || null;
+      const beforeA = found.node?.appearance?.end_a || null;
+      const beforeB = found.node?.appearance?.end_b || null;
       const parsedA = inpEndA ? parseEndpointInput(String(inpEndA.value || "")) : null;
       const parsedB = inpEndB ? parseEndpointInput(String(inpEndB.value || "")) : null;
       const nextA = parsedA ?? beforeA;
@@ -1066,8 +1066,8 @@ function draftDiscard({ reason = "" } = {}) {
         return null;
       }
 
-      if (JSON.stringify(beforeA) != JSON.stringify(nextA)) patch.ops.push({ path: "/end_a", before: beforeA, after: nextA });
-      if (JSON.stringify(beforeB) != JSON.stringify(nextB)) patch.ops.push({ path: "/end_b", before: beforeB, after: nextB });
+      if (JSON.stringify(beforeA) != JSON.stringify(nextA)) patch.ops.push({ path: "/appearance/end_a", before: beforeA, after: nextA });
+      if (JSON.stringify(beforeB) != JSON.stringify(nextB)) patch.ops.push({ path: "/appearance/end_b", before: beforeB, after: nextB });
     }
 
     if (patch.ops.length === 0) return null;
@@ -1118,14 +1118,20 @@ function draftDiscard({ reason = "" } = {}) {
           found.node.appearance.module = { [k]: {} };
         }
       }
-      else if (op.path === "/end_a" && found.kind === "line") {
-        if (op.after && typeof op.after === "object") {
-          found.node.end_a = op.after;
+      else if (op.path === "/appearance/end_a" && found.kind === "line") {
+        if (!found.node.appearance || typeof found.node.appearance !== "object") found.node.appearance = { ...(found.node.appearance || {}) };
+        if (!op.after) {
+          try { delete found.node.appearance.end_a; } catch {}
+        } else if (typeof op.after === "object") {
+          found.node.appearance.end_a = op.after;
         }
       }
-      else if (op.path === "/end_b" && found.kind === "line") {
-        if (op.after && typeof op.after === "object") {
-          found.node.end_b = op.after;
+      else if (op.path === "/appearance/end_b" && found.kind === "line") {
+        if (!found.node.appearance || typeof found.node.appearance !== "object") found.node.appearance = { ...(found.node.appearance || {}) };
+        if (!op.after) {
+          try { delete found.node.appearance.end_b; } catch {}
+        } else if (typeof op.after === "object") {
+          found.node.appearance.end_b = op.after;
         }
       }
     }
@@ -1641,8 +1647,8 @@ function draftDiscard({ reason = "" } = {}) {
     }
     else if (kind === "line") {
       if (path.startsWith("/signification/caption") || path.startsWith("/signification/name")) target = inpName;
-      else if (path.startsWith("/end_a")) target = inpEndA;
-      else if (path.startsWith("/end_b")) target = inpEndB;
+      else if (path.startsWith("/appearance/end_a")) target = inpEndA;
+      else if (path.startsWith("/appearance/end_b")) target = inpEndB;
       else if (path.startsWith("/appearance/caption_text/content")) target = inpCaptionTextContent;
       else if (path.startsWith("/appearance/caption_text/size")) target = inpCaptionTextSize;
       else if (path.startsWith("/appearance/caption_text/align")) target = selCaptionTextAlign;

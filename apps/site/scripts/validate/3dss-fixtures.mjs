@@ -167,18 +167,18 @@ if (!schemaPath) {
 
 
 if (!schemaPath) {
-  console.error("[fixtures:validate] ERROR: schema not found.");
+  console.error("(fixtures-validate) ERROR: schema not found.");
   console.error("  - pass: node scripts/validate-3dss-fixtures.mjs --ref --schema <path>");
   console.error("  - or ensure 3DSS.schema.json exists somewhere under ./public or ./schemas");
   process.exit(1);
 }
 
 if (!fs.existsSync(fixturesDir)) {
-  console.error(`[fixtures:validate] ERROR: fixtures dir not found: ${fixturesDir}`);
+  console.error(`(fixtures-validate) ERROR: fixtures dir not found: ${fixturesDir}`);
   process.exit(1);
 }
 
-console.log(`[fixtures:validate] schema = ${path.relative(siteRoot, schemaPath)}`);
+console.log(`(fixtures-validate) schema = ${path.relative(siteRoot, schemaPath)}`);
 
 const schema = JSON.parse(fs.readFileSync(schemaPath, "utf-8"));
 const ajv = new Ajv2020({
@@ -197,7 +197,7 @@ let validate;
 try {
   validate = ajv.compile(schema);
 } catch (e) {
-  console.error("[fixtures:validate] ERROR: failed to compile schema (Ajv).");
+  console.error("(fixtures-validate) ERROR: failed to compile schema (Ajv).");
   console.error(`  schema = ${schemaPath}`);
   console.error(`  err = ${String(e?.message || e)}`);
   process.exit(1);
@@ -205,7 +205,7 @@ try {
 
 const files = walkFiles(fixturesDir).sort();
 if (files.length === 0) {
-  console.error(`[fixtures:validate] ERROR: no fixtures found in ${fixturesDir}`);
+  console.error(`(fixtures-validate) ERROR: no fixtures found in ${fixturesDir}`);
   process.exit(1);
 }
 
@@ -219,7 +219,7 @@ for (const fp of files) {
   try {
     doc = JSON.parse(raw);
   } catch (e) {
-    console.error(`[fixtures:validate] NG JSON parse: ${fp}`);
+    console.error(`(fixtures-validate) NG JSON parse: ${fp}`);
     console.error(String(e));
     ngCount++;
     continue;
@@ -234,10 +234,10 @@ for (const fp of files) {
 
   if (!expectInvalid) {
     if (!hasErrors) {
-      console.log(`[fixtures:validate] OK  ${rel}`);
+      console.log(`(fixtures-validate) OK  ${rel}`);
       okValid++;
     } else {
-      console.log(`[fixtures:validate] NG  ${rel}`);
+      console.log(`(fixtures-validate) NG  ${rel}`);
       if (!schemaOk) {
         for (const err of validate.errors || []) {
           console.log(`  - schema: ${err.instancePath || "(root)"} ${err.message}`);
@@ -251,14 +251,14 @@ for (const fp of files) {
   } else {
     // invalid は「落ちたらOK」
     if (hasErrors) {
-      console.log(`[fixtures:validate] OK(invalid)  ${rel}`);
+      console.log(`(fixtures-validate) OK(invalid)  ${rel}`);
       okInvalid++;
     } else {
-      console.log(`[fixtures:validate] NG(unexpected valid)  ${rel}`);
+      console.log(`(fixtures-validate) NG(unexpected valid)  ${rel}`);
       ngCount++;
     }
   }
 }
 
-console.log(`[fixtures:validate] summary valid_ok=${okValid} invalid_ok=${okInvalid} ng=${ngCount}`);
+console.log(`(fixtures-validate) summary valid_ok=${okValid} invalid_ok=${okInvalid} ng=${ngCount}`);
 process.exit(ngCount === 0 ? 0 : 1);

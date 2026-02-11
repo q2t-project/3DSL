@@ -17,6 +17,9 @@
   - 目的、最初に読むリンク集（AGENTS.md / MAP / INDEX）
   - 詳細は `packages/docs/repo/` に寄せる
 
+- app 別の作業ガイド（必要に応じて）
+  - Modeler: `AGENTS_MODELER.md`
+
 ### 2.2 地図と索引（このフォルダ）
 
 - `packages/docs/repo/MAP.md`

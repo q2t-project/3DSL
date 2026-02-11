@@ -1,0 +1,25 @@
+{
+  "title": "Premium Foo",
+  "summary": "premium UI 通し確認用のサンプル",
+  "tags": [
+    "premium",
+    "sample"
+  ],
+  "refs": [],
+  "slug": "foo",
+  "content_md": "# Premium Foo\n\nこれは premium 完全版UIの通し確認用サンプルや。\n\n![サンプル画像](sample.png)\n\n- Viewer は右側に埋め込み\n- 画像は assets に置いたものを markdown から参照\n\n添付例: [サンプルPDF](sample.pdf)\n",
+  "assets": [
+    {
+      "name": "readme.txt",
+      "path": "readme.txt"
+    },
+    {
+      "name": "sample.pdf",
+      "path": "sample.pdf"
+    },
+    {
+      "name": "sample.png",
+      "path": "sample.png"
+    }
+  ]
+}

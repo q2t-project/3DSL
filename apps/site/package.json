@@ -57,7 +57,8 @@
     "preview": "astro preview",
     "rename:library-id": "node scripts/tool/rename-library-id.mjs",
     "sync:3dss-content": "node ../../packages/3dss-content/scripts/build-3dss-content-dist.mjs && node scripts/sync/3dss-content.mjs",
-    "sync:all": "npm run sync:3dss-content && npm run sync:schemas && npm run sync:viewer && npm run sync:modeler && npm run sync:vendor && npm run sync:docs",
+    "sync:premium": "node scripts/sync/premium.mjs",
+    "sync:all": "npm run sync:3dss-content && npm run sync:premium && npm run sync:schemas && npm run sync:viewer && npm run sync:modeler && npm run sync:vendor && npm run sync:docs",
     "sync:docs": "node scripts/sync/docs.mjs",
     "sync:modeler": "node scripts/sync/modeler.mjs",
     "sync:schemas": "node scripts/sync/schemas.mjs",
@@ -69,7 +70,8 @@
     "validate:3dss:baseline": "node scripts/validate/3dss.mjs public/3dss/scenes/default/default.3dss.json public/schemas/3DSS.schema.json",
     "validate:3dss:canonical": "node scripts/validate/3dss-canonical.mjs",
     "validate:3dss:fixtures:ref": "node scripts/validate/3dss-fixtures.mjs --ref",
-    "validate:3dss:samples": "node scripts/validate/3dss-samples.mjs"
+    "validate:3dss:samples": "node scripts/validate/3dss-samples.mjs",
+    "ci:dod": "npm run ci:build && node scripts/ci/premium-dod.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.6",

@@ -1,0 +1,1 @@
+premium foo asset sample

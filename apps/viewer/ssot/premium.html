@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>3DSL Viewer (Premium)</title>
+
+  <!-- canonical base: this HTML is served at /viewer/premium.html -->
+  <base href="/viewer/" />
+
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #0b0b0b; }
+    #viewer-root { position: fixed; inset: 0; }
+    #viewer-canvas { width: 100%; height: 100%; display: block; }
+  </style>
+</head>
+<body>
+  <div id="viewer-root">
+    <canvas id="viewer-canvas" data-role="viewer-canvas"></canvas>
+    <div id="gizmo-slot"></div>
+    <div id="timeline-root"></div>
+  </div>
+  <script type="module" src="./premiumHostBoot.js"></script>
+</body>
+</html>

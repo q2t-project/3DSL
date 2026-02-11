@@ -102,8 +102,8 @@ export function attachUiShortcutController({ signal, core, invoke, ensureEditsAp
           ? cur.lines.filter((ln) => {
             const u = uuidOf(ln);
             if (delSet.has(u)) return false;
-            const a = ln?.end_a?.ref;
-            const b = ln?.end_b?.ref;
+            const a = ln?.appearance?.end_a?.ref ?? ln?.end_a?.ref;
+            const b = ln?.appearance?.end_b?.ref ?? ln?.end_b?.ref;
             if (typeof a === "string" && deletedPoints.has(a)) return false;
             if (typeof b === "string" && deletedPoints.has(b)) return false;
             return true;

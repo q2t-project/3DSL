@@ -90,6 +90,7 @@ import { createViewerSettingsController } from "./core/viewerSettingsController.
 import { createRecomputeVisibleSet } from "./core/recomputeVisibleSet.js";
 import { deepFreeze } from "./core/deepFreeze.js";
 import { init as initValidator, validate3DSS, getErrors } from "./core/validator.js";
+import { createPublicCapabilities, mountAddons } from "./entry/capabilities.js";
 
 // ------------------------------------------------------------
 // logging
@@ -1241,6 +1242,42 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   }
 
   const hub = createViewerHub({ core, renderer });
+  // ------------------------------------------------------------
+  // Capabilities/Addons (delta injection)
+  // - default: public capabilities (no premium branching here)
+  const capabilities = (options && typeof options === "object" && options.capabilities)
+    ? options.capabilities
+    : createPublicCapabilities();
+
+  // optional: addons array (debug/test) -> register into capabilities
+  try {
+    const extras = (options && typeof options === "object" && Array.isArray(options.addons))
+      ? options.addons
+      : null;
+    if (extras && typeof capabilities?.registerAddon === "function") {
+      for (const a of extras) capabilities.registerAddon(a);
+    }
+  } catch (e) {
+    console.warn("[viewer] register addons failed", e);
+  }
+
+  const _addonUnmounters = mountAddons(capabilities, { hub, core, renderer, capabilities });
+
+  // Ensure addon unmount is called when hub is disposed.
+  if (hub && typeof hub.dispose === "function") {
+    const _origDispose = hub.dispose.bind(hub);
+    hub.dispose = () => {
+      try {
+        for (const fn of _addonUnmounters) if (typeof fn === "function") fn();
+      } finally {
+        return _origDispose();
+      }
+    };
+  }
+
+  // Expose (debug) capability holder on hub (no functional dependency).
+  hub.capabilities = capabilities;
+
   const wantDevBootLog = options.devBootLog === true;
   if (wantDevBootLog) emitDevBootLog(core, options);
 

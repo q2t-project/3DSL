@@ -841,7 +841,7 @@ QuickCheck の 1件（Issue）は次の payload を持つ。
   "code": "REF_MISSING_TARGET",
   "uuid": "c0a8012e-2e1c-4c1f-9f24-1c1d9f86a111",
   "kind": "line",
-  "path": "/end_a/ref",
+  "path": "/appearance/end_a/ref",
   "expected": "ref points to existing point uuid",
   "actual": "8c2a... (missing)",
   "message": "end_a.ref points to a missing point uuid",

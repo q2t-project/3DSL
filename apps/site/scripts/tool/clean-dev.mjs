@@ -21,9 +21,9 @@ for (const rel of targets) {
   const abs = path.resolve(siteRoot, rel);
   try {
     await fs.rm(abs, { recursive: true, force: true });
-    console.log(`[clean:dev] removed ${rel}`);
+    console.log(`(clean-dev) removed ${rel}`);
   } catch (e) {
     // Best-effort cleanup; ignore errors such as non-existent paths.
-    console.warn(`[clean:dev] skip ${rel}: ${e?.message ?? e}`);
+    console.warn(`(clean-dev) skip ${rel}: ${e?.message ?? e}`);
   }
 }

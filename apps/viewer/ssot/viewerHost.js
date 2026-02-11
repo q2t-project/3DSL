@@ -15,6 +15,8 @@ export async function mountViewerHost(opts) {
     gizmoWrapperId = "gizmo-slot",
     timelineRootId = "timeline-root",
     devBootLog = false,
+    capabilities,
+    addons,
   } = opts || {};
 
   const canvas = document.getElementById(canvasId);
@@ -70,6 +72,8 @@ export async function mountViewerHost(opts) {
       setOwnedHandle(owned, "hub", await bootstrapViewerFromUrl(canvasId, modelUrl, {
         devBootLog,
         devLabel: "viewer_host",
+        capabilities,
+        addons,
       }));
     }
     const hub = owned.hub;

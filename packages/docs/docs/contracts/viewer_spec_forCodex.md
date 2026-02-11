@@ -7,6 +7,9 @@
 
 以後この規範に反する命名はすべて 禁止（FORBIDDEN） とする。
 
+※ premium（/premium/*）に関連するアクセス制御・addon 注入方針は
+`packages/docs/docs/contracts/SSOT_PREMIUM_POLICY.md` を SSOT とする。
+
 ------------------------------------------
 1. レイヤ構造とフォルダ命名
 ------------------------------------------

@@ -1,0 +1,90 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+// P1: fixed-address route for premium overview (gate前の概要ページ).
+// - token はここでは一切扱わない
+// - Viewer は表示しない
+//
+// NOTE: Astro static build requires getStaticPaths for dynamic routes.
+// For now, we generate a small placeholder set. In P2, this route will be
+// fronted by the gate layer (Cloudflare Pages Functions) to support arbitrary slugs.
+export async function getStaticPaths() {
+  // This route is statically generated.
+  // In dev/preview, unknown slugs 404 unless they are included here.
+  //
+  // Source of truth for available slugs at build time is the synced premium meta:
+  //   apps/site/public/api/premium/meta/<slug>   (extension-less)
+  // (sync:premium runs in prebuild).
+
+  const metaDirUrl = new URL("../../../public/api/premium/meta", import.meta.url);
+  const metaDirPath = fileURLToPath(metaDirUrl);
+
+  let slugs = [];
+  try {
+    const entries = await fs.readdir(metaDirPath, { withFileTypes: true });
+    slugs = entries
+      .filter((e) => e.isFile())
+      .map((e) => e.name)
+      // sync-owned markers / hidden files are ignored
+      .filter((name) => name && !name.startsWith(".") && !name.endsWith(".json"));
+  } catch {
+    // If the meta directory doesn't exist yet (e.g. mis-ordered local commands),
+    // keep a safe fallback so the route isn't empty.
+    slugs = ["foo"];
+  }
+
+  // de-dupe + stable order
+  const uniq = Array.from(new Set(slugs)).sort();
+  return uniq.map((slug) => ({ params: { slug } }));
+}
+
+const slug = String(Astro.params.slug ?? "");
+const canonicalPath = `/premium/${encodeURIComponent(slug)}`;
+const canonicalAbs = `https://3dsl.jp${canonicalPath}`;
+
+// P1-2: note導線（仮）
+const noteUrl = "https://note.com/";
+---
+
+<Layout title={`Premium: ${slug || "overview"}`} description="Premium overview page (public)." canonicalUrl={canonicalAbs}>
+  <main class="mx-auto max-w-3xl px-4 py-8">
+    <header class="mb-6">
+      <h1 class="text-2xl font-semibold">Premium（概要）</h1>
+      <p class="mt-2 text-sm opacity-80">
+        対象: <code class="rounded bg-black/5 px-1 py-0.5">{slug || "(empty)"}</code>
+      </p>
+    </header>
+
+    
+<!--
+  P1-5 (Hook points; NO implementation here):
+  - This file is the fixed-address route (/premium/<slug>) and remains the canonical URL.
+  - In P2, the gate layer (Pages Functions) will determine whether to serve overview vs full content.
+  - In P3, the "full" layout will be swapped in here, and the Viewer will be mounted below.
+-->
+
+    <section class="space-y-3 leading-relaxed">
+      <p>
+        ここは premium コンテンツの<strong>概要</strong>ページや。token なしでも到達できる
+        「住所（正規URL）」として固定する。
+      </p>
+      <p>
+        完全版（購入者向け・拡張機能あり）は、note 有料記事内のリンク（token 付きURL）から入場する前提。
+        ※このP1段階では、token検証・Viewer表示・機能提供は一切しない。
+      </p>
+    </section>
+
+    <section class="mt-8 rounded-xl border border-black/10 p-4">
+      <h2 class="text-base font-medium">購入者向け導線（仮）</h2>
+      <p class="mt-2 text-sm opacity-80">
+        note 記事: <a href={noteUrl} rel="noopener" class="underline">{noteUrl}</a>
+      </p>
+      <p class="mt-3 text-sm opacity-80">
+        このページの正規URL: <code>{canonicalPath}</code>
+      </p>
+    </section>
+  </main>
+</Layout>
