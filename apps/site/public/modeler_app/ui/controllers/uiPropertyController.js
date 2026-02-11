@@ -1049,12 +1049,39 @@ function draftDiscard({ reason = "" } = {}) {
     if (found.kind === "line") {
       const pointUuids = new Set((Array.isArray(doc?.points) ? doc.points : []).map((p) => String(uuidOf(p) || "")).filter(Boolean));
 
-      const beforeA = found.node?.appearance?.end_a ?? found.node?.end_a ?? null;
-      const beforeB = found.node?.appearance?.end_b ?? found.node?.end_b ?? null;
+      const beforeA = found.node?.end_a || null;
+      const beforeB = found.node?.end_b || null;
       const parsedA = inpEndA ? parseEndpointInput(String(inpEndA.value || "")) : null;
       const parsedB = inpEndB ? parseEndpointInput(String(inpEndB.value || "")) : null;
       const nextA = parsedA ?? beforeA;
       const nextB = parsedB ?? beforeB;
+
+      // Debug (opt-in): enable by setting `globalThis.__MODEL_DEBUG_ENDPOINTS = true` in DevTools console.
+      // This is intentionally noisy but only when explicitly toggled.
+      const dbgEndpoints = !!globalThis?.__MODEL_DEBUG_ENDPOINTS;
+      if (dbgEndpoints) {
+        const refA = nextA && typeof nextA === "object" ? nextA.ref : null;
+        const refB = nextB && typeof nextB === "object" ? nextB.ref : null;
+        console.log("[dbg:endpoints] inp", {
+          endA: inpEndA?.value ?? null,
+          endB: inpEndB?.value ?? null,
+        });
+        console.log("[dbg:endpoints] parsed", {
+          beforeA,
+          beforeB,
+          parsedA,
+          parsedB,
+          nextA,
+          nextB,
+        });
+        console.log("[dbg:endpoints] pointUuids.has", {
+          points: pointUuids.size,
+          refA,
+          hasA: typeof refA === "string" && refA ? pointUuids.has(refA) : null,
+          refB,
+          hasB: typeof refB === "string" && refB ? pointUuids.has(refB) : null,
+        });
+      }
 
       // Validate refs against current points
       if (nextA && typeof nextA === "object" && typeof nextA.ref === "string" && nextA.ref && !pointUuids.has(nextA.ref)) {
@@ -1066,8 +1093,12 @@ function draftDiscard({ reason = "" } = {}) {
         return null;
       }
 
-      if (JSON.stringify(beforeA) != JSON.stringify(nextA)) patch.ops.push({ path: "/appearance/end_a", before: beforeA, after: nextA });
-      if (JSON.stringify(beforeB) != JSON.stringify(nextB)) patch.ops.push({ path: "/appearance/end_b", before: beforeB, after: nextB });
+      if (JSON.stringify(beforeA) != JSON.stringify(nextA)) patch.ops.push({ path: "/end_a", before: beforeA, after: nextA });
+      if (JSON.stringify(beforeB) != JSON.stringify(nextB)) patch.ops.push({ path: "/end_b", before: beforeB, after: nextB });
+
+      if (dbgEndpoints) {
+        console.log("[dbg:endpoints] patch.ops", patch.ops.filter((op) => op?.path === "/end_a" || op?.path === "/end_b"));
+      }
     }
 
     if (patch.ops.length === 0) return null;
@@ -1116,15 +1147,6 @@ function draftDiscard({ reason = "" } = {}) {
           delete found.node.appearance.module;
         } else {
           found.node.appearance.module = { [k]: {} };
-        }
-      }
-      else if ((op.path === "/appearance/end_a" || op.path === "/appearance/end_b") && found.kind === "line") {
-        if (!found.node.appearance || typeof found.node.appearance !== "object") found.node.appearance = { ...(found.node.appearance || {}) };
-        const key = op.path.endsWith("end_a") ? "end_a" : "end_b";
-        if (!op.after) {
-          try { delete found.node.appearance[key]; } catch {}
-        } else {
-          found.node.appearance[key] = op.after;
         }
       }
       else if (op.path === "/end_a" && found.kind === "line") {
