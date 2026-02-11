@@ -802,8 +802,10 @@ function draftDiscard({ reason = "" } = {}) {
     }
 
     if (isLine) {
-      const aObj = found.node?.end_a;
-      const bObj = found.node?.end_b;
+      // Endpoints are schema-level properties under appearance.end_a / appearance.end_b.
+      // Keep read-side tolerant for legacy docs that may still have end_a/end_b at root.
+      const aObj = found.node?.appearance?.end_a ?? found.node?.end_a;
+      const bObj = found.node?.appearance?.end_b ?? found.node?.end_b;
       const a = (aObj && typeof aObj === "object") ? (typeof aObj.ref === "string" ? aObj.ref : (Array.isArray(aObj.coord) ? aObj.coord.join(",") : "")) : String(aObj || "");
       const b = (bObj && typeof bObj === "object") ? (typeof bObj.ref === "string" ? bObj.ref : (Array.isArray(bObj.coord) ? bObj.coord.join(",") : "")) : String(bObj || "");
       if (inpEndA) inpEndA.value = a;
@@ -1049,8 +1051,9 @@ function draftDiscard({ reason = "" } = {}) {
     if (found.kind === "line") {
       const pointUuids = new Set((Array.isArray(doc?.points) ? doc.points : []).map((p) => String(uuidOf(p) || "")).filter(Boolean));
 
-      const beforeA = found.node?.end_a || null;
-      const beforeB = found.node?.end_b || null;
+      // schema: line.appearance.end_a / end_b (keep legacy read of root end_a/end_b)
+      const beforeA = found.node?.appearance?.end_a ?? found.node?.end_a ?? null;
+      const beforeB = found.node?.appearance?.end_b ?? found.node?.end_b ?? null;
       const parsedA = inpEndA ? parseEndpointInput(String(inpEndA.value || "")) : null;
       const parsedB = inpEndB ? parseEndpointInput(String(inpEndB.value || "")) : null;
       const nextA = parsedA ?? beforeA;
@@ -1093,11 +1096,14 @@ function draftDiscard({ reason = "" } = {}) {
         return null;
       }
 
-      if (JSON.stringify(beforeA) != JSON.stringify(nextA)) patch.ops.push({ path: "/end_a", before: beforeA, after: nextA });
-      if (JSON.stringify(beforeB) != JSON.stringify(nextB)) patch.ops.push({ path: "/end_b", before: beforeB, after: nextB });
+      if (JSON.stringify(beforeA) != JSON.stringify(nextA)) patch.ops.push({ path: "/appearance/end_a", before: beforeA, after: nextA });
+      if (JSON.stringify(beforeB) != JSON.stringify(nextB)) patch.ops.push({ path: "/appearance/end_b", before: beforeB, after: nextB });
 
       if (dbgEndpoints) {
-        console.log("[dbg:endpoints] patch.ops", patch.ops.filter((op) => op?.path === "/end_a" || op?.path === "/end_b"));
+        console.log(
+          "[dbg:endpoints] patch.ops",
+          patch.ops.filter((op) => op?.path === "/appearance/end_a" || op?.path === "/appearance/end_b")
+        );
           if (globalThis.__MODEL_DEBUG_ENDPOINTS) {
           globalThis.__MODEL_DEBUG_LAST_ENDPOINT_PATCH_OPS = patch.ops;
           console.log(
@@ -1156,14 +1162,16 @@ function draftDiscard({ reason = "" } = {}) {
           found.node.appearance.module = { [k]: {} };
         }
       }
-      else if (op.path === "/end_a" && found.kind === "line") {
+      else if (op.path === "/appearance/end_a" && found.kind === "line") {
         if (op.after && typeof op.after === "object") {
-          found.node.end_a = op.after;
+          if (!found.node.appearance || typeof found.node.appearance !== "object") found.node.appearance = { ...(found.node.appearance || {}) };
+          found.node.appearance.end_a = op.after;
         }
       }
-      else if (op.path === "/end_b" && found.kind === "line") {
+      else if (op.path === "/appearance/end_b" && found.kind === "line") {
         if (op.after && typeof op.after === "object") {
-          found.node.end_b = op.after;
+          if (!found.node.appearance || typeof found.node.appearance !== "object") found.node.appearance = { ...(found.node.appearance || {}) };
+          found.node.appearance.end_b = op.after;
         }
       }
     }
