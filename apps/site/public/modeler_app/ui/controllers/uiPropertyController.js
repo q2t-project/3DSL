@@ -432,8 +432,8 @@ function previewCaptureBase(uuid, kind) {
     }
 
     if (k === "line") {
-      const aObj = found.node?.appearance?.end_a;
-      const bObj = found.node?.appearance?.end_b;
+      const aObj = found.node?.end_a;
+      const bObj = found.node?.end_b;
       const a = (aObj && typeof aObj === "object") ? (typeof aObj.ref === "string" ? aObj.ref : (Array.isArray(aObj.coord) ? aObj.coord.join(",") : "")) : String(aObj || "");
       const b = (bObj && typeof bObj === "object") ? (typeof bObj.ref === "string" ? bObj.ref : (Array.isArray(bObj.coord) ? bObj.coord.join(",") : "")) : String(bObj || "");
       base.endA = parseEndpointInput(a);
@@ -802,8 +802,8 @@ function draftDiscard({ reason = "" } = {}) {
     }
 
     if (isLine) {
-      const aObj = found.node?.appearance?.end_a;
-      const bObj = found.node?.appearance?.end_b;
+      const aObj = found.node?.end_a;
+      const bObj = found.node?.end_b;
       const a = (aObj && typeof aObj === "object") ? (typeof aObj.ref === "string" ? aObj.ref : (Array.isArray(aObj.coord) ? aObj.coord.join(",") : "")) : String(aObj || "");
       const b = (bObj && typeof bObj === "object") ? (typeof bObj.ref === "string" ? bObj.ref : (Array.isArray(bObj.coord) ? bObj.coord.join(",") : "")) : String(bObj || "");
       if (inpEndA) inpEndA.value = a;
@@ -1047,14 +1047,34 @@ function draftDiscard({ reason = "" } = {}) {
 
     // Line endpoints (ref or coord)
     if (found.kind === "line") {
+      const __dbgEndpoints = !!globalThis.__MODEL_DEBUG_ENDPOINTS;
       const pointUuids = new Set((Array.isArray(doc?.points) ? doc.points : []).map((p) => String(uuidOf(p) || "")).filter(Boolean));
 
-      const beforeA = found.node?.appearance?.end_a || null;
-      const beforeB = found.node?.appearance?.end_b || null;
+      const beforeA = found.node?.end_a || null;
+      const beforeB = found.node?.end_b || null;
       const parsedA = inpEndA ? parseEndpointInput(String(inpEndA.value || "")) : null;
       const parsedB = inpEndB ? parseEndpointInput(String(inpEndB.value || "")) : null;
       const nextA = parsedA ?? beforeA;
       const nextB = parsedB ?? beforeB;
+
+      if (__dbgEndpoints) {
+        try {
+          console.debug("[prop-save:endpoints]", {
+            lineUuid: String(uuid),
+            inpEndA: inpEndA ? String(inpEndA.value || "") : null,
+            inpEndB: inpEndB ? String(inpEndB.value || "") : null,
+            parsedA,
+            parsedB,
+            beforeA,
+            beforeB,
+            nextA,
+            nextB,
+            pointCount: pointUuids.size,
+            hasA: (nextA && typeof nextA === "object" && typeof nextA.ref === "string" && !!nextA.ref) ? pointUuids.has(nextA.ref) : null,
+            hasB: (nextB && typeof nextB === "object" && typeof nextB.ref === "string" && !!nextB.ref) ? pointUuids.has(nextB.ref) : null,
+          });
+        } catch {}
+      }
 
       // Validate refs against current points
       if (nextA && typeof nextA === "object" && typeof nextA.ref === "string" && nextA.ref && !pointUuids.has(nextA.ref)) {
@@ -1066,8 +1086,16 @@ function draftDiscard({ reason = "" } = {}) {
         return null;
       }
 
-      if (JSON.stringify(beforeA) != JSON.stringify(nextA)) patch.ops.push({ path: "/appearance/end_a", before: beforeA, after: nextA });
-      if (JSON.stringify(beforeB) != JSON.stringify(nextB)) patch.ops.push({ path: "/appearance/end_b", before: beforeB, after: nextB });
+      if (JSON.stringify(beforeA) != JSON.stringify(nextA)) patch.ops.push({ path: "/end_a", before: beforeA, after: nextA });
+      if (JSON.stringify(beforeB) != JSON.stringify(nextB)) patch.ops.push({ path: "/end_b", before: beforeB, after: nextB });
+
+      if (__dbgEndpoints) {
+        try {
+          const hasEndAOp = (patch.ops || []).some((op) => op && op.path === "/end_a");
+          const hasEndBOp = (patch.ops || []).some((op) => op && op.path === "/end_b");
+          console.debug("[prop-save:endpoints] patch.ops", { hasEndAOp, hasEndBOp, ops: patch.ops });
+        } catch {}
+      }
     }
 
     if (patch.ops.length === 0) return null;
@@ -1078,6 +1106,8 @@ function draftDiscard({ reason = "" } = {}) {
     const clone = cloneDoc(doc);
     const found = findByUuid(clone, patch?.target);
     if (!found.node) return clone;
+
+    const __dbgEndpoints = !!globalThis.__MODEL_DEBUG_ENDPOINTS;
 
     for (const op of patch.ops || []) {
       if (op.path === "/signification/name" && found.kind === "point") {
@@ -1118,20 +1148,20 @@ function draftDiscard({ reason = "" } = {}) {
           found.node.appearance.module = { [k]: {} };
         }
       }
-      else if (op.path === "/appearance/end_a" && found.kind === "line") {
-        if (!found.node.appearance || typeof found.node.appearance !== "object") found.node.appearance = { ...(found.node.appearance || {}) };
-        if (!op.after) {
-          try { delete found.node.appearance.end_a; } catch {}
-        } else if (typeof op.after === "object") {
-          found.node.appearance.end_a = op.after;
+      else if (op.path === "/end_a" && found.kind === "line") {
+        if (op.after && typeof op.after === "object") {
+          found.node.end_a = op.after;
+        }
+        if (__dbgEndpoints) {
+          try { console.debug("[applyPatch:end_a]", { target: patch?.target, after: op.after, stored: found.node.end_a }); } catch {}
         }
       }
-      else if (op.path === "/appearance/end_b" && found.kind === "line") {
-        if (!found.node.appearance || typeof found.node.appearance !== "object") found.node.appearance = { ...(found.node.appearance || {}) };
-        if (!op.after) {
-          try { delete found.node.appearance.end_b; } catch {}
-        } else if (typeof op.after === "object") {
-          found.node.appearance.end_b = op.after;
+      else if (op.path === "/end_b" && found.kind === "line") {
+        if (op.after && typeof op.after === "object") {
+          found.node.end_b = op.after;
+        }
+        if (__dbgEndpoints) {
+          try { console.debug("[applyPatch:end_b]", { target: patch?.target, after: op.after, stored: found.node.end_b }); } catch {}
         }
       }
     }
@@ -1647,8 +1677,8 @@ function draftDiscard({ reason = "" } = {}) {
     }
     else if (kind === "line") {
       if (path.startsWith("/signification/caption") || path.startsWith("/signification/name")) target = inpName;
-      else if (path.startsWith("/appearance/end_a")) target = inpEndA;
-      else if (path.startsWith("/appearance/end_b")) target = inpEndB;
+      else if (path.startsWith("/end_a")) target = inpEndA;
+      else if (path.startsWith("/end_b")) target = inpEndB;
       else if (path.startsWith("/appearance/caption_text/content")) target = inpCaptionTextContent;
       else if (path.startsWith("/appearance/caption_text/size")) target = inpCaptionTextSize;
       else if (path.startsWith("/appearance/caption_text/align")) target = selCaptionTextAlign;
