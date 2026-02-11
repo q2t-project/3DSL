@@ -490,6 +490,10 @@ function clearImportExtras() {
 function ensureDocBase(doc) {
   if (!doc || typeof doc !== "object") doc = {};
   if (!doc.document_meta || typeof doc.document_meta !== "object") doc.document_meta = {};
+  // Legacy tolerance: some exports used object-maps for points/lines (uuid -> object).
+  if (doc.points && typeof doc.points === "object" && !Array.isArray(doc.points)) doc.points = Object.values(doc.points);
+  if (doc.lines && typeof doc.lines === "object" && !Array.isArray(doc.lines)) doc.lines = Object.values(doc.lines);
+  if (doc.aux && typeof doc.aux === "object" && !Array.isArray(doc.aux)) doc.aux = Object.values(doc.aux);
   if (!Array.isArray(doc.points)) doc.points = [];
   if (!Array.isArray(doc.lines)) doc.lines = [];
   if (!Array.isArray(doc.aux)) doc.aux = [];
@@ -508,17 +512,6 @@ async function importNormalize(raw) {
 
   const original = (raw && typeof raw === "object") ? cloneDoc(raw) : raw;
   let candidate = (raw && typeof raw === "object") ? cloneDoc(raw) : {};
-
-  // Legacy compatibility: older exports may store collections as object maps keyed by uuid.
-  // Coerce them back into arrays so downstream normalization/validation can proceed.
-  const coerceMapToArray = (v) => {
-    if (!v || typeof v !== "object" || Array.isArray(v)) return v;
-    // Object.values keeps insertion order for normal objects; sort isn't desirable here.
-    return Object.values(v);
-  };
-  candidate.points = coerceMapToArray(candidate.points);
-  candidate.lines = coerceMapToArray(candidate.lines);
-  candidate.aux = coerceMapToArray(candidate.aux);
 
   // Prune unknown fields (best-effort)
   try {
