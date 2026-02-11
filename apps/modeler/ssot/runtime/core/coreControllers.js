@@ -160,32 +160,33 @@ function normalizeDocInPlace(doc) {
   if (Array.isArray(doc.lines)) {
     for (const l of doc.lines) {
       if (!l || typeof l !== "object") continue;
+      // endpoints: schema SSOT is appearance.end_a / appearance.end_b (endpoint object: {ref: uuid})
+      // accept legacy forms:
+      // - top-level end_a/end_b as string or {ref}
+      // - appearance.end_a/end_b as string or {ref}
+      const aRaw = l?.appearance?.end_a ?? l.end_a;
+      const bRaw = l?.appearance?.end_b ?? l.end_b;
 
-// endpoints: schema SSOT is top-level end_a/end_b (endpoint object {ref: uuid} or null).
-// Accept legacy forms:
-// - top-level string uuid (older)
-// - nested l.appearance.end_a / l.appearance.end_b (older)
-{
-  const rawA = l?.end_a ?? l?.appearance?.end_a;
-  const rawB = l?.end_b ?? l?.appearance?.end_b;
+      const normEndpoint = (v) => {
+        if (!v) return null;
+        if (typeof v === "string") return { ref: v };
+        if (typeof v === "object" && typeof v.ref === "string") return { ref: v.ref };
+        return null;
+      };
 
-  const a = normalizeEndpoint(rawA);
-  const b = normalizeEndpoint(rawB);
+      const a = normEndpoint(aRaw);
+      const b = normEndpoint(bRaw);
+      if (a || b) {
+        l.appearance = l.appearance && typeof l.appearance === "object" ? l.appearance : {};
+        if (a) l.appearance.end_a = a;
+        else delete l.appearance.end_a;
+        if (b) l.appearance.end_b = b;
+        else delete l.appearance.end_b;
+      }
 
-  // write SSOT fields
-  if (a != null) l.end_a = a;
-  else if ("end_a" in l) delete l.end_a;
-
-  if (b != null) l.end_b = b;
-  else if ("end_b" in l) delete l.end_b;
-
-  // clean legacy nesting if present
-  if (l.appearance && typeof l.appearance === "object") {
-    if ("end_a" in l.appearance) delete l.appearance.end_a;
-    if ("end_b" in l.appearance) delete l.appearance.end_b;
-    if (Object.keys(l.appearance).length === 0) delete l.appearance;
-  }
-}
+      // delete legacy top-level fields to avoid being stripped later (and to keep SSOT clean)
+      if ("end_a" in l) delete l.end_a;
+      if ("end_b" in l) delete l.end_b;
 
       // signification: current schema uses signification.caption (localized_string)
       const sig = l.signification;
@@ -507,6 +508,17 @@ async function importNormalize(raw) {
 
   const original = (raw && typeof raw === "object") ? cloneDoc(raw) : raw;
   let candidate = (raw && typeof raw === "object") ? cloneDoc(raw) : {};
+
+  // Legacy compatibility: older exports may store collections as object maps keyed by uuid.
+  // Coerce them back into arrays so downstream normalization/validation can proceed.
+  const coerceMapToArray = (v) => {
+    if (!v || typeof v !== "object" || Array.isArray(v)) return v;
+    // Object.values keeps insertion order for normal objects; sort isn't desirable here.
+    return Object.values(v);
+  };
+  candidate.points = coerceMapToArray(candidate.points);
+  candidate.lines = coerceMapToArray(candidate.lines);
+  candidate.aux = coerceMapToArray(candidate.aux);
 
   // Prune unknown fields (best-effort)
   try {
