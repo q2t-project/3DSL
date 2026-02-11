@@ -1098,6 +1098,13 @@ function draftDiscard({ reason = "" } = {}) {
 
       if (dbgEndpoints) {
         console.log("[dbg:endpoints] patch.ops", patch.ops.filter((op) => op?.path === "/end_a" || op?.path === "/end_b"));
+          if (globalThis.__MODEL_DEBUG_ENDPOINTS) {
+          globalThis.__MODEL_DEBUG_LAST_ENDPOINT_PATCH_OPS = patch.ops;
+          console.log(
+            "[dbg:endpoints] patch.ops.json",
+            JSON.stringify(patch.ops, null, 2)
+          );
+        }
       }
     }
 
