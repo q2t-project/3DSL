@@ -752,6 +752,16 @@
           },
           "meta": {
             "$ref": "#/$defs/meta/core"
+          },
+          "end_a": {
+            "$ref": "#/$defs/line/endpoint",
+            "deprecated": true,
+            "description": "(legacy) Prefer appearance.end_a"
+          },
+          "end_b": {
+            "$ref": "#/$defs/line/endpoint",
+            "deprecated": true,
+            "description": "(legacy) Prefer appearance.end_b"
           }
         },
         "required": [
@@ -1605,6 +1615,3 @@
     }
   }
 }
-
-
-

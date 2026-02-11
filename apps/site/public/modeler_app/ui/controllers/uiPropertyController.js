@@ -1097,7 +1097,9 @@ function draftDiscard({ reason = "" } = {}) {
       }
 
       if (JSON.stringify(beforeA) != JSON.stringify(nextA)) patch.ops.push({ path: "/appearance/end_a", before: beforeA, after: nextA });
+      if (JSON.stringify(beforeA) != JSON.stringify(nextA)) patch.ops.push({ path: "/end_a", before: beforeA, after: nextA });
       if (JSON.stringify(beforeB) != JSON.stringify(nextB)) patch.ops.push({ path: "/appearance/end_b", before: beforeB, after: nextB });
+      if (JSON.stringify(beforeB) != JSON.stringify(nextB)) patch.ops.push({ path: "/end_b", before: beforeB, after: nextB });
 
       if (dbgEndpoints) {
         console.log(

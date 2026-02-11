@@ -184,9 +184,9 @@ function normalizeDocInPlace(doc) {
         else delete l.appearance.end_b;
       }
 
-      // delete legacy top-level fields to avoid being stripped later (and to keep SSOT clean)
-      if ("end_a" in l) delete l.end_a;
-      if ("end_b" in l) delete l.end_b;
+      // mirror endpoints into legacy top-level fields for compatibility (schema allows deprecated fields)
+      if (a) l.end_a = a; else if ("end_a" in l) delete l.end_a;
+      if (b) l.end_b = b; else if ("end_b" in l) delete l.end_b;
 
       // signification: current schema uses signification.caption (localized_string)
       const sig = l.signification;
