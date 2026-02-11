@@ -184,9 +184,19 @@ function normalizeDocInPlace(doc) {
         else delete l.appearance.end_b;
       }
 
-      // mirror endpoints into legacy top-level fields for compatibility (schema allows deprecated fields)
-      if (a) l.end_a = a; else if ("end_a" in l) delete l.end_a;
-      if (b) l.end_b = b; else if ("end_b" in l) delete l.end_b;
+      // mirror endpoints into legacy top-level fields for compatibility
+      // NOTE: some validator builds still require legacy fields to exist, so keep them and use empty ref as "unset".
+      if (a) l.end_a = a;
+      else {
+        const ea = l.end_a;
+        if (!ea || typeof ea !== "object" || typeof ea.ref !== "string") l.end_a = { ref: "" };
+      }
+
+      if (b) l.end_b = b;
+      else {
+        const eb = l.end_b;
+        if (!eb || typeof eb !== "object" || typeof eb.ref !== "string") l.end_b = { ref: "" };
+      }
 
       // signification: current schema uses signification.caption (localized_string)
       const sig = l.signification;

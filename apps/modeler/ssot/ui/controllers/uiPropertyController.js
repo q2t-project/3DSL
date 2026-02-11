@@ -1163,17 +1163,43 @@ function draftDiscard({ reason = "" } = {}) {
         } else {
           found.node.appearance.module = { [k]: {} };
         }
+      }      else if (op.path === "/end_a" && found.kind === "line") {
+        // Legacy-compatible: keep endpoints on the line root as well.
+        if (op.after && typeof op.after === "object") {
+          found.node.end_a = op.after;
+        } else {
+          // Ensure presence for strict validators that require the field.
+          found.node.end_a = { ref: "" };
+        }
       }
+      else if (op.path === "/end_b" && found.kind === "line") {
+        // Legacy-compatible: keep endpoints on the line root as well.
+        if (op.after && typeof op.after === "object") {
+          found.node.end_b = op.after;
+        } else {
+          // Ensure presence for strict validators that require the field.
+          found.node.end_b = { ref: "" };
+        }
+      }
+
       else if (op.path === "/appearance/end_a" && found.kind === "line") {
         if (op.after && typeof op.after === "object") {
           if (!found.node.appearance || typeof found.node.appearance !== "object") found.node.appearance = { ...(found.node.appearance || {}) };
           found.node.appearance.end_a = op.after;
+          // Mirror to legacy root field to satisfy older validators/consumers.
+          if (!found.node.end_a || typeof found.node.end_a !== 'object' || String(found.node.end_a.ref || '') === '') {
+            found.node.end_a = op.after;
+          }
         }
       }
       else if (op.path === "/appearance/end_b" && found.kind === "line") {
         if (op.after && typeof op.after === "object") {
           if (!found.node.appearance || typeof found.node.appearance !== "object") found.node.appearance = { ...(found.node.appearance || {}) };
           found.node.appearance.end_b = op.after;
+          // Mirror to legacy root field to satisfy older validators/consumers.
+          if (!found.node.end_b || typeof found.node.end_b !== 'object' || String(found.node.end_b.ref || '') === '') {
+            found.node.end_b = op.after;
+          }
         }
       }
     }
