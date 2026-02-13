@@ -272,7 +272,73 @@ function syncTitle() {
   // File picker / programmatic download often require a direct user activation.
   // Any `await` before invoking them can break the gesture and make SaveAs/Export
   // appear to do nothing.
-  function ensureStrictOk(doc) {
+  
+function sanitizeDocForSave(doc) {
+  if (!doc || typeof doc !== "object") return doc;
+
+  // Points: drop empty marker objects or fix missing primitive.
+  if (Array.isArray(doc.points)) {
+    for (const p of doc.points) {
+      const marker = p?.appearance?.marker;
+      if (marker && typeof marker === "object" && !Array.isArray(marker)) {
+        const keys = Object.keys(marker);
+        if (keys.length === 0) {
+          delete p.appearance.marker;
+        } else if (!("primitive" in marker)) {
+          // If marker carries any other data (eg text), prefer a safe default over invalid output.
+          marker.primitive = "none";
+        }
+      }
+    }
+  }
+
+  // Lines: normalize endpoints. Remove empty refs and keep appearance + legacy in sync.
+  if (Array.isArray(doc.lines)) {
+    for (const ln of doc.lines) {
+      const aApp = ln?.appearance?.end_a;
+      const bApp = ln?.appearance?.end_b;
+      const aLeg = ln?.end_a;
+      const bLeg = ln?.end_b;
+
+      const pick = (app, leg) => (app && typeof app === "object" ? app : (leg && typeof leg === "object" ? leg : null));
+
+      const a = pick(aApp, aLeg);
+      const b = pick(bApp, bLeg);
+
+      const cleanEnd = (endObj) => {
+        if (!endObj || typeof endObj !== "object") return null;
+        const ref = endObj.ref;
+        if (typeof ref !== "string" || ref.trim() === "") return null;
+        return { ref };
+      };
+
+      const ca = cleanEnd(a);
+      const cb = cleanEnd(b);
+
+      if (ca) {
+        ln.appearance = ln.appearance || {};
+        ln.appearance.end_a = ca;
+        ln.end_a = ca;
+      } else {
+        if (ln.appearance && ln.appearance.end_a) delete ln.appearance.end_a;
+        if (ln.end_a) delete ln.end_a;
+      }
+
+      if (cb) {
+        ln.appearance = ln.appearance || {};
+        ln.appearance.end_b = cb;
+        ln.end_b = cb;
+      } else {
+        if (ln.appearance && ln.appearance.end_b) delete ln.appearance.end_b;
+        if (ln.end_b) delete ln.end_b;
+      }
+    }
+  }
+
+  return doc;
+}
+
+function ensureStrictOk(doc) {
   // UI policy:
   // - When validator is ready: strictly gate Save/SaveAs/Export.
   // - When validator is NOT ready (vendor missing): DO NOT block persistence.
@@ -358,7 +424,7 @@ function syncTitle() {
     const doc = doc0 || (typeof getFallbackDocument === "function" ? (getFallbackDocument() ?? null) : null);
     if (!doc) { setHud("Save blocked: no document"); return; }
     if (ensureEditsApplied && !ensureEditsApplied()) { setHud("Save blocked: apply edits first"); return; }
-
+    sanitizeDocForSave(doc);
     let jsonText = JSON.stringify(doc, null, 2);
     if (typeof jsonText !== "string" || jsonText.length === 0) {
       throw new Error("Export produced empty JSON");

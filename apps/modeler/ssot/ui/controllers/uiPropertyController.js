@@ -432,8 +432,8 @@ function previewCaptureBase(uuid, kind) {
     }
 
     if (k === "line") {
-      const aObj = found.node?.end_a;
-      const bObj = found.node?.end_b;
+      const aObj = found.node?.appearance?.end_a ?? found.node?.end_a;
+      const bObj = found.node?.appearance?.end_b ?? found.node?.end_b;
       const a = (aObj && typeof aObj === "object") ? (typeof aObj.ref === "string" ? aObj.ref : (Array.isArray(aObj.coord) ? aObj.coord.join(",") : "")) : String(aObj || "");
       const b = (bObj && typeof bObj === "object") ? (typeof bObj.ref === "string" ? bObj.ref : (Array.isArray(bObj.coord) ? bObj.coord.join(",") : "")) : String(bObj || "");
       base.endA = parseEndpointInput(a);
@@ -1097,9 +1097,9 @@ function draftDiscard({ reason = "" } = {}) {
       }
 
       if (JSON.stringify(beforeA) != JSON.stringify(nextA)) patch.ops.push({ path: "/appearance/end_a", before: beforeA, after: nextA });
+      if (JSON.stringify(beforeA) != JSON.stringify(nextA)) patch.ops.push({ path: "/end_a", before: beforeA, after: nextA });
       if (JSON.stringify(beforeB) != JSON.stringify(nextB)) patch.ops.push({ path: "/appearance/end_b", before: beforeB, after: nextB });
-      // NOTE: legacy top-level /end_a,/end_b are not part of the current SSOT schema.
-      // Keep endpoints only under appearance.
+      if (JSON.stringify(beforeB) != JSON.stringify(nextB)) patch.ops.push({ path: "/end_b", before: beforeB, after: nextB });
 
       if (dbgEndpoints) {
         console.log(
