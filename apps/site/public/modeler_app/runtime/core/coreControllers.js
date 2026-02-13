@@ -168,39 +168,11 @@ function normalizeDocInPlace(doc) {
       const bRaw = l?.appearance?.end_b ?? l.end_b;
 
       const normEndpoint = (v) => {
-  if (!v) return null;
-
-  if (typeof v === "string") {
-    const ref = v.trim();
-    if (!ref) return null;
-    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    const zeroRe = /^0{8}-0{4}-0{4}-0{4}-0{12}$/;
-    if (uuidRe.test(ref) || zeroRe.test(ref)) return { ref };
-    return null;
-  }
-
-  if (typeof v !== "object") return null;
-
-  // legacy sometimes leaves empty strings; treat as unset
-  const ref = typeof v.ref === "string" ? v.ref.trim() : null;
-  if (ref) {
-    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    const zeroRe = /^0{8}-0{4}-0{4}-0{4}-0{12}$/;
-    if (uuidRe.test(ref) || zeroRe.test(ref)) return { ref };
-    return null;
-  }
-
-  const coord = v.coord;
-  if (
-    Array.isArray(coord) &&
-    coord.length === 3 &&
-    coord.every((n) => typeof n === "number" && Number.isFinite(n))
-  ) {
-    return { coord: [coord[0], coord[1], coord[2]] };
-  }
-
-  return null;
-};
+        if (!v) return null;
+        if (typeof v === "string") return { ref: v };
+        if (typeof v === "object" && typeof v.ref === "string") return { ref: v.ref };
+        return null;
+      };
 
       const a = normEndpoint(aRaw);
       const b = normEndpoint(bRaw);
@@ -212,9 +184,12 @@ function normalizeDocInPlace(doc) {
         else delete l.appearance.end_b;
       }
 
-      // mirror endpoints into legacy top-level fields for compatibility (schema allows deprecated fields)
-      if (a) l.end_a = a; else if ("end_a" in l) delete l.end_a;
-      if (b) l.end_b = b; else if ("end_b" in l) delete l.end_b;
+      // IMPORTANT: Do NOT persist legacy top-level endpoints.
+      // The SSOT contract for lines is `appearance.end_a` / `appearance.end_b`.
+      // Top-level `end_a` / `end_b` is interpreted by the v1.1.4 schema as a different
+      // structure (coordinate endpoints) and breaks validation when we write `{ref: ...}`.
+      if ("end_a" in l) delete l.end_a;
+      if ("end_b" in l) delete l.end_b;
 
       // signification: current schema uses signification.caption (localized_string)
       const sig = l.signification;
@@ -525,36 +500,6 @@ function ensureDocBase(doc) {
   if (!Array.isArray(doc.points)) doc.points = [];
   if (!Array.isArray(doc.lines)) doc.lines = [];
   if (!Array.isArray(doc.aux)) doc.aux = [];
-
-  // cleanup: drop invalid defaulted objects that would violate schema
-  if (Array.isArray(doc.points)) {
-    for (const p of doc.points) {
-      const marker = p?.appearance?.marker;
-      if (marker && typeof marker === "object" && !marker.primitive) {
-        delete p.appearance.marker;
-      }
-    }
-  }
-  if (Array.isArray(doc.lines)) {
-    for (const l of doc.lines) {
-      if (
-        l?.end_a &&
-        typeof l.end_a === "object" &&
-        typeof l.end_a.ref === "string" &&
-        l.end_a.ref.trim() === ""
-      ) {
-        delete l.end_a;
-      }
-      if (
-        l?.end_b &&
-        typeof l.end_b === "object" &&
-        typeof l.end_b.ref === "string" &&
-        l.end_b.ref.trim() === ""
-      ) {
-        delete l.end_b;
-      }
-    }
-  }
   return doc;
 }
 
@@ -571,31 +516,6 @@ async function importNormalize(raw) {
   const original = (raw && typeof raw === "object") ? cloneDoc(raw) : raw;
   let candidate = (raw && typeof raw === "object") ? cloneDoc(raw) : {};
 
-
-  // legacy migration: older docs used line.appearance.end_a/end_b as endpoints (ref/coord).
-  // v1.1.4+ expects required endpoints at line.end_a/end_b, while appearance.end_a/end_b are purely visual.
-  if (candidate && Array.isArray(candidate.lines)) {
-    for (const l of candidate.lines) {
-      if (!l || typeof l !== "object") continue;
-      const aLooksEndpoint =
-        l.appearance &&
-        l.appearance.end_a &&
-        typeof l.appearance.end_a === "object" &&
-        ("ref" in l.appearance.end_a || "coord" in l.appearance.end_a);
-      const bLooksEndpoint =
-        l.appearance &&
-        l.appearance.end_b &&
-        typeof l.appearance.end_b === "object" &&
-        ("ref" in l.appearance.end_b || "coord" in l.appearance.end_b);
-
-      if (!l.end_a && aLooksEndpoint) l.end_a = l.appearance.end_a;
-      if (!l.end_b && bLooksEndpoint) l.end_b = l.appearance.end_b;
-
-      // remove legacy endpoint objects from appearance before prune/defaults run
-      if (aLooksEndpoint && l.appearance) delete l.appearance.end_a;
-      if (bLooksEndpoint && l.appearance) delete l.appearance.end_b;
-    }
-  }
   // Prune unknown fields (best-effort)
   try {
     if (validatePruneFn && candidate && typeof candidate === "object") {

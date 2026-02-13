@@ -565,9 +565,11 @@ export class UiOutlinerController {
         doc.lines.push({
           meta: { uuid },
           signification: { name: '' },
-          end_a: { ref: '' },
-          end_b: { ref: '' },
-          appearance: {},
+          appearance: {
+            // endpoints live under appearance per 3DSS v1.1.4
+            end_a: { ref: '' },
+            end_b: { ref: '' },
+          },
         });
       });
       if (typeof this.setSelectionUuids === 'function') this.setSelectionUuids([uuid], { uuid, kind: 'line' }, 'outliner-add');
