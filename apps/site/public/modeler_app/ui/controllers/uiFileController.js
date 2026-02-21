@@ -463,12 +463,14 @@ function ensureStrictOk(doc) {
         const fn = suggestedName;
         dl(fn, jsonText);
         setHud(`Exported (download): ${fn}`);
+        core.setDirty?.(false);
         return;
       }
 
       try {
         await writeToHandle(handle, jsonText);
         setHud(`Exported: ${handle?.name || suggestedName}`);
+        core.setDirty?.(false);
       } catch (e) {
         // File System Access can occasionally produce a 0-byte file depending on
         // backend / permissions. Fall back to download so the user isn't left
@@ -477,6 +479,7 @@ function ensureStrictOk(doc) {
         const fn = suggestedName;
         dl(fn, jsonText);
         setHud(`Exported (download fallback): ${fn}`);
+        core.setDirty?.(false);
       }
       return;
     }
@@ -521,8 +524,13 @@ function ensureStrictOk(doc) {
 
       if (canFsa && handle) {
         try {
+          await core.ensureValidatorInitialized?.();
+          if (!ensureStrictOk(doc)) {
+            setHud(act === "saveas" ? "Save As blocked: schema invalid" : "Save blocked: schema invalid");
+            return;
+          }
           await writeToHandle(handle, jsonText);
-          if (act === "saveas") core.setSaveHandle?.(handle);
+          if (act === "saveas" || act === "save") core.setSaveHandle?.(handle);
           setHud(act === "saveas" ? `Saved As: ${handle?.name || suggestedName}` : `Saved: ${handle?.name || suggestedName}`);
           core.setDirty?.(false);
           return;

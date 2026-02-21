@@ -380,7 +380,11 @@ export function createCoreControllers(emitter) {
   // Import extras: unknown fields stripped during importNormalize()
   let importExtras = null;
 
-  async function ensureValidatorInitialized(schemaUrl = "/schemas/3DSS.schema.json") {
+  async function isValidatorReady() {
+    return !!validateFn;
+  }
+
+  function ensureValidatorInitialized(schemaUrl = "/schemas/3DSS.schema.json") {
     if (validateFn) return;
     if (!validatorInitPromise) {
       validatorInitPromise = fetch(schemaUrl)
@@ -1528,7 +1532,7 @@ function focusByIssue(issue) {
     uiSidecar: { get: getUiSidecar, apply: applyUiSidecar },
     quickcheck: { run: runQuickCheck, fixBrokenLineEndpoints },
     import: { normalize: importNormalize, getExtras: getImportExtras, clearExtras: clearImportExtras },
-    validator: { ensureInitialized: ensureValidatorInitialized, validate: validateStrict, getErrors: getStrictErrors, getSchemaInfo },
+    validator: { ensureInitialized: ensureValidatorInitialized, validate: validateStrict, getErrors: getStrictErrors, getSchemaInfo, isReady: isValidatorReady },
     focusByIssue
   };
 }
