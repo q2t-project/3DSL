@@ -38,7 +38,9 @@ jobs:
 
       - name: Run build (capture logs)
         working-directory: apps/site
+        # pipefail がないと tee がパイプの終了コードを 0 に上書きし、ci:dod の失敗が緑になる
         run: |
+          set -o pipefail
           mkdir -p ci-logs
           npm --loglevel verbose run ci:dod --if-present 2>&1 | tee ci-logs/ci-build.log
 

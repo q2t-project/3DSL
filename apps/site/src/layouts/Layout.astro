@@ -15,7 +15,9 @@ const {
 const pathname = Astro.url?.pathname ?? "/";
 const isHome = pathname === "/";
 const noAds = isNoAdsRequest(Astro.url);
-const canonicalFinal = canonicalUrl ?? canonical;
+// ページ側の指定がなければ site origin + 現在パスから導出する（DoD: 全ページに canonical を出す）
+const canonicalFinal =
+  canonicalUrl ?? canonical ?? (Astro.site ? new URL(pathname, Astro.site).href : null);
 
 // AdSense
 // - Central policy: ads only on /, /concept (see lib/adsense.ts)
