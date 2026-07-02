@@ -47,15 +47,33 @@ Phase 3（コピー削除）のみ、削除前に 3 重コピー間の diff を�
   - [ ] `rescue/*` / `restore/*` / `redo/*` 系ブランチの棚卸しリストを提示、削除可否を確認
   - [ ] ローカル `master` と `main` の併存解消
 
-## Phase 1 — pnpm workspaces 導入（ブランチ: `chore/workspaces`）
+## Phase 1 — pnpm workspaces 導入（ブランチ: `chore/workspaces`）✅ 完了
 
-- [ ] ルート `package.json` + `pnpm-workspace.yaml` 作成（site / viewer / modeler / 3dss-content を登録）
-- [ ] lockfile をルート 1 本に統合（`pnpm import` で npm lockfile から変換）
-- [ ] `scripts/check/no-root-npm.*` ガード撤去（workspaces 導入により役目終了）
-- [ ] site の `check:modeler:*` / `check:viewer:*` を各パッケージの `package.json` へ移動
-- [ ] ルートから `pnpm -r run check` で横断実行できることを確認
-- [ ] `.github/workflows/ci.yml` を pnpm + ルート実行に更新
-- [ ] `packages/docs`（AGENTS.md / MAP.md / agent-workflow.md）の該当記述を更新
+- [x] ルート `package.json` + `pnpm-workspace.yaml` 作成（site / modeler / viewer を登録。3dss-content は package.json 自体が無いため Phase 3 で判断）
+- [x] lockfile をルート 1 本に統合（`pnpm import` で npm lockfile から変換、`apps/site/package-lock.json` 削除）
+- [x] `scripts/check/no-root-npm.*` / `site-npm-sanity.*` ガード撤去（workspaces 導入により役目終了）
+- [x] site の `check:modeler:*` / `check:viewer:*` を各パッケージの `package.json` へ移動（`apps/modeler/package.json`・新規 `apps/viewer/package.json` に `check:ssot` 追加、site からは `pnpm --filter modeler/viewer run check:ssot` で呼ぶ）
+- [x] `pnpm --filter modeler run check:ssot` / `pnpm --filter viewer run check:ssot` で横断実行できることを確認（exit 0）
+- [x] `.github/workflows/ci.yml` を pnpm + ルート実行に更新
+- [x] `packages/docs/docs/ops/DEVOPS_site.md` の Cloudflare Pages 設定を更新（下記）
+- [x] `overrides` は npm 形式（package.json）から `pnpm-workspace.yaml` の `overrides` へ移行（pnpm はこの形式のみ読む）
+- [x] `esbuild` / `sharp` の postinstall を `pnpm-workspace.yaml` の `allowBuilds` で明示許可
+
+### Cloudflare Pages 設定変更（本番環境・ユーザー実施）
+
+pnpm workspace 化により Root directory を `apps/site` のままにするとロックファイル（リポジトリルートの `pnpm-lock.yaml`）が見えなくなるため、Cloudflare Pages ダッシュボードの設定変更が必要:
+
+- Root directory: `apps/site` → **`/`**（リポジトリルート）
+- Build command: `npm run build` → **`corepack enable && pnpm install --frozen-lockfile && pnpm --filter awesome-altitude run build`**
+- Build output directory: `dist` → **`apps/site/dist`**
+- `NODE_VERSION`: `22.12.0` 系に更新推奨（`engines` と一致）
+
+DEVOPS_site.md に現行設定として反映済み、旧設定は `<details>` で参考保持。
+
+### 検証結果
+- `pnpm install --frozen-lockfile` → OK（node_modules 全消去からの再インストールでも再現）
+- `apps/site` で `pnpm run ci:dod` → exit 0（69 ページビルド）
+- dist 差分: baseline との差分は `__deploy_probe.txt`（ビルド時刻+sha）、`library_index.json`（generated_at）、本計画書自身のページの3件のみ。すべてビルド時刻由来で構造的差分なし
 
 ## Phase 2 — vendor 依存の npm 化（ブランチ: `chore/vendor-to-npm`）
 

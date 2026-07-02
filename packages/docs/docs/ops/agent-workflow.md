@@ -157,11 +157,11 @@ Modeler は「編集体験」そのものが契約であり、挙動変更は特
 
 * dev:
 
-  * `npm --prefix apps/site run dev`
+  * `pnpm --filter awesome-altitude run dev`
 
 * build:
 
-  * `npm --prefix apps/site run build`
+  * `pnpm --filter awesome-altitude run build`
 
 * sync:
 

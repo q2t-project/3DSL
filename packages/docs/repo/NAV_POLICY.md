@@ -55,7 +55,7 @@
 掃除（過去に追跡してしまった場合）:
 
 - `git rm -r --cached apps/site/src/content/docs apps/site/src/content/faq apps/site/src/content/policy`
-- `npm --prefix apps/site run sync:docs`
+- `pnpm --filter awesome-altitude run sync:docs`
 
 ## 4. 配線（依存/データフロー）の表現方法
 

@@ -17,11 +17,7 @@
     "check:hub:contract": "node scripts/check/hub-contract.mjs",
     "check:invariants": "node scripts/check/invariants.mjs",
     "check:library": "node ../../packages/3dss-content/scripts/check-library.mjs",
-    "check:modeler:forbidden-imports": "node ../modeler/ssot/scripts/check-forbidden-imports.mjs",
-    "check:modeler:generated-clean": "node ../modeler/ssot/scripts/check-generated-clean.mjs",
-    "check:modeler:ports-conformance": "node ../modeler/ssot/scripts/check-ports-conformance.mjs",
-    "check:modeler:single-writer": "node ../modeler/ssot/scripts/check-single-writer.mjs",
-    "check:modeler:ssot": "npm run check:modeler:forbidden-imports && npm run check:modeler:single-writer && npm run check:modeler:ports-conformance && npm run check:modeler:generated-clean",
+    "check:modeler:ssot": "pnpm --filter modeler run check:ssot",
     "check:pages:no-raw-html": "node scripts/check/pages-no-raw-html.mjs",
     "check:release": "npm run check:ssot && npm run check:viewer:regression && npm run validate:3dss:canonical",
     "check:route-collisions": "node scripts/check/route-collisions.mjs",
@@ -34,14 +30,10 @@
     "check:viewer:bootstrap-public-contract": "node scripts/check/viewer-bootstrap-public-contract.mjs",
     "check:viewer:contracts": "npm run check:hub && npm run check:viewer:bootstrap-public-contract && npm run check:viewer:core-layer-contract && npm run check:viewer:bootstrap-flow-contract && npm run check:viewer:hub-boundary-contract && npm run check:viewer:hub-dispose-safety",
     "check:viewer:core-layer-contract": "node scripts/check/viewer-core-layer-contract.mjs",
-    "check:viewer:forbidden-imports": "node ../viewer/ssot/scripts/check-forbidden-imports.mjs",
-    "check:viewer:generated-clean": "node ../viewer/ssot/scripts/check-generated-clean.mjs",
     "check:viewer:hub-boundary-contract": "node scripts/check/viewer-hub-boundary-contract.mjs",
     "check:viewer:hub-dispose-safety": "node scripts/check/viewer-hub-dispose-safety.mjs",
-    "check:viewer:ports-conformance": "node ../viewer/ssot/scripts/check-ports-conformance.mjs",
     "check:viewer:regression": "node scripts/check/viewer-regression-suite.mjs",
-    "check:viewer:single-writer": "node ../viewer/ssot/scripts/check-single-writer.mjs",
-    "check:viewer:ssot": "npm run check:viewer:forbidden-imports && npm run check:viewer:single-writer && npm run check:viewer:ports-conformance && npm run check:viewer:generated-clean",
+    "check:viewer:ssot": "pnpm --filter viewer run check:ssot",
     "ci:build": "npm run check:ssot && npm run check:viewer:regression && npm run validate:3dss:canonical && npm run build",
     "clean:dev": "node scripts/tool/clean-dev.mjs",
     "dev": "astro dev",
@@ -87,11 +79,6 @@
     "ajv-cli": "^5.0.0",
     "ajv-formats": "^3.0.1",
     "esbuild": "^0.27.2"
-  },
-  "overrides": {
-    "remark-rehype": "11.1.2",
-    "diff": "^8.0.3",
-    "fast-json-patch": "^3.1.1"
   },
   "engines": {
     "node": ">=22.12.0 <23"

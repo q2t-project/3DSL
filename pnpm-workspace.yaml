@@ -1,0 +1,13 @@
+packages:
+  - apps/site
+  - apps/modeler
+  - apps/viewer
+
+allowBuilds:
+  esbuild: true
+  sharp: true
+
+overrides:
+  remark-rehype: "11.1.2"
+  diff: "^8.0.3"
+  fast-json-patch: "^3.1.1"
