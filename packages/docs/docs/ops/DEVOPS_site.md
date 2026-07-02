@@ -36,14 +36,26 @@
 
 Cloudflare Pages のプロジェクト設定はこう固定。
 
+**2026-07 pnpm workspaces 移行後（現行）:**
+
+- Root directory: `/`（リポジトリルート。pnpm workspace のロックファイルがルートにあるため）
+- Build command: `corepack enable && pnpm install --frozen-lockfile && pnpm --filter awesome-altitude run build`
+- Build output directory: `apps/site/dist`
+- Variables:
+  - `NODE_VERSION`（例: `22.12.0`）
+  - `PUBLIC_FORMSPREE_ENDPOINT`（問い合わせフォーム使う場合）
+
+※ ロックファイルはリポジトリルートの `pnpm-lock.yaml` 1本（`pnpm-workspace.yaml` で `overrides` も一元管理）。`apps/site/package-lock.json` は Phase 1 で廃止済み。overrides（diff/fast-json-patch の監査対応）を変更した場合は `pnpm-workspace.yaml` の `overrides` と `pnpm install` 後の `pnpm-lock.yaml` を必ずコミットする。
+
+<details>
+<summary>移行前（〜2026-07, npm 単体構成）の設定（参考・廃止済み）</summary>
+
 - Root directory: `apps/site`
 - Build command: `npm run build`
 - Build output directory: `dist`
-- Variables:
-  - `NODE_VERSION`（例: `20.3.0`）
-  - `PUBLIC_FORMSPREE_ENDPOINT`（問い合わせフォーム使う場合）
+- ※ apps/site/package-lock.json をコミットしてロック厳密一致させる必要があった。
 
-※ Cloudflare Pages は npm ci 相当で lock 厳密一致が要るため、apps/site/package.json の overrides（diff/fast-json-patch の監査対応）を使う場合は apps/site/package-lock.json も必ず更新・コミットする。
+</details>
 
 ---
 
@@ -157,19 +169,19 @@ curl.exe -s https://3dsl.pages.dev/__deploy_probe.txt
 * 手動チェック：
 
 ```ps1
-npm --prefix apps/site run check:guards
+pnpm --filter awesome-altitude run check:guards
 ```
 
 * build入口（必ずguardが走る）：
 
 ```ps1
-npm --prefix apps/site run build
+pnpm --filter awesome-altitude run build
 ```
 
 * 自動修復（危険物の削除＋必要物の生成）：
 
 ```ps1
-npm --prefix apps/site run fix:guards
+pnpm --filter awesome-altitude run fix:guards
 ```
 
 ---
@@ -181,8 +193,8 @@ npm --prefix apps/site run fix:guards
 リポジトリルートで：
 
 ```ps1
-npm --prefix apps/site run check:guards
-npm --prefix apps/site run build
+pnpm --filter awesome-altitude run check:guards
+pnpm --filter awesome-altitude run build
 ```
 
 成果物確認：
@@ -241,7 +253,7 @@ curl.exe -s https://3dsl.pages.dev/__deploy_probe.txt
 
 * `_redirects` が `public` に無い、または `dist` に出てない
   → `apps/site/public/_redirects` を確認
-  → `npm --prefix apps/site run build` 後に `apps/site/dist/_redirects` を確認
+  → `pnpm --filter awesome-altitude run build` 後に `apps/site/dist/_redirects` を確認
 
 ### 本番の `__deploy_probe.txt` が古い／ダミーっぽい
 

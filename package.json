@@ -1,0 +1,9 @@
+{
+  "name": "3dsl",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0 <23"
+  },
+  "packageManager": "pnpm@11.9.0"
+}

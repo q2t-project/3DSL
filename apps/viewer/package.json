@@ -1,14 +1,12 @@
 {
-  "name": "modeler",
+  "name": "viewer",
   "private": true,
+  "type": "module",
   "scripts": {
-    "smoke": "node ssot/scripts/smoke/run.mjs",
     "check:forbidden-imports": "node ssot/scripts/check-forbidden-imports.mjs",
     "check:single-writer": "node ssot/scripts/check-single-writer.mjs",
     "check:ports-conformance": "node ssot/scripts/check-ports-conformance.mjs",
     "check:generated-clean": "node ssot/scripts/check-generated-clean.mjs",
     "check:ssot": "npm run check:forbidden-imports && npm run check:single-writer && npm run check:ports-conformance && npm run check:generated-clean"
-  },
-
-  "type": "module"
+  }
 }
