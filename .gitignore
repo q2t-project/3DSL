@@ -19,10 +19,6 @@ __PATCH_NOTES__*.txt
 
 # local artifacts
 _out/
-
-
-# local artifacts
-_out/
 _ul_zips/
 _tmp_marker_backup/
 

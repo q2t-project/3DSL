@@ -5,7 +5,7 @@
 ## 入口（まずここ）
 
 - ルール: `AGENTS.md`
-- Modeler 作業ガイド: `AGENTS_MODELER.md`
+- 作業規律 / ガイドライン: `packages/docs/docs/ops/agent-workflow.md`
 - 地図: `packages/docs/repo/MAP.md`（このページ）
 - 索引: `packages/docs/repo/INDEX.md`
 

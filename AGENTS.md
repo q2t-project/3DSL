@@ -12,8 +12,14 @@
 - 配置規約: packages/docs/repo/NAV_POLICY.md
 
 ## Contracts / SSOT
+- Project SSOT Policy（頂点）: packages/docs/policy/SSOT_POLICY.md
 - Viewer contracts & specs: packages/docs/docs/contracts/
+- Viewer SSOT: apps/viewer/ssot/
+- Modeler SSOT: apps/modeler/ssot/
 - Premium policy (SSOT): packages/docs/docs/contracts/SSOT_PREMIUM_POLICY.md
+
+## Ops
+- Repo 再構築アクションプラン（2026-07）: packages/docs/docs/ops/restructure-plan-202607.md
 
 ## 更新ルール
 - 新たなSSOT文書を追加・変更した場合は、このAGENTS.mdに **追記でリンクを追加** する。
