@@ -13,7 +13,7 @@ Human-only items remain HUMAN_REVIEW.
 | UUID semantics | `meta.uuid` / document UUID identify 3DSS document/runtime elements; UUID equality alone does not establish target-world identity | schema + runtime UUID indexes | `scripts/smoke/semantic-guards.mjs` | PASS_GUARD | 2026-10-02 |
 | Frames semantics | `appearance.frames` and `uiState.frameIndex` control presentation/runtime applicability; no target-world time semantics are implied without a domain mapping | toolbar + renderer frame filter | `scripts/smoke/semantic-guards.mjs` | PASS_GUARD | 2026-10-02 |
 | SSOT / mirrors | `apps/*/ssot` and package sources are editable truth; generated/public mirrors are not | `AGENTS.md`, sync/build scripts | generated-clean / boundary checks | PASS_WITH_SCOPE | 2026-10-02 |
-| UI sidecar persistence | UI-only state persistence policy remains incomplete | current uiSidecar runtime support | no complete persistence acceptance suite | OPEN | 2026-10-02 |
+| UI sidecar persistence | UI state is local-only editor state keyed by document UUID; it is not portable 3DSS content | `ui/attachUiShell.js`, `ui/sidecarLocalContract.js`, core `uiSidecar` | `scripts/smoke/sidecar-local-contract.mjs` + CI | PASS_WITH_SCOPE | 2026-10-02 |
 
 ## Status vocabulary
 
