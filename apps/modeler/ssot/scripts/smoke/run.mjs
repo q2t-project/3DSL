@@ -6,6 +6,9 @@
 //
 // Currently runs:
 // - minimal-selection.mjs (selection/focus core path)
+// - import-loss-contract.mjs (explicit lossy-import contract)
+// - semantic-guards.mjs (UUID/frame non-equivalence guards)
+// - sidecar-local-contract.mjs (local-only UI sidecar contract)
 //
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -21,3 +24,6 @@ function runNode(rel) {
 }
 
 runNode("./minimal-selection.mjs");
+runNode("./import-loss-contract.mjs");
+runNode("./semantic-guards.mjs");
+runNode("./sidecar-local-contract.mjs");
