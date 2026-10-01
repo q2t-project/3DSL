@@ -1,3 +1,5 @@
+import { buildImportLossMessage } from "./importLossContract.js";
+
 // ui/controllers/uiFileController.js
 // File/title/dirty/beforeunload (UI layer only).
 //
@@ -350,6 +352,15 @@ function syncTitle() {
     return handle;
   }
 
+  function confirmImportLoss(action) {
+    const extras = core?.getImportExtras?.() ?? null;
+    const message = buildImportLossMessage(extras, action);
+    if (!message) return true;
+    const ok = window.confirm(message);
+    if (!ok) setHud("Save/Export cancelled: imported extras would be lost");
+    return ok;
+  }
+
   async function handleFileAction(action, { ensureEditsApplied, getFallbackDocument } = {}) {
     const act = String(action || "").toLowerCase();
     // Prefer core document; fall back to a hub-provided cache when available.
@@ -358,6 +369,12 @@ function syncTitle() {
     const doc = doc0 || (typeof getFallbackDocument === "function" ? (getFallbackDocument() ?? null) : null);
     if (!doc) { setHud("Save blocked: no document"); return; }
     if (ensureEditsApplied && !ensureEditsApplied()) { setHud("Save blocked: apply edits first"); return; }
+
+    // SW-M1 explicit loss contract:
+    // importNormalize() can retain unsupported source fields as import extras,
+    // but strict Save/Export does not persist them. Require explicit acknowledgement
+    // before any picker, download, or write occurs.
+    if ((act === "save" || act === "saveas" || act === "export") && !confirmImportLoss(act)) return;
 
     let jsonText = JSON.stringify(doc, null, 2);
     if (typeof jsonText !== "string" || jsonText.length === 0) {
