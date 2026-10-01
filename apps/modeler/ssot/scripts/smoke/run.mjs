@@ -5,7 +5,7 @@
 //   npm --prefix apps/modeler run smoke
 //
 // Currently runs:
-// - minimal-selection.mjs (selection/focus core path)
+// - minimal-selection.mjs (selection/focus core path)\n// - import-loss-contract.mjs (explicit lossy-import contract)
 //
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -20,4 +20,4 @@ function runNode(rel) {
   if (r.status !== 0) process.exit(r.status ?? 1);
 }
 
-runNode("./minimal-selection.mjs");
+runNode("./minimal-selection.mjs");\nrunNode("./import-loss-contract.mjs");
