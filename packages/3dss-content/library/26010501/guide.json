@@ -1,0 +1,55 @@
+{
+  "version": "1.0",
+  "orientation": {
+    "summary": "このモデルは3DSL Conceptに含まれる項目間の配置を読むための例です。全体を見てから、個別項目へフォーカスし、再び全体へ戻ります。",
+    "placement": {
+      "meaning": "座標はこのモデル内の説明上の配置です。距離・方向を対象世界の測定量や普遍的な三軸意味として読みません。"
+    },
+    "frames": {
+      "meaning": "frameは表示上の可視性・説明段階のための値です。",
+      "target_time_mapping": {
+        "mapped": false
+      }
+    },
+    "scope": "3DSL Conceptモデル内の表現関係。",
+    "viewpoint": "Reader / Explorerが全体と局所を往還する読み方。",
+    "cautions": [
+      "このguideはProduct Definitionそのものではなく、このモデルを読むための補助です。",
+      "UUIDはこの3DSS文書内の要素参照であり、対象世界の同一性を保証しません。"
+    ]
+  },
+  "routes": [
+    {
+      "id": "overview",
+      "title": "全体から局所へ",
+      "summary": "全体を確認し、視点/手順共有へ入り、全体へ戻ります。",
+      "order_semantics": "presentation",
+      "steps": [
+        {
+          "id": "whole",
+          "title": "全体を見る",
+          "target": { "kind": "whole" },
+          "mode": "macro"
+        },
+        {
+          "id": "focus-sharing",
+          "title": "視点/手順共有を見る",
+          "note": "この要素の局所表示と周辺関係を確認します。",
+          "target": {
+            "kind": "element",
+            "uuid": "2e7dd29f-e703-4987-a6e5-519476a9805f",
+            "element_kind": "points"
+          },
+          "mode": "micro",
+          "frame": 0
+        },
+        {
+          "id": "return",
+          "title": "全体へ戻る",
+          "target": { "kind": "whole" },
+          "mode": "macro"
+        }
+      ]
+    }
+  ]
+}
