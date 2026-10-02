@@ -64,6 +64,9 @@ requireText(
   "canonical generated Viewer URL"
 );
 const buildText = read("packages/3dss-content/scripts/build-3dss-content-dist.mjs");
+if (!/version:\s*5,/.test(buildText)) {
+  throw new Error("Library index contract must be version 5 for route-object entry_points");
+}
 if (/return `\/viewer\/index\.html\?model=/.test(buildText)) {
   throw new Error("generated Library viewer_url must not expose /viewer/index.html as product entry");
 }
