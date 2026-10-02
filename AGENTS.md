@@ -83,6 +83,12 @@
 
   * `packages/docs/**`
 
+* **Product Definition SSOT**:
+
+  * `packages/docs/docs/product/**`
+  * public Product decisions follow Product → Architecture → Code
+  * Viewer public entry is `/app/viewer`; `/viewer/` is the bundle/runtime base, not the primary product route
+
 * **Content SSOT**:
 
   * `packages/3dss-content/**`
