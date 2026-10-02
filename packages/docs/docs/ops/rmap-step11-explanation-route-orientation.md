@@ -1,6 +1,6 @@
 # RMAP STEP 11 — Explanation Route + Reader Orientation Slice
 
-Status: `IMPLEMENTED_PENDING_CI`
+Status: `STEP11_EXPLANATION_ROUTE_AND_READER_ORIENTATION_SLICE_PASS`
 
 Parent:
 `STEP11_FOUNDATION_SLICE_PASS`
@@ -112,4 +112,24 @@ All focus targets are existing UUIDs in the same model.
 9. CI/release checks fail on contract regression.
 10. No schema change.
 
-Formal PASS is assigned only after CI completes successfully.
+Verification result:
+
+```yaml
+CI_workflow: CI
+CI_run_number: 346
+CI_run_id: 36966531295
+result: SUCCESS
+checked:
+  - product foundation
+  - Library route validation
+  - reader-guidance contract
+  - Viewer/Modeler SSOT guards
+  - Viewer regression
+  - canonical 3DSS validation
+  - Astro build
+```
+
+Closure:
+`STEP11_EXPLANATION_ROUTE_AND_READER_ORIENTATION_SLICE_PASS`
+
+This PASS is an implementation/contract/build result. It does not claim a separate human visual-UX effectiveness study.
