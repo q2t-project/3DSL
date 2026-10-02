@@ -37,24 +37,24 @@ const productFiles = [
 
 for (const name of productFiles) {
   requireText(
-    `packages/docs/docs/product/${name}`,
+    `packages/docs/product/${name}`,
     /APPROVED \/ PRODUCT_DEFINITION_V1/,
     "Product Definition v1 status"
   );
 }
 
 requireText(
-  "packages/docs/docs/product/product-definition.md",
+  "packages/docs/product/product-definition.md",
   /whole-preserving spatial knowledge exploration system/i,
   "Product core"
 );
 requireText(
-  "packages/docs/docs/product/product-definition.md",
+  "packages/docs/product/product-definition.md",
   /全体を保ったまま局所へ入り、局所から全体へ戻れる知識空間/,
   "Product short form"
 );
 requireText(
-  "packages/docs/docs/product/target-users.md",
+  "packages/docs/product/target-users.md",
   /Primary role: Reader \/ Explorer/,
   "Reader-first role"
 );
