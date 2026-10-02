@@ -23,6 +23,7 @@
     "check:modeler:single-writer": "node ../modeler/ssot/scripts/check-single-writer.mjs",
     "check:modeler:ssot": "npm run check:modeler:forbidden-imports && npm run check:modeler:single-writer && npm run check:modeler:ports-conformance && npm run check:modeler:generated-clean",
     "check:pages:no-raw-html": "node scripts/check/pages-no-raw-html.mjs",
+    "check:reader-guide": "node ../../packages/3dss-content/scripts/check-reader-guide-v1.mjs",
     "check:release": "npm run check:ssot && npm run check:viewer:regression && npm run validate:3dss:canonical",
     "check:route-collisions": "node scripts/check/route-collisions.mjs",
     "check:single-writer": "node scripts/check/single-writer.mjs",
