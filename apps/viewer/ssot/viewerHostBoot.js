@@ -2,6 +2,7 @@
 // Host bootstrap for /viewer/index.html
 
 import { mountViewerHost } from "./viewerHost.js";
+import { createViewerBridgeV1 } from "./viewerBridgeV1.js";
 
 // ---- utils ----
 
@@ -222,6 +223,7 @@ function initMiniAd(p) {
   if (!profile) profile = (mode === "dev") ? "devHarness_full" : "prod_full";
 
   let currentHost = null;
+  let bridgeV1 = null;
 
   async function remount(nextOpts) {
     try { currentHost?.dispose?.(); } catch {}
@@ -231,6 +233,11 @@ function initMiniAd(p) {
     });
     currentHost = host;
     window.__vh = host;
+    bridgeV1?.notifyLoaded?.({
+      source: nextOpts?.document3dss ? "document" : "url",
+      modelUrl: typeof nextOpts?.modelUrl === "string" ? nextOpts.modelUrl : null,
+      label: typeof nextOpts?.modelLabel === "string" ? nextOpts.modelLabel : null,
+    });
     return host;
   }
 
@@ -316,7 +323,14 @@ function initMiniAd(p) {
   }
 
 
-  wireMessageApi();
+  bridgeV1 = createViewerBridgeV1({
+    getHost: () => currentHost,
+    remount,
+    isProbablyUrlish,
+  });
+  bridgeV1.start();
+
+  wireMessageApi(); // legacy compatibility; Product host uses Bridge v1.
   wireBackButton();
 
   await remount({
