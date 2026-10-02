@@ -17,6 +17,29 @@ Library の各コンテンツを **検索エンジンが読める HTML ページ
 * UX: 最初の画面で「何のモデルか」が分かり、必要なら Viewer で拡大して見られる
 * 運用: 1 つの共通テンプレートで回し、コンテンツごとの差分はメタ情報で制御する
 
+## Release 1 の公開面
+
+Release 1では「公開済み」と「代表作として露出する」を分ける。
+
+```text
+published:true
+→ detail route / direct URL を維持
+
+release1.included:true
+AND hidden != true
+→ /library 一覧 + Home featured の候補
+```
+
+これにより、過去URLや検証資産を削除せずに、読者が最初に見る集合だけをProduct Definition v1へ合わせられる。
+
+- `recommended:true` はRelease 1集合内のfeatured優先度
+- `hidden:true` は削除・非公開化ではなくReader surfaceからの除外
+- stress/performance fixture、draft、plumbing sample、Product v1と矛盾する旧モデルは代表集合へ自動的に混ぜない
+- Release 1の能力ラベルは `_meta.json.release1.capabilities` で管理し、Library全体でcore capability coverageを機械検査する
+
+Reader surfaceから外した項目も、`published:true` の間は既存detail URLを維持してよい。
+
+---
 ## URL とデータ配置
 
 * 一覧: `/library/`
