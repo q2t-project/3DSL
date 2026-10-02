@@ -2,6 +2,8 @@
 
 Status: `STEP11_EXPLANATION_ROUTE_AND_READER_ORIENTATION_SLICE_PASS`
 
+Human approval: `YES / 2026-10-02`
+
 Parent:
 `STEP11_FOUNDATION_SLICE_PASS`
 
@@ -133,3 +135,8 @@ Closure:
 `STEP11_EXPLANATION_ROUTE_AND_READER_ORIENTATION_SLICE_PASS`
 
 This PASS is an implementation/contract/build result. It does not claim a separate human visual-UX effectiveness study.
+## Formal closure
+
+`STEP11_EXPLANATION_ROUTE_AND_READER_ORIENTATION_SLICE_PASS`
+
+The slice is closed with human approval. The result remains scoped to implementation/contract/build acceptance; no separate claim is made that reader comprehension or UX effectiveness has been empirically established.
