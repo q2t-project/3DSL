@@ -14,6 +14,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { assertReaderBundleV1 } from "./lib/reader-guide-v1.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -235,6 +236,7 @@ function main() {
     const srcDir = path.join(LIBRARY_DIR, id);
     const modelPath = path.join(srcDir, "model.3dss.json");
     const metaPath = path.join(srcDir, "_meta.json");
+    const guidePath = path.join(srcDir, "guide.json");
 
     if (!existsFile(modelPath)) {
       throw new Error(`missing model.3dss.json: ${modelPath}`);
@@ -243,6 +245,8 @@ function main() {
     const dm = model?.document_meta ?? {};
 
     const meta = ensureMeta(metaPath, id);
+    const guide = existsFile(guidePath) ? readJson(guidePath) : null;
+    if (guide) assertReaderBundleV1(guide, model, `library/${id}/guide.json`);
 
     // Contract (SSOT):
     // - Display metadata is SSOT in model.document_meta with fixed field names.
@@ -303,11 +307,13 @@ function main() {
     }
     safeCpDir(path.join(srcDir, "assets"), path.join(outDataDir, "assets"));
     safeCpDir(path.join(srcDir, "attachments"), path.join(outDataDir, "attachments"));
+    if (guide) writeJson(path.join(outDataDir, "guide.json"), guide);
 
     const data_dir = `/_data/library/${id}`;
     const model_url = `${data_dir}/model.3dss.json`;
     const legacy_model_url = `/3dss/library/${id}/model.3dss.json`;
     const viewer_url = buildViewerUrl(model_url);
+    const guide_url = guide ? `${data_dir}/guide.json` : null;
 
     const created_at = String(dm?.created_at || "");
     const revised_at = String(dm?.revised_at || "");
@@ -342,6 +348,7 @@ function main() {
       model_url,
       legacy_model_url,
       viewer_url,
+      guide_url,
       entry_points,
       pairs,
       rights,
