@@ -89,6 +89,26 @@
 
 ---
 
+## Architecture 2026 Governance
+
+承認済みの Product / Architecture 判断はコードから逆算しない。
+
+* **Product Definition v1**: `packages/docs/product/**`
+* **Global Gap Baseline v1**: `packages/docs/architecture/global-gap-baseline-v1.md`
+* **Architecture 2026 v1**: `packages/docs/architecture/architecture-2026-v1.md`
+* **Recovered audit**: `BASELINE.md`, `packages/docs/audit/**`
+* **Integration ledger**: `packages/docs/decisions/ARCH-2026-INTEGRATION-LEDGER.md`
+
+Public Viewer の正本導線は `/app/viewer`。 `/viewer/*` は内部 runtime / preview 資産として扱う。
+
+Release 1 中は:
+* 3DSS v1.1.4 を維持する。
+* PR #53 workspace migration は post-core 評価まで保留する。
+* PR #54 Modeler preservation patch は reader-facing core 後の統合待ちとする。
+* 新しい Modeler feature / schema expansion を Release 1 の前提にしない。
+
+---
+
 ## Generated / Mirrored（触るな）
 
 * `apps/site/public/**`
