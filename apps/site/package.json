@@ -23,7 +23,7 @@
     "check:modeler:single-writer": "node ../modeler/ssot/scripts/check-single-writer.mjs",
     "check:modeler:ssot": "npm run check:modeler:forbidden-imports && npm run check:modeler:single-writer && npm run check:modeler:ports-conformance && npm run check:modeler:generated-clean",
     "check:pages:no-raw-html": "node scripts/check/pages-no-raw-html.mjs",
-    "check:release": "npm run check:product-foundation && npm run check:ssot && npm run check:viewer:regression && npm run validate:3dss:canonical",
+    "check:release": "npm run check:product-foundation && npm run check:reader-guidance && npm run check:ssot && npm run check:viewer:regression && npm run validate:3dss:canonical",
     "check:route-collisions": "node scripts/check/route-collisions.mjs",
     "check:single-writer": "node scripts/check/single-writer.mjs",
     "check:spec-filenames": "node scripts/check/spec-filenames.mjs",
@@ -42,7 +42,7 @@
     "check:viewer:regression": "node scripts/check/viewer-regression-suite.mjs",
     "check:viewer:single-writer": "node ../viewer/ssot/scripts/check-single-writer.mjs",
     "check:viewer:ssot": "npm run check:viewer:forbidden-imports && npm run check:viewer:single-writer && npm run check:viewer:ports-conformance && npm run check:viewer:generated-clean",
-    "ci:build": "npm run check:product-foundation && npm run check:ssot && npm run check:viewer:regression && npm run validate:3dss:canonical && npm run build",
+    "ci:build": "npm run check:product-foundation && npm run check:reader-guidance && npm run check:ssot && npm run check:viewer:regression && npm run validate:3dss:canonical && npm run build",
     "clean:dev": "node scripts/tool/clean-dev.mjs",
     "dev": "astro dev",
     "dev:clean": "npm run clean:dev && npm run dev",
@@ -70,7 +70,8 @@
     "validate:3dss:canonical": "node scripts/validate/3dss-canonical.mjs",
     "validate:3dss:fixtures:ref": "node scripts/validate/3dss-fixtures.mjs --ref",
     "validate:3dss:samples": "node scripts/validate/3dss-samples.mjs",
-    "check:product-foundation": "node scripts/check/product-foundation.mjs"
+    "check:product-foundation": "node scripts/check/product-foundation.mjs",
+    "check:reader-guidance": "npm run check:library && node scripts/check/reader-guidance.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.6",
