@@ -9,6 +9,10 @@
 - Modeler SSOT: `apps/modeler/ssot/**`
 - Docs SSOT: `packages/docs/**`
 - Content SSOT: `packages/3dss-content/**`
+- Product Definition v1: `packages/docs/product/**`
+- Global Gap Baseline v1: `packages/docs/architecture/global-gap-baseline-v1.md`
+- Architecture 2026 v1: `packages/docs/architecture/architecture-2026-v1.md`
+- Architecture integration ledger: `packages/docs/decisions/ARCH-2026-INTEGRATION-LEDGER.md`
 
 ## 生成物 / ミラー
 
@@ -48,3 +52,12 @@
 - modeler:ssot: `check:modeler:ssot`
 - sync: `sync:viewer` / `sync:modeler` / `sync:docs` / `sync:schemas` / `sync:3dss-content`
 - validate: `validate:3dss:canonical` / `fixtures` / `regression`
+
+## Architecture 2026 reverse lookup
+
+- Product meaning / target users / user flow: `packages/docs/product/**`
+- Current/recovered repository evidence: `BASELINE.md`, `packages/docs/audit/**`
+- Release 1 architecture: `packages/docs/architecture/architecture-2026-v1.md`
+- Public Viewer entry: `/app/viewer`
+- Internal Viewer runtime: `/viewer/*`
+- Branch harvest decisions: `packages/docs/decisions/ARCH-2026-INTEGRATION-LEDGER.md`
