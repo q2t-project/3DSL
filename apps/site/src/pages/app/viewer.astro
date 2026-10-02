@@ -1543,12 +1543,14 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
 
       .app-viewer-topbar {
         position: fixed;
-        left: 10px;
-        top: 10px;
+        left: max(10px, env(safe-area-inset-left));
+        right: max(10px, env(safe-area-inset-right));
+        top: max(10px, env(safe-area-inset-top));
         z-index: 50;
         display: flex;
         align-items: center;
         gap: 8px;
+        min-width: 0;
       }
 
       .app-viewer-back {
@@ -1989,28 +1991,90 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
       }
 
       @media (max-width: 520px) {
-        .app-viewer-topbar { left: 8px; top: 8px; gap: 6px; right: 8px; }
-        .app-viewer-orientation { max-width: 32vw; padding: 7px 8px; }
-        .app-viewer-reader { left: 8px; right: 8px; top: 60px; width: auto; }
-        .app-viewer-back { padding: 9px 11px; }
-        .app-viewer-title {
-      flex: 1;
-      min-width: 0;
-      padding: 0 10px;
-      font-size: 13px;
-      line-height: 1.2;
-      color: #cbd5e1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+        /*
+         * Release 1 mobile priority:
+         * back + whole/local orientation + guide/share are reader-critical.
+         * Copy / snapshot / QR remain available on wider screens; Share already
+         * falls back to copying the URL when native sharing is unavailable.
+         */
+        .app-viewer-topbar {
+          left: calc(env(safe-area-inset-left) + 8px);
+          right: calc(env(safe-area-inset-right) + 8px);
+          top: calc(env(safe-area-inset-top) + 8px);
+          gap: 6px;
+        }
 
-    .app-viewer-actions { gap: 6px; }
-        .app-viewer-action { width: 40px; height: 40px; }
-        .app-viewer-open-row { grid-template-columns: 1fr; }
-        .app-viewer-open-fname { max-width: 100%; }
-      }
-    
+        .app-viewer-back {
+          min-height: 44px;
+          padding: 9px 11px;
+          flex: 0 0 auto;
+          touch-action: manipulation;
+        }
+
+        .app-viewer-title {
+          display: none;
+        }
+
+        .app-viewer-orientation {
+          flex: 1 1 auto;
+          min-width: 0;
+          max-width: none;
+          padding: 8px 10px;
+        }
+
+        .app-viewer-actions {
+          display: flex;
+          flex: 0 0 auto;
+          gap: 6px;
+        }
+
+        .app-viewer-action {
+          width: 44px;
+          height: 44px;
+          touch-action: manipulation;
+        }
+
+        #app-viewer-copy,
+        #app-viewer-snap,
+        #app-viewer-qr {
+          display: none !important;
+        }
+
+        .app-viewer-reader {
+          left: calc(env(safe-area-inset-left) + 8px);
+          right: calc(env(safe-area-inset-right) + 8px);
+          top: calc(env(safe-area-inset-top) + 62px);
+          width: auto;
+          max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 78px);
+          overflow-y: auto;
+          overscroll-behavior: contain;
+        }
+
+        .app-viewer-reader-close {
+          width: 44px;
+          height: 44px;
+          touch-action: manipulation;
+        }
+
+        .app-viewer-reader-actions button {
+          min-height: 44px;
+          touch-action: manipulation;
+        }
+
+        .app-viewer-open-card,
+        .app-viewer-qr-card {
+          max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px);
+          overflow-y: auto;
+        }
+
+        .app-viewer-open-row {
+          grid-template-columns: 1fr;
+        }
+
+        .app-viewer-open-fname {
+          max-width: 100%;
+        }
+      }    
 
   .app-viewer-progress {
     position: fixed;
