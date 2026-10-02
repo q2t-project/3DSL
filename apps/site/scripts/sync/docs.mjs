@@ -22,6 +22,7 @@ const REPO_ROOT = path.resolve(SITE_ROOT, "..", "..");
 
 const SRC_ROOT = path.join(REPO_ROOT, "packages", "docs");
 const SRC_DOCS = path.join(SRC_ROOT, "docs");
+const SRC_PRODUCT = path.join(SRC_ROOT, "product");
 const SRC_FAQ = path.join(SRC_ROOT, "faq");
 const SRC_POLICY = path.join(SRC_ROOT, "policy");
 
@@ -134,6 +135,15 @@ function main() {
   // Remove embedded docs/faq if any (from old layouts)
   removeEmbeddedDocsFaq(OUT_DOCS);
   removeEmbeddedDocsPolicy(OUT_DOCS);
+
+  // Product Definition v1 has one canonical SSOT outside the public docs collection.
+  // Mirror it into /docs/product/* at sync time instead of tracking a duplicate source tree.
+  const outProduct = path.join(OUT_DOCS, "product");
+  rmrf(outProduct);
+  if (existsDir(SRC_PRODUCT)) {
+    copyDir(SRC_PRODUCT, outProduct);
+    log("product mirrored (packages/docs/product -> src/content/docs/product)");
+  }
 
   // Flatten /docs/docs/* -> /docs/* (ALWAYS if present)
   flattenDocsIfNested(OUT_DOCS);
