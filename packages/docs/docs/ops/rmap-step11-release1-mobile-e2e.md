@@ -1,6 +1,6 @@
 # RMAP STEP 11 — Release 1 Mobile + End-to-End Acceptance Slice
 
-Status: `IMPLEMENTATION_COMPLETE / CI_PENDING / HUMAN_CLOSURE_PENDING`
+Status: `STEP11_RELEASE1_MOBILE_AND_END_TO_END_ACCEPTANCE_AUTOMATED_PASS / HUMAN_CLOSURE_PENDING`
 
 Parent:
 `STEP11_LIBRARY_RELEASE_CURATION_AND_RESILIENCE_SLICE_PASS`
@@ -115,6 +115,30 @@ No:
 - Modeler feature work;
 - workspace migration;
 - new test dependency.
+
+## Verification result
+
+```yaml
+CI_workflow: CI
+CI_run_number: 354
+CI_run_id: 37022667005
+result: SUCCESS
+checked:
+  - Product Definition v1 foundation guard
+  - explanation route / reader orientation guard
+  - Release 1 Library curation/resilience guard
+  - Viewer/Modeler SSOT guards
+  - Viewer regression
+  - canonical 3DSS validation
+  - Astro build
+  - mobile source contract
+  - built-distribution HTTP end-to-end acceptance
+```
+
+Automated result:
+`STEP11_RELEASE1_MOBILE_AND_END_TO_END_ACCEPTANCE_AUTOMATED_PASS`
+
+Real-device visual/touch quality and reader-comprehension effectiveness remain outside this automated claim.
 
 ## Acceptance target
 
