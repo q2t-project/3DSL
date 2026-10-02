@@ -33,9 +33,10 @@ _meta.json は **台帳**。表示メタ（title/summary/tags）やモデルの�
 ### 2.1 MUST（公開ライブラリとして成立する最低限）
 
 #### `published` (boolean)
-- 公開スイッチ（一覧に出すか）
+- 公開detail/dataを生成対象にするかのスイッチ
 - `false`：非公開（作業中/検証中/PR preview 用）
-- `true`：公開（library 一覧に載る対象）
+- `true`：公開detail URLを維持する対象
+- Release 1の一覧・Home露出は `release1.included` と `hidden` で別に決める
 
 #### `published_at` (string, ISO 8601)
 - **初回公開日（固定）**
