@@ -1,0 +1,26 @@
+{
+  "version": "1.0",
+  "orientation": {
+    "summary": "x",
+    "placement": { "meaning": "layout" }
+  },
+  "routes": [
+    {
+      "id": "r",
+      "title": "route",
+      "order_semantics": "presentation",
+      "steps": [
+        {
+          "id": "a",
+          "title": "A",
+          "target": {
+            "kind": "element",
+            "uuid": "11111111-1111-4111-8111-111111111111",
+            "element_kind": "points"
+          },
+          "frame": 1
+        }
+      ]
+    }
+  ]
+}
