@@ -281,6 +281,12 @@ function main() {
     const pairs = Array.isArray(meta?.pairs) ? meta.pairs : [];
     const rights = meta?.rights ?? null;
     const related = Array.isArray(meta?.related) ? meta.related : [];
+    const hidden = meta?.hidden === true;
+    const recommended = meta?.recommended === true;
+    const release1 =
+      meta?.release1 && typeof meta.release1 === "object" && !Array.isArray(meta.release1)
+        ? meta.release1
+        : null;
 
     // --- dist outputs ---
     // 1) legacy/public model path (for backward shared links)
@@ -346,6 +352,9 @@ function main() {
       model_url,
       legacy_model_url,
       viewer_url,
+      hidden,
+      recommended,
+      release1,
       entry_points,
       pairs,
       rights,
@@ -356,7 +365,7 @@ function main() {
   }
 
   writeJson(path.join(OUT_LIBRARY_DIR, "library_index.json"), {
-    version: 5,
+    version: 6,
     generated_at: new Date().toISOString(),
     items,
   });
