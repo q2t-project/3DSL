@@ -16,7 +16,9 @@ const {
 const pathname = Astro.url?.pathname ?? "/";
 const isHome = pathname === "/";
 const noAds = isNoAdsRequest(Astro.url);
-const canonicalFinal = canonicalUrl ?? canonical;
+// Default canonical is site origin + current path; page-level overrides still win.
+const canonicalFinal =
+  canonicalUrl ?? canonical ?? (Astro.site ? new URL(pathname, Astro.site).href : null);
 
 // AdSense
 // - Central policy: ads only on /, /concept (see lib/adsense.ts)
