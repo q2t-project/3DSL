@@ -1,8 +1,8 @@
 # RMAP STEP 11 — Explanation Route + Reader Orientation Slice
 
-Status: `STEP11_EXPLANATION_ROUTE_AND_READER_ORIENTATION_SLICE_PASS`
+Status: `IMPLEMENTED_CI_PASS / HUMAN_REVIEW_REQUIRED`
 
-Human approval: `YES / 2026-10-02`
+Human approval: `PENDING`
 
 Parent:
 `STEP11_FOUNDATION_SLICE_PASS`
@@ -118,8 +118,8 @@ Verification result:
 
 ```yaml
 CI_workflow: CI
-CI_run_number: 346
-CI_run_id: 36966531295
+CI_run_number: 348
+CI_run_id: 36971890536
 result: SUCCESS
 checked:
   - product foundation
@@ -131,12 +131,15 @@ checked:
   - Astro build
 ```
 
-Closure:
+Pre-closure candidate:
 `STEP11_EXPLANATION_ROUTE_AND_READER_ORIENTATION_SLICE_PASS`
 
-This PASS is an implementation/contract/build result. It does not claim a separate human visual-UX effectiveness study.
-## Formal closure
+Implementation/contract/build acceptance is satisfied. Human closure is still pending.
+No separate claim is made that reader comprehension or visual-UX effectiveness has been empirically established.
 
+## Human gate
+
+Approve:
 `STEP11_EXPLANATION_ROUTE_AND_READER_ORIENTATION_SLICE_PASS`
 
-The slice is closed with human approval. The result remains scoped to implementation/contract/build acceptance; no separate claim is made that reader comprehension or UX effectiveness has been empirically established.
+Approval closes this slice only. It does not close STEP 11 as a whole unless the remaining STEP 11 backlog is separately satisfied.
