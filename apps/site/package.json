@@ -28,7 +28,7 @@
     "check:route-collisions": "node scripts/check/route-collisions.mjs",
     "check:single-writer": "node scripts/check/single-writer.mjs",
     "check:spec-filenames": "node scripts/check/spec-filenames.mjs",
-    "check:ssot": "npm run check:vendor-required && npm run check:generated-clean && npm run check:viewer:ssot && npm run check:modeler:ssot && npm run check:host:asset-paths && npm run check:route-collisions && npm run check:pages:no-raw-html && npm run check:public-viewer-entry && npm run check:reader-guide-contract",
+    "check:ssot": "npm run check:vendor-required && npm run check:generated-clean && npm run check:viewer:ssot && npm run check:modeler:ssot && npm run check:host:asset-paths && npm run check:route-collisions && npm run check:pages:no-raw-html && npm run check:public-viewer-entry && npm run check:reader-guide-contract && npm run check:reader-bundle-v1",
     "check:ui-dom-roles": "node scripts/check/ui-dom-roles.mjs",
     "check:vendor-required": "node scripts/check/vendor-required.mjs",
     "check:viewer:bootstrap-flow-contract": "node scripts/check/viewer-bootstrap-flow-contract.mjs",
@@ -73,7 +73,8 @@
     "validate:3dss:samples": "node scripts/validate/3dss-samples.mjs",
     "check:canonical-output": "node scripts/check/canonical-output.mjs",
     "check:public-viewer-entry": "node scripts/check/public-viewer-entry.mjs",
-    "check:reader-guide-contract": "node ../../packages/3dss-content/scripts/check-reader-guide-contract.mjs"
+    "check:reader-guide-contract": "node ../../packages/3dss-content/scripts/check-reader-guide-contract.mjs",
+    "check:reader-bundle-v1": "node ../../packages/3dss-content/scripts/check-reader-bundle-v1.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.6",
