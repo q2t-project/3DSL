@@ -1,6 +1,6 @@
 # RMAP STEP 11 — Foundation Slice
 
-Status: `IMPLEMENTED_PENDING_CI`
+Status: `STEP11_FOUNDATION_SLICE_PASS`
 
 Parent:
 `RMAP_BL_01_COMPLETE_WITH_RELEASE1_READER_CRITICAL_PATH_AND_STEP11_READY`
@@ -44,7 +44,7 @@ Before adding reader-facing explanation/orientation behavior, make the Release 1
 
 ## Next slice
 
-After this slice passes CI:
+After this slice passed CI:
 
 `STEP11_EXPLANATION_ROUTE_AND_READER_ORIENTATION_SLICE`
 
