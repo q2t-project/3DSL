@@ -1,43 +1,15 @@
-# Release 1 Global Backlog v1
+# Release 1 Backlog v1 — Architecture reference
 
-Status: `APPROVED / RMAP_BL_01_COMPLETE_WITH_RELEASE1_READER_CRITICAL_PATH_AND_STEP11_READY`
+Status: `POINTER / GLOBAL_BACKLOG_V1`
 
-Architecture basis:
-`RMAP_ARCH_01_ARCHITECTURE_2026_V1_FROZEN`
+Canonical SSOT:
+`packages/docs/backlog/global-backlog-v1.md`
 
-## Foundation slice
+Execution detail:
+- `packages/docs/backlog/critical-path.md`
+- `packages/docs/backlog/milestone-plan.md`
 
-```text
-RBL-001 fresh Architecture 2026 integration branch
-→ RBL-002 canonical decision docs
-→ RBL-003 CI false-green correction
-→ RBL-004 canonical URL correction
-→ RBL-005 branch integration ledger
-```
+Formal Step-10 closure:
+`packages/docs/roadmap/RMAP-BL-01_Formal_Closure.md`
 
-## Step 11 reader critical path
-
-```text
-Product copy / first-30-sec
-→ canonical /app/viewer
-→ Reader Guide
-→ Reader Bundle
-→ Viewer Bridge
-→ item/session resolution
-→ orientation
-→ explanation routes
-→ model-specific interpretation
-→ curated Library
-→ failure handling
-→ E2E acceptance
-```
-
-## Explicit holds
-
-- 3DSS schema expansion: HOLD
-- G-SW-06/07/08: HOLD
-- PR #53 workspace migration: POST-CORE EVALUATION
-- Premium mechanism: POST-RELEASE1 PATH
-- new Modeler features: HOLD
-
-After the Foundation slice is green, continue into Slice 11A unless a real Product/Architecture contradiction appears.
+Do not duplicate or independently edit backlog priority in this directory.
