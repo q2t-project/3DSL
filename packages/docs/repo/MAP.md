@@ -37,3 +37,27 @@ flowchart LR
 ```
 
 > 注: ここは “代表的な流れ” のみ。正確なエントリポイントは各README/INDEX側でリンクする。
+
+## Architecture 2026 reader path
+
+承認済み Product v1 の主線:
+
+```mermaid
+flowchart LR
+  Home[Home / Concept] --> Library[Library]
+  Library --> Detail[Library detail / context]
+  Detail --> ViewerHost[/app/viewer]
+  ViewerHost --> ViewerRuntime[/viewer/* internal runtime]
+  ViewerRuntime --> VCore[Viewer core]
+  VCore --> Renderer[renderer]
+  Content[packages/3dss-content] --> Library
+  Product[packages/docs/product] --> Home
+  Product --> Library
+  Arch[packages/docs/architecture/architecture-2026-v1.md] --> ViewerHost
+```
+
+- Public Viewer entry: `/app/viewer`
+- Internal Viewer assets: `/viewer/*`
+- Product meaning SSOT: `packages/docs/product/**`
+- Reader Guide / Reader Bundle は STEP 11 で追加する external product contract。
+- 3DSS v1.1.4 は Release 1 では維持する。
