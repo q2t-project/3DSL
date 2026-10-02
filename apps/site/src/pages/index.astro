@@ -66,7 +66,7 @@ const ctaHref = featuredPrimary;
 
 <Layout
   title="3DSL"
-  description="3DSL は、概念や関係を三次元の座標に配置し、拡大縮小しながら局面と総体を行き来できる表現基盤です。"
+  description="3DSL は、複雑な知識を全体のつながりを保ったまま局所へ入り、同じ全体へ戻りながら探索するための知識空間です。"
 >
   <!-- Hero: information-dense, business-like UI (surface + clear hierarchy) -->
   <section class="grid gap-6 lg:grid-cols-12">
@@ -94,9 +94,9 @@ const ctaHref = featuredPrimary;
 	      <div class="ui-surface p-6">
 	        <h2 class="text-lg font-semibold tracking-tight">このサイトでできること</h2>
         <ul class="mt-3 text-sm text-neutral-300 list-disc pl-5 space-y-2">
-          <li>Library：作品を眺めて、刺さったものだけ詳細へ</li>
-          <li>Viewer：拡大縮小・視点操作で、局面↔総体を行き来</li>
-          <li>Docs / Concept：用語・運用・背景の整理</li>
+          <li>Library：具体例から、3DSLで何ができるかを見る</li>
+          <li>Viewer：全体の位置づけと局所の構造を往還する</li>
+          <li>Docs / Concept：読み方・前提・限界を確認する</li>
         </ul>
       </div>
     </aside>
@@ -115,7 +115,7 @@ const ctaHref = featuredPrimary;
           
         </div>
         <p class="mt-2 text-sm text-neutral-300">
-          サムネで眺めて、刺さったものだけ詳細へ。操作による探索は Viewer へのリンクで行います。
+          具体的なモデルから 3DSL の価値を確かめる入口です。詳細を読み、Viewer で同じモデルを探索します。
         </p>
       </a>
 
@@ -126,7 +126,7 @@ const ctaHref = featuredPrimary;
           
         </div>
         <p class="mt-2 text-sm text-neutral-300">
-          拡大縮小・視点操作で、局面と総体を往復。言語の積み上げ無しで「何か」を掴む入口。
+          全体での位置づけを保ちながら局所へ入り、関係や構造を確認して同じ全体へ戻ります。
         </p>
       </a>
 
@@ -136,7 +136,7 @@ const ctaHref = featuredPrimary;
           
         </div>
         <p class="mt-2 text-sm text-neutral-300">
-          用語、設計、運用（引用・権利表記）のハブ。クローラにも意味密度を持たせる領域。
+          読み方、Product 定義、3DSS 仕様、引用・権利・運用を確認するハブです。
         </p>
       </a>
 
@@ -146,7 +146,7 @@ const ctaHref = featuredPrimary;
           
         </div>
         <p class="mt-2 text-sm text-neutral-300">
-          分節化と言語化の限界、図＝関係、マルチスケールの意味。抽象の受け皿。
+          3DSL の目的、3D を使う条件、Reader / Author の位置づけと限界を説明します。
         </p>
       </a>
     </div>
@@ -159,8 +159,8 @@ const ctaHref = featuredPrimary;
       <header class="flex flex-col gap-3">
         <h2 class="text-2xl sm:text-3xl font-semibold tracking-tight">3DSLとは何か</h2>
         <p class="text-sm sm:text-base text-neutral-200 leading-7 max-w-[78ch]">
-          三次元構造言語（3DSL）は、思考や概念を「立体構造」として表現・共有するための記述体系です。
-          文章や図だけでは捉えきれない関係性・階層・方向性を、三次元空間上の構造として扱います。
+          3DSL は、複雑な対象を一つのつながった全体として外部化し、
+          全体での位置づけを保ちながら局所の構造へ入り、同じ全体へ戻って比較・見直しを続けるための表現・探索システムです。
         </p>
         <div class="pt-2">
           <a class="ui-btn inline-flex" href="/concept">詳しく見る：Concept</a>
@@ -171,21 +171,21 @@ const ctaHref = featuredPrimary;
         <div class="space-y-3">
           <h3 class="text-lg sm:text-xl font-semibold">なぜ「三次元」なのか</h3>
           <p class="text-sm sm:text-base text-neutral-200 leading-7">
-            言葉や図は、基本的に一次元・二次元の表現です。
-            しかし実際の思考や理解は、複数の軸・視点・粒度を同時に行き来しています。
-            3DSLは、その同時性を失わずに扱うために、三次元という表現空間を採用しています。
+            3D は目的ではありません。複数の関係、粒度、スコープ、観点を
+            一つの全体に保つために空間の自由度が役立つ場合に使います。
+            軸や位置の意味はモデルごとに定め、すべての対象へ同じ三軸を当てはめません。
           </p>
         </div>
 
         <div class="space-y-3">
           <h3 class="text-lg sm:text-xl font-semibold">3DSLでできること</h3>
           <ul class="mt-2 space-y-2 text-sm sm:text-base text-neutral-200 leading-7 list-disc pl-5">
-            <li>概念・要素・関係を点と線として配置する</li>
-            <li>視点やスケールを切り替えて構造を読み直す</li>
-            <li>構造そのものをデータとして保存・再利用する</li>
+            <li>全体の中で要素や論点の位置づけを見る</li>
+            <li>局所へ入り、要素・関係・働きを調べて全体へ戻る</li>
+            <li>粒度・スコープ・観点を変え、配置や接続を比較・見直す</li>
           </ul>
           <p class="mt-4 text-sm text-neutral-300 leading-7">
-            これらを通して、「考える」「説明する」「共有する」行為を支援します。
+            表示できることと、理解が改善したこと・内容が正しいことは分けて検証します。
           </p>
         </div>
       </div>
@@ -196,7 +196,7 @@ const ctaHref = featuredPrimary;
       <header class="flex flex-col gap-3">
         <h2 class="text-2xl sm:text-3xl font-semibold tracking-tight">このサイトでできること</h2>
         <p class="text-sm sm:text-base text-neutral-200 leading-7 max-w-[78ch]">
-          3DSLを体験・閲覧・理解するための入口です。まずは作品を見るか、Viewerで触ってみてください。
+          最初は Library の具体例から入ります。内容と文脈を確認し、Viewer で全体と局所を往還してください。
         </p>
       </header>
 
@@ -204,7 +204,7 @@ const ctaHref = featuredPrimary;
         <article class="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
           <h3 class="text-base sm:text-lg font-semibold">Library</h3>
           <p class="mt-2 text-sm text-neutral-200 leading-7">
-            構造モデルを一覧で眺め、興味のあるものを選んで詳しく見られます。
+            3DSL の中心的な構造表現を、具体的なモデルから選んで試せます。
           </p>
           <div class="mt-4">
             <a class="ui-btn inline-flex" href="/library">作品を見る</a>
@@ -214,17 +214,17 @@ const ctaHref = featuredPrimary;
         <article class="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
           <h3 class="text-base sm:text-lg font-semibold">Viewer</h3>
           <p class="mt-2 text-sm text-neutral-200 leading-7">
-            回転・拡大縮小しながら、関係性や配置を直感的に把握できます。
+            全体を失わずに focus を切り替え、局所の関係・構造を調べます。
           </p>
           <div class="mt-4">
-            <a class="ui-btn inline-flex" href="/viewer">Viewerへ</a>
+            <a class="ui-btn inline-flex" href="/app/viewer">Viewerへ</a>
           </div>
         </article>
 
         <article class="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
           <h3 class="text-base sm:text-lg font-semibold">Docs</h3>
           <p class="mt-2 text-sm text-neutral-200 leading-7">
-            用語・設計・運用（引用・権利表記）などを文章で整理しています。
+            Product 定義、読み方、仕様、引用・権利・運用を確認できます。
           </p>
           <div class="mt-4">
             <a class="ui-btn inline-flex" href="/docs">Docsを読む</a>
@@ -234,7 +234,7 @@ const ctaHref = featuredPrimary;
         <article class="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
           <h3 class="text-base sm:text-lg font-semibold">Concept</h3>
           <p class="mt-2 text-sm text-neutral-200 leading-7">
-            背景思想と方針。3DSLの「狙い」と「限界」を言語化します。
+            whole ↔ local の核、3D を使う条件、狙いと限界を説明します。
           </p>
           <div class="mt-4">
             <a class="ui-btn inline-flex" href="/concept">Conceptへ</a>
@@ -248,7 +248,7 @@ const ctaHref = featuredPrimary;
       <header class="flex flex-col gap-3">
         <h2 class="text-2xl sm:text-3xl font-semibold tracking-tight">代表的な作例</h2>
         <p class="text-sm sm:text-base text-neutral-200 leading-7 max-w-[78ch]">
-          3DSLを使った具体的な構造表現の例です。各作例ページには短い解説と、Viewerでの閲覧導線があります。
+          3DSL の価値は feature list ではなく、具体的に探索できるモデルで示します。各作例ページから Viewer へ進めます。
         </p>
       </header>
 
@@ -276,17 +276,17 @@ const ctaHref = featuredPrimary;
       <section class="ui-surface p-6 sm:p-10">
         <h2 class="text-2xl sm:text-3xl font-semibold tracking-tight">どんな人に向いているか</h2>
         <ul class="mt-6 space-y-2 text-sm sm:text-base text-neutral-200 leading-7 list-disc pl-5">
-          <li>複雑な概念や関係性を整理したい人</li>
-          <li>文章や図だけでは説明しきれない構造を扱う人</li>
-          <li>思考や知識を「形」として残したい人</li>
-          <li>研究・設計・教育・思考整理など、用途は限定していません</li>
+          <li>複雑な対象の中で「今どこを見ているか」を保ちたい人</li>
+          <li>全体・部分・複数の関係や粒度を行き来して理解したい人</li>
+          <li>分野や職種ではなく、構造を探索する必要を持つ Reader / Explorer</li>
+          <li>将来的には、構造を作りながら発見する Author / Mapper</li>
         </ul>
       </section>
 
       <section class="ui-surface p-6 sm:p-10">
         <h2 class="text-2xl sm:text-3xl font-semibold tracking-tight">まずは触ってみる</h2>
         <p class="mt-3 text-sm sm:text-base text-neutral-200 leading-7">
-          はじめての方は、まずおすすめの作例を開いて、Viewerで回してみてください。
+          はじめての方は、まずおすすめの作例を開き、全体での位置づけと局所の構造を行き来してみてください。
         </p>
 
         <div class="mt-6 flex flex-col sm:flex-row gap-3">
