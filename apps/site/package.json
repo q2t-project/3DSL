@@ -42,7 +42,7 @@
     "check:viewer:regression": "node scripts/check/viewer-regression-suite.mjs",
     "check:viewer:single-writer": "node ../viewer/ssot/scripts/check-single-writer.mjs",
     "check:viewer:ssot": "npm run check:viewer:forbidden-imports && npm run check:viewer:single-writer && npm run check:viewer:ports-conformance && npm run check:viewer:generated-clean",
-    "ci:build": "npm run check:ssot && npm run check:viewer:regression && npm run validate:3dss:canonical && npm run build",
+    "ci:build": "npm run check:ssot && npm run check:viewer:regression && npm run validate:3dss:canonical && npm run build && npm run check:canonical-output",
     "clean:dev": "node scripts/tool/clean-dev.mjs",
     "dev": "astro dev",
     "dev:clean": "npm run clean:dev && npm run dev",
@@ -69,7 +69,8 @@
     "validate:3dss:baseline": "node scripts/validate/3dss.mjs public/3dss/scenes/default/default.3dss.json public/schemas/3DSS.schema.json",
     "validate:3dss:canonical": "node scripts/validate/3dss-canonical.mjs",
     "validate:3dss:fixtures:ref": "node scripts/validate/3dss-fixtures.mjs --ref",
-    "validate:3dss:samples": "node scripts/validate/3dss-samples.mjs"
+    "validate:3dss:samples": "node scripts/validate/3dss-samples.mjs",
+    "check:canonical-output": "node scripts/check/canonical-output.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.6",
