@@ -106,9 +106,17 @@ async function readLibraryIndex() {
     const j = JSON.parse(raw);
     const items = Array.isArray(j?.items) ? j.items : [];
     return items
+      .filter((it) => it?.release1?.included === true && it?.hidden !== true)
       .map((it) => ({
         slug: typeof it?.slug === "string" ? it.slug : null,
-        updated_at: typeof it?.updated_at === "string" ? it.updated_at : null,
+        updated_at:
+          typeof it?.republished_at === "string"
+            ? it.republished_at
+            : typeof it?.published_at === "string"
+              ? it.published_at
+              : typeof it?.created_at === "string"
+                ? it.created_at
+                : null,
       }))
       .filter((it) => it.slug);
   } catch {
@@ -128,8 +136,7 @@ function buildUrlEntries(baseUrl, libraryItems) {
     "/contact/",
     "/modeler/",
     "/canonical/",
-    // viewer routes
-    "/viewer/",
+    // canonical public Viewer route
     "/app/viewer/",
   ];
 
