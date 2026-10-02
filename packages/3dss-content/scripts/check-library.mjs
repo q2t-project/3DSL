@@ -10,6 +10,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { validateReaderBundleV1 } from "./lib/reader-guide-v1.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -138,7 +139,9 @@ function validateMeta(meta, policy) {
     issue('warn', `seo should be an object when present`);
   }
   if (meta.entry_points != null && !Array.isArray(meta.entry_points)) {
-    issue('warn', `entry_points should be an array when present`);
+    issue('error', `entry_points should be an array when present`);
+  } else if (Array.isArray(meta.entry_points) && meta.entry_points.length > 0) {
+    issue('error', `entry_points route objects are deprecated; authored reader routes belong in guide.json`);
   }
   if (meta.pairs != null && !Array.isArray(meta.pairs)) {
     issue('warn', `pairs should be an array when present`);
@@ -265,7 +268,7 @@ function validateEntryPoints(entryPoints, model) {
   return { warns, errs };
 }
 
-function validateRelease1(meta, dm) {
+function validateRelease1(meta, dm, guide) {
   const warns = [];
   const errs = [];
   const isPublished = meta?.published === true;
@@ -322,9 +325,9 @@ function validateRelease1(meta, dm) {
     if (
       Array.isArray(release.capabilities) &&
       release.capabilities.includes("explanation-route") &&
-      (!Array.isArray(meta?.entry_points) || meta.entry_points.length === 0)
+      (!guide || !Array.isArray(guide.routes) || guide.routes.length === 0)
     ) {
-      errs.push('release1 capability "explanation-route" requires entry_points');
+      errs.push('release1 capability "explanation-route" requires guide.json with at least one route');
     }
 
     if (meta?.recommended === true && meta?.hidden === true) {
@@ -418,6 +421,7 @@ function main() {
     const base = path.join(LIBRARY_DIR, id);
     const metaPath = path.join(base, '_meta.json');
     const modelPath = path.join(base, 'model.3dss.json');
+    const guidePath = path.join(base, 'guide.json');
 
     if (!fs.existsSync(metaPath)) {
       console.error(`[error] ${id}: missing _meta.json`);
@@ -432,6 +436,7 @@ function main() {
 
     let meta = null;
     let model = null;
+    let guide = null;
     try {
       meta = readJson(metaPath);
     } catch (e) {
@@ -446,8 +451,15 @@ function main() {
       errCount++;
       continue;
     }
+    if (fs.existsSync(guidePath)) {
+      try {
+        guide = readJson(guidePath);
+      } catch (e) {
+        console.error(`[error] ${id}: guide.json parse failed: ${String(e?.message ?? e)}`);
+        errCount++;
+      }
+    }
 
-    
     // Model basic sanity (non-optional for runtime)
     const dm = model?.document_meta ?? null;
     if (!isPlainObject(dm)) {
@@ -469,19 +481,16 @@ function main() {
       errCount++;
     }
 
-    // Reader explanation routes are optional, but when present they must
-    // resolve to real UUIDs in this exact model.
-    const routeCheck = validateEntryPoints(meta?.entry_points, model);
-    for (const w of routeCheck.warns) {
-      console.warn(`[warn] ${id}: ${w}`);
-      warnCount++;
-    }
-    for (const er of routeCheck.errs) {
-      console.error(`[error] ${id}: ${er}`);
-      errCount++;
+    // Reader Guide is optional, but when present it must cross-validate against this exact model.
+    if (guide) {
+      const guideCheck = validateReaderBundleV1(guide, model);
+      for (const er of guideCheck.errors) {
+        console.error(`[error] ${id}: guide.json ${er}`);
+        errCount++;
+      }
     }
 
-    const releaseCheck = validateRelease1(meta, dm);
+    const releaseCheck = validateRelease1(meta, dm, guide);
     for (const w of releaseCheck.warns) {
       console.warn(`[warn] ${id}: ${w}`);
       warnCount++;
