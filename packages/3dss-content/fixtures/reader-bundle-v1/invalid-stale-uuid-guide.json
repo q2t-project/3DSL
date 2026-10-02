@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "orientation": {
+    "summary": "fixture",
+    "placement": { "meaning": "layout" }
+  },
+  "routes": [
+    {
+      "id": "overview",
+      "title": "overview",
+      "order_semantics": "presentation",
+      "steps": [
+        {
+          "id": "focus",
+          "title": "focus",
+          "target": {
+            "kind": "element",
+            "uuid": "22222222-2222-4222-8222-222222222222",
+            "element_kind": "points"
+          }
+        }
+      ]
+    }
+  ]
+}
