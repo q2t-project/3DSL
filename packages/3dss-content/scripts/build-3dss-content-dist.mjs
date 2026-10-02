@@ -141,8 +141,9 @@ function uniq(arr) {
 }
 
 function buildViewerUrl(modelUrl) {
-  // Contract: viewer entry takes `model=`. (Legacy `open=` is supported only for backward links.)
-  return `/viewer/index.html?model=${encodeURIComponent(modelUrl)}`;
+  // Architecture 2026: /app/viewer is the canonical public Product host.
+  // /viewer/* remains an internal runtime/preview asset.
+  return `/app/viewer?model=${encodeURIComponent(modelUrl)}`;
 }
 
 function safeCpDir(srcDir, dstDir) {
