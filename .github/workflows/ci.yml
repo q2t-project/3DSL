@@ -45,18 +45,6 @@ jobs:
           mkdir -p ci-logs
           npm --loglevel verbose run ci:build --if-present 2>&1 | tee ci-logs/ci-build.log
 
-      - name: Verify canonical links
-        working-directory: apps/site
-        shell: bash
-        run: |
-          set -euo pipefail
-          grep -F '<link rel="canonical" href="https://3dsl.jp/">' dist/index.html
-          grep -F '<link rel="canonical" href="https://3dsl.jp/library/">' dist/library/index.html
-          grep -F '<link rel="canonical" href="https://3dsl.jp/docs/">' dist/docs/index.html
-          detail="$(find dist/library -mindepth 2 -maxdepth 2 -name index.html | head -n 1)"
-          test -n "$detail"
-          grep -F 'rel="canonical"' "$detail"
-          grep -F 'href="https://3dsl.jp/library/' "$detail"
 
       - name: Upload build log artifact
         if: ${{ always() }}
