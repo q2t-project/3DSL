@@ -42,6 +42,7 @@ export type LibraryItem = {
   data_dir?: string; // /_data/library/<id>
   model_url?: string; // /_data/library/<id>/model.3dss.json
   legacy_model_url?: string; // /3dss/library/<id>/model.3dss.json
+  guide_url?: string | null; // /_data/library/<id>/guide.json (Reader Guide v1)
   page?: any;
 };
 
