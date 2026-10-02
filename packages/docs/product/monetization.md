@@ -6,7 +6,7 @@ Status: `APPROVED / PRODUCT_DEFINITION_V1`
 
 The first monetization experiment should validate willingness to pay without obscuring the core product value.
 
-## Candidate v1 boundary — recommended
+## Approved v1 boundary
 
 ### Free
 - core site and concept explanation;
@@ -22,7 +22,7 @@ The first monetization experiment should validate willingness to pay without obs
 
 The boundary is primarily **content depth/value**, not “basic navigation vs usable navigation”.
 
-## Why this candidate fits the roadmap
+## Why this boundary fits the roadmap
 
 The roadmap places Library + Viewer before Premium validation.
 Therefore a user must be able to experience the core 3DSL value before payment.
