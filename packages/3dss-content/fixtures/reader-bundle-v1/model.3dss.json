@@ -1,0 +1,27 @@
+{
+  "document_meta": {
+    "document_title": "Reader Bundle fixture",
+    "document_summary": "Reader Bundle v1 cross-validation fixture",
+    "document_uuid": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    "version": "1.0.0",
+    "tags": ["s:fixture"],
+    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
+    "author": "q2t",
+    "created_at": "2026-10-02T00:00:00Z",
+    "revised_at": "2026-10-02T00:00:00Z"
+  },
+  "points": [
+    {
+      "signification": { "name": "A" },
+      "appearance": {
+        "position": [0, 0, 0],
+        "frames": [0, 1]
+      },
+      "meta": {
+        "uuid": "11111111-1111-4111-8111-111111111111"
+      }
+    }
+  ],
+  "lines": [],
+  "aux": []
+}
