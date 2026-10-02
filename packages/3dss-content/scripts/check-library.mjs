@@ -145,6 +145,112 @@ function validateMeta(meta, policy) {
   return { warns, errs };
 }
 
+
+function collectModelUuidKinds(model) {
+  const out = new Map();
+  for (const [kind, key] of [["points", "points"], ["lines", "lines"], ["aux", "aux"]]) {
+    const list = Array.isArray(model?.[key]) ? model[key] : [];
+    for (const item of list) {
+      const uuid = typeof item?.meta?.uuid === "string" ? item.meta.uuid.trim() : "";
+      if (uuid) out.set(uuid, kind);
+    }
+  }
+  return out;
+}
+
+function validateEntryPoints(entryPoints, model) {
+  const warns = [];
+  const errs = [];
+  if (entryPoints == null) return { warns, errs };
+  if (!Array.isArray(entryPoints)) {
+    errs.push("entry_points must be an array");
+    return { warns, errs };
+  }
+
+  const uuidKinds = collectModelUuidKinds(model);
+  const routeIds = new Set();
+
+  for (let i = 0; i < entryPoints.length; i++) {
+    const route = entryPoints[i];
+    const p = `entry_points[${i}]`;
+    if (!isPlainObject(route)) {
+      errs.push(`${p} must be an object`);
+      continue;
+    }
+
+    const id = typeof route.id === "string" ? route.id.trim() : "";
+    const label = typeof route.label === "string" ? route.label.trim() : "";
+    if (!id) errs.push(`${p}.id must be a non-empty string`);
+    else if (routeIds.has(id)) errs.push(`${p}.id duplicate: ${id}`);
+    else routeIds.add(id);
+
+    if (!label) errs.push(`${p}.label must be a non-empty string`);
+    if (route.summary != null && typeof route.summary !== "string") {
+      errs.push(`${p}.summary must be a string when present`);
+    }
+
+    if (!Array.isArray(route.steps) || route.steps.length === 0) {
+      errs.push(`${p}.steps must be a non-empty array`);
+      continue;
+    }
+
+    const stepIds = new Set();
+    for (let j = 0; j < route.steps.length; j++) {
+      const step = route.steps[j];
+      const sp = `${p}.steps[${j}]`;
+      if (!isPlainObject(step)) {
+        errs.push(`${sp} must be an object`);
+        continue;
+      }
+
+      const sid = typeof step.id === "string" ? step.id.trim() : "";
+      const slabel = typeof step.label === "string" ? step.label.trim() : "";
+      const action = typeof step.action === "string" ? step.action.trim() : "";
+
+      if (!sid) errs.push(`${sp}.id must be a non-empty string`);
+      else if (stepIds.has(sid)) errs.push(`${sp}.id duplicate within route: ${sid}`);
+      else stepIds.add(sid);
+
+      if (!slabel) errs.push(`${sp}.label must be a non-empty string`);
+      if (step.note != null && typeof step.note !== "string") {
+        errs.push(`${sp}.note must be a string when present`);
+      }
+
+      if (action === "overview") {
+        continue;
+      }
+
+      if (action !== "focus") {
+        errs.push(`${sp}.action must be "overview" or "focus"`);
+        continue;
+      }
+
+      const uuid = typeof step.uuid === "string" ? step.uuid.trim() : "";
+      if (!uuid) {
+        errs.push(`${sp}.uuid is required for action="focus"`);
+        continue;
+      }
+
+      const actualKind = uuidKinds.get(uuid) ?? null;
+      if (!actualKind) {
+        errs.push(`${sp}.uuid does not exist in model: ${uuid}`);
+        continue;
+      }
+
+      if (step.kind != null) {
+        const kind = typeof step.kind === "string" ? step.kind.trim() : "";
+        if (!["points", "lines", "aux"].includes(kind)) {
+          errs.push(`${sp}.kind must be points|lines|aux when present`);
+        } else if (kind !== actualKind) {
+          errs.push(`${sp}.kind mismatch for ${uuid}: expected ${actualKind}, got ${kind}`);
+        }
+      }
+    }
+  }
+
+  return { warns, errs };
+}
+
 function validateDocumentMeta(dm, isPublished) {
   const warns = [];
   const errs = [];
@@ -257,6 +363,18 @@ function main() {
       warnCount++;
     }
     for (const er of errs) {
+      console.error(`[error] ${id}: ${er}`);
+      errCount++;
+    }
+
+    // Reader explanation routes are optional, but when present they must
+    // resolve to real UUIDs in this exact model.
+    const routeCheck = validateEntryPoints(meta?.entry_points, model);
+    for (const w of routeCheck.warns) {
+      console.warn(`[warn] ${id}: ${w}`);
+      warnCount++;
+    }
+    for (const er of routeCheck.errs) {
       console.error(`[error] ${id}: ${er}`);
       errCount++;
     }
