@@ -63,6 +63,24 @@
 
 ---
 
+## Architecture 2026 / Roadmap SSOT
+
+Product / roadmap implementation decisions must be read in this order:
+
+* Current state: `packages/docs/roadmap/CURRENT_STATE.md`
+* Product Definition v1: `packages/docs/product/product-definition.md`
+* Global Gap Baseline v1: `packages/docs/gap/global-gap-analysis.md`
+* Architecture 2026 v1: `packages/docs/architecture/architecture-2026-v1.md`
+* Architecture contracts: `packages/docs/architecture/contracts/**`
+* Architecture decisions / integration ledger: `packages/docs/architecture/decisions/**`
+* Global Backlog v1: `packages/docs/backlog/global-backlog-v1.md`
+* Recovered baseline: `BASELINE.md`
+* Audit evidence: `packages/docs/audit/**`
+
+Guard: implementation/code does not redefine Product v1 implicitly. Product → Architecture → Code.
+
+---
+
 ## System SSOT（真実の場所）
 
 * **Schema SSOT**:
