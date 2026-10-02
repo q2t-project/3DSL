@@ -1,0 +1,22 @@
+{
+  "version": "1.0",
+  "orientation": {
+    "summary": "x",
+    "placement": { "meaning": "layout" }
+  },
+  "routes": [
+    {
+      "id": "r",
+      "title": "route",
+      "order_semantics": "presentation",
+      "steps": [
+        {
+          "id": "a",
+          "title": "A",
+          "target": { "kind": "whole" },
+          "mode": "micro"
+        }
+      ]
+    }
+  ]
+}
