@@ -1,6 +1,6 @@
 # RMAP STEP 11 — Library Release Curation + Resilience Slice
 
-Status: `IMPLEMENTED / CI_PENDING / HUMAN_REVIEW_REQUIRED`
+Status: `IMPLEMENTED / CI_PASS / HUMAN_REVIEW_REQUIRED`
 
 Parent:
 `STEP11_EXPLANATION_ROUTE_AND_READER_ORIENTATION_SLICE_PASS`
@@ -114,4 +114,27 @@ Home receives an empty featured set safely if the index is unavailable.
 10. CI guards the contract.
 11. No schema change.
 
-Formal closure is withheld until CI passes and human acceptance is given.
+## Verification result
+
+```yaml
+CI_workflow: CI
+CI_run_number: 351
+CI_run_id: 36984134967
+result: SUCCESS
+checked:
+  - Release 1 curation ledger and capability coverage
+  - generated Library index v6
+  - resilient index parser contract
+  - reader-guidance contract
+  - Viewer/Modeler SSOT guards
+  - Viewer regression
+  - canonical 3DSS validation
+  - Astro build
+```
+
+## Closure candidate
+
+`STEP11_LIBRARY_RELEASE_CURATION_AND_RESILIENCE_SLICE_PASS`
+
+Implementation/build acceptance is satisfied.
+Formal slice closure is withheld only for human acceptance.
