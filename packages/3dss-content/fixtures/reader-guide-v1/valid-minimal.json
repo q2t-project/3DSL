@@ -1,0 +1,62 @@
+{
+  "version": "1.0",
+  "orientation": {
+    "summary": "全体の配置を確認してからAの局所へ入る。",
+    "placement": {
+      "meaning": "位置は説明上の配置で、距離は測定量ではない。"
+    },
+    "axes": [
+      {
+        "axis": "x",
+        "label": "説明軸",
+        "meaning": "このモデル内で左から右へ説明範囲が変わる。"
+      }
+    ],
+    "frames": {
+      "meaning": "表示上の説明段階。",
+      "target_time_mapping": {
+        "mapped": false
+      }
+    },
+    "scope": "このモデル内の説明範囲。",
+    "viewpoint": "読者が全体と局所を往還する観点。",
+    "cautions": [
+      "配置は対象世界の距離を表さない。"
+    ]
+  },
+  "routes": [
+    {
+      "id": "overview",
+      "title": "全体からAへ",
+      "summary": "全体を見てから局所へ入り、全体へ戻る。",
+      "order_semantics": "presentation",
+      "steps": [
+        {
+          "id": "whole",
+          "title": "全体を見る",
+          "target": { "kind": "whole" },
+          "mode": "macro"
+        },
+        {
+          "id": "focus-a",
+          "title": "Aを見る",
+          "note": "Aの近傍を確認する。",
+          "target": {
+            "kind": "element",
+            "uuid": "11111111-1111-4111-8111-111111111111",
+            "element_kind": "points"
+          },
+          "mode": "micro",
+          "frame": 1,
+          "view_preset": "iso_ne"
+        },
+        {
+          "id": "return",
+          "title": "全体へ戻る",
+          "target": { "kind": "whole" },
+          "mode": "macro"
+        }
+      ]
+    }
+  ]
+}
