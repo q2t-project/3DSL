@@ -31,6 +31,8 @@ Reader guidance lives in:
 
 `packages/3dss-content/library/<ID>/_meta.json#entry_points`
 
+The generated `library_index.json` contract is bumped to `version: 5` because `entry_points` now has a defined route-object shape.
+
 It does not live in 3DSS and does not redefine the model.
 
 Each route contains ordered steps:
