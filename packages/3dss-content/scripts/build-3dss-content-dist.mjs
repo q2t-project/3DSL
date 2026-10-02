@@ -356,7 +356,7 @@ function main() {
   }
 
   writeJson(path.join(OUT_LIBRARY_DIR, "library_index.json"), {
-    version: 4,
+    version: 5,
     generated_at: new Date().toISOString(),
     items,
   });
