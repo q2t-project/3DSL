@@ -1,6 +1,8 @@
 # RMAP STEP 11 — Library Release Curation + Resilience Slice
 
-Status: `IMPLEMENTED / CI_PASS / HUMAN_REVIEW_REQUIRED`
+Status: `STEP11_LIBRARY_RELEASE_CURATION_AND_RESILIENCE_SLICE_PASS`
+
+Human approval: `YES / 2026-10-02`
 
 Parent:
 `STEP11_EXPLANATION_ROUTE_AND_READER_ORIENTATION_SLICE_PASS`
@@ -132,9 +134,11 @@ checked:
   - Astro build
 ```
 
-## Closure candidate
+## Formal closure
 
 `STEP11_LIBRARY_RELEASE_CURATION_AND_RESILIENCE_SLICE_PASS`
 
-Implementation/build acceptance is satisfied.
-Formal slice closure is withheld only for human acceptance.
+Implementation/build acceptance and human closure are satisfied.
+No claim is made that reader comprehension or curation effectiveness has been empirically established.
+
+This closes this slice only. STEP 11 remains open until the remaining Milestone 1 acceptance requirements are separately satisfied.
