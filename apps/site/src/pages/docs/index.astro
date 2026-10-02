@@ -12,6 +12,7 @@ const noAds = isNoAdsRequest(Astro.url);
 const docsEntries = (await getCollection("docs")).sort((a, b) => a.slug.localeCompare(b.slug, "ja"));
 
 const links = [
+  { label: "Product Definition v1", href: "/docs/product/product-definition" },
   { label: "Latest schema", href: "/docs/schema/latest" },
   { label: "v1.1.4 schema", href: "/docs/schema/v1.1.4" },
   { label: "v1.1.4 spec", href: "/docs/spec/v1.1.4" },
