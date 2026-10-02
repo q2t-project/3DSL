@@ -286,10 +286,70 @@ _meta.json は **台帳**。表示メタ（title/summary/tags）やモデルの�
 
 ---
 
-## 9. Navigation 予約席
+## 9. Reader navigation / explanation route
 
-> いまは空配列でOK。将来の導線機能に使う。
+### 9.1 `entry_points` — authored explanation routes
 
-- `entry_points`：見どころ/推奨視点（内部リンクID等）
-- `pairs`：対比で見せたい組
-- `related`：関連コンテンツID（`26xxxxxx`）
+`entry_points` is the Library-side SSOT for optional reader guidance.
+It is **not part of 3DSS** and does not change the model's semantic content.
+
+Shape:
+
+```json
+{
+  "entry_points": [
+    {
+      "id": "first-read",
+      "label": "はじめての読み方",
+      "summary": "全体から局所へ入り、もう一度全体へ戻る。",
+      "steps": [
+        {
+          "id": "overview",
+          "label": "まず全体を見る",
+          "action": "overview",
+          "note": "配置と大きなまとまりを確認する。"
+        },
+        {
+          "id": "focus-core",
+          "label": "中心要素を見る",
+          "action": "focus",
+          "uuid": "00000000-0000-4000-8000-000000000000",
+          "kind": "points",
+          "note": "局所へ入って周辺との接続を見る。"
+        }
+      ]
+    }
+  ]
+}
+```
+
+Route contract:
+
+- `entry_points[]` is an ordered list of authored routes.
+- route `id` and `label` are required and non-empty.
+- `summary` is optional reader-facing text.
+- `steps` is a non-empty ordered array.
+- each step requires `id`, `label`, and `action`.
+- `action: "overview"` returns the Viewer to the whole/macro view.
+- `action: "focus"` requires a `uuid` that exists in the same `model.3dss.json`.
+- `kind` is optional; when present it must be `points | lines | aux` and match the target UUID.
+- `note` is optional reader-facing guidance.
+
+Important boundaries:
+
+```text
+explanation route != model content
+route order != target-world time
+focus target UUID != target-world identity
+route omission != model invalidity
+```
+
+A reader may ignore the route and explore freely.
+
+### 9.2 `pairs`
+
+Reserved for authored comparison pairs. It is not yet a Release 1 reader contract.
+
+### 9.3 `related`
+
+Related Library content IDs (for example `26xxxxxx`).
