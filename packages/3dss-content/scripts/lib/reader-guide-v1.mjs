@@ -85,7 +85,7 @@ export function validateReaderGuideV1(guide) {
       for(let j=0;j<r.steps.length;j++){
         const s=r.steps[j], sp=`${rp}.steps[${j}]`;
         if(!isObj(s)){ errs.push(`${sp}: object required`); continue; }
-        allowedKeys(s,new Set(["id","title","note","target","mode","frame","view_preset"]),sp,errs);
+        allowedKeys(s,new Set(["id","title","note","target","mode","frame","view_preset","scope"]),sp,errs);
         if(!nonempty(s.id)||!ID_RE.test(s.id)) errs.push(`${sp}.id: invalid id`);
         else if(stepIds.has(s.id)) errs.push(`${sp}.id: duplicate step id ${s.id}`);
         else stepIds.add(s.id);
@@ -108,8 +108,94 @@ export function validateReaderGuideV1(guide) {
           if(!isObj(o?.frames)) errs.push(`${sp}.frame: orientation.frames required when frame hint is used`);
         }
         if(s.view_preset!=null&&!nonempty(s.view_preset)) errs.push(`${sp}.view_preset: non-empty string when present`);
+        if(s.scope!=null){
+          if(!isObj(s.scope)) errs.push(`${sp}.scope: object required`);
+          else {
+            allowedKeys(s.scope,new Set(["include_uuids","highlight_uuids"]),`${sp}.scope`,errs);
+            for(const key of ["include_uuids","highlight_uuids"]){
+              if(s.scope[key]!=null && (!Array.isArray(s.scope[key]) || s.scope[key].some(x=>!UUID_RE.test(String(x??""))))){
+                errs.push(`${sp}.scope.${key}: UUID[] required`);
+              }
+            }
+          }
+        }
       }
     }
   }
   return {ok:errs.length===0, errors:errs};
+}
+
+function modelReferenceIndex(model) {
+  const byUuid = new Map();
+  const frameValues = [];
+  for (const kind of ["points", "lines", "aux"]) {
+    const items = Array.isArray(model?.[kind]) ? model[kind] : [];
+    for (const item of items) {
+      const uuid = item?.meta?.uuid;
+      if (typeof uuid === "string" && uuid) byUuid.set(uuid, kind);
+      const frames = item?.appearance?.frames;
+      if (Number.isInteger(frames)) frameValues.push(frames);
+      else if (Array.isArray(frames)) {
+        for (const v of frames) if (Number.isInteger(v)) frameValues.push(v);
+      }
+    }
+  }
+  const frameRange = frameValues.length
+    ? { min: Math.min(...frameValues), max: Math.max(...frameValues) }
+    : { min: 0, max: 0 };
+  return { byUuid, frameRange };
+}
+
+export function validateReaderGuideReferencesV1(guide, model) {
+  const errs = [];
+  const index = modelReferenceIndex(model);
+
+  const checkUuid = (uuid, expectedKind, path) => {
+    const actual = index.byUuid.get(uuid);
+    if (!actual) {
+      errs.push(`${path}: stale/unknown model UUID ${uuid}`);
+      return;
+    }
+    if (expectedKind && actual !== expectedKind) {
+      errs.push(`${path}: kind mismatch; guide=${expectedKind} model=${actual}`);
+    }
+  };
+
+  const routes = Array.isArray(guide?.routes) ? guide.routes : [];
+  for (let i = 0; i < routes.length; i++) {
+    const steps = Array.isArray(routes[i]?.steps) ? routes[i].steps : [];
+    for (let j = 0; j < steps.length; j++) {
+      const s = steps[j];
+      const sp = `$.routes[${i}].steps[${j}]`;
+      if (s?.target?.kind === "element") {
+        checkUuid(s.target.uuid, s.target.element_kind, `${sp}.target`);
+      }
+      if (Number.isInteger(s?.frame)) {
+        if (s.frame < index.frameRange.min || s.frame > index.frameRange.max) {
+          errs.push(`${sp}.frame: ${s.frame} outside model frame range ${index.frameRange.min}..${index.frameRange.max}`);
+        }
+      }
+      const scope = isObj(s?.scope) ? s.scope : null;
+      if (scope) {
+        for (const key of ["include_uuids", "highlight_uuids"]) {
+          const xs = Array.isArray(scope[key]) ? scope[key] : [];
+          for (let k = 0; k < xs.length; k++) checkUuid(xs[k], null, `${sp}.scope.${key}[${k}]`);
+        }
+      }
+    }
+  }
+  return { ok: errs.length === 0, errors: errs, frameRange: index.frameRange };
+}
+
+export function validateReaderBundleV1(guide, model) {
+  const structural = validateReaderGuideV1(guide);
+  if (!structural.ok) return { ok: false, errors: structural.errors, frameRange: null };
+  const refs = validateReaderGuideReferencesV1(guide, model);
+  return { ok: refs.ok, errors: refs.errors, frameRange: refs.frameRange };
+}
+
+export function assertReaderBundleV1(guide, model, label = "reader guide") {
+  const result = validateReaderBundleV1(guide, model);
+  if (!result.ok) throw new Error(`${label} invalid:\n- ${result.errors.join("\n- ")}`);
+  return result;
 }
