@@ -1,6 +1,12 @@
 {
   "published": true,
   "published_at": "2026-02-05T10:51:12Z",
-  "republished_at": "2026-02-05T10:51:12Z",
-  "description": "。"
+  "republished_at": "2026-10-02T08:14:00Z",
+  "description": "。",
+  "hidden": true,
+  "recommended": false,
+  "release1": {
+    "included": false,
+    "exclusion_reason": "Library folder/plumbing sample; not a representative reader release item."
+  }
 }
