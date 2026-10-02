@@ -39,6 +39,11 @@ const meta: AnyObj | null = fs.existsSync(metaPath)
   ? JSON.parse(fs.readFileSync(metaPath, "utf8"))
   : null;
 
+const entryPoints: AnyObj[] = Array.isArray(meta?.entry_points)
+  ? meta!.entry_points.filter((x: unknown) => x && typeof x === "object")
+  : [];
+const guideUrl = `${dataDir}/_meta.json`;
+
 const seoTitle = meta?.seo?.title ?? item.meta_title ?? item.title;
 const seoDescription =
   meta?.seo?.description ?? item.meta_description ?? item.summary ?? "";
@@ -48,8 +53,21 @@ const appViewerUrl = `/app/viewer?${new URLSearchParams({
   model: modelUrl,
   from: "library",
   return: pagePath,
-  title: seoTitle,
+  title: String(seoTitle ?? item.title ?? ""),
 }).toString()}`;
+
+function guidedViewerUrl(routeId: string) {
+  const q = new URLSearchParams({
+    model: modelUrl,
+    from: "library",
+    return: pagePath,
+    title: String(seoTitle ?? item.title ?? ""),
+    guide: guideUrl,
+    route: routeId,
+  });
+  return `/app/viewer?${q.toString()}`;
+}
+
 const peekUrl = `/viewer/peek.html?model=${encodeURIComponent(modelUrl)}`;
 
 // Per-item page config (optional)
@@ -408,6 +426,46 @@ const thirdParty = Array.isArray(rights?.third_party)
             </div>
           </div>
         </section>
+
+        {entryPoints.length ? (
+          <section
+            class="mt-8 rounded-2xl border border-neutral-800 bg-neutral-950/40 p-5"
+            data-role="library-explanation-routes"
+          >
+            <h2 class="text-base font-semibold text-neutral-100">読み方</h2>
+            <p class="mt-2 text-sm leading-relaxed text-neutral-400">
+              作者が用意した案内経路です。案内を使わず自由に探索することもできます。
+            </p>
+
+            <div class="mt-4 grid gap-3">
+              {entryPoints.map((route) => (
+                <article class="rounded-xl border border-neutral-800 bg-neutral-950/30 p-4">
+                  <div class="text-sm font-semibold text-neutral-100">{String(route?.label ?? "")}</div>
+                  {route?.summary ? (
+                    <p class="mt-1 text-sm leading-relaxed text-neutral-300">{String(route.summary)}</p>
+                  ) : null}
+
+                  {Array.isArray(route?.steps) && route.steps.length ? (
+                    <ol class="mt-3 list-decimal space-y-1 pl-5 text-xs leading-relaxed text-neutral-400">
+                      {route.steps.map((step: AnyObj) => (
+                        <li>{String(step?.label ?? "")}</li>
+                      ))}
+                    </ol>
+                  ) : null}
+
+                  <div class="mt-4">
+                    <a
+                      href={guidedViewerUrl(String(route?.id ?? ""))}
+                      class="inline-flex items-center justify-center rounded-xl bg-neutral-100/10 px-4 py-2.5 text-sm font-semibold text-neutral-50 ring-1 ring-inset ring-neutral-200/15 transition hover:bg-neutral-100/15"
+                    >
+                      案内付きで Viewer を開く
+                    </a>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         {bodyHtml ? (
           <section class="mt-8 rounded-2xl border border-neutral-800 bg-neutral-950/40 p-5">
