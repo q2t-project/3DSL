@@ -1,6 +1,6 @@
 # Architecture 2026 Branch Integration Ledger
 
-Status: `ACTIVE / RBL-005`
+Status: `FOUNDATION_COMPLETE / SELECTIVE_HARVEST_ACTIVE`
 
 Integration branch:
 `review/2026-architecture-v1`
@@ -80,3 +80,12 @@ Every future harvest must update this ledger with:
 - deferred/rejected portions;
 - verification result;
 - resulting canonical commit.
+
+## Foundation verification
+
+Formal result:
+`STEP11_FOUNDATION_RBL_001_005_PASS`
+
+Latest verified PR #55 CI at closure: `SUCCESS`.
+
+Foundation selective harvest is complete. Future ports remain subject to this ledger and Architecture 2026.
