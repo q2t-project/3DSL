@@ -25,6 +25,7 @@
 <ID>/
   model.3dss.json          # 必須（表示メタSSOT: document_meta）
   _meta.json               # 必須（公開台帳 + 出典/権利/制作情報など）
+  guide.json               # 任意（Reader Guide v1。Release-1代表作では推奨）
   content.md               # 任意（テキスト。無い場合テキストなし）
   assets/                  # 任意（テキスト中で参照する画像、OGP等）
   attachments/             # 任意（PDF等の添付。詳細ページで列挙表示）
@@ -77,13 +78,33 @@ npm --prefix apps/site run new:library-item -- --title "..."
 
 ---
 
-## 5. `content.md` の書き方（テキスト + 画像 + 添付リンク）
+## 5. `guide.json`（Reader Guide v1）
 
-### 5.1 テキスト
+`guide.json` は 3DSS 本体とは分離した読者向け契約です。
+
+扱うもの:
+- モデル固有の配置・axis・frameの読み方
+- cautions / unresolved interpretation
+- explanation routes
+- route step の focus / macro-micro / frame / view hint
+
+扱わないもの:
+- target-world identity の確定
+- frame を対象時間とする暗黙推論
+- universal 3DSL axis
+
+SSOT:
+`packages/docs/architecture/contracts/reader-guide-v1.md`
+
+guide が存在する場合、Library check/build は model UUID / kind / frame とcross-validationし、stale referenceを拒否します。
+
+## 6. `content.md` の書き方（テキスト + 画像 + 添付リンク）
+
+### 6.1 テキスト
 
 `content.md` は通常の Markdown。見出し・テキスト・箇条書き等を使える。
 
-### 5.2 画像（PNG/JPG/SVG 等）
+### 6.2 画像（PNG/JPG/SVG 等）
 
 画像は原則 `assets/` に置き、Markdown から相対参照する。
 
@@ -93,7 +114,7 @@ npm --prefix apps/site run new:library-item -- --title "..."
 ![図: 全体構造](./assets/overview.png)
 ```
 
-### 5.3 添付（PDF 等）
+### 6.3 添付（PDF 等）
 
 添付は `attachments/` に置く。
 詳細ページは `attachments/` を列挙して「添付ファイル」として表示する設計。
@@ -108,7 +129,7 @@ npm --prefix apps/site run new:library-item -- --title "..."
 
 ---
 
-## 6. チェックと反映（必須）
+## 7. チェックと反映（必須）
 
 ```
 npm --prefix apps/site run check:library
@@ -120,7 +141,7 @@ npm --prefix apps/site run sync:3dss-content
 
 ---
 
-## 7. 公開フロー（PR）
+## 8. 公開フロー（PR）
 
 - PR 作成（アイテム追加/更新）
 - Cloudflare Pages preview で確認
