@@ -22,6 +22,7 @@ jobs:
         run: |
           bash scripts/check/no-root-npm.sh
           bash scripts/check/site-npm-sanity.sh
+          bash scripts/check/ci-pipefail-selftest.sh
 
       - name: Print environment
         working-directory: apps/site
@@ -38,9 +39,12 @@ jobs:
 
       - name: Run build (capture logs)
         working-directory: apps/site
+        # A failing producer must not be hidden by tee.
         run: |
+          set -o pipefail
           mkdir -p ci-logs
           npm --loglevel verbose run ci:build --if-present 2>&1 | tee ci-logs/ci-build.log
+
 
       - name: Upload build log artifact
         if: ${{ always() }}
