@@ -14,6 +14,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { assertReaderBundleV1 } from "./lib/reader-guide-v1.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -140,13 +141,10 @@ function uniq(arr) {
   return out;
 }
 
-function buildViewerUrl(modelUrl) {
-  // Product contract: /app/viewer is the canonical public Viewer entry.
-  // /viewer/** remains the runtime/bundle namespace.
-  const q = new URLSearchParams({
-    model: String(modelUrl || ""),
-    from: "library",
-  });
+function buildViewerUrl(id) {
+  // Architecture 2026: Library sessions resolve model + guide from the item bundle.
+  // Standalone/developer model= compatibility remains in /app/viewer itself.
+  const q = new URLSearchParams({ item: String(id || "") });
   return `/app/viewer?${q.toString()}`;
 }
 
@@ -239,6 +237,7 @@ function main() {
     const srcDir = path.join(LIBRARY_DIR, id);
     const modelPath = path.join(srcDir, "model.3dss.json");
     const metaPath = path.join(srcDir, "_meta.json");
+    const guidePath = path.join(srcDir, "guide.json");
 
     if (!existsFile(modelPath)) {
       throw new Error(`missing model.3dss.json: ${modelPath}`);
@@ -247,6 +246,8 @@ function main() {
     const dm = model?.document_meta ?? {};
 
     const meta = ensureMeta(metaPath, id);
+    const guide = existsFile(guidePath) ? readJson(guidePath) : null;
+    if (guide) assertReaderBundleV1(guide, model, `library/${id}/guide.json`);
 
     // Contract (SSOT):
     // - Display metadata is SSOT in model.document_meta with fixed field names.
@@ -277,7 +278,6 @@ function main() {
       throw new Error(`[build:dist] invalid model.document_meta.tags (string[]): id=${id}`);
     }
 
-    const entry_points = Array.isArray(meta?.entry_points) ? meta.entry_points : [];
     const pairs = Array.isArray(meta?.pairs) ? meta.pairs : [];
     const rights = meta?.rights ?? null;
     const related = Array.isArray(meta?.related) ? meta.related : [];
@@ -306,6 +306,9 @@ function main() {
       writeJson(path.join(outDataDir, "_meta.json"), meta);
     }
 
+    // optional Reader Guide v1 is external to 3DSS but part of the Reader Bundle.
+    if (guide) writeJson(path.join(outDataDir, "guide.json"), guide);
+
     // optional: content + assets + attachments
     const contentSrc = path.join(srcDir, "content.md");
     if (existsFile(contentSrc)) {
@@ -317,7 +320,8 @@ function main() {
     const data_dir = `/_data/library/${id}`;
     const model_url = `${data_dir}/model.3dss.json`;
     const legacy_model_url = `/3dss/library/${id}/model.3dss.json`;
-    const viewer_url = buildViewerUrl(model_url);
+    const viewer_url = buildViewerUrl(id);
+    const guide_url = guide ? `${data_dir}/guide.json` : null;
 
     const created_at = String(dm?.created_at || "");
     const revised_at = String(dm?.revised_at || "");
@@ -352,10 +356,10 @@ function main() {
       model_url,
       legacy_model_url,
       viewer_url,
+      guide_url,
       hidden,
       recommended,
       release1,
-      entry_points,
       pairs,
       rights,
       related,
@@ -365,7 +369,7 @@ function main() {
   }
 
   writeJson(path.join(OUT_LIBRARY_DIR, "library_index.json"), {
-    version: 6,
+    version: 7,
     generated_at: new Date().toISOString(),
     items,
   });
