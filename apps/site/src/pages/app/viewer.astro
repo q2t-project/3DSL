@@ -47,8 +47,19 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
     <div class="app-viewer-topbar" aria-label="ナビゲーション">
       <button id="app-viewer-back" class="app-viewer-back" type="button" aria-label="戻る">← 戻る</button>
       <div id="app-viewer-title" class="app-viewer-title" aria-label="現在のコンテンツ"></div>
+      <div id="app-viewer-orientation" class="app-viewer-orientation" aria-live="polite">全体</div>
 
       <div class="app-viewer-actions" aria-label="アクション">
+        <button
+          id="app-viewer-reader-toggle"
+          class="app-viewer-action"
+          type="button"
+          aria-label="読み方を表示"
+          title="読み方"
+          hidden
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v2H4V4Zm0 7h10v2H4v-2Zm0 7h16v2H4v-2Zm13-8 4 2-4 2v-4Z"/></svg>
+        </button>
         <!-- input action (standalone /app/viewer) -->
         <button id="app-viewer-open" class="app-viewer-action" type="button" aria-label="開く" title="開く">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4l2 2h8a2 2 0 0 1 2 2v2H2V6a2 2 0 0 1 2-2h6Zm12 8v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8h20Zm-18 2v6h16v-6H4Z"/></svg>
@@ -70,6 +81,28 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
       </div>
 
     </div>
+
+    <aside
+      id="app-viewer-reader"
+      class="app-viewer-reader"
+      aria-label="読み方"
+      hidden
+    >
+      <div class="app-viewer-reader-head">
+        <div>
+          <div id="app-viewer-reader-route" class="app-viewer-reader-route"></div>
+          <div id="app-viewer-reader-count" class="app-viewer-reader-count"></div>
+        </div>
+        <button id="app-viewer-reader-close" class="app-viewer-reader-close" type="button" aria-label="読み方を閉じる">×</button>
+      </div>
+      <div id="app-viewer-reader-step" class="app-viewer-reader-step"></div>
+      <div id="app-viewer-reader-note" class="app-viewer-reader-note"></div>
+      <div class="app-viewer-reader-actions">
+        <button id="app-viewer-reader-prev" type="button">← 前</button>
+        <button id="app-viewer-reader-overview" type="button">全体へ</button>
+        <button id="app-viewer-reader-next" type="button">次 →</button>
+      </div>
+    </aside>
 
     <div id="app-viewer-open-modal" class="app-viewer-open-modal" hidden>
       <div class="app-viewer-open-backdrop" data-close="1"></div>
@@ -151,6 +184,161 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
         if (t) document.title = `3DSL Viewer — ${t}`;
       }
 
+      const orientationEl = document.getElementById("app-viewer-orientation");
+      const readerToggle = document.getElementById("app-viewer-reader-toggle");
+      const readerPanel = document.getElementById("app-viewer-reader");
+      const readerClose = document.getElementById("app-viewer-reader-close");
+      const readerRouteEl = document.getElementById("app-viewer-reader-route");
+      const readerCountEl = document.getElementById("app-viewer-reader-count");
+      const readerStepEl = document.getElementById("app-viewer-reader-step");
+      const readerNoteEl = document.getElementById("app-viewer-reader-note");
+      const readerPrev = document.getElementById("app-viewer-reader-prev");
+      const readerNext = document.getElementById("app-viewer-reader-next");
+      const readerOverview = document.getElementById("app-viewer-reader-overview");
+
+      let readerRoute = null;
+      let readerStepIndex = 0;
+      let readerInnerReady = false;
+      let readerInitialApplied = false;
+      let readerState = { mode: "macro", selection: null };
+
+      function safeGuidePath(raw) {
+        if (typeof raw !== "string" || !raw.trim()) return "";
+        try {
+          const u = new URL(raw.trim(), window.location.origin);
+          if (u.origin !== window.location.origin) return "";
+          if (!u.pathname.startsWith("/_data/library/")) return "";
+          if (!u.pathname.endsWith("/_meta.json")) return "";
+          return `${u.pathname}${u.search}`;
+        } catch {
+          return "";
+        }
+      }
+
+      function postReader(payload) {
+        try {
+          const w = iframe?.contentWindow;
+          if (!w) return false;
+          w.postMessage(payload, window.location.origin);
+          return true;
+        } catch {
+          return false;
+        }
+      }
+
+      function updateOrientation(state) {
+        readerState =
+          state && typeof state === "object"
+            ? state
+            : { mode: "macro", selection: null };
+        if (!orientationEl) return;
+        const mode = readerState?.mode === "micro" ? "micro" : "macro";
+        if (mode === "macro") {
+          orientationEl.textContent = "全体";
+          orientationEl.dataset.mode = "macro";
+          return;
+        }
+        const label = String(readerState?.selection?.label || "").trim();
+        orientationEl.textContent = label ? `局所 · ${label}` : "局所";
+        orientationEl.dataset.mode = "micro";
+      }
+
+      function renderReaderRoute() {
+        if (!readerRoute || !Array.isArray(readerRoute.steps) || !readerRoute.steps.length) {
+          if (readerToggle) readerToggle.hidden = true;
+          if (readerPanel) readerPanel.hidden = true;
+          return;
+        }
+        if (readerToggle) readerToggle.hidden = false;
+        const step = readerRoute.steps[readerStepIndex] || readerRoute.steps[0];
+        if (readerRouteEl) readerRouteEl.textContent = String(readerRoute.label || "読み方");
+        if (readerCountEl) readerCountEl.textContent = `${readerStepIndex + 1} / ${readerRoute.steps.length}`;
+        if (readerStepEl) readerStepEl.textContent = String(step?.label || "");
+        if (readerNoteEl) {
+          const note = String(step?.note || "");
+          readerNoteEl.textContent = note;
+          readerNoteEl.style.display = note ? "" : "none";
+        }
+        if (readerPrev) readerPrev.disabled = readerStepIndex <= 0;
+        if (readerNext) readerNext.disabled = readerStepIndex >= readerRoute.steps.length - 1;
+      }
+
+      function applyReaderStep(index) {
+        if (!readerRoute || !Array.isArray(readerRoute.steps) || !readerRoute.steps.length) return;
+        const next = Math.max(0, Math.min(readerRoute.steps.length - 1, Number(index) || 0));
+        readerStepIndex = next;
+        renderReaderRoute();
+        const step = readerRoute.steps[readerStepIndex];
+        if (!step || !readerInnerReady) return;
+        if (step.action === "overview") {
+          postReader({ type: "3dsl.viewer.reader.overview" });
+          return;
+        }
+        if (step.action === "focus" && typeof step.uuid === "string" && step.uuid) {
+          postReader({
+            type: "3dsl.viewer.reader.focus",
+            uuid: step.uuid,
+            kind: step.kind,
+          });
+        }
+      }
+
+      function clearReaderGuide() {
+        readerRoute = null;
+        readerStepIndex = 0;
+        readerInitialApplied = false;
+        if (readerToggle) readerToggle.hidden = true;
+        if (readerPanel) readerPanel.hidden = true;
+      }
+
+      async function loadReaderGuide() {
+        let guideRaw = "";
+        let routeId = "";
+        try {
+          const sp = new URLSearchParams(window.location.search || "");
+          guideRaw = sp.get("guide") || "";
+          routeId = sp.get("route") || "";
+        } catch {}
+        const guide = safeGuidePath(guideRaw);
+        if (!guide) return;
+
+        try {
+          const r = await fetch(guide, { cache: "no-store" });
+          if (!r.ok) throw new Error(`guide fetch failed: ${r.status}`);
+          const meta = await r.json();
+          const routes = Array.isArray(meta?.entry_points) ? meta.entry_points : [];
+          const picked =
+            routes.find((x) => x && typeof x === "object" && String(x.id || "") === routeId) ||
+            routes[0] ||
+            null;
+          if (!picked || !Array.isArray(picked.steps) || !picked.steps.length) return;
+          readerRoute = picked;
+          readerStepIndex = 0;
+          if (readerPanel) readerPanel.hidden = false;
+          renderReaderRoute();
+          if (readerInnerReady && !readerInitialApplied) {
+            readerInitialApplied = true;
+            applyReaderStep(0);
+          }
+        } catch (e) {
+          console.warn("[reader-guide] load failed", e);
+          clearReaderGuide();
+        }
+      }
+
+      readerToggle?.addEventListener("click", () => {
+        if (!readerPanel || !readerRoute) return;
+        readerPanel.hidden = !readerPanel.hidden;
+      });
+      readerClose?.addEventListener("click", () => {
+        if (readerPanel) readerPanel.hidden = true;
+      });
+      readerPrev?.addEventListener("click", () => applyReaderStep(readerStepIndex - 1));
+      readerNext?.addEventListener("click", () => applyReaderStep(readerStepIndex + 1));
+      readerOverview?.addEventListener("click", () => {
+        postReader({ type: "3dsl.viewer.reader.overview" });
+      });
+
   const progressEl = document.getElementById("app-viewer-progress");
   let progressFallbackTimer = 0;
   function showProgress() {
@@ -220,6 +408,8 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
         inner.delete("back");
         inner.delete("return");
         inner.delete("scroll");
+        inner.delete("guide");
+        inner.delete("route");
         // added by the site swipe preview iframe
         inner.delete("noads");
         inner.delete("swipe");
@@ -253,6 +443,16 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
             stopProgressFallback();
             // initial boot: don't toast
             hideProgress();
+            readerInnerReady = true;
+            postReader({ type: "3dsl.viewer.reader.requestState" });
+            if (readerRoute && !readerInitialApplied) {
+              readerInitialApplied = true;
+              applyReaderStep(readerStepIndex);
+            }
+            return;
+          }
+          if (t === '3dsl.viewer.reader.state') {
+            updateOrientation(msg.state);
             return;
           }
           if (t === '3dsl.viewer.loadStart') {
@@ -372,10 +572,14 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
           const model = sp.get('model') || sp.get('open') || '';
           const mode = sp.get('mode') || '';
           const src = sp.get('src') || '';
+          const guide = safeGuidePath(sp.get('guide') || '');
+          const route = sp.get('route') || '';
           const q = new URLSearchParams();
           if (model) q.set('model', model);
           if (mode) q.set('mode', mode);
           if (src) q.set('src', src);
+          if (guide) q.set('guide', guide);
+          if (route) q.set('route', route);
           const u = new URL('/app/viewer?' + q.toString(), window.location.origin);
           return u.toString();
         } catch {
@@ -1020,6 +1224,10 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
           if (mode) q.set('mode', mode);
           const src = cur.searchParams.get('src');
           if (src) q.set('src', src);
+          const guide = safeGuidePath(cur.searchParams.get('guide') || '');
+          const route = cur.searchParams.get('route') || '';
+          if (guide) q.set('guide', guide);
+          if (route) q.set('route', route);
           const rel = '/app/viewer' + (q.toString() ? ('?' + q.toString()) : '');
           return new URL(rel, window.location.origin).toString();
         } catch {
@@ -1126,6 +1334,9 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
         const u = new URL(window.location.href);
         u.searchParams.set('model', raw);
         u.searchParams.delete('open');
+        u.searchParams.delete('guide');
+        u.searchParams.delete('route');
+        clearReaderGuide();
         history.pushState({}, '', u);
         updateIframeFromLocation();
         return true;
@@ -1273,6 +1484,8 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
         const f = dt && dt.files && dt.files[0];
         if (f) void loadLocalFile(f);
       });
+
+      void loadReaderGuide();
 
       if (backBtn) {
         backBtn.addEventListener("click", () => {
@@ -1500,6 +1713,77 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
       }
 
       /* ----- Open modal ----- */
+      .app-viewer-orientation {
+        max-width: min(34vw, 360px);
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--app-viewer-ui-border);
+        background: var(--app-viewer-ui-bg);
+        color: rgba(255, 255, 255, 0.82);
+        font: 12px/1.1 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .app-viewer-orientation[data-mode="micro"] {
+        color: rgba(210, 245, 255, 0.96);
+        border-color: rgba(110, 210, 255, 0.34);
+      }
+
+      .app-viewer-reader {
+        position: fixed;
+        left: 10px;
+        top: 64px;
+        z-index: 55;
+        width: min(92vw, 380px);
+        padding: 14px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(10, 10, 10, 0.88);
+        color: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        font: 13px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      }
+      .app-viewer-reader[hidden] { display: none; }
+      .app-viewer-reader-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .app-viewer-reader-route { font-weight: 700; }
+      .app-viewer-reader-count { margin-top: 2px; color: rgba(255,255,255,.55); font-size: 11px; }
+      .app-viewer-reader-close {
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        border: 1px solid rgba(255,255,255,.12);
+        background: rgba(255,255,255,.05);
+        color: rgba(255,255,255,.9);
+        cursor: pointer;
+      }
+      .app-viewer-reader-step { margin-top: 12px; font-weight: 650; }
+      .app-viewer-reader-note { margin-top: 6px; color: rgba(255,255,255,.72); }
+      .app-viewer-reader-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 7px;
+        margin-top: 12px;
+      }
+      .app-viewer-reader-actions button {
+        min-height: 36px;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,.12);
+        background: rgba(255,255,255,.06);
+        color: rgba(255,255,255,.9);
+        cursor: pointer;
+      }
+      .app-viewer-reader-actions button:disabled {
+        opacity: .35;
+        cursor: default;
+      }
+
       .app-viewer-open-modal {
         position: fixed;
         inset: 0;
@@ -1705,7 +1989,9 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
       }
 
       @media (max-width: 520px) {
-        .app-viewer-topbar { left: 8px; top: 8px; gap: 6px; }
+        .app-viewer-topbar { left: 8px; top: 8px; gap: 6px; right: 8px; }
+        .app-viewer-orientation { max-width: 32vw; padding: 7px 8px; }
+        .app-viewer-reader { left: 8px; right: 8px; top: 60px; width: auto; }
         .app-viewer-back { padding: 9px 11px; }
         .app-viewer-title {
       flex: 1;
