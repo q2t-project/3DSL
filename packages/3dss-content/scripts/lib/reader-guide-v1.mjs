@@ -12,7 +12,7 @@ export function validateReaderGuideV1(guide) {
   if (!isObj(guide)) return { ok:false, errors:["guide must be an object"] };
 
   allowedKeys(guide, new Set(["version","orientation","routes"]), "$", errs);
-  if (guide.version !== "1.0") errs.push("$.version: expected "1.0"");
+  if (guide.version !== "1.0") errs.push('$.version: expected "1.0"');
 
   const o = guide.orientation;
   if (!isObj(o)) {
