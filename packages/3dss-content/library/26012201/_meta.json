@@ -13,5 +13,12 @@
   "recommended": false,
   "hidden": false,
   "published_at": "2026-01-22T05:23:41Z",
-  "republished_at": "2026-01-22T05:23:41Z"
+  "republished_at": "2026-10-02T08:14:00Z",
+  "release1": {
+    "included": true,
+    "role": "representative",
+    "capabilities": [
+      "placement-comparison"
+    ]
+  }
 }
