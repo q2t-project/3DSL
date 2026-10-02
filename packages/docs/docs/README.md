@@ -25,3 +25,15 @@ sync 時に余計なルートや衝突の元になるので作らんようにし
 - 登録手順: `packages/docs/docs/library/workflow.md`
 - `_meta.json` フィールド辞書: `packages/docs/docs/library/meta-fields.md`
 - 運用 Cheatsheet: `packages/docs/docs/library/ops-cheatsheet.md`
+
+## Product Definition
+
+- Product core: `packages/docs/docs/product/product-definition.md`
+- Target users: `packages/docs/docs/product/target-users.md`
+- User flow: `packages/docs/docs/product/user-flow.md`
+- Information architecture: `packages/docs/docs/product/information-architecture.md`
+- Library strategy: `packages/docs/docs/product/library-strategy.md`
+- Free / Premium boundary: `packages/docs/docs/product/monetization.md`
+- Product principles: `packages/docs/docs/product/product-principles.md`
+
+These files are the approved Product Definition v1. Implementation must not redefine the Product by inference from current code.
