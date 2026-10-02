@@ -53,9 +53,6 @@ _meta.json は **台帳**。表示メタ（title/summary/tags）やモデルの�
 - 詳細説明（長文OK）
 - 表示上は「概要カード」や「説明」に出す用途
 
-#### `hidden` (boolean)
-- 「公開扱いだが露出は抑える」ための予約席
-
 #### `recommended` (boolean)
 - Release 1 の代表作・Home featured候補を示す
 - `release1.included:true` かつ `hidden:false` の項目にだけ使う
