@@ -43,10 +43,15 @@ const meta: AnyObj | null = fs.existsSync(metaPath)
   ? JSON.parse(fs.readFileSync(metaPath, "utf8"))
   : null;
 
-const entryPoints: AnyObj[] = Array.isArray(meta?.entry_points)
-  ? meta!.entry_points.filter((x: unknown) => x && typeof x === "object")
+const guideUrl = item.guide_url ?? null;
+const guidePath = guideUrl ? filePathFromPublic(guideUrl) : null;
+const guide: AnyObj | null =
+  guidePath && fs.existsSync(guidePath)
+    ? JSON.parse(fs.readFileSync(guidePath, "utf8"))
+    : null;
+const entryPoints: AnyObj[] = Array.isArray(guide?.routes)
+  ? guide!.routes.filter((x: unknown) => x && typeof x === "object")
   : [];
-const guideUrl = `${dataDir}/_meta.json`;
 
 const seoTitle = meta?.seo?.title ?? item.meta_title ?? item.title;
 const seoDescription =
@@ -54,7 +59,7 @@ const seoDescription =
 
 // Viewer routes
 const appViewerUrl = `/app/viewer?${new URLSearchParams({
-  model: modelUrl,
+  item: slug,
   from: "library",
   return: pagePath,
   title: String(seoTitle ?? item.title ?? ""),
@@ -62,11 +67,10 @@ const appViewerUrl = `/app/viewer?${new URLSearchParams({
 
 function guidedViewerUrl(routeId: string) {
   const q = new URLSearchParams({
-    model: modelUrl,
+    item: slug,
     from: "library",
     return: pagePath,
     title: String(seoTitle ?? item.title ?? ""),
-    guide: guideUrl,
     route: routeId,
   });
   return `/app/viewer?${q.toString()}`;
@@ -448,7 +452,7 @@ const thirdParty = Array.isArray(rights?.third_party)
             <div class="mt-4 grid gap-3">
               {entryPoints.map((route) => (
                 <article class="rounded-xl border border-neutral-800 bg-neutral-950/30 p-4">
-                  <div class="text-sm font-semibold text-neutral-100">{String(route?.label ?? "")}</div>
+                  <div class="text-sm font-semibold text-neutral-100">{String(route?.title ?? "")}</div>
                   {route?.summary ? (
                     <p class="mt-1 text-sm leading-relaxed text-neutral-300">{String(route.summary)}</p>
                   ) : null}
@@ -456,7 +460,7 @@ const thirdParty = Array.isArray(rights?.third_party)
                   {Array.isArray(route?.steps) && route.steps.length ? (
                     <ol class="mt-3 list-decimal space-y-1 pl-5 text-xs leading-relaxed text-neutral-400">
                       {route.steps.map((step: AnyObj) => (
-                        <li>{String(step?.label ?? "")}</li>
+                        <li>{String(step?.title ?? "")}</li>
                       ))}
                     </ol>
                   ) : null}
