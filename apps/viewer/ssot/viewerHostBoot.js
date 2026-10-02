@@ -222,6 +222,27 @@ function initMiniAd(p) {
   if (!profile) profile = (mode === "dev") ? "devHarness_full" : "prod_full";
 
   let currentHost = null;
+  let lastReaderStateKey = "";
+
+  function postReaderState(force = false) {
+    try {
+      if (!currentHost?.reader?.getState) return;
+      if (window.parent === window) return;
+      const state = currentHost.reader.getState();
+      const key = JSON.stringify(state);
+      if (!force && key === lastReaderStateKey) return;
+      lastReaderStateKey = key;
+      window.parent.postMessage(
+        { type: "3dsl.viewer.reader.state", state },
+        window.location.origin
+      );
+    } catch (_e) {}
+  }
+
+  const readerStateTimer = window.setInterval(() => postReaderState(false), 200);
+  window.addEventListener("beforeunload", () => {
+    try { window.clearInterval(readerStateTimer); } catch (_e) {}
+  });
 
   async function remount(nextOpts) {
     try { currentHost?.dispose?.(); } catch {}
@@ -231,6 +252,8 @@ function initMiniAd(p) {
     });
     currentHost = host;
     window.__vh = host;
+    lastReaderStateKey = "";
+    window.setTimeout(() => postReaderState(true), 0);
     return host;
   }
 
@@ -243,6 +266,29 @@ function initMiniAd(p) {
         if (ev.origin !== window.location.origin) return;
         const d = ev.data;
         if (!d || typeof d !== "object") return;
+
+        if (d.type === "3dsl.viewer.reader.focus") {
+          const uuid = typeof d.uuid === "string" ? d.uuid.trim() : "";
+          const kind =
+            d.kind === "points" || d.kind === "lines" || d.kind === "aux"
+              ? d.kind
+              : undefined;
+          if (!uuid) return;
+          currentHost?.reader?.focus?.(uuid, kind);
+          window.setTimeout(() => postReaderState(true), 50);
+          return;
+        }
+
+        if (d.type === "3dsl.viewer.reader.overview") {
+          currentHost?.reader?.overview?.();
+          window.setTimeout(() => postReaderState(true), 50);
+          return;
+        }
+
+        if (d.type === "3dsl.viewer.reader.requestState") {
+          postReaderState(true);
+          return;
+        }
 
         if (d.type === "3dsl.viewer.loadDocument") {
           const doc = d.document3dss;
