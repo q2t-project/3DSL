@@ -2,68 +2,7 @@
   "description": "3DSLのコンセプトの諸概念の関係をモデル化して表示",
   "published": true,
   "published_at": "2026-01-05T01:53:40Z",
-  "republished_at": "2026-10-02T08:14:00Z",
-  "entry_points": [
-    {
-      "id": "first-read",
-      "label": "はじめての読み方",
-      "summary": "全体から問題意識へ入り、3DSLの中心とナビゲーションの考え方をたどって全体へ戻る。",
-      "steps": [
-        {
-          "id": "overview",
-          "label": "まず全体を見る",
-          "action": "overview",
-          "note": "左右の大きなまとまりと下部の宣言を確認する。"
-        },
-        {
-          "id": "problem",
-          "label": "表現の限界と要請",
-          "action": "focus",
-          "uuid": "8dffb04e-0b02-402f-a816-293af8e1cf8a",
-          "kind": "points",
-          "note": "何が既存表現の問題として置かれているかを見る。"
-        },
-        {
-          "id": "core",
-          "label": "3DSL",
-          "action": "focus",
-          "uuid": "92e7b001-76c2-4ba0-9770-c0ba53568131",
-          "kind": "points",
-          "note": "提案側の中心要素へ移り、周囲の接続を確認する。"
-        },
-        {
-          "id": "whole-first",
-          "label": "全体フレームを先に外部化",
-          "action": "focus",
-          "uuid": "b2c2b986-9b2e-485b-b07a-41c908a9d886",
-          "kind": "points",
-          "note": "局所を見る前に全体構造を外部に保持する考え方を見る。"
-        },
-        {
-          "id": "navigation",
-          "label": "理解を復元→ナビゲーションへ",
-          "action": "focus",
-          "uuid": "b3882035-b845-4e2d-b846-13145fe6ed52",
-          "kind": "points",
-          "note": "読み手が構造をたどるためのナビゲーションという出口を見る。"
-        },
-        {
-          "id": "declaration",
-          "label": "宣言",
-          "action": "focus",
-          "uuid": "c2dba50c-826a-4826-8480-893473240e42",
-          "kind": "points",
-          "note": "全体の下側にある宣言へ移り、構成の帰結を確認する。"
-        },
-        {
-          "id": "return-overview",
-          "label": "もう一度全体へ戻る",
-          "action": "overview",
-          "note": "局所を見た後で全体配置を見直す。"
-        }
-      ]
-    }
-  ],
+  "republished_at": "2026-10-02T15:39:00Z",
   "hidden": false,
   "recommended": true,
   "release1": {
