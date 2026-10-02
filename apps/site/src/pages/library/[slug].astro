@@ -21,6 +21,10 @@ if (!item) {
   throw new Error(`[library/[slug]] item not found: ${slug}`);
 }
 
+const isRelease1Visible =
+  item?.release1?.included === true &&
+  item?.hidden !== true;
+
 // Canonical per-item meta page (used for share/copy/QR on this page)
 const pagePath = `/library/${slug}/`;
 
@@ -290,7 +294,11 @@ const thirdParty = Array.isArray(rights?.third_party)
   : [];
 ---
 
-<Layout title={seoTitle} description={seoDescription}>
+<Layout
+  title={seoTitle}
+  description={seoDescription}
+  robots={isRelease1Visible ? null : "noindex,follow"}
+>
   <div class="mx-auto max-w-[1200px] px-4 py-6">
     <div class="text-sm text-neutral-500">
       <a href="/library" class="hover:underline">Library</a>
