@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "orientation": {
+    "summary": "x",
+    "placement": { "meaning": "layout" },
+    "axes": [
+      { "axis": "x", "label": "X", "meaning": "" }
+    ]
+  },
+  "routes": [
+    {
+      "id": "r",
+      "title": "route",
+      "order_semantics": "presentation",
+      "steps": [
+        { "id": "a", "title": "A", "target": { "kind": "whole" } }
+      ]
+    }
+  ]
+}
