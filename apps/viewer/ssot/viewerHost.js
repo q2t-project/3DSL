@@ -4,6 +4,7 @@ import { bootstrapViewerFromUrl, bootstrapViewer } from "./runtime/bootstrapView
 import { attachUiProfile } from "./ui/attachUiProfile.js";
 import { resizeHub, startHub } from "./ui/hubOps.js";
 import { teardownPrev, setOwnedHandle } from "./ui/ownedHandle.js";
+import { createHubFacade } from "./ui/hubFacade.js";
 
 export async function mountViewerHost(opts) {
   const {
@@ -101,9 +102,58 @@ export async function mountViewerHost(opts) {
 
     startHub(hub);
 
+    // Reader-facing navigation facade.
+    // The outer product host may ask the Viewer to move between whole/macro
+    // and a concrete model UUID, but it never mutates core state directly.
+    const hf = createHubFacade(hub);
+    const reader = Object.freeze({
+      focus(uuid, kind) {
+        if (typeof uuid !== "string" || !uuid.trim()) return false;
+        const modeApi = hf.getMode?.();
+        if (!modeApi) return false;
+        const u = uuid.trim();
+        if (typeof modeApi.focus === "function") {
+          modeApi.focus(u, kind);
+          return true;
+        }
+        if (typeof modeApi.set === "function") {
+          modeApi.set("micro", u, kind);
+          return true;
+        }
+        return false;
+      },
+      overview() {
+        const modeApi = hf.getMode?.();
+        if (!modeApi) return false;
+        if (typeof modeApi.exit === "function") {
+          modeApi.exit();
+          return true;
+        }
+        if (typeof modeApi.set === "function") {
+          modeApi.set("macro");
+          return true;
+        }
+        return false;
+      },
+      getState() {
+        const modeApi = hf.getMode?.();
+        const selectionApi = hf.getSelection?.();
+        const mode = modeApi?.get?.() ?? "macro";
+        const selection = selectionApi?.get?.() ?? null;
+        return {
+          mode: mode === "micro" ? "micro" : "macro",
+          selection:
+            selection && typeof selection.uuid === "string"
+              ? { uuid: selection.uuid, kind: selection.kind ?? null }
+              : null,
+        };
+      },
+    });
+
     return {
       hub,
       ui: owned.ui,
+      reader,
       dispose() {
         try { ro?.disconnect?.(); } catch (_e) {}
         teardownPrev(owned, "ui");
