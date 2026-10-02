@@ -74,12 +74,12 @@ requireText(
   "Library explanation route type"
 );
 requireText(
-  "apps/site/src/pages/library/\[slug\].astro",
+  "apps/site/src/pages/library/[slug].astro",
   /data-role="library-explanation-routes"/,
   "Library explanation route UI"
 );
 requireText(
-  "apps/site/src/pages/library/\[slug\].astro",
+  "apps/site/src/pages/library/[slug].astro",
   /guide:\s*guideUrl[\s\S]*route:\s*routeId/,
   "Library -> Viewer guide handoff"
 );
