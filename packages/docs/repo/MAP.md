@@ -61,3 +61,33 @@ flowchart LR
 - Product meaning SSOT: `packages/docs/product/**`
 - Reader Guide / Reader Bundle は STEP 11 で追加する external product contract。
 - 3DSS v1.1.4 は Release 1 では維持する。
+
+## Architecture 2026 decision chain
+
+```text
+BASELINE / Audit
+→ Product Definition v1
+→ Global Gap Baseline v1
+→ Architecture 2026 v1
+→ Global Backlog v1
+→ STEP 11 Library → Viewer
+```
+
+Canonical paths:
+- `BASELINE.md`
+- `packages/docs/audit/**`
+- `packages/docs/product/**`
+- `packages/docs/gap/**`
+- `packages/docs/architecture/**`
+- `packages/docs/backlog/**`
+- `packages/docs/roadmap/CURRENT_STATE.md`
+
+Architecture 2026 product path:
+
+```text
+Library source (model + meta + guide)
+→ Library build/validation
+→ Library detail/context
+→ /app/viewer (public Viewer Session Host)
+→ /viewer/* (internal Viewer runtime)
+```
