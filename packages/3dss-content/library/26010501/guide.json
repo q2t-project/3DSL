@@ -1,9 +1,9 @@
 {
   "version": "1.0",
   "orientation": {
-    "summary": "このモデルは3DSL Conceptに含まれる項目間の配置を読むための例です。全体を見てから、個別項目へフォーカスし、再び全体へ戻ります。",
+    "summary": "このモデルは3DSL Conceptの全体配置を保ったまま、問題意識から中心概念、ナビゲーションの考え方へ局所をたどり、最後に全体へ戻るための読み方を示します。",
     "placement": {
-      "meaning": "座標はこのモデル内の説明上の配置です。距離・方向を対象世界の測定量や普遍的な三軸意味として読みません。"
+      "meaning": "座標・距離・方向はこのモデル内の説明上の配置です。対象世界の測定量や普遍的な三軸意味として読みません。"
     },
     "frames": {
       "meaning": "frameは表示上の可視性・説明段階のための値です。",
@@ -15,38 +15,88 @@
     "viewpoint": "Reader / Explorerが全体と局所を往還する読み方。",
     "cautions": [
       "このguideはProduct Definitionそのものではなく、このモデルを読むための補助です。",
-      "UUIDはこの3DSS文書内の要素参照であり、対象世界の同一性を保証しません。"
+      "UUIDはこの3DSS文書内の要素参照であり、対象世界の同一性を保証しません。",
+      "route順序はpresentation順であり、対象世界の時間順・因果順を意味しません。"
     ]
   },
   "routes": [
     {
-      "id": "overview",
-      "title": "全体から局所へ",
-      "summary": "全体を確認し、視点/手順共有へ入り、全体へ戻ります。",
+      "id": "first-read",
+      "title": "はじめての読み方",
+      "summary": "全体から問題意識へ入り、3DSLの中心とナビゲーションの考え方をたどって全体へ戻る。",
       "order_semantics": "presentation",
       "steps": [
         {
-          "id": "whole",
-          "title": "全体を見る",
-          "target": { "kind": "whole" },
+          "id": "overview",
+          "title": "まず全体を見る",
+          "note": "左右の大きなまとまりと下部の宣言を確認する。",
+          "target": {
+            "kind": "whole"
+          },
           "mode": "macro"
         },
         {
-          "id": "focus-sharing",
-          "title": "視点/手順共有を見る",
-          "note": "この要素の局所表示と周辺関係を確認します。",
+          "id": "problem",
+          "title": "表現の限界と要請",
+          "note": "何が既存表現の問題として置かれているかを見る。",
           "target": {
             "kind": "element",
-            "uuid": "2e7dd29f-e703-4987-a6e5-519476a9805f",
+            "uuid": "8dffb04e-0b02-402f-a816-293af8e1cf8a",
             "element_kind": "points"
           },
-          "mode": "micro",
-          "frame": 0
+          "mode": "micro"
         },
         {
-          "id": "return",
-          "title": "全体へ戻る",
-          "target": { "kind": "whole" },
+          "id": "core",
+          "title": "3DSL",
+          "note": "提案側の中心要素へ移り、周囲の接続を確認する。",
+          "target": {
+            "kind": "element",
+            "uuid": "92e7b001-76c2-4ba0-9770-c0ba53568131",
+            "element_kind": "points"
+          },
+          "mode": "micro"
+        },
+        {
+          "id": "whole-first",
+          "title": "全体フレームを先に外部化",
+          "note": "局所を見る前に全体構造を外部に保持する考え方を見る。",
+          "target": {
+            "kind": "element",
+            "uuid": "b2c2b986-9b2e-485b-b07a-41c908a9d886",
+            "element_kind": "points"
+          },
+          "mode": "micro"
+        },
+        {
+          "id": "navigation",
+          "title": "理解を復元→ナビゲーションへ",
+          "note": "読み手が構造をたどるためのナビゲーションという出口を見る。",
+          "target": {
+            "kind": "element",
+            "uuid": "b3882035-b845-4e2d-b846-13145fe6ed52",
+            "element_kind": "points"
+          },
+          "mode": "micro"
+        },
+        {
+          "id": "declaration",
+          "title": "宣言",
+          "note": "全体の下側にある宣言へ移り、構成の帰結を確認する。",
+          "target": {
+            "kind": "element",
+            "uuid": "c2dba50c-826a-4826-8480-893473240e42",
+            "element_kind": "points"
+          },
+          "mode": "micro"
+        },
+        {
+          "id": "return-overview",
+          "title": "もう一度全体へ戻る",
+          "note": "局所を見た後で全体配置を見直す。",
+          "target": {
+            "kind": "whole"
+          },
           "mode": "macro"
         }
       ]
