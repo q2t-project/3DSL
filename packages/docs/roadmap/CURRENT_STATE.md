@@ -1,0 +1,35 @@
+# 3DSL 2026 Roadmap State
+
+Status: `STEP_11_ACTIVE / READER_CONTRACT_SLICE`
+
+```yaml
+RMAP_REC_01: CLOSED
+RMAP_PROD_01: CLOSED
+RMAP_GAP_01: CLOSED
+RMAP_ARCH_01: CLOSED
+RMAP_BL_01: CLOSED
+
+Product: PRODUCT_DEFINITION_V1
+Gap: GLOBAL_GAP_BASELINE_V1
+Architecture: ARCHITECTURE_2026_V1_FROZEN
+Backlog: GLOBAL_BACKLOG_V1
+
+STEP_11_LIBRARY_TO_VIEWER: ACTIVE
+
+RBL_001_005_FOUNDATION: PASS
+RBL_101_PRODUCT_ENTRY: PASS
+RBL_102_CANONICAL_VIEWER_ENTRY: PASS
+
+current_slice: STEP11_READER_CONTRACT
+next_tasks:
+  - RBL_103_READER_GUIDE_V1
+  - RBL_104_READER_BUNDLE_VALIDATION
+  - RBL_105_VIEWER_BRIDGE_V1
+  - RBL_106_ITEM_SESSION_RESOLUTION
+
+schema_change_authorized: false
+full_rewrite_authorized: false
+PR53_migration_authorized: false
+premium_recovery_authorized: false
+new_modeler_features_authorized: false
+```

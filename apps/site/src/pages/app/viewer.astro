@@ -143,6 +143,32 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
     (() => {
       const iframe = document.getElementById("app-viewer-iframe");
       const titleEl = document.getElementById("app-viewer-title");
+
+      const VIEWER_BRIDGE_V1_COMMAND = "3dsl.viewer.bridge.v1.command";
+      const VIEWER_BRIDGE_V1_EVENT = "3dsl.viewer.bridge.v1.event";
+      let bridgeReady = false;
+      let bridgeSeq = 0;
+      const bridgePending = new Map();
+
+      function sendBridgeCommand(command, payload = {}, timeoutMs = 8000) {
+        const w = iframe?.contentWindow;
+        if (!w) return Promise.reject(new Error("viewer iframe unavailable"));
+        const requestId = `host-${Date.now()}-${++bridgeSeq}`;
+        return new Promise((resolve, reject) => {
+          const timer = setTimeout(() => {
+            bridgePending.delete(requestId);
+            reject(new Error(`Viewer Bridge timeout: ${command}`));
+          }, timeoutMs);
+          bridgePending.set(requestId, { resolve, reject, timer, command });
+          w.postMessage({
+            type: VIEWER_BRIDGE_V1_COMMAND,
+            version: "1.0",
+            request_id: requestId,
+            command,
+            payload,
+          }, window.location.origin);
+        });
+      }
       const TITLE_PARAM = new URLSearchParams(window.location.search || "").get("title") ?? "";
 
       if (titleEl) {
@@ -249,6 +275,42 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
           const msg = ev.data;
           if (!msg || typeof msg !== 'object') return;
           const t = msg.type;
+
+          if (t === VIEWER_BRIDGE_V1_EVENT && msg.version === "1.0") {
+            const event = String(msg.event || "");
+            const payload = msg.payload && typeof msg.payload === "object" ? msg.payload : {};
+            if (event === "ready") {
+              bridgeReady = true;
+              return;
+            }
+            if (event === "loaded") {
+              stopProgressFallback();
+              hideProgress();
+              if (loadToastArmed) showToast("読み込みに成功しました");
+              disarmLoadToast();
+              return;
+            }
+            if (event === "commandResult") {
+              const id = typeof msg.request_id === "string" ? msg.request_id : "";
+              const pending = bridgePending.get(id);
+              if (pending) {
+                clearTimeout(pending.timer);
+                bridgePending.delete(id);
+                if (payload.ok) pending.resolve(payload.result);
+                else pending.reject(new Error(String(payload.message || `Viewer command failed: ${pending.command}`)));
+              }
+              return;
+            }
+            if (event === "error") {
+              const m = typeof payload.message === "string" ? payload.message : "Viewer error";
+              if (loadToastArmed) showToast(`読み込みに失敗しました: ${m.slice(0, 60)}`);
+              return;
+            }
+            // selection/mode/frame/focus events are intentionally available to
+            // Reader Session UI, which is added by later RBL tasks.
+            return;
+          }
+
           if (t === '3dsl.viewer.hostReady') {
             stopProgressFallback();
             // initial boot: don't toast
@@ -932,12 +994,10 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
           startProgressFallback();
 
           localLoaded = true;
-          const ok = await postToIframeWhenReady({
-            type: '3dsl.viewer.loadDocument',
+          await sendBridgeCommand("loadDocument", {
             document3dss: json,
             label: it.name,
           });
-          if (!ok) throw new Error('iframe not ready');
 
           closeOpenModal();
           // toast/progress are reported by the iframe runtime
@@ -1131,27 +1191,6 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
         return true;
       }
 
-      function postToIframe(payload) {
-        const w = iframe.contentWindow;
-        if (!w) return false;
-        try {
-          w.postMessage(payload, window.location.origin);
-          return true;
-        } catch {
-          return false;
-        }
-      }
-
-      async function postToIframeWhenReady(payload) {
-        if (postToIframe(payload)) return true;
-        return await new Promise((resolve) => {
-          const onLoad = () => {
-            iframe.removeEventListener('load', onLoad);
-            resolve(postToIframe(payload));
-          };
-          iframe.addEventListener('load', onLoad);
-        });
-      }
 
       async function loadLocalFile(file) {
         armLoadToast();
@@ -1167,12 +1206,10 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
           if (!json || typeof json !== 'object') throw new Error('invalid json');
 
           localLoaded = true;
-          const ok = await postToIframeWhenReady({
-            type: '3dsl.viewer.loadDocument',
+          await sendBridgeCommand("loadDocument", {
             document3dss: json,
             label: name,
           });
-          if (!ok) throw new Error('iframe not ready');
 
           addRecentLocal(name, text);
           renderRecentLocal();

@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "orientation": {
+    "summary": "x",
+    "placement": { "meaning": "layout" }
+  },
+  "routes": [
+    {
+      "id": "r",
+      "title": "因果説明",
+      "order_semantics": "causal",
+      "steps": [
+        { "id": "a", "title": "A", "target": { "kind": "whole" } }
+      ]
+    }
+  ]
+}

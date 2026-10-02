@@ -37,3 +37,57 @@ flowchart LR
 ```
 
 > 注: ここは “代表的な流れ” のみ。正確なエントリポイントは各README/INDEX側でリンクする。
+
+## Architecture 2026 reader path
+
+承認済み Product v1 の主線:
+
+```mermaid
+flowchart LR
+  Home[Home / Concept] --> Library[Library]
+  Library --> Detail[Library detail / context]
+  Detail --> ViewerHost[/app/viewer]
+  ViewerHost --> ViewerRuntime[/viewer/* internal runtime]
+  ViewerRuntime --> VCore[Viewer core]
+  VCore --> Renderer[renderer]
+  Content[packages/3dss-content] --> Library
+  Product[packages/docs/product] --> Home
+  Product --> Library
+  Arch[packages/docs/architecture/architecture-2026-v1.md] --> ViewerHost
+```
+
+- Public Viewer entry: `/app/viewer`
+- Internal Viewer assets: `/viewer/*`
+- Product meaning SSOT: `packages/docs/product/**`
+- Reader Guide / Reader Bundle は STEP 11 で追加する external product contract。
+- 3DSS v1.1.4 は Release 1 では維持する。
+
+## Architecture 2026 decision chain
+
+```text
+BASELINE / Audit
+→ Product Definition v1
+→ Global Gap Baseline v1
+→ Architecture 2026 v1
+→ Global Backlog v1
+→ STEP 11 Library → Viewer
+```
+
+Canonical paths:
+- `BASELINE.md`
+- `packages/docs/audit/**`
+- `packages/docs/product/**`
+- `packages/docs/gap/**`
+- `packages/docs/architecture/**`
+- `packages/docs/backlog/**`
+- `packages/docs/roadmap/CURRENT_STATE.md`
+
+Architecture 2026 product path:
+
+```text
+Library source (model + meta + guide)
+→ Library build/validation
+→ Library detail/context
+→ /app/viewer (public Viewer Session Host)
+→ /viewer/* (internal Viewer runtime)
+```
