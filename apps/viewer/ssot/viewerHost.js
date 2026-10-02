@@ -140,11 +140,30 @@ export async function mountViewerHost(opts) {
         const selectionApi = hf.getSelection?.();
         const mode = modeApi?.get?.() ?? "macro";
         const selection = selectionApi?.get?.() ?? null;
+
+        let label = "";
+        if (selection && typeof selection.uuid === "string") {
+          try {
+            const rec = hf.getItemByUuid?.(selection.uuid);
+            const item =
+              rec?.item ?? rec?.point ?? rec?.line ?? rec?.aux ?? rec?.data ?? rec ?? null;
+            const raw =
+              item?.signification?.name ??
+              item?.signification?.caption ??
+              item?.appearance?.marker?.text?.content ??
+              "";
+            if (typeof raw === "string") label = raw.trim();
+            else if (raw && typeof raw === "object") {
+              label = String(raw.ja ?? raw.en ?? "").trim();
+            }
+          } catch (_e) {}
+        }
+
         return {
           mode: mode === "micro" ? "micro" : "macro",
           selection:
             selection && typeof selection.uuid === "string"
-              ? { uuid: selection.uuid, kind: selection.kind ?? null }
+              ? { uuid: selection.uuid, kind: selection.kind ?? null, label }
               : null,
         };
       },
