@@ -1,8 +1,8 @@
 # RMAP STEP 11 — Explanation Route + Reader Orientation Slice
 
-Status: `IMPLEMENTED_CI_PASS / HUMAN_REVIEW_REQUIRED`
+Status: `STEP11_EXPLANATION_ROUTE_AND_READER_ORIENTATION_SLICE_PASS`
 
-Human approval: `PENDING`
+Human approval: `YES / 2026-10-02`
 
 Parent:
 `STEP11_FOUNDATION_SLICE_PASS`
@@ -131,15 +131,11 @@ checked:
   - Astro build
 ```
 
-Pre-closure candidate:
+## Formal closure
+
 `STEP11_EXPLANATION_ROUTE_AND_READER_ORIENTATION_SLICE_PASS`
 
-Implementation/contract/build acceptance is satisfied. Human closure is still pending.
+Implementation/contract/build acceptance and human closure are satisfied.
 No separate claim is made that reader comprehension or visual-UX effectiveness has been empirically established.
 
-## Human gate
-
-Approve:
-`STEP11_EXPLANATION_ROUTE_AND_READER_ORIENTATION_SLICE_PASS`
-
-Approval closes this slice only. It does not close STEP 11 as a whole unless the remaining STEP 11 backlog is separately satisfied.
+This closes this slice only. STEP 11 remains open until the remaining Library → Viewer milestone requirements are separately satisfied.
