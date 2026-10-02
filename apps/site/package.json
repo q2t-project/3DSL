@@ -42,7 +42,7 @@
     "check:viewer:regression": "node scripts/check/viewer-regression-suite.mjs",
     "check:viewer:single-writer": "node ../viewer/ssot/scripts/check-single-writer.mjs",
     "check:viewer:ssot": "npm run check:viewer:forbidden-imports && npm run check:viewer:single-writer && npm run check:viewer:ports-conformance && npm run check:viewer:generated-clean",
-    "ci:build": "npm run check:product-foundation && npm run check:reader-guidance && npm run check:ssot && npm run check:viewer:regression && npm run validate:3dss:canonical && npm run build",
+    "ci:build": "npm run check:product-foundation && npm run check:reader-guidance && npm run check:ssot && npm run check:viewer:regression && npm run validate:3dss:canonical && npm run build && npm run check:release1-mobile-e2e",
     "clean:dev": "node scripts/tool/clean-dev.mjs",
     "dev": "astro dev",
     "dev:clean": "npm run clean:dev && npm run dev",
@@ -72,7 +72,8 @@
     "validate:3dss:samples": "node scripts/validate/3dss-samples.mjs",
     "check:product-foundation": "node scripts/check/product-foundation.mjs",
     "check:reader-guidance": "npm run check:library && node scripts/check/reader-guidance.mjs",
-    "check:library-release": "npm run check:library && node scripts/check/library-curation-resilience.mjs"
+    "check:library-release": "npm run check:library && node scripts/check/library-curation-resilience.mjs",
+    "check:release1-mobile-e2e": "node scripts/check/release1-mobile-e2e.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.6",

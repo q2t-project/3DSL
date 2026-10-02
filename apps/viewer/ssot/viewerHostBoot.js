@@ -318,6 +318,18 @@ function initMiniAd(p) {
   function wireBackButton() {
     const btn = document.getElementById("viewer-back");
     if (!btn) return;
+
+    // /app/viewer (and other iframe hosts) own navigation chrome.
+    // Keeping the inner back button active can navigate the iframe to its parent URL,
+    // producing a nested Viewer host. Framed runtimes therefore suppress this control.
+    if (window.parent !== window) {
+      btn.hidden = true;
+      btn.style.display = "none";
+      btn.setAttribute("aria-hidden", "true");
+      btn.tabIndex = -1;
+      return;
+    }
+
     const sp = new URLSearchParams(location.search);
     const ret = sp.get("return");
 
