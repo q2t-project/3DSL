@@ -10,6 +10,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { validateReaderBundleV1 } from './lib/reader-guide-v1.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -210,6 +211,7 @@ function main() {
     const base = path.join(LIBRARY_DIR, id);
     const metaPath = path.join(base, '_meta.json');
     const modelPath = path.join(base, 'model.3dss.json');
+    const guidePath = path.join(base, 'guide.json');
 
     if (!fs.existsSync(metaPath)) {
       console.error(`[error] ${id}: missing _meta.json`);
@@ -259,6 +261,22 @@ function main() {
     for (const er of errs) {
       console.error(`[error] ${id}: ${er}`);
       errCount++;
+    }
+
+    // Reader Guide v1 is optional generally, but if present it is a strict
+    // model-bound contract: stale UUID/kind/frame references are errors.
+    if (fs.existsSync(guidePath)) {
+      try {
+        const guide = readJson(guidePath);
+        const result = validateReaderBundleV1(guide, model);
+        for (const er of result.errors) {
+          console.error(`[error] ${id}: guide.json: ${er}`);
+          errCount++;
+        }
+      } catch (e) {
+        console.error(`[error] ${id}: guide.json parse/validation failed: ${String(e?.message ?? e)}`);
+        errCount++;
+      }
     }
 
     // Model document_meta contract (SSOT for display + timeline)
