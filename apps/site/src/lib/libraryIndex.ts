@@ -21,6 +21,22 @@ export type LibraryRights = {
   notice_long?: string;
 };
 
+export type LibraryExplanationStep = {
+  id: string;
+  label: string;
+  action: "overview" | "focus";
+  uuid?: string;
+  kind?: "points" | "lines" | "aux";
+  note?: string;
+};
+
+export type LibraryExplanationRoute = {
+  id: string;
+  label: string;
+  summary?: string;
+  steps: LibraryExplanationStep[];
+};
+
 export type LibraryItem = {
   id: string;
   slug: string;
@@ -30,7 +46,7 @@ export type LibraryItem = {
   tags?: string[];
   updated_at?: string;
   created_at?: string;
-  entry_points?: string[];
+  entry_points?: LibraryExplanationRoute[];
   pairs?: { a: string; b: string }[];
   series?: string;
   related?: string[];

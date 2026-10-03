@@ -141,8 +141,13 @@ function uniq(arr) {
 }
 
 function buildViewerUrl(modelUrl) {
-  // Contract: viewer entry takes `model=`. (Legacy `open=` is supported only for backward links.)
-  return `/viewer/index.html?model=${encodeURIComponent(modelUrl)}`;
+  // Product contract: /app/viewer is the canonical public Viewer entry.
+  // /viewer/** remains the runtime/bundle namespace.
+  const q = new URLSearchParams({
+    model: String(modelUrl || ""),
+    from: "library",
+  });
+  return `/app/viewer?${q.toString()}`;
 }
 
 function safeCpDir(srcDir, dstDir) {
@@ -351,7 +356,7 @@ function main() {
   }
 
   writeJson(path.join(OUT_LIBRARY_DIR, "library_index.json"), {
-    version: 4,
+    version: 5,
     generated_at: new Date().toISOString(),
     items,
   });

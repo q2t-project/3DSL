@@ -231,6 +231,18 @@ function wrapMode(m) {
           return target.set?.(mode, focusUuid, kind);
         };
       }
+      if (prop === "focus") {
+        return (uuid, kind) => {
+          if (enqueue({ type: "mode.focus", uuid, kind })) return null;
+          return target.focus?.(uuid, kind);
+        };
+      }
+      if (prop === "exit") {
+        return () => {
+          if (enqueue({ type: "mode.exit" })) return null;
+          return target.exit?.();
+        };
+      }
       return _bindOrValue(target, prop);
     },
     set(_target, prop, _value) {
