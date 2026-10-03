@@ -224,6 +224,24 @@ function initMiniAd(p) {
   let currentHost = null;
   let lastReaderStateKey = "";
 
+  function postParentLifecycle(type, detail = {}) {
+    try {
+      if (window.parent === window) return;
+      window.parent.postMessage(
+        { type, ...detail },
+        window.location.origin
+      );
+    } catch (_e) {}
+  }
+
+  function loadFailureMessage(err) {
+    const raw =
+      err && typeof err === "object" && typeof err.message === "string"
+        ? err.message
+        : String(err || "");
+    return raw.slice(0, 240);
+  }
+
   function postReaderState(force = false) {
     try {
       if (!currentHost?.reader?.getState) return;
@@ -244,17 +262,28 @@ function initMiniAd(p) {
     try { window.clearInterval(readerStateTimer); } catch (_e) {}
   });
 
-  async function remount(nextOpts) {
-    try { currentHost?.dispose?.(); } catch {}
-    const host = await mountViewerHost({
-      ...nextOpts,
-      profile,
-    });
-    currentHost = host;
-    window.__vh = host;
-    lastReaderStateKey = "";
-    window.setTimeout(() => postReaderState(true), 0);
-    return host;
+  async function remount(nextOpts, { notifyLifecycle = true } = {}) {
+    if (notifyLifecycle) postParentLifecycle("3dsl.viewer.loadStart");
+    try {
+      try { currentHost?.dispose?.(); } catch {}
+      const host = await mountViewerHost({
+        ...nextOpts,
+        profile,
+      });
+      currentHost = host;
+      window.__vh = host;
+      lastReaderStateKey = "";
+      window.setTimeout(() => postReaderState(true), 0);
+      if (notifyLifecycle) postParentLifecycle("3dsl.viewer.loadOk");
+      return host;
+    } catch (err) {
+      if (notifyLifecycle) {
+        postParentLifecycle("3dsl.viewer.loadFail", {
+          message: loadFailureMessage(err),
+        });
+      }
+      throw err;
+    }
   }
 
   // Allow outer host (/app/viewer) to load a local document into the iframe.
@@ -382,4 +411,5 @@ function initMiniAd(p) {
     modelUrl,
     devBootLog: mode === "dev",
   });
+  postParentLifecycle("3dsl.viewer.hostReady");
 })().catch(showFatal);
