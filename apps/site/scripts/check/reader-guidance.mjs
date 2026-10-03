@@ -106,6 +106,15 @@ if (!/inner\.delete\("guide"\)/.test(appViewer) || !/inner\.delete\("route"\)/.t
 if (!/_data\/library\//.test(appViewer) || !/_meta\.json/.test(appViewer)) {
   throw new Error("guide URL must be restricted to Library metadata");
 }
+if (!/guideId\s*!==\s*modelId/.test(appViewer)) {
+  throw new Error("guide must be bound to the same Library item as the loaded model");
+}
+if (!/routeId\s*&&\s*!picked/.test(appViewer)) {
+  throw new Error("an explicit unknown route id must fail instead of falling back silently");
+}
+if (!/safeGuidePath\(sp\.get\('guide'\)\s*\|\|\s*'',\s*model\)/.test(appViewer)) {
+  throw new Error("shared Viewer URLs must preserve guides only when guide/model pairing is valid");
+}
 
 const viewerHost = requireText(
   "apps/viewer/ssot/viewerHost.js",
