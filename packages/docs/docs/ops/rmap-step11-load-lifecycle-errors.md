@@ -1,6 +1,6 @@
 # RMAP STEP 11 — Load Lifecycle + Negative-Path Closure Slice
 
-Status: `IMPLEMENTED / CI_PENDING`
+Status: `STEP11_LOAD_LIFECYCLE_AND_ERROR_HANDLING_SLICE_PASS`
 
 Parent:
 `STEP11_RELEASE1_MOBILE_AND_END_TO_END_ACCEPTANCE_AUTOMATED_PASS`
@@ -79,6 +79,25 @@ No new dependency.
 - no Premium/Modeler work;
 - no claim of real-device visual quality or reader comprehension.
 
-## Target result
+## Verification result
+
+```yaml
+CI_workflow: CI
+CI_run_number: 359
+CI_run_id: 37095846743
+result: SUCCESS
+checked:
+  - Product Definition v1 foundation
+  - explanation route / reader orientation
+  - Library Release 1 curation/resilience
+  - Viewer/Modeler SSOT guards
+  - Viewer regression
+  - canonical 3DSS validation
+  - Astro build
+  - built Release 1 mobile/E2E
+  - built inner Viewer lifecycle contract
+```
+
+## Formal result
 
 `STEP11_LOAD_LIFECYCLE_AND_ERROR_HANDLING_SLICE_PASS`
