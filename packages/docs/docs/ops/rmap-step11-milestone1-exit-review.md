@@ -1,7 +1,7 @@
 # RMAP STEP 11 — Milestone 1 Exit Review Candidate
 
 Status:
-`AUTOMATED_EXIT_REVIEW_READY / HUMAN_DEVICE_ACCEPTANCE_REQUIRED`
+`STEP11_AUTOMATED_EXIT_PASS / HUMAN_DEVICE_ACCEPTANCE_REQUIRED`
 
 ## Original Milestone 1 requirements
 
@@ -76,7 +76,7 @@ STEP11_FOUNDATION_SLICE_PASS
 → STEP11_EXPLANATION_ROUTE_AND_READER_ORIENTATION_SLICE_PASS
 → STEP11_LIBRARY_RELEASE_CURATION_AND_RESILIENCE_SLICE_PASS
 → STEP11_RELEASE1_MOBILE_AND_END_TO_END_ACCEPTANCE_AUTOMATED_PASS
-→ STEP11_LOAD_LIFECYCLE_AND_ERROR_HANDLING_SLICE_PASS (target)
+→ STEP11_LOAD_LIFECYCLE_AND_ERROR_HANDLING_SLICE_PASS
 ```
 
 ## Architecture guards
@@ -113,3 +113,17 @@ If accepted, recommended Milestone closure:
 `STEP11_MILESTONE1_LIBRARY_TO_VIEWER_PASS_WITH_AUTOMATED_E2E_AND_HUMAN_DEVICE_ACCEPTANCE`
 
 Then proceed to STEP 12 — Viewer stabilization.
+
+## Automated exit result
+
+```yaml
+STEP11_foundation: PASS
+explanation_route_and_orientation: PASS
+library_release_curation_and_resilience: PASS
+release1_mobile_e2e_automated: PASS
+load_lifecycle_and_error_handling: PASS
+CI_run_359: SUCCESS
+
+remaining_machine_blocker: NONE
+remaining_human_gate: REAL_DEVICE_AND_UX_ACCEPTANCE
+```
