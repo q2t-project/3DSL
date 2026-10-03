@@ -1,8 +1,8 @@
 # RMAP STEP 11 — Explanation Route + Reader Orientation Slice
 
-Status: `STEP11_EXPLANATION_ROUTE_AND_READER_ORIENTATION_SLICE_PASS`
+Status: `REOPENED_FOR_CORRECTION_AND_REVALIDATION`
 
-Human approval: `YES / 2026-10-02`
+Human approval: `RESET / previous duplicate PASS messages withdrawn for restart`
 
 Parent:
 `STEP11_FOUNDATION_SLICE_PASS`
@@ -131,11 +131,26 @@ checked:
   - Astro build
 ```
 
-## Formal closure
+## Restart correction
 
-`STEP11_EXPLANATION_ROUTE_AND_READER_ORIENTATION_SLICE_PASS`
+The previously recorded `STEP11_EXPLANATION_ROUTE_AND_READER_ORIENTATION_SLICE_PASS` is withdrawn as a formal closure for this restart.
 
-Implementation/contract/build acceptance and human closure are satisfied.
+Reason:
+- duplicate PASS messages were entered repeatedly;
+- the slice is being reopened so implementation/contract/UI behavior can be re-read and revalidated from the accepted Foundation baseline;
+- downstream slices remain implementation candidates but are not used to prove this slice has passed.
+
+Implementation changes remain present and are not reverted merely by reopening the milestone.
+
+## Formal state
+
+`STEP11_EXPLANATION_ROUTE_AND_READER_ORIENTATION_SLICE_IN_PROGRESS`
+
+Re-pass requires:
+1. source/diff review;
+2. Library route validation;
+3. Viewer bridge/orientation review;
+4. CI/release gates;
+5. explicit single human closure after correction.
+
 No separate claim is made that reader comprehension or visual-UX effectiveness has been empirically established.
-
-This closes this slice only. STEP 11 remains open until the remaining Library → Viewer milestone requirements are separately satisfied.
