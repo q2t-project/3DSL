@@ -202,13 +202,29 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
       let readerInitialApplied = false;
       let readerState = { mode: "macro", selection: null };
 
-      function safeGuidePath(raw) {
+      function libraryItemIdFromDataUrl(raw, expectedFile) {
         if (typeof raw !== "string" || !raw.trim()) return "";
         try {
           const u = new URL(raw.trim(), window.location.origin);
           if (u.origin !== window.location.origin) return "";
-          if (!u.pathname.startsWith("/_data/library/")) return "";
-          if (!u.pathname.endsWith("/_meta.json")) return "";
+          const m = u.pathname.match(/^\/_data\/library\/([^/]+)\/(model\.3dss\.json|_meta\.json)$/);
+          if (!m || m[2] !== expectedFile) return "";
+          return m[1];
+        } catch {
+          return "";
+        }
+      }
+
+      function safeGuidePath(raw, modelRaw) {
+        if (typeof raw !== "string" || !raw.trim()) return "";
+        try {
+          const u = new URL(raw.trim(), window.location.origin);
+          if (u.origin !== window.location.origin) return "";
+          const guideId = libraryItemIdFromDataUrl(u.pathname, "_meta.json");
+          const modelId = libraryItemIdFromDataUrl(modelRaw, "model.3dss.json");
+          // A guide is valid only for the exact Library item whose model is loaded.
+          // This prevents route UUIDs from one model being silently applied to another.
+          if (!guideId || !modelId || guideId !== modelId) return "";
           return `${u.pathname}${u.search}`;
         } catch {
           return "";
@@ -294,12 +310,14 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
       async function loadReaderGuide() {
         let guideRaw = "";
         let routeId = "";
+        let modelRaw = "";
         try {
           const sp = new URLSearchParams(window.location.search || "");
           guideRaw = sp.get("guide") || "";
           routeId = sp.get("route") || "";
+          modelRaw = sp.get("model") || sp.get("open") || "";
         } catch {}
-        const guide = safeGuidePath(guideRaw);
+        const guide = safeGuidePath(guideRaw, modelRaw);
         if (!guide) return;
 
         try {
@@ -307,10 +325,10 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
           if (!r.ok) throw new Error(`guide fetch failed: ${r.status}`);
           const meta = await r.json();
           const routes = Array.isArray(meta?.entry_points) ? meta.entry_points : [];
-          const picked =
-            routes.find((x) => x && typeof x === "object" && String(x.id || "") === routeId) ||
-            routes[0] ||
-            null;
+          const picked = routeId
+            ? routes.find((x) => x && typeof x === "object" && String(x.id || "") === routeId) || null
+            : routes[0] || null;
+          if (routeId && !picked) throw new Error(`guide route not found: ${routeId}`);
           if (!picked || !Array.isArray(picked.steps) || !picked.steps.length) return;
           readerRoute = picked;
           readerStepIndex = 0;
@@ -572,8 +590,8 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
           const model = sp.get('model') || sp.get('open') || '';
           const mode = sp.get('mode') || '';
           const src = sp.get('src') || '';
-          const guide = safeGuidePath(sp.get('guide') || '');
-          const route = sp.get('route') || '';
+          const guide = safeGuidePath(sp.get('guide') || '', model);
+          const route = guide ? (sp.get('route') || '') : '';
           const q = new URLSearchParams();
           if (model) q.set('model', model);
           if (mode) q.set('mode', mode);
