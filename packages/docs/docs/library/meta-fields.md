@@ -33,9 +33,10 @@ _meta.json は **台帳**。表示メタ（title/summary/tags）やモデルの�
 ### 2.1 MUST（公開ライブラリとして成立する最低限）
 
 #### `published` (boolean)
-- 公開スイッチ（一覧に出すか）
+- 公開detail/dataを生成対象にするかのスイッチ
 - `false`：非公開（作業中/検証中/PR preview 用）
-- `true`：公開（library 一覧に載る対象）
+- `true`：公開detail URLを維持する対象
+- Release 1の一覧・Home露出は `release1.included` と `hidden` で別に決める
 
 #### `published_at` (string, ISO 8601)
 - **初回公開日（固定）**
@@ -53,11 +54,69 @@ _meta.json は **台帳**。表示メタ（title/summary/tags）やモデルの�
 - 詳細説明（長文OK）
 - 表示上は「概要カード」や「説明」に出す用途
 
-#### `hidden` (boolean)
-- 「公開扱いだが露出は抑える」ための予約席
-
 #### `recommended` (boolean)
-- おすすめ枠/特集枠のためのスイッチ
+- Release 1 の代表作・Home featured候補を示す
+- `release1.included:true` かつ `hidden:false` の項目にだけ使う
+- 公開順序そのものや内容の正しさを意味しない
+
+#### `hidden` (boolean)
+- `published:true` の既存URL/詳細ページを保ったまま、Release 1 の一覧・Home露出から外すためのフラグ
+- `hidden:true` は非公開化や削除ではない
+- Release 1 から除外する既公開項目は `release1.included:false` と組み合わせる
+
+#### `release1` (object)
+Release 1 の読者向け代表集合を明示する台帳。3DSS本体の意味内容ではない。
+
+Included example:
+
+```json
+{
+  "release1": {
+    "included": true,
+    "role": "core-entry",
+    "capabilities": [
+      "whole-local",
+      "diagram-connection",
+      "explanation-route"
+    ]
+  }
+}
+```
+
+Excluded published example:
+
+```json
+{
+  "hidden": true,
+  "release1": {
+    "included": false,
+    "exclusion_reason": "Performance fixture; not a representative reader release item."
+  }
+}
+```
+
+Release 1 capability vocabulary:
+
+- `whole-local`
+- `placement-comparison`
+- `diagram-connection`
+- `explanation-route`
+
+Contract:
+
+- `published:true` の項目は `release1.included` を明示する
+- `included:true` は `hidden:true` と両立しない
+- `included:true` は非空の `role` と `capabilities` を持つ
+- `explanation-route` を名乗る項目は有効な `entry_points` を持つ
+- `included:false` の既公開項目は `hidden:true` と `exclusion_reason` を持つ
+- Release 1 集合全体で4つのcore capabilityをカバーする
+- 少なくとも1件を `recommended:true` とする
+
+```text
+published != Release 1 representative
+hidden != deleted
+release1 capability label != empirical proof of comprehension benefit
+```
 
 ### 2.3 禁止キー（ドリフト防止）
 

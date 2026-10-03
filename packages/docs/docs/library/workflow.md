@@ -120,6 +120,24 @@ npm --prefix apps/site run sync:3dss-content
 
 ---
 
+## 6.5 Release 1 curation
+
+公開済みかどうかと、Release 1の代表集合へ出すかを分ける。
+
+- Release 1へ出す:
+  - `published: true`
+  - `hidden: false`
+  - `release1.included: true`
+  - `release1.role` / `release1.capabilities` を埋める
+- 既存公開URLは残すがRelease 1面から外す:
+  - `published: true`
+  - `hidden: true`
+  - `release1.included: false`
+  - `release1.exclusion_reason` を書く
+
+`check:library` はRelease 1集合全体のcore capability coverageとrecommended entryも検査する。
+
+---
 ## 7. 公開フロー（PR）
 
 - PR 作成（アイテム追加/更新）

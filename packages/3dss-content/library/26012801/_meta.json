@@ -11,7 +11,11 @@
     "og_image": ""
   },
   "recommended": false,
-  "hidden": false,
+  "hidden": true,
   "published_at": "2026-01-23T11:42:39Z",
-  "republished_at": "2026-01-23T11:42:39Z"
+  "republished_at": "2026-10-02T08:14:00Z",
+  "release1": {
+    "included": false,
+    "exclusion_reason": "Draft/empty model; not release-ready."
+  }
 }

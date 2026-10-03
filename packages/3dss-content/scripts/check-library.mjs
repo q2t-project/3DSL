@@ -18,6 +18,13 @@ const LIBRARY_DIR = path.join(ROOT, 'library');
 
 const ID_RE = /^\d{6}[0-9a-z]{2}$/;
 
+const RELEASE1_CAPABILITIES = new Set([
+  "whole-local",
+  "placement-comparison",
+  "diagram-connection",
+  "explanation-route",
+]);
+
 function readJson(p) {
   const s = fs.readFileSync(p, 'utf8');
   return JSON.parse(s);
@@ -81,6 +88,7 @@ function validateMeta(meta, policy) {
     'provenance',
     'links',
     'authors',
+    'release1',
   ]);
 
   const FORBIDDEN = new Set(['title', 'summary', 'tags', 'created_at', 'updated_at']);
@@ -140,6 +148,12 @@ function validateMeta(meta, policy) {
   }
   if (meta.references != null && !Array.isArray(meta.references)) {
     issue('warn', `references should be an array when present`);
+  }
+  if (meta.hidden != null && typeof meta.hidden !== 'boolean') {
+    issue('error', `hidden must be boolean when present`);
+  }
+  if (meta.recommended != null && typeof meta.recommended !== 'boolean') {
+    issue('error', `recommended must be boolean when present`);
   }
 
   return { warns, errs };
@@ -251,6 +265,91 @@ function validateEntryPoints(entryPoints, model) {
   return { warns, errs };
 }
 
+function validateRelease1(meta, dm) {
+  const warns = [];
+  const errs = [];
+  const isPublished = meta?.published === true;
+  const release = meta?.release1;
+
+  if (release == null) {
+    if (isPublished) {
+      errs.push("published item must declare release1.included explicitly");
+    }
+    return { warns, errs };
+  }
+
+  if (!isPlainObject(release)) {
+    errs.push("release1 must be an object");
+    return { warns, errs };
+  }
+
+  const allowed = new Set(["included", "role", "capabilities", "exclusion_reason"]);
+  for (const key of Object.keys(release)) {
+    if (!allowed.has(key)) errs.push(`release1 unknown key: ${key}`);
+  }
+
+  if (typeof release.included !== "boolean") {
+    errs.push("release1.included must be boolean");
+    return { warns, errs };
+  }
+
+  if (release.included) {
+    if (!isPublished) errs.push("release1.included=true requires published=true");
+    if (meta?.hidden === true) errs.push("release1.included=true conflicts with hidden=true");
+
+    const role = typeof release.role === "string" ? release.role.trim() : "";
+    if (!role) errs.push("release1.included=true requires non-empty release1.role");
+
+    if (!Array.isArray(release.capabilities) || release.capabilities.length === 0) {
+      errs.push("release1.included=true requires non-empty release1.capabilities");
+    } else {
+      const seen = new Set();
+      for (const raw of release.capabilities) {
+        const cap = typeof raw === "string" ? raw.trim() : "";
+        if (!RELEASE1_CAPABILITIES.has(cap)) {
+          errs.push(`unknown release1 capability: ${String(raw)}`);
+          continue;
+        }
+        if (seen.has(cap)) errs.push(`duplicate release1 capability: ${cap}`);
+        seen.add(cap);
+      }
+    }
+
+    if (typeof dm?.document_summary !== "string" || !dm.document_summary.trim()) {
+      errs.push("release1.included=true requires a non-empty document_summary");
+    }
+
+    if (
+      Array.isArray(release.capabilities) &&
+      release.capabilities.includes("explanation-route") &&
+      (!Array.isArray(meta?.entry_points) || meta.entry_points.length === 0)
+    ) {
+      errs.push('release1 capability "explanation-route" requires entry_points');
+    }
+
+    if (meta?.recommended === true && meta?.hidden === true) {
+      errs.push("recommended release item cannot be hidden");
+    }
+  } else if (isPublished) {
+    const reason =
+      typeof release.exclusion_reason === "string"
+        ? release.exclusion_reason.trim()
+        : "";
+    if (!reason) {
+      errs.push("published release1.included=false item requires exclusion_reason");
+    }
+    if (meta?.hidden !== true) {
+      errs.push("published release1.included=false item must set hidden=true");
+    }
+    if (meta?.recommended === true) {
+      errs.push("excluded Release 1 item cannot be recommended");
+    }
+  }
+
+  return { warns, errs };
+}
+
+
 function validateDocumentMeta(dm, isPublished) {
   const warns = [];
   const errs = [];
@@ -311,6 +410,9 @@ function main() {
 
   let warnCount = 0;
   let errCount = 0;
+  const release1Ids = [];
+  const release1Capabilities = new Set();
+  let release1RecommendedCount = 0;
 
   for (const id of items) {
     const base = path.join(LIBRARY_DIR, id);
@@ -379,6 +481,24 @@ function main() {
       errCount++;
     }
 
+    const releaseCheck = validateRelease1(meta, dm);
+    for (const w of releaseCheck.warns) {
+      console.warn(`[warn] ${id}: ${w}`);
+      warnCount++;
+    }
+    for (const er of releaseCheck.errs) {
+      console.error(`[error] ${id}: ${er}`);
+      errCount++;
+    }
+
+    if (meta?.release1?.included === true) {
+      release1Ids.push(id);
+      for (const cap of Array.isArray(meta.release1.capabilities) ? meta.release1.capabilities : []) {
+        if (RELEASE1_CAPABILITIES.has(cap)) release1Capabilities.add(cap);
+      }
+      if (meta?.recommended === true) release1RecommendedCount++;
+    }
+
     // Model document_meta contract (SSOT for display + timeline)
     const dmCheck = validateDocumentMeta(dm, isPublished);
     for (const w of dmCheck.warns) {
@@ -391,8 +511,24 @@ function main() {
     }
   }
 
+  if (release1Ids.length === 0) {
+    console.error("[error] release1: no included items");
+    errCount++;
+  }
+  for (const capability of RELEASE1_CAPABILITIES) {
+    if (!release1Capabilities.has(capability)) {
+      console.error(`[error] release1: capability not covered: ${capability}`);
+      errCount++;
+    }
+  }
+  if (release1RecommendedCount === 0) {
+    console.error("[error] release1: at least one included item must be recommended");
+    errCount++;
+  }
+
   const n = items.length;
-  const summary = `checked ${n} item(s) (warn=${warnCount}, error=${errCount}, policy=${policy})`;
+  const summary =
+    `checked ${n} item(s) (warn=${warnCount}, error=${errCount}, policy=${policy}, release1=${release1Ids.length})`;
   if (errCount > 0) {
     console.error(`[ng] ${summary}`);
     process.exitCode = 1;

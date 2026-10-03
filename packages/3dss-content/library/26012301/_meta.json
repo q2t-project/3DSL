@@ -1,7 +1,12 @@
 {
   "description": "3DSLの空間の基底となる存在論的座標系q-Q-tと認識論的座標系φ-ψ-μ",
   "published": true,
-  "recommended": true,
+  "recommended": false,
   "published_at": "2026-01-23T11:42:39Z",
-  "republished_at": "2026-01-23T11:42:39Z"
+  "republished_at": "2026-10-02T08:14:00Z",
+  "hidden": true,
+  "release1": {
+    "included": false,
+    "exclusion_reason": "Legacy fixed-axis framing conflicts with Product Definition v1; revise or reclassify before reader release."
+  }
 }

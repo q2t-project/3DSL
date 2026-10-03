@@ -2,7 +2,7 @@
   "description": "3DSLのコンセプトの諸概念の関係をモデル化して表示",
   "published": true,
   "published_at": "2026-01-05T01:53:40Z",
-  "republished_at": "2026-10-02T03:54:00Z",
+  "republished_at": "2026-10-02T08:14:00Z",
   "entry_points": [
     {
       "id": "first-read",
@@ -63,5 +63,16 @@
         }
       ]
     }
-  ]
+  ],
+  "hidden": false,
+  "recommended": true,
+  "release1": {
+    "included": true,
+    "role": "core-entry",
+    "capabilities": [
+      "whole-local",
+      "diagram-connection",
+      "explanation-route"
+    ]
+  }
 }

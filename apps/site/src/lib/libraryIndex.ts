@@ -1,5 +1,9 @@
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
+import {
+  filterRelease1Items,
+  parseLibraryIndexRaw,
+} from "./libraryIndexContract.js";
 
 export type LibrarySource = {
   title?: string;
@@ -37,6 +41,13 @@ export type LibraryExplanationRoute = {
   steps: LibraryExplanationStep[];
 };
 
+export type LibraryRelease1 = {
+  included: boolean;
+  role?: string;
+  capabilities?: string[];
+  exclusion_reason?: string;
+};
+
 export type LibraryItem = {
   id: string;
   slug: string;
@@ -46,6 +57,11 @@ export type LibraryItem = {
   tags?: string[];
   updated_at?: string;
   created_at?: string;
+  published_at?: string;
+  republished_at?: string;
+  hidden?: boolean;
+  recommended?: boolean;
+  release1?: LibraryRelease1 | null;
   entry_points?: LibraryExplanationRoute[];
   pairs?: { a: string; b: string }[];
   series?: string;
@@ -61,9 +77,16 @@ export type LibraryItem = {
   page?: any;
 };
 
-type LibraryIndex = {
+export type LibraryIndex = {
   version?: number;
   generated_at?: string;
+  items: LibraryItem[];
+};
+
+export type LibraryIndexState = {
+  ok: boolean;
+  code: "OK" | "MISSING" | "INVALID_JSON" | "INVALID_SHAPE";
+  index: LibraryIndex;
   items: LibraryItem[];
 };
 
@@ -78,35 +101,35 @@ const INDEX_ABS = fileURLToPath(
   new URL("../../public/_data/library/library_index.json", import.meta.url)
 );
 
-export function readLibraryIndex(): LibraryIndex {
-  let raw: string;
+export function readLibraryIndexState(): LibraryIndexState {
+  let raw = "";
   try {
     raw = fs.readFileSync(INDEX_ABS, "utf8");
-  } catch (e: any) {
-    throw new Error(
-      [
-        "library_index.json not found.",
-        `expected: ${INDEX_ABS}`,
-        "run: npm run sync:3dss-content",
-      ].join("\n"),
-      { cause: e }
-    );
+  } catch {
+    const parsed = parseLibraryIndexRaw(null) as LibraryIndexState;
+    return parsed;
   }
 
-  let j: LibraryIndex;
-  try {
-    j = JSON.parse(raw) as LibraryIndex;
-  } catch (e: any) {
-    throw new Error(`library_index.json is invalid JSON: ${INDEX_ABS}`, { cause: e });
-  }
+  return parseLibraryIndexRaw(raw) as LibraryIndexState;
+}
 
-  if (!j?.items || !Array.isArray(j.items)) throw new Error(`Invalid library_index.json: items missing: `);
-  return j;
+// Backward-compatible reader: callers receive an empty index rather than a throw.
+// Use readLibraryIndexState() when the UI needs to distinguish degraded states.
+export function readLibraryIndex(): LibraryIndex {
+  return readLibraryIndexState().index;
 }
 
 export function getLibraryItems(): LibraryItem[] {
-  const { items } = readLibraryIndex();
-  return items.slice();
+  return readLibraryIndexState().items.slice();
+}
+
+export function getReleaseLibraryItems(): LibraryItem[] {
+  return filterRelease1Items(readLibraryIndexState().items) as LibraryItem[];
+}
+
+export function getLibraryIndexStatus(): Pick<LibraryIndexState, "ok" | "code"> {
+  const { ok, code } = readLibraryIndexState();
+  return { ok, code };
 }
 
 export function getLibraryItemBySlug(slug: string): LibraryItem | undefined {

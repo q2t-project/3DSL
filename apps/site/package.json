@@ -27,7 +27,7 @@
     "check:route-collisions": "node scripts/check/route-collisions.mjs",
     "check:single-writer": "node scripts/check/single-writer.mjs",
     "check:spec-filenames": "node scripts/check/spec-filenames.mjs",
-    "check:ssot": "npm run check:vendor-required && npm run check:generated-clean && npm run check:viewer:ssot && npm run check:modeler:ssot && npm run check:host:asset-paths && npm run check:route-collisions && npm run check:pages:no-raw-html",
+    "check:ssot": "npm run check:vendor-required && npm run check:generated-clean && npm run check:viewer:ssot && npm run check:modeler:ssot && npm run check:host:asset-paths && npm run check:route-collisions && npm run check:pages:no-raw-html && npm run check:library-release",
     "check:ui-dom-roles": "node scripts/check/ui-dom-roles.mjs",
     "check:vendor-required": "node scripts/check/vendor-required.mjs",
     "check:viewer:bootstrap-flow-contract": "node scripts/check/viewer-bootstrap-flow-contract.mjs",
@@ -71,7 +71,8 @@
     "validate:3dss:fixtures:ref": "node scripts/validate/3dss-fixtures.mjs --ref",
     "validate:3dss:samples": "node scripts/validate/3dss-samples.mjs",
     "check:product-foundation": "node scripts/check/product-foundation.mjs",
-    "check:reader-guidance": "npm run check:library && node scripts/check/reader-guidance.mjs"
+    "check:reader-guidance": "npm run check:library && node scripts/check/reader-guidance.mjs",
+    "check:library-release": "npm run check:library && node scripts/check/library-curation-resilience.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.6",

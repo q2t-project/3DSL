@@ -1,8 +1,17 @@
 ---
-import { getLibraryItems } from "../../lib/libraryIndex";
+import {
+  getLibraryIndexStatus,
+  getReleaseLibraryItems,
+} from "../../lib/libraryIndex";
 import Layout from "../../layouts/Layout.astro";
 
-const items = getLibraryItems();
+const libraryIndexStatus = getLibraryIndexStatus();
+const items = getReleaseLibraryItems();
+const libraryStateMessage = !libraryIndexStatus.ok
+  ? "Library data is temporarily unavailable. The page remains available; please retry later."
+  : items.length === 0
+    ? "Release 1 examples are being prepared."
+    : "";
 const ITEMS_PER_PAGE = 20;
 
 function withReturn(url, ret) {
@@ -44,6 +53,17 @@ function pickPublishedLabel(item) {
 
   <Layout title="Library | 3DSL" description="3DSL Library">
     <section class="library-page">
+      {libraryStateMessage ? (
+        <section
+          class="ui-surface mb-5 p-5 text-sm text-neutral-300"
+          data-library-state={libraryIndexStatus.code}
+          role={libraryIndexStatus.ok ? "status" : "alert"}
+        >
+          <div class="font-medium text-neutral-100">Library</div>
+          <p class="mt-2">{libraryStateMessage}</p>
+        </section>
+      ) : null}
+
       <!-- controls -->
       <section class="controls">
         <input id="search" type="text" placeholder="Search title, summary, tags…" />
