@@ -59,6 +59,38 @@ if (!/btn\.hidden\s*=\s*true/.test(innerBoot) || !/btn\.style\.display\s*=\s*"no
   throw new Error("framed inner Viewer must suppress its own back control");
 }
 
+// Product-host load lifecycle must be real, not a listener-only contract.
+for (const token of [
+  "3dsl.viewer.loadStart",
+  "3dsl.viewer.loadOk",
+  "3dsl.viewer.loadFail",
+  "3dsl.viewer.hostReady",
+]) {
+  if (!innerBoot.includes(token)) throw new Error(`inner Viewer missing lifecycle message: ${token}`);
+}
+if (!/postParentLifecycle\("3dsl\.viewer\.hostReady"\)/.test(innerBoot)) {
+  throw new Error("inner Viewer must announce hostReady after initial mount");
+}
+
+const loadFailAt = appViewer.indexOf("if (t === '3dsl.viewer.loadFail')");
+if (loadFailAt < 0) throw new Error("outer Viewer missing loadFail handler");
+const loadFailBlock = appViewer.slice(loadFailAt, loadFailAt + 700);
+if (!/showToast\(/.test(loadFailBlock)) {
+  throw new Error("outer Viewer loadFail must surface a product-host error");
+}
+if (/if\s*\(loadToastArmed\)\s*showToast/.test(loadFailBlock)) {
+  throw new Error("initial model failure must not depend on toast arming");
+}
+
+const bootstrapSource = requireSource(
+  "apps/viewer/ssot/runtime/bootstrapViewer.js",
+  /FETCH_ERROR/,
+  "typed model-fetch failure"
+);
+if (!/JSON_ERROR/.test(bootstrapSource) || !/VALIDATION_ERROR/.test(bootstrapSource)) {
+  throw new Error("Viewer bootstrap must preserve JSON/validation failure kinds");
+}
+
 // --- tiny static HTTP server over the generated distribution ---
 function requestFile(pathname) {
   let p = decodeURIComponent(pathname.split("?")[0] || "/");
@@ -167,6 +199,16 @@ try {
   const inner = await get("/viewer/index.html");
   assert.match(inner.text, /id="viewer-canvas"/, "inner Viewer runtime must be present");
 
+  const innerBootBuilt = await get("/viewer/viewerHostBoot.js");
+  for (const token of [
+    "3dsl.viewer.loadStart",
+    "3dsl.viewer.loadOk",
+    "3dsl.viewer.loadFail",
+    "3dsl.viewer.hostReady",
+  ]) {
+    assert.ok(innerBootBuilt.text.includes(token), `built Viewer lifecycle missing ${token}`);
+  }
+
   const excluded = await get("/library/26012301/");
   assert.match(excluded.text, /name="robots"[^>]*content="noindex,follow"|content="noindex,follow"[^>]*name="robots"/, "excluded legacy detail must be noindex");
 
@@ -182,7 +224,7 @@ try {
     console.log("release1 mobile/e2e: sitemap check skipped (non-production build)");
   }
 
-  console.log("release1 mobile/e2e acceptance: PASS");
+  console.log("release1 mobile/e2e acceptance: PASS (including load lifecycle/error contracts)");
 } finally {
   await new Promise((resolve) => server.close(resolve));
 }

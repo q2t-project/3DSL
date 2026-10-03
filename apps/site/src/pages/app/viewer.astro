@@ -472,7 +472,9 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
             hideProgress();
             const m = (typeof msg.message === 'string') ? msg.message : '';
             const shortMsg = m ? String(m).slice(0, 60) : '';
-            if (loadToastArmed) showToast(shortMsg ? `読み込みに失敗しました: ${shortMsg}` : '読み込みに失敗しました');
+            // Initial Library loads are not toast-armed, but load failure must
+            // still be visible at the product-host layer.
+            showToast(shortMsg ? `読み込みに失敗しました: ${shortMsg}` : '読み込みに失敗しました');
             disarmLoadToast();
             return;
           }
