@@ -38,7 +38,7 @@ export function getStaticPaths() {
   label { display:flex; align-items:center; gap:.5rem; }
   select { color:white; background:#171717; border:1px solid #777; border-radius:4px; padding:.3rem; }
   .frame-wrap { overflow:auto; }
-  iframe { display:block; max-width:none; border:1px solid #777; background:#111; }
+  iframe { display:block; box-sizing:content-box; max-width:none; border:1px solid #777; background:#111; }
 </style>
 <script>
   const frame = document.querySelector<HTMLIFrameElement>('#narrow-frame')!;

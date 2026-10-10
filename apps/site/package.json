@@ -49,7 +49,7 @@
     "fix:guards": "node scripts/guard/fix.mjs",
     "generate:sitemap": "node scripts/tool/generate-sitemap.mjs",
     "new:library-item": "node ../../packages/3dss-content/scripts/new-library-item.mjs",
-    "prebuild": "npm run sync:all && npm run check:reconstruction-preview && npm run check:adsense-policy && npm run check:contact-form && npm run check:route-collisions && npm run check:boundary && npm run check:pages:no-raw-html && node scripts/tool/generate-sitemap.mjs && npm run validate:3dss:canonical && node scripts/guard/prebuild.mjs",
+    "prebuild": "npm run sync:all && npm run check:reconstruction-preview && npm run check:adsense-policy && npm run check:contact-form && npm run check:swipe-nav && npm run check:route-collisions && npm run check:boundary && npm run check:pages:no-raw-html && node scripts/tool/generate-sitemap.mjs && npm run validate:3dss:canonical && node scripts/guard/prebuild.mjs",
     "precheck:release": "npm run sync:all",
     "precheck:ssot": "npm run sync:all",
     "precheck:viewer:regression": "npm run sync:all",
@@ -74,6 +74,7 @@
     "check:reconstruction-preview": "node scripts/check/reconstruction-preview.mjs",
     "check:adsense-policy": "node scripts/check/adsense-policy.mjs",
     "check:contact-form": "node scripts/check/contact-form.mjs",
+    "check:swipe-nav": "node scripts/check/swipe-nav.mjs",
     "check:site-publication": "node scripts/check/site-publication.mjs",
     "postbuild": "npm run check:site-publication"
   },
