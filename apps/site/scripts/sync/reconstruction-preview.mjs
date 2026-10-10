@@ -41,5 +41,23 @@ for (const name of ['RECONSTRUCTION.html', 'OPEN_MODELS.html']) {
 // static hosting. Keep the local source intact; ship an explicit notice here.
 await cp(path.resolve(source, '../hosting/modeler-diagnostics.html'),
   path.join(target, 'modeler_app/ui/diagnostics/index.html'));
+// Hosted app and diagnostic screens are tools, not search landing pages.
+// Apply only metadata to these known HTML files; retain the standalone sources,
+// runtime and all access paths. Crawlers may still fetch pages and their links.
+for (const name of [
+  'modeler_app/index.html',
+  'modeler_app/preview_out.html',
+  'modeler_app/ui/diagnostics/index.html',
+  'contract_viewer/index.html',
+  'contract_viewer/diagnostics/index.html',
+  'viewer/index.html',
+]) {
+  const file = path.join(target, name);
+  const html = await readFile(file, 'utf8');
+  if (!/<head\b[^>]*>/i.test(html)) throw new Error(`Missing head for hosted noindex: ${name}`);
+  const withoutRobots = html.replace(/<meta\b[^>]*\bname=["']robots["'][^>]*>\s*/gi, '');
+  await writeFile(file, withoutRobots.replace(/<head\b[^>]*>/i,
+    '$&\n<meta name="robots" content="noindex,follow">'));
+}
 await cp(path.join(target, 'RECONSTRUCTION.html'), path.join(target, 'index.html'));
 console.log('[sync] reconstruction preview -> site/public/preview-reconstruction');
