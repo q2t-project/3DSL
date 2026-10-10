@@ -6,6 +6,10 @@
 !packages/vendor/**/dist/
 !packages/vendor/**/dist/**
 
+# Accepted reconstruction browser bundle, required by the isolated Preview.
+!apps/reconstruction/ssot/vendor/ajv/dist/
+!apps/reconstruction/ssot/vendor/ajv/dist/ajv.js
+
 zips/
 public/viewer*.zip
 

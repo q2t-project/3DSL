@@ -1,0 +1,669 @@
+{
+  "format": "3dsl-contract-work/0.1",
+  "status": "draft",
+  "scene": {
+    "lines": [],
+    "points": [
+      {
+        "meta": {
+          "uuid": "a38d6def-9ca2-4444-8a7e-2d30b325454a"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "43bd9c72-c950-471d-822f-ef69611610ed"
+        },
+        "signification": {
+          "name": "配置が読解を助ける"
+        },
+        "appearance": {
+          "position": [
+            0,
+            1,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "配置が読解を助ける",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "2d243f38-7fe1-4d54-8070-2c2746d55516"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            1,
+            0,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "eedc123d-ed96-4203-822a-f21944ef2faf"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            10,
+            0,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "ae799f95-67a3-4ba2-89f4-0c7164c46449"
+        },
+        "signification": {
+          "name": "比較対象"
+        },
+        "appearance": {
+          "position": [
+            10,
+            1,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "比較対象",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "2b5467d9-23e6-4382-8264-b13284ad0dd8"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            11,
+            0,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      }
+    ],
+    "aux": [],
+    "document_meta": {
+      "document_title": "R1 F4",
+      "document_uuid": "8ca4861f-efac-4b54-80c3-8246c193ba52",
+      "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
+      "version": "1.1.4",
+      "author": "q2t",
+      "created_at": "2026-10-09T07:43:39Z",
+      "revised_at": "2026-10-09T07:43:39Z",
+      "units": "non_si:px",
+      "coordinate_system": "Z+up/freeXY"
+    }
+  },
+  "baselineScene": {
+    "lines": [],
+    "points": [
+      {
+        "meta": {
+          "uuid": "a38d6def-9ca2-4444-8a7e-2d30b325454a"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "43bd9c72-c950-471d-822f-ef69611610ed"
+        },
+        "signification": {
+          "name": "配置が読解を助ける"
+        },
+        "appearance": {
+          "position": [
+            0,
+            1,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "配置が読解を助ける",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "2d243f38-7fe1-4d54-8070-2c2746d55516"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            1,
+            0,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "eedc123d-ed96-4203-822a-f21944ef2faf"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            10,
+            0,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "ae799f95-67a3-4ba2-89f4-0c7164c46449"
+        },
+        "signification": {
+          "name": "比較対象"
+        },
+        "appearance": {
+          "position": [
+            10,
+            1,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "比較対象",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "2b5467d9-23e6-4382-8264-b13284ad0dd8"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            11,
+            0,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      }
+    ],
+    "aux": [],
+    "document_meta": {
+      "document_title": "R1 F4",
+      "document_uuid": "8ca4861f-efac-4b54-80c3-8246c193ba52",
+      "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
+      "version": "1.1.4",
+      "author": "q2t",
+      "created_at": "2026-10-09T07:43:39Z",
+      "revised_at": "2026-10-09T07:43:39Z",
+      "units": "non_si:px",
+      "coordinate_system": "Z+up/freeXY"
+    }
+  },
+  "contract": {
+    "fixture": "F4",
+    "targets": [
+      {
+        "id": "hypothesis",
+        "name": "配置が読解を助ける",
+        "epistemic": "hypothesis"
+      },
+      {
+        "id": "unknown",
+        "name": "比較対象",
+        "epistemic": "undetermined"
+      }
+    ],
+    "occurrences": [
+      {
+        "id": "hypothesis",
+        "target": "hypothesis",
+        "labelOffset": [
+          0,
+          1,
+          0
+        ],
+        "portOffset": [
+          1,
+          0,
+          0
+        ],
+        "frames": [
+          0
+        ],
+        "anchor": "a38d6def-9ca2-4444-8a7e-2d30b325454a",
+        "label": "43bd9c72-c950-471d-822f-ef69611610ed",
+        "port": "2d243f38-7fe1-4d54-8070-2c2746d55516"
+      },
+      {
+        "id": "unknown",
+        "target": "unknown",
+        "labelOffset": [
+          0,
+          1,
+          0
+        ],
+        "portOffset": [
+          1,
+          0,
+          0
+        ],
+        "frames": [
+          0
+        ],
+        "anchor": "eedc123d-ed96-4203-822a-f21944ef2faf",
+        "label": "ae799f95-67a3-4ba2-89f4-0c7164c46449",
+        "port": "2b5467d9-23e6-4382-8264-b13284ad0dd8"
+      }
+    ],
+    "relations": [],
+    "axis": null,
+    "boundary": null,
+    "draft": {
+      "inputs": [
+        {
+          "occurrence": "hypothesis",
+          "field": "frames",
+          "raw": "abc",
+          "diagnostic": "integer-required",
+          "lastValid": [
+            0
+          ]
+        }
+      ],
+      "pendingRelations": [
+        {
+          "id": "pending",
+          "participantA": "hypothesis",
+          "participantB": null,
+          "status": "incomplete-connection"
+        }
+      ]
+    },
+    "sources": [
+      {
+        "path": "original/legacy.json",
+        "utf8": "﻿{\r\n  \"legacy_aux\": {\"signification\": \"所属境界\", \"module\": {\"plate\": {\"size\": [9, 7]}}},\r\n  \"unknown\": {\"future_field\": \"残す😀\", \"n\": 2}\r\n}\r\n",
+        "sha256": "8d865b2bf5bfbad51134588a18f1b9e9046a47cdb4ca31a3d282298587bb9ccb",
+        "status": "uninterpreted"
+      }
+    ],
+    "format": "3dsl-authoring-contract/0.1",
+    "authority": "scene-anchor-and-boundary;contract-shared-values-and-offsets"
+  },
+  "baselineContract": {
+    "fixture": "F4",
+    "targets": [
+      {
+        "id": "hypothesis",
+        "name": "配置が読解を助ける",
+        "epistemic": "hypothesis"
+      },
+      {
+        "id": "unknown",
+        "name": "比較対象",
+        "epistemic": "undetermined"
+      }
+    ],
+    "occurrences": [
+      {
+        "id": "hypothesis",
+        "target": "hypothesis",
+        "labelOffset": [
+          0,
+          1,
+          0
+        ],
+        "portOffset": [
+          1,
+          0,
+          0
+        ],
+        "frames": [
+          0
+        ],
+        "anchor": "a38d6def-9ca2-4444-8a7e-2d30b325454a",
+        "label": "43bd9c72-c950-471d-822f-ef69611610ed",
+        "port": "2d243f38-7fe1-4d54-8070-2c2746d55516"
+      },
+      {
+        "id": "unknown",
+        "target": "unknown",
+        "labelOffset": [
+          0,
+          1,
+          0
+        ],
+        "portOffset": [
+          1,
+          0,
+          0
+        ],
+        "frames": [
+          0
+        ],
+        "anchor": "eedc123d-ed96-4203-822a-f21944ef2faf",
+        "label": "ae799f95-67a3-4ba2-89f4-0c7164c46449",
+        "port": "2b5467d9-23e6-4382-8264-b13284ad0dd8"
+      }
+    ],
+    "relations": [],
+    "axis": null,
+    "boundary": null,
+    "draft": {
+      "inputs": [
+        {
+          "occurrence": "hypothesis",
+          "field": "frames",
+          "raw": "abc",
+          "diagnostic": "integer-required",
+          "lastValid": [
+            0
+          ]
+        }
+      ],
+      "pendingRelations": [
+        {
+          "id": "pending",
+          "participantA": "hypothesis",
+          "participantB": null,
+          "status": "incomplete-connection"
+        }
+      ]
+    },
+    "sources": [
+      {
+        "path": "original/legacy.json",
+        "utf8": "﻿{\r\n  \"legacy_aux\": {\"signification\": \"所属境界\", \"module\": {\"plate\": {\"size\": [9, 7]}}},\r\n  \"unknown\": {\"future_field\": \"残す😀\", \"n\": 2}\r\n}\r\n",
+        "sha256": "8d865b2bf5bfbad51134588a18f1b9e9046a47cdb4ca31a3d282298587bb9ccb",
+        "status": "uninterpreted"
+      }
+    ],
+    "format": "3dsl-authoring-contract/0.1",
+    "authority": "scene-anchor-and-boundary;contract-shared-values-and-offsets"
+  },
+  "attachments": {}
+}

@@ -1,0 +1,173 @@
+{
+  "document_meta": {
+    "document_title": "知識と問いの配置 — 全体・光速度・整列",
+    "document_summary": "Proj3統合モデルv0.3の既存読解を、一般構成と二つの具体的経路に移した限定作品。frame 0全体、1光速度、2整列。frameは表示範囲であり時間ではない。",
+    "document_uuid": "d2263bd7-22a0-5bed-9fab-697ea789f543",
+    "version": "1.1.4",
+    "created_at": "2026-10-04T05:00:00Z",
+    "revised_at": "2026-10-04T05:00:00Z",
+    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
+    "author": "q2t",
+    "coordinate_system": "Z+up/freeXY",
+    "units": "non_si:px",
+    "i18n": "ja",
+    "tags": [
+      "x:knowledge-placement",
+      "s:proj4"
+    ],
+    "reference": "Knowledge_Questions_Placement_Integrated_Model_v0.3_2026-10-03.md; sections 1,3,4,5,12.",
+    "creator_memo": "Built from fixed C1 requirements. Meaning IDs and geometric occurrences are paired in display_map.json; no schema extension. Source edition and section scopes retain the source document limitations. No live source or classification verification."
+  },
+  "points": [
+    {
+      "meta": {
+        "uuid": "873fa177-ade9-4a5c-a9b4-8ff5aa09390f"
+      },
+      "signification": {
+        "name": "作成点 0"
+      },
+      "appearance": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "text": {
+            "content": "説明 0",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "5b464550-2c1a-4ba7-af46-5ec06e19c4ad"
+      },
+      "signification": {
+        "name": "作成点 1"
+      },
+      "appearance": {
+        "position": [
+          5,
+          0,
+          2
+        ],
+        "frames": [
+          0,
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "text": {
+            "content": "説明 1",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "420e7884-1de5-434d-9562-38a3a6f5ab8f"
+      },
+      "signification": {
+        "name": "作成点 2"
+      },
+      "appearance": {
+        "position": [
+          10,
+          0,
+          4
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "text": {
+            "content": "説明 2",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "lines": [
+    {
+      "meta": {
+        "uuid": "3ad99d04-9f9e-4591-829b-932e714641ed"
+      },
+      "signification": {
+        "caption": "接続 0"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "873fa177-ade9-4a5c-a9b4-8ff5aa09390f"
+        },
+        "end_b": {
+          "ref": "5b464550-2c1a-4ba7-af46-5ec06e19c4ad"
+        },
+        "frames": [
+          0
+        ]
+      }
+    },
+    {
+      "meta": {
+        "uuid": "1f775d42-96c6-4792-9d1d-fbf36c2e2dab"
+      },
+      "signification": {
+        "caption": "接続 1"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "5b464550-2c1a-4ba7-af46-5ec06e19c4ad"
+        },
+        "end_b": {
+          "ref": "420e7884-1de5-434d-9562-38a3a6f5ab8f"
+        },
+        "frames": [
+          1
+        ]
+      }
+    }
+  ],
+  "aux": []
+}

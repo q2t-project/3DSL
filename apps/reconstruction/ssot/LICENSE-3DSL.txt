@@ -1,0 +1,56 @@
+LICENSE (Content)
+================
+
+This repository contains content files such as 3D model data and related assets
+(e.g., *.3dss.json and accompanying assets). Unless otherwise stated per file or
+per directory, all rights are reserved by the respective rights holders.
+
+All rights reserved.
+
+1. Scope
+--------
+This license applies to the content and assets in this repository ("Content"),
+except where a different license/notice is explicitly provided (e.g., in a
+per-item metadata file, header, or a NOTICE file).
+
+2. Permissions (No prior permission required)
+---------------------------------------------
+You may:
+- Share a link to the official page or repository location of the Content.
+- Use screenshots of the Content only to the extent permitted under applicable
+  law (e.g., quotation/citation rules), with proper source attribution.
+
+Normal, technically unavoidable transient copies created by standard web
+browsers for viewing (e.g., cache) are permitted, provided they are not used as a
+means to redistribute or provide the Content to others.
+
+3. Prohibited uses (Prior written permission required)
+------------------------------------------------------
+Without prior written permission from the rights holder(s), you may NOT:
+- Copy, download, store, redistribute, sell, mirror, or publicly transmit the
+  Content (in whole or in substantial part).
+- Import the Content into any third-party environment (other websites, apps,
+  viewers, repositories, databases, datasets, etc.) and make it available in a
+  way that enables interactive viewing/operation (including orbit/rotate/zoom),
+  or otherwise provide the Content as data.
+- Modify, adapt, translate, create derivatives of, or distribute modified
+  versions of the Content.
+- Scrape, crawl, or automatically collect the Content, or bypass access control.
+- Remove or alter copyright notices, credits, or license/usage notices.
+
+4. Third-party rights
+---------------------
+Some parts of the Content may include or reference third-party materials. Those
+materials remain subject to their own licenses/terms and the original rights
+holders' rights. You are responsible for clearing any third-party rights.
+
+5. No warranty
+--------------
+The Content is provided "as is" without warranties of any kind. The rights
+holder(s) are not liable for any damages arising from use of the Content, to the
+extent permitted by law.
+
+6. Contact for permissions
+--------------------------
+For permissions beyond Section 2, contact:
+[CONTACT / URL / EMAIL]

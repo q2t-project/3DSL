@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3DSL モデル一覧 — r0.5</title>
+<style>body{font:17px/1.8 system-ui,sans-serif;max-width:850px;margin:40px auto;padding:0 24px;color:#17202a;background:#f5f7fa}li{margin:14px 0}a{color:#084fa5}small{display:block;color:#46515b}</style>
+<h1>3DSL モデル一覧 <small>r0.5</small></h1>
+<section style="border:2px solid #486584;padding:16px;margin:20px 0">
+  <h2>新しく制作する</h2>
+  <p><a target="_blank" rel="noopener" href="/modeler_app/index.html">Modelerを開く — 新規・制作の続き</a><small>「新規」から作り、「保存」で作品一式を保存。「開く…」から保存済みの作品を再開できます。</small></p>
+  <p>Modeler上部の「Viewerで読む」は、現在の作品の写しを新しいタブで開きます。ファイル保存は行わず、後の編集も自動同期しません。編集は元のModelerタブで続け、更新した写しは同じボタンで開きます。</p>
+  <p><a href="/RECONSTRUCTION.html#usage">制作・保存・閲覧の短い案内</a></p>
+</section>
+<section style="border:2px solid #486584;padding:16px;margin:20px 0">
+  <h2>Viewerで読む</h2>
+  <p><a target="_blank" href="/contract_viewer/index.html?model=/models/knowledge_questions.3dsl-work.json">知識と問いをViewerで開く — 検索・情報欄付き</a><small>図で選んで情報を見る。接続先へ辿って、元の場所へ戻れます。</small></p>
+  <p><a target="_blank" href="/contract_viewer/index.html">自分の作品をViewerで開く</a><small>「開く…」から任意のフォルダーの作品一式を選べます。図の書出しやmodelsフォルダーへの移動は不要です。新旧の対応済み作品一式・図だけの3DSSを読めます。</small></p>
+  <p><a href="/RECONSTRUCTION.html">作品の入口・Viewerの自動検査へ</a></p>
+</section>
+<section style="border:1px solid #8296ab;padding:16px;margin:20px 0">
+  <h2>制作の確認例</h2>
+  <p>オンライン版はこのページのリンクから開けます。ZIP版は START_RECONSTRUCTION.cmd で起動してください。既存の主教材は従来の編集経路で保持します。</p>
+  <ul>
+    <li><a href="/modeler_app/index.html?model=/models/reconstruction_F1.3dsl-work.json" target="_blank" rel="noopener">F1：同じ対象の複数出現と個別配置</a></li>
+    <li><a href="/modeler_app/index.html?model=/models/reconstruction_F2.3dsl-work.json" target="_blank" rel="noopener">F2：役割と関係の編集</a></li>
+    <li><a href="/modeler_app/index.html?model=/models/reconstruction_F3.3dsl-work.json" target="_blank" rel="noopener">F3：意味ある位置と境界</a></li>
+    <li><a href="/modeler_app/index.html?model=/models/reconstruction_F4.3dsl-work.json" target="_blank" rel="noopener">F4：作業途中と原情報を保持した作品</a></li>
+  </ul>
+  <p>図から選択 → 右側で名称・位置・関係を入力 → 適用 → 保存。「新規」は新しい作品一式、Pは点を追加、Lは作成途中の関係を追加します。「別窓表示」は制作側プレビュー、「Viewerで読む」は作品の写しの閲覧です。</p>
+  <p>新しい作品一式の作業入力は、未適用のまま一式保存に含みます。旧形式の作品一式や図だけの3DSSで使う従来のプロパティ入力は、適用または入力の取消が必要です。XY移動では点・ラベルをドラッグでき、数値欄でも編集できます。削除は影響を確認して実行します。任意の意味規約の編集は未対応です。</p>
+</section>
+<p>Modelerは中央モデル・右プロパティの新しい画面です。各リンクは新しいタブで開きます。</p>
+<p><a href="/modeler_app/ui/diagnostics/index.html">自動負荷検査（ローカル版・今回の再実施は不要）</a></p>
+<ul>
+<li><a target="_blank" href="/modeler_app/index.html?model=/models/knowledge_questions.3dsl-work.json">主教材：知識と問いの作品一式</a><small>150点・30関係線。装飾の囲み枠を除去した訂正版。原文・対応記録付き。</small></li>
+<li><a target="_blank" href="/modeler_app/index.html?model=/models/knowledge_questions_edited.3dsl-work.json">編集済み例：ラベルと一出現の位置変更</a><small>「不確かさを伴う勧告値」に比較用の追記、同じラベル出現のxを+4。原記録は保持。</small></li>
+<li><a target="_blank" href="/modeler_app/index.html">新規制作を始める通常Modeler</a><small>「新規」から制作を始めます。</small></li>
+<li><a target="_blank" href="/modeler_app/index.html?model=/models/created_3points_2lines.3dss.json">検査で作成した3点・2線</a></li>
+<li><a target="_blank" href="/modeler_app/index.html?model=/models/synthetic_1000_2000.3dsl-work.json">合成1,000点・2,000線＋未配置2件</a><small>高次数・横断接続・同名別対象を含む。実分野の読解評価には用いない。</small></li>
+</ul>
+<details><summary>同じ図の比較・従来画面</summary>
+<ul>
+<li><a target="_blank" href="/contract_viewer/index.html?model=/models/knowledge_questions_baseline.3dss.json">図だけをViewerで開く — 主教材</a><small>検索・情報欄付き。下の従来画面と同じ3DSSを開きます。</small></li>
+<li><a target="_blank" href="/viewer/index.html?model=/models/knowledge_questions_baseline.3dss.json&amp;noads=1">従来画面で同じ図を開く — 主教材</a><small>従来の全画面表示。検索・情報欄はありません。</small></li>
+<li><a target="_blank" href="/viewer/index.html?model=/models/knowledge_questions_edited.3dss.json&amp;noads=1">従来画面：編集済み例の図だけ</a></li>
+<li><a target="_blank" href="/viewer/index.html?model=/models/created_3points_2lines.3dss.json&amp;noads=1">従来画面：検査で作成した3点・2線</a></li>
+<li><a target="_blank" href="/contract_viewer/index.html">自作の3DSSを開く</a><small>Viewerの「開く…」から図のファイルを選びます。保存先やファイル名の指定はありません。</small></li>
+</ul>
+</details>
+<p><a href="/RECONSTRUCTION.html#usage">制作・保存・閲覧の案内</a> ／ <a href="/RECONSTRUCTION.html">作品の入口へ</a></p>
+</html>
+
+<script>
+if(location.protocol==='file:'){
+ document.querySelectorAll('a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();alert('ZIPをすべて展開し、START_RECONSTRUCTION.cmd をダブルクリックしてください。');}));
+ const notice=document.createElement('p');notice.textContent='起動方法：START_RECONSTRUCTION.cmd をダブルクリック。HTMLを直接開いた状態ではアプリは動きません。';notice.style.color='#a02020';document.body.prepend(notice);
+}
+</script>

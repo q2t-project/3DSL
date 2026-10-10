@@ -91,6 +91,14 @@
 
 ## Generated / Mirrored（触るな）
 
+### 再構築版の独立 Preview（2026-10-10）
+
+* `apps/reconstruction/ssot/**`: 受入済み r0.5 の独立配布元。既存本番の Viewer/Modeler SSOT を置換しない。
+* `apps/reconstruction/hosting/**`: 静的配信向けの案内。ローカル専用 Modeler 診断の代替ページを含む。
+* `apps/site/scripts/sync/reconstruction-preview.mjs`: `/preview-reconstruction/` への生成とパス調整。
+* `apps/site/scripts/check/reconstruction-preview.mjs`: 生成後の参照切れ検査。`prebuild` で実行。
+* 進捗・昇格条件: `packages/docs/docs/ops/reconstruction_preview_release.md`。
+
 * `apps/site/public/**`
 
   * 配布物。直接編集禁止

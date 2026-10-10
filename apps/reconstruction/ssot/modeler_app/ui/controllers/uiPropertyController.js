@@ -1,0 +1,1730 @@
+// ui/controllers/uiPropertyController.js
+// Property panel controller (Phase 2):
+// - Always follows current selection (single selection)
+// - Separates "unapplied property edits" (buffer dirty) from document dirty
+// - Apply is the commit point (one history step)
+
+function getRoleEl(root, role) {
+  const el = root.querySelector(`[data-role="${role}"]`);
+  return el || null;
+}
+
+function num(v, fallback = 0) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function vecLen3(v) {
+  const x = num(v?.[0]);
+  const y = num(v?.[1]);
+  const z = num(v?.[2]);
+  return Math.sqrt(x * x + y * y + z * z);
+}
+
+function vecDot3(a, b) {
+  return num(a?.[0]) * num(b?.[0]) + num(a?.[1]) * num(b?.[1]) + num(a?.[2]) * num(b?.[2]);
+}
+
+function vecScale3(v, s) {
+  return [num(v?.[0]) * s, num(v?.[1]) * s, num(v?.[2]) * s];
+}
+
+function vecSub3(a, b) {
+  return [num(a?.[0]) - num(b?.[0]), num(a?.[1]) - num(b?.[1]), num(a?.[2]) - num(b?.[2])];
+}
+
+function vecNormalize3(v) {
+  const len = vecLen3(v);
+  if (!(len > 0)) return null;
+  return vecScale3(v, 1 / len);
+}
+
+/**
+ * Pose guard:
+ * - Reject zero vectors
+ * - Orthonormalize up against front via Gram-Schmidt
+ * - Reject near-parallel vectors
+ *
+ * Returns {{pose: {front:number[], up:number[]} | null, error: string | null}}
+ */
+function sanitizePose(frontRaw, upRaw) {
+  const EPS = 1e-6;
+  const frontN = vecNormalize3(frontRaw);
+  if (!frontN || vecLen3(frontN) < EPS) return { pose: null, error: "Invalid pose.front (zero vector)" };
+
+  const upN0 = vecNormalize3(upRaw);
+  if (!upN0 || vecLen3(upN0) < EPS) return { pose: null, error: "Invalid pose.up (zero vector)" };
+
+  // Remove component of up along front.
+  const proj = vecScale3(frontN, vecDot3(upN0, frontN));
+  const upOrtho = vecSub3(upN0, proj);
+  const upN = vecNormalize3(upOrtho);
+  if (!upN || vecLen3(upN) < EPS) return { pose: null, error: "Invalid pose (front/up are parallel)" };
+
+  // front is already unit, up is re-normalized and orthogonalized.
+  return { pose: { front: [frontN[0], frontN[1], frontN[2]], up: [upN[0], upN[1], upN[2]] }, error: null };
+}
+
+function uuidOf(node) {
+  return node?.meta?.uuid || node?.uuid || null;
+}
+
+function parseEndpointInput(raw) {
+  const s = String(raw ?? "").trim();
+  if (!s) return null;
+
+  // If it doesn't look like a coord list, treat it as a point uuid ref.
+  if (!/[\s,]/.test(s)) {
+    return { ref: s };
+  }
+
+  // Coord: accept exactly three finite components; never truncate user input.
+  const parts = s.split(/[\s,]+/).filter(Boolean);
+  if (parts.length !== 3) return null;
+  const x = Number(parts[0]);
+  const y = Number(parts[1]);
+  const z = Number(parts[2]);
+  if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) return null;
+  return { coord: [x, y, z] };
+}
+
+function parseFramesInput(raw) {
+  const text = String(raw ?? "").trim();
+  if (!text) return null;
+  const frames = new Set();
+  for (const token of text.split(",")) {
+    const match = token.trim().match(/^(-?\d+)(?:\s*-\s*(-?\d+))?$/);
+    if (!match) throw new Error("Frames: use integers or ranges within -64..63");
+    const start = Number(match[1]), end = match[2] == null ? start : Number(match[2]);
+    if (start < -64 || start > 63 || end < -64 || end > 63 || start > end) throw new Error("Frames: ascending ranges within -64..63 required");
+    for (let n = start; n <= end; n++) frames.add(n);
+  }
+  const values = [...frames].sort((a, b) => a - b);
+  return /^-?\d+$/.test(text) ? values[0] : values;
+}
+
+function findByUuid(doc, uuid) {
+  if (!doc || !uuid) return { kind: null, node: null };
+  if (Array.isArray(doc.points)) {
+    const n = doc.points.find((p) => uuidOf(p) === uuid);
+    if (n) return { kind: "point", node: n };
+  }
+  if (Array.isArray(doc.lines)) {
+    const n = doc.lines.find((p) => uuidOf(p) === uuid);
+    if (n) return { kind: "line", node: n };
+  }
+  if (Array.isArray(doc.aux)) {
+    const n = doc.aux.find((p) => uuidOf(p) === uuid);
+    if (n) return { kind: "aux", node: n };
+  }
+  return { kind: null, node: null };
+}
+
+function localizedStringText(v) {
+  if (typeof v === "string") return v;
+  if (v && typeof v === "object") {
+    if (typeof v.ja === "string" && v.ja) return v.ja;
+    if (typeof v.en === "string" && v.en) return v.en;
+    // Legacy: caption.default (non-schema)
+    if (typeof v.default === "string" && v.default) return v.default;
+  }
+  return "";
+}
+
+function getPointName(node) {
+  return String(node?.signification?.name ?? node?.meta?.name ?? node?.name ?? "").trim();
+}
+
+function setPointName(node, v) {
+  if (!node) return;
+  if (!node.signification || typeof node.signification !== "object") {
+    node.signification = { ...(node.signification || {}) };
+  }
+  node.signification.name = String(v ?? "");
+}
+
+function getLineCaption(node) {
+  const sig = node?.signification;
+  if (sig && typeof sig === "object") {
+    if (sig.caption != null) return localizedStringText(sig.caption);
+    // Legacy: line.signification.name
+    if (typeof sig.name === "string") return sig.name;
+  }
+  return "";
+}
+
+function setLineCaption(node, v) {
+  if (!node) return;
+  if (!node.signification || typeof node.signification !== "object") {
+    node.signification = { ...(node.signification || {}) };
+  }
+  node.signification.caption = String(v ?? "");
+  // Ensure we don't keep legacy non-schema key.
+  if (node.signification && typeof node.signification === "object" && "name" in node.signification) {
+    try { delete node.signification.name; } catch {}
+  }
+}
+
+function getMarkerText(node) {
+  const t = node?.appearance?.marker?.text;
+  return (t && typeof t === "object") ? t : null;
+}
+
+function getMarkerTextContent(node) {
+  const t = getMarkerText(node);
+  return typeof t?.content === "string" ? t.content : "";
+}
+
+function getMarkerTextSize(node) {
+  const t = getMarkerText(node);
+  return Number.isFinite(Number(t?.size)) ? Number(t.size) : 10;
+}
+
+function getMarkerTextAlign(node) {
+  const t = getMarkerText(node);
+  return typeof t?.align === "string" ? t.align : "";
+}
+
+
+function getMarkerTextPose(node) {
+  const pose = node?.appearance?.marker?.text?.pose;
+  if (!pose || typeof pose !== "object") return null;
+  const front = Array.isArray(pose.front) ? pose.front.map((v) => num(v)) : null;
+  const up = Array.isArray(pose.up) ? pose.up.map((v) => num(v)) : null;
+  if (!front || front.length !== 3 || !up || up.length !== 3) return null;
+  return { front: [num(front[0]), num(front[1]), num(front[2])], up: [num(up[0]), num(up[1]), num(up[2])] };
+}
+
+function getCaptionText(node) {
+  const ct = node?.appearance?.caption_text;
+  return (ct && typeof ct === "object") ? ct : null;
+}
+function getCaptionTextContent(node) {
+  const ct = getCaptionText(node);
+  const c = ct?.content;
+  return (typeof c === "string") ? c : "";
+}
+function getCaptionTextSize(node) {
+  const ct = getCaptionText(node);
+  const s = ct?.font_size;
+  return Number.isFinite(Number(s)) ? Number(s) : 8;
+}
+function getCaptionTextAlign(node) {
+  const ct = getCaptionText(node);
+  const a = ct?.align;
+  return (typeof a === "string") ? a : "";
+}
+function getCaptionTextPose(node) {
+  const ct = getCaptionText(node);
+  const pose = ct?.pose;
+  if (!pose || typeof pose !== "object") return null;
+  const front = Array.isArray(pose.front) ? pose.front.map((v) => num(v)) : null;
+  const up = Array.isArray(pose.up) ? pose.up.map((v) => num(v)) : null;
+  if (!front || front.length !== 3 || !up || up.length !== 3) return null;
+  return { front: [num(front[0]), num(front[1]), num(front[2])], up: [num(up[0]), num(up[1]), num(up[2])] };
+}
+
+
+function getPos(node) {
+  const p = node?.appearance?.position || node?.position;
+  if (Array.isArray(p) && p.length >= 3) return [num(p[0]), num(p[1]), num(p[2])];
+  return [0, 0, 0];
+}
+
+function setPos(node, arr) {
+  if (!node) return;
+  if (!node.appearance || typeof node.appearance !== "object") node.appearance = { ...(node.appearance || {}) };
+  node.appearance.position = [num(arr[0]), num(arr[1]), num(arr[2])];
+}
+
+function cloneDoc(doc) {
+  return (typeof structuredClone === "function") ? structuredClone(doc) : JSON.parse(JSON.stringify(doc));
+}
+
+/**
+ * @param {{
+ *  root: HTMLElement,
+ *  core: any,
+ *  signal: AbortSignal,
+ *  setHud: (msg: string) => void,
+ *  onDirtyChange?: (dirty: boolean) => void,
+ * }} deps
+ */
+export function createUiPropertyController(deps) {
+  const { root, core, previewSetPosition, previewSetLineEnds, previewSetCaptionText, signal, setHud, onDirtyChange, setSelectionUuids } = deps;
+
+  const emptyEl = getRoleEl(root, "prop-empty");
+  const multiEl = getRoleEl(root, "prop-multi");
+  const multiCountEl = getRoleEl(root, "prop-multi-count");
+  const selCountHeaderEl = getRoleEl(root, "prop-selection-count");
+  const panelEl = getRoleEl(root, "prop-panel");
+  const uuidEl = getRoleEl(root, "prop-uuid");
+  const kindEl = getRoleEl(root, "prop-kind");
+  const pathEl = getRoleEl(root, "prop-path");
+  const dirtyEl = getRoleEl(root, "prop-dirty");
+
+  const inpName = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-name"));
+  const nameLabel = /** @type {HTMLElement|null} */ (getRoleEl(root, "prop-name-label"));
+  const auxModuleField = getRoleEl(root, "prop-aux-module-field");
+  const selAuxModule = /** @type {HTMLSelectElement|null} */ (getRoleEl(root, "prop-aux-module"));
+
+  const textField = getRoleEl(root, "prop-text-field");
+  const inpTextContent = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-text-content"));
+  const inpTextSize = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-text-size"));
+  const selTextAlign = /** @type {HTMLSelectElement|null} */ (getRoleEl(root, "prop-text-align"));
+  const inpTextFrontX = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-text-front-x"));
+  const inpTextFrontY = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-text-front-y"));
+  const inpTextFrontZ = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-text-front-z"));
+  const inpTextUpX = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-text-up-x"));
+  const inpTextUpY = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-text-up-y"));
+  const inpTextUpZ = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-text-up-z"));
+  const textPoseModeEl = /** @type {HTMLElement|null} */ (getRoleEl(root, "prop-text-pose-mode"));
+  const posField = getRoleEl(root, "prop-pos-field");
+  const inpX = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-x"));
+  const inpY = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-y"));
+  const inpZ = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-z"));
+
+  const selPosStep = /** @type {HTMLSelectElement|null} */ (getRoleEl(root, "prop-pos-step"));
+  const posStepHintEl = /** @type {HTMLElement|null} */ (getRoleEl(root, "prop-pos-step-hint"));
+
+  const framesField = getRoleEl(root, "prop-frames-field");
+  const inpFrames = getRoleEl(root, "prop-frames");
+
+  const lineEndsField = getRoleEl(root, "prop-line-ends-field");
+  const inpEndA = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-line-end-a"));
+  const inpEndB = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-line-end-b"));
+  const pointsDatalist = /** @type {HTMLDataListElement|null} */ (getRoleEl(root, "prop-points-datalist"));
+  const btnPickEndA = /** @type {HTMLButtonElement|null} */ (getRoleEl(root, "prop-line-end-a-pick"));
+  const btnPickEndB = /** @type {HTMLButtonElement|null} */ (getRoleEl(root, "prop-line-end-b-pick"));
+  const btnClearEndA = /** @type {HTMLButtonElement|null} */ (getRoleEl(root, "prop-line-end-a-clear"));
+  const btnClearEndB = /** @type {HTMLButtonElement|null} */ (getRoleEl(root, "prop-line-end-b-clear"));
+  const lineEndsHint = getRoleEl(root, "prop-line-ends-hint");
+
+  const endAResolvedEl = /** @type {HTMLElement|null} */ (getRoleEl(root, "prop-line-end-a-resolved"));
+  const endBResolvedEl = /** @type {HTMLElement|null} */ (getRoleEl(root, "prop-line-end-b-resolved"));
+
+  const captionTextField = getRoleEl(root, "prop-caption-text-field");
+  const inpCaptionTextContent = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-caption-text-content"));
+  const inpCaptionTextSize = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-caption-text-size"));
+  const selCaptionTextAlign = /** @type {HTMLSelectElement|null} */ (getRoleEl(root, "prop-caption-text-align"));
+  const inpCaptionTextFrontX = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-caption-text-front-x"));
+  const inpCaptionTextFrontY = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-caption-text-front-y"));
+  const inpCaptionTextFrontZ = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-caption-text-front-z"));
+  const inpCaptionTextUpX = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-caption-text-up-x"));
+  const inpCaptionTextUpY = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-caption-text-up-y"));
+  const inpCaptionTextUpZ = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-caption-text-up-z"));
+  const captionTextPoseModeEl = /** @type {HTMLElement|null} */ (getRoleEl(root, "prop-caption-text-pose-mode"));
+
+  /** @type {{uuid:string, kind:string, path:string} | null} */
+  let active = null;
+  let dirty = false;
+
+// Draft state machine (M2/B)
+// This captures the *UI-level* editing lifecycle around the Property panel.
+// - clean: no unapplied edits; no special pending state
+// - drafting: at least one unapplied edit exists (preview override may be active)
+// - applied_pending_save: last action was Apply (committed to core) but document may still be unsaved
+//   (this state is informational; it must never block selection changes)
+const DraftState = Object.freeze({
+  CLEAN: "clean",
+  DRAFTING: "drafting",
+  APPLIED_PENDING_SAVE: "applied_pending_save",
+});
+let draftState = DraftState.CLEAN;
+
+function setDraftState(next, { reason = "" } = {}) {
+  if (!next || next === draftState) return;
+  draftState = next;
+  // try { console.debug("[draftState]", draftState, reason); } catch {}
+}
+
+/**
+ * Draft state transitions (single-writer: this controller).
+ *
+ * Events:
+ * - edit: user changed an input (unapplied buffer becomes dirty)
+ * - discard: user discarded unapplied edits (revert preview back to base)
+ * - clear: system cleared draft lifecycle (hide/multi/selection change)
+ * - apply: user applied edits (core mutated in one history group)
+ * - doc_saved: document saved/cleaned (optional notification)
+ */
+function transitionDraft(event, { reason = "" } = {}) {
+  const ev = String(event || "");
+  if (ev === "edit") {
+    setDraftState(DraftState.DRAFTING, { reason: reason || "edit" });
+    return;
+  }
+  if (ev === "apply") {
+    // After Apply, there are no *unapplied* edits, but the document is typically dirty (needs Save).
+    setDraftState(DraftState.APPLIED_PENDING_SAVE, { reason: reason || "apply" });
+    return;
+  }
+  if (ev === "discard" || ev === "clear") {
+    setDraftState(DraftState.CLEAN, { reason: reason || ev });
+    return;
+  }
+  if (ev === "doc_saved") {
+    // Only meaningful after Apply; otherwise keep current state.
+    if (draftState === DraftState.APPLIED_PENDING_SAVE) {
+      setDraftState(DraftState.CLEAN, { reason: reason || "doc_saved" });
+    }
+    return;
+  }
+}
+
+
+  // Pending focus request (QuickCheck / focusByIssue). Applied after selection sync.
+  /** @type {any|null} */
+  let pendingFocusIssue = null;
+
+  // Position stepping UI (visible step selector)
+  let posStep = 0.1;
+  const POS_STEP_LS_KEY = "3dsl.modeler.posStep";
+
+  function clampPosStep(v) {
+    const n = Number(v);
+    if (!Number.isFinite(n) || n <= 0) return 0.1;
+    // Keep it reasonable; UI offers 0.01..10
+    return Math.min(10, Math.max(0.01, n));
+  }
+
+  function syncPosStepUi() {
+    posStep = clampPosStep(posStep);
+    try {
+      if (selPosStep) selPosStep.value = String(posStep);
+    } catch {}
+    try {
+      if (inpX) inpX.step = String(posStep);
+      if (inpY) inpY.step = String(posStep);
+      if (inpZ) inpZ.step = String(posStep);
+    } catch {}
+  }
+
+  function loadPosStepFromStorage() {
+    try {
+      const raw = localStorage.getItem(POS_STEP_LS_KEY);
+      if (raw != null && raw !== "") posStep = clampPosStep(raw);
+    } catch {}
+    syncPosStepUi();
+  }
+
+  function savePosStepToStorage() {
+    try { localStorage.setItem(POS_STEP_LS_KEY, String(posStep)); } catch {}
+  }
+
+
+  // Draft preview scheduling (avoid spamming renderer on wheel/keydown repeats).
+  let rafPreview = 0;
+  let pendingPreviewUuid = "";
+  /** @type {[number,number,number] | null} */
+  let pendingPreviewPos = null;
+  let pendingPreviewLineUuid = "";
+  /** @type {{ref?:string, coord?:[number,number,number]}|null} */
+  let pendingPreviewEndA = null;
+  /** @type {{ref?:string, coord?:[number,number,number]}|null} */
+  let pendingPreviewEndB = null;
+  let pendingPreviewCaptionUuid = "";
+  /** @type {{content?:string, size?:number, align?:string, pose?:{front:number[], up:number[]}}|null} */
+  let pendingPreviewCaptionText = null;
+  let pendingPreviewCaptionFallback = "";
+  let lockedActive = false;
+
+// Draft preview lifecycle (P1): keep a single base snapshot per active property,
+// and always revert preview back to this base on hide/discard/apply/selection changes.
+/** @type {{uuid:string, kind:string, pos?:[number,number,number], endA?:any, endB?:any, captionText?:any, captionFallback?:string} | null} */
+let previewBase = null;
+
+function previewCaptureBase(uuid, kind) {
+  try {
+    const doc = core.getDocument?.();
+    const found = findByUuid(doc, uuid);
+    if (!found?.node) { previewBase = null; return; }
+
+    const u = String(uuid || "");
+    const k = String(kind || found.kind || "");
+    /** @type {any} */
+    const base = { uuid: u, kind: k };
+
+    if (k === "point" || k === "aux") {
+      base.pos = getPos(found.node);
+    }
+
+    if (k === "line") {
+      const aObj = found.node?.appearance?.end_a ?? found.node?.end_a;
+      const bObj = found.node?.appearance?.end_b ?? found.node?.end_b;
+      const a = (aObj && typeof aObj === "object") ? (typeof aObj.ref === "string" ? aObj.ref : (Array.isArray(aObj.coord) ? aObj.coord.join(",") : "")) : String(aObj || "");
+      const b = (bObj && typeof bObj === "object") ? (typeof bObj.ref === "string" ? bObj.ref : (Array.isArray(bObj.coord) ? bObj.coord.join(",") : "")) : String(bObj || "");
+      base.endA = parseEndpointInput(a);
+      base.endB = parseEndpointInput(b);
+
+      const beforeCTPose = getCaptionTextPose(found.node);
+      const ct = getCaptionText(found.node) ? {
+        content: getCaptionTextContent(found.node),
+        size: getCaptionTextSize(found.node),
+        ...(getCaptionTextAlign(found.node) ? { align: getCaptionTextAlign(found.node) } : {}),
+        ...(beforeCTPose ? { pose: beforeCTPose } : {}),
+      } : null;
+      base.captionText = ct;
+      base.captionFallback = getLineCaption(found.node) || "";
+    }
+
+    previewBase = base;
+  } catch {
+    previewBase = null;
+  }
+}
+
+function previewRevertToBase() {
+  if (!previewBase) return;
+  // Cancel pending rAF updates.
+  if (rafPreview) {
+    try { cancelAnimationFrame(rafPreview); } catch {}
+    rafPreview = 0;
+  }
+  pendingPreviewUuid = "";
+  pendingPreviewPos = null;
+  pendingPreviewLineUuid = "";
+  pendingPreviewEndA = null;
+  pendingPreviewEndB = null;
+  pendingPreviewCaptionUuid = "";
+  pendingPreviewCaptionText = null;
+  pendingPreviewCaptionFallback = "";
+
+  try {
+    if (previewBase.pos && previewSetPosition) {
+      previewSetPosition(String(previewBase.uuid), previewBase.pos);
+    }
+  } catch {}
+  try {
+    if (previewBase.kind === "line" && previewSetLineEnds) {
+      previewSetLineEnds(String(previewBase.uuid), previewBase.endA ?? null, previewBase.endB ?? null);
+    }
+  } catch {}
+  try {
+    if (previewBase.kind === "line" && previewSetCaptionText) {
+      previewSetCaptionText(String(previewBase.uuid), previewBase.captionText ?? null, String(previewBase.captionFallback || ""));
+    }
+  } catch {}
+}
+
+
+  /** @type {"a"|"b"|null} */
+  let endpointPick = null;
+
+  function isDirty() { return !!dirty; }
+  function getActiveUuid() { return active?.uuid || null; }
+
+  function isUuidLocked(uuid) {
+    if (!uuid) return false;
+    try {
+      const locks = core.listLocks?.() || [];
+      return Array.isArray(locks) && locks.includes(String(uuid));
+    } catch {
+      return false;
+    }
+  }
+
+  function setInputsEnabled(enabled) {
+    const en = !!enabled;
+    if (inpName) inpName.disabled = !en;
+    if (inpFrames) inpFrames.disabled = !en;
+    if (selAuxModule) selAuxModule.disabled = !en;
+    if (inpX) inpX.disabled = !en;
+    if (inpY) inpY.disabled = !en;
+    if (inpZ) inpZ.disabled = !en;
+    if (inpEndA) inpEndA.disabled = !en;
+    if (inpEndB) inpEndB.disabled = !en;
+    if (inpTextContent) inpTextContent.disabled = !en;
+    if (inpTextSize) inpTextSize.disabled = !en;
+    if (selTextAlign) selTextAlign.disabled = !en;
+    if (inpTextFrontX) inpTextFrontX.disabled = !en;
+    if (inpTextFrontY) inpTextFrontY.disabled = !en;
+    if (inpTextFrontZ) inpTextFrontZ.disabled = !en;
+    if (inpTextUpX) inpTextUpX.disabled = !en;
+    if (inpTextUpY) inpTextUpY.disabled = !en;
+    if (inpTextUpZ) inpTextUpZ.disabled = !en;
+    if (inpCaptionTextContent) inpCaptionTextContent.disabled = !en;
+    if (inpCaptionTextSize) inpCaptionTextSize.disabled = !en;
+    if (selCaptionTextAlign) selCaptionTextAlign.disabled = !en;
+    if (inpCaptionTextFrontX) inpCaptionTextFrontX.disabled = !en;
+    if (inpCaptionTextFrontY) inpCaptionTextFrontY.disabled = !en;
+    if (inpCaptionTextFrontZ) inpCaptionTextFrontZ.disabled = !en;
+    if (inpCaptionTextUpX) inpCaptionTextUpX.disabled = !en;
+    if (inpCaptionTextUpY) inpCaptionTextUpY.disabled = !en;
+    if (inpCaptionTextUpZ) inpCaptionTextUpZ.disabled = !en;
+    if (panelEl) panelEl.dataset.locked = en ? "false" : "true";
+  }
+
+  function setEndpointPick(next) {
+    endpointPick = next;
+    if (lineEndsHint) lineEndsHint.hidden = !endpointPick;
+    if (btnPickEndA) btnPickEndA.disabled = !!lockedActive;
+    if (btnPickEndB) btnPickEndB.disabled = !!lockedActive;
+    if (btnClearEndA) btnClearEndA.disabled = !!lockedActive;
+    if (btnClearEndB) btnClearEndB.disabled = !!lockedActive;
+
+    try {
+      if (endpointPick === "a") setHud?.("Pick end_a: click a point in preview (ESC to cancel)");
+      else if (endpointPick === "b") setHud?.("Pick end_b: click a point in preview (ESC to cancel)");
+    } catch {}
+  }
+
+  function cancelEndpointPick() {
+    if (!endpointPick) return;
+    setEndpointPick(null);
+    try { setHud?.("Pick cancelled"); } catch {}
+  }
+
+  function startEndpointPick(side) {
+    if (!active || active.kind !== "line") return;
+    if (lockedActive) {
+      try { setHud?.(`Locked: ${active.uuid}`); } catch {}
+      return;
+    }
+    setEndpointPick(side);
+  }
+
+  function setEndpointValue(side, pointUuid) {
+    if (!active || active.kind !== "line") return;
+    if (lockedActive) return;
+    const u = String(pointUuid || "").trim();
+    if (!u) return;
+    if (side === "a" && inpEndA) inpEndA.value = u;
+    if (side === "b" && inpEndB) inpEndB.value = u;
+    // Treat as an ordinary input change so preview + dirty behave consistently.
+    onAnyInput();
+  }
+
+  /**
+   * Intercept preview picks while endpoint pick mode is active.
+   * @returns {boolean} true if the pick was consumed.
+   */
+  function handlePickOverride(issueLike) {
+    if (!endpointPick) return false;
+    const uuid = issueLike?.uuid ? String(issueLike.uuid) : "";
+    const kind = String(issueLike?.kind || "").toLowerCase();
+    if (!uuid || kind !== "point") {
+      try { setHud?.("Pick a point to set endpoint"); } catch {}
+      return true;
+    }
+        const side = endpointPick;
+    setEndpointValue(side, uuid);
+    setEndpointPick(null);
+    try { setHud?.(`Set end_${side} = ${uuid.slice(0, 8)}…`); } catch {}
+    return true;
+  }
+
+  function refreshLockState() {
+    const uuid = active?.uuid || null;
+    lockedActive = !!(uuid && isUuidLocked(uuid));
+    setInputsEnabled(!lockedActive);
+    if (kindEl) {
+      const base = String(active?.kind || "");
+      kindEl.textContent = lockedActive ? `${base} 🔒` : base;
+    }
+  }
+
+  function syncPoseModeBadgesFromInputs() {
+    // Pose affects rendering mode: sprite (no pose) vs plane label (pose).
+    // Show a small hint next to the pose summary so users know what will happen.
+    const hasAny = (arr) => Array.isArray(arr) && arr.some((v) => String(v ?? "").trim() !== "");
+
+    const pointPoseVals = [inpTextFrontX, inpTextFrontY, inpTextFrontZ, inpTextUpX, inpTextUpY, inpTextUpZ].map((el) => el?.value ?? "");
+    const linePoseVals = [inpCaptionTextFrontX, inpCaptionTextFrontY, inpCaptionTextFrontZ, inpCaptionTextUpX, inpCaptionTextUpY, inpCaptionTextUpZ].map((el) => el?.value ?? "");
+
+    if (textPoseModeEl) {
+      const enabled = active?.kind === "point";
+      if (!enabled) {
+        textPoseModeEl.textContent = "";
+      } else {
+        textPoseModeEl.textContent = hasAny(pointPoseVals) ? "(plane)" : "(default plane for new label)";
+      }
+    }
+
+    if (captionTextPoseModeEl) {
+      const enabled = active?.kind === "line";
+      if (!enabled) {
+        captionTextPoseModeEl.textContent = "";
+      } else {
+        captionTextPoseModeEl.textContent = hasAny(linePoseVals) ? "(plane)" : "(default plane)";
+      }
+    }
+  }
+
+  function setDirty(next) {
+    const n = !!next;
+    if (dirty === n) return;
+    dirty = n;
+    if (dirty) transitionDraft("edit", { reason: "setDirty" });
+    else {
+      // Only downgrade from drafting -> clean here.
+      // (If we are in applied_pending_save, keep it; this is about *unapplied* buffer only.)
+      if (draftState === DraftState.DRAFTING) transitionDraft("clear", { reason: "setDirty:false" });
+    }
+    if (dirtyEl) dirtyEl.hidden = !dirty;
+    syncPoseModeBadgesFromInputs();
+    try { onDirtyChange && onDirtyChange(dirty); } catch {}
+  }
+
+
+// Draft (unapplied) edits lifecycle:
+// - Contract: packages/docs/docs/modeler/selection-contract.md
+// - Minimal check: packages/docs/docs/modeler/smoke-minimal.md
+// - SSOT: this controller owns draft dirty state + draft preview overrides
+// - Rules:
+//   * setDirty(true) only from input edits
+//   * clear/discard always reverts preview override back to captured base
+//   * selection changes must be guarded via ensureEditsAppliedOrConfirm()
+function draftClear({ reason = "" } = {}) {
+  // Cancel endpoint-pick submode if active (it also uses preview overrides).
+  try { cancelEndpointPick?.(); } catch {}
+  // Revert any draft preview back to base document state.
+  try { previewRevertToBase(); } catch {}
+  previewBase = null;
+  setDirty(false);
+  transitionDraft("clear", { reason: `draftClear:${reason}` });
+}
+
+function draftDiscard({ reason = "" } = {}) {
+  if (!active) return;
+  // Re-capture base from current doc (in case doc changed), then revert preview to it.
+  try { previewCaptureBase(active.uuid, active.kind); } catch {}
+  try { previewRevertToBase(); } catch {}
+  fillInputsFromDoc(active.uuid);
+  setDirty(false);
+  transitionDraft("discard", { reason: `draftDiscard:${reason}` });
+  try { setHud(`Edits discarded${reason ? ` (${reason})` : ""}`); } catch {}
+}
+
+
+  function hideAll() {
+    // Selection/visibility change: clear draft lifecycle (revert preview + clear dirty).
+    draftClear({ reason: "hide" });
+    active = null;
+    lockedActive = false;
+    setInputsEnabled(true);
+    if (panelEl) panelEl.hidden = true;
+    if (multiEl) multiEl.hidden = true;
+    if (emptyEl) emptyEl.hidden = false;
+    if (selCountHeaderEl) selCountHeaderEl.hidden = true;
+  }
+
+  function showMulti(count) {
+  // M2/B: unify draft lifecycle on selection=multi/empty
+  if (!resolveDraftBeforeSelectionChange([])) return;
+
+    // Selection mode change: clear draft lifecycle (revert preview + clear dirty).
+    draftClear({ reason: "multi" });
+    active = null;
+    lockedActive = false;
+    setInputsEnabled(true);
+    if (panelEl) panelEl.hidden = true;
+    if (emptyEl) emptyEl.hidden = true;
+    if (multiEl) multiEl.hidden = false;
+    if (multiCountEl) multiCountEl.textContent = String(Math.max(0, Number(count) || 0));
+    if (selCountHeaderEl) {
+      selCountHeaderEl.textContent = `${String(Math.max(0, Number(count) || 0))} selected`;
+      selCountHeaderEl.hidden = false;
+    }
+  }
+
+
+  function formatEndpointRef(doc, ref) {
+    const v = String(ref || "");
+    if (!v) return "";
+    // UUID reference to an existing point
+    const pts = Array.isArray(doc?.points) ? doc.points : [];
+    for (const p of pts) {
+      const pu = uuidOf(p);
+      if (pu && String(pu) === v) {
+        const nm = getPointName(p) || "(unnamed)";
+        return `${nm} (${v.slice(0, 8)}…)`;
+      }
+    }
+    // coord shorthand (joined string) or unknown uuid
+    if (v.includes(",") && v.split(",").length === 3) return `coord (${v})`;
+    return `unknown (${v.slice(0, 8)}…)`;
+  }
+
+  function fillInputsFromDoc(uuid) {
+    const doc = core.getDocument?.();
+    const found = findByUuid(doc, uuid);
+
+    const name = (found.kind === "line") ? getLineCaption(found.node) : getPointName(found.node);
+    if (inpName) inpName.value = name;
+
+    const isPoint = found.kind === "point";
+    const isAux = found.kind === "aux";
+    const isLine = found.kind === "line";
+
+    if (framesField) framesField.hidden = !(isPoint || isLine || isAux);
+    if (inpFrames) {
+      const frames = found.node?.appearance?.frames ?? found.node?.frames;
+      inpFrames.value = Array.isArray(frames) ? frames.join(",") : (frames == null ? "" : String(frames));
+    }
+
+    // Marker text (point/aux)
+    if (textField) {
+      textField.hidden = !isPoint;
+      textField.style.display = isPoint ? "" : "none";
+    }
+    if (isPoint) {
+      if (inpTextContent) inpTextContent.value = getMarkerTextContent(found.node);
+      if (inpTextSize) inpTextSize.value = String(getMarkerTextSize(found.node));
+      if (selTextAlign) selTextAlign.value = getMarkerTextAlign(found.node);
+      const pose = getMarkerTextPose(found.node);
+      if (inpTextFrontX) inpTextFrontX.value = pose ? String(pose.front[0]) : "";
+      if (inpTextFrontY) inpTextFrontY.value = pose ? String(pose.front[1]) : "";
+      if (inpTextFrontZ) inpTextFrontZ.value = pose ? String(pose.front[2]) : "";
+      if (inpTextUpX) inpTextUpX.value = pose ? String(pose.up[0]) : "";
+      if (inpTextUpY) inpTextUpY.value = pose ? String(pose.up[1]) : "";
+      if (inpTextUpZ) inpTextUpZ.value = pose ? String(pose.up[2]) : "";
+    } else {
+      if (inpTextContent) inpTextContent.value = "";
+      if (inpTextSize) inpTextSize.value = "";
+      if (selTextAlign) selTextAlign.value = "";
+      if (inpTextFrontX) inpTextFrontX.value = "";
+      if (inpTextFrontY) inpTextFrontY.value = "";
+      if (inpTextFrontZ) inpTextFrontZ.value = "";
+      if (inpTextUpX) inpTextUpX.value = "";
+      if (inpTextUpY) inpTextUpY.value = "";
+      if (inpTextUpZ) inpTextUpZ.value = "";
+    }
+    if (nameLabel) nameLabel.textContent = isLine ? "関係の名称" : "名称";
+    if (posField) posField.hidden = !(isPoint || isAux);
+    if (lineEndsField) lineEndsField.hidden = !isLine;
+    if (captionTextField) { captionTextField.hidden = !isLine; captionTextField.style.display = isLine ? "" : "none"; }
+
+    // Aux does not support signification.name in schema; treat "name" as display-only.
+    // In UI we hide the name input and show module selector instead.
+    if (auxModuleField) {
+      auxModuleField.hidden = !isAux;
+      // Some overrides may accidentally force [hidden] visible; hard-hide as well.
+      auxModuleField.style.display = isAux ? "" : "none";
+    }
+    if (inpName) {
+      const field = inpName.closest?.('.prop-field');
+      if (field) {
+        field.hidden = isAux;
+        field.style.display = isAux ? 'none' : '';
+      }
+    }
+    if (isPoint || isAux) {
+      const [x, y, z] = getPos(found.node);
+      if (inpX) inpX.value = String(x);
+      if (inpY) inpY.value = String(y);
+      if (inpZ) inpZ.value = String(z);
+    }
+
+    if (isAux) {
+      const mod = found.node?.appearance?.module;
+      const key = (mod && typeof mod === "object") ? (Object.keys(mod)[0] || "") : "";
+      if (selAuxModule) selAuxModule.value = String(key);
+    }
+
+    if (!isAux) {
+      if (selAuxModule) selAuxModule.value = "";
+    }
+
+    if (isLine) {
+      // Endpoints are schema-level properties under appearance.end_a / appearance.end_b.
+      // Keep read-side tolerant for legacy docs that may still have end_a/end_b at root.
+      const aObj = found.node?.appearance?.end_a ?? found.node?.end_a;
+      const bObj = found.node?.appearance?.end_b ?? found.node?.end_b;
+      const a = (aObj && typeof aObj === "object") ? (typeof aObj.ref === "string" ? aObj.ref : (Array.isArray(aObj.coord) ? aObj.coord.join(",") : "")) : String(aObj || "");
+      const b = (bObj && typeof bObj === "object") ? (typeof bObj.ref === "string" ? bObj.ref : (Array.isArray(bObj.coord) ? bObj.coord.join(",") : "")) : String(bObj || "");
+      if (inpEndA) inpEndA.value = a;
+      if (inpEndB) inpEndB.value = b;
+
+      if (endAResolvedEl) endAResolvedEl.textContent = a ? formatEndpointRef(doc, a) : "";
+      if (endBResolvedEl) endBResolvedEl.textContent = b ? formatEndpointRef(doc, b) : "";
+
+      // caption_text (appearance.caption_text)
+      if (inpCaptionTextContent) inpCaptionTextContent.value = getCaptionTextContent(found.node);
+      if (inpCaptionTextSize) {
+        const v = getCaptionTextSize(found.node);
+        inpCaptionTextSize.value = v ? String(v) : "";
+      }
+      if (selCaptionTextAlign) selCaptionTextAlign.value = getCaptionTextAlign(found.node);
+      const cpose = getCaptionTextPose(found.node);
+      if (inpCaptionTextFrontX) inpCaptionTextFrontX.value = cpose ? String(cpose.front[0]) : "";
+      if (inpCaptionTextFrontY) inpCaptionTextFrontY.value = cpose ? String(cpose.front[1]) : "";
+      if (inpCaptionTextFrontZ) inpCaptionTextFrontZ.value = cpose ? String(cpose.front[2]) : "";
+      if (inpCaptionTextUpX) inpCaptionTextUpX.value = cpose ? String(cpose.up[0]) : "";
+      if (inpCaptionTextUpY) inpCaptionTextUpY.value = cpose ? String(cpose.up[1]) : "";
+      if (inpCaptionTextUpZ) inpCaptionTextUpZ.value = cpose ? String(cpose.up[2]) : "";
+
+      // Populate point UUID candidates for datalist.
+      if (pointsDatalist) {
+        pointsDatalist.textContent = "";
+        const pts = Array.isArray(doc?.points) ? doc.points : [];
+        for (const p of pts) {
+          const pu = uuidOf(p);
+          if (!pu) continue;
+          const opt = document.createElement("option");
+          opt.value = String(pu);
+          const nm = getPointName(p);
+          if (nm) opt.label = `${nm} (${String(pu).slice(0, 8)}…)`;
+          pointsDatalist.appendChild(opt);
+        }
+      }
+    }
+
+    if (!isLine) {
+      if (inpEndA) inpEndA.value = "";
+      if (inpEndB) inpEndB.value = "";
+      if (pointsDatalist) pointsDatalist.textContent = "";
+      if (endAResolvedEl) endAResolvedEl.textContent = "";
+      if (endBResolvedEl) endBResolvedEl.textContent = "";
+      if (inpCaptionTextContent) inpCaptionTextContent.value = "";
+      if (inpCaptionTextSize) inpCaptionTextSize.value = "";
+      if (selCaptionTextAlign) selCaptionTextAlign.value = "";
+      if (inpCaptionTextFrontX) inpCaptionTextFrontX.value = "";
+      if (inpCaptionTextFrontY) inpCaptionTextFrontY.value = "";
+      if (inpCaptionTextFrontZ) inpCaptionTextFrontZ.value = "";
+      if (inpCaptionTextUpX) inpCaptionTextUpX.value = "";
+      if (inpCaptionTextUpY) inpCaptionTextUpY.value = "";
+      if (inpCaptionTextUpZ) inpCaptionTextUpZ.value = "";
+    }
+
+    // Update small pose-mode hints.
+    syncPoseModeBadgesFromInputs();
+  }
+
+  function showProperty(issueLike) {
+    const previousUuid = active?.uuid;
+    // Selection changed: clear previous draft lifecycle (revert preview + clear dirty).
+    draftClear({ reason: "selection" });
+    const uuid = issueLike?.uuid ? String(issueLike.uuid) : "";
+    if (!uuid) { hideAll(); return; }
+
+    const doc = core.getDocument?.();
+    const found = findByUuid(doc, uuid);
+    const kind = found.kind || issueLike?.kind || "unknown";
+    const path = issueLike?.path || "/";
+
+    active = { uuid, kind, path };
+    // A newly selected element starts at its main fields, without disturbing
+    // the model camera. Refreshing the same element retains inspection scroll.
+    if (uuid !== previousUuid) {
+      const propertyScroll = root.querySelector('[data-role="pane-prop"] .prop-scroll')
+        || root.querySelector('[data-role="pane-prop"] .pane-body');
+      if (propertyScroll) propertyScroll.scrollTop = 0;
+    }
+    setDirty(false);
+    try { previewCaptureBase(uuid, kind); } catch {}
+
+    if (uuidEl) uuidEl.textContent = uuid;
+    if (kindEl) kindEl.textContent = String(kind);
+    if (pathEl) pathEl.textContent = String(path);
+
+    fillInputsFromDoc(uuid);
+    refreshLockState();
+    flushPendingFocus();
+
+    if (selCountHeaderEl) selCountHeaderEl.hidden = true;
+
+    // Best-effort focus hint (viewport/outliner). Selection is already the SSOT.
+    try {
+      if (typeof core.focusByIssue === "function") core.focusByIssue({ uuid, kind, path });
+    } catch {}
+
+    if (emptyEl) emptyEl.hidden = true;
+    if (multiEl) multiEl.hidden = true;
+    if (panelEl) panelEl.hidden = false;
+    if (selCountHeaderEl) selCountHeaderEl.hidden = true;
+  }
+
+  function discardEdits() {
+    draftDiscard({ reason: "manual" });
+  }
+
+  function buildPatchForActiveEdits() {
+    if (!active) return null;
+    const doc = core.getDocument?.();
+    const found = findByUuid(doc, active.uuid);
+    if (!found.node) return null;
+    const patch = { target: active.uuid, kind: found.kind, ops: [] };
+    const add = (path, before, after) => {
+      if (JSON.stringify(before) !== JSON.stringify(after)) patch.ops.push({ path, before, after });
+    };
+    const finiteInput = (input, fallback, label) => {
+      if (!input) return fallback;
+      const raw = String(input.value ?? "").trim();
+      const value = Number(raw);
+      if (!raw || !Number.isFinite(value)) throw new Error(`${label}: finite number required`);
+      return value;
+    };
+    const readPose = (frontInputs, upInputs, before, required = false) => {
+      if (![...frontInputs, ...upInputs].some(Boolean)) return before;
+      const values = [...frontInputs, ...upInputs].map((el) => String(el?.value ?? "").trim());
+      const previous = before ? [...before.front, ...before.up].map(String) : Array(6).fill("");
+      // Unrelated edits must not normalize an existing pose or add defaults.
+      if (values.every((v, i) => v === previous[i])) return before;
+      if (values.every((v) => !v)) {
+        if (required) throw new Error("Text pose requires front/up vectors (use 0,1,0 / 0,0,1)");
+        return null;
+      }
+      if (values.some((v) => !v || !Number.isFinite(Number(v)))) throw new Error("Pose requires six finite numbers");
+      const { pose, error } = sanitizePose(values.slice(0, 3).map(Number), values.slice(3).map(Number));
+      if (error) throw new Error(error);
+      return pose;
+    };
+    if (found.kind === "point") {
+      const beforeName = getPointName(found.node);
+      add("/signification/name", beforeName, inpName ? String(inpName.value ?? "").trim() : beforeName);
+      const beforeText = getMarkerText(found.node);
+      const beforeContent = getMarkerTextContent(found.node);
+      const beforeSize = getMarkerTextSize(found.node);
+      const beforeAlign = getMarkerTextAlign(found.node);
+      const beforePose = getMarkerTextPose(found.node);
+      const content = inpTextContent ? String(inpTextContent.value ?? "") : beforeContent;
+      const size = finiteInput(inpTextSize, beforeSize, "Text size");
+      const align = selTextAlign ? String(selTextAlign.value ?? "") : beforeAlign;
+      const pose = readPose([inpTextFrontX, inpTextFrontY, inpTextFrontZ], [inpTextUpX, inpTextUpY, inpTextUpZ], beforePose, !!content);
+      const changed = content !== beforeContent || size !== beforeSize || align !== beforeAlign || JSON.stringify(pose) !== JSON.stringify(beforePose);
+      if (changed) {
+        if (!content) add("/appearance/marker/text", beforeText, null);
+        else {
+          const next = { ...(beforeText || {}), content };
+          if (!beforeText || size !== beforeSize) next.size = size;
+          if (align !== beforeAlign) { if (align) next.align = align; else delete next.align; }
+          if (pose) next.pose = pose;
+          // New label follows the schema's default fixed plane.
+          else if (!beforeText) next.pose = { front: [0, 1, 0], up: [0, 0, 1] };
+          add("/appearance/marker/text", beforeText, next);
+        }
+      }
+    } else if (found.kind === "line") {
+      const beforeCaption = getLineCaption(found.node);
+      add("/signification/caption", beforeCaption, inpName ? String(inpName.value ?? "") : beforeCaption);
+      // 3DSS caption_text is style only. Caption content lives in signification.caption.
+      const beforeCT = getCaptionText(found.node);
+      const beforeSize = getCaptionTextSize(found.node);
+      const size = finiteInput(inpCaptionTextSize, beforeSize, "Caption font_size");
+      if (size < 0.125 || size > 256) throw new Error("Caption font_size must be 0.125..256");
+      const beforePose = getCaptionTextPose(found.node);
+      const pose = readPose([inpCaptionTextFrontX, inpCaptionTextFrontY, inpCaptionTextFrontZ], [inpCaptionTextUpX, inpCaptionTextUpY, inpCaptionTextUpZ], beforePose);
+      if (size !== beforeSize || JSON.stringify(pose) !== JSON.stringify(beforePose)) {
+        const next = { ...(beforeCT || {}) };
+        if (size !== beforeSize) next.font_size = size;
+        if (pose) next.pose = pose; else delete next.pose;
+        add("/appearance/caption_text", beforeCT, next);
+      }
+      const pointUuids = new Set((doc.points || []).map(uuidOf));
+      for (const [side, input] of [["a", inpEndA], ["b", inpEndB]]) {
+        const key = `end_${side}`;
+        const before = found.node?.appearance?.[key] ?? found.node?.[key] ?? null;
+        if (!input) continue;
+        const endpoint = parseEndpointInput(input.value);
+        if (!endpoint) throw new Error(`${key}: point UUID or exactly three coordinates required`);
+        if (endpoint.ref && !pointUuids.has(endpoint.ref)) throw new Error(`${key}: point UUID not found: ${endpoint.ref}`);
+        add(`/appearance/${key}`, before, endpoint);
+      }
+    }
+    if (found.kind === "point" || found.kind === "aux") {
+      const before = getPos(found.node);
+      const next = [inpX, inpY, inpZ].map((input, i) => finiteInput(input, before[i], `Position ${"XYZ"[i]}`));
+      add("/appearance/position", before, next);
+    }
+    if (found.kind === "aux" && selAuxModule) {
+      const before = Object.keys(found.node?.appearance?.module || {})[0] || "";
+      add("/appearance/module", before, String(selAuxModule.value || ""));
+    }
+    if (inpFrames) {
+      const before = found.node?.appearance?.frames ?? found.node?.frames;
+      const shown = Array.isArray(before) ? before.join(",") : before == null ? "" : String(before);
+      if (String(inpFrames.value ?? "").trim() !== shown) add("/appearance/frames", before, parseFramesInput(inpFrames.value));
+    }
+    return patch;
+  }
+
+  function applyPatch(doc, patch) {
+    const clone = cloneDoc(doc);
+    const found = findByUuid(clone, patch?.target);
+    if (!found.node) return clone;
+
+    for (const op of patch.ops || []) {
+      if (op.path === "/signification/name" && found.kind === "point") {
+        setPointName(found.node, String(op.after ?? ""));
+      }
+      else if (op.path === "/signification/caption" && found.kind === "line") {
+        setLineCaption(found.node, String(op.after ?? ""));
+      }
+      else if (op.path === "/appearance/position" && (found.kind === "point" || found.kind === "aux")) {
+        setPos(found.node, op.after);
+      }
+      else if (op.path === "/appearance/marker/text" && found.kind === "point") {
+        if (!found.node.appearance || typeof found.node.appearance !== "object") found.node.appearance = { ...(found.node.appearance || {}) };
+        if (!found.node.appearance.marker || typeof found.node.appearance.marker !== "object") {
+          // Keep marker primitive stable; default to none.
+          found.node.appearance.marker = { primitive: "none" };
+        }
+        if (!op.after) {
+          try { delete found.node.appearance.marker.text; } catch {}
+        } else {
+          found.node.appearance.marker.text = op.after;
+        }
+      }
+      else if (op.path === "/appearance/caption_text" && found.kind === "line") {
+        if (!found.node.appearance || typeof found.node.appearance !== "object") found.node.appearance = { ...(found.node.appearance || {}) };
+        if (!op.after) {
+          try { delete found.node.appearance.caption_text; } catch {}
+        } else {
+          found.node.appearance.caption_text = op.after;
+        }
+      }
+      else if (op.path === "/appearance/frames") {
+        found.node.appearance ||= {};
+        if (op.after == null) delete found.node.appearance.frames;
+        else found.node.appearance.frames = op.after;
+        // Imported legacy root frames, when present, follow the same explicit edit.
+        if ("frames" in found.node) {
+          if (op.after == null) delete found.node.frames;
+          else found.node.frames = op.after;
+        }
+      }
+      else if (op.path === "/appearance/module" && found.kind === "aux") {
+        if (!found.node.appearance || typeof found.node.appearance !== "object") found.node.appearance = { ...(found.node.appearance || {}) };
+        const k = String(op.after || "");
+        if (!k) {
+          delete found.node.appearance.module;
+        } else {
+          found.node.appearance.module = { [k]: {} };
+        }
+      }
+      else if (op.path === "/appearance/end_a" && found.kind === "line") {
+        if (op.after && typeof op.after === "object") {
+          if (!found.node.appearance || typeof found.node.appearance !== "object") found.node.appearance = { ...(found.node.appearance || {}) };
+          found.node.appearance.end_a = op.after;
+          if ("end_a" in found.node) found.node.end_a = cloneDoc(op.after);
+        }
+      }
+      else if (op.path === "/appearance/end_b" && found.kind === "line") {
+        if (op.after && typeof op.after === "object") {
+          if (!found.node.appearance || typeof found.node.appearance !== "object") found.node.appearance = { ...(found.node.appearance || {}) };
+          found.node.appearance.end_b = op.after;
+          if ("end_b" in found.node) found.node.end_b = cloneDoc(op.after);
+        }
+      }
+    }
+
+    return clone;
+  }
+
+  function applyActiveEdits() {
+    if (!active) return false;
+    if (lockedActive) {
+      setHud(`Locked: ${active.uuid}`);
+      return false;
+    }
+    let patch;
+    try { patch = buildPatchForActiveEdits(); }
+    catch (error) {
+      setHud(`${error.message}. Correct the input or press Esc to discard.`);
+      return false;
+    }
+    if (!patch) return false;
+    if (patch.ops.length === 0) {
+      setDirty(false);
+      return true;
+    }
+
+    // Coalesce all mutations triggered by a single Apply into one undo step.
+    try { core.beginHistoryGroup?.(); } catch {}
+    try {
+      core.updateDocument?.((doc) => applyPatch(doc, patch));
+    } catch (error) {
+      setHud(`Apply failed: ${error.message}. Input retained.`);
+      return false;
+    } finally {
+      try { core.endHistoryGroup?.(); } catch {}
+    }
+
+    // After commit, refresh preview base to committed document state.
+    try { if (active) { previewCaptureBase(active.uuid, active.kind); previewRevertToBase(); } } catch {}
+
+    setDirty(false);
+    fillInputsFromDoc(active.uuid);
+    transitionDraft("apply", { reason: "applyActiveEdits" });
+    setHud(`Applied: ${patch.target}`);
+    return true;
+  }
+
+  /**
+   * 3-way resolution for unapplied edits.
+   * @returns {boolean} true if it is safe to proceed.
+   */
+  function ensureEditsAppliedOrConfirm({ reason = "" } = {}) {
+  // Only drafting (unapplied buffer-dirty) needs resolution here.
+  if (!dirty || draftState !== DraftState.DRAFTING) return true;
+
+  // Valid drafts keep the existing apply-on-leave behavior. Invalid drafts remain
+  // editable and block the transition; only explicit Esc/Discard removes them.
+  return applyActiveEdits();
+}
+
+  function onAnyInput() {
+    if (!active) return;
+    if (lockedActive) {
+      try { setHud(`Locked: ${active.uuid}`); } catch {}
+      // Revert buffer to document values.
+      fillInputsFromDoc(active.uuid);
+      return;
+    }
+
+    // Draft preview (P1): reflect edits in preview without mutating core.
+    // Apply is the only commit point.
+    try {
+      const doc = core.getDocument?.();
+
+      if (previewSetPosition && (active.kind === "point" || active.kind === "aux")) {
+        const found = findByUuid(doc, active.uuid);
+        const beforePos = found?.node ? getPos(found.node) : [0, 0, 0];
+        pendingPreviewUuid = String(active.uuid);
+        pendingPreviewPos = [
+          inpX ? num(inpX.value, beforePos[0]) : beforePos[0],
+          inpY ? num(inpY.value, beforePos[1]) : beforePos[1],
+          inpZ ? num(inpZ.value, beforePos[2]) : beforePos[2],
+        ];
+      }
+
+      if (previewSetLineEnds && active.kind === "line") {
+        pendingPreviewLineUuid = String(active.uuid);
+        pendingPreviewEndA = inpEndA ? parseEndpointInput(inpEndA.value) : null;
+        pendingPreviewEndB = inpEndB ? parseEndpointInput(inpEndB.value) : null;
+      }
+
+      if (previewSetCaptionText && active.kind === "line") {
+        const found = findByUuid(doc, active.uuid);
+        const beforeCTPose = found?.node ? getCaptionTextPose(found.node) : null;
+        const readPose = (frontInputs, upInputs, before) => {
+          const frontVals = frontInputs.map((el) => (el ? String(el.value ?? "").trim() : ""));
+          const upVals = upInputs.map((el) => (el ? String(el.value ?? "").trim() : ""));
+          const allEmpty = frontVals.every((s) => !s) && upVals.every((s) => !s);
+          if (allEmpty) return null;
+          const fb = before?.front || [0,0,0];
+          const ub = before?.up || [0,0,0];
+          const front = frontVals.map((s,i)=> s? num(s, fb[i]) : fb[i]);
+          const up = upVals.map((s,i)=> s? num(s, ub[i]) : ub[i]);
+          const { pose, error } = sanitizePose(front, up);
+          if (error) return { __invalid: true, error };
+          return pose;
+        };
+        const pose = readPose([inpCaptionTextFrontX, inpCaptionTextFrontY, inpCaptionTextFrontZ], [inpCaptionTextUpX, inpCaptionTextUpY, inpCaptionTextUpZ], beforeCTPose);
+        if (pose && pose.__invalid) {
+          try { setHud(pose.error || "Invalid pose"); } catch {}
+          // Do not update preview on invalid input.
+        } else {
+          pendingPreviewCaptionUuid = String(active.uuid);
+          pendingPreviewCaptionFallback = inpName ? String(inpName.value || "") : (found?.node ? getLineCaption(found.node) : "");
+          const content = inpName ? String(inpName.value || "") : (found?.node ? getLineCaption(found.node) : "");
+          const beforeSize = found?.node ? getCaptionTextSize(found.node) : 8;
+          const size = inpCaptionTextSize ? num(inpCaptionTextSize.value, beforeSize) : beforeSize;
+          const align = selCaptionTextAlign ? String(selCaptionTextAlign.value || "") : (found?.node ? getCaptionTextAlign(found.node) : "");
+          pendingPreviewCaptionText = content ? { content, size, ...(align ? { align } : {}), ...(pose ? { pose } : {}) } : null;
+        }
+      }
+
+      if ((pendingPreviewUuid && pendingPreviewPos) || pendingPreviewLineUuid || pendingPreviewCaptionUuid) {
+        if (!rafPreview) {
+          rafPreview = requestAnimationFrame(() => {
+            rafPreview = 0;
+
+            const u = pendingPreviewUuid;
+            const p = pendingPreviewPos;
+            pendingPreviewUuid = "";
+            pendingPreviewPos = null;
+
+            const ln = pendingPreviewLineUuid;
+            const a = pendingPreviewEndA;
+            const b = pendingPreviewEndB;
+            pendingPreviewLineUuid = "";
+            pendingPreviewEndA = null;
+            pendingPreviewEndB = null;
+
+            const cu = pendingPreviewCaptionUuid;
+            const ct = pendingPreviewCaptionText;
+            const fb = pendingPreviewCaptionFallback;
+            pendingPreviewCaptionUuid = "";
+            pendingPreviewCaptionText = null;
+            pendingPreviewCaptionFallback = "";
+
+            try {
+              if (u && p) previewSetPosition?.(String(u), p);
+            } catch {}
+            try {
+              if (ln) previewSetLineEnds?.(String(ln), a, b);
+            } catch {}
+            try {
+              if (cu) previewSetCaptionText?.(String(cu), ct, fb);
+            } catch {}
+          });
+        }
+      }
+    } catch {}
+    setDirty(true);
+    // setDirty(true) performs the state transition (edit -> drafting).
+  }
+
+
+  function attachPosInputKeyHandlers(inp) {
+    if (!inp) return;
+    inp.addEventListener(
+      "keydown",
+      (ev) => {
+        if (!active) return;
+        if (ev.isComposing || ev.keyCode === 229) return;
+        if (lockedActive) return;
+        if (ev.key === "Enter" && !ev.ctrlKey && !ev.metaKey) {
+          // Enter: Apply and advance (Shift+Enter keeps focus)
+          if (!dirty) return;
+          ev.preventDefault();
+          const keep = ev.shiftKey;
+          if (!applyActiveEdits()) return;
+          queueMicrotask(() => {
+            try {
+              if (keep) {
+                inp.focus();
+                inp.select?.();
+                return;
+              }
+              // Advance focus for fast numeric entry: X -> Y -> Z -> X
+              const order = [inpX, inpY, inpZ].filter(Boolean);
+              const idx = order.indexOf(inp);
+              const next = order[(idx + 1) % order.length] || inp;
+              next.focus();
+              next.select?.();
+            } catch {}
+          });
+          return;
+        }
+        if (ev.key === "ArrowUp" || ev.key === "ArrowDown") {
+          // Arrow keys: fine/coarse stepping with modifiers
+          ev.preventDefault();
+          const base = posStep;
+          // NOTE: On Windows/Chrome, Alt can get eaten by the browser/menu.
+          // Accept Ctrl as an alias for fine stepping.
+          const mul = ev.shiftKey ? 10 : ((ev.altKey || ev.ctrlKey) ? 0.1 : 1);
+          const delta = base * mul * (ev.key === "ArrowUp" ? 1 : -1);
+          const cur = Number(inp.value || "0") || 0;
+          const next = cur + delta;
+          inp.value = String(Number.isFinite(next) ? next : cur);
+          onAnyInput();
+        }
+      },
+      { signal }
+    );
+
+    // Wheel stepping (focus must be on this input)
+    inp.addEventListener(
+      "wheel",
+      (ev) => {
+        if (!active) return;
+        if (lockedActive) return;
+        if (document.activeElement !== inp) return;
+        // Prevent page scroll while editing numbers.
+        ev.preventDefault();
+        const base = posStep;
+        const mul = ev.shiftKey ? 10 : ((ev.altKey || ev.ctrlKey) ? 0.1 : 1);
+        // Some devices use deltaX when Shift is held (horizontal scroll).
+        const d = (Math.abs(ev.deltaY) >= Math.abs(ev.deltaX)) ? ev.deltaY : ev.deltaX;
+        const dir = d < 0 ? 1 : -1;
+        const delta = base * mul * dir;
+        const cur = Number(inp.value || "0") || 0;
+        const next = cur + delta;
+        inp.value = String(Number.isFinite(next) ? next : cur);
+        onAnyInput();
+      },
+      { signal, passive: false }
+    );
+  }
+
+
+  loadPosStepFromStorage();
+
+  if (inpFrames) inpFrames.addEventListener("input", onAnyInput, { signal });
+  for (const input of [inpTextFrontX, inpTextFrontY, inpTextFrontZ, inpTextUpX, inpTextUpY, inpTextUpZ,
+    inpCaptionTextSize, inpCaptionTextFrontX, inpCaptionTextFrontY, inpCaptionTextFrontZ,
+    inpCaptionTextUpX, inpCaptionTextUpY, inpCaptionTextUpZ]) {
+    input?.addEventListener("input", onAnyInput, { signal });
+  }
+  if (inpName) inpName.addEventListener("input", onAnyInput, { signal });
+  if (inpTextContent) inpTextContent.addEventListener("input", onAnyInput, { signal });
+  if (inpTextSize) inpTextSize.addEventListener("input", onAnyInput, { signal });
+  if (selTextAlign) selTextAlign.addEventListener("change", onAnyInput, { signal });
+  if (selAuxModule) selAuxModule.addEventListener("change", onAnyInput, { signal });
+  if (inpX) inpX.addEventListener("input", onAnyInput, { signal });
+  if (inpY) inpY.addEventListener("input", onAnyInput, { signal });
+  if (inpZ) inpZ.addEventListener("input", onAnyInput, { signal });
+
+  if (selPosStep) selPosStep.addEventListener(
+    "change",
+    () => {
+      posStep = clampPosStep(selPosStep.value);
+      syncPosStepUi();
+      savePosStepToStorage();
+      // Keep focus on the active numeric field if any.
+      try {
+        const el = document.activeElement;
+        if (el === inpX || el === inpY || el === inpZ) {
+          el.focus();
+          el.select?.();
+        }
+      } catch {}
+    },
+    { signal }
+  );
+
+  attachPosInputKeyHandlers(inpX);
+  attachPosInputKeyHandlers(inpY);
+  attachPosInputKeyHandlers(inpZ);
+  if (inpEndA) inpEndA.addEventListener("input", onAnyInput, { signal });
+  if (inpEndB) inpEndB.addEventListener("input", onAnyInput, { signal });
+
+  // Endpoint helpers (Line)
+  if (btnPickEndA) btnPickEndA.addEventListener("click", () => startEndpointPick("a"), { signal });
+  if (btnPickEndB) btnPickEndB.addEventListener("click", () => startEndpointPick("b"), { signal });
+  if (btnClearEndA) btnClearEndA.addEventListener(
+    "click",
+    () => {
+      if (!active || active.kind !== "line") return;
+      if (lockedActive) return;
+      if (inpEndA) inpEndA.value = "";
+      onAnyInput();
+    },
+    { signal }
+  );
+  if (btnClearEndB) btnClearEndB.addEventListener(
+    "click",
+    () => {
+      if (!active || active.kind !== "line") return;
+      if (lockedActive) return;
+      if (inpEndB) inpEndB.value = "";
+      onAnyInput();
+    },
+    { signal }
+  );
+
+  function handlePreviewPickOverride(issueLike) {
+    if (!endpointPick) return false;
+    // During endpoint pick, we intercept preview clicks to set end_a/end_b.
+    const uuid = issueLike?.uuid ? String(issueLike.uuid) : "";
+    const kind = String(issueLike?.kind || "").toLowerCase();
+    if (!uuid || kind !== "point") {
+      try { setHud("Pick a point for endpoint"); } catch {}
+      return true;
+    }
+    if (!active || active.kind !== "line") {
+      cancelEndpointPick();
+      return true;
+    }
+    if (lockedActive) {
+      try { setHud(`Locked: ${active.uuid}`); } catch {}
+      cancelEndpointPick();
+      return true;
+    }
+    if (endpointPick === "a") {
+      if (inpEndA) inpEndA.value = uuid;
+    } else {
+      if (inpEndB) inpEndB.value = uuid;
+    }
+    onAnyInput();
+    const which = endpointPick;
+    setEndpointPick(null);
+    try { setHud(`Set end_${which} = ${uuid.slice(0, 8)}…`); } catch {}
+    return true;
+  }
+
+  // Keyboard helpers within property editor:
+  // - Ctrl/Cmd+Enter: Apply
+  // - Escape: Discard
+  if (panelEl) {
+    panelEl.addEventListener(
+      "keydown",
+      (ev) => {
+        if (!active) return;
+        if (ev.isComposing || ev.keyCode === 229) return;
+        if (ev.key === "Escape") {
+          if (endpointPick) {
+            ev.preventDefault();
+            cancelEndpointPick();
+            return;
+          }
+          if (dirty) {
+            ev.preventDefault();
+            discardEdits();
+          }
+          return;
+        }
+        if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) {
+          ev.preventDefault();
+          applyActiveEdits();
+        }
+      },
+      { signal }
+    );
+  }
+
+  function refreshActiveFromDoc() {
+    if (!active) return;
+    if (dirty) return; // don't overwrite buffer
+
+    // Keep header info stable, but refresh values from the current document.
+    fillInputsFromDoc(active.uuid);
+    refreshLockState();
+    try { previewCaptureBase(active.uuid, active.kind); } catch {}
+    try { previewRevertToBase(); } catch {}
+    flushPendingFocus();
+  }
+
+  
+  /**
+   * Resolve unapplied edits when selection is about to move away from the active uuid.
+   * This is the single gate for "reason=selection":
+   * - Apply or Discard => draftState -> CLEAN, preview reverted, UI proceeds
+   * - Cancel => selection is reverted back to active uuid and UI stays
+   * @returns {boolean} true if it is safe to proceed to the next selection.
+   */
+  function resolveDraftBeforeSelectionChange(nextSelectionUuids) {
+    if (!dirty || draftState !== DraftState.DRAFTING) return true;
+
+    const activeUuid = active?.uuid || null;
+    const nextList = Array.isArray(nextSelectionUuids) ? nextSelectionUuids : [];
+    const nextIsDifferent =
+      (nextList.length !== 1) ||
+      (String(nextList[0] || "") !== String(activeUuid || ""));
+
+    if (!nextIsDifferent) return true;
+
+    const ok = ensureEditsAppliedOrConfirm({ reason: "selection" });
+    if (ok) {
+      // Safety: ensure preview is back to base when leaving the active node.
+      try { previewRevertToBase?.(); } catch {}
+      transitionDraft("clear", { reason: "selection:resolved" });
+      return true;
+    }
+
+    // User cancelled: revert selection and keep UI as-is.
+    if (activeUuid) {
+      try {
+        if (typeof setSelectionUuids === "function") setSelectionUuids([activeUuid], null, "property-revert");
+        else core.setSelection?.([activeUuid]);
+      } catch { try { core.setSelection?.([activeUuid]); } catch {} }
+    }
+    return false;
+  }
+
+  /**
+   * Preflight gate for selection changes (called by uiSelectionController BEFORE core.setSelection).
+   * - Only blocks when draftState=drafting and next selection differs from current active uuid.
+   * - Returns false on Cancel, so the caller must NOT change selection.
+   * - Must never block when draftState=applied_pending_save.
+   */
+  function requestSelectionChange(nextSelectionUuids, { reason = "selection" } = {}) {
+    if (!dirty || draftState !== DraftState.DRAFTING) return true;
+
+    const activeUuid = active?.uuid || null;
+    const nextList = Array.isArray(nextSelectionUuids) ? nextSelectionUuids : [];
+    const nextIsDifferent =
+      (nextList.length !== 1) ||
+      (String(nextList[0] || "") !== String(activeUuid || ""));
+
+    if (!nextIsDifferent) return true;
+
+    const ok = ensureEditsAppliedOrConfirm({ reason });
+    if (!ok) return false;
+
+    // Leaving the active node: ensure preview is back to base.
+    try { previewRevertToBase?.(); } catch {}
+    transitionDraft("clear", { reason: `selection:preflight:${String(reason || "")}` });
+    return true;
+  }
+
+  function syncFromSelection() {
+    // Selection -> Property state machine (single SSOT event: hub 'selection')
+    //
+    //  Selection size | Property UI
+    //  -------------- | -------------------------------
+    //  0              | empty placeholder (no active)
+    //  2+             | property closed + show count
+    //  1              | property open for that uuid
+    //
+    // Transition rule when buffer-dirty:
+    // - If selection moves away from the active uuid, require Apply/Discard.
+    // - If user cancels, revert selection back to the active uuid.
+    const sel = core.getSelection?.() || [];
+    const list = Array.isArray(sel) ? sel : [];
+
+    // Switching away while draft edits exist must be resolved first.
+    if (!resolveDraftBeforeSelectionChange(list)) return;
+
+    if (list.length === 0) {
+      hideAll();
+      return;
+    }
+
+    if (list.length !== 1) {
+      showMulti(list.length);
+      return;
+    }
+
+    const uuid = String(list[0] || "");
+    if (!uuid) {
+      hideAll();
+      return;
+    }
+
+    // No change
+    if (active?.uuid === uuid) {
+      refreshActiveFromDoc();
+      return;
+    }
+
+    showProperty({ uuid });
+  }
+
+
+  // Focus a specific field inside Property panel by an issue-like path.
+  // This is used by QuickCheck / focusByIssue to jump to the most relevant input.
+  function applyFocusByIssue(issueLike) {
+    if (!issueLike || typeof issueLike !== "object") return;
+
+    const uuid = issueLike.uuid ? String(issueLike.uuid) : "";
+    if (!uuid) return;
+
+    const kind = (issueLike.kind ? String(issueLike.kind).toLowerCase() : (active?.kind || "")).toLowerCase();
+    const rawPath = issueLike.path ? String(issueLike.path) : "";
+    if (!rawPath) return;
+
+    // Strip array index prefix (/points/<i>, /lines/<i>, /aux/<i>) so mapping stays stable after reorder.
+    const path = rawPath.replace(/^\/(points|lines|aux)\/\d+/, "");
+
+    /** @type {HTMLElement|null} */
+    let target = null;
+
+    const pickVec3Index = (base, idx) => {
+      if (base === "pos") return idx === 0 ? inpX : idx === 1 ? inpY : inpZ;
+      if (base === "front") return idx === 0 ? inpTextFrontX : idx === 1 ? inpTextFrontY : inpTextFrontZ;
+      if (base === "up") return idx === 0 ? inpTextUpX : idx === 1 ? inpTextUpY : inpTextUpZ;
+      if (base === "ctFront") return idx === 0 ? inpCaptionTextFrontX : idx === 1 ? inpCaptionTextFrontY : inpCaptionTextFrontZ;
+      if (base === "ctUp") return idx === 0 ? inpCaptionTextUpX : idx === 1 ? inpCaptionTextUpY : inpCaptionTextUpZ;
+      return null;
+    };
+
+    if (kind === "point") {
+      if (path.startsWith("/signification/name")) target = inpName;
+      else if (path.startsWith("/appearance/position")) {
+        const m = path.match(/^\/appearance\/position\/(\d+)/);
+        target = m ? pickVec3Index("pos", Number(m[1])) : inpX;
+      }
+      else if (path.startsWith("/appearance/marker/text/content")) target = inpTextContent;
+      else if (path.startsWith("/appearance/marker/text/size")) target = inpTextSize;
+      else if (path.startsWith("/appearance/marker/text/align")) target = selTextAlign;
+      else if (path.startsWith("/appearance/marker/text/pose/front")) {
+        const m = path.match(/^\/appearance\/marker\/text\/pose\/front\/(\d+)/);
+        target = m ? pickVec3Index("front", Number(m[1])) : inpTextFrontX;
+      }
+      else if (path.startsWith("/appearance/marker/text/pose/up")) {
+        const m = path.match(/^\/appearance\/marker\/text\/pose\/up\/(\d+)/);
+        target = m ? pickVec3Index("up", Number(m[1])) : inpTextUpX;
+      }
+    }
+    else if (kind === "line") {
+      if (path.startsWith("/signification/caption") || path.startsWith("/signification/name")) target = inpName;
+      else if (path.startsWith("/end_a")) target = inpEndA;
+      else if (path.startsWith("/end_b")) target = inpEndB;
+      else if (path.startsWith("/appearance/caption_text/content")) target = inpCaptionTextContent;
+      else if (path.startsWith("/appearance/caption_text/font_size") || path.startsWith("/appearance/caption_text/size")) target = inpCaptionTextSize;
+      else if (path.startsWith("/appearance/caption_text/align")) target = selCaptionTextAlign;
+      else if (path.startsWith("/appearance/caption_text/pose/front")) {
+        const m = path.match(/^\/appearance\/caption_text\/pose\/front\/(\d+)/);
+        target = m ? pickVec3Index("ctFront", Number(m[1])) : inpCaptionTextFrontX;
+      }
+      else if (path.startsWith("/appearance/caption_text/pose/up")) {
+        const m = path.match(/^\/appearance\/caption_text\/pose\/up\/(\d+)/);
+        target = m ? pickVec3Index("ctUp", Number(m[1])) : inpCaptionTextUpX;
+      }
+    }
+    else if (kind === "aux") {
+      if (path.startsWith("/appearance/position")) {
+        const m = path.match(/^\/appearance\/position\/(\d+)/);
+        target = m ? pickVec3Index("pos", Number(m[1])) : inpX;
+      }
+      else if (path.startsWith("/appearance/module")) target = selAuxModule;
+    }
+
+    if (path.startsWith("/appearance/frames") || path === "/frames") target = inpFrames;
+    if (!target || typeof target.focus !== "function") return;
+
+    for (let ancestor = target.parentElement; ancestor && ancestor !== panelEl; ancestor = ancestor.parentElement) {
+      if (ancestor.tagName === 'DETAILS') ancestor.open = true;
+    }
+    try { target.scrollIntoView?.({ block: "center", inline: "nearest" }); } catch {}
+    try { target.focus?.({ preventScroll: true }); } catch { try { target.focus?.(); } catch {} }
+
+    // Flash highlight
+    try {
+      target.classList.add("is-flash");
+      const prev = target.__flashTimer;
+      if (prev) clearTimeout(prev);
+      target.__flashTimer = setTimeout(() => {
+        try { target.classList.remove("is-flash"); } catch {}
+      }, 650);
+    } catch {}
+  }
+
+  function flushPendingFocus() {
+    if (!pendingFocusIssue) return;
+    try {
+      const u = pendingFocusIssue?.uuid ? String(pendingFocusIssue.uuid) : "";
+      if (!u || !active?.uuid || u !== String(active.uuid)) return;
+      applyFocusByIssue(pendingFocusIssue);
+      pendingFocusIssue = null;
+    } catch {}
+  }
+
+  function focusFieldByIssue(issueLike) {
+    if (!issueLike || typeof issueLike !== "object") return;
+    const uuid = issueLike.uuid ? String(issueLike.uuid) : "";
+    if (!uuid) return;
+
+    // If selection sync hasn't opened the panel yet, defer until it does.
+    if (!active?.uuid || uuid !== String(active.uuid)) {
+      pendingFocusIssue = issueLike;
+      return;
+    }
+
+    applyFocusByIssue(issueLike);
+  }
+
+  // Initialize
+  hideAll();
+
+  function notifyDocumentSaved({ reason = "" } = {}) {
+    transitionDraft("doc_saved", { reason: reason || "notifyDocumentSaved" });
+  }
+
+  return {
+    showProperty,
+    hidePanel: hideAll,
+    showMulti,
+    discardEdits,
+    applyActiveEdits,
+    ensureEditsAppliedOrConfirm,
+    requestSelectionChange,
+    refreshActiveFromDoc,
+    refreshLockState,
+    syncFromSelection,
+    isDirty,
+    notifyDocumentSaved,
+    getDraftState: () => draftState,
+    isActiveLocked: () => !!lockedActive,
+    getActiveUuid,
+    focusFieldByIssue,
+    // Preview pick override (endpoint pick mode)
+    handlePreviewPickOverride,
+    isEndpointPickActive: () => !!endpointPick,
+    cancelEndpointPick,
+  };
+}

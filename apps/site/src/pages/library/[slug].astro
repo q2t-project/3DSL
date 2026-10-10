@@ -1,7 +1,7 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import AdSlot from "../../components/AdSlot.astro";
-import { ADSENSE_SLOTS } from "../../lib/adsense";
+import { ADSENSE_SLOTS, shouldEnableAdsense } from "../../lib/adsense";
 import { getLibraryItemBySlug, getLibraryItems } from "../../lib/libraryIndex";
 import fs from "node:fs";
 import path from "node:path";
@@ -57,9 +57,10 @@ const pageConf = meta?.page ?? {};
 const adAllow = new Set<string>(
   Array.isArray(pageConf?.ads) ? pageConf.ads : ["mobile_top", "desktop_rail"]
 );
-const showAdMobileTop = adAllow.has("mobile_top");
-const showAdDesktopRail = adAllow.has("desktop_rail");
-const showAdInline1 = adAllow.has("inline_1");
+const eligiblePage = shouldEnableAdsense(Astro.url.pathname) && item.hidden !== true;
+const showAdMobileTop = eligiblePage && adAllow.has("mobile_top") && Boolean(ADSENSE_SLOTS.slot_300x250);
+const showAdDesktopRail = eligiblePage && adAllow.has("desktop_rail") && Boolean(ADSENSE_SLOTS.slot_300x600);
+const showAdInline1 = eligiblePage && adAllow.has("inline_1") && Boolean(ADSENSE_SLOTS.slot_300x250);
 
 function listFilesPublicDir(urlDir: string): Attachment[] {
   const abs = filePathFromPublic(urlDir);
@@ -272,7 +273,10 @@ const thirdParty = Array.isArray(rights?.third_party)
   : [];
 ---
 
-<Layout title={seoTitle} description={seoDescription}>
+<Layout title={seoTitle} description={seoDescription} adsenseEligible={item.hidden !== true}>
+  <Fragment slot="head">
+    {item.hidden === true && <meta name="robots" content="noindex" />}
+  </Fragment>
   <div class="mx-auto max-w-[1200px] px-4 py-6">
     <div class="text-sm text-neutral-500">
       <a href="/library" class="hover:underline">Library</a>
@@ -293,7 +297,7 @@ const thirdParty = Array.isArray(rights?.third_party)
       </div>
     ) : null}
 
-    <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+    <div class:list={["mt-6 grid grid-cols-1 gap-6", { "lg:grid-cols-[minmax(0,1fr)_300px]": showAdDesktopRail }]}>
       <main class="min-w-0">
         <section class="rounded-2xl border border-neutral-800 bg-neutral-950/40 p-4">
           <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
@@ -492,7 +496,7 @@ const thirdParty = Array.isArray(rights?.third_party)
         ) : null}
       </main>
 
-      <aside class="hidden lg:block">
+      {showAdDesktopRail && <aside class="hidden lg:block">
         <div class="sticky top-6 space-y-6">
           {showAdDesktopRail ? (
             <div class="rounded-2xl border border-neutral-800 bg-neutral-950/40 p-3">
@@ -500,7 +504,7 @@ const thirdParty = Array.isArray(rights?.third_party)
             </div>
           ) : null}
         </div>
-      </aside>
+      </aside>}
     </div>
   </div>
 

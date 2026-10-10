@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>作品Viewer 自動検査 r0.4.2</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#0e1721;color:#e5edf7}body{margin:0;padding:20px}main{max-width:1600px;margin:auto}h1{font-size:26px;margin:0 0 20px}p{line-height:1.65;margin:10px 0}a{color:#9bccff}button{font:inherit;background:#20374e;color:inherit;border:1px solid #6789a8;border-radius:5px;padding:10px 14px;cursor:pointer}button:disabled{opacity:.55;cursor:wait}.actions{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin:20px 0}.status{font-size:18px;font-weight:600}table{border-collapse:collapse;width:100%;margin:16px 0}th,td{border:1px solid #4f657b;text-align:left;padding:8px}th{background:#1a2b3b}td[data-status="PASS"]{color:#9de1b4}td[data-status="FAIL"]{color:#ffa4a4}td[data-status="INCOMPLETE"]{color:#f5cd8d}.table-wrap{overflow-x:auto}#app{margin-top:20px;border:1px solid #4f657b}iframe{display:block;width:100%;height:740px;border:0;background:#0b1017}#report-copy{width:100%;min-height:120px;font:12px monospace}#details{white-space:pre-wrap;overflow-wrap:anywhere}.note{color:#c3cfdd;font-size:14px}.hidden{display:none!important}
+</style>
+</head>
+<body><main>
+<h1>作品Viewer 自動検査 r0.4.2</h1>
+<p>固定の1,000点・2,000線で8操作を各5回、その後、F1〜F4・旧形式作品・図単体の読取専用動作を自動で検査します。このタブを前面にしたまま待ってください。</p>
+<p>検査用にこのページ内でViewerを開きます。制作中のタブや元の作品ファイルは変更しません。終了後、必要なら結果JSONをダウンロードできます。</p>
+<p class="note">実アプリの読込・UI更新・描画待ちを含めて計測します。画像の正しさ、実際のマウス操作、OSファイル選択ダイアログは自動合格の対象外です。数値が目標を超えたらFAIL、未実行・背面化による中断はINCOMPLETEです。</p>
+<div class="actions"><button id="run" type="button">自動検査を開始</button><button id="download" type="button" disabled>結果JSONをダウンロード</button><a href="/RECONSTRUCTION.html">作品の入口へ</a><a href="/contract_viewer/index.html">Viewerを開く</a></div>
+<p id="status" role="status" class="status">未実行</p><p id="progress" role="status">開始すると検査用のViewerが下に表示されます。</p>
+<div id="results" class="table-wrap"></div>
+<details id="function-details"><summary>機能検査の内訳</summary><div id="checks" class="table-wrap"></div></details>
+<pre id="details"></pre>
+<details id="json-details" class="hidden"><summary>結果JSONを表示（コピー用）</summary><textarea id="report-copy" readonly aria-label="検査結果JSON"></textarea></details>
+<div id="app" aria-label="自動検査用Viewer"></div>
+</main><script type="module" src="./check.js"></script></body>
+</html>

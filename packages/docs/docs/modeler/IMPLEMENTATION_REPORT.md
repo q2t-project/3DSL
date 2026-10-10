@@ -1,5 +1,18 @@
 # Modeler 実装状況レポート（Spec/Manifest 差分 + From-now プラン）
 
+## 2026-10-10: 再構築 r0.5 の独立 Preview
+
+本人受入済みの通常制作・閲覧を継承し、`apps/reconstruction/ssot` を
+`/preview-reconstruction/` に配信する。本番既定経路への置換は未実施。
+2026-10-10、公開Previewでの描画・Viewer新タブ受渡し・別名保存後の開き直しを本人がすべて問題なしと確認。
+この配布内容を維持し、サイトのトップ・共通メニュー・フッターに「作品を開く」を追加する公開候補を準備した。
+Git 除外設定で配布から漏れていたブラウザ AJV を収録し、CSS の参照先を隔離領域内へ修正。
+Modeler のローカル専用自動検査は、静的配信では理由と実行場所の案内を表示する。
+保存・Undo・Pick 等の編集セマンティクスは今回変更していない。
+検証範囲・残件・戻し先は [Preview 公開準備](/docs/ops/reconstruction_preview_release) を参照。
+
+以下は既存本番 Modeler の履歴。
+
 - Last updated: 2026-01-29
 - Repo snapshot: `3DSL_repo_20260129_075158.zip`
 - 対象 SSOT

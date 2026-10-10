@@ -13,7 +13,8 @@ type LibraryIndexItem = {
   title: string;
   summary?: string | null;
   tags?: string[] | null;
-  published?: boolean | null;
+  hidden?: boolean;
+  recommended?: boolean;
 };
 
 const libraryIndexUrl = new URL("../../public/_data/library/library_index.json", import.meta.url);
@@ -23,39 +24,13 @@ try {
   const raw = await fs.readFile(libraryIndexUrl, "utf8");
   const parsed = JSON.parse(raw);
   const items = Array.isArray(parsed?.items) ? (parsed.items as LibraryIndexItem[]) : [];
-  const isOk = (it: LibraryIndexItem) => {
-    const title = (it.title ?? "").toLowerCase();
-    const tags = Array.isArray(it.tags) ? it.tags : [];
-    // Avoid obvious stress/perf fixtures in the homepage showcase
-    if (title.includes("stress")) return false;
-    if (title.includes("load test")) return false;
-    if (tags.some((t) => String(t).toLowerCase().includes("stress"))) return false;
-    return true;
-  };
-  const normTags = (it: LibraryIndexItem) => (Array.isArray(it.tags) ? it.tags.map(String) : []);
-
-  const isTop = (it: LibraryIndexItem) => normTags(it).includes("m:top");
-  const isDefault = (it: LibraryIndexItem) => normTags(it).includes("m:default");
-
-  const uniq = (arr: LibraryIndexItem[]) => {
-    const seen = new Set<string>();
-    const out: LibraryIndexItem[] = [];
-    for (const it of arr) {
-      if (!it?.id) continue;
-      if (seen.has(it.id)) continue;
-      seen.add(it.id);
-      out.push(it);
-    }
-    return out;
-  };
-
-  const ok = items.filter(isOk);
-  // Prefer curated items first (m:top -> m:default), then fill with the rest.
-  featuredItems = uniq([
-    ...ok.filter(isTop),
-    ...ok.filter((it) => !isTop(it) && isDefault(it)),
-    ...ok.filter((it) => !isTop(it) && !isDefault(it)),
-  ]).slice(0, 3);
+  // Editorial choices live in _meta.json. Do not fill vacant slots with fixtures.
+  featuredItems = items
+    .filter((item) => !item.hidden && item.recommended === true)
+    .sort((a, b) =>
+      Number(b.tags?.includes("m:top") ?? false) - Number(a.tags?.includes("m:top") ?? false) || a.id.localeCompare(b.id)
+    )
+    .slice(0, 3);
 } catch {
   featuredItems = [];
 }
@@ -107,6 +82,13 @@ const ctaHref = featuredPrimary;
     <div class="flex items-end justify-between gap-3">
       <h2 class="text-lg font-medium">入口</h2>
     </div>
+
+    <a href="/preview-reconstruction/" class="ui-card block mt-4 p-6">
+      <h3 class="text-lg font-semibold tracking-tight">作品を開く — 制作・閲覧</h3>
+      <p class="mt-2 text-sm text-neutral-300">
+        Modelerで新しく作る、保存した作品を開く、Viewerで読む。サンプルからも始められます。
+      </p>
+    </a>
 
     <div class="mt-4 grid gap-4 md:grid-cols-2">
       <a href="/library" class="ui-card p-6">

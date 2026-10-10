@@ -2,7 +2,8 @@
 import { getLibraryItems } from "../../lib/libraryIndex";
 import Layout from "../../layouts/Layout.astro";
 
-const items = getLibraryItems();
+// Hidden items keep their detail/data URLs, but are not listed as public works.
+const items = getLibraryItems().filter((item) => !item.hidden);
 const ITEMS_PER_PAGE = 20;
 
 function withReturn(url, ret) {
@@ -70,9 +71,9 @@ function pickPublishedLabel(item) {
     // - document_meta.tags are scoped by prefix (s:/m:/x:)
     // - for public UI we:
     //   * show only meaning tags (m:*)
-    //   * hide reserved internal placement tags (m:top, m:default)
+    //   * hide reserved internal placement tags (m:top, m:default, m:__)
     //   * render without the prefix (e.g. "m:concept" -> "concept")
-    const RESERVED_INTERNAL_TAGS = new Set(["m:top", "m:default"]);
+    const RESERVED_INTERNAL_TAGS = new Set(["m:top", "m:default", "m:__"]);
     function toDisplayTag(raw) {
       const t = String(raw ?? "").trim();
       if (!t) return null;

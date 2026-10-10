@@ -1,0 +1,871 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:3dsl:local:contract-work:0.1",
+  "$comment": "Local reconstruction draft. This is not a public release or a universal semantics schema. Reference identity and derived scene consistency require contractWork.js validation.",
+  "type": "object",
+  "required": [
+    "format",
+    "status",
+    "scene",
+    "baselineScene",
+    "contract",
+    "baselineContract",
+    "attachments"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "3dsl-contract-work/0.1"
+    },
+    "status": {
+      "const": "draft"
+    },
+    "scene": {
+      "$ref": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json"
+    },
+    "baselineScene": {
+      "$ref": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json"
+    },
+    "contract": {
+      "$ref": "#/$defs/contract"
+    },
+    "baselineContract": {
+      "$ref": "#/$defs/contract"
+    },
+    "attachments": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1,
+        "not": {
+          "enum": [
+            "contract-current.json",
+            "contract-baseline.json",
+            "work-journal.json"
+          ]
+        }
+      }
+    },
+    "journal": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/journalEntry"
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "uuid": {
+      "$ref": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#/$defs/validator/uuid"
+    },
+    "vec3": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "number"
+      }
+    },
+    "frames": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "integer",
+        "minimum": -64,
+        "maximum": 63
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "epistemic"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "name": {
+          "type": "string"
+        },
+        "epistemic": {
+          "enum": [
+            "asserted",
+            "hypothesis",
+            "undetermined"
+          ]
+        }
+      }
+    },
+    "occurrence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "target",
+        "anchor",
+        "label",
+        "port",
+        "labelOffset",
+        "portOffset",
+        "frames"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "target": {
+          "$ref": "#/$defs/id"
+        },
+        "anchor": {
+          "$ref": "#/$defs/uuid"
+        },
+        "label": {
+          "$ref": "#/$defs/uuid"
+        },
+        "port": {
+          "$ref": "#/$defs/uuid"
+        },
+        "labelOffset": {
+          "$ref": "#/$defs/vec3"
+        },
+        "portOffset": {
+          "$ref": "#/$defs/vec3"
+        },
+        "frames": {
+          "$ref": "#/$defs/frames"
+        },
+        "labelOverride": {
+          "type": "string"
+        }
+      }
+    },
+    "participant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "role",
+        "target",
+        "occurrence",
+        "line"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "role": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "target": {
+          "$ref": "#/$defs/id"
+        },
+        "occurrence": {
+          "$ref": "#/$defs/id"
+        },
+        "line": {
+          "$ref": "#/$defs/uuid"
+        }
+      }
+    },
+    "relationRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "role",
+        "relation",
+        "line"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "role": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "relation": {
+          "$ref": "#/$defs/id"
+        },
+        "line": {
+          "$ref": "#/$defs/uuid"
+        }
+      }
+    },
+    "relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "direction",
+        "condition",
+        "hub",
+        "participants",
+        "refs"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "name": {
+          "type": "string"
+        },
+        "direction": {
+          "enum": [
+            "ordered",
+            "role-defined"
+          ]
+        },
+        "condition": {
+          "type": "string"
+        },
+        "hub": {
+          "$ref": "#/$defs/uuid"
+        },
+        "participants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/participant"
+          }
+        },
+        "refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relationRef"
+          }
+        }
+      },
+      "anyOf": [
+        {
+          "properties": {
+            "participants": {
+              "minItems": 1,
+              "type": "array"
+            }
+          }
+        },
+        {
+          "properties": {
+            "refs": {
+              "minItems": 1,
+              "type": "array"
+            }
+          }
+        }
+      ]
+    },
+    "axis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "occurrences",
+        "dimension",
+        "quantity",
+        "unit",
+        "rule",
+        "authority"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "occurrences": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "dimension": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "quantity": {
+          "$ref": "#/$defs/id"
+        },
+        "unit": {
+          "$ref": "#/$defs/id"
+        },
+        "rule": {
+          "const": "value=coordinate"
+        },
+        "authority": {
+          "const": "occurrence-position"
+        }
+      }
+    },
+    "boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "plane",
+        "rule",
+        "membersFrom",
+        "authority",
+        "aux"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "plane": {
+          "const": "xy"
+        },
+        "rule": {
+          "const": "inside-or-on-edge"
+        },
+        "membersFrom": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "authority": {
+          "const": "boundary-geometry"
+        },
+        "aux": {
+          "$ref": "#/$defs/uuid"
+        }
+      }
+    },
+    "framesInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "occurrence",
+        "field",
+        "raw",
+        "diagnostic",
+        "lastValid"
+      ],
+      "properties": {
+        "occurrence": {
+          "$ref": "#/$defs/id"
+        },
+        "field": {
+          "const": "frames"
+        },
+        "raw": {
+          "type": "string"
+        },
+        "diagnostic": {
+          "type": "string"
+        },
+        "lastValid": {
+          "$ref": "#/$defs/frames"
+        }
+      }
+    },
+    "keyedInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "raw",
+        "diagnostic"
+      ],
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/id"
+        },
+        "raw": {
+          "type": "string"
+        },
+        "diagnostic": {
+          "const": "uncommitted"
+        },
+        "field": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string"
+        }
+      }
+    },
+    "pendingRelation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "participantA",
+        "participantB",
+        "status"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "participantA": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "participantB": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "const": "incomplete-connection"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "draft": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inputs",
+        "pendingRelations"
+      ],
+      "properties": {
+        "inputs": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/framesInput"
+              },
+              {
+                "$ref": "#/$defs/keyedInput"
+              }
+            ]
+          }
+        },
+        "pendingRelations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/pendingRelation"
+          }
+        },
+        "detached": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/detached"
+          }
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "utf8",
+        "status"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/id"
+        },
+        "utf8": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "status": {
+          "const": "uninterpreted"
+        }
+      }
+    },
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "authority",
+        "fixture",
+        "targets",
+        "occurrences",
+        "relations",
+        "axis",
+        "boundary",
+        "draft",
+        "sources"
+      ],
+      "properties": {
+        "format": {
+          "const": "3dsl-authoring-contract/0.1"
+        },
+        "authority": {
+          "const": "scene-anchor-and-boundary;contract-shared-values-and-offsets"
+        },
+        "fixture": {
+          "$ref": "#/$defs/id"
+        },
+        "targets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/target"
+          }
+        },
+        "occurrences": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/occurrence"
+          }
+        },
+        "relations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relation"
+          }
+        },
+        "axis": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/axis"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "boundary": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/boundary"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "draft": {
+          "$ref": "#/$defs/draft"
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/source"
+          }
+        }
+      }
+    },
+    "detached": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "reason",
+        "unresolvedRelationIds",
+        "archivedRelationIds",
+        "content",
+        "order"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "reason": {
+          "enum": [
+            "missing-display-occurrence",
+            "target-deleted",
+            "relation-deleted"
+          ]
+        },
+        "unresolvedRelationIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "archivedRelationIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "content": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "targets",
+            "occurrences",
+            "relations",
+            "scene",
+            "axis",
+            "boundary"
+          ],
+          "properties": {
+            "targets": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/target"
+              }
+            },
+            "occurrences": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/occurrence"
+              }
+            },
+            "relations": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/relation"
+              }
+            },
+            "scene": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "points",
+                "lines"
+              ],
+              "properties": {
+                "points": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#/$defs/point/node"
+                  }
+                },
+                "lines": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#/$defs/line/node"
+                  }
+                }
+              }
+            },
+            "axis": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "occurrences"
+                  ],
+                  "properties": {
+                    "id": {
+                      "$ref": "#/$defs/id"
+                    },
+                    "occurrences": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/$defs/id"
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "boundary": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "membersFrom"
+                  ],
+                  "properties": {
+                    "id": {
+                      "$ref": "#/$defs/id"
+                    },
+                    "membersFrom": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/$defs/id"
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "order": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "targets",
+            "occurrences",
+            "relations",
+            "points",
+            "lines"
+          ],
+          "properties": {
+            "targets": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/id"
+              }
+            },
+            "occurrences": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/id"
+              }
+            },
+            "relations": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/id"
+              }
+            },
+            "points": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/id"
+              }
+            },
+            "lines": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/id"
+              }
+            },
+            "axisOccurrences": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/id"
+              }
+            },
+            "boundaryMembers": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/id"
+              }
+            }
+          }
+        }
+      }
+    },
+    "journalEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sequence",
+        "at",
+        "action",
+        "operation",
+        "affected",
+        "changes"
+      ],
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "action": {
+          "enum": [
+            "edit",
+            "undo",
+            "redo"
+          ]
+        },
+        "operation": {
+          "type": "string"
+        },
+        "affected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "targets",
+            "occurrences",
+            "relations"
+          ],
+          "properties": {
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "occurrences": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "relations": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "changes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "scope",
+              "path"
+            ],
+            "properties": {
+              "scope": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              },
+              "before": {},
+              "after": {}
+            },
+            "anyOf": [
+              {
+                "required": [
+                  "before"
+                ]
+              },
+              {
+                "required": [
+                  "after"
+                ]
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

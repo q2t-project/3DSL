@@ -49,7 +49,7 @@
     "fix:guards": "node scripts/guard/fix.mjs",
     "generate:sitemap": "node scripts/tool/generate-sitemap.mjs",
     "new:library-item": "node ../../packages/3dss-content/scripts/new-library-item.mjs",
-    "prebuild": "npm run sync:all && npm run check:route-collisions && npm run check:boundary && npm run check:pages:no-raw-html && node scripts/tool/generate-sitemap.mjs && npm run validate:3dss:canonical && node scripts/guard/prebuild.mjs",
+    "prebuild": "npm run sync:all && npm run check:reconstruction-preview && npm run check:adsense-policy && npm run check:route-collisions && npm run check:boundary && npm run check:pages:no-raw-html && node scripts/tool/generate-sitemap.mjs && npm run validate:3dss:canonical && node scripts/guard/prebuild.mjs",
     "precheck:release": "npm run sync:all",
     "precheck:ssot": "npm run sync:all",
     "precheck:viewer:regression": "npm run sync:all",
@@ -57,7 +57,8 @@
     "preview": "astro preview",
     "rename:library-id": "node scripts/tool/rename-library-id.mjs",
     "sync:3dss-content": "node ../../packages/3dss-content/scripts/build-3dss-content-dist.mjs && node scripts/sync/3dss-content.mjs",
-    "sync:all": "npm run sync:3dss-content && npm run sync:schemas && npm run sync:viewer && npm run sync:modeler && npm run sync:vendor && npm run sync:docs",
+    "sync:all": "npm run sync:3dss-content && npm run sync:schemas && npm run sync:viewer && npm run sync:modeler && npm run sync:vendor && npm run sync:docs && npm run sync:reconstruction-preview",
+    "sync:reconstruction-preview": "node scripts/sync/reconstruction-preview.mjs",
     "sync:docs": "node scripts/sync/docs.mjs",
     "sync:modeler": "node scripts/sync/modeler.mjs",
     "sync:schemas": "node scripts/sync/schemas.mjs",
@@ -69,7 +70,11 @@
     "validate:3dss:baseline": "node scripts/validate/3dss.mjs public/3dss/scenes/default/default.3dss.json public/schemas/3DSS.schema.json",
     "validate:3dss:canonical": "node scripts/validate/3dss-canonical.mjs",
     "validate:3dss:fixtures:ref": "node scripts/validate/3dss-fixtures.mjs --ref",
-    "validate:3dss:samples": "node scripts/validate/3dss-samples.mjs"
+    "validate:3dss:samples": "node scripts/validate/3dss-samples.mjs",
+    "check:reconstruction-preview": "node scripts/check/reconstruction-preview.mjs",
+    "check:adsense-policy": "node scripts/check/adsense-policy.mjs",
+    "check:site-publication": "node scripts/check/site-publication.mjs",
+    "postbuild": "npm run check:site-publication"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.6",

@@ -7,29 +7,76 @@
 
 export const ADSENSE_PUBLISHER_ID = 'ca-pub-3327629809463247';
 
+// Advertising stays OFF unless explicitly enabled at build time after review,
+// account settings and any required consent handling have been confirmed.
+// The verification meta and ads.txt are independent of ad serving.
+export const ADSENSE_SERVING_ENABLED = import.meta.env.PUBLIC_ADSENSE_SERVING_ENABLED === 'true';
+
 export type AdSlotKey = keyof typeof ADSENSE_SLOTS;
 
-// --- Application-time (review) plan ---
-// Keep the plan intentionally simple (stable for AdSense review):
-// - Ads ON:  /concept, /docs, /library
-// - Ads OFF: everything else (including /viewer, /app/*, /modeler, /canonical, /policy, /contact, etc.)
+// Publication policy: explanatory content and published work detail pages only.
+// Library index, Docs, applications, diagnostics and utility pages stay ad-free.
+// Hidden/test detail pages additionally opt out through Layout.adsenseEligible.
 export function shouldEnableAdsense(pathname: string): boolean {
   const p = (pathname || '/').split('#')[0].split('?')[0];
-  if (p === '/concept' || p.startsWith('/concept/')) return true;
-  if (p === '/docs' || p.startsWith('/docs/')) return true;
-  if (p === '/library' || p.startsWith('/library/')) return true;
-  return false;
+  return ADSENSE_SERVING_ENABLED
+    && (/^\/concept\/?$/.test(p) || /^\/library\/\d{6}[a-z0-9]{2}\/?$/i.test(p));
 }
 
 export function isNoAdsRequest(url?: URL | null): boolean {
   if (!url) return false;
   const sp = url.searchParams;
   const isTruthy = (k: string) => {
-    const v = (sp.get(k) ?? '').toLowerCase();
+    const v = (sp.get(k) ?? '').trim().toLowerCase();
     return v === '1' || v === 'true' || v === 'yes';
   };
   // `swipe=1` is used by the behind-the-scenes preview iframe.
   return isTruthy('noads') || isTruthy('embed') || isTruthy('swipe');
+}
+
+// Static Astro frontmatter cannot see the visitor's query parameters or frame.
+// Use this same gate BEFORE inserting either Google's script or live ad slots.
+// The exact origin also keeps Cloudflare Preview, localhost and mirrors ad-free.
+export function canRequestAdsense(url: URL, isTopLevel: boolean, pageEligible: boolean): boolean {
+  return url.origin === 'https://3dsl.jp'
+    && isTopLevel
+    && pageEligible
+    && shouldEnableAdsense(url.pathname)
+    && !isNoAdsRequest(url);
+}
+
+export function initAdsense(doc: Document = document, win: Window = window): void {
+  const pageEligible = doc.querySelector('meta[name="google-adsense-account"]')
+    ?.getAttribute('data-3dsl-adsense-eligible') === '1';
+  if (!canRequestAdsense(new URL(win.location.href), win.self === win.top, pageEligible)) return;
+
+  const start = () => {
+    // Only this initializer may turn the inert slot templates into live ads.
+    if (doc.querySelector('script[data-3dsl-adsense]')) return;
+    const script = doc.createElement('script');
+    script.async = true;
+    script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_PUBLISHER_ID}`;
+    script.crossOrigin = 'anonymous';
+    script.setAttribute('data-3dsl-adsense', '1');
+    doc.head.appendChild(script);
+
+    const activateVisibleSlots = () => {
+      for (const template of doc.querySelectorAll<HTMLTemplateElement>('template[data-3dsl-ad-slot]')) {
+        const wrapper = template.parentElement;
+        // Mobile/desktop variants can be hidden by CSS. Never request a hidden slot.
+        if (!wrapper || wrapper.getBoundingClientRect().width <= 0) continue;
+        template.replaceWith(template.content.cloneNode(true));
+        const adWindow = win as Window & { adsbygoogle?: unknown[] };
+        adWindow.adsbygoogle = adWindow.adsbygoogle || [];
+        adWindow.adsbygoogle.push({});
+      }
+    };
+    activateVisibleSlots();
+    // A layout change can reveal the other existing mobile/desktop placement.
+    win.addEventListener('resize', activateVisibleSlots, { passive: true });
+  };
+  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start, { once: true });
+  else start();
 }
 
 // Create TWO display units in AdSense and set their slot IDs via env:
