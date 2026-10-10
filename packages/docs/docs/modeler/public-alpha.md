@@ -3,6 +3,9 @@ title: Modeler Public Alpha
 ---
 
 # Modeler Public Alpha（試験公開）
+
+このページは従来の `/app/modeler` 向けの案内です。新しい制作・閲覧入口（r0.5）の作品一式の保存と再開は、[作る・保存する・開き直す](/docs/usage/create-save-read)を参照してください。
+
 - 検索エンジン向けの `noindex` は **Public Alpha（M1）期間のみ**。外すのは **Public Beta（M2）到達後**（もしくは Stable 公開時）に固定する。
 
 このページは **3DSL Modeler（/app/modeler）** の試験公開向け案内です。  

@@ -272,7 +272,10 @@ const thirdParty = Array.isArray(rights?.third_party)
   : [];
 ---
 
-<Layout title={seoTitle} description={seoDescription}>
+<Layout title={seoTitle} description={seoDescription} adsenseEligible={item.hidden !== true}>
+  <Fragment slot="head">
+    {item.hidden === true && <meta name="robots" content="noindex" />}
+  </Fragment>
   <div class="mx-auto max-w-[1200px] px-4 py-6">
     <div class="text-sm text-neutral-500">
       <a href="/library" class="hover:underline">Library</a>

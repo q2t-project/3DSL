@@ -106,6 +106,7 @@ async function readLibraryIndex() {
     const j = JSON.parse(raw);
     const items = Array.isArray(j?.items) ? j.items : [];
     return items
+      .filter((it) => it?.hidden !== true)
       .map((it) => ({
         slug: typeof it?.slug === "string" ? it.slug : null,
         updated_at: typeof it?.updated_at === "string" ? it.updated_at : null,

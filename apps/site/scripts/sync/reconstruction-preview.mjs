@@ -28,6 +28,13 @@ async function rewrite(directory) {
 }
 
 await rewrite(target);
+// Site documentation is available only in the hosted package. Preserve the
+// standalone ZIP's self-contained navigation and add this link while syncing.
+for (const name of ['RECONSTRUCTION.html', 'OPEN_MODELS.html']) {
+  const file = path.join(target, name);
+  const html = await readFile(file, 'utf8');
+  await writeFile(file, html.replace('</h1>', '</h1>\n<p><a href="/docs/usage/create-save-read">作る・保存する・開き直す — 形式と未適用入力の扱い</a></p>'));
+}
 // Disk-backed diagnostics depend on the Python launcher and cannot run on
 // static hosting. Keep the local source intact; ship an explicit notice here.
 await cp(path.resolve(source, '../hosting/modeler-diagnostics.html'),
