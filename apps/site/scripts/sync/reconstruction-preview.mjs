@@ -8,7 +8,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const siteRoot = path.resolve(scriptDir, '../..');
 const source = path.resolve(siteRoot, '../../apps/reconstruction/ssot');
 const target = path.join(siteRoot, 'public/preview-reconstruction');
-const routes = /(?<![\p{L}\p{N}_.-])\/(viewer|modeler_app|contract_viewer|shared|models|schemas|vendor|RECONSTRUCTION\.html|OPEN_MODELS\.html)(?=\/|["'`?&#]|$)/gu;
+const routes = /(?<![\p{L}\p{N}_.-])\/(viewer|modeler_app|contract_viewer|shared|models|schemas|vendor|viewer_tuning\.css|RECONSTRUCTION\.html|OPEN_MODELS\.html)(?=\/|["'`?&#]|$)/gu;
 
 await rm(target, { recursive: true, force: true });
 await mkdir(path.dirname(target), { recursive: true });
@@ -28,4 +28,9 @@ async function rewrite(directory) {
 }
 
 await rewrite(target);
+// Disk-backed diagnostics depend on the Python launcher and cannot run on
+// static hosting. Keep the local source intact; ship an explicit notice here.
+await cp(path.resolve(source, '../hosting/modeler-diagnostics.html'),
+  path.join(target, 'modeler_app/ui/diagnostics/index.html'));
+await cp(path.join(target, 'RECONSTRUCTION.html'), path.join(target, 'index.html'));
 console.log('[sync] reconstruction preview -> site/public/preview-reconstruction');
