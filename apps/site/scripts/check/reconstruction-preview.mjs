@@ -7,10 +7,12 @@ const siteRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../
 const prefix = '/preview-reconstruction/';
 const root = path.resolve(siteRoot, 'public', prefix.slice(1));
 const origin = 'https://preview.invalid';
-// This explicit navigation link leaves the isolated app; assets must not.
-// Its generated HTML is checked after the site build.
+// These explicit navigation links leave the isolated app; assets must not.
+// Their generated HTML is checked after the site build.
 const siteDocumentLinks = new Map([
   ['/docs/usage/create-save-read', path.resolve(siteRoot, 'src/content/docs/usage/create-save-read.md')],
+  ['/docs/usage/read-a-work', path.resolve(siteRoot, 'src/content/docs/usage/read-a-work.md')],
+  ['/docs/works/knowledge-questions', path.resolve(siteRoot, 'src/content/docs/works/knowledge-questions.md')],
   ['/policy/content-usage', path.resolve(siteRoot, 'src/content/policy/content-usage.md')],
 ]);
 const errors = new Set();

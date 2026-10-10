@@ -1,83 +1,140 @@
 ---
 import Layout from '../layouts/Layout.astro';
 
-const title = 'Contact';
-const sent = Astro.url.searchParams.get('sent') === '1';
-
+const title = 'お問い合わせ | 3DSL';
 const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xnjnpgjp';
-const NEXT_URL = 'https://3dsl.jp/contact?sent=1';
 ---
 
-<Layout title={title} description="Contact the 3DSL site owner.">
+<Layout title={title} description="3DSLへのご意見、不具合報告、掲載内容や利用条件についてのお問い合わせを受け付けます。">
   <section class="max-w-3xl mx-auto px-4 py-12">
-    <h1 class="text-2xl font-semibold text-white">Contact</h1>
+    <h1 class="text-2xl font-semibold text-white">お問い合わせ</h1>
     <p class="mt-3 text-white/70">
       ご意見・不具合報告・掲載依頼などは、下のフォームからお送りください。
     </p>
 
-    {sent && (
-      <div class="mt-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-emerald-200">
-        送信ありがとうございます。
-      </div>
-    )}
+    <p class="mt-3 text-sm text-white/70 leading-7">
+      不具合の報告には、作品名・ページのURL・行った操作・起きた現象・端末とブラウザを、分かる範囲で本文に添えてください。
+    </p>
 
     <form
+      id="contact-form"
       class="mt-8 space-y-4"
       action={FORMSPREE_ENDPOINT}
       method="POST"
+      target="_blank"
+      rel="noopener"
     >
-      <input type="hidden" name="_next" value={NEXT_URL} />
-
+      <fieldset id="contact-fields" class="space-y-4">
       <div>
-        <label class="block text-sm text-white/70" for="email">Email</label>
+        <label class="block text-sm text-white/70" for="email">メールアドレス（必須）</label>
         <input
           id="email"
           name="email"
           type="email"
+          autocomplete="email"
+          aria-describedby="email-help"
           required
           class="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
           placeholder="you@example.com"
         />
+        <p id="email-help" class="mt-2 text-xs text-neutral-400">問い合わせへの返信先として使用します。</p>
       </div>
 
       <div>
-        <label class="block text-sm text-white/70" for="subject">Subject</label>
+        <label class="block text-sm text-white/70" for="subject">件名（任意）</label>
         <input
           id="subject"
           name="subject"
           type="text"
           class="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
-          placeholder="(optional)"
+          placeholder="例：作品の表示について"
         />
       </div>
 
       <div>
-        <label class="block text-sm text-white/70" for="message">Message</label>
+        <label class="block text-sm text-white/70" for="message">本文（必須）</label>
         <textarea
           id="message"
           name="message"
           required
           rows={8}
           class="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
-          placeholder="What's on your mind?"
+          placeholder="お問い合わせ内容を入力してください。"
         ></textarea>
       </div>
 
       <p class="mt-3 text-xs text-neutral-400">
         送信内容はフォーム送信サービス（Formspree）を経由して受け付けます。
-        送信により <a class="underline underline-offset-2 hover:text-white" href="/policy">ポリシー</a> に同意したものとみなします。
+        入力情報は問い合わせへの対応に使用します。<a class="underline underline-offset-2 hover:text-white" href="/policy">ポリシー</a>をご確認のうえ送信してください。
+      </p>
+      <p id="contact-send-help" class="text-sm text-white/70 leading-7">
+        送信すると受付サービスが別タブで開きます。確認画面や CAPTCHA（不正送信防止の確認）が表示された場合は、そこで操作を続け、受付結果を確認してください。このページには入力内容が残ります。同じ内容を重ねて送信しないよう、結果を確認してから次の操作を行ってください。
       </p>
 
       <button
+        id="contact-submit"
         type="submit"
-        class="inline-flex items-center justify-center rounded-xl bg-white text-neutral-900 px-5 py-2 text-sm font-medium hover:bg-white/90"
+        aria-describedby="contact-send-help"
+        class="inline-flex items-center justify-center rounded-xl bg-white text-neutral-900 px-5 py-2 text-sm font-medium hover:bg-white/90 disabled:opacity-50"
       >
-        Send
+        受付サービスの画面で送信
       </button>
+      </fieldset>
     </form>
 
-    <p class="mt-8 text-xs text-white/50">
-      送信内容は対応のためにのみ利用します。返信が必要な場合は、メールアドレスをご入力ください。
-    </p>
+    <p id="contact-status" class="mt-4 text-sm leading-7" role="status" aria-live="polite" aria-atomic="true" tabindex="-1" data-state="idle"></p>
+    <button id="contact-new" type="button" class="mt-4 rounded-xl border border-white/20 px-4 py-2 text-sm hover:bg-white/5" hidden>別タブの結果を確認して入力に戻る</button>
+    <noscript><p class="mt-4 text-sm text-white/70">JavaScript が無効でも送信できます。送信ボタンは一度だけ押し、別タブの受付結果を確認してください。</p></noscript>
   </section>
+
+  <script is:inline id="contact-form-handler">
+    (() => {
+      const form = document.getElementById('contact-form');
+      const submit = document.getElementById('contact-submit');
+      const status = document.getElementById('contact-status');
+      const restart = document.getElementById('contact-new');
+      const email = document.getElementById('email');
+      const message = document.getElementById('message');
+      if (!form || !submit || !status || !restart || !email || !message) return;
+      let handedOff = false;
+      const showStatus = (state, text, focus = false) => {
+        status.dataset.state = state;
+        status.textContent = text;
+        if (focus) status.focus();
+      };
+      message.addEventListener('input', () => message.setCustomValidity(''));
+      form.addEventListener('submit', (event) => {
+        if (handedOff) {
+          event.preventDefault();
+          return;
+        }
+        message.setCustomValidity(message.value.trim() ? '' : '本文を入力してください。');
+        if (!form.reportValidity()) {
+          event.preventDefault();
+          return;
+        }
+
+        // Keep native POST so Formspree can show its confirmation/CAPTCHA flow.
+        // Only the unnamed button is disabled: disabling fields would omit POST data.
+        // We cannot observe acceptance in the cross-origin tab, so never claim success here.
+        handedOff = true;
+        submit.disabled = true;
+        submit.textContent = '別タブで結果を確認してください';
+        restart.hidden = false;
+        showStatus('external', '受付結果は別タブの受付サービスで確認してください。このページでは受付完了を確認できません。入力内容は残っています。確認画面が開かない場合や通信が途切れた場合も、送信済みの可能性があります。自動再送は行いません。', true);
+      });
+      restart.addEventListener('click', () => {
+        if (!handedOff) return;
+        handedOff = false;
+        submit.disabled = false;
+        submit.textContent = '受付サービスの画面で送信';
+        restart.hidden = true;
+        showStatus('idle', '入力内容は残しています。受付済みの問い合わせは重ねて送らず、再送が必要な場合だけ送信してください。');
+        email.focus();
+      });
+    })();
+  </script>
+  <style>
+    #contact-status { color: #fde68a; }
+  </style>
 </Layout>
