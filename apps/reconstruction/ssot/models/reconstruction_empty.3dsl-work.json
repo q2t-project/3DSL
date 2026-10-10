@@ -1,0 +1,67 @@
+{
+  "format": "3dsl-contract-work/0.1",
+  "status": "draft",
+  "scene": {
+    "lines": [],
+    "points": [],
+    "aux": [],
+    "document_meta": {
+      "document_title": "新しい作品",
+      "document_uuid": "199c1cef-ef54-4e6d-9d83-bfac295a2605",
+      "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
+      "version": "1.1.4",
+      "author": "q2t",
+      "created_at": "2026-10-09T08:06:31Z",
+      "revised_at": "2026-10-09T08:06:31Z",
+      "units": "non_si:px",
+      "coordinate_system": "Z+up/freeXY"
+    }
+  },
+  "baselineScene": {
+    "lines": [],
+    "points": [],
+    "aux": [],
+    "document_meta": {
+      "document_title": "新しい作品",
+      "document_uuid": "199c1cef-ef54-4e6d-9d83-bfac295a2605",
+      "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
+      "version": "1.1.4",
+      "author": "q2t",
+      "created_at": "2026-10-09T08:06:31Z",
+      "revised_at": "2026-10-09T08:06:31Z",
+      "units": "non_si:px",
+      "coordinate_system": "Z+up/freeXY"
+    }
+  },
+  "contract": {
+    "format": "3dsl-authoring-contract/0.1",
+    "authority": "scene-anchor-and-boundary;contract-shared-values-and-offsets",
+    "fixture": "authored",
+    "targets": [],
+    "occurrences": [],
+    "relations": [],
+    "axis": null,
+    "boundary": null,
+    "draft": {
+      "inputs": [],
+      "pendingRelations": []
+    },
+    "sources": []
+  },
+  "baselineContract": {
+    "format": "3dsl-authoring-contract/0.1",
+    "authority": "scene-anchor-and-boundary;contract-shared-values-and-offsets",
+    "fixture": "authored",
+    "targets": [],
+    "occurrences": [],
+    "relations": [],
+    "axis": null,
+    "boundary": null,
+    "draft": {
+      "inputs": [],
+      "pendingRelations": []
+    },
+    "sources": []
+  },
+  "attachments": {}
+}

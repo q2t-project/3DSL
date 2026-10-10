@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3DSL 作品を開く — r0.5</title>
+<style>body{font:17px/1.8 system-ui,sans-serif;max-width:880px;margin:40px auto;padding:0 24px;color:#e7edf6;background:#111924}h1{line-height:1.35}a{color:#8cd0ff}li{margin:18px 0}small{display:block;color:#b8c6d5}.lead{padding:18px;border:1px solid #486584;border-radius:9px}.lead a{font-size:20px}code{font-size:.95em}summary{cursor:pointer}</style>
+<h1>3DSL 作品を開く <small>制作から閲覧へ r0.5</small></h1>
+<p>Modelerで制作し、作品一式を保存。Viewerで図と情報を読み、編集は元のModelerタブで続けられます。</p>
+<p class="lead"><a target="_blank" rel="noopener" href="/modeler_app/index.html">新しく制作する — Modeler</a><small>開いた画面の「新規」から始めます。保存した作品の続きを作るときは「開く…」を使います。</small></p>
+<p class="lead"><a target="_blank" rel="noopener" href="/contract_viewer/index.html">保存した作品を読む — Viewer</a><small>「開く…」から、保存した作品一式を選びます。新旧の対応済み作品一式・図だけの3DSSを読めます。</small></p>
+<section id="usage">
+<h2>制作・保存・閲覧の流れ</h2>
+<ol>
+<li>Modelerの「新規」から制作します。Pで点、Lで作成途中の関係を追加し、右のプロパティで編集します。</li>
+<li>「保存」で作品一式 <code>.3dsl-work.json</code> を好きなフォルダーに保存します。制作途中も一式に保持します。</li>
+<li>Modeler上部の「Viewerで読む」で、現在の作品の写しを新しいタブに開きます。保存前の内容も確認できます。この操作はファイル保存ではありません。</li>
+</ol>
+<p>Viewerは開いた時点の写しを読みます。Modelerの後の編集は自動同期しません。更新後は、元のModelerタブで再び「Viewerで読む」を押してください。編集を続けるときも元のタブへ戻ります。</p>
+<p>保存済みファイルを読むときは、Viewerの「開く…」から任意のフォルダーの作品を選べます。「図を書き出す」や <code>models</code> フォルダーへの移動は不要です。</p>
+<p>「別窓表示」は制作側のプレビューです。作品の情報や草稿を読むときは「Viewerで読む」を使います。Viewerでは作品の編集・保存を行いません。</p>
+</section>
+<h2>サンプルを開く</h2>
+<p><a target="_blank" rel="noopener" href="/contract_viewer/index.html?model=/models/knowledge_questions.3dsl-work.json">Viewerで読む — 知識と問い</a> ／ <a target="_blank" rel="noopener" href="/modeler_app/index.html?model=/models/knowledge_questions.3dsl-work.json">Modelerで開く — 知識と問い</a><small>図で選んで情報を読み、接続先へ辿って元の場所へ戻れます。閲覧操作はViewerの「操作ヘルプ」から確認できます。</small></p>
+<details><summary>確認例・自動検査</summary><ul>
+<li><a target="_blank" href="/contract_viewer/diagnostics/index.html">Viewerの自動検査</a><small>必要時の診断用。合成1,000点・2,000線と既存の作品例を別の検査画面で自動確認します。今回の利用開始のための再実行は不要です。</small></li>
+<li><a target="_blank" href="/contract_viewer/index.html?model=/models/reconstruction_F1.3dsl-work.json">F1 同じ対象の二つの出現</a></li>
+<li><a target="_blank" href="/contract_viewer/index.html?model=/models/reconstruction_F2.3dsl-work.json">F2 参与役割と関係への参照</a></li>
+<li><a target="_blank" href="/contract_viewer/index.html?model=/models/reconstruction_F3.3dsl-work.json">F3 位置と意味ある境界</a></li>
+<li><a target="_blank" href="/contract_viewer/index.html?model=/models/reconstruction_F4.3dsl-work.json">F4 作業途中と原資料</a></li>
+<li><a target="_blank" href="/modeler_app/ui/diagnostics/index.html">Modelerの既存検査</a><small>以前の合格を継承。今回の閲覧確認のための再実行は不要です。</small></li>
+</ul></details>
+<details><summary>同じ図を二つの画面で開く</summary><ul>
+<li><a target="_blank" href="/contract_viewer/index.html?model=/models/knowledge_questions_baseline.3dss.json">図だけをViewerで開く — 主教材</a><small>検索・情報欄付き。同じ主教材の3DSSを開きます。</small></li>
+<li><a target="_blank" href="/viewer/index.html?model=/models/knowledge_questions_baseline.3dss.json&amp;noads=1">従来画面で同じ図を開く — 主教材</a><small>従来の全画面表示。検索・情報欄はありません。</small></li>
+</ul></details>
+<p><a href="/OPEN_MODELS.html">モデル一覧・従来画面との比較</a></p>
+<script>if(location.protocol==='file:'){document.querySelectorAll('a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();alert('ZIPをすべて展開し、START_RECONSTRUCTION.cmd をダブルクリックしてください。');}));}</script>
+</html>

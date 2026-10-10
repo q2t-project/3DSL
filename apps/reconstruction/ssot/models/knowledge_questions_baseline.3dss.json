@@ -1,0 +1,8570 @@
+{
+  "document_meta": {
+    "document_title": "知識と問いの配置 — 全体・光速度・整列",
+    "document_summary": "Proj3統合モデルv0.3の既存読解を、一般構成と二つの具体的経路に移した限定作品。frame 0全体、1光速度、2整列。frameは表示範囲であり時間ではない。",
+    "document_uuid": "d2263bd7-22a0-5bed-9fab-697ea789f543",
+    "version": "1.1.4",
+    "created_at": "2026-10-04T05:00:00Z",
+    "revised_at": "2026-10-09T05:25:19Z",
+    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
+    "author": "q2t",
+    "coordinate_system": "Z+up/freeXY",
+    "units": "non_si:px",
+    "i18n": "ja",
+    "tags": [
+      "x:knowledge-placement",
+      "s:proj4"
+    ],
+    "reference": "Knowledge_Questions_Placement_Integrated_Model_v0.3_2026-10-03.md; sections 1,3,4,5,12.",
+    "creator_memo": "Relation-only correction 2026-10-09: removed 116 decorative border lines; retained all relationship lines, points and source records. Built from fixed C1 requirements. Meaning IDs and geometric occurrences are paired in display_map.json; no schema extension. Source edition and section scopes retain the source document limitations. No live source or classification verification."
+  },
+  "points": [
+    {
+      "appearance": {
+        "position": [
+          -0.0,
+          -1.0,
+          176.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "知識と問いの配置",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 9,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "37799bb1-98ca-550a-98af-31943fd4dc8c",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "reading-guide; occurrence=title; meaning=title"
+      },
+      "signification": {
+        "name": "知識と問いの配置"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          152.0,
+          0.0,
+          122.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "00ba48c3-e824-5b98-9879-5a3bae044c4f",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=g:q; meaning=general:question-series"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          152.0,
+          -1.0,
+          122.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#72d5ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "問い系列",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.611999999999999,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "da597c46-4cc2-561f-9747-494ce20287b8",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=g:q:text0; meaning=general:question-series"
+      },
+      "signification": {
+        "name": "問い系列"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          76.0,
+          0.0,
+          122.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "9c8bcea9-3d9b-5e2f-8f72-78b91524eea3",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=g:v; meaning=general:issue-version"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          76.0,
+          -1.0,
+          125.6
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#72d5ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "論点版",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.611999999999999,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "fb5d32af-ad5e-5eeb-bce4-778755957371",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=g:v:text0; meaning=general:issue-version"
+      },
+      "signification": {
+        "name": "論点版"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          76.0,
+          -1.0,
+          118.39999999999999
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "範囲・活動を限定",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.611999999999999,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "65fef120-2e85-5224-af0a-0312104eb128",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=g:v:text1; meaning=general:issue-version"
+      },
+      "signification": {
+        "name": "範囲・活動を限定"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -0.0,
+          0.0,
+          122.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "b66c3358-6506-55b3-82ff-4b2a51e00051",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=g:a; meaning=general:answer"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -0.0,
+          -1.0,
+          122.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#72d5ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "回答・主張",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.611999999999999,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "a820b9be-7aaa-5a1c-a93a-dce7314fe85b",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=g:a:text0; meaning=general:answer"
+      },
+      "signification": {
+        "name": "回答・主張"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -76.0,
+          0.0,
+          122.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "e38a4bca-14e5-504d-9063-01ba1cd82e1b",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=g:s; meaning=general:source-part"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -76.0,
+          -1.0,
+          122.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#8cdec2",
+            "opacity": 1
+          },
+          "text": {
+            "content": "資料の部分",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.611999999999999,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "81571897-da77-55ef-8728-6c8506e8c446",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=g:s:text0; meaning=general:source-part"
+      },
+      "signification": {
+        "name": "資料の部分"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -152.0,
+          0.0,
+          122.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "27b9366b-fae8-5c33-9fc1-f553cfedb41f",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=g:d; meaning=general:source-edition"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -152.0,
+          -1.0,
+          122.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#8cdec2",
+            "opacity": 1
+          },
+          "text": {
+            "content": "資料版",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.611999999999999,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "13e8bd9e-f900-536e-bd94-333f6eb84eef",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=g:d:text0; meaning=general:source-edition"
+      },
+      "signification": {
+        "name": "資料版"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          76.0,
+          0.0,
+          77.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "13c832d7-8d75-5611-8c77-ad7b8086b051",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=g:p; meaning=general:properties"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          76.0,
+          -1.0,
+          77.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ffd37b",
+            "opacity": 1
+          },
+          "text": {
+            "content": "対象・方法・成果・規準",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.611999999999999,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "f5c0ba6a-e4e5-5e03-9baa-5d003b241a4b",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=g:p:text0; meaning=general:properties"
+      },
+      "signification": {
+        "name": "対象・方法・成果・規準"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -54.0,
+          0.0,
+          77.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "da4427f6-7e64-551f-80ce-7d8865cec723",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=g:c; meaning=general:assignment"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -54.0,
+          -1.0,
+          77.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#c6b0ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "資料への分類付与",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.002,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "79581630-c899-5e96-ba8b-42a480edad83",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=g:c:text0; meaning=general:assignment"
+      },
+      "signification": {
+        "name": "資料への分類付与"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -152.0,
+          0.0,
+          77.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "880d1545-989a-50c7-86c4-7bdbe71fd599",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=g:n; meaning=general:class-item"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -152.0,
+          -1.0,
+          77.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#c6b0ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "分類表の項目・版",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.002,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "0f98c364-61ae-51cc-b15b-a763672bdfc3",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=g:n:text0; meaning=general:class-item"
+      },
+      "signification": {
+        "name": "分類表の項目・版"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          122.5,
+          0.0,
+          122.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "451f82cc-aeb3-525c-a34f-d3f5b244c19d",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=g:q:port:right; meaning=general:question-series"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          106.5,
+          0.0,
+          122.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "b85293e3-78bb-5e81-a75a-3dc1b4969dd4",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=g:v:port:left; meaning=general:issue-version"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          45.5,
+          0.0,
+          122.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "5d2323d3-7d59-5301-8b07-b7526a78692b",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=g:v:port:right; meaning=general:issue-version"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          29.0,
+          0.0,
+          122.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "8c822f5d-1e50-5fab-a85b-07988722e881",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=g:a:port:left; meaning=general:answer"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -47.0,
+          0.0,
+          122.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "67552d01-aa82-534e-bd99-e6f27a2c5cb0",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=g:s:port:left; meaning=general:source-part"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -29.0,
+          0.0,
+          122.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "a7cdb042-d8b5-59f3-9f77-55b50a540c0a",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=g:a:port:right; meaning=general:answer"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -105.0,
+          0.0,
+          122.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "61db179a-bf64-5ec4-9f47-d8314ee3b246",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=g:s:port:right; meaning=general:source-part"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -122.5,
+          0.0,
+          122.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "7e121863-3f8b-5493-a4f9-5e8ecb7bb0d3",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=g:d:port:left; meaning=general:source-edition"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          76.0,
+          0.0,
+          110.8
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "bf890a8f-c415-5103-acdc-e09479aea41c",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=g:v:port:bottom; meaning=general:issue-version"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          76.0,
+          0.0,
+          84.6
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "216276de-ad96-5dce-ae18-824f63d577e7",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=g:p:port:top; meaning=general:properties"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -76.0,
+          0.0,
+          129.6
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "92317dd0-8c39-5781-bf35-487ea3597f75",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=g:s:port:top; meaning=general:source-part"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          76.0,
+          0.0,
+          133.2
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "6ea2e114-4704-543f-ac6f-e966e2e90af9",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=g:v:port:top; meaning=general:issue-version"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -152.0,
+          0.0,
+          114.4
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "1a34f9e5-3a56-56b3-a6db-20d57304f7f8",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=g:d:port:bottom; meaning=general:source-edition"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -54.0,
+          0.0,
+          84.6
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "216f4ba9-9ddb-5448-aba7-3e211e74376a",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=g:c:port:top; meaning=general:assignment"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -89.0,
+          0.0,
+          77.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "d8e9458a-826a-5899-b4fa-c11c783509bc",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=g:c:port:right; meaning=general:assignment"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -119.0,
+          0.0,
+          77.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "70060747-1fbf-5907-9c6f-782d96467c9f",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=g:n:port:left; meaning=general:class-item"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -0.0,
+          -1.0,
+          162.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#a5b9d5",
+            "opacity": 1
+          },
+          "text": {
+            "content": "上段は一般構成。下段の個別記録すべてに分類が確認済み、という意味ではない。",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 3.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "df9e5112-f4f1-5caa-bdbf-da892945c894",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "reading-guide; occurrence=general-note; meaning=general-note"
+      },
+      "signification": {
+        "name": "上段は一般構成。下段の個別記録すべてに分類が確認済み、という意味ではない。"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -0.0,
+          -1.0,
+          39.0
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "表示 0 ｜ 全体から二つの読解経路へ",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.6,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "099ec44a-c502-59ca-91d8-7fb2291c7d7e",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "reading-guide; occurrence=f0:title; meaning=f0:title"
+      },
+      "signification": {
+        "name": "表示 0 ｜ 全体から二つの読解経路へ"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          97.0,
+          0.0,
+          13.0
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "101a3839-02c1-5140-9c1a-8d943b29045d",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=o:ql; meaning=Q-L"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          97.0,
+          -1.0,
+          16.6
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#72d5ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "Q-L 光速度の値",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.49,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "92a29b4f-1518-5246-ac38-3359e2c1adce",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=o:ql:text0; meaning=Q-L"
+      },
+      "signification": {
+        "name": "Q-L 光速度の値"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          97.0,
+          -1.0,
+          9.400000000000002
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "SIにおける真空中の光速度",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.49,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "97abe495-8a80-56e2-870a-ba18fefb45b1",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=o:ql:text1; meaning=Q-L"
+      },
+      "signification": {
+        "name": "SIにおける真空中の光速度"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          143.0,
+          0.0,
+          -34.0
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "f9a3b170-850b-5c70-b7f3-088ee5e1efb4",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=o:l75; meaning=L75"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          143.0,
+          -1.0,
+          -30.4
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#72d5ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "L75 1975年",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.368,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "fc51f4d1-fc6b-5a47-8f48-0a7e5e6e01ea",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=o:l75:text0; meaning=L75"
+      },
+      "signification": {
+        "name": "L75 1975年"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          143.0,
+          -1.0,
+          -37.6
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "値を勧告する",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.368,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "89a6dedb-e806-5c3f-8fc0-fbd3cb81e2e1",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=o:l75:text1; meaning=L75"
+      },
+      "signification": {
+        "name": "値を勧告する"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          50.0,
+          0.0,
+          -34.0
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "43ed7582-a0df-5157-9144-51c8462614f8",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=o:l83; meaning=L83"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          50.0,
+          -1.0,
+          -30.4
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#72d5ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "L83 1983年",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.002,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "74a2f4cf-0591-5546-bcfc-26c27d61a138",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=o:l83:text0; meaning=L83"
+      },
+      "signification": {
+        "name": "L83 1983年"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          50.0,
+          -1.0,
+          -37.6
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "メートルの定義",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.002,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "502386a2-82ce-54db-b43a-2421fae91fd4",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=o:l83:text1; meaning=L83"
+      },
+      "signification": {
+        "name": "メートルの定義"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          97.0,
+          0.0,
+          1.8000000000000007
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "9292db35-4e61-5919-946d-1feb97a148dd",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=o:ql:port:bottom; meaning=Q-L"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          143.0,
+          0.0,
+          -22.8
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "6f1c8c5d-71d2-5eff-b977-c976747064b9",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=o:l75:port:top; meaning=L75"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          50.0,
+          0.0,
+          -22.8
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "1903b5e5-f60e-5a23-8f08-707237abe4ec",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=o:l83:port:top; meaning=L83"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          143.0,
+          0.0,
+          -79.0
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "33b00ce8-1993-5d5c-9173-e51fc5da6dcd",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=o:a75; meaning=A75"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          143.0,
+          -1.0,
+          -75.4
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ffd37b",
+            "opacity": 1
+          },
+          "text": {
+            "content": "299792458 m/s",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.368,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "d69ac8b3-7571-5ffa-946d-491e903f1894",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=o:a75:text0; meaning=A75"
+      },
+      "signification": {
+        "name": "299792458 m/s"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          143.0,
+          -1.0,
+          -82.60000000000001
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "勧告値",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.368,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "3a700c90-495f-5d13-9c52-cb392e26d1c5",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=o:a75:text1; meaning=A75"
+      },
+      "signification": {
+        "name": "勧告値"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          50.0,
+          0.0,
+          -79.0
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "b5fd6a50-7623-5319-a075-9aaadc5c1845",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=o:a83; meaning=A83"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          50.0,
+          -1.0,
+          -75.4
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ffd37b",
+            "opacity": 1
+          },
+          "text": {
+            "content": "299792458 m/s",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.368,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "616c1a49-4daf-5941-9fcd-1fc4b4daeab5",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=o:a83:text0; meaning=A83"
+      },
+      "signification": {
+        "name": "299792458 m/s"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          50.0,
+          -1.0,
+          -82.60000000000001
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "定義への入力",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.368,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "ef3106a4-a407-55a4-87fc-8c610bcec742",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=o:a83:text1; meaning=A83"
+      },
+      "signification": {
+        "name": "定義への入力"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          143.0,
+          0.0,
+          -45.2
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "feb2db6a-7ea3-5d9c-8e05-359f528ffa80",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=o:l75:port:bottom; meaning=L75"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          143.0,
+          0.0,
+          -67.8
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "0e43c5fe-279e-5c0f-96d6-67a119a8193c",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=o:a75:port:top; meaning=A75"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          50.0,
+          0.0,
+          -45.2
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "803dcf9c-eb44-5764-a310-f23565066058",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=o:l83:port:bottom; meaning=L83"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          50.0,
+          0.0,
+          -67.8
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "9b2c6d96-0208-5237-be9b-7100ec1c6ca8",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=o:a83:port:top; meaning=A83"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          97.0,
+          -1.0,
+          -112.0
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#8cdec2",
+            "opacity": 1
+          },
+          "text": {
+            "content": "S75 / S83 の根拠と同系列の理由 → 表示 1",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 3.9,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "ffde1c96-d208-5a6f-8dc2-443845755c92",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "reading-guide; occurrence=o:light-footer; meaning=o:light-footer"
+      },
+      "signification": {
+        "name": "S75 / S83 の根拠と同系列の理由 → 表示 1"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -102.0,
+          0.0,
+          13.0
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "f307d785-792f-5287-ba7d-3f95e2a8fb06",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=o:d02; meaning=D02"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -102.0,
+          -1.0,
+          13.0
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#72d5ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "D02 整列（手続き）",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.856,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "ef352ca4-b142-5cae-bb01-0d4a492c4347",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=o:d02:text0; meaning=D02"
+      },
+      "signification": {
+        "name": "D02 整列（手続き）"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -102.0,
+          0.0,
+          -25.0
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "aa871d2c-25cf-557c-8ef4-3496e37dcde3",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=o:part; meaning=B02:chapters-6-8"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -102.0,
+          -1.0,
+          -25.0
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#8cdec2",
+            "opacity": 1
+          },
+          "text": {
+            "content": "B02 第6〜8章",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.611999999999999,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "1b98cc08-4666-5b74-ae2c-7599c1e3bdd3",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=o:part:text0; meaning=B02:chapters-6-8"
+      },
+      "signification": {
+        "name": "B02 第6〜8章"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -102.0,
+          0.0,
+          -63.0
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "d87f6a4f-beba-5341-ad31-036d3fc324d9",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=o:book; meaning=B02"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -102.0,
+          -1.0,
+          -63.0
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#8cdec2",
+            "opacity": 1
+          },
+          "text": {
+            "content": "B02 第4版総合版2024年",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.2459999999999996,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "62af52e7-707a-56b7-a9f5-9a5cc4ecf1fd",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=o:book:text0; meaning=B02"
+      },
+      "signification": {
+        "name": "B02 第4版総合版2024年"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -102.0,
+          0.0,
+          -103.0
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "abdc31ff-b3e2-5fdb-8a68-9b8e4b2648f0",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=o:class; meaning=NDC10:007.64"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -102.0,
+          -1.0,
+          -99.4
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#c6b0ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "資料全体への付与を介す",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.368,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "73a95405-ebc0-511f-b8a4-01a8f5a8659a",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=o:class:text0; meaning=NDC10:007.64"
+      },
+      "signification": {
+        "name": "資料全体への付与を介す"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -102.0,
+          -1.0,
+          -106.60000000000001
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "NDC10 007.64",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.368,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "2614d02d-9b19-5c1f-86e0-2788e3332075",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=o:class:text1; meaning=NDC10:007.64"
+      },
+      "signification": {
+        "name": "NDC10 007.64"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -102.0,
+          0.0,
+          5.4
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "cd3b90f9-3d2b-5d49-a52f-d3d7b0204ef5",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=o:d02:port:bottom; meaning=D02"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -102.0,
+          0.0,
+          -17.4
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "3385a825-846e-5469-9ac1-e5a7c54b1b2d",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=o:part:port:top; meaning=B02:chapters-6-8"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -102.0,
+          0.0,
+          -32.6
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "303ae39d-6cc6-5693-ae4d-00361fde1227",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=o:part:port:bottom; meaning=B02:chapters-6-8"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -102.0,
+          0.0,
+          -55.4
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "8fae4962-d367-5888-a034-528b2d801bf1",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=o:book:port:top; meaning=B02"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -102.0,
+          0.0,
+          -70.6
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "45cd3ca2-675b-5a7e-bf70-30ac6181628c",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=o:book:port:bottom; meaning=B02"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -102.0,
+          0.0,
+          -91.8
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "f51418a9-f72a-5036-9ffd-850a84a41e7b",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=o:class:port:top; meaning=NDC10:007.64"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -102.0,
+          -1.0,
+          -132.0
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#c6b0ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "資料・機関・分類を順に辿る → 表示 2",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 3.9,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "2e8b2370-7cf4-530a-a4e2-ec101048ed20",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "reading-guide; occurrence=o:sort-footer; meaning=o:sort-footer"
+      },
+      "signification": {
+        "name": "資料・機関・分類を順に辿る → 表示 2"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          181.5,
+          0.0,
+          122.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "67786714-2130-5245-ad39-a73586bb39ad",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=g:q:port:left; meaning=general:question-series"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          179.5,
+          0.0,
+          13.0
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "46ced750-5dc4-5e45-ac29-74413b0167a0",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=o:ql:port:left; meaning=Q-L"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -102.0,
+          0.0,
+          20.6
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "c914b3bb-53b5-5c2a-8304-12f4d1e7dcba",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=o:d02:port:top; meaning=D02"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -0.0,
+          -1.0,
+          39.0
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "表示 1 ｜ 同じ数値でも、活動と回答の性格は異なる",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.6,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "595e8af5-b435-54a9-ba49-aafff6253589",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "reading-guide; occurrence=f1:title; meaning=f1:title"
+      },
+      "signification": {
+        "name": "表示 1 ｜ 同じ数値でも、活動と回答の性格は異なる"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -0.0,
+          0.0,
+          15.0
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "38da2dab-a028-50e9-b38b-a62c7a77b067",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=l:ql; meaning=Q-L"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -0.0,
+          -1.0,
+          15.0
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#72d5ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "Q-L  SIにおける真空中の光速度の値",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 6.2219999999999995,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "d07d40a2-d61d-5ebe-844e-d9c25ad64ff6",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=l:ql:text0; meaning=Q-L"
+      },
+      "signification": {
+        "name": "Q-L  SIにおける真空中の光速度の値"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          96.0,
+          0.0,
+          -27.0
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "8654035c-aef7-542c-bfde-c1b117503f38",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=l:l75; meaning=L75"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          96.0,
+          -1.0,
+          -19.8
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#72d5ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "L75  1975年",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.611999999999999,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "43f02472-dcf6-5c5b-8868-f3bf9369ca08",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=l:l75:text0; meaning=L75"
+      },
+      "signification": {
+        "name": "L75  1975年"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          96.0,
+          -1.0,
+          -27.0
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "値を勧告する",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.611999999999999,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "776f0e14-4dcc-5259-8ad6-a51352be93cc",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=l:l75:text1; meaning=L75"
+      },
+      "signification": {
+        "name": "値を勧告する"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          96.0,
+          -1.0,
+          -34.2
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "U支・E?・J主",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.611999999999999,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "2a1ee5e9-0641-5e7b-9a65-cdea52802f3a",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=l:l75:text2; meaning=L75"
+      },
+      "signification": {
+        "name": "U支・E?・J主"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          96.0,
+          0.0,
+          -78.0
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "6602a822-9003-5561-84e7-d0b41e616e05",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=l:a75; meaning=A75"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          96.0,
+          -1.0,
+          -74.4
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ffd37b",
+            "opacity": 1
+          },
+          "text": {
+            "content": "A75  299792458 m/s",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.856,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "197e5bf2-51d1-546a-8852-b96b1b51061e",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=l:a75:text0; meaning=A75"
+      },
+      "signification": {
+        "name": "A75  299792458 m/s"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          96.0,
+          -1.0,
+          -81.60000000000001
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "不確かさを伴う勧告値",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.856,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "78761d31-7a7f-5d79-87cf-83fca059cfea",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=l:a75:text1; meaning=A75"
+      },
+      "signification": {
+        "name": "不確かさを伴う勧告値"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          96.0,
+          0.0,
+          -125.0
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "0670645e-882e-5e41-823b-9d387044d760",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=l:s75; meaning=S75"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          96.0,
+          -1.0,
+          -121.4
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#8cdec2",
+            "opacity": 1
+          },
+          "text": {
+            "content": "S75  1975年CGPM決議2",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.611999999999999,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "0e1f03cd-6b16-52a0-9bd3-a12758f140a0",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=l:s75:text0; meaning=S75"
+      },
+      "signification": {
+        "name": "S75  1975年CGPM決議2"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          96.0,
+          -1.0,
+          -128.6
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "勧告部分",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.611999999999999,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "26db44e3-bc19-58ed-91a3-b7b82bf54bcb",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=l:s75:text1; meaning=S75"
+      },
+      "signification": {
+        "name": "勧告部分"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -0.0,
+          0.0,
+          6.5
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "5721f82f-4a7c-5ff8-9d1d-c26f54c9dfed",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=l:ql:port:bottom; meaning=Q-L"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          96.0,
+          0.0,
+          -12.2
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "8d1dddbe-bb36-5f93-b747-32657f598380",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=l:l75:port:top; meaning=L75"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          96.0,
+          0.0,
+          -41.8
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "3af24657-3ec4-5064-93d8-60709a935578",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=l:l75:port:bottom; meaning=L75"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          96.0,
+          0.0,
+          -62.5
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "db33c9de-7a65-597b-9f13-56347314fb2c",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=l:a75:port:top; meaning=A75"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          96.0,
+          0.0,
+          -93.5
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "84477ebf-e617-592b-be28-5adfd458ba20",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=l:a75:port:bottom; meaning=A75"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          96.0,
+          0.0,
+          -113.0
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "4b698f17-43e5-5de2-9c2e-8328010f2a28",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=l:s75:port:top; meaning=S75"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -96.0,
+          0.0,
+          -27.0
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "09a1a997-8e8d-5d65-b5dc-3022091bfa24",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=l:l83; meaning=L83"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -96.0,
+          -1.0,
+          -19.8
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#72d5ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "L83  1983年",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.611999999999999,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "971a1c6f-5fdd-5428-936a-dee0b905ec7f",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=l:l83:text0; meaning=L83"
+      },
+      "signification": {
+        "name": "L83  1983年"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -96.0,
+          -1.0,
+          -27.0
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "メートルの定義を決める",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.611999999999999,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "29b6962d-b676-5ec0-b236-7b80de2af8d3",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=l:l83:text1; meaning=L83"
+      },
+      "signification": {
+        "name": "メートルの定義を決める"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -96.0,
+          -1.0,
+          -34.2
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "U支・E支・J主",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.611999999999999,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "024cbbb2-5335-5d19-bf7a-f551c620636d",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=l:l83:text2; meaning=L83"
+      },
+      "signification": {
+        "name": "U支・E支・J主"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -96.0,
+          0.0,
+          -78.0
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "c5d71531-afa7-50ad-9e4e-ffb960bb27c8",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=l:a83; meaning=A83"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -96.0,
+          -1.0,
+          -70.8
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ffd37b",
+            "opacity": 1
+          },
+          "text": {
+            "content": "A83  299792458 m/s",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.856,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "65c92bed-ef7b-5ba8-b00c-156a89e66f8e",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=l:a83:text0; meaning=A83"
+      },
+      "signification": {
+        "name": "A83  299792458 m/s"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -96.0,
+          -1.0,
+          -78.0
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "同じ数値を定義へ用いる",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.856,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "29e4e936-36cf-535a-99ac-d2fa5c8452d0",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=l:a83:text1; meaning=A83"
+      },
+      "signification": {
+        "name": "同じ数値を定義へ用いる"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -96.0,
+          -1.0,
+          -85.2
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "単位を定める入力",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.856,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "3fa146ce-53b4-5a03-9c39-77697b64ac88",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=l:a83:text2; meaning=A83"
+      },
+      "signification": {
+        "name": "単位を定める入力"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -96.0,
+          0.0,
+          -125.0
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "1264db04-43a4-5c51-a832-5f48fce96f17",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=l:s83; meaning=S83"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -96.0,
+          -1.0,
+          -121.4
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#8cdec2",
+            "opacity": 1
+          },
+          "text": {
+            "content": "S83  1983年CGPM決議1",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.611999999999999,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "3f560afe-6a21-5ef9-a284-f8702df289fb",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=l:s83:text0; meaning=S83"
+      },
+      "signification": {
+        "name": "S83  1983年CGPM決議1"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -96.0,
+          -1.0,
+          -128.6
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "定義と1975年値への言及",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.611999999999999,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "1099be03-bb85-529d-8098-cc9b50ab5766",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=l:s83:text1; meaning=S83"
+      },
+      "signification": {
+        "name": "定義と1975年値への言及"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -96.0,
+          0.0,
+          -12.2
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "2998183c-0dde-50b9-a37e-46ca0b5e4e8c",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=l:l83:port:top; meaning=L83"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -96.0,
+          0.0,
+          -41.8
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "05b044d4-f0bc-584b-9cd2-f4c7d0b32814",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=l:l83:port:bottom; meaning=L83"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -96.0,
+          0.0,
+          -62.5
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "08e89f25-8360-5e8d-85fb-a110bb00447d",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=l:a83:port:top; meaning=A83"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -96.0,
+          0.0,
+          -93.5
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "d4bee27d-ad72-5d3c-9033-b6c54de2f8de",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=l:a83:port:bottom; meaning=A83"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -96.0,
+          0.0,
+          -113.0
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "2cbeda0c-9f68-523c-8020-56d29875debc",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=l:s83:port:top; meaning=S83"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -96.0,
+          0.0,
+          -137.0
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "f5cf0730-018c-5b95-8375-0d0fd0df6b06",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=l:s83:port:bottom; meaning=S83"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          96.0,
+          0.0,
+          -137.0
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "d2d24f9e-18d5-5569-8c83-6e93696656a4",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=l:s75:port:bottom; meaning=S75"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          160.0,
+          0.0,
+          15.0
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "b623149f-5fa0-52b3-bff9-f03f7d8e006d",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=l:ql:port:left; meaning=Q-L"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -0.0,
+          -1.0,
+          -163.0
+        ],
+        "frames": [
+          1
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#a5b9d5",
+            "opacity": 1
+          },
+          "text": {
+            "content": "同系列の根拠は資料の継承。値の一致だけから、同一活動・物理的変化は導かない。",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 3.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "a46ebb45-c1c2-5648-81a3-518dac6d1b6e",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "reading-guide; occurrence=l:warning; meaning=l:warning"
+      },
+      "signification": {
+        "name": "同系列の根拠は資料の継承。値の一致だけから、同一活動・物理的変化は導かない。"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -0.0,
+          -1.0,
+          39.0
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "表示 2 ｜ 整列から、資料全体に付いた分類へ",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.6,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "72652293-094b-5918-aad9-f990fafcd9c0",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "reading-guide; occurrence=f2:title; meaning=f2:title"
+      },
+      "signification": {
+        "name": "表示 2 ｜ 整列から、資料全体に付いた分類へ"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          111.0,
+          0.0,
+          5.0
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "56b20944-4cb6-5a72-897e-0e8faacf125d",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=s:d02; meaning=D02"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          111.0,
+          -1.0,
+          8.6
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#72d5ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "D02 整列（手続き）",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.856,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "47295a69-0601-5a3a-a72f-c47166191d95",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=s:d02:text0; meaning=D02"
+      },
+      "signification": {
+        "name": "D02 整列（手続き）"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          111.0,
+          -1.0,
+          1.3999999999999995
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "U支・E主・J外",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.856,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "6593b0b0-d1bd-567c-bbca-8fd81918cbf5",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=s:d02:text1; meaning=D02"
+      },
+      "signification": {
+        "name": "U支・E主・J外"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -99.0,
+          0.0,
+          5.0
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "2603a868-faf9-5d77-ab3a-91c221bf5a78",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=s:part; meaning=B02:chapters-6-8"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -99.0,
+          -1.0,
+          8.6
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#8cdec2",
+            "opacity": 1
+          },
+          "text": {
+            "content": "B02 第6〜8章",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.856,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "ea6a775a-7334-5e83-b405-4368584554af",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=s:part:text0; meaning=B02:chapters-6-8"
+      },
+      "signification": {
+        "name": "B02 第6〜8章"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -99.0,
+          -1.0,
+          1.3999999999999995
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "整列の関連部分",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.856,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "bbe9b0d9-4094-594a-a37a-72a518329b85",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=s:part:text1; meaning=B02:chapters-6-8"
+      },
+      "signification": {
+        "name": "整列の関連部分"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -99.0,
+          0.0,
+          -44.0
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "f2a1ae0b-b2d4-5396-ba3b-082fdc31e0f6",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=s:book; meaning=B02"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -99.0,
+          -1.0,
+          -40.4
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#8cdec2",
+            "opacity": 1
+          },
+          "text": {
+            "content": "B02 第4版総合版2024年",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.611999999999999,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "19b1acbe-3e5e-50c9-9940-49272bbb18a1",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=s:book:text0; meaning=B02"
+      },
+      "signification": {
+        "name": "B02 第4版総合版2024年"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -99.0,
+          -1.0,
+          -47.6
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "付与対象：この資料全体",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.611999999999999,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "ee9f2fb1-c522-59bd-b5d4-61a62887450b",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=s:book:text1; meaning=B02"
+      },
+      "signification": {
+        "name": "付与対象：この資料全体"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -99.0,
+          0.0,
+          -98.0
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "544508c2-d57d-5e40-8911-d2d8e15a3169",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=s:assignment; meaning=assignment:B02:1154693774"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -99.0,
+          -1.0,
+          -90.8
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#c6b0ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "東京都立図書館の付与記録",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.368,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "5b14ec06-bb9f-5060-95a6-9009e00f9243",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=s:assignment:text0; meaning=assignment:B02:1154693774"
+      },
+      "signification": {
+        "name": "東京都立図書館の付与記録"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -99.0,
+          -1.0,
+          -98.0
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "書誌1154693774",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.368,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "b925081b-0d53-52dd-ad3a-9ab73de67128",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=s:assignment:text1; meaning=assignment:B02:1154693774"
+      },
+      "signification": {
+        "name": "書誌1154693774"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -99.0,
+          -1.0,
+          -105.2
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "旧記録の確認日 2026-10-03",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 5.368,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "447b3e5c-f1b6-5b87-a9c0-033e0a17dee4",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=s:assignment:text2; meaning=assignment:B02:1154693774"
+      },
+      "signification": {
+        "name": "旧記録の確認日 2026-10-03"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          111.0,
+          0.0,
+          -98.0
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "e0c1134e-26be-5ade-a055-d0bbc1ecddf7",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "semantic-anchor; occurrence=s:ndc; meaning=NDC10:007.64"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          111.0,
+          -1.0,
+          -94.4
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#c6b0ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "NDC10 007.64",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 6.465999999999999,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "08362155-4a7b-528c-a647-81c5c8ce3726",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=s:ndc:text0; meaning=NDC10:007.64"
+      },
+      "signification": {
+        "name": "NDC10 007.64"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          111.0,
+          -1.0,
+          -101.60000000000001
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "分類表の項目と版",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 6.465999999999999,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "193957f7-3b58-5c90-98e7-739c251451c2",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "label; occurrence=s:ndc:text1; meaning=NDC10:007.64"
+      },
+      "signification": {
+        "name": "分類表の項目と版"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          40.0,
+          0.0,
+          5.0
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "bcaf8cdb-21fd-5e9b-993c-aec813599023",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=s:d02:port:right; meaning=D02"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -19.0,
+          0.0,
+          5.0
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "22782ee6-6361-5b43-9846-638097b66e92",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=s:part:port:left; meaning=B02:chapters-6-8"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -99.0,
+          0.0,
+          -6.199999999999999
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "9b79dea4-9888-5317-b672-bb9b60dd3125",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=s:part:port:bottom; meaning=B02:chapters-6-8"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -99.0,
+          0.0,
+          -32.8
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "b1ddd188-0f2a-51bd-a779-64850175e137",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=s:book:port:top; meaning=B02"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -99.0,
+          0.0,
+          -55.2
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "14a4da7d-ccf8-5e09-8f27-52d484c5f897",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=s:book:port:bottom; meaning=B02"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -99.0,
+          0.0,
+          -83.2
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "11557d25-9632-552e-ba86-7eb6480bc49b",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=s:assignment:port:top; meaning=assignment:B02:1154693774"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -19.0,
+          0.0,
+          -98.0
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "3e773fc3-2b0b-5406-8a1f-8a5fb6fa9f8d",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=s:assignment:port:left; meaning=assignment:B02:1154693774"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          40.0,
+          0.0,
+          -98.0
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "a5826231-48a8-57f1-8498-1807c2a0af78",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=s:ndc:port:right; meaning=NDC10:007.64"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          182.0,
+          0.0,
+          5.0
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "e3aacbb9-f802-5469-a98d-9498b0f582b3",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "edge-anchor; occurrence=s:d02:port:left; meaning=D02"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          111.0,
+          -1.0,
+          -40.0
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ffd37b",
+            "opacity": 1
+          },
+          "text": {
+            "content": "目次に基づく内容対応",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.7,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "dd853920-156e-5dcf-9bfe-74784dcf437a",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "reading-guide; occurrence=s:scope1; meaning=s:scope1"
+      },
+      "signification": {
+        "name": "目次に基づく内容対応"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          111.0,
+          -1.0,
+          -50.0
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#a5b9d5",
+            "opacity": 1
+          },
+          "text": {
+            "content": "章全文の同一性は未確認",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.3,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "4a67864a-249f-5b15-b9d9-2ea1b23de1d7",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "reading-guide; occurrence=s:scope2; meaning=s:scope2"
+      },
+      "signification": {
+        "name": "章全文の同一性は未確認"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -0.0,
+          -1.0,
+          -135.0
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#ecf3ff",
+            "opacity": 1
+          },
+          "text": {
+            "content": "分類はD02へ直接付与していない。同じ接続を逆に辿って論点へ戻れる。",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 4.2,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "ac03be0f-7ef6-5af5-94bb-a650673a952d",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "reading-guide; occurrence=s:warning1; meaning=s:warning1"
+      },
+      "signification": {
+        "name": "分類はD02へ直接付与していない。同じ接続を逆に辿って論点へ戻れる。"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -0.0,
+          -1.0,
+          -147.0
+        ],
+        "frames": [
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#a5b9d5",
+            "opacity": 1
+          },
+          "text": {
+            "content": "書名の補完・付与の再調査はしていない。光速度S75/S83の分類付与は未確認。",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 3.9,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "5e1854a8-f1c2-57a4-924c-4cdfe8c483cf",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "reading-guide; occurrence=s:warning2; meaning=s:warning2"
+      },
+      "signification": {
+        "name": "書名の補完・付与の再調査はしていない。光速度S75/S83の分類付与は未確認。"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -0.0,
+          -1.0,
+          -180.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#a5b9d5",
+            "opacity": 1
+          },
+          "text": {
+            "content": "frame 0 / 1 / 2 は表示範囲。時間の進行ではない。距離・角度・奥行きは量を表さない。",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 3.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "342e98db-13c8-5803-9b6b-18d33599bf9e",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "reading-guide; occurrence=legend:frames; meaning=legend:frames"
+      },
+      "signification": {
+        "name": "frame 0 / 1 / 2 は表示範囲。時間の進行ではない。距離・角度・奥行きは量を表さない。"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -0.0,
+          -1.0,
+          -191.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#a5b9d5",
+            "opacity": 1
+          },
+          "text": {
+            "content": "破線「この例」＝一般構成との対応 ／ ?＝未判定（外・0・否定とは別）。非表示は削除ではない。",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 3.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "75abe102-16c8-585d-998a-8d844d8e48b5",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "reading-guide; occurrence=legend:types; meaning=legend:types"
+      },
+      "signification": {
+        "name": "破線「この例」＝一般構成との対応 ／ ?＝未判定（外・0・否定とは別）。非表示は削除ではない。"
+      }
+    },
+    {
+      "appearance": {
+        "position": [
+          -0.0,
+          -1.0,
+          -202.0
+        ],
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "marker": {
+          "primitive": "none",
+          "common": {
+            "color": "#a5b9d5",
+            "opacity": 1
+          },
+          "text": {
+            "content": "U 理解・知識 ／ E 実現・維持・改善 ／ J 規準・採用根拠 ： 主・支・外・? はカテゴリ。",
+            "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
+            "size": 3.8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "1617b1d8-99fa-5c3c-b480-e15df3385bc5",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "reading-guide; occurrence=legend:roles; meaning=legend:roles"
+      },
+      "signification": {
+        "name": "U 理解・知識 ／ E 実現・維持・改善 ／ J 規準・採用根拠 ： 主・支・外・? はカテゴリ。"
+      }
+    }
+  ],
+  "lines": [
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "451f82cc-aeb3-525c-a34f-d3f5b244c19d"
+        },
+        "end_b": {
+          "ref": "b85293e3-78bb-5e81-a75a-3dc1b4969dd4"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#a5b9d5",
+        "opacity": 0.92,
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "2b1d6a3e-7504-53dc-8748-ea2a9c81eed0",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; general:question-series -> general:issue-version; 対応"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "対応"
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "5d2323d3-7d59-5301-8b07-b7526a78692b"
+        },
+        "end_b": {
+          "ref": "8c822f5d-1e50-5fab-a85b-07988722e881"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#a5b9d5",
+        "opacity": 0.92,
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "03b05614-7c98-5815-a4d2-296bf6b6462f",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; general:issue-version -> general:answer; 回答"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "回答"
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "67552d01-aa82-534e-bd99-e6f27a2c5cb0"
+        },
+        "end_b": {
+          "ref": "a7cdb042-d8b5-59f3-9f77-55b50a540c0a"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#8cdec2",
+        "opacity": 0.92,
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "bc3eb3bf-6e4c-5ec1-9569-1652e442308a",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; general:source-part -> general:answer; 根拠"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "根拠"
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "61db179a-bf64-5ec4-9f47-d8314ee3b246"
+        },
+        "end_b": {
+          "ref": "7e121863-3f8b-5493-a4f9-5e8ecb7bb0d3"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#8cdec2",
+        "opacity": 0.92,
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "c6ebba1b-2639-5884-a0f5-9dd3636c9625",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; general:source-part -> general:source-edition; 収録元"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "収録元"
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "bf890a8f-c415-5103-acdc-e09479aea41c"
+        },
+        "end_b": {
+          "ref": "216276de-ad96-5dce-ae18-824f63d577e7"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#ffd37b",
+        "opacity": 0.92,
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "703379c9-8c37-5a47-b124-950e1aaadf30",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; general:issue-version -> general:properties; 属性"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "属性"
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "92317dd0-8c39-5781-bf35-487ea3597f75"
+        },
+        "end_b": {
+          "ref": "6ea2e114-4704-543f-ac6f-e966e2e90af9"
+        },
+        "line_type": "polyline",
+        "line_style": "solid",
+        "color": "#8cdec2",
+        "opacity": 0.92,
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        },
+        "geometry": {
+          "dimension": 3,
+          "polyline_points": [
+            [
+              -76.0,
+              0.0,
+              149.0
+            ],
+            [
+              76.0,
+              0.0,
+              149.0
+            ]
+          ]
+        }
+      },
+      "meta": {
+        "uuid": "ab6cdd03-f904-55b9-b28d-52721721c39f",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; general:source-part -> general:issue-version; 内容対応"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "内容対応"
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "1a34f9e5-3a56-56b3-a6db-20d57304f7f8"
+        },
+        "end_b": {
+          "ref": "216f4ba9-9ddb-5448-aba7-3e211e74376a"
+        },
+        "line_type": "polyline",
+        "line_style": "solid",
+        "color": "#c6b0ff",
+        "opacity": 0.92,
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        },
+        "geometry": {
+          "dimension": 3,
+          "polyline_points": [
+            [
+              -152.0,
+              0.0,
+              99.0
+            ],
+            [
+              -54.0,
+              0.0,
+              99.0
+            ]
+          ]
+        }
+      },
+      "meta": {
+        "uuid": "f3963593-c92d-511f-8e25-1d2041d9849b",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; general:source-edition -> general:assignment; 資料全体へ"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "資料全体へ"
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "d8e9458a-826a-5899-b4fa-c11c783509bc"
+        },
+        "end_b": {
+          "ref": "70060747-1fbf-5907-9c6f-782d96467c9f"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#c6b0ff",
+        "opacity": 0.92,
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "a7772fbe-564d-5fc5-a117-51ae89a809cc",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; general:assignment -> general:class-item; 項目"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "項目"
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "9292db35-4e61-5919-946d-1feb97a148dd"
+        },
+        "end_b": {
+          "ref": "6f1c8c5d-71d2-5eff-b977-c976747064b9"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#72d5ff",
+        "opacity": 0.92,
+        "frames": [
+          0
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "dd498586-5e6a-574c-8a64-af582d9ff407",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; Q-L -> L75; "
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "9292db35-4e61-5919-946d-1feb97a148dd"
+        },
+        "end_b": {
+          "ref": "1903b5e5-f60e-5a23-8f08-707237abe4ec"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#72d5ff",
+        "opacity": 0.92,
+        "frames": [
+          0
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "3272640b-a2d7-52be-ba93-bbfeceb89de2",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; Q-L -> L83; "
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "feb2db6a-7ea3-5d9c-8e05-359f528ffa80"
+        },
+        "end_b": {
+          "ref": "0e43c5fe-279e-5c0f-96d6-67a119a8193c"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#a5b9d5",
+        "opacity": 0.92,
+        "frames": [
+          0
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "1da7198e-be24-5da4-8b38-253b68c1b675",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; L75 -> A75; 回答"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "回答"
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "803dcf9c-eb44-5764-a310-f23565066058"
+        },
+        "end_b": {
+          "ref": "9b2c6d96-0208-5237-be9b-7100ec1c6ca8"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#a5b9d5",
+        "opacity": 0.92,
+        "frames": [
+          0
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "eb274a47-512e-531f-91e4-1aeb45079ba4",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; L83 -> A83; 回答"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "回答"
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "cd3b90f9-3d2b-5d49-a52f-d3d7b0204ef5"
+        },
+        "end_b": {
+          "ref": "3385a825-846e-5469-9ac1-e5a7c54b1b2d"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#a5b9d5",
+        "opacity": 0.92,
+        "frames": [
+          0
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "f54c1133-90d0-5240-b099-266cffc6c3cd",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; D02 -> B02:chapters-6-8; 関連部分"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "関連部分"
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "303ae39d-6cc6-5693-ae4d-00361fde1227"
+        },
+        "end_b": {
+          "ref": "8fae4962-d367-5888-a034-528b2d801bf1"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#8cdec2",
+        "opacity": 0.92,
+        "frames": [
+          0
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "98f7efb3-aada-5552-865b-a1649af67b5a",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; B02:chapters-6-8 -> B02; 収録元"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "収録元"
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "45cd3ca2-675b-5a7e-bf70-30ac6181628c"
+        },
+        "end_b": {
+          "ref": "f51418a9-f72a-5036-9ffd-850a84a41e7b"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#c6b0ff",
+        "opacity": 0.92,
+        "frames": [
+          0
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "31732de5-88d1-5e2e-aafa-99f40c74cea2",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; B02 -> NDC10:007.64; 付与記録"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "付与記録"
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "67786714-2130-5245-ad39-a73586bb39ad"
+        },
+        "end_b": {
+          "ref": "46ced750-5dc4-5e45-ac29-74413b0167a0"
+        },
+        "line_type": "polyline",
+        "line_style": "dashed",
+        "color": "#72d5ff",
+        "opacity": 0.92,
+        "frames": [
+          0
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        },
+        "geometry": {
+          "dimension": 3,
+          "polyline_points": [
+            [
+              193.0,
+              0.0,
+              122.0
+            ],
+            [
+              193.0,
+              0.0,
+              13.0
+            ]
+          ]
+        }
+      },
+      "meta": {
+        "uuid": "f370564a-ce42-58e7-8e9e-3a6bbfd57f60",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; general:question-series -> Q-L; この例"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "この例"
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "bf890a8f-c415-5103-acdc-e09479aea41c"
+        },
+        "end_b": {
+          "ref": "c914b3bb-53b5-5c2a-8304-12f4d1e7dcba"
+        },
+        "line_type": "polyline",
+        "line_style": "dashed",
+        "color": "#72d5ff",
+        "opacity": 0.92,
+        "frames": [
+          0
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        },
+        "geometry": {
+          "dimension": 3,
+          "polyline_points": [
+            [
+              76.0,
+              0.0,
+              99.0
+            ],
+            [
+              10.0,
+              0.0,
+              99.0
+            ],
+            [
+              10.0,
+              0.0,
+              45.0
+            ],
+            [
+              -102.0,
+              0.0,
+              45.0
+            ]
+          ]
+        }
+      },
+      "meta": {
+        "uuid": "960b74a7-ddee-525b-ac9b-6af7c0460182",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; general:issue-version -> D02; この例"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "この例"
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "5721f82f-4a7c-5ff8-9d1d-c26f54c9dfed"
+        },
+        "end_b": {
+          "ref": "8d1dddbe-bb36-5f93-b747-32657f598380"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#72d5ff",
+        "opacity": 0.92,
+        "frames": [
+          1
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "8488f57a-3f9e-59ce-9b9b-a2f49a6d12aa",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; Q-L -> L75; "
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "3af24657-3ec4-5064-93d8-60709a935578"
+        },
+        "end_b": {
+          "ref": "db33c9de-7a65-597b-9f13-56347314fb2c"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#ffd37b",
+        "opacity": 0.92,
+        "frames": [
+          1
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "75d1ae89-eeae-54ab-923d-90f8e2c1fc41",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; L75 -> A75; 回答"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "回答"
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "84477ebf-e617-592b-be28-5adfd458ba20"
+        },
+        "end_b": {
+          "ref": "4b698f17-43e5-5de2-9c2e-8328010f2a28"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#8cdec2",
+        "opacity": 0.92,
+        "frames": [
+          1
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "f5e5da6a-bf4e-56dc-a040-4a58accfa6d9",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; A75 -> S75; 根拠を参照"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "根拠を参照"
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "5721f82f-4a7c-5ff8-9d1d-c26f54c9dfed"
+        },
+        "end_b": {
+          "ref": "2998183c-0dde-50b9-a37e-46ca0b5e4e8c"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#72d5ff",
+        "opacity": 0.92,
+        "frames": [
+          1
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "ebf6387e-c45b-5c11-a00c-5d2c69e832be",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; Q-L -> L83; "
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "05b044d4-f0bc-584b-9cd2-f4c7d0b32814"
+        },
+        "end_b": {
+          "ref": "08e89f25-8360-5e8d-85fb-a110bb00447d"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#ffd37b",
+        "opacity": 0.92,
+        "frames": [
+          1
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "ec9c9bed-4248-5fb8-bd0c-71db1ba94f34",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; L83 -> A83; 回答"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "回答"
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "d4bee27d-ad72-5d3c-9033-b6c54de2f8de"
+        },
+        "end_b": {
+          "ref": "2cbeda0c-9f68-523c-8020-56d29875debc"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#8cdec2",
+        "opacity": 0.92,
+        "frames": [
+          1
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "d290572c-77cd-5620-9c45-f41269778ced",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; A83 -> S83; 根拠を参照"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "根拠を参照"
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "f5cf0730-018c-5b95-8375-0d0fd0df6b06"
+        },
+        "end_b": {
+          "ref": "d2d24f9e-18d5-5569-8c83-6e93696656a4"
+        },
+        "line_type": "polyline",
+        "line_style": "solid",
+        "color": "#8cdec2",
+        "opacity": 0.92,
+        "frames": [
+          1
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        },
+        "geometry": {
+          "dimension": 3,
+          "polyline_points": [
+            [
+              -96.0,
+              0.0,
+              -151.0
+            ],
+            [
+              96.0,
+              0.0,
+              -151.0
+            ]
+          ]
+        }
+      },
+      "meta": {
+        "uuid": "5fe6d4df-fba8-5a10-9a39-c178227ba8df",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; S83 -> S75; S83 が S75 の値を明示継承（既存読解）"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "S83 が S75 の値を明示継承（既存読解）"
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "67786714-2130-5245-ad39-a73586bb39ad"
+        },
+        "end_b": {
+          "ref": "b623149f-5fa0-52b3-bff9-f03f7d8e006d"
+        },
+        "line_type": "polyline",
+        "line_style": "dashed",
+        "color": "#72d5ff",
+        "opacity": 0.92,
+        "frames": [
+          1
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        },
+        "geometry": {
+          "dimension": 3,
+          "polyline_points": [
+            [
+              193.0,
+              0.0,
+              122.0
+            ],
+            [
+              193.0,
+              0.0,
+              15.0
+            ]
+          ]
+        }
+      },
+      "meta": {
+        "uuid": "81e42254-1dc9-52e2-acd9-978509aed34c",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; general:question-series -> Q-L; この例"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "この例"
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "bcaf8cdb-21fd-5e9b-993c-aec813599023"
+        },
+        "end_b": {
+          "ref": "22782ee6-6361-5b43-9846-638097b66e92"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#a5b9d5",
+        "opacity": 0.92,
+        "frames": [
+          2
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "a0071359-f8e1-52f7-b5ac-40a3f403f5de",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; D02 -> B02:chapters-6-8; 関連部分を参照"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "関連部分を参照"
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "9b79dea4-9888-5317-b672-bb9b60dd3125"
+        },
+        "end_b": {
+          "ref": "b1ddd188-0f2a-51bd-a779-64850175e137"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#8cdec2",
+        "opacity": 0.92,
+        "frames": [
+          2
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "d0e6f240-9cf4-5025-affb-35d7c625bcd2",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; B02:chapters-6-8 -> B02; 収録元"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "収録元"
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "14a4da7d-ccf8-5e09-8f27-52d484c5f897"
+        },
+        "end_b": {
+          "ref": "11557d25-9632-552e-ba86-7eb6480bc49b"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#c6b0ff",
+        "opacity": 0.92,
+        "frames": [
+          2
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "9b1070ce-4cba-59ec-8357-5f4089d90ece",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; B02 -> assignment:B02:1154693774; 資料全体への付与"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "資料全体への付与"
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "3e773fc3-2b0b-5406-8a1f-8a5fb6fa9f8d"
+        },
+        "end_b": {
+          "ref": "a5826231-48a8-57f1-8498-1807c2a0af78"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#c6b0ff",
+        "opacity": 0.92,
+        "frames": [
+          2
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "79b39e76-0810-5580-9373-6473fbd4a858",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; assignment:B02:1154693774 -> NDC10:007.64; 付与された項目"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "付与された項目"
+      }
+    },
+    {
+      "appearance": {
+        "end_a": {
+          "ref": "bf890a8f-c415-5103-acdc-e09479aea41c"
+        },
+        "end_b": {
+          "ref": "e3aacbb9-f802-5469-a98d-9498b0f582b3"
+        },
+        "line_type": "polyline",
+        "line_style": "dashed",
+        "color": "#72d5ff",
+        "opacity": 0.92,
+        "frames": [
+          2
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "placement": "end_b",
+          "radius": 1.2,
+          "height": 3.2
+        },
+        "caption_text": {
+          "font_size": 4.2,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        },
+        "geometry": {
+          "dimension": 3,
+          "polyline_points": [
+            [
+              76.0,
+              0.0,
+              99.0
+            ],
+            [
+              193.0,
+              0.0,
+              99.0
+            ],
+            [
+              193.0,
+              0.0,
+              5.0
+            ]
+          ]
+        }
+      },
+      "meta": {
+        "uuid": "e916ebdc-2dea-5e2d-91d3-3ad025daa60d",
+        "tags": [
+          "x:knowledge-placement"
+        ],
+        "creator_memo": "relation; general:issue-version -> D02; この例"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "この例"
+      }
+    }
+  ],
+  "aux": []
+}

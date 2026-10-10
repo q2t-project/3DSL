@@ -1,0 +1,1835 @@
+{
+  "format": "3dsl-contract-work/0.1",
+  "status": "draft",
+  "scene": {
+    "lines": [
+      {
+        "meta": {
+          "uuid": "3b099711-744c-42a2-8dd6-f85c7ac5e2fd"
+        },
+        "signification": {
+          "caption": "貸手",
+          "sense": "a_to_b"
+        },
+        "appearance": {
+          "end_a": {
+            "ref": "dbaeb5fd-6683-457d-8edd-58213b131e74"
+          },
+          "end_b": {
+            "ref": "8951ae73-e8dc-4def-829d-de5dd0d6472f"
+          },
+          "line_type": "straight",
+          "line_style": "solid",
+          "frames": [
+            0
+          ],
+          "arrow": {
+            "primitive": "none"
+          },
+          "caption_text": {
+            "font_size": 1,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "85a61c19-b403-4734-8941-13e46e5853aa"
+        },
+        "signification": {
+          "caption": "借手",
+          "sense": "a_to_b"
+        },
+        "appearance": {
+          "end_a": {
+            "ref": "dbaeb5fd-6683-457d-8edd-58213b131e74"
+          },
+          "end_b": {
+            "ref": "8951ae73-e8dc-4def-829d-de5dd0d6472f"
+          },
+          "line_type": "straight",
+          "line_style": "solid",
+          "frames": [
+            0
+          ],
+          "arrow": {
+            "primitive": "none"
+          },
+          "caption_text": {
+            "font_size": 1,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "78a9e8c0-8313-48a4-83af-c6a2bd9c1831"
+        },
+        "signification": {
+          "caption": "対象物",
+          "sense": "a_to_b"
+        },
+        "appearance": {
+          "end_a": {
+            "ref": "dbaeb5fd-6683-457d-8edd-58213b131e74"
+          },
+          "end_b": {
+            "ref": "60cfdd8d-0fba-49f2-89a7-9b18f6e2767f"
+          },
+          "line_type": "straight",
+          "line_style": "solid",
+          "frames": [
+            0
+          ],
+          "arrow": {
+            "primitive": "none"
+          },
+          "caption_text": {
+            "font_size": 1,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "c7b4a670-5766-42d9-88cd-a43f7bfce3a2"
+        },
+        "signification": {
+          "caption": "根拠",
+          "sense": "a_to_b"
+        },
+        "appearance": {
+          "end_a": {
+            "ref": "8bd41da4-2593-4fe0-8b69-6dccd2c4f5db"
+          },
+          "end_b": {
+            "ref": "282d4d50-718e-4f15-83c0-4a83089eace0"
+          },
+          "line_type": "straight",
+          "line_style": "solid",
+          "frames": [
+            0
+          ],
+          "arrow": {
+            "primitive": "none"
+          },
+          "caption_text": {
+            "font_size": 1,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "d4762ce7-da27-45cb-828c-27aeccb82921"
+        },
+        "signification": {
+          "caption": "支持対象",
+          "sense": "a_to_b"
+        },
+        "appearance": {
+          "end_a": {
+            "ref": "8bd41da4-2593-4fe0-8b69-6dccd2c4f5db"
+          },
+          "end_b": {
+            "ref": "dbaeb5fd-6683-457d-8edd-58213b131e74"
+          },
+          "line_type": "straight",
+          "line_style": "solid",
+          "frames": [
+            0
+          ],
+          "arrow": {
+            "primitive": "none"
+          },
+          "caption_text": {
+            "font_size": 1,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "points": [
+      {
+        "meta": {
+          "uuid": "f0b504f4-f3cf-404b-8efd-b8e68d49ef10"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "1c17d922-9a08-4b28-8a6e-240ffb0bee21"
+        },
+        "signification": {
+          "name": "同一人物"
+        },
+        "appearance": {
+          "position": [
+            0,
+            1,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "同一人物",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "8951ae73-e8dc-4def-829d-de5dd0d6472f"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            1,
+            0,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "c5b4b456-7c03-4da0-84ba-4e11c67b60a6"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            8,
+            0,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "246a153d-bd31-4893-8a00-989f030397cc"
+        },
+        "signification": {
+          "name": "貸出本"
+        },
+        "appearance": {
+          "position": [
+            8,
+            1,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "貸出本",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "60cfdd8d-0fba-49f2-89a7-9b18f6e2767f"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            9,
+            0,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "3d94da4e-0309-485b-8509-642d682588d9"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            16,
+            0,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "7e6a5530-32f9-4743-8243-d0fd638fc41d"
+        },
+        "signification": {
+          "name": "別の本"
+        },
+        "appearance": {
+          "position": [
+            16,
+            1,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "別の本",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "181fea0a-e5ea-4067-8d97-81cb6c23210e"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            17,
+            0,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "fd15295a-8942-469f-85af-12f19f0e0530"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            24,
+            0,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "fb9ea016-cd67-4f67-8ba2-33344cfad7c9"
+        },
+        "signification": {
+          "name": "貸出記録"
+        },
+        "appearance": {
+          "position": [
+            24,
+            1,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "貸出記録",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "282d4d50-718e-4f15-83c0-4a83089eace0"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            25,
+            0,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "dbaeb5fd-6683-457d-8edd-58213b131e74"
+        },
+        "signification": {
+          "name": "自己への仮貸出"
+        },
+        "appearance": {
+          "position": [
+            0,
+            20,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "自己への仮貸出",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "8bd41da4-2593-4fe0-8b69-6dccd2c4f5db"
+        },
+        "signification": {
+          "name": "記録が支持"
+        },
+        "appearance": {
+          "position": [
+            0,
+            25,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "記録が支持",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      }
+    ],
+    "aux": [],
+    "document_meta": {
+      "document_title": "R1 F2",
+      "document_uuid": "bd12b2a4-f4b2-467a-8244-227ca78c5492",
+      "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
+      "version": "1.1.4",
+      "author": "q2t",
+      "created_at": "2026-10-09T07:43:39Z",
+      "revised_at": "2026-10-09T07:43:39Z",
+      "units": "non_si:px",
+      "coordinate_system": "Z+up/freeXY"
+    }
+  },
+  "baselineScene": {
+    "lines": [
+      {
+        "meta": {
+          "uuid": "3b099711-744c-42a2-8dd6-f85c7ac5e2fd"
+        },
+        "signification": {
+          "caption": "貸手",
+          "sense": "a_to_b"
+        },
+        "appearance": {
+          "end_a": {
+            "ref": "dbaeb5fd-6683-457d-8edd-58213b131e74"
+          },
+          "end_b": {
+            "ref": "8951ae73-e8dc-4def-829d-de5dd0d6472f"
+          },
+          "line_type": "straight",
+          "line_style": "solid",
+          "frames": [
+            0
+          ],
+          "arrow": {
+            "primitive": "none"
+          },
+          "caption_text": {
+            "font_size": 1,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "85a61c19-b403-4734-8941-13e46e5853aa"
+        },
+        "signification": {
+          "caption": "借手",
+          "sense": "a_to_b"
+        },
+        "appearance": {
+          "end_a": {
+            "ref": "dbaeb5fd-6683-457d-8edd-58213b131e74"
+          },
+          "end_b": {
+            "ref": "8951ae73-e8dc-4def-829d-de5dd0d6472f"
+          },
+          "line_type": "straight",
+          "line_style": "solid",
+          "frames": [
+            0
+          ],
+          "arrow": {
+            "primitive": "none"
+          },
+          "caption_text": {
+            "font_size": 1,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "78a9e8c0-8313-48a4-83af-c6a2bd9c1831"
+        },
+        "signification": {
+          "caption": "対象物",
+          "sense": "a_to_b"
+        },
+        "appearance": {
+          "end_a": {
+            "ref": "dbaeb5fd-6683-457d-8edd-58213b131e74"
+          },
+          "end_b": {
+            "ref": "60cfdd8d-0fba-49f2-89a7-9b18f6e2767f"
+          },
+          "line_type": "straight",
+          "line_style": "solid",
+          "frames": [
+            0
+          ],
+          "arrow": {
+            "primitive": "none"
+          },
+          "caption_text": {
+            "font_size": 1,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "c7b4a670-5766-42d9-88cd-a43f7bfce3a2"
+        },
+        "signification": {
+          "caption": "根拠",
+          "sense": "a_to_b"
+        },
+        "appearance": {
+          "end_a": {
+            "ref": "8bd41da4-2593-4fe0-8b69-6dccd2c4f5db"
+          },
+          "end_b": {
+            "ref": "282d4d50-718e-4f15-83c0-4a83089eace0"
+          },
+          "line_type": "straight",
+          "line_style": "solid",
+          "frames": [
+            0
+          ],
+          "arrow": {
+            "primitive": "none"
+          },
+          "caption_text": {
+            "font_size": 1,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "d4762ce7-da27-45cb-828c-27aeccb82921"
+        },
+        "signification": {
+          "caption": "支持対象",
+          "sense": "a_to_b"
+        },
+        "appearance": {
+          "end_a": {
+            "ref": "8bd41da4-2593-4fe0-8b69-6dccd2c4f5db"
+          },
+          "end_b": {
+            "ref": "dbaeb5fd-6683-457d-8edd-58213b131e74"
+          },
+          "line_type": "straight",
+          "line_style": "solid",
+          "frames": [
+            0
+          ],
+          "arrow": {
+            "primitive": "none"
+          },
+          "caption_text": {
+            "font_size": 1,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "points": [
+      {
+        "meta": {
+          "uuid": "f0b504f4-f3cf-404b-8efd-b8e68d49ef10"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "1c17d922-9a08-4b28-8a6e-240ffb0bee21"
+        },
+        "signification": {
+          "name": "同一人物"
+        },
+        "appearance": {
+          "position": [
+            0,
+            1,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "同一人物",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "8951ae73-e8dc-4def-829d-de5dd0d6472f"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            1,
+            0,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "c5b4b456-7c03-4da0-84ba-4e11c67b60a6"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            8,
+            0,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "246a153d-bd31-4893-8a00-989f030397cc"
+        },
+        "signification": {
+          "name": "貸出本"
+        },
+        "appearance": {
+          "position": [
+            8,
+            1,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "貸出本",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "60cfdd8d-0fba-49f2-89a7-9b18f6e2767f"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            9,
+            0,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "3d94da4e-0309-485b-8509-642d682588d9"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            16,
+            0,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "7e6a5530-32f9-4743-8243-d0fd638fc41d"
+        },
+        "signification": {
+          "name": "別の本"
+        },
+        "appearance": {
+          "position": [
+            16,
+            1,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "別の本",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "181fea0a-e5ea-4067-8d97-81cb6c23210e"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            17,
+            0,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "fd15295a-8942-469f-85af-12f19f0e0530"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            24,
+            0,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "fb9ea016-cd67-4f67-8ba2-33344cfad7c9"
+        },
+        "signification": {
+          "name": "貸出記録"
+        },
+        "appearance": {
+          "position": [
+            24,
+            1,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "貸出記録",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "282d4d50-718e-4f15-83c0-4a83089eace0"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            25,
+            0,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "dbaeb5fd-6683-457d-8edd-58213b131e74"
+        },
+        "signification": {
+          "name": "自己への仮貸出"
+        },
+        "appearance": {
+          "position": [
+            0,
+            20,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "自己への仮貸出",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "8bd41da4-2593-4fe0-8b69-6dccd2c4f5db"
+        },
+        "signification": {
+          "name": "記録が支持"
+        },
+        "appearance": {
+          "position": [
+            0,
+            25,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "記録が支持",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      }
+    ],
+    "aux": [],
+    "document_meta": {
+      "document_title": "R1 F2",
+      "document_uuid": "bd12b2a4-f4b2-467a-8244-227ca78c5492",
+      "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
+      "version": "1.1.4",
+      "author": "q2t",
+      "created_at": "2026-10-09T07:43:39Z",
+      "revised_at": "2026-10-09T07:43:39Z",
+      "units": "non_si:px",
+      "coordinate_system": "Z+up/freeXY"
+    }
+  },
+  "contract": {
+    "fixture": "F2",
+    "targets": [
+      {
+        "id": "person",
+        "name": "同一人物",
+        "epistemic": "asserted"
+      },
+      {
+        "id": "book",
+        "name": "貸出本",
+        "epistemic": "asserted"
+      },
+      {
+        "id": "book2",
+        "name": "別の本",
+        "epistemic": "asserted"
+      },
+      {
+        "id": "evidence",
+        "name": "貸出記録",
+        "epistemic": "asserted"
+      }
+    ],
+    "occurrences": [
+      {
+        "id": "person",
+        "target": "person",
+        "labelOffset": [
+          0,
+          1,
+          0
+        ],
+        "portOffset": [
+          1,
+          0,
+          0
+        ],
+        "frames": [
+          0
+        ],
+        "anchor": "f0b504f4-f3cf-404b-8efd-b8e68d49ef10",
+        "label": "1c17d922-9a08-4b28-8a6e-240ffb0bee21",
+        "port": "8951ae73-e8dc-4def-829d-de5dd0d6472f"
+      },
+      {
+        "id": "book",
+        "target": "book",
+        "labelOffset": [
+          0,
+          1,
+          0
+        ],
+        "portOffset": [
+          1,
+          0,
+          0
+        ],
+        "frames": [
+          0
+        ],
+        "anchor": "c5b4b456-7c03-4da0-84ba-4e11c67b60a6",
+        "label": "246a153d-bd31-4893-8a00-989f030397cc",
+        "port": "60cfdd8d-0fba-49f2-89a7-9b18f6e2767f"
+      },
+      {
+        "id": "book2",
+        "target": "book2",
+        "labelOffset": [
+          0,
+          1,
+          0
+        ],
+        "portOffset": [
+          1,
+          0,
+          0
+        ],
+        "frames": [
+          0
+        ],
+        "anchor": "3d94da4e-0309-485b-8509-642d682588d9",
+        "label": "7e6a5530-32f9-4743-8243-d0fd638fc41d",
+        "port": "181fea0a-e5ea-4067-8d97-81cb6c23210e"
+      },
+      {
+        "id": "evidence",
+        "target": "evidence",
+        "labelOffset": [
+          0,
+          1,
+          0
+        ],
+        "portOffset": [
+          1,
+          0,
+          0
+        ],
+        "frames": [
+          0
+        ],
+        "anchor": "fd15295a-8942-469f-85af-12f19f0e0530",
+        "label": "fb9ea016-cd67-4f67-8ba2-33344cfad7c9",
+        "port": "282d4d50-718e-4f15-83c0-4a83089eace0"
+      }
+    ],
+    "relations": [
+      {
+        "id": "loan",
+        "name": "自己への仮貸出",
+        "direction": "role-defined",
+        "condition": "館内・一時",
+        "participants": [
+          {
+            "id": "lender",
+            "role": "貸手",
+            "target": "person",
+            "occurrence": "person",
+            "line": "3b099711-744c-42a2-8dd6-f85c7ac5e2fd"
+          },
+          {
+            "id": "borrower",
+            "role": "借手",
+            "target": "person",
+            "occurrence": "person",
+            "line": "85a61c19-b403-4734-8941-13e46e5853aa"
+          },
+          {
+            "id": "item",
+            "role": "対象物",
+            "target": "book",
+            "occurrence": "book",
+            "line": "78a9e8c0-8313-48a4-83af-c6a2bd9c1831"
+          }
+        ],
+        "refs": [],
+        "hub": "dbaeb5fd-6683-457d-8edd-58213b131e74"
+      },
+      {
+        "id": "supports",
+        "name": "記録が支持",
+        "direction": "ordered",
+        "condition": "この記録の範囲",
+        "participants": [
+          {
+            "id": "evidence",
+            "role": "根拠",
+            "target": "evidence",
+            "occurrence": "evidence",
+            "line": "c7b4a670-5766-42d9-88cd-a43f7bfce3a2"
+          }
+        ],
+        "refs": [
+          {
+            "id": "claim",
+            "role": "支持対象",
+            "relation": "loan",
+            "line": "d4762ce7-da27-45cb-828c-27aeccb82921"
+          }
+        ],
+        "hub": "8bd41da4-2593-4fe0-8b69-6dccd2c4f5db"
+      }
+    ],
+    "axis": null,
+    "boundary": null,
+    "draft": {
+      "inputs": [],
+      "pendingRelations": []
+    },
+    "sources": [],
+    "format": "3dsl-authoring-contract/0.1",
+    "authority": "scene-anchor-and-boundary;contract-shared-values-and-offsets"
+  },
+  "baselineContract": {
+    "fixture": "F2",
+    "targets": [
+      {
+        "id": "person",
+        "name": "同一人物",
+        "epistemic": "asserted"
+      },
+      {
+        "id": "book",
+        "name": "貸出本",
+        "epistemic": "asserted"
+      },
+      {
+        "id": "book2",
+        "name": "別の本",
+        "epistemic": "asserted"
+      },
+      {
+        "id": "evidence",
+        "name": "貸出記録",
+        "epistemic": "asserted"
+      }
+    ],
+    "occurrences": [
+      {
+        "id": "person",
+        "target": "person",
+        "labelOffset": [
+          0,
+          1,
+          0
+        ],
+        "portOffset": [
+          1,
+          0,
+          0
+        ],
+        "frames": [
+          0
+        ],
+        "anchor": "f0b504f4-f3cf-404b-8efd-b8e68d49ef10",
+        "label": "1c17d922-9a08-4b28-8a6e-240ffb0bee21",
+        "port": "8951ae73-e8dc-4def-829d-de5dd0d6472f"
+      },
+      {
+        "id": "book",
+        "target": "book",
+        "labelOffset": [
+          0,
+          1,
+          0
+        ],
+        "portOffset": [
+          1,
+          0,
+          0
+        ],
+        "frames": [
+          0
+        ],
+        "anchor": "c5b4b456-7c03-4da0-84ba-4e11c67b60a6",
+        "label": "246a153d-bd31-4893-8a00-989f030397cc",
+        "port": "60cfdd8d-0fba-49f2-89a7-9b18f6e2767f"
+      },
+      {
+        "id": "book2",
+        "target": "book2",
+        "labelOffset": [
+          0,
+          1,
+          0
+        ],
+        "portOffset": [
+          1,
+          0,
+          0
+        ],
+        "frames": [
+          0
+        ],
+        "anchor": "3d94da4e-0309-485b-8509-642d682588d9",
+        "label": "7e6a5530-32f9-4743-8243-d0fd638fc41d",
+        "port": "181fea0a-e5ea-4067-8d97-81cb6c23210e"
+      },
+      {
+        "id": "evidence",
+        "target": "evidence",
+        "labelOffset": [
+          0,
+          1,
+          0
+        ],
+        "portOffset": [
+          1,
+          0,
+          0
+        ],
+        "frames": [
+          0
+        ],
+        "anchor": "fd15295a-8942-469f-85af-12f19f0e0530",
+        "label": "fb9ea016-cd67-4f67-8ba2-33344cfad7c9",
+        "port": "282d4d50-718e-4f15-83c0-4a83089eace0"
+      }
+    ],
+    "relations": [
+      {
+        "id": "loan",
+        "name": "自己への仮貸出",
+        "direction": "role-defined",
+        "condition": "館内・一時",
+        "participants": [
+          {
+            "id": "lender",
+            "role": "貸手",
+            "target": "person",
+            "occurrence": "person",
+            "line": "3b099711-744c-42a2-8dd6-f85c7ac5e2fd"
+          },
+          {
+            "id": "borrower",
+            "role": "借手",
+            "target": "person",
+            "occurrence": "person",
+            "line": "85a61c19-b403-4734-8941-13e46e5853aa"
+          },
+          {
+            "id": "item",
+            "role": "対象物",
+            "target": "book",
+            "occurrence": "book",
+            "line": "78a9e8c0-8313-48a4-83af-c6a2bd9c1831"
+          }
+        ],
+        "refs": [],
+        "hub": "dbaeb5fd-6683-457d-8edd-58213b131e74"
+      },
+      {
+        "id": "supports",
+        "name": "記録が支持",
+        "direction": "ordered",
+        "condition": "この記録の範囲",
+        "participants": [
+          {
+            "id": "evidence",
+            "role": "根拠",
+            "target": "evidence",
+            "occurrence": "evidence",
+            "line": "c7b4a670-5766-42d9-88cd-a43f7bfce3a2"
+          }
+        ],
+        "refs": [
+          {
+            "id": "claim",
+            "role": "支持対象",
+            "relation": "loan",
+            "line": "d4762ce7-da27-45cb-828c-27aeccb82921"
+          }
+        ],
+        "hub": "8bd41da4-2593-4fe0-8b69-6dccd2c4f5db"
+      }
+    ],
+    "axis": null,
+    "boundary": null,
+    "draft": {
+      "inputs": [],
+      "pendingRelations": []
+    },
+    "sources": [],
+    "format": "3dsl-authoring-contract/0.1",
+    "authority": "scene-anchor-and-boundary;contract-shared-values-and-offsets"
+  },
+  "attachments": {}
+}

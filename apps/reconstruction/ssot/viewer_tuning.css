@@ -1,0 +1,146 @@
+/* viewer tuning overrides (SSOT: public/viewer/viewer_tuning.css) */
+
+/* 1) 全画面HUD/overlayに blur を掛けない（キャンバスがボヤける原因） */
+#viewer-hud,
+#viewer-overlay,
+.viewer-overlay {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+}
+
+/* 2) ぼかしを使うなら“帯”だけ（小さい面積に限定） */
+#viewer-topbar {
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* 3) HUD文字は「ボケ」じゃなく「コントラスト」で読む */
+#viewer-hud, #viewer-hud * {
+  text-shadow: 0 1px 2px rgba(0,0,0,0.75);
+}
+
+/* 4) UIの“薄化”を弱める */
+.filter-toggle.filter-off { opacity: 0.75 !important; }
+.frame-controls { opacity: 0.92 !important; }
+
+/* 5) ボタンの視認性 */
+.keycap{
+  background: rgba(0,0,0,0.88) !important;
+  border-color: rgba(255,255,255,0.38) !important;
+}
+
+/* 6) “帯”系（小面積）だけパネル化して読みやすくする */
+#viewer-toolbar,
+#doc-caption {
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 10px;
+}
+
+/* doc-caption が地味に薄い時の保険 */
+#doc-caption {
+  color: rgba(255,255,255,0.92);
+}
+
+/* 7) フィルタON/OFFの視認性をさらに明確化 */
+.filter-toggle.filter-on  { opacity: 1.0 !important; }
+.filter-toggle.filter-off { opacity: 0.70 !important; }
+
+/* =========================
+   UI bands: click + stacking
+   ========================= */
+
+/* 0) 念のため：キャンバス/全画面レイヤは“濁らせない＆邪魔しない” */
+#viewer-hud,
+#viewer-overlay{
+  pointer-events: none !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+}
+
+/* 1) Zレイヤの基準（帯が最前面） */
+:root{
+  --z-canvas: 0;
+  --z-gizmo: 30;
+  --z-overlay: 40; /* pointer-events none */
+  --z-toolbar: 70;
+  --z-topbar: 80;
+  --z-caption: 75;
+}
+
+/* 2) topbar（左上の Lines/Points/Aux とフィルタ類） */
+#viewer-topbar{
+  z-index: var(--z-topbar) !important;
+  pointer-events: auto !important;
+
+  /* “帯”化（面積を最小に） */
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+  width: auto !important;
+  max-width: calc(100vw - 24px);
+  padding: 6px 10px;
+
+  background: rgba(0,0,0,.55) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 10px;
+}
+
+/* topbar配下は全部押せる */
+#viewer-topbar, #viewer-topbar *{
+  pointer-events: auto !important;
+}
+
+/* 3) toolbar（下の frame-controls ブロック） */
+#viewer-toolbar,
+.frame-controls{
+  z-index: var(--z-toolbar) !important;
+  pointer-events: auto !important;
+
+  background: rgba(0,0,0,.55) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 10px;
+}
+
+/* frame-controlsの“薄化”を弱める（見分けやすく） */
+.frame-controls { opacity: 0.92 !important; }
+
+/* 4) doc-caption（右上の説明ボックス） */
+#doc-caption{
+  z-index: var(--z-caption) !important;
+  pointer-events: auto !important;
+
+  background: rgba(0,0,0,.55) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+/* 5) gizmo（右下）を帯より下に固定 */
+#gizmo-wrapper{
+  z-index: var(--z-gizmo) !important;
+  pointer-events: auto !important;
+}
+
+/* 6) 押せる/押せないの視認性（フィルタトグル） */
+.filter-toggle.filter-on  { opacity: 1 !important; }
+.filter-toggle.filter-off { opacity: 0.70 !important; }
+
+/* 7) ボタンの視認性（keycap） */
+.keycap{
+  background: rgba(0,0,0,0.88) !important;
+  border-color: rgba(255,255,255,0.38) !important;
+}

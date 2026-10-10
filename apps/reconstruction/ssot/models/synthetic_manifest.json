@@ -1,0 +1,38 @@
+{
+  "generator": "make_fixture.mjs",
+  "point_count": 1000,
+  "line_count": 2000,
+  "max_degree": 403,
+  "high_degree_uuid": "81000000-0000-4000-8000-000000000001",
+  "duplicate_labels": [
+    "81000000-0000-4000-8000-000000000013",
+    "81000000-0000-4000-8000-000000000713"
+  ],
+  "cross_frame_edges": 1867,
+  "unplaced_source_records": 2,
+  "sha256": "bcba889bb85a91279e45b3297396279afc971e60e84e49d16252b61988699322",
+  "notes": [
+    "Every geometric point has a position and marker. Unplaced means source-only records lacking display occurrence; not a hidden point or a point assigned to another view.",
+    "No legal/civil-code claims. Performance must be measured in actual browser five times per operation."
+  ],
+  "frames": {
+    "0": {
+      "points": 334,
+      "lines": 2000,
+      "point_labels": 334,
+      "line_labels": 2000
+    },
+    "1": {
+      "points": 333,
+      "lines": 2000,
+      "point_labels": 333,
+      "line_labels": 2000
+    },
+    "2": {
+      "points": 333,
+      "lines": 2000,
+      "point_labels": 333,
+      "line_labels": 2000
+    }
+  }
+}

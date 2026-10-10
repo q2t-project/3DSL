@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>3DSD Modeler</title>
+    <!-- NOTE:
+       ここで <base href="/modeler/"> を固定すると、現状の暫定配信先 `/modeler_app/` で
+       CSS/JS の参照が `/modeler/*` に飛んで 404 になりやすい。
+       なので base は置かず、相対パス (./modeler.css, ./modelerHostBoot.js) で両対応する。
+
+       - 現在: `/modeler_app/` (Astro の /modeler ルート衝突回避の仮)
+       - 最終: `/modeler/` へ寄せる
+  -->
+    <script type="importmap">
+    {
+      "imports": {
+        "ajv": "/vendor/ajv/dist/ajv.js",
+        "three": "/vendor/three/build/three.module.js",
+        "three/addons/": "/vendor/three/examples/jsm/"
+      }
+    }
+  </script>
+    <link rel="stylesheet" href="./modeler.css">
+    <!-- site-level override: keep outside /modeler_app so it can be tuned without touching SSOT -->
+  </head>
+  <body>
+    <div id="modeler-root" class="modeler-root model-first-ui" data-role="modeler-root" data-outliner-tab="points">
+      <header class="topbar" data-role="topbar">
+        <div class="topbar-title">3DSD Modeler</div>
+        <div class="topbar-actions">
+          <button class="btn" type="button" data-action="new">新規</button>
+          <button class="btn" type="button" data-action="open">開く…</button>
+          <button class="btn" type="button" data-action="save" title="作品を保存（Ctrl+S）" aria-keyshortcuts="Control+S Meta+S">保存</button>
+          <button class="btn" type="button" data-action="saveas" title="別名で作品を保存（Ctrl+Shift+S）" aria-keyshortcuts="Control+Shift+S Meta+Shift+S">別名保存…</button>
+          <button class="btn" type="button" data-action="export" title="図だけを書き出す。作品一式の保存とは別">図を書き出す</button>
+          <button class="btn" type="button" data-action="undo" title="編集を戻す（Ctrl+Z）" aria-keyshortcuts="Control+Z Meta+Z">Undo</button>
+          <button class="btn" type="button" data-action="redo" title="編集をやり直す（Ctrl+Y / Ctrl+Shift+Z）" aria-keyshortcuts="Control+Y Control+Shift+Z Meta+Shift+Z">Redo</button>
+          <button class="btn" type="button" data-action="viewer-read" title="現在の作品の写しを新しいタブで読む。保存や自動同期はしません">Viewerで読む</button>
+        </div>
+        <div class="topbar-right">
+          <button type="button" data-ui-action="toggle-check" aria-expanded="false" aria-controls="modeler-check-panel">検査</button>
+          <button type="button" data-ui-action="toggle-comparison" aria-expanded="false" aria-controls="modeler-comparison">比較</button>
+          <div class="file-indicator">
+            <span class="topbar-file" data-role="file-label">作品なし</span>
+            <span class="file-status" data-role="file-status" role="status" aria-live="polite">作品を開いてください</span>
+          </div>
+        </div>
+      </header>
+      <details class="work-status" data-role="work-status" hidden id="modeler-comparison">
+        <summary data-role="work-summary"></summary>
+        <div data-role="work-details"></div>
+      </details>
+      <main class="maingrid" data-role="maingrid">
+        <section class="pane pane-outliner" data-role="pane-outliner" id="modeler-outliner">
+          <div class="pane-title">要素・検索</div>
+          <div class="pane-body" data-role="outliner-body">
+            <div class="exploration-toolbar exploration-list-tools" data-role="exploration-list-tools"></div>
+            <div class="outliner-tabs" role="tablist" aria-label="要素の種類">
+              <button type="button" id="modeler-tab-points" data-ui-action="tab-points" role="tab" aria-selected="true" aria-controls="modeler-list-points">点</button>
+              <button type="button" id="modeler-tab-lines" data-ui-action="tab-lines" role="tab" aria-selected="false" aria-controls="modeler-list-lines">線</button>
+            </div>
+            <div class="outliner-dual" data-role="outliner-dual">
+              <section class="outcol outcol-points" aria-label="Points" id="modeler-list-points" role="tabpanel" aria-labelledby="modeler-tab-points">
+                <div class="outcol-title">
+                  <span class="outcol-title-text">点の並び順</span>
+                  <span class="outcol-order" aria-label="Order (points)">
+                    <button type="button" class="mini-btn" data-action="order-top" data-kind="points" title="Move to top">⤒</button>
+                    <button type="button" class="mini-btn" data-action="order-up" data-kind="points" title="Move up">↑</button>
+                    <button type="button" class="mini-btn" data-action="order-down" data-kind="points" title="Move down">↓</button>
+                    <button type="button" class="mini-btn" data-action="order-bottom" data-kind="points" title="Move to bottom">⤓</button>
+                  </span>
+                </div>
+                <div class="outcol-scroll" data-role="outliner-points-scroll">
+                  <table class="outliner-table" data-role="outliner-points-table">
+                    <thead>
+                      <tr>
+                        <th class="col-lock">L</th>
+                        <th class="col-name">name</th>
+                        <th class="col-num">x</th>
+                        <th class="col-num">y</th>
+                        <th class="col-num">z</th>
+                        <th class="col-frames">Fr</th>
+                      </tr>
+                    </thead>
+                    <tbody data-role="outliner-points-tbody"></tbody>
+                  </table>
+                </div>
+              </section>
+              <section class="outcol outcol-lines" aria-label="Lines" id="modeler-list-lines" role="tabpanel" aria-labelledby="modeler-tab-lines">
+                <div class="outcol-title">
+                  <span class="outcol-title-text">線の並び順</span>
+                  <span class="outcol-order" aria-label="Order (lines)">
+                    <button type="button" class="mini-btn" data-action="order-top" data-kind="lines" title="Move to top">⤒</button>
+                    <button type="button" class="mini-btn" data-action="order-up" data-kind="lines" title="Move up">↑</button>
+                    <button type="button" class="mini-btn" data-action="order-down" data-kind="lines" title="Move down">↓</button>
+                    <button type="button" class="mini-btn" data-action="order-bottom" data-kind="lines" title="Move to bottom">⤓</button>
+                  </span>
+                </div>
+                <div class="outcol-scroll" data-role="outliner-lines-scroll">
+                  <table class="outliner-table" data-role="outliner-lines-table">
+                    <thead>
+                      <tr>
+                        <th class="col-lock">L</th>
+                        <th class="col-name">caption</th>
+                        <th class="col-end">end_a</th>
+                        <th class="col-end">end_b</th>
+                        <th class="col-frames">Fr</th>
+                      </tr>
+                    </thead>
+                    <tbody data-role="outliner-lines-tbody"></tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+          </div>
+        </section>
+        <div class="splitter" data-role="splitter-left" role="separator" aria-label="一覧の幅を変更" aria-orientation="vertical"></div>
+        <section class="pane pane-qc pane-model" data-role="pane-qc">
+          <div class="model-head">
+            <div class="model-toolbar" aria-label="モデルの操作">
+              <strong class="model-title">モデル</strong>
+              <button type="button" data-ui-action="toggle-outliner" aria-expanded="false" aria-controls="modeler-outliner">要素・検索</button>
+              <button class="btn" type="button" data-action="tool-move" title="移動モードを切り替える（M）" aria-keyshortcuts="M" aria-pressed="false">移動 (M)</button>
+              <button data-action="add-point" type="button" title="点を追加：P（文字入力中は無効）" aria-keyshortcuts="P">＋点 (P)</button>
+              <button data-action="add-line" type="button" title="関係を表す線を追加：L（文字入力中は無効）" aria-keyshortcuts="L">＋線 (L)</button>
+              <button data-action="delete" type="button">削除</button>
+              <button class="btn" type="button" data-action="fit-document">全体へ</button>
+              <button class="btn" type="button" data-action="preview-out">別窓表示</button>
+            </div>
+            <div class="exploration-toolbar" data-role="exploration-toolbar"></div>
+            <div class="model-guidance">
+              <span class="preview-hint" data-role="preview-hint" role="status">選択：クリック ／ 視点：ドラッグ ／ 拡大：ホイール</span>
+              <details class="shortcut-help">
+                <summary>操作・キー</summary>
+                <div class="shortcut-help-body">
+                  <p><kbd>P</kbd> 点を追加　<kbd>L</kbd> 関係を追加　<kbd>M</kbd> 移動の切替</p>
+                  <p>XY移動中は点・ラベルをドラッグ。Zは固定。<kbd>Esc</kbd> でドラッグ／図からの指定を取消。</p>
+                  <p>通常はクリックで選択、ドラッグで視点操作、ホイールで拡大縮小。「選択を表示」で選択箇所へ視点を移す。</p>
+                  <p><kbd>Ctrl+S</kbd> 保存　<kbd>Ctrl+Shift+S</kbd> 別名保存</p>
+                  <p><kbd>Ctrl+Z</kbd> Undo　<kbd>Ctrl+Y</kbd> Redo。文字入力中は入力欄自身の取消・やり直し。</p>
+                  <p>P／L／Mは文字入力・日本語変換中には働かない。「探索を戻る」は範囲・表示・選択・視点を戻す。</p>
+                </div>
+              </details>
+            </div>
+          </div>
+          <div class="pane-body model-body">
+            <div class="pane-preview-body">
+              <div class="preview-embed" data-role="preview-embed">
+                <div class="preview-embed-body">
+                  <!-- Renderer anchor: embedded preview surface (also required for PreviewOut) -->
+                  <div class="renderer-anchor" data-role="renderer-anchor" aria-hidden="false">
+                    <canvas class="modeler-canvas" data-role="modeler-canvas" width="1" height="1"></canvas>
+                    <div class="preview-selection" data-role="preview-selection" hidden></div>
+                  </div>
+                </div>
+              </div>
+              <div class="qc-panel" data-role="qc-panel" hidden="" id="modeler-check-panel">
+                <div class="qc-head">
+                  <strong>検査</strong>
+                  <button data-action="quickcheck" type="button">検査する</button>
+                  <button data-action="qc-fix-lines" type="button">切れた線を修復</button>
+                  <button data-action="qc-toggle" type="button" title="Toggle issue list">一覧の開閉</button>
+                  <button type="button" data-ui-action="toggle-check" aria-label="検査を閉じる">閉じる</button>
+                </div>
+                <div class="qc-body">
+                  <div class="qc-summary" data-role="qc-summary">未検査</div>
+                  <div class="qc-list" data-role="qc-list"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+        <div class="splitter" data-role="splitter-right" role="separator" aria-label="プロパティの幅を変更" aria-orientation="vertical"></div>
+        <section class="pane pane-prop" data-role="pane-prop">
+          <div class="pane-title">プロパティ<span class="pane-sub" data-role="prop-selection-count" hidden></span>
+            <span class="prop-target-label" data-ui-role="prop-target-label">選択なし</span>
+          </div>
+          <div class="pane-body">
+            <div class="prop-empty" data-role="prop-empty">モデル上の点・線を選んで編集。見つけにくい要素は「要素・検索」から選べます。</div>
+            <div class="prop-multi" data-role="prop-multi" hidden>
+              <div class="prop-multi-title">
+                <span data-role="prop-multi-count">0</span> 件を選択中</div>
+              <div class="prop-multi-sub">プロパティを編集するには、点か線を1つ選んでください。</div>
+            </div>
+            <div class="prop-panel" data-role="prop-panel" hidden>
+              <div class="prop-scroll">
+                <div class="prop-field" data-role="prop-text-field" hidden>
+                  <label class="prop-label" for="modeler-prop-text-content">表示文字</label>
+                  <input class="prop-input" type="text" data-role="prop-text-content" placeholder="空欄なら管理上の名前を表示" id="modeler-prop-text-content">
+                  <div class="prop-help">空欄のときは管理上の名前を表示。</div>
+                  <details class="prop-details prop-text-format">
+                    <summary>文字の書式・向き</summary>
+                    <div class="prop-pos">
+                      <div class="prop-row">
+                        <div class="prop-row-key">文字サイズ</div>
+                        <input class="prop-input" type="number" step="0.1" min="0" data-role="prop-text-size" id="modeler-prop-text-size" aria-label="文字サイズ">
+                      </div>
+                      <div class="prop-row">
+                        <div class="prop-row-key">揃え</div>
+                        <select class="prop-input" data-role="prop-text-align" id="modeler-prop-text-align" aria-label="揃え">
+                          <option value="">(default)</option>
+                          <option value="left&amp;baseline">left&amp;baseline</option>
+                          <option value="left&amp;middle">left&amp;middle</option>
+                          <option value="center&amp;middle">center&amp;middle</option>
+                          <option value="right&amp;baseline">right&amp;baseline</option>
+                          <option value="right&amp;middle">right&amp;middle</option>
+                        </select>
+                      </div>
+                      <details class="prop-details" data-role="prop-text-pose">
+                        <summary>向き（front / up） <span class="prop-note" data-role="prop-text-pose-mode"></span>
+                        </summary>
+                        <div class="prop-details-body">
+                          <div class="prop-row">
+                            <div class="prop-row-key">front</div>
+                            <div class="prop-inline3">
+                              <input class="prop-input" type="number" step="1" data-role="prop-text-front-x" placeholder="x" id="modeler-prop-text-front-x" aria-label="front">
+                              <input class="prop-input" type="number" step="1" data-role="prop-text-front-y" placeholder="y" id="modeler-prop-text-front-y" aria-label="front">
+                              <input class="prop-input" type="number" step="1" data-role="prop-text-front-z" placeholder="z" id="modeler-prop-text-front-z" aria-label="front">
+                            </div>
+                          </div>
+                          <div class="prop-row">
+                            <div class="prop-row-key">up</div>
+                            <div class="prop-inline3">
+                              <input class="prop-input" type="number" step="1" data-role="prop-text-up-x" placeholder="x" id="modeler-prop-text-up-x" aria-label="up">
+                              <input class="prop-input" type="number" step="1" data-role="prop-text-up-y" placeholder="y" id="modeler-prop-text-up-y" aria-label="up">
+                              <input class="prop-input" type="number" step="1" data-role="prop-text-up-z" placeholder="z" id="modeler-prop-text-up-z" aria-label="up">
+                            </div>
+                          </div>
+                        </div>
+                      </details>
+                    </div>
+                  </details>
+                </div>
+                <div class="prop-field" data-role="prop-aux-module-field" hidden>
+                  <label class="prop-label" for="modeler-prop-aux-module">aux.module</label>
+                  <select class="prop-input" data-role="prop-aux-module" id="modeler-prop-aux-module">
+                    <option value="grid">grid</option>
+                    <option value="axis">axis</option>
+                    <option value="plate">plate</option>
+                    <option value="shell">shell</option>
+                    <option value="hud">hud</option>
+                    <option value="extension">extension</option>
+                  </select>
+                </div>
+                <div class="prop-field" data-role="prop-pos-field">
+                  <label class="prop-label">位置（Z＋が上）</label>
+                  <div class="prop-pos prop-position-grid">
+                    <div class="prop-row">
+                      <div class="prop-row-key">x</div>
+                      <input class="prop-input" type="number" step="0.1" data-role="prop-x" aria-label="x 座標" id="modeler-prop-x">
+                    </div>
+                    <div class="prop-row">
+                      <div class="prop-row-key">y</div>
+                      <input class="prop-input" type="number" step="0.1" data-role="prop-y" aria-label="y 座標" id="modeler-prop-y">
+                    </div>
+                    <div class="prop-row">
+                      <div class="prop-row-key">z</div>
+                      <input class="prop-input" type="number" step="0.1" data-role="prop-z" aria-label="z 座標" id="modeler-prop-z">
+                    </div>
+                  </div>
+                </div>
+                <div class="prop-field" data-role="prop-frames-field" hidden>
+                  <label class="prop-label" for="modeler-prop-frames">frames（所属する表示）</label>
+                  <input class="prop-input" type="text" data-role="prop-frames" placeholder="例：0,1" id="modeler-prop-frames">
+                  <div class="prop-help">例：0 ／ 0,1 ／ 1-3。空欄で指定を解除。</div>
+                </div>
+                <div class="prop-field" data-role="prop-line-ends-field" hidden>
+                  <label class="prop-label">接続先（端点 a / b）</label>
+                  <div class="prop-line-ends">
+                    <div class="prop-row-col">
+                      <div class="prop-row">
+                        <div class="prop-row-key">a</div>
+                        <div class="prop-inline2">
+                          <input class="prop-input" type="text" data-role="prop-line-end-a" list="prop-points-datalist" placeholder="点のID または x,y,z" id="modeler-prop-line-end-a" aria-label="a">
+                          <button class="prop-mini" type="button" data-role="prop-line-end-a-pick" title="モデル上の点を指定">図から指定</button>
+                          <button class="prop-mini" type="button" data-role="prop-line-end-a-clear" title="端点 a を空にする">×</button>
+                        </div>
+                      </div>
+                      <div class="prop-sub" data-role="prop-line-end-a-resolved"></div>
+                    </div>
+                    <div class="prop-row-col">
+                      <div class="prop-row">
+                        <div class="prop-row-key">b</div>
+                        <div class="prop-inline2">
+                          <input class="prop-input" type="text" data-role="prop-line-end-b" list="prop-points-datalist" placeholder="点のID または x,y,z" id="modeler-prop-line-end-b" aria-label="b">
+                          <button class="prop-mini" type="button" data-role="prop-line-end-b-pick" title="モデル上の点を指定">図から指定</button>
+                          <button class="prop-mini" type="button" data-role="prop-line-end-b-clear" title="端点 b を空にする">×</button>
+                        </div>
+                      </div>
+                      <div class="prop-sub" data-role="prop-line-end-b-resolved"></div>
+                    </div>
+                  </div>
+                  <div class="prop-help" data-role="prop-line-ends-hint" hidden>接続する点をモデル上で選択。Escで指定を取消。</div>
+                  <datalist id="prop-points-datalist" data-role="prop-points-datalist"></datalist>
+                </div>
+                <details class="prop-field prop-details prop-caption-format" data-role="prop-caption-text-field" hidden>
+                  <summary>文字の書式・向き</summary>
+                  <div class="prop-pos">
+                    <div class="prop-row">
+                      <div class="prop-row-key">文字サイズ</div>
+                      <input class="prop-input" type="number" step="0.1" min="0" data-role="prop-caption-text-size" id="modeler-prop-caption-text-size" aria-label="文字サイズ">
+                    </div>
+                    <details class="prop-details" data-role="prop-caption-text-pose">
+                      <summary>向き（front / up） <span class="prop-note" data-role="prop-caption-text-pose-mode"></span>
+                      </summary>
+                      <div class="prop-details-body">
+                        <div class="prop-row">
+                          <div class="prop-row-key">front</div>
+                          <div class="prop-inline3">
+                            <input class="prop-input" type="number" step="1" data-role="prop-caption-text-front-x" placeholder="x" id="modeler-prop-caption-text-front-x" aria-label="front">
+                            <input class="prop-input" type="number" step="1" data-role="prop-caption-text-front-y" placeholder="y" id="modeler-prop-caption-text-front-y" aria-label="front">
+                            <input class="prop-input" type="number" step="1" data-role="prop-caption-text-front-z" placeholder="z" id="modeler-prop-caption-text-front-z" aria-label="front">
+                          </div>
+                        </div>
+                        <div class="prop-row">
+                          <div class="prop-row-key">up</div>
+                          <div class="prop-inline3">
+                            <input class="prop-input" type="number" step="1" data-role="prop-caption-text-up-x" placeholder="x" id="modeler-prop-caption-text-up-x" aria-label="up">
+                            <input class="prop-input" type="number" step="1" data-role="prop-caption-text-up-y" placeholder="y" id="modeler-prop-caption-text-up-y" aria-label="up">
+                            <input class="prop-input" type="number" step="1" data-role="prop-caption-text-up-z" placeholder="z" id="modeler-prop-caption-text-up-z" aria-label="up">
+                          </div>
+                        </div>
+                      </div>
+                    </details>
+                  </div>
+                  <div class="prop-help">表示文字のサイズと向きを設定。</div>
+                </details>
+                <details class="prop-details prop-identity">
+                  <summary>識別情報</summary>
+                  <div class="prop-details-body">
+                    <div class="prop-kv">
+                      <span>uuid</span>
+                      <code data-role="prop-uuid"></code>
+                    </div>
+                    <div class="prop-kv">
+                      <span>kind</span>
+                      <code data-role="prop-kind"></code>
+                    </div>
+                  </div>
+                </details>
+                <details class="prop-details prop-name-details" data-ui-role="prop-name-details">
+                  <summary>管理上の名前</summary>
+                  <div class="prop-field">
+                    <label class="prop-label" data-role="prop-name-label" for="modeler-prop-name">管理上の名前</label>
+                    <input class="prop-input" type="text" data-role="prop-name" placeholder="名前" id="modeler-prop-name">
+                  </div>
+                </details>
+              </div>
+              <div class="prop-actions">
+                <div class="prop-dirty" data-role="prop-dirty" hidden>未適用の入力あり</div>
+                <div class="prop-commit-help">保存前に「適用」か「取消」。別の対象へ移ると、有効な入力は適用されます。</div>
+                <button data-action="prop-save" disabled type="button">適用</button>
+                <button data-action="prop-discard" disabled type="button">取消</button>
+                <button data-action="prop-close" type="button">選択解除</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+      <footer class="statusbar" role="status" aria-live="polite">
+        <span data-role="hud">作品を開くか、新規作成してください。</span>
+      </footer>
+      <input type="file" accept=".json,application/json" data-role="file-input" hidden>
+    </div>
+    <script type="module" src="./modelerHostBoot.js"></script>
+  </body>
+</html>
+
