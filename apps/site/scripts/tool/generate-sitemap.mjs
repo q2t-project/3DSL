@@ -1,10 +1,8 @@
 // apps/site/scripts/tool/generate-sitemap.mjs
 // Generates public/sitemap.xml and public/robots.txt for the Astro site.
 //
-// Base URL resolution:
-//   1) SITE_URL        (recommended: production custom domain)
-//   2) CF_PAGES_URL    (Cloudflare Pages provided, useful for preview deployments)
-//   3) https://3dsl.jp (final fallback)
+// Page identity is always the production origin: https://3dsl.jp.
+// Cloudflare's deployment URL identifies a build, not the canonical site.
 //
 // Production-only policy:
 // - Preview deployments are for verification; sitemap/robots are not useful there.
@@ -55,12 +53,6 @@ function isProbablyUrl(s) {
 }
 
 function resolveBaseUrl() {
-  const site = process.env.SITE_URL;
-  const cf = process.env.CF_PAGES_URL;
-
-  if (site && isProbablyUrl(site)) return trimTrailingSlashes(site);
-  if (cf && isProbablyUrl(cf)) return trimTrailingSlashes(cf);
-
   return "https://3dsl.jp";
 }
 
@@ -79,10 +71,16 @@ function isProductionBuild(baseUrl) {
   if (force) return { ok: true, reason: "force" };
 
   const env = String(process.env.CF_PAGES_ENV ?? "").toLowerCase();
+  if (env === "preview") return { ok: false, reason: "CF_PAGES_ENV=preview" };
   if (env === "production") return { ok: true, reason: "CF_PAGES_ENV=production" };
 
   const branch = String(process.env.CF_PAGES_BRANCH ?? "");
-  if (branch === "main") return { ok: true, reason: "CF_PAGES_BRANCH=main" };
+  if (branch) return { ok: branch === "main", reason: `CF_PAGES_BRANCH=${branch}` };
+
+  // A deployment URL alone does not establish a production build.
+  if (process.env.CF_PAGES_URL || process.env.CF_PAGES) {
+    return { ok: false, reason: "Cloudflare environment without production identity" };
+  }
 
   const site = process.env.SITE_URL;
   if (site && isProbablyUrl(site)) {
@@ -127,11 +125,18 @@ function buildUrlEntries(baseUrl, libraryItems) {
     "/faq/",
     "/policy/",
     "/contact/",
-    "/modeler/",
-    "/canonical/",
-    // viewer routes
-    "/viewer/",
-    "/app/viewer/",
+    // Reader-facing documents. App hosts, redirects and diagnostic pages stay
+    // reachable but are not promoted as search landing pages.
+    "/docs/overview/what-is-3dsl/",
+    "/docs/overview/what-is-3dss/",
+    "/docs/usage/create-save-read/",
+    "/docs/usage/read-a-work/",
+    "/docs/works/knowledge-questions/",
+    "/docs/works/structure-classification/",
+    "/docs/schema/latest/",
+    "/docs/schema/v1.1.4/",
+    "/docs/spec/latest/",
+    "/docs/spec/v1.1.4/",
   ];
 
   const out = [];

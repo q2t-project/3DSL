@@ -1,6 +1,6 @@
 # 3DSS とは
 
-3DSS（3D Structured Scene）は、3DSL が扱う **シーン（関係構造）のスナップショット**を JSON で表すためのデータ形式。
+3DSS（Three-Dimensional Structural Schema）は、3DSL が扱う **シーン（関係構造）のスナップショット**を JSON で表すためのデータ形式。
 
 主に次の要素で構成される：
 

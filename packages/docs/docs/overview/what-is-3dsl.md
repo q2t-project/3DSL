@@ -4,7 +4,7 @@
 
 ざっくり言うと：
 
-- **3DSS（3D Structured Scene）**としてデータ化して保存できる
+- **3DSS（Three-Dimensional Structural Schema）**としてデータ化して保存できる
 - Viewer で「触って」「戻って」「深掘り」できる（回転・ズーム・視点移動など）
 - 文章（Docs / FAQ）と図（Library / Viewer）を行き来できる
 

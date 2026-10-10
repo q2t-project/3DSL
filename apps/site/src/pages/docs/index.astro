@@ -1,58 +1,150 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import { getCollection } from "astro:content";
-import DocsText from "../../content/text/docs.md";
 
-
-// ※ ここは “実在パス” に合わせて調整してください。
-// いまのプランでは /schemas/... を想定してる。
 const docsEntries = (await getCollection("docs")).sort((a, b) => a.slug.localeCompare(b.slug, "ja"));
+const firstSteps = [
+  { label: "作品を読む", href: "/docs/usage/read-a-work", text: "どこから見始め、配置や接続をどう確かめるか。" },
+  { label: "作る・保存する・開き直す", href: "/docs/usage/create-save-read", text: "制作を始め、作品を端末へ保存し、Viewerで読むまで。" },
+  { label: "よくある質問", href: "/faq", text: "3DSL、作品の出所、利用や連絡について。" },
+];
+const formatLinks = [
+  { label: "保存形式の違いと再開の手順", href: "/docs/usage/create-save-read", text: "図だけの3DSSと、原資料や草稿を含む作品一式の違い。" },
+  { label: "公開中の3DSS仕様", href: "/docs/spec/latest", text: "図のデータに何を記述するかを調べる。" },
+  { label: "公開中の3DSSスキーマ", href: "/docs/schema/latest", text: "図のファイルが形式上の条件を満たすかを検査するための定義。" },
+];
 
-const links = [
-  { label: "作る・保存する・Viewerで読む", href: "/docs/usage/create-save-read" },
-  { label: "Latest schema", href: "/docs/schema/latest" },
-  { label: "v1.1.4 schema", href: "/docs/schema/v1.1.4" },
-  { label: "v1.1.4 spec", href: "/docs/spec/v1.1.4" },
-  { label: "Viewer docs", href: "/docs/viewer" },
+const titles: Record<string, string> = {
+  "contracts/docs_collections": "文書コレクションの構成",
+  "contracts/marker_text_interp": "文字表示の解釈規則",
+  "contracts/skeltonforcodex": "Viewer実装の初期案",
+  "contracts/viewer_dom_contract": "Viewer画面とDOMの契約",
+  "contracts/viewer_spec_forcodex": "Viewer実装仕様",
+  "library/meta-fields": "作品の公開情報とメタデータ",
+  "library/ops-cheatsheet": "作品登録の操作早見表",
+  "library/page-policy": "作品詳細ページの表示方針",
+  "library/workflow": "作品の登録・更新手順",
+  "modeler/beta-io": "従来版Modelerの保存とブラウザ差",
+  "modeler/implementation_report": "Modelerの実装記録",
+  "modeler/known-issues": "従来版Modelerの既知の制限",
+  "modeler/public-alpha": "従来版Modelerの使い方",
+  "modeler/readme": "Modeler文書の案内",
+  "modeler/selection-contract": "Modelerの選択操作の契約",
+  "modeler/smoke-minimal": "Modelerの基本動作確認手順",
+  "ops/devops_site": "サイトの配備と運用",
+  "ops/npm-audit": "依存パッケージの監査方針",
+  "ops/reconstruction_preview_release": "制作・閲覧アプリの公開記録",
+  "ops/route_namespace_collisions": "公開URLの衝突を防ぐ規則",
+  "ops/viewer_deploy_pitfalls": "Viewer配備時の注意点",
+  "overview/what-is-3dsl": "3DSLの概要",
+  "overview/what-is-3dss": "3DSSの概要",
+  "readme": "文書全体の構成",
+};
+const primarySlugs = new Set(["usage/read-a-work", "usage/create-save-read"]);
+const legacySlugs = new Set(["modeler/beta-io", "modeler/known-issues", "modeler/public-alpha"]);
+function groupFor(slug: string) {
+  if (slug.startsWith("works/")) return "works";
+  if (slug.startsWith("overview/")) return "overview";
+  if (slug.startsWith("usage/")) return "usage";
+  if (legacySlugs.has(slug)) return "legacy";
+  if (slug.startsWith("contracts/")) return "contracts";
+  if (slug.startsWith("modeler/")) return "modeler";
+  if (slug.startsWith("library/")) return "library";
+  if (slug.startsWith("ops/")) return "ops";
+  return "other";
+}
+const groupedEntries = (key: string) => docsEntries.filter((entry) => !primarySlugs.has(entry.slug) && groupFor(entry.slug) === key);
+const readingGroups = [
+  { key: "works", title: "作品の解説", text: "実際の作品を、説明と図の両方から読みます。" },
+  { key: "overview", title: "概要と用語", text: "3DSLと、図を記録する3DSSについて。" },
+  { key: "usage", title: "使い方の補足", text: "操作や保存についての補足資料。" },
+  { key: "legacy", title: "従来版Modelerの案内", text: "従来の /app/modeler を使う場合の資料です。新しい制作・閲覧入口とは操作や保存形式が異なります。" },
+];
+const developmentGroups = [
+  { key: "contracts", title: "仕様・操作の契約" },
+  { key: "modeler", title: "Modelerの実装・検査" },
+  { key: "library", title: "作品の登録・掲載" },
+  { key: "ops", title: "サイトの配備・運用" },
+  { key: "other", title: "文書構成・その他" },
 ];
 ---
 
-<Layout
-  title="Docs | 3DSL"
-  description="3DSL の考え方、用語、設計のハブ。図の自由度問題、発散と収束、引用と表現の方針などをまとめます。"
->
-  <section class="max-w-4xl">
-    <div>
-      <div class="prose prose-invert prose-neutral max-w-3xl">
-        <DocsText />
-      </div>
+<Layout title="使い方と資料 | 3DSL" description="作品の読み方、制作・保存・再開、3DSSの形式を案内します。従来版の説明と技術・開発資料も目的別に辿れます。">
+  <div class="max-w-4xl">
+    <header>
+      <h1 class="text-3xl font-semibold tracking-tight">使い方と資料</h1>
+      <p class="mt-4 text-neutral-300 leading-8">作品を読む方、制作する方は、ここから始めてください。形式や開発について調べるための資料も、このページから辿れます。</p>
+    </header>
 
-      <div class="mt-10 grid gap-3">
-        {links.map((x) => (
-          <a class="rounded-2xl border border-white/10 bg-white/5 p-4 hover:bg-white/10" href={x.href}>
-            <div class="text-sm font-medium">{x.label}</div>
-            <div class="mt-1 font-mono text-xs text-neutral-400">{x.href}</div>
+    <section class="mt-8" aria-labelledby="docs-start">
+      <h2 id="docs-start" class="text-xl font-semibold">はじめに読む</h2>
+      <div class="mt-4 grid gap-3 sm:grid-cols-3">
+        {firstSteps.map((link) => (
+          <a class="ui-card block p-5" href={link.href}>
+            <h3 class="font-semibold">{link.label}</h3>
+            <p class="mt-2 text-sm text-neutral-300 leading-7">{link.text}</p>
           </a>
         ))}
-
-        {docsEntries.length ? (
-          <div class="mt-10" data-role="docs-index">
-            <h2 class="text-lg font-medium">Docs (packages/docs)</h2>
-            <div class="mt-3 grid gap-3">
-              {docsEntries.map((e) => (
-                <a
-                  class="rounded-2xl border border-white/10 bg-white/5 p-4 hover:bg-white/10"
-                  href={`/docs/${e.slug}`}
-                >
-                  <div class="text-sm font-medium">{e.data?.title ?? e.slug}</div>
-                  <div class="mt-1 font-mono text-xs text-neutral-400">/docs/{e.slug}</div>
-                </a>
-              ))}
-            </div>
-          </div>
-        ) : null}
       </div>
+    </section>
+
+    <section class="mt-10" aria-labelledby="docs-formats">
+      <h2 id="docs-formats" class="text-xl font-semibold">形式と互換性</h2>
+      <div class="mt-4 grid gap-3">
+        {formatLinks.map((link) => (
+          <a class="ui-card block p-5" href={link.href}>
+            <h3 class="font-semibold">{link.label}</h3>
+            <p class="mt-2 text-sm text-neutral-300 leading-7">{link.text}</p>
+          </a>
+        ))}
+      </div>
+      <p class="mt-4 text-sm text-neutral-400 leading-7">
+        版を指定して参照する場合：<a class="underline underline-offset-4" href="/docs/spec/v1.1.4">v1.1.4仕様</a> ／ <a class="underline underline-offset-4" href="/docs/schema/v1.1.4">v1.1.4スキーマ</a>。
+      </p>
+    </section>
+
+    <div data-role="docs-index">
+      {readingGroups.map((group) => {
+        const entries = groupedEntries(group.key);
+        return entries.length > 0 && (
+          <section class="mt-10">
+            <h2 class="text-xl font-semibold">{group.title}</h2>
+            <p class="mt-3 text-sm text-neutral-300 leading-7">{group.text}</p>
+            <ul class="mt-4 grid gap-3 sm:grid-cols-2">
+              {entries.map((entry) => (
+                <li><a class="ui-card block p-4 text-sm" href={`/docs/${entry.slug}`}>{titles[entry.slug] ?? entry.data?.title ?? entry.slug}</a></li>
+              ))}
+            </ul>
+          </section>
+        );
+      })}
+
+      <section class="ui-surface mt-10 p-6" aria-labelledby="docs-development">
+        <h2 id="docs-development" class="text-xl font-semibold">技術・開発資料</h2>
+        <p class="mt-3 text-sm text-neutral-300 leading-7">
+          実装の契約、検査、掲載・配備の手順と開発記録です。過去の版を対象にした文書も含まれるため、各文書の対象と更新時点を確認してください。
+        </p>
+        <p class="mt-3 text-sm leading-7">
+          <a class="underline underline-offset-4" href="/docs/viewer">従来版Viewerの仕様</a> ／ <a class="underline underline-offset-4" href="/docs/modeler">従来版Modelerの文書案内</a> ／ <a class="underline underline-offset-4" href="/canonical">スキーマと検証の案内</a>
+        </p>
+        {developmentGroups.map((group) => {
+          const entries = groupedEntries(group.key);
+          return entries.length > 0 && (
+            <details class="mt-5 border-t border-white/10 pt-4">
+              <summary class="cursor-pointer font-medium">{group.title}</summary>
+              <ul class="mt-3 space-y-2 text-sm text-neutral-300">
+                {entries.map((entry) => (
+                  <li><a class="inline-block py-1 underline underline-offset-4 hover:text-neutral-100" href={`/docs/${entry.slug}`}>{titles[entry.slug] ?? entry.data?.title ?? entry.slug}</a></li>
+                ))}
+              </ul>
+            </details>
+          );
+        })}
+      </section>
     </div>
 
-  </section>
+    <p class="mt-8 text-sm text-neutral-400 leading-7">
+      作品を利用するときは、<a class="underline underline-offset-4" href="/policy/content-usage">コンテンツ利用条件</a>も確認してください。操作や掲載内容への連絡は<a class="underline underline-offset-4" href="/contact">お問い合わせ</a>へ。
+    </p>
+  </div>
 </Layout>
