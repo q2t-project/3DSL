@@ -23,9 +23,9 @@ const canonicalFinal = canonicalUrl ?? canonical ?? `https://3dsl.jp${canonicalP
 // Header nav: keep it minimal (no hamburger)
 const nav = [
   { href: "/", label: "Home" },
-  { href: "/preview-reconstruction/", label: "作品を開く" },
+  { href: "/preview-reconstruction/", label: "作る・開く" },
   { href: "/library", label: "Library" },
-  { href: "/app/viewer", label: "Viewer" },
+  { href: "/app/viewer", label: "従来版Viewer" },
   { href: "/docs", label: "Docs" },
   { href: "/concept", label: "Concept" },
 ];
@@ -122,13 +122,13 @@ function isActive(href: string) {
         <div class="flex items-center justify-between gap-3">
           <div>3DSL</div>
           <div class="ui-footer-links">
-            <a class="hover:text-neutral-200" href="/preview-reconstruction/">作品を開く</a>
+            <a class="hover:text-neutral-200" href="/preview-reconstruction/">作る・開く</a>
             <a class="hover:text-neutral-200" href="/policy">Policy</a>
             <a class="hover:text-neutral-200" href="/contact">Contact</a>
             <a class="hover:text-neutral-200" href="/docs">Docs</a>
             <a class="hover:text-neutral-200" href="/faq">FAQ</a>
             <a class="hover:text-neutral-200" href="/library">Library</a>
-            <a class="hover:text-neutral-200" href="/app/viewer">Viewer</a>
+            <a class="hover:text-neutral-200" href="/app/viewer">従来版Viewer</a>
           </div>
         </div>
       </div>

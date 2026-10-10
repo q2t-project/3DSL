@@ -52,9 +52,11 @@ Concept案だけ旧 `plane:zx` を `pose:{front:[0,1,0],up:[0,0,1]}` に対応�
 
 実行コマンド：
 
+通常の `npm run build` は `postbuild` で既存の公開検査に続けて `check:concept-repair` を自動実行する。Previewでは候補の配布一致等を、本番では比較ページ・JSONが生成されていないことを検査する。
+
 ```sh
 npm --prefix apps/site run build
-node apps/site/scripts/check/concept-repair.mjs
+npm --prefix apps/site run check:concept-repair
 ```
 
 production除外は、`CF_PAGES_ENV=production CF_PAGES_BRANCH=main` を付けたsyncとAstro buildの後、同じ環境変数付きのcheckで確認する。Previewへ戻すときはsyncから行う。
@@ -62,5 +64,7 @@ production除外は、`CF_PAGES_ENV=production CF_PAGES_BRANCH=main` を付け�
 データ検査は3ケースのSchema適合、UUID重複0、修復2案の欠落0、元の38点41線等の不変性、元データSHA一致を確認する。配布検査は生成JSONと候補の一致、3本のViewerリンクとreturn、HTMLのnoindex・広告資格false、一般入口への非掲載を確認する。WebGL実描画・作者の採用判断は別の確認であり、未実施。
 
 今回の実行結果：通常の全build（prebuild、既存publication検査を含む）成功。比較データ・配布検査成功。production/main環境でsync→Astro build→配布検査を行い、比較ページ・JSON計4件が存在しないことを確認した。その後Preview/localとして再生成し、同じ配布検査を再度通過。boundary guardも成功。原本SHAは作業前後で一致。ブラウザ/WebGLを使った描画検査は行っていない。
+
+postbuildへの組込み後も、Previewの全buildと、出力ディレクトリを作り直したproduction/mainの全buildが自動検査まで成功。同じローカル作業treeでPreviewからproductionへ切り替えた際に旧比較ファイルが残り、検査がbuildを停止することも確認した。環境を切り替えるローカル検証では既存の `apps/site/dist` を消してからbuildする。一般的なcleanup機構は追加していない。本番では比較用ファイルが残っていれば出荷を止める。
 
 採用時は元作品を直す前に、この38点固定・SHA固定の比較検査を更新または撤去する。既存38点を移動したい場合は、具体的な追加差分を比較にして別途判断する。本番の推薦復帰は修復箇所と全体の可読性確認後に判断する。
