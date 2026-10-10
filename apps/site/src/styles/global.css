@@ -278,7 +278,7 @@ body {
 .ui-footer-links{
   display:flex;
   align-items:center;
-  justify-content:flex-end;
+  justify-content:flex-start;
   gap: 1rem;
   overflow-x:auto;
   white-space:nowrap;
@@ -291,6 +291,7 @@ body {
 }
 .ui-footer-links::-webkit-scrollbar{ display:none; }
 .ui-footer-links a{ flex: 0 0 auto; }
+.ui-footer-links a:first-child{ margin-left: auto; }
 
 /* --------------------------------------------
    Library detail: markdown typography tweaks (scoped)
