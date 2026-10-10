@@ -36,6 +36,11 @@ assert(guide.includes('作る・保存する・開き直す'), 'usage guide is g
 for (const file of ['docs/index.html', 'preview-reconstruction/index.html', 'preview-reconstruction/OPEN_MODELS.html']) {
   assert((await read(file)).includes(`href="${guideRoute}"`), `${file}: guide entry`);
 }
+const policy = await read('policy/content-usage/index.html');
+assert(policy.includes('id="practice-samples"'), 'sample terms anchor is generated');
+for (const file of ['docs/usage/create-save-read/index.html', 'preview-reconstruction/index.html', 'preview-reconstruction/OPEN_MODELS.html']) {
+  assert((await read(file)).includes('href="/policy/content-usage#practice-samples"'), `${file}: sample terms entry`);
+}
 // Check actual guide destinations, including policy and the isolated app routes.
 for (const match of guide.matchAll(/href="(\/[^"?#]*)/g)) {
   const pathname = match[1];

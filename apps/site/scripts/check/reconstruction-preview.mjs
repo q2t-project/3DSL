@@ -11,6 +11,7 @@ const origin = 'https://preview.invalid';
 // Its generated HTML is checked after the site build.
 const siteDocumentLinks = new Map([
   ['/docs/usage/create-save-read', path.resolve(siteRoot, 'src/content/docs/usage/create-save-read.md')],
+  ['/policy/content-usage', path.resolve(siteRoot, 'src/content/policy/content-usage.md')],
 ]);
 const errors = new Set();
 const maps = new Map();
