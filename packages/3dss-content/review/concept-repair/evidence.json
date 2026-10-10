@@ -1,0 +1,86 @@
+{
+  "baseline_sha256": "925d26405c140a4a22391567b6c88815e64d62bb246b248ade488ff643581db5",
+  "concept_commit": "23026cefe412555e2a2094946e3809b763291d1a",
+  "concept_point": {
+    "signification": {
+      "name": "Concept"
+    },
+    "appearance": {
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "marker": {
+        "primitive": "sphere",
+        "radius": 0.6,
+        "common": {
+          "opacity": 0.85,
+          "emissive": false,
+          "wireframe": false
+        },
+        "text": {
+          "plane": "zx",
+          "size": 8,
+          "content": "Concept"
+        }
+      }
+    },
+    "meta": {
+      "uuid": "b1cbe02d-7219-4a16-8bee-4652e46e38bc",
+      "tags": [
+        "x:p_concept"
+      ],
+      "creator_memo": "3DSL Concept の全体ルート"
+    }
+  },
+  "before_deletion_commit": "c4536fc7cc2ad62decc98b35710c805b9c185239",
+  "before_deletion_point": {
+    "signification": {
+      "name": "Concept"
+    },
+    "appearance": {
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "marker": {
+        "primitive": "sphere",
+        "radius": 0.6,
+        "common": {
+          "opacity": 0.85,
+          "emissive": false,
+          "wireframe": false
+        },
+        "text": {
+          "content": "topHello 3DSL",
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          },
+          "size": 64,
+          "align": "center&middle",
+          "font": "helvetiker_regular"
+        }
+      }
+    },
+    "meta": {
+      "uuid": "b1cbe02d-7219-4a16-8bee-4652e46e38bc",
+      "tags": [
+        "x:p_concept"
+      ],
+      "creator_memo": "3DSL Concept の全体ルート"
+    }
+  },
+  "deletion_commit": "920b919854c3ae7377870ed3a8a1beeb45be8aa8",
+  "deletion_time": "2026-01-20T03:13:52Z"
+}
