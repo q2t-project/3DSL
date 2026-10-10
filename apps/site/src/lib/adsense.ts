@@ -7,6 +7,11 @@
 
 export const ADSENSE_PUBLISHER_ID = 'ca-pub-3327629809463247';
 
+// Advertising stays OFF unless explicitly enabled at build time after review,
+// account settings and any required consent handling have been confirmed.
+// The verification meta and ads.txt are independent of ad serving.
+export const ADSENSE_SERVING_ENABLED = import.meta.env.PUBLIC_ADSENSE_SERVING_ENABLED === 'true';
+
 export type AdSlotKey = keyof typeof ADSENSE_SLOTS;
 
 // Publication policy: explanatory content and published work detail pages only.
@@ -14,7 +19,8 @@ export type AdSlotKey = keyof typeof ADSENSE_SLOTS;
 // Hidden/test detail pages additionally opt out through Layout.adsenseEligible.
 export function shouldEnableAdsense(pathname: string): boolean {
   const p = (pathname || '/').split('#')[0].split('?')[0];
-  return /^\/concept\/?$/.test(p) || /^\/library\/\d{6}[a-z0-9]{2}\/?$/i.test(p);
+  return ADSENSE_SERVING_ENABLED
+    && (/^\/concept\/?$/.test(p) || /^\/library\/\d{6}[a-z0-9]{2}\/?$/i.test(p));
 }
 
 export function isNoAdsRequest(url?: URL | null): boolean {

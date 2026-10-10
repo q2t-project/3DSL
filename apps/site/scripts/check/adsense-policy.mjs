@@ -6,13 +6,15 @@ import vm from 'node:vm';
 import { transform } from 'esbuild';
 
 const source = await readFile(new URL('../../src/lib/adsense.ts', import.meta.url), 'utf8');
-const compiled = await transform(source, {
-  loader: 'ts', format: 'cjs', target: 'es2022',
-  define: { 'import.meta.env': '{}' },
-});
-const sandbox = { module: { exports: {} }, URL };
-vm.runInNewContext(compiled.code, sandbox);
-const { initAdsense } = sandbox.module.exports;
+async function compilePolicy(env) {
+  const compiled = await transform(source, {
+    loader: 'ts', format: 'cjs', target: 'es2022',
+    define: { 'import.meta.env': JSON.stringify(env) },
+  });
+  const sandbox = { module: { exports: {} }, URL };
+  vm.runInNewContext(compiled.code, sandbox);
+  return sandbox.module.exports;
+}
 
 function page(href, { framed = false, eligible = true, visible = true } = {}) {
   const requests = [];
@@ -74,22 +76,33 @@ const cases = [
   ['localhost', 'http://localhost:4321/concept', {}, false],
 ];
 
-for (const [label, path, options, allowed] of cases) {
-  const state = page(new URL(path, 'https://3dsl.jp').href, options);
-  initAdsense(state.doc, state.win);
-  assert.equal(state.requests.length, allowed ? 1 : 0, `${label}: script request`);
-  assert.equal(state.activeSlots, allowed ? 1 : 0, `${label}: live slot`);
-  assert.equal(state.win.adsbygoogle?.length ?? 0, allowed ? 1 : 0, `${label}: ad queue`);
-  if (allowed) assert.match(state.requests[0], /^https:\/\/pagead2\.googlesyndication\.com\//);
+const disabledPolicy = await compilePolicy({});
+const enabledPolicy = await compilePolicy({ PUBLIC_ADSENSE_SERVING_ENABLED: 'true' });
+assert.equal(disabledPolicy.ADSENSE_SERVING_ENABLED, false, 'unset opt-in defaults OFF');
+assert.equal(enabledPolicy.ADSENSE_SERVING_ENABLED, true, 'explicit opt-in enables the gate');
+
+for (const [mode, policy, enabled] of [
+  ['default OFF', disabledPolicy, false],
+  ['explicit ON', enabledPolicy, true],
+]) {
+  for (const [label, path, options, eligible] of cases) {
+    const allowed = enabled && eligible;
+    const state = page(new URL(path, 'https://3dsl.jp').href, options);
+    policy.initAdsense(state.doc, state.win);
+    assert.equal(state.requests.length, allowed ? 1 : 0, `${mode} ${label}: script request`);
+    assert.equal(state.activeSlots, allowed ? 1 : 0, `${mode} ${label}: live slot`);
+    assert.equal(state.win.adsbygoogle?.length ?? 0, allowed ? 1 : 0, `${mode} ${label}: ad queue`);
+    if (allowed) assert.match(state.requests[0], /^https:\/\/pagead2\.googlesyndication\.com\//);
+  }
 }
 
 const responsive = page('https://3dsl.jp/concept', { visible: false });
-initAdsense(responsive.doc, responsive.win);
+enabledPolicy.initAdsense(responsive.doc, responsive.win);
 assert.equal(responsive.activeSlots, 0, 'CSS-hidden slot is not requested');
 responsive.reveal();
 responsive.reveal();
-initAdsense(responsive.doc, responsive.win);
+enabledPolicy.initAdsense(responsive.doc, responsive.win);
 assert.equal(responsive.requests.length, 1, 'script requested once');
 assert.equal(responsive.activeSlots, 1, 'responsive slot activated once');
 assert.equal(responsive.win.adsbygoogle.length, 1, 'slot queued once');
-console.log(`[check:adsense-policy] PASS: ${cases.length} routing/query/frame cases + responsive/idempotence; no network used`);
+console.log(`[check:adsense-policy] PASS: default OFF and explicit ON × ${cases.length} routing/query/frame cases + responsive/idempotence; no network used`);
