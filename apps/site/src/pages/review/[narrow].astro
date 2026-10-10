@@ -1,0 +1,51 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+export function getStaticPaths() {
+  return process.env.CF_PAGES_BRANCH === 'preview/narrow-w4-20261010'
+    ? [{ params: { narrow: 'narrow-layout' } }]
+    : [];
+}
+---
+<Layout title="狭幅表示の確認 | 3DSL" adsenseEligible={false}>
+  <meta slot="head" name="robots" content="noindex,nofollow" />
+  <h1>狭幅表示の確認</h1>
+  <p>同じページを指定したCSS幅で表示する確認用Preview。スマートフォン実機・タッチ操作の検証ではありません。</p>
+  <div class="controls">
+    <label>表示幅
+      <select id="review-width"><option value="360">360px</option><option value="390">390px</option><option value="768">768px</option></select>
+    </label>
+    <label>ページ
+      <select id="review-route">
+        <option value="/">Home</option>
+        <option value="/library/">Library</option>
+        <option value="/library/26010501/">Concept作品</option>
+        <option value="/docs/">Docs</option>
+        <option value="/docs/usage/create-save-read/">操作ガイド</option>
+        <option value="/docs/works/structure-classification/">構造分類ガイド</option>
+        <option value="/docs/works/knowledge-questions/">知識と問いガイド</option>
+        <option value="/contact/">Contact</option>
+        <option value="/preview-reconstruction/">作る・開く</option>
+      </select>
+    </label>
+  </div>
+  <div class="frame-wrap"><iframe id="narrow-frame" title="選択したページ" src="/" width="360" height="720"></iframe></div>
+</Layout>
+<style>
+  h1 { font-size: 1.3rem; font-weight: 600; }
+  p { font-size: .85rem; margin: .5rem 0 1rem; }
+  .controls { display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem; }
+  label { display:flex; align-items:center; gap:.5rem; }
+  select { color:white; background:#171717; border:1px solid #777; border-radius:4px; padding:.3rem; }
+  .frame-wrap { overflow:auto; }
+  iframe { display:block; max-width:none; border:1px solid #777; background:#111; }
+</style>
+<script>
+  const frame = document.querySelector<HTMLIFrameElement>('#narrow-frame')!;
+  document.querySelector<HTMLSelectElement>('#review-width')!.addEventListener('change', (event) => {
+    frame.width = (event.currentTarget as HTMLSelectElement).value;
+  });
+  document.querySelector<HTMLSelectElement>('#review-route')!.addEventListener('change', (event) => {
+    frame.src = (event.currentTarget as HTMLSelectElement).value;
+  });
+</script>
