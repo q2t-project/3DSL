@@ -23,6 +23,50 @@
   "points": [
     {
       "signification": {
+        "name": "Concept"
+      },
+      "appearance": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.6,
+          "common": {
+            "opacity": 0.85,
+            "emissive": false,
+            "wireframe": false
+          },
+          "text": {
+            "size": 8,
+            "content": "Concept",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "b1cbe02d-7219-4a16-8bee-4652e46e38bc",
+        "tags": [
+          "x:p_concept"
+        ],
+        "creator_memo": "3DSL Concept の全体ルート"
+      }
+    },
+    {
+      "signification": {
         "name": "表現の限界と要請"
       },
       "appearance": {
