@@ -1,0 +1,34 @@
+---
+import fs from 'node:fs';
+import path from 'node:path';
+import Layout from '../../layouts/Layout.astro';
+export function getStaticPaths() {
+  return process.env.CF_PAGES_BRANCH === 'preview/phone-viewer-w4-20261010'
+    ? [{params:{phone:'phone-viewer-layout'}}] : [];
+}
+const source = fs.readFileSync(path.resolve(process.cwd(), '../../apps/viewer/ssot/index.html'), 'utf8');
+// Layout-only fixture uses the same markup/styles. Runtime is deliberately
+// omitted because the cloud browser cannot create a WebGL context.
+const fixture = source.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+  .replace('href="./viewer.css"', 'href="/viewer/viewer.css"')
+  .replaceAll('src="assets/', 'src="/viewer/assets/')
+  .replace('<div id="gizmo-slot" data-role="gizmo-slot" aria-hidden="true"></div>',
+    '<div id="gizmo-slot" data-role="gizmo-slot" aria-hidden="true" style="display:grid;place-items:center;color:#888;font:11px system-ui">3D描画は省略</div>');
+const sizes = [{w:360,h:720},{w:390,h:720},{w:768,h:720},{w:390,h:460}];
+---
+<Layout title="スマホViewerの配置確認 | 3DSL" adsenseEligible={false}>
+  <meta slot="head" name="robots" content="noindex,nofollow" />
+  <h1>スマホViewerの配置確認</h1>
+  <p>実際のViewerと同じHTML・CSSを使った配置確認。3D描画と操作処理は省略しています。</p>
+  <div class="samples">
+    {sizes.map(size => <section><h2>{size.w} × {size.h}px</h2><iframe id={`layout-${size.w}-${size.h}`} title={`${size.w} × ${size.h}pxの配置`} width={size.w} height={size.h} srcdoc={fixture}></iframe></section>)}
+  </div>
+</Layout>
+<style>
+  h1 {font-size:1.4rem;font-weight:600;}
+  p {margin:.5rem 0 1rem;font-size:.9rem;}
+  h2 {margin:0 0 .5rem;}
+  .samples {display:flex;flex-wrap:wrap;gap:1rem;}
+  section {max-width:100%;overflow:auto;}
+  iframe {display:block;box-sizing:content-box;max-width:none;border:1px solid #888;background:black;}
+</style>

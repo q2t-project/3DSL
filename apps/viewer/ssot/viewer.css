@@ -1759,3 +1759,19 @@ body {
   outline: 2px solid rgba(255,255,255,0.55);
   outline-offset: 2px;
 }
+
+/* Portrait phones: use the empty area below the host's title/navigation.
+   Keep the rendering surface and camera unchanged; gizmo hit testing and
+   rendering already follow its wrapper's bounding rectangle. */
+@media (max-width: 520px) and (min-height: 560px) and (orientation: portrait) {
+  body:not(.is-embed) #viewer-rightdock {
+    top: calc(64px + env(safe-area-inset-top));
+    bottom: auto;
+    right: calc(8px + env(safe-area-inset-right));
+  }
+
+  body:not(.is-embed) #gizmo-wrapper {
+    width: 128px;
+    height: 128px;
+  }
+}
