@@ -6,7 +6,9 @@ title: 知識と問い — 回答から根拠へ辿る
 
 **同じ答えでも、何のための答えかが変わることがあります。** この作品は、問い・活動・回答・規準・資料のつながりを、全体図と二つの具体例で表しています。回答だけを取り出さず、それを支える活動と資料へ戻って読むための図です。
 
-[作品をViewerで開く](/preview-reconstruction/contract_viewer/index.html?model=/preview-reconstruction/models/knowledge_questions.3dsl-work.json) ／ [元の作品入口](/preview-reconstruction/)
+<a href="/preview-reconstruction/contract_viewer/index.html?model=/preview-reconstruction/models/knowledge_questions.3dsl-work.json" target="_blank" rel="noopener">作品を再構築版Viewerで開く（別タブ）</a> ／ [作る・開く](/preview-reconstruction/)
+
+図は新しいタブで開きます。この解説を残し、タブを切り替えながら読めます。
 
 ## 最初の問い
 
@@ -60,3 +62,5 @@ Viewer上部の「表示」にある数値欄で、**0・1・2**を選びます�
 作品データの改訂日：2026年10月9日。解説更新日：2026年10月10日。
 
 [図を読むための短い案内](/docs/usage/read-a-work) ／ [作る・保存する・開き直す](/docs/usage/create-save-read)
+
+気になった点は、作品名「知識と問い」・このページのURL・問題箇所を添えて、[お問い合わせ](/contact)からお知らせください。
