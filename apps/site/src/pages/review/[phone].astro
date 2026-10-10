@@ -12,6 +12,7 @@ const source = fs.readFileSync(path.resolve(process.cwd(), '../../apps/viewer/ss
 const fixture = source.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
   .replace('href="./viewer.css"', 'href="/viewer/viewer.css"')
   .replaceAll('src="assets/', 'src="/viewer/assets/')
+  .replace('id="world-axes-toggle"', 'id="world-axes-toggle" data-visible="false"')
   .replace('<div id="gizmo-slot" data-role="gizmo-slot" aria-hidden="true"></div>',
     '<div id="gizmo-slot" data-role="gizmo-slot" aria-hidden="true" style="display:grid;place-items:center;color:#888;font:11px system-ui">3D描画は省略</div>');
 const sizes = [{w:360,h:720},{w:390,h:720},{w:768,h:720},{w:390,h:460}];
