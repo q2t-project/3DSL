@@ -26,6 +26,8 @@ export type LibraryItem = {
   slug: string;
   title: string;
   summary?: string;
+  hidden?: boolean;
+  recommended?: boolean;
   viewer_url: string;
   tags?: string[];
   updated_at?: string;

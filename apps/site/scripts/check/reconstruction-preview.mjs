@@ -7,6 +7,12 @@ const siteRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../
 const prefix = '/preview-reconstruction/';
 const root = path.resolve(siteRoot, 'public', prefix.slice(1));
 const origin = 'https://preview.invalid';
+// This explicit navigation link leaves the isolated app; assets must not.
+// Its generated HTML is checked after the site build.
+const siteDocumentLinks = new Map([
+  ['/docs/usage/create-save-read', path.resolve(siteRoot, 'src/content/docs/usage/create-save-read.md')],
+  ['/policy/content-usage', path.resolve(siteRoot, 'src/content/policy/content-usage.md')],
+]);
 const errors = new Set();
 const maps = new Map();
 const scripts = [];
@@ -30,6 +36,13 @@ async function checkReference(raw, base, where, { directory = false, externalLin
   let url;
   try { url = new URL(raw, base); } catch { fail(where, `invalid URL ${raw}`); return; }
   if (externalLink && (url.origin !== origin || !['http:', 'https:'].includes(url.protocol))) return;
+  const siteDocument = externalLink && url.origin === origin && siteDocumentLinks.get(url.pathname.replace(/\/$/, ''));
+  if (siteDocument) {
+    references++;
+    try { if (!(await stat(siteDocument)).isFile()) throw new Error(); }
+    catch { fail(where, `missing source for site document ${url.pathname}`); }
+    return url;
+  }
   if (url.origin !== origin || !url.pathname.startsWith(prefix)) {
     fail(where, `outside ${prefix}: ${raw}`); return;
   }

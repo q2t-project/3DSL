@@ -1,6 +1,6 @@
 ---
 import "../styles/global.css";
-import { ADSENSE_PUBLISHER_ID, shouldEnableAdsense, isNoAdsRequest } from "../lib/adsense";
+import AdsenseHead from "../components/ads/AdsenseHead.astro";
 
 const {
   title = "3DSL",
@@ -11,18 +11,11 @@ const {
   ogImage = null,
   ogType = "website",
   twitterCard = "summary",
+  adsenseEligible = true,
 } = Astro.props;
 const pathname = Astro.url?.pathname ?? "/";
 const isHome = pathname === "/";
-const noAds = isNoAdsRequest(Astro.url);
 const canonicalFinal = canonicalUrl ?? canonical;
-
-// AdSense
-// - Central policy: ads only on /, /concept (see lib/adsense.ts)
-// For review/verification stability, always load the AdSense script on normal page views.
-// (Ad slots themselves remain gated by shouldEnableAdsense.)
-const includeAdsenseScript = !noAds;
-const enableAdsense = !noAds && shouldEnableAdsense(pathname);
 
 // Header nav: keep it minimal (no hamburger)
 const nav = [
@@ -51,17 +44,7 @@ function isActive(href: string) {
 	      } catch {}
 	    </script>
 
-    {includeAdsenseScript && (
-      <meta name="google-adsense-account" content={ADSENSE_PUBLISHER_ID} />
-    )}
-
-    {includeAdsenseScript && (
-      <script
-        async
-        src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_PUBLISHER_ID}`}
-        crossorigin="anonymous"
-      ></script>
-    )}
+    <AdsenseHead eligible={adsenseEligible} />
 
     <!-- Fonts: readable, business-like UI (JP + Latin) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />

@@ -49,7 +49,7 @@
     "fix:guards": "node scripts/guard/fix.mjs",
     "generate:sitemap": "node scripts/tool/generate-sitemap.mjs",
     "new:library-item": "node ../../packages/3dss-content/scripts/new-library-item.mjs",
-    "prebuild": "npm run sync:all && npm run check:reconstruction-preview && npm run check:route-collisions && npm run check:boundary && npm run check:pages:no-raw-html && node scripts/tool/generate-sitemap.mjs && npm run validate:3dss:canonical && node scripts/guard/prebuild.mjs",
+    "prebuild": "npm run sync:all && npm run check:reconstruction-preview && npm run check:adsense-policy && npm run check:route-collisions && npm run check:boundary && npm run check:pages:no-raw-html && node scripts/tool/generate-sitemap.mjs && npm run validate:3dss:canonical && node scripts/guard/prebuild.mjs",
     "precheck:release": "npm run sync:all",
     "precheck:ssot": "npm run sync:all",
     "precheck:viewer:regression": "npm run sync:all",
@@ -71,7 +71,10 @@
     "validate:3dss:canonical": "node scripts/validate/3dss-canonical.mjs",
     "validate:3dss:fixtures:ref": "node scripts/validate/3dss-fixtures.mjs --ref",
     "validate:3dss:samples": "node scripts/validate/3dss-samples.mjs",
-    "check:reconstruction-preview": "node scripts/check/reconstruction-preview.mjs"
+    "check:reconstruction-preview": "node scripts/check/reconstruction-preview.mjs",
+    "check:adsense-policy": "node scripts/check/adsense-policy.mjs",
+    "check:site-publication": "node scripts/check/site-publication.mjs",
+    "postbuild": "npm run check:site-publication"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.6",

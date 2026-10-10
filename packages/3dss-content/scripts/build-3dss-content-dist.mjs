@@ -333,6 +333,8 @@ function main() {
       slug: id,
       title,
       summary,
+      hidden: meta?.hidden === true,
+      recommended: meta?.recommended === true,
       created_at,
       published_at,
       republished_at,

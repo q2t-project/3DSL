@@ -2,16 +2,14 @@
 import Layout from "../../layouts/Layout.astro";
 import { getCollection } from "astro:content";
 import DocsText from "../../content/text/docs.md";
-import AdSlot from "../../components/AdSlot.astro";
-import { ADSENSE_SLOTS, isNoAdsRequest } from "../../lib/adsense";
 
-const noAds = isNoAdsRequest(Astro.url);
 
 // ※ ここは “実在パス” に合わせて調整してください。
 // いまのプランでは /schemas/... を想定してる。
 const docsEntries = (await getCollection("docs")).sort((a, b) => a.slug.localeCompare(b.slug, "ja"));
 
 const links = [
+  { label: "作る・保存する・Viewerで読む", href: "/docs/usage/create-save-read" },
   { label: "Latest schema", href: "/docs/schema/latest" },
   { label: "v1.1.4 schema", href: "/docs/schema/v1.1.4" },
   { label: "v1.1.4 spec", href: "/docs/spec/v1.1.4" },
@@ -23,27 +21,11 @@ const links = [
   title="Docs | 3DSL"
   description="3DSL の考え方、用語、設計のハブ。図の自由度問題、発散と収束、引用と表現の方針などをまとめます。"
 >
-  <section class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
+  <section class="max-w-4xl">
     <div>
       <div class="prose prose-invert prose-neutral max-w-3xl">
         <DocsText />
       </div>
-
-      <!-- Mobile/inline: 300x250 -->
-      {!noAds && (
-        <div class="mt-8 max-w-3xl lg:hidden">
-          <div class="text-xs text-neutral-500">広告</div>
-          <div class="mt-2">
-            <AdSlot
-              slot={ADSENSE_SLOTS.slot_300x250}
-              width={300}
-              height={250}
-              fullWidthResponsive={false}
-              minHeight={250}
-            />
-          </div>
-        </div>
-      )}
 
       <div class="mt-10 grid gap-3">
         {links.map((x) => (
@@ -72,22 +54,5 @@ const links = [
       </div>
     </div>
 
-    <!-- Desktop rail: 300x600 -->
-    {!noAds && (
-      <aside class="hidden lg:block">
-        <div class="sticky top-24">
-          <div class="text-xs text-neutral-500">広告</div>
-          <div class="mt-2">
-            <AdSlot
-              slot={ADSENSE_SLOTS.slot_300x600}
-              width={300}
-              height={600}
-              fullWidthResponsive={false}
-              minHeight={600}
-            />
-          </div>
-        </div>
-      </aside>
-    )}
   </section>
 </Layout>

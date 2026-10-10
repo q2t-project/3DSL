@@ -1,0 +1,11 @@
+---
+import { ADSENSE_PUBLISHER_ID, ADSENSE_SERVING_ENABLED } from "../../lib/adsense";
+const { eligible = true } = Astro.props;
+---
+
+<!-- Site verification does not require making an advertising request. -->
+<meta name="google-adsense-account" content={ADSENSE_PUBLISHER_ID} data-3dsl-adsense-eligible={ADSENSE_SERVING_ENABLED && eligible ? "1" : "0"} />
+<script>
+  import { initAdsense } from "../../lib/adsense";
+  initAdsense();
+</script>

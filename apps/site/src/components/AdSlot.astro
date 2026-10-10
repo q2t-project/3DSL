@@ -1,5 +1,5 @@
 ---
-import { ADSENSE_PUBLISHER_ID, isNoAdsRequest } from "../lib/adsense";
+import { ADSENSE_PUBLISHER_ID, shouldEnableAdsense } from "../lib/adsense";
 
 type Props = {
   /** Ad unit slot id from AdSense */
@@ -46,7 +46,7 @@ const {
 
 const wrapperClass = String(className || classProp || "");
 
-const noAds = isNoAdsRequest(Astro.url);
+const eligiblePage = shouldEnableAdsense(Astro.url.pathname);
 
 const isDev = import.meta.env.DEV;
 const hasSlot = typeof slot === "string" && slot.trim().length > 0;
@@ -63,10 +63,10 @@ const useFullWidthResponsive =
   typeof fullWidthResponsive === "boolean" ? fullWidthResponsive : !isFixed;
 ---
 
-{!noAds && (hasSlot || isDev) && (
+{eligiblePage && (hasSlot || isDev) && (
   <div class={`ad-slot ${wrapperClass}`} style={wrapperStyle} data-ad-slot={slot || "UNSET"}>
     {hasSlot ? (
-      <Fragment>
+      <template data-3dsl-ad-slot>
         <ins
           class="adsbygoogle"
           style={insStyle}
@@ -75,11 +75,7 @@ const useFullWidthResponsive =
           {...(!isFixed ? { "data-ad-format": format } : {})}
           {...(useFullWidthResponsive ? { "data-full-width-responsive": "true" } : {})}
         />
-        <script is:inline>
-          window.adsbygoogle = window.adsbygoogle || [];
-          window.adsbygoogle.push({});
-        </script>
-      </Fragment>
+      </template>
     ) : (
       <div class="ad-slot__placeholder">AdSlot (slot unset)</div>
     )}
