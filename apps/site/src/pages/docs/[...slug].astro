@@ -11,7 +11,9 @@ const { entry } = Astro.props;
 const { Content } = await entry.render();
 
 const pageTitle = `${entry.data?.title ?? entry.slug} | Docs | 3DSL`;
-const pageDescription = "3DSL Docs（SSOT: packages/docs）";
+const pageDescription = typeof entry.data?.summary === "string" && entry.data.summary.trim()
+  ? entry.data.summary.trim()
+  : "3DSL Docs（SSOT: packages/docs）";
 ---
 
 <Layout title={pageTitle} description={pageDescription}>

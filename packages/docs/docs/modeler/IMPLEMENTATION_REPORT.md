@@ -1,5 +1,14 @@
 # Modeler 実装状況レポート（Spec/Manifest 差分 + From-now プラン）
 
+## 2026-10-11: 再構築版のローカルファイル容量ガード
+
+再構築版ModelerとViewerで、32 MiBを超えるファイルを本文読込み前に拒否する。
+Modelerはファイル選択後、容量を確認してから既存の未適用編集・破棄確認へ進む。
+容量超過と選択取消では、現在の作品・未適用編集・Undo/Redo・保存先を保持する。
+容量内の既存確認、スキーマ、保存責任、編集セマンティクスは維持する。
+実エントリーの検査は `apps/site/scripts/check/local-file-size.mjs`、
+対象・制限と公開時の記録方法は `packages/docs/repo/site-use-w5.md` を参照。
+
 ## 2026-10-10: 再構築 r0.5 の独立 Preview
 
 本人受入済みの通常制作・閲覧を継承し、`apps/reconstruction/ssot` を

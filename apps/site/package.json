@@ -49,7 +49,7 @@
     "fix:guards": "node scripts/guard/fix.mjs",
     "generate:sitemap": "node scripts/tool/generate-sitemap.mjs",
     "new:library-item": "node ../../packages/3dss-content/scripts/new-library-item.mjs",
-    "prebuild": "npm run sync:all && npm run check:reconstruction-preview && npm run check:adsense-policy && npm run check:contact-form && npm run check:swipe-nav && npm run check:route-collisions && npm run check:boundary && npm run check:pages:no-raw-html && node scripts/tool/generate-sitemap.mjs && npm run validate:3dss:canonical && node scripts/guard/prebuild.mjs",
+    "prebuild": "npm run sync:all && npm run check:reconstruction-preview && npm run check:adsense-policy && npm run check:contact-form && npm run check:swipe-nav && npm run check:local-file-size && npm run check:first-work && npm run check:route-collisions && npm run check:boundary && npm run check:pages:no-raw-html && node scripts/tool/generate-sitemap.mjs && npm run validate:3dss:canonical && node scripts/guard/prebuild.mjs",
     "precheck:release": "npm run sync:all",
     "precheck:ssot": "npm run sync:all",
     "precheck:viewer:regression": "npm run sync:all",
@@ -76,7 +76,9 @@
     "check:contact-form": "node scripts/check/contact-form.mjs",
     "check:swipe-nav": "node scripts/check/swipe-nav.mjs",
     "check:site-publication": "node scripts/check/site-publication.mjs",
-    "postbuild": "npm run check:site-publication"
+    "postbuild": "npm run check:site-publication",
+    "check:local-file-size": "node scripts/check/local-file-size.mjs",
+    "check:first-work": "node ../reconstruction/scripts/build-first-work.mjs --check"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.6",

@@ -7,6 +7,7 @@ import { createBrowsingController } from './browsingController.js';
 import { renderBrowsingInfo } from './browsingInfo.js';
 import { attachReadingControls } from './readingControls.js';
 import { receiveViewerSnapshot } from '../shared/viewerHandoff.js';
+import { assertLocalFileSize } from '../shared/localFile.js';
 
 const byId=id=>document.getElementById(id);
 const status=byId('contract-status'),input=byId('contract-open'),reading=byId('contract-reading');
@@ -91,7 +92,13 @@ scope.addEventListener('change',()=>act(()=>controller.setScope(scope.value)));
 for(const key of ['points','lines','aux'])byId(`reading-${key}`).addEventListener('change',event=>act(()=>controller.setFilters({[key]:event.target.checked})));
 byId('reading-search-form').addEventListener('submit',event=>{event.preventDefault();act(async()=>{await controller.search(searchInput.value);controller.setInfoOpen(true);results.open=true;});});
 searchInput.addEventListener('search',()=>{if(!searchInput.value)act(()=>controller.search(''));});
-input.addEventListener('change',event=>{const file=event.target.files?.[0];if(!file){controller.cancelOpen();return;}act(async()=>{const text=await file.text();await openFileText(text,file.name);input.value='';});});
+input.addEventListener('change',event=>{
+  const file=event.target.files?.[0];if(!file){controller.cancelOpen();return;}
+  act(async()=>{
+    try {assertLocalFileSize(file);const text=await file.text();await openFileText(text,file.name);}
+    finally {input.value='';}
+  });
+});
 input.addEventListener('cancel',()=>controller.cancelOpen());
 // Bounded inspection: original data is copied out; no edit/save or renderer mutator is exposed.
 window.contractViewerSnapshot=()=>controller.rawSnapshot();

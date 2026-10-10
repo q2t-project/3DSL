@@ -1,6 +1,7 @@
 // ui/controllers/uiToolbarController.js
 // UI-only controller for toolbar / tabs / quickcheck panel.
 import { openViewerSnapshot } from "../../../shared/viewerHandoff.js";
+import { assertLocalFileSize } from "../../../shared/localFile.js";
 
 /**
  * @typedef {(
@@ -924,6 +925,12 @@ export function createUiToolbarController(deps) {
   }
 
   async function openFile(file, meta) {
+    // An oversized selection must not read bytes or apply an existing draft.
+    assertLocalFileSize(file);
+    const ok = propertyController.ensureEditsAppliedOrConfirm?.({ reason: "open" });
+    if (!ok) return;
+    if (!fileController.confirmDiscardIfDirty("Open")) return;
+
     // Decode strictly and preserve a BOM in the source attachment. JSON parsing
     // strips only that leading BOM; the retained source is never rewritten.
     const text = file.arrayBuffer
@@ -948,10 +955,6 @@ export function createUiToolbarController(deps) {
   }
 
   async function handleOpenAction() {
-    const ok = propertyController.ensureEditsAppliedOrConfirm?.({ reason: "open" });
-    if (!ok) return;
-    if (!fileController.confirmDiscardIfDirty("Open")) return;
-
     // Prefer File System Access API when available.
     if (fileController.canUseOpenFsa?.()) {
       try {
@@ -981,12 +984,6 @@ export function createUiToolbarController(deps) {
   async function handleFileInputChange() {
     const f = fileInput?.files && fileInput.files[0];
     if (!f) return;
-    const ok = propertyController.ensureEditsAppliedOrConfirm?.({ reason: "open" });
-    if (!ok) { fileInput.value = ""; return; }
-    if (!fileController.confirmDiscardIfDirty("Open")) {
-      fileInput.value = "";
-      return;
-    }
     try {
       await openFile(f, { source: "file", intent: "open", label: f.name, saveLabel: f.name, saveHandle: null });
     } catch (e) {
