@@ -38,6 +38,25 @@ for (const file of ['docs/index.html', 'preview-reconstruction/index.html', 'pre
 }
 const policy = await read('policy/content-usage/index.html');
 assert(policy.includes('id="practice-samples"'), 'sample terms anchor is generated');
+const firstWorkRoute = '/docs/usage/first-work';
+const firstWork = await read(`${firstWorkRoute.slice(1)}/index.html`);
+for (const file of ['index.html', 'docs/index.html', 'docs/usage/create-save-read/index.html', 'docs/works/knowledge-questions/index.html', 'preview-reconstruction/index.html', 'preview-reconstruction/OPEN_MODELS.html']) {
+  assert((await read(file)).includes(`href="${firstWorkRoute}"`), `${file}: first-work entry`);
+}
+const tutorialModel = 'preview-reconstruction/models/first_work.3dsl-work.json';
+assert(policy.includes('first_work.3dsl-work.json'), 'tutorial is covered by sample terms');
+assert.equal(await read(tutorialModel), await readFile(path.join(site, '../../apps/reconstruction/ssot/models/first_work.3dsl-work.json'), 'utf8'), 'tutorial distribution matches its source');
+assert(firstWork.includes('href="https://3dsl.jp/docs/usage/first-work/"'), 'tutorial production canonical');
+assert(!firstWork.includes('name="robots" content="noindex'), 'tutorial is a public reading page');
+assert(!firstWork.includes('content="3DSL Docs（SSOT: packages/docs）"'), 'tutorial has a specific search description');
+assert(firstWork.includes('data-3dsl-adsense-eligible="0"'), 'tutorial stays ad-free');
+if (sitemap) assert(sitemap.includes('https://3dsl.jp/docs/usage/first-work/'), 'tutorial sitemap entry');
+for (const match of firstWork.matchAll(/href="(\/[^"?#]*)/g)) {
+  const pathname = match[1];
+  const file = path.join(dist, pathname.replace(/^\//, ''));
+  const info = await stat(file).catch(() => null);
+  assert(info && (info.isFile() || (await stat(path.join(file, 'index.html'))).isFile()), `tutorial link: ${pathname}`);
+}
 for (const file of ['docs/usage/create-save-read/index.html', 'preview-reconstruction/index.html', 'preview-reconstruction/OPEN_MODELS.html']) {
   assert((await read(file)).includes('href="/policy/content-usage#practice-samples"'), `${file}: sample terms entry`);
 }

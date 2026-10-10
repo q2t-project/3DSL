@@ -5,8 +5,8 @@ import { getCollection } from "astro:content";
 const docsEntries = (await getCollection("docs")).sort((a, b) => a.slug.localeCompare(b.slug, "ja"));
 const firstSteps = [
   { label: "作品を読む", href: "/docs/usage/read-a-work", text: "どこから見始め、配置や接続をどう確かめるか。" },
+  { label: "最初の小作品を作る", href: "/docs/usage/first-work", text: "一つの問い・二つの回答から、配置と接続を作り、保存して読むまで。" },
   { label: "作る・保存する・開き直す", href: "/docs/usage/create-save-read", text: "制作を始め、作品を端末へ保存し、Viewerで読むまで。" },
-  { label: "よくある質問", href: "/faq", text: "3DSL、作品の出所、利用や連絡について。" },
 ];
 const formatLinks = [
   { label: "保存形式の違いと再開の手順", href: "/docs/usage/create-save-read", text: "図だけの3DSSと、原資料や草稿を含む作品一式の違い。" },
@@ -40,7 +40,7 @@ const titles: Record<string, string> = {
   "overview/what-is-3dss": "3DSSの概要",
   "readme": "文書全体の構成",
 };
-const primarySlugs = new Set(["usage/read-a-work", "usage/create-save-read"]);
+const primarySlugs = new Set(["usage/read-a-work", "usage/first-work", "usage/create-save-read"]);
 const legacySlugs = new Set(["modeler/beta-io", "modeler/known-issues", "modeler/public-alpha"]);
 function groupFor(slug: string) {
   if (slug.startsWith("works/")) return "works";

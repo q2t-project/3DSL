@@ -130,6 +130,7 @@ function buildUrlEntries(baseUrl, libraryItems) {
     "/docs/overview/what-is-3dsl/",
     "/docs/overview/what-is-3dss/",
     "/docs/usage/create-save-read/",
+    "/docs/usage/first-work/",
     "/docs/usage/read-a-work/",
     "/docs/works/knowledge-questions/",
     "/docs/works/structure-classification/",

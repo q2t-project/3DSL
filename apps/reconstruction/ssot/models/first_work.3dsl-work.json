@@ -1,0 +1,1885 @@
+{
+  "format": "3dsl-contract-work/0.1",
+  "status": "draft",
+  "scene": {
+    "lines": [
+      {
+        "meta": {
+          "uuid": "dd86446e-3be4-5e39-a7f6-bf08cddc0ac8"
+        },
+        "signification": {
+          "caption": "問い",
+          "sense": "a_to_b"
+        },
+        "appearance": {
+          "end_a": {
+            "ref": "7fe318ff-69f5-5aec-ab8d-af5a9d6015bc"
+          },
+          "end_b": {
+            "ref": "abccc679-6088-535f-a7c0-b7c72632b922"
+          },
+          "line_type": "straight",
+          "line_style": "solid",
+          "frames": [
+            0
+          ],
+          "arrow": {
+            "primitive": "none"
+          },
+          "caption_text": {
+            "font_size": 1,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "444461df-f29d-59fa-a7a1-0651a3a69d80"
+        },
+        "signification": {
+          "caption": "活動",
+          "sense": "a_to_b"
+        },
+        "appearance": {
+          "end_a": {
+            "ref": "7fe318ff-69f5-5aec-ab8d-af5a9d6015bc"
+          },
+          "end_b": {
+            "ref": "40f11b29-6b47-5bfc-a265-b59efa77e008"
+          },
+          "line_type": "straight",
+          "line_style": "solid",
+          "frames": [
+            0
+          ],
+          "arrow": {
+            "primitive": "none"
+          },
+          "caption_text": {
+            "font_size": 1,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "aafbec92-1914-5219-a0f2-9da0e4cc7dfa"
+        },
+        "signification": {
+          "caption": "問い",
+          "sense": "a_to_b"
+        },
+        "appearance": {
+          "end_a": {
+            "ref": "e10b0dc8-b0ab-50c7-a292-34c3c3859bea"
+          },
+          "end_b": {
+            "ref": "abccc679-6088-535f-a7c0-b7c72632b922"
+          },
+          "line_type": "straight",
+          "line_style": "solid",
+          "frames": [
+            0
+          ],
+          "arrow": {
+            "primitive": "none"
+          },
+          "caption_text": {
+            "font_size": 1,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "d56ad192-ff3b-5d59-a512-45267722cd61"
+        },
+        "signification": {
+          "caption": "活動",
+          "sense": "a_to_b"
+        },
+        "appearance": {
+          "end_a": {
+            "ref": "e10b0dc8-b0ab-50c7-a292-34c3c3859bea"
+          },
+          "end_b": {
+            "ref": "9c98ea18-ce1b-5102-ac0b-5d2f2a9ba727"
+          },
+          "line_type": "straight",
+          "line_style": "solid",
+          "frames": [
+            0
+          ],
+          "arrow": {
+            "primitive": "none"
+          },
+          "caption_text": {
+            "font_size": 1,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "b68d7e10-d64e-58c1-a487-d223e85659e4"
+        },
+        "signification": {
+          "caption": "活動",
+          "sense": "a_to_b"
+        },
+        "appearance": {
+          "end_a": {
+            "ref": "11b9e397-1402-5d22-a5be-3359bf6ff377"
+          },
+          "end_b": {
+            "ref": "40f11b29-6b47-5bfc-a265-b59efa77e008"
+          },
+          "line_type": "straight",
+          "line_style": "solid",
+          "frames": [
+            0
+          ],
+          "arrow": {
+            "primitive": "none"
+          },
+          "caption_text": {
+            "font_size": 1,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "8ea30374-d03e-5d30-af1c-da6c3ecc75ae"
+        },
+        "signification": {
+          "caption": "回答",
+          "sense": "a_to_b"
+        },
+        "appearance": {
+          "end_a": {
+            "ref": "11b9e397-1402-5d22-a5be-3359bf6ff377"
+          },
+          "end_b": {
+            "ref": "327b182f-5089-500b-ac95-ebfe2556b16d"
+          },
+          "line_type": "straight",
+          "line_style": "solid",
+          "frames": [
+            0
+          ],
+          "arrow": {
+            "primitive": "none"
+          },
+          "caption_text": {
+            "font_size": 1,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "53805713-3060-5cf0-a85f-e633f027dbdb"
+        },
+        "signification": {
+          "caption": "活動",
+          "sense": "a_to_b"
+        },
+        "appearance": {
+          "end_a": {
+            "ref": "240f7df3-43ca-5745-a768-5aaaacea56cc"
+          },
+          "end_b": {
+            "ref": "9c98ea18-ce1b-5102-ac0b-5d2f2a9ba727"
+          },
+          "line_type": "straight",
+          "line_style": "solid",
+          "frames": [
+            0
+          ],
+          "arrow": {
+            "primitive": "none"
+          },
+          "caption_text": {
+            "font_size": 1,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "5b956c6e-9c11-549c-a3a8-2e405feb616c"
+        },
+        "signification": {
+          "caption": "回答",
+          "sense": "a_to_b"
+        },
+        "appearance": {
+          "end_a": {
+            "ref": "240f7df3-43ca-5745-a768-5aaaacea56cc"
+          },
+          "end_b": {
+            "ref": "83bde4b7-968e-5cab-aa63-539ece9c2d9c"
+          },
+          "line_type": "straight",
+          "line_style": "solid",
+          "frames": [
+            0
+          ],
+          "arrow": {
+            "primitive": "none"
+          },
+          "caption_text": {
+            "font_size": 1,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "296ea200-d0b5-5164-a958-f7caffb3e13d"
+        },
+        "signification": {
+          "caption": "回答",
+          "sense": "a_to_b"
+        },
+        "appearance": {
+          "end_a": {
+            "ref": "b98a19e3-9b74-517e-aa4e-f4d06b2607cc"
+          },
+          "end_b": {
+            "ref": "327b182f-5089-500b-ac95-ebfe2556b16d"
+          },
+          "line_type": "straight",
+          "line_style": "solid",
+          "frames": [
+            0
+          ],
+          "arrow": {
+            "primitive": "none"
+          },
+          "caption_text": {
+            "font_size": 1,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "18944251-f4a2-5350-a163-219d48b88338"
+        },
+        "signification": {
+          "caption": "資料",
+          "sense": "a_to_b"
+        },
+        "appearance": {
+          "end_a": {
+            "ref": "b98a19e3-9b74-517e-aa4e-f4d06b2607cc"
+          },
+          "end_b": {
+            "ref": "7e079392-1346-555e-a006-bcc67ad20284"
+          },
+          "line_type": "straight",
+          "line_style": "solid",
+          "frames": [
+            0
+          ],
+          "arrow": {
+            "primitive": "none"
+          },
+          "caption_text": {
+            "font_size": 1,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "a9166d03-b5f3-590b-afe1-7f6cf5ecaff3"
+        },
+        "signification": {
+          "caption": "回答",
+          "sense": "a_to_b"
+        },
+        "appearance": {
+          "end_a": {
+            "ref": "4bb612ee-ea88-5b8d-ad8a-ad9e8cf9daf5"
+          },
+          "end_b": {
+            "ref": "83bde4b7-968e-5cab-aa63-539ece9c2d9c"
+          },
+          "line_type": "straight",
+          "line_style": "solid",
+          "frames": [
+            0
+          ],
+          "arrow": {
+            "primitive": "none"
+          },
+          "caption_text": {
+            "font_size": 1,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "c4c4c087-65f0-562c-a13a-3793226ab732"
+        },
+        "signification": {
+          "caption": "資料",
+          "sense": "a_to_b"
+        },
+        "appearance": {
+          "end_a": {
+            "ref": "4bb612ee-ea88-5b8d-ad8a-ad9e8cf9daf5"
+          },
+          "end_b": {
+            "ref": "b9a9fc76-9c7a-5211-a73e-d55bd4ef2ed9"
+          },
+          "line_type": "straight",
+          "line_style": "solid",
+          "frames": [
+            0
+          ],
+          "arrow": {
+            "primitive": "none"
+          },
+          "caption_text": {
+            "font_size": 1,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "points": [
+      {
+        "meta": {
+          "uuid": "5ad590bd-58ce-5373-a859-fc03b9430732"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            0,
+            30,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "5fde825d-6510-51e3-a965-3d6aec29d480"
+        },
+        "signification": {
+          "name": "Q SIにおける真空中の光速度の値"
+        },
+        "appearance": {
+          "position": [
+            0,
+            31,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "Q SIにおける真空中の光速度の値",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "abccc679-6088-535f-a7c0-b7c72632b922"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            1,
+            30,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "441864a6-b5f7-5d7d-a5f0-a854bfc07b92"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            -28,
+            10,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "76135828-0d65-55a1-a0d9-3de39848a462"
+        },
+        "signification": {
+          "name": "L75 1975年：値を勧告する"
+        },
+        "appearance": {
+          "position": [
+            -28,
+            11,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "L75 1975年：値を勧告する",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "40f11b29-6b47-5bfc-a265-b59efa77e008"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            -27,
+            10,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "cde69e82-3c21-5658-a11d-6bd83c80f8a6"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            28,
+            10,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "eb4196a6-19b5-5465-a02c-8f8e5281cdda"
+        },
+        "signification": {
+          "name": "L83 1983年：メートルの定義を決める"
+        },
+        "appearance": {
+          "position": [
+            28,
+            11,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "L83 1983年：メートルの定義を決める",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "9c98ea18-ce1b-5102-ac0b-5d2f2a9ba727"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            29,
+            10,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "6689120a-c775-5ad4-a890-d2770c6ac310"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            -28,
+            -12,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "acae387f-33ba-5828-ab71-274bc4e72c32"
+        },
+        "signification": {
+          "name": "A75 299792458 m/s：不確かさを伴う勧告値"
+        },
+        "appearance": {
+          "position": [
+            -28,
+            -11,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "A75 299792458 m/s：不確かさを伴う勧告値",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "327b182f-5089-500b-ac95-ebfe2556b16d"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            -27,
+            -12,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "992dae79-8071-51ef-a00f-ba74d322e567"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            28,
+            -12,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "d2cc913f-d148-5230-a5cf-90c0a83bd22d"
+        },
+        "signification": {
+          "name": "A83 299792458 m/s：定義への入力"
+        },
+        "appearance": {
+          "position": [
+            28,
+            -11,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "A83 299792458 m/s：定義への入力",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "83bde4b7-968e-5cab-aa63-539ece9c2d9c"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            29,
+            -12,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "16b23553-6edd-5dbc-ab29-b9cdf43fd783"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            -28,
+            -34,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "167805a0-d816-586f-acd8-071bb743166c"
+        },
+        "signification": {
+          "name": "S75 1975年CGPM決議2：勧告部分"
+        },
+        "appearance": {
+          "position": [
+            -28,
+            -33,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "S75 1975年CGPM決議2：勧告部分",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "7e079392-1346-555e-a006-bcc67ad20284"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            -27,
+            -34,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "e13c8b72-dac2-53fd-a0fb-bb8d28ceb754"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            28,
+            -34,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "50ac22c9-ce1b-592e-a139-a444b3b50921"
+        },
+        "signification": {
+          "name": "S83 1983年CGPM決議1：定義と1975年値への言及"
+        },
+        "appearance": {
+          "position": [
+            28,
+            -33,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "S83 1983年CGPM決議1：定義と1975年値への言及",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "b9a9fc76-9c7a-5211-a73e-d55bd4ef2ed9"
+        },
+        "signification": {
+          "name": ""
+        },
+        "appearance": {
+          "position": [
+            29,
+            -34,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "none",
+            "text": {
+              "content": "",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "7fe318ff-69f5-5aec-ab8d-af5a9d6015bc"
+        },
+        "signification": {
+          "name": "問いを扱う"
+        },
+        "appearance": {
+          "position": [
+            -14,
+            23,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "問いを扱う",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "e10b0dc8-b0ab-50c7-a292-34c3c3859bea"
+        },
+        "signification": {
+          "name": "問いを扱う"
+        },
+        "appearance": {
+          "position": [
+            14,
+            23,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "問いを扱う",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "11b9e397-1402-5d22-a5be-3359bf6ff377"
+        },
+        "signification": {
+          "name": "回答"
+        },
+        "appearance": {
+          "position": [
+            -28,
+            2,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "回答",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "240f7df3-43ca-5745-a768-5aaaacea56cc"
+        },
+        "signification": {
+          "name": "回答"
+        },
+        "appearance": {
+          "position": [
+            28,
+            2,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "回答",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "b98a19e3-9b74-517e-aa4e-f4d06b2607cc"
+        },
+        "signification": {
+          "name": "根拠を参照"
+        },
+        "appearance": {
+          "position": [
+            -28,
+            -20,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "根拠を参照",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "uuid": "4bb612ee-ea88-5b8d-ad8a-ad9e8cf9daf5"
+        },
+        "signification": {
+          "name": "根拠を参照"
+        },
+        "appearance": {
+          "position": [
+            28,
+            -20,
+            0
+          ],
+          "frames": [
+            0
+          ],
+          "marker": {
+            "primitive": "sphere",
+            "radius": 0.3,
+            "text": {
+              "content": "根拠を参照",
+              "size": 1,
+              "pose": {
+                "front": [
+                  0,
+                  0,
+                  1
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      }
+    ],
+    "aux": [],
+    "document_meta": {
+      "document_title": "はじめての一作品 — 光速度の二つの回答",
+      "document_uuid": "96371ef4-c2e6-5e35-a438-2dc54f53d521",
+      "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
+      "version": "1.1.4",
+      "author": "q2t",
+      "created_at": "2026-10-10T22:55:40Z",
+      "revised_at": "2026-10-10T22:55:40Z",
+      "units": "non_si:px",
+      "coordinate_system": "Z+up/freeXY"
+    }
+  },
+  "baselineScene": {
+    "lines": [],
+    "points": [],
+    "aux": [],
+    "document_meta": {
+      "document_title": "はじめての一作品 — 光速度の二つの回答",
+      "document_uuid": "96371ef4-c2e6-5e35-a438-2dc54f53d521",
+      "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
+      "version": "1.1.4",
+      "author": "q2t",
+      "created_at": "2026-10-10T22:55:40Z",
+      "revised_at": "2026-10-10T22:55:40Z",
+      "units": "non_si:px",
+      "coordinate_system": "Z+up/freeXY"
+    }
+  },
+  "contract": {
+    "format": "3dsl-authoring-contract/0.1",
+    "authority": "scene-anchor-and-boundary;contract-shared-values-and-offsets",
+    "fixture": "authored",
+    "targets": [
+      {
+        "id": "1b9c6cb3-53f6-595b-abab-2fe4f225ff01",
+        "name": "Q SIにおける真空中の光速度の値",
+        "epistemic": "undetermined"
+      },
+      {
+        "id": "ae4ef2b9-d17e-5724-a424-50811db052bb",
+        "name": "L75 1975年：値を勧告する",
+        "epistemic": "undetermined"
+      },
+      {
+        "id": "39b82101-3981-50e7-ad7c-f469d752862d",
+        "name": "L83 1983年：メートルの定義を決める",
+        "epistemic": "undetermined"
+      },
+      {
+        "id": "77b756b9-be82-5aff-a06e-05240eefbfa0",
+        "name": "A75 299792458 m/s：不確かさを伴う勧告値",
+        "epistemic": "undetermined"
+      },
+      {
+        "id": "b7f9ae9d-0aa7-5baf-a021-139a59acea9c",
+        "name": "A83 299792458 m/s：定義への入力",
+        "epistemic": "undetermined"
+      },
+      {
+        "id": "9278edae-2e83-5c3a-ac57-8c0ee5b40872",
+        "name": "S75 1975年CGPM決議2：勧告部分",
+        "epistemic": "undetermined"
+      },
+      {
+        "id": "9fecac4a-b41f-5cf7-a459-096b217ddbba",
+        "name": "S83 1983年CGPM決議1：定義と1975年値への言及",
+        "epistemic": "undetermined"
+      }
+    ],
+    "occurrences": [
+      {
+        "id": "c5be9a7c-f030-5a58-a498-0dd9c0425429",
+        "target": "1b9c6cb3-53f6-595b-abab-2fe4f225ff01",
+        "anchor": "5ad590bd-58ce-5373-a859-fc03b9430732",
+        "label": "5fde825d-6510-51e3-a965-3d6aec29d480",
+        "port": "abccc679-6088-535f-a7c0-b7c72632b922",
+        "labelOffset": [
+          0,
+          1,
+          0
+        ],
+        "portOffset": [
+          1,
+          0,
+          0
+        ],
+        "frames": [
+          0
+        ]
+      },
+      {
+        "id": "775d2c9b-3000-5a2f-a23d-20fe24dcaa83",
+        "target": "ae4ef2b9-d17e-5724-a424-50811db052bb",
+        "anchor": "441864a6-b5f7-5d7d-a5f0-a854bfc07b92",
+        "label": "76135828-0d65-55a1-a0d9-3de39848a462",
+        "port": "40f11b29-6b47-5bfc-a265-b59efa77e008",
+        "labelOffset": [
+          0,
+          1,
+          0
+        ],
+        "portOffset": [
+          1,
+          0,
+          0
+        ],
+        "frames": [
+          0
+        ]
+      },
+      {
+        "id": "80b8a8a2-57e9-5167-a471-110f04475a11",
+        "target": "39b82101-3981-50e7-ad7c-f469d752862d",
+        "anchor": "cde69e82-3c21-5658-a11d-6bd83c80f8a6",
+        "label": "eb4196a6-19b5-5465-a02c-8f8e5281cdda",
+        "port": "9c98ea18-ce1b-5102-ac0b-5d2f2a9ba727",
+        "labelOffset": [
+          0,
+          1,
+          0
+        ],
+        "portOffset": [
+          1,
+          0,
+          0
+        ],
+        "frames": [
+          0
+        ]
+      },
+      {
+        "id": "cdebaccb-0074-5829-aa6c-58628c1f9b27",
+        "target": "77b756b9-be82-5aff-a06e-05240eefbfa0",
+        "anchor": "6689120a-c775-5ad4-a890-d2770c6ac310",
+        "label": "acae387f-33ba-5828-ab71-274bc4e72c32",
+        "port": "327b182f-5089-500b-ac95-ebfe2556b16d",
+        "labelOffset": [
+          0,
+          1,
+          0
+        ],
+        "portOffset": [
+          1,
+          0,
+          0
+        ],
+        "frames": [
+          0
+        ]
+      },
+      {
+        "id": "a14e9517-f6a9-56c2-a3e2-ae5cc4f2aeb8",
+        "target": "b7f9ae9d-0aa7-5baf-a021-139a59acea9c",
+        "anchor": "992dae79-8071-51ef-a00f-ba74d322e567",
+        "label": "d2cc913f-d148-5230-a5cf-90c0a83bd22d",
+        "port": "83bde4b7-968e-5cab-aa63-539ece9c2d9c",
+        "labelOffset": [
+          0,
+          1,
+          0
+        ],
+        "portOffset": [
+          1,
+          0,
+          0
+        ],
+        "frames": [
+          0
+        ]
+      },
+      {
+        "id": "56123088-8a5b-5247-a89d-370a5b6e281c",
+        "target": "9278edae-2e83-5c3a-ac57-8c0ee5b40872",
+        "anchor": "16b23553-6edd-5dbc-ab29-b9cdf43fd783",
+        "label": "167805a0-d816-586f-acd8-071bb743166c",
+        "port": "7e079392-1346-555e-a006-bcc67ad20284",
+        "labelOffset": [
+          0,
+          1,
+          0
+        ],
+        "portOffset": [
+          1,
+          0,
+          0
+        ],
+        "frames": [
+          0
+        ]
+      },
+      {
+        "id": "146d8fbf-60bd-53ba-a3bb-fcc0d056605a",
+        "target": "9fecac4a-b41f-5cf7-a459-096b217ddbba",
+        "anchor": "e13c8b72-dac2-53fd-a0fb-bb8d28ceb754",
+        "label": "50ac22c9-ce1b-592e-a139-a444b3b50921",
+        "port": "b9a9fc76-9c7a-5211-a73e-d55bd4ef2ed9",
+        "labelOffset": [
+          0,
+          1,
+          0
+        ],
+        "portOffset": [
+          1,
+          0,
+          0
+        ],
+        "frames": [
+          0
+        ]
+      }
+    ],
+    "relations": [
+      {
+        "id": "720420a0-5cb3-5e3f-ac71-760a52f54e95",
+        "name": "問いを扱う",
+        "direction": "ordered",
+        "condition": "",
+        "hub": "7fe318ff-69f5-5aec-ab8d-af5a9d6015bc",
+        "participants": [
+          {
+            "id": "f1158fe1-918a-57ec-a00d-0903bbb27553",
+            "role": "問い",
+            "target": "1b9c6cb3-53f6-595b-abab-2fe4f225ff01",
+            "occurrence": "c5be9a7c-f030-5a58-a498-0dd9c0425429",
+            "line": "dd86446e-3be4-5e39-a7f6-bf08cddc0ac8"
+          },
+          {
+            "id": "84b37c30-010f-588d-a60f-54c5efe71387",
+            "role": "活動",
+            "target": "ae4ef2b9-d17e-5724-a424-50811db052bb",
+            "occurrence": "775d2c9b-3000-5a2f-a23d-20fe24dcaa83",
+            "line": "444461df-f29d-59fa-a7a1-0651a3a69d80"
+          }
+        ],
+        "refs": []
+      },
+      {
+        "id": "bdb6810a-fdd8-5b8a-a6c4-862e06dfc91c",
+        "name": "問いを扱う",
+        "direction": "ordered",
+        "condition": "",
+        "hub": "e10b0dc8-b0ab-50c7-a292-34c3c3859bea",
+        "participants": [
+          {
+            "id": "fc5ec6f4-6230-5cf1-adf9-7e8c505b4122",
+            "role": "問い",
+            "target": "1b9c6cb3-53f6-595b-abab-2fe4f225ff01",
+            "occurrence": "c5be9a7c-f030-5a58-a498-0dd9c0425429",
+            "line": "aafbec92-1914-5219-a0f2-9da0e4cc7dfa"
+          },
+          {
+            "id": "3bda34c4-d361-5f89-a986-f179e8eb1803",
+            "role": "活動",
+            "target": "39b82101-3981-50e7-ad7c-f469d752862d",
+            "occurrence": "80b8a8a2-57e9-5167-a471-110f04475a11",
+            "line": "d56ad192-ff3b-5d59-a512-45267722cd61"
+          }
+        ],
+        "refs": []
+      },
+      {
+        "id": "cd0a5396-1e18-5c9d-ac61-6247bf610293",
+        "name": "回答",
+        "direction": "ordered",
+        "condition": "",
+        "hub": "11b9e397-1402-5d22-a5be-3359bf6ff377",
+        "participants": [
+          {
+            "id": "ac717e35-d248-55aa-ab5f-4a975fd8fe22",
+            "role": "活動",
+            "target": "ae4ef2b9-d17e-5724-a424-50811db052bb",
+            "occurrence": "775d2c9b-3000-5a2f-a23d-20fe24dcaa83",
+            "line": "b68d7e10-d64e-58c1-a487-d223e85659e4"
+          },
+          {
+            "id": "47795fe5-121a-529e-a03f-527a3c68860a",
+            "role": "回答",
+            "target": "77b756b9-be82-5aff-a06e-05240eefbfa0",
+            "occurrence": "cdebaccb-0074-5829-aa6c-58628c1f9b27",
+            "line": "8ea30374-d03e-5d30-af1c-da6c3ecc75ae"
+          }
+        ],
+        "refs": []
+      },
+      {
+        "id": "b0b78599-d00a-5fe9-a268-b7813ac87913",
+        "name": "回答",
+        "direction": "ordered",
+        "condition": "",
+        "hub": "240f7df3-43ca-5745-a768-5aaaacea56cc",
+        "participants": [
+          {
+            "id": "3772922f-c66c-5990-a689-9a5dbc54b79d",
+            "role": "活動",
+            "target": "39b82101-3981-50e7-ad7c-f469d752862d",
+            "occurrence": "80b8a8a2-57e9-5167-a471-110f04475a11",
+            "line": "53805713-3060-5cf0-a85f-e633f027dbdb"
+          },
+          {
+            "id": "970f4c6e-73d4-5d8b-a18f-a9b288942f69",
+            "role": "回答",
+            "target": "b7f9ae9d-0aa7-5baf-a021-139a59acea9c",
+            "occurrence": "a14e9517-f6a9-56c2-a3e2-ae5cc4f2aeb8",
+            "line": "5b956c6e-9c11-549c-a3a8-2e405feb616c"
+          }
+        ],
+        "refs": []
+      },
+      {
+        "id": "67dfcefe-2486-5e0c-ab74-3cec601c805a",
+        "name": "根拠を参照",
+        "direction": "ordered",
+        "condition": "",
+        "hub": "b98a19e3-9b74-517e-aa4e-f4d06b2607cc",
+        "participants": [
+          {
+            "id": "7b050c8a-feae-5840-a0ea-c71a52b0b53d",
+            "role": "回答",
+            "target": "77b756b9-be82-5aff-a06e-05240eefbfa0",
+            "occurrence": "cdebaccb-0074-5829-aa6c-58628c1f9b27",
+            "line": "296ea200-d0b5-5164-a958-f7caffb3e13d"
+          },
+          {
+            "id": "e544cca3-190f-54d4-aba5-b4ab961788cb",
+            "role": "資料",
+            "target": "9278edae-2e83-5c3a-ac57-8c0ee5b40872",
+            "occurrence": "56123088-8a5b-5247-a89d-370a5b6e281c",
+            "line": "18944251-f4a2-5350-a163-219d48b88338"
+          }
+        ],
+        "refs": []
+      },
+      {
+        "id": "6a25b7a6-887e-54a1-a00d-6392a7d9c1b1",
+        "name": "根拠を参照",
+        "direction": "ordered",
+        "condition": "",
+        "hub": "4bb612ee-ea88-5b8d-ad8a-ad9e8cf9daf5",
+        "participants": [
+          {
+            "id": "d99aa792-b0ba-5f8d-af22-e41e6ca79f34",
+            "role": "回答",
+            "target": "b7f9ae9d-0aa7-5baf-a021-139a59acea9c",
+            "occurrence": "a14e9517-f6a9-56c2-a3e2-ae5cc4f2aeb8",
+            "line": "a9166d03-b5f3-590b-afe1-7f6cf5ecaff3"
+          },
+          {
+            "id": "44fa0401-e75c-5607-a7b3-d48cddd16f7c",
+            "role": "資料",
+            "target": "9fecac4a-b41f-5cf7-a459-096b217ddbba",
+            "occurrence": "146d8fbf-60bd-53ba-a3bb-fcc0d056605a",
+            "line": "c4c4c087-65f0-562c-a13a-3793226ab732"
+          }
+        ],
+        "refs": []
+      }
+    ],
+    "axis": null,
+    "boundary": null,
+    "draft": {
+      "inputs": [],
+      "pendingRelations": []
+    },
+    "sources": []
+  },
+  "baselineContract": {
+    "format": "3dsl-authoring-contract/0.1",
+    "authority": "scene-anchor-and-boundary;contract-shared-values-and-offsets",
+    "fixture": "authored",
+    "targets": [],
+    "occurrences": [],
+    "relations": [],
+    "axis": null,
+    "boundary": null,
+    "draft": {
+      "inputs": [],
+      "pendingRelations": []
+    },
+    "sources": []
+  },
+  "attachments": {
+    "tutorial/README.md": "# はじめての一作品 — 光速度の二つの回答\n\n作者表記：q2t。制作日：2026年10月11日。\n制作案内：https://3dsl.jp/docs/usage/first-work\n元作品：https://3dsl.jp/docs/works/knowledge-questions\n\n既存の「知識と問い」の光速度例を、新しい作品一式の7対象・6関係へ限定して再制作した練習用サンプル。\n原作品全体の変換ではない。実際のModelerと同じ作成操作を生成スクリプトで実行し、画面操作をした履歴は捏造していない。\n各対象の状態「未判定」は新規作成時のまま。形式検査の合格は史実の判定・証明ではない。\n\n## 読み方\nQ→L75→A75→S75、Q→L83→A83→S83を比較する。\n共通の数値299792458 m/sを持っていても、1975年の勧告値と1983年の定義への入力は別の回答として置く。\n「根拠を参照」は回答から資料を読む方向。資料が回答から生じる因果を表す線ではない。\n左右は二記録の比較、並びは参照順。座標・距離・角度に数量・重要度・時間間隔の意味はない。\nZ=0の平面配置、表示所属はすべて0。全体を読んだ後、元作品に戻って省略部分を見る。\n資料部分と資料全体を今回は一つの表示にまとめ、ラベル内で参照箇所を明記した。\n元作品の全体構成・整列例・U/E/J・分類付与・二資料間の継承関係は含まない。\n\n## 参照先\n元作品の作者表記：q2t。knowledge_questions.3dsl-work.json の光速度例を参照。\n1975年CGPM決議2（BIPM公開英語ページ）：\nhttps://www.bipm.org/en/committees/cg/cgpm/15-1975/resolution-2\n1983年CGPM決議1（BIPM公開英語ページ）：\nhttps://www.bipm.org/en/committees/cg/cgpm/17-1983/resolution-1\n2026年10月11日、上記ページの数値と決議の区別を確認。原文転載ではなく短い要約。\nこれは1975年と1983年の歴史例。1983年の定義は2019年に効力を持つ新定義へ移行しており、現行SIの定義を説明する教材ではない。\n\n## 利用条件\nhttps://3dsl.jp/policy/content-usage#practice-samples\n自身の端末での操作・学習用の複製・編集・保存・再読込みは、同ページの指定練習サンプル条件に従う。\n著作権・出典表示を保持する。第三者への配布・ウェブ公開・再提供には個別の許可が必要。\n"
+  }
+}
