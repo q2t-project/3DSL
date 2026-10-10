@@ -239,7 +239,7 @@
 /* grid: mobile = full width, desktop = finite-width cards tiled in both axes */
 .lib-grid{
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 7px;
   padding-inline: 10px;
 }
@@ -257,6 +257,7 @@
 .lib-card{
   position: relative;
   display: block;
+  min-width: 0;
   text-decoration: none;
   color: inherit;
 

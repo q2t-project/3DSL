@@ -80,7 +80,7 @@ function isActive(href: string) {
     <div class="ui-page-progress-bar"></div>
   </div>
     <div id="app-shell" class="min-h-screen text-neutral-100 antialiased app-shell">
-    <header class="sticky top-0 z-50 border-b border-white/10 bg-neutral-950/60 backdrop-blur">
+    <header class="sticky top-0 z-50 border-b border-white/10 bg-neutral-950/60 backdrop-blur" data-swipe-ignore>
     <div class="mx-auto max-w-6xl px-4 py-2">
       <div class="ui-headerbar flex items-start gap-3">
           <a href="/" class="flex items-center shrink-0" aria-label="3DSL Home">
@@ -117,7 +117,7 @@ function isActive(href: string) {
       <slot />
     </main>
 
-    <footer class="border-t border-white/10 bg-neutral-950/40">
+    <footer class="border-t border-white/10 bg-neutral-950/40" data-swipe-ignore>
       <div class="mx-auto max-w-6xl px-4 py-8 text-xs text-neutral-400">
         <div class="flex items-center justify-between gap-3">
           <div>3DSL</div>
@@ -259,12 +259,9 @@ function isActive(href: string) {
 
           const isInteractive = (el) => {
             if (!el) return false;
-            const tag = (el.tagName || "").toLowerCase();
-            if (tag === "input" || tag === "textarea" || tag === "select" || tag === "button") return true;
-            // avoid fighting with embedded viewers / canvases
-            if (tag === "iframe" || tag === "canvas") return true;
             if (el.isContentEditable) return true;
-            return !!el.closest?.("[data-swipe-ignore]");
+            // Include children such as button icons and preserve local scrolling.
+            return !!el.closest?.("input, textarea, select, button, iframe, canvas, [data-swipe-ignore]");
           };
 
           // config
@@ -380,6 +377,12 @@ function isActive(href: string) {
               const dt = Date.now() - t0;
               if (dt > MAX_DT) {
                 dragging = false;
+                locked = false;
+                dir = 0;
+                target = "";
+                app.style.transition = "";
+                app.style.transform = "";
+                resetStage();
                 return;
               }
 
