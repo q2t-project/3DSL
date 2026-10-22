@@ -2,338 +2,146 @@
 import { getLibraryItems } from "../../lib/libraryIndex";
 import Layout from "../../layouts/Layout.astro";
 
-// Hidden items keep their detail/data URLs, but are not listed as public works.
-const items = getLibraryItems().filter((item) => !item.hidden);
-const ITEMS_PER_PAGE = 20;
-
-function withReturn(url, ret) {
-  const u = String(url || "");
-  const r = String(ret || "");
-  if (!u || !r) return u;
-  const sep = u.includes("?") ? (u.endsWith("?") || u.endsWith("&") ? "" : "&") : "?";
-  return `${u}${sep}return=${encodeURIComponent(r)}`;
+const reservedTags = new Set(["m:top", "m:default", "m:__"]);
+function displayTag(raw: unknown) {
+  const tag = String(raw ?? "").trim();
+  if (!tag || reservedTags.has(tag)) return "";
+  const match = tag.match(/^(s|m|x):(.+)$/);
+  return match ? (match[1] === "m" ? match[2] : "") : tag;
 }
-
-
-function fmtDate(s) {
-  if (!s) return null;
-  const t = Date.parse(String(s));
-  if (!Number.isFinite(t)) return null;
-  const d = new Date(t);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${dd}`;
+function dateText(value: unknown) {
+  const text = String(value ?? "");
+  return /^\d{4}-\d{2}-\d{2}/.test(text) ? text.slice(0, 10) : "";
 }
-
-function pickPublished(item) {
-  // 優先: republished_at -> published_at -> created_at
-  return (
-    fmtDate(item?.republished_at) ??
-    fmtDate(item?.published_at) ??
-    fmtDate(item?.created_at)
-  );
+function publishedDate(item: any) {
+  return dateText(item.republished_at) || dateText(item.published_at) || dateText(item.created_at);
 }
-
-function pickPublishedLabel(item) {
-  // published系が無いなら created を代用してる、と分かる表示にする
-  const hasPub = fmtDate(item?.republished_at) || fmtDate(item?.published_at);
-  return hasPub ? "published" : "created";
+function dateLabel(item: any) {
+  return dateText(item.republished_at) ? "改訂" : dateText(item.published_at) ? "公開" : "作成";
 }
-
+function viewerHref(value: string) {
+  const url = new URL(value, "https://3dsl.jp");
+  url.searchParams.set("return", "/library/");
+  return url.origin === "https://3dsl.jp" ? url.pathname + url.search : url.href;
+}
+// All public cards exist in the initial HTML. JavaScript only filters these nodes.
+const items = getLibraryItems().filter((item) => !item.hidden).map((item) => ({
+  ...item,
+  displayTags: (item.tags ?? []).map(displayTag).filter(Boolean),
+  date: publishedDate(item),
+  dateLabel: dateLabel(item),
+})).sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id));
 ---
-
-  <Layout title="Library | 3DSL" description="3DSL Library">
-    <section class="library-page">
-      <!-- controls -->
-      <section class="controls">
-        <input id="search" type="text" placeholder="Search title, summary, tags…" />
-        <select id="sort">
-          <option value="new">Newest</option>
-          <option value="old">Oldest</option>
-          <option value="title">Title (A–Z)</option>
-        </select>
-      </section>
-
-      <!-- cards -->
-      <section id="cards" class="lib-grid"></section>
-
-      <!-- pager -->
-      <nav class="pager">
-        <button id="prev">Prev</button>
-        <span id="page-info"></span>
-        <button id="next">Next</button>
-      </nav>
+<Layout title="作品を読む・作る | Library | 3DSL" description="3DSLの作品を解説と図で読む入口。知識と問い、構造と分類、小作品の制作教材と、公開作品の一覧。">
+  <section class="library-page">
+    <h1>作品を読む・作る</h1>
+    <p class="library-intro">概念や対象の関係を、解説と図を行き来して確かめる作品を掲載しています。配置や線の意味は、各作品の解説で確認してください。</p>
+    <nav class="learning-paths" aria-label="初めての方へ">
+      <a href="/docs/works/knowledge-questions/"><strong>読む：知識と問い</strong><span>同じ回答の違いを、活動と根拠まで辿って確かめます。</span></a>
+      <a href="/docs/usage/first-work/"><strong>作る：はじめての一作品</strong><span>光速度の例を7つの要素に絞り、保存して読み直します。</span></a>
+      <a href="/docs/works/structure-classification/"><strong>比べる：構造と分類</strong><span>線のない配置から読めることと、決められないことを分けます。</span></a>
+    </nav>
+    <p class="library-note">制作教材は「知識と問い」と同じ光速度の題材を使っています。以下はLibraryに登録された作品です。</p>
+    <h2>公開作品</h2>
+    <div id="library-controls" class="library-controls" hidden>
+      <label>作品を探す<input id="search" type="search" placeholder="作品名・説明・タグ" aria-controls="cards" /></label>
+      <label>並べ替え<select id="sort" aria-controls="cards"><option value="new">新しい順</option><option value="old">古い順</option><option value="title">名前順</option></select></label>
+    </div>
+    <section id="cards" class="reading-grid" aria-label="作品一覧">
+      {items.map((item) => (
+        <article class="reading-card" data-library-id={item.id} data-title={item.title} data-date={item.date} data-search={[item.title, item.summary ?? "", ...item.displayTags].join(" ").toLowerCase()}>
+          <div class="reading-meta"><span>作品ID：{item.id}</span>{item.date && <span>{item.dateLabel}：{item.date}</span>}</div>
+          <h3><a href={typeof item.page === "string" ? item.page : `/library/${item.slug}/`}>{item.title}</a></h3>
+          {item.summary && <p class="reading-summary">{item.summary}</p>}
+          {item.displayTags.length > 0 && <p class="reading-tags">{item.displayTags.slice(0, 8).join(" ／ ")}{item.displayTags.length > 8 ? " …" : ""}</p>}
+          <div class="reading-links">
+            <a href={typeof item.page === "string" ? item.page : `/library/${item.slug}/`}>作品の説明を読む</a>
+            {item.viewer_url && <a class="reading-viewer" href={viewerHref(item.viewer_url)}>従来版Viewerで開く</a>}
+          </div>
+        </article>
+      ))}
     </section>
-
-  <script is:inline define:vars={{ ITEMS: items, ITEMS_PER_PAGE }}>
-    // Tag display policy (public Library cards)
-    // - document_meta.tags are scoped by prefix (s:/m:/x:)
-    // - for public UI we:
-    //   * show only meaning tags (m:*)
-    //   * hide reserved internal placement tags (m:top, m:default, m:__)
-    //   * render without the prefix (e.g. "m:concept" -> "concept")
-    const RESERVED_INTERNAL_TAGS = new Set(["m:top", "m:default", "m:__"]);
-    function toDisplayTag(raw) {
-      const t = String(raw ?? "").trim();
-      if (!t) return null;
-      if (RESERVED_INTERNAL_TAGS.has(t)) return null;
-      const m = t.match(/^(s|m|x):(.+)$/);
-      if (!m) return t; // already user-facing
-      const prefix = m[1];
-      const body = m[2];
-      if (prefix !== "m") return null;
-      return body;
-    }
-
-    function withReturn(url, ret) {
-      const u = String(url || "");
-      const r = String(ret || "");
-      if (!u || !r) return u;
-      const sep = u.includes("?") ? (u.endsWith("?") || u.endsWith("&") ? "" : "&") : "?";
-      return `${u}${sep}return=${encodeURIComponent(r)}`;
-    }
-
-    function fmtDate(s) {
-      if (!s) return null;
-      const t = Date.parse(String(s));
-      if (!Number.isFinite(t)) return null;
-      const d = new Date(t);
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, "0");
-      const dd = String(d.getDate()).padStart(2, "0");
-      return `${y}-${m}-${dd}`;
-    }
-
-    function pickPublished(item) {
-      return (
-        fmtDate(item?.republished_at) ??
-        fmtDate(item?.published_at) ??
-        fmtDate(item?.created_at)
-      );
-    }
-
-    function pickPublishedLabel(item) {
-      const hasPub = fmtDate(item?.republished_at) || fmtDate(item?.published_at);
-      return hasPub ? "published" : "created";
-    }
-
-
-      let query = "";
-      let sort = "new";
+    {items.length === 0 && <p>現在、一覧に掲載する作品はありません。上の読解・制作教材から始められます。</p>}
+    <p id="library-empty" role="status" hidden>一致する作品がありません。検索語を変えてください。</p>
+    <nav id="library-pager" class="library-pager" aria-label="作品一覧のページ" hidden>
+      <button id="prev" type="button">前へ</button><span id="page-info" role="status" aria-live="polite"></span><button id="next" type="button">次へ</button>
+    </nav>
+    <noscript><p>作品一覧はJavaScriptなしでも読めます。検索・並べ替え・ページ送りはJavaScriptを有効にすると利用できます。</p></noscript>
+  </section>
+  <script is:inline>
+    (() => {
+      const grid = document.getElementById("cards");
+      const controls = document.getElementById("library-controls");
+      const pager = document.getElementById("library-pager");
+      const search = document.getElementById("search");
+      const sort = document.getElementById("sort");
+      const previous = document.getElementById("prev");
+      const next = document.getElementById("next");
+      const info = document.getElementById("page-info");
+      const empty = document.getElementById("library-empty");
+      if (!grid || !controls || !pager || !search || !sort || !previous || !next || !info || !empty) return;
+      const cards = Array.from(grid.querySelectorAll("[data-library-id]"));
+      const pageSize = 20;
       let page = 1;
-
-      const searchEl = document.getElementById("search");
-      const sortEl = document.getElementById("sort");
-      const cardsEl = document.getElementById("cards");
-      const pageInfoEl = document.getElementById("page-info");
-
-      const prevBtn = document.getElementById("prev");
-      const nextBtn = document.getElementById("next");
-
-      function dateKey(item) {
-        // ソートは「生文字」やなくて、fmtDateで正規化したYYYY-MM-DDで比較
-        return (
-          fmtDate(item?.republished_at) ||
-          fmtDate(item?.published_at) ||
-          fmtDate(item?.created_at) ||
-          ""
-        );
-      }
-
-      function scrollToTop() {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }
-
       function apply() {
-        let filtered = ITEMS.filter((it) => {
-          const displayTags = (Array.isArray(it.tags) ? it.tags : [])
-            .map(toDisplayTag)
-            .filter((x) => typeof x === "string" && x.length > 0);
-          const hay = (
-            it.title +
-            " " +
-            (it.summary || "") +
-            " " +
-            (displayTags || []).join(" ")
-          ).toLowerCase();
-          return hay.includes(query);
+        const query = search.value.trim().toLowerCase();
+        const selected = cards.filter((card) => card.dataset.search.includes(query));
+        selected.sort((a, b) => {
+          if (sort.value === "title") return a.dataset.title.localeCompare(b.dataset.title, "ja");
+          const byDate = a.dataset.date.localeCompare(b.dataset.date);
+          return (sort.value === "old" ? byDate : -byDate) || a.dataset.libraryId.localeCompare(b.dataset.libraryId);
         });
-
-        filtered.sort((a, b) => {
-          if (sort === "title") {
-            return a.title.localeCompare(b.title, "ja");
-          }
-          const da = dateKey(a);
-          const db = dateKey(b);
-          return sort === "new"
-            ? db.localeCompare(da)
-            : da.localeCompare(db);
-        });
-
-        const total = filtered.length;
-        const maxPage = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
-        page = Math.min(page, maxPage);
-
-        const slice = filtered.slice(
-          (page - 1) * ITEMS_PER_PAGE,
-          page * ITEMS_PER_PAGE
-        );
-
-        render(slice, page, maxPage);
+        const pages = Math.max(1, Math.ceil(selected.length / pageSize));
+        page = Math.max(1, Math.min(page, pages));
+        for (const card of cards) card.hidden = true;
+        for (const card of selected) grid.appendChild(card);
+        for (const card of selected.slice((page - 1) * pageSize, page * pageSize)) card.hidden = false;
+        info.textContent = `${selected.length}作品・${page} / ${pages}ページ`;
+        empty.hidden = selected.length !== 0;
+        previous.disabled = page <= 1;
+        next.disabled = page >= pages;
       }
-
-      function render(list, page, maxPage) {
-        cardsEl.innerHTML = "";
-
-        for (const it of list) {
-          const card = document.createElement("article");
-          card.className = "lib-card";
-
-          const published = pickPublished(it);
-          const publishedLabel = pickPublishedLabel(it);
-          const created = fmtDate(it.created_at);
-
-          const detailUrl = it.page || `/library/${it.slug || it.id}/`;
-
-          const title = String(it.title || "");
-          const summary = (it.summary || "").trim();
-	          // Ticker must show summary only (tags are rendered elsewhere).
-	          const tickerText = summary;
-
-          const displayTags = (Array.isArray(it.tags) ? it.tags : [])
-            .map(toDisplayTag)
-            .filter((x) => typeof x === "string" && x.length > 0);
-
-          const viewerUrl0 = String(it.viewer_url || "");
-          const returnTo = (typeof window !== "undefined") ? (window.location.pathname + window.location.search) : "/library/";
-          const viewerUrl = withReturn(viewerUrl0, returnTo);
-          const openHtml = viewerUrl0
-            ? `
-            <a class="lib-open" href="${escapeHtml(viewerUrl)}" title="従来版Viewerで開く" aria-label="従来版Viewerで開く">
-              <span class="icon" aria-hidden="true">⛶</span>
-            </a>`
-            : "";
-
-          // B案: クリックの主導線は「詳細（メタ情報）ページ」
-          // Viewer への直行は右上の別リンクに分離（a の入れ子を避ける）
-          card.innerHTML = `
-            <a class="lib-main" href="${detailUrl}" aria-label="Open details: ${escapeHtml(title)}">
-              <div class="lib-meta">
-                <span class="lib-uuid-badge">${escapeHtml(String(it.id || it.slug || ""))}</span>
-                ${published
-                  ? `<span class="lib-date">${escapeHtml(publishedLabel)} ${escapeHtml(published)}</span>`
-                  : created
-                    ? `<span class="lib-date">created ${escapeHtml(created)}</span>`
-                    : ``}
-              </div>
-
-	              <div class="lib-ticker" data-scroll="false" aria-label="Summary">
-                <span class="lib-ticker-track">
-                  <span class="lib-ticker-seg lib-ticker-a">${escapeHtml(tickerText)}</span>
-                  <span class="lib-ticker-gap"></span>
-                  <span class="lib-ticker-seg lib-ticker-b">${escapeHtml(tickerText)}</span>
-                </span>
-              </div>
-
-              <div class="lib-title">${escapeHtml(title)}</div>
-
-              ${Array.isArray(displayTags) && displayTags.length
-                ? (() => {
-                    const max = 8;
-                    const shown = displayTags.slice(0, max);
-                    const more = Math.max(0, displayTags.length - max);
-                    const pills = shown
-                      .map((t) => `<span class="lib-tag">${escapeHtml(t)}</span>`)
-                      .join("");
-                    const morePill = more > 0 ? `<span class="lib-tag lib-tag-more">+${more}</span>` : "";
-                    return `<div class="lib-tags">${pills}${morePill}</div>`;
-                  })()
-                : ""}
-            </a>
-
-            ${openHtml}
-          `;
-
-          cardsEl.appendChild(card);
-        }
-
-        pageInfoEl.textContent = `${page} / ${maxPage}`;
-        prevBtn.disabled = page <= 1;
-        nextBtn.disabled = page >= maxPage;
-        scheduleTickerUpdate();
+      search.addEventListener("input", () => { page = 1; apply(); });
+      sort.addEventListener("change", () => { page = 1; apply(); });
+      previous.addEventListener("click", () => { page--; apply(); });
+      next.addEventListener("click", () => { page++; apply(); });
+      for (const link of grid.querySelectorAll(".reading-viewer")) {
+        const url = new URL(link.href, window.location.href);
+        url.searchParams.set("return", window.location.pathname + window.location.search);
+        link.href = url.href;
       }
-      searchEl.oninput = (e) => {
-        query = e.target.value.toLowerCase();
-        page = 1;
-        apply();
-      };
-
-      sortEl.onchange = (e) => {
-        sort = e.target.value;
-        page = 1;
-        apply();
-      };
-
-      prevBtn.onclick = () => {
-        page--;
-        apply();
-        scrollToTop();
-      };
-
-      nextBtn.onclick = () => {
-        page++;
-        apply();
-        scrollToTop();
-      };
-
-
-
-let _tickerRAF = 0;
-
-function scheduleTickerUpdate() {
-  if (_tickerRAF) return;
-  _tickerRAF = requestAnimationFrame(() => {
-    _tickerRAF = 0;
-    updateTickers();
-  });
-}
-
-function updateTickers() {
-  const tickers = cardsEl.querySelectorAll(".lib-ticker");
-  for (const el of tickers) {
-    const track = el.querySelector(".lib-ticker-track");
-    if (!track) continue;
-
-    const boxW = el.clientWidth || el.getBoundingClientRect().width;
-    const trackW = track.scrollWidth;
-
-    if (trackW <= boxW + 2) {
-      el.dataset.scroll = "false";
-      el.style.removeProperty("--lib-ticker-dist");
-      el.style.removeProperty("--lib-ticker-dur");
-      continue;
-    }
-
-    const dist = trackW - boxW;
-    const dur = Math.max(10, Math.round(dist / 40));
-
-    el.dataset.scroll = "true";
-    el.style.setProperty("--lib-ticker-dist", `${dist}px`);
-    el.style.setProperty("--lib-ticker-dur", `${dur}s`);
-  }
-}
-
-window.addEventListener("resize", scheduleTickerUpdate, { passive: true });
       apply();
-
-      function escapeHtml(s) {
-        return String(s)
-          .replaceAll("&", "&amp;")
-          .replaceAll("<", "&lt;")
-          .replaceAll(">", "&gt;")
-          .replaceAll('"', "&quot;")
-          .replaceAll("'", "&#39;");
-      }
+      controls.hidden = false;
+      pager.hidden = false;
+    })();
   </script>
 </Layout>
+<style>
+  .library-page { max-width: 72rem; margin-inline: auto; min-width: 0; }
+  .library-page [hidden] { display: none !important; }
+  h1 { font-size: 1.8rem; margin-bottom: 1rem; }
+  h2 { font-size: 1.35rem; margin: 2rem 0 1rem; }
+  .library-intro, .library-note { line-height: 1.85; max-width: 56rem; }
+  .library-note { margin-top: 1rem; font-size: .9rem; }
+  .learning-paths, .reading-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-top: 1rem; }
+  .learning-paths a, .reading-card { border: 1px solid #525252; border-radius: .8rem; padding: 1.1rem; min-width: 0; overflow-wrap: anywhere; }
+  .learning-paths strong, .learning-paths span { display: block; }
+  .learning-paths span { margin-top: .6rem; line-height: 1.7; font-size: .9rem; }
+  .reading-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .reading-card { display: flex; flex-direction: column; gap: .8rem; }
+  .reading-card h3 { font-size: 1.15rem; }
+  .reading-summary { line-height: 1.8; }
+  .reading-meta, .reading-tags { font-size: .8rem; }
+  .reading-meta, .reading-links { display: flex; flex-wrap: wrap; gap: .6rem 1rem; }
+  .reading-links { margin-top: auto; }
+  .library-page a { text-underline-offset: .2em; }
+  .reading-card a, .library-note a { text-decoration: underline; }
+  .library-controls, .library-pager { display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; margin: 1rem 0; }
+  .library-controls label { display: grid; gap: .4rem; min-width: 0; max-width: 100%; }
+  input, select, button { font: inherit; border: 1px solid #737373; border-radius: .4rem; padding: .55rem .8rem; background: #171717; color: #f5f5f5; max-width: 100%; }
+  input { width: 24rem; }
+  button:disabled { opacity: .45; }
+  .library-pager { align-items: center; }
+  :is(a, input, select, button):focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+  @media (max-width: 48rem) { .learning-paths, .reading-grid { grid-template-columns: minmax(0, 1fr); } }
+</style>

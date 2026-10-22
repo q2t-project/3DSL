@@ -16,13 +16,13 @@ for (const item of index.items) {
   const detail = await read(`library/${item.slug}/index.html`);
   assert(await stat(path.join(dist, item.model_url.replace(/^\//, ''))), `${item.id}: model preserved`);
   if (item.hidden === true) {
-    assert(!listHtml.includes(`"id":"${item.id}"`), `${item.id}: hidden from public list`);
+    assert(!listHtml.includes(`data-library-id="${item.id}"`), `${item.id}: hidden from public list`);
     assert(!featured.includes(item.slug), `${item.id}: hidden from featured links`);
     assert(!sitemap.includes(`/library/${item.slug}/`), `${item.id}: hidden from sitemap`);
     assert(/<meta\b[^>]*name="robots"[^>]*content="noindex"/.test(detail), `${item.id}: noindex`);
     assert(detail.includes('data-3dsl-adsense-eligible="0"'), `${item.id}: no advertising`);
   } else {
-    assert(listHtml.includes(`"id":"${item.id}"`), `${item.id}: present in public list`);
+    assert(listHtml.includes(`data-library-id="${item.id}"`), `${item.id}: present in public list`);
   }
 }
 for (const slug of featured) {
@@ -73,3 +73,5 @@ for (const file of ['index.html', 'concept/index.html', 'docs/index.html', 'libr
   assert(html.includes('name="google-adsense-account"'), `${file}: verification metadata retained`);
 }
 console.log(`[check:site-publication] PASS: ${index.items.length} detail/data URLs, hidden/list/featured/sitemap/ads policy, guide and its links; no browser or ad-serving claims`);
+
+await import('./content-readability.mjs');
