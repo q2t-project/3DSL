@@ -60,7 +60,6 @@ for (const match of firstWork.matchAll(/href="(\/[^"?#]*)/g)) {
 for (const file of ['docs/usage/create-save-read/index.html', 'preview-reconstruction/index.html', 'preview-reconstruction/OPEN_MODELS.html']) {
   assert((await read(file)).includes('href="/policy/content-usage#practice-samples"'), `${file}: sample terms entry`);
 }
-// Check actual guide destinations, including policy and the isolated app routes.
 for (const match of guide.matchAll(/href="(\/[^"?#]*)/g)) {
   const pathname = match[1];
   const file = path.join(dist, pathname.replace(/^\//, ''));
@@ -74,4 +73,5 @@ for (const file of ['index.html', 'concept/index.html', 'docs/index.html', 'libr
 }
 console.log(`[check:site-publication] PASS: ${index.items.length} detail/data URLs, hidden/list/featured/sitemap/ads policy, guide and its links; no browser or ad-serving claims`);
 
+await import('./readability-html-diagnostic.mjs');
 await import('./content-readability.mjs');
