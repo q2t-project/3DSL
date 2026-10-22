@@ -15,7 +15,10 @@ const read = (p) => fs.readFile(path.join(dist, p), 'utf8');
 const html = await read('library/index.html');
 const index = JSON.parse(await read('_data/library/library_index.json'));
 const publicItems = index.items.filter((item) => !item.hidden);
-assert.equal((html.match(/data-library-id="/g) || []).length, publicItems.length, 'all public cards are static HTML');
+const staticCardIds = [...html.matchAll(/<article\b[^>]*\bdata-library-id="([^"]+)"[^>]*>/g)].map((match) => match[1]);
+console.log('[check:content-readability] STATIC_CARD_IDS ' + JSON.stringify(staticCardIds));
+assert.deepEqual([...staticCardIds].sort(), publicItems.map((item) => item.id).sort(), 'initial HTML contains exactly one article per public work');
+assert.equal(new Set(staticCardIds).size, staticCardIds.length, 'static article IDs are unique');
 for (const item of index.items) {
   assert.equal(html.includes(`data-library-id="${item.id}"`), !item.hidden, `${item.id}: public/hidden contract`);
 }
