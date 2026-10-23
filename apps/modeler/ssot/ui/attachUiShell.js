@@ -3,6 +3,7 @@
 
 import { resizeHub, startHub } from "./hubOps.js";
 import { createHubCoreControllers } from "./hubFacade.js";
+import { sidecarStorageKey, serializeLocalSidecar, parseLocalSidecar } from "./sidecarLocalContract.js";
 
 import { createUiFileController } from "./controllers/uiFileController.js";
 import { createUiPropertyController } from "./controllers/uiPropertyController.js";
@@ -40,15 +41,15 @@ export function attachUiShell({ root, hub, modelUrl }) {
     }
   };
 
-  const sidecarKeyFor = (docUuid) => `modeler.sidecar.${docUuid}`;
-
   const loadSidecar = () => {
     const docUuid = getDocUuid();
     if (!docUuid) return;
     try {
-      const raw = localStorage.getItem(sidecarKeyFor(docUuid));
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
+      const key = sidecarStorageKey(docUuid);
+      if (!key) return;
+      const raw = localStorage.getItem(key);
+      const parsed = parseLocalSidecar(raw);
+      if (!parsed) return;
       core.applyUiSidecar?.(parsed);
     } catch {}
   };
@@ -62,9 +63,11 @@ export function attachUiShell({ root, hub, modelUrl }) {
       t = window.setTimeout(() => {
         t = 0;
         try {
+          const key = sidecarStorageKey(docUuid);
           const payload = core.getUiSidecar?.();
-          if (!payload) return;
-          localStorage.setItem(sidecarKeyFor(docUuid), JSON.stringify(payload));
+          const serialized = serializeLocalSidecar(payload);
+          if (!key || !serialized) return;
+          localStorage.setItem(key, serialized);
         } catch {}
       }, 150);
     };

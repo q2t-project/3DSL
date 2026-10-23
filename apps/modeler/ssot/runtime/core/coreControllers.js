@@ -1107,19 +1107,19 @@ async function importNormalize(raw) {
     }
 
 
-// Import extras (info): unknown fields stripped during importNormalize()
+// Import extras (warn): strict Save/Export does not persist fields stripped during importNormalize()
 if (importExtras && typeof importExtras === "object") {
   const total = Number(importExtras.removedCount || 0) || 0;
   const list = Array.isArray(importExtras.removed) ? importExtras.removed : [];
   if (total > 0 || list.length > 0) {
     push({
-      severity: "info",
+      severity: "warn",
       uuid: null,
       kind: "import",
       path: "/__import_extras",
-      expected: "no unknown fields",
-      actual: `${total} unknown fields stored in extras`,
-      message: "Unknown fields were stripped on import and stored as extras (not exported)"
+      expected: "lossless strict output or explicit acknowledgement of loss",
+      actual: `${total} unsupported imported fields retained only as temporary extras`,
+      message: "Strict Save/Export will omit these imported fields; schema-valid output is not a lossless round-trip"
     });
 
     const cap = 50;
@@ -1502,4 +1502,3 @@ function focusByIssue(issue) {
     focusByIssue
   };
 }
-
