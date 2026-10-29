@@ -263,8 +263,7 @@ if (!chrome) {
       const selectedScreenshot=await cmd('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
       await fs.writeFile(path.join(logs,`meal-mobile-selected-${width}.png`),Buffer.from(selectedScreenshot.data,'base64'));
       await clickElement(`document.getElementById('reading-selection-info')`,useTouch);
-      await painted();
-      assert(await evaluate(`document.getElementById('contract-info').getBoundingClientRect().top<innerHeight`),'information button reaches selected details');
+      await until(`document.getElementById('contract-info').getBoundingClientRect().top<innerHeight`,'information button reaches selected details after smooth scrolling');
       await evaluate('window.viewerDiagnostics.cameraReset()');
       await evaluate('window.viewerDiagnostics.setFrame(2)');
       await evaluate('window.viewerDiagnostics.fitAll()');
