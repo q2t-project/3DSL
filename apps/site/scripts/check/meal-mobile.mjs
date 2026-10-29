@@ -149,7 +149,7 @@ if (!chrome) {
         if (await evaluate(expression)) return;
         await sleep(50);
       }
-      const failure=await evaluate('({state:window.viewerDiagnostics.snapshot(),events:window.__mealPointerEvents??[]})');
+      const failure=await evaluate('({state:window.viewerDiagnostics.snapshot(),panel:document.body.dataset.readingPanel,informationScrollTop:document.getElementById("contract-info").scrollTop,events:window.__mealPointerEvents??[]})');
       await fs.writeFile(path.join(logs,'meal-mobile-last-input.json'),JSON.stringify(failure,null,2));
       assert.fail(message + ': ' + JSON.stringify(failure));
     }
@@ -204,6 +204,17 @@ if (!chrome) {
       await touch('touchEnd',[]);
       await painted();
     }
+    async function waitForInformationScrollSettled() {
+      const started=Date.now();
+      let previous=await evaluate(`document.getElementById('contract-info').scrollTop`),stableSince=Date.now();
+      while(Date.now()-started<5000) {
+        await sleep(50);
+        const current=await evaluate(`document.getElementById('contract-info').scrollTop`);
+        if(current!==previous){previous=current;stableSince=Date.now();}
+        else if(Date.now()-stableSince>=300)return;
+      }
+      assert.fail('native information scrolling did not settle within 5s: '+JSON.stringify(await mobileLayout()));
+    }
     async function projectPoint(point) {
       return evaluate(`(async()=>{const THREE=await import('/preview-reconstruction/vendor/three/build/three.module.js'),s=window.viewerDiagnostics.snapshot().camera,r=document.getElementById('viewer-canvas').getBoundingClientRect(),c=new THREE.PerspectiveCamera(s.fov,r.width/r.height,.1,10000),t=s.target;c.up.set(0,0,1);c.position.set(t.x+s.distance*Math.sin(s.phi)*Math.cos(s.theta),t.y+s.distance*Math.sin(s.phi)*Math.sin(s.theta),t.z+s.distance*Math.cos(s.phi));c.lookAt(t.x,t.y,t.z);c.updateMatrixWorld(true);const p=new THREE.Vector3(...${JSON.stringify(point)}).project(c);return {x:r.left+(p.x+1)*r.width/2,y:r.top+(1-p.y)*r.height/2,ndc:[p.x,p.y,p.z]};})()`);
     }
@@ -253,7 +264,7 @@ if (!chrome) {
         await choosePanel('diagram');
       } else assert.equal(actual.toolsOpen, true, 'desktop controls remain expanded');
       const roleId='f225f07d-b1ab-5ece-8834-d60b3726bec7';
-      await evaluate(`document.getElementById('viewer-canvas').scrollIntoView({block:'center'});window.__mealPointerEvents=[];for(const type of ['pointerdown','pointerup','pointermove','pointerleave','pointercancel','touchstart','touchend'])document.addEventListener(type,event=>window.__mealPointerEvents.push({target:event.target.id,type:event.type,trusted:event.isTrusted,pointerType:event.pointerType,primary:event.isPrimary,button:event.button,buttons:event.buttons,x:event.clientX,y:event.clientY}),{passive:true,capture:true});`);
+      await evaluate(`document.getElementById('viewer-canvas').scrollIntoView({block:'center'});window.__mealPointerEvents=[];for(const type of ['pointerdown','pointerup','pointermove','pointerleave','pointercancel','touchstart','touchend','click'])document.addEventListener(type,event=>window.__mealPointerEvents.push({target:event.target.id,type:event.type,timeStamp:event.timeStamp,panel:document.body.dataset.readingPanel,trusted:event.isTrusted,pointerType:event.pointerType,primary:event.isPrimary,button:event.button,buttons:event.buttons,x:event.clientX,y:event.clientY}),{passive:true,capture:true});`);
       await painted();
       const beforePick=await evaluate('window.viewerDiagnostics.snapshot().camera');
       // Inside the visible word but away from its 0.4-radius marker and links.
@@ -320,6 +331,8 @@ if (!chrome) {
       if(useTouch) {
         await until(`document.body.dataset.readingPanel==='info'`,'information action opens pane');
         const infoLayout=await assertMobileViewport('selected information');
+        const infoTopScreenshot=await cmd('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
+        await fs.writeFile(path.join(logs,`meal-mobile-info-top-${width}.png`),Buffer.from(infoTopScreenshot.data,'base64'));
         const beforeSwipe=await evaluate('window.viewerDiagnostics.snapshot()');
         // Expand an actual model record so a long article/record is exercised,
         // rather than fabricating tall fixture content or assigning scrollTop.
@@ -338,6 +351,9 @@ if (!chrome) {
         const beforeScroll=await evaluate(`document.getElementById('contract-info').scrollTop`);
         await swipeInformation();
         await until(`document.getElementById('contract-info').scrollTop>${beforeScroll}+30`,'native finger swipe scrolls information');
+        // A tap during native momentum can intentionally cancel the fling.
+        // Wait for actual scroll stability before testing one navigation tap.
+        await waitForInformationScrollSettled();
         const afterScroll=await evaluate(`document.getElementById('contract-info').scrollTop`);
         await assertMobileViewport('scrolled information');
         assert.deepEqual(await evaluate('window.viewerDiagnostics.snapshot().camera'),beforeSwipe.camera,'information swipes do not orbit the drawing');
