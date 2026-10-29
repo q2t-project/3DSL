@@ -41,7 +41,7 @@
           },
           "text": {
             "content": "店の米",
-            "size": 7,
+            "size": 13,
             "pose": {
               "front": [
                 0,
@@ -89,7 +89,7 @@
           },
           "text": {
             "content": "購入",
-            "size": 7,
+            "size": 13,
             "pose": {
               "front": [
                 1,
@@ -138,7 +138,7 @@
           },
           "text": {
             "content": "購入後の米",
-            "size": 7,
+            "size": 13,
             "pose": {
               "front": [
                 0,
@@ -186,7 +186,7 @@
           },
           "text": {
             "content": "運搬",
-            "size": 7,
+            "size": 13,
             "pose": {
               "front": [
                 1,
@@ -235,7 +235,7 @@
           },
           "text": {
             "content": "到着した米",
-            "size": 7,
+            "size": 13,
             "pose": {
               "front": [
                 0,
@@ -283,7 +283,7 @@
           },
           "text": {
             "content": "保管",
-            "size": 7,
+            "size": 13,
             "pose": {
               "front": [
                 1,
@@ -332,7 +332,7 @@
           },
           "text": {
             "content": "家の米",
-            "size": 7,
+            "size": 13,
             "pose": {
               "front": [
                 0,
@@ -380,7 +380,7 @@
           },
           "text": {
             "content": "取り分け",
-            "size": 7,
+            "size": 13,
             "pose": {
               "front": [
                 1,
@@ -428,8 +428,8 @@
             "opacity": 1
           },
           "text": {
-            "content": "取り分けた米",
-            "size": 7,
+            "content": "炊く米",
+            "size": 13,
             "pose": {
               "front": [
                 0,
@@ -476,8 +476,8 @@
             "opacity": 1
           },
           "text": {
-            "content": "残した米",
-            "size": 7,
+            "content": "残す米",
+            "size": 13,
             "pose": {
               "front": [
                 0,
@@ -526,7 +526,7 @@
           },
           "text": {
             "content": "炊飯",
-            "size": 7,
+            "size": 13,
             "pose": {
               "front": [
                 1,
@@ -576,7 +576,7 @@
           },
           "text": {
             "content": "ご飯",
-            "size": 7,
+            "size": 13,
             "pose": {
               "front": [
                 0,
@@ -624,7 +624,7 @@
           },
           "text": {
             "content": "配膳",
-            "size": 7,
+            "size": 13,
             "pose": {
               "front": [
                 1,
@@ -673,7 +673,7 @@
           },
           "text": {
             "content": "配膳後",
-            "size": 7,
+            "size": 13,
             "pose": {
               "front": [
                 0,
@@ -721,7 +721,7 @@
           },
           "text": {
             "content": "調達役",
-            "size": 7,
+            "size": 13,
             "pose": {
               "front": [
                 0,
@@ -771,7 +771,7 @@
           },
           "text": {
             "content": "調理役",
-            "size": 7,
+            "size": 13,
             "pose": {
               "front": [
                 0,
@@ -820,7 +820,7 @@
           },
           "text": {
             "content": "保管容器",
-            "size": 7,
+            "size": 13,
             "pose": {
               "front": [
                 0,
@@ -869,7 +869,7 @@
           },
           "text": {
             "content": "水",
-            "size": 7,
+            "size": 13,
             "pose": {
               "front": [
                 0,
@@ -918,7 +918,7 @@
           },
           "text": {
             "content": "炊飯器",
-            "size": 7,
+            "size": 13,
             "pose": {
               "front": [
                 0,
@@ -967,7 +967,7 @@
           },
           "text": {
             "content": "電気",
-            "size": 7,
+            "size": 13,
             "pose": {
               "front": [
                 0,
@@ -1016,7 +1016,7 @@
           },
           "text": {
             "content": "食器",
-            "size": 7,
+            "size": 13,
             "pose": {
               "front": [
                 0,
@@ -1050,7 +1050,7 @@
           "structural": "association"
         },
         "sense": "a_to_b",
-        "caption": "購入対象"
+        "caption": "対象"
       },
       "appearance": {
         "end_a": {
@@ -1073,7 +1073,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 4.5,
+          "font_size": 6,
           "pose": {
             "front": [
               1,
@@ -1103,7 +1103,7 @@
           "structural": "association"
         },
         "sense": "a_to_b",
-        "caption": "購入後"
+        "caption": "結果"
       },
       "appearance": {
         "end_a": {
@@ -1126,7 +1126,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 4.5,
+          "font_size": 6,
           "pose": {
             "front": [
               1,
@@ -1156,7 +1156,7 @@
           "structural": "association"
         },
         "sense": "a_to_b",
-        "caption": "運ぶ対象"
+        "caption": "対象"
       },
       "appearance": {
         "end_a": {
@@ -1179,7 +1179,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 4.5,
+          "font_size": 6,
           "pose": {
             "front": [
               1,
@@ -1209,7 +1209,7 @@
           "structural": "association"
         },
         "sense": "a_to_b",
-        "caption": "到着後"
+        "caption": "結果"
       },
       "appearance": {
         "end_a": {
@@ -1232,7 +1232,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 4.5,
+          "font_size": 6,
           "pose": {
             "front": [
               1,
@@ -1262,7 +1262,7 @@
           "structural": "association"
         },
         "sense": "a_to_b",
-        "caption": "保管対象"
+        "caption": "対象"
       },
       "appearance": {
         "end_a": {
@@ -1285,7 +1285,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 4.5,
+          "font_size": 6,
           "pose": {
             "front": [
               1,
@@ -1315,7 +1315,7 @@
           "structural": "association"
         },
         "sense": "a_to_b",
-        "caption": "保管後"
+        "caption": "結果"
       },
       "appearance": {
         "end_a": {
@@ -1338,7 +1338,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 4.5,
+          "font_size": 6,
           "pose": {
             "front": [
               1,
@@ -1368,7 +1368,7 @@
           "structural": "association"
         },
         "sense": "a_to_b",
-        "caption": "分ける対象"
+        "caption": "対象"
       },
       "appearance": {
         "end_a": {
@@ -1391,7 +1391,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 4.5,
+          "font_size": 6,
           "pose": {
             "front": [
               1,
@@ -1444,7 +1444,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 4.5,
+          "font_size": 6,
           "pose": {
             "front": [
               1,
@@ -1497,7 +1497,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 4.5,
+          "font_size": 6,
           "pose": {
             "front": [
               1,
@@ -1528,7 +1528,7 @@
           "structural": "association"
         },
         "sense": "a_to_b",
-        "caption": "米を投入"
+        "caption": "材料"
       },
       "appearance": {
         "end_a": {
@@ -1551,7 +1551,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 4.5,
+          "font_size": 6,
           "pose": {
             "front": [
               1,
@@ -1582,7 +1582,7 @@
           "structural": "association"
         },
         "sense": "a_to_b",
-        "caption": "炊飯後"
+        "caption": "結果"
       },
       "appearance": {
         "end_a": {
@@ -1605,7 +1605,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 4.5,
+          "font_size": 6,
           "pose": {
             "front": [
               1,
@@ -1635,7 +1635,7 @@
           "structural": "association"
         },
         "sense": "a_to_b",
-        "caption": "盛る対象"
+        "caption": "対象"
       },
       "appearance": {
         "end_a": {
@@ -1658,7 +1658,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 4.5,
+          "font_size": 6,
           "pose": {
             "front": [
               1,
@@ -1688,7 +1688,7 @@
           "structural": "association"
         },
         "sense": "a_to_b",
-        "caption": "配膳後"
+        "caption": "結果"
       },
       "appearance": {
         "end_a": {
@@ -1711,7 +1711,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 4.5,
+          "font_size": 6,
           "pose": {
             "front": [
               1,
@@ -1741,7 +1741,7 @@
           "structural": "association"
         },
         "sense": "a_to_b",
-        "caption": "担う"
+        "caption": "担当"
       },
       "appearance": {
         "end_a": {
@@ -1764,7 +1764,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 4.5,
+          "font_size": 6,
           "pose": {
             "front": [
               0,
@@ -1794,7 +1794,7 @@
           "structural": "association"
         },
         "sense": "a_to_b",
-        "caption": "担う"
+        "caption": "担当"
       },
       "appearance": {
         "end_a": {
@@ -1817,7 +1817,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 4.5,
+          "font_size": 6,
           "pose": {
             "front": [
               0,
@@ -1847,7 +1847,7 @@
           "structural": "association"
         },
         "sense": "a_to_b",
-        "caption": "担う"
+        "caption": "担当"
       },
       "appearance": {
         "end_a": {
@@ -1870,7 +1870,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 4.5,
+          "font_size": 6,
           "pose": {
             "front": [
               0,
@@ -1900,7 +1900,7 @@
           "structural": "association"
         },
         "sense": "a_to_b",
-        "caption": "担う"
+        "caption": "担当"
       },
       "appearance": {
         "end_a": {
@@ -1923,7 +1923,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 4.5,
+          "font_size": 6,
           "pose": {
             "front": [
               0,
@@ -1953,7 +1953,7 @@
           "structural": "association"
         },
         "sense": "a_to_b",
-        "caption": "担う"
+        "caption": "担当"
       },
       "appearance": {
         "end_a": {
@@ -1976,7 +1976,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 4.5,
+          "font_size": 6,
           "pose": {
             "front": [
               0,
@@ -2006,7 +2006,7 @@
           "structural": "association"
         },
         "sense": "a_to_b",
-        "caption": "道具として使われる"
+        "caption": "道具"
       },
       "appearance": {
         "end_a": {
@@ -2029,7 +2029,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 4.5,
+          "font_size": 6,
           "pose": {
             "front": [
               0,
@@ -2059,7 +2059,7 @@
           "structural": "association"
         },
         "sense": "a_to_b",
-        "caption": "材料として加わる"
+        "caption": "材料"
       },
       "appearance": {
         "end_a": {
@@ -2082,7 +2082,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 4.5,
+          "font_size": 6,
           "pose": {
             "front": [
               0,
@@ -2112,7 +2112,7 @@
           "structural": "association"
         },
         "sense": "a_to_b",
-        "caption": "道具として使われる"
+        "caption": "道具"
       },
       "appearance": {
         "end_a": {
@@ -2135,7 +2135,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 4.5,
+          "font_size": 6,
           "pose": {
             "front": [
               0,
@@ -2165,7 +2165,7 @@
           "structural": "association"
         },
         "sense": "a_to_b",
-        "caption": "エネルギーとして使われる"
+        "caption": "エネルギー"
       },
       "appearance": {
         "end_a": {
@@ -2188,7 +2188,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 4.5,
+          "font_size": 6,
           "pose": {
             "front": [
               0,
@@ -2218,7 +2218,7 @@
           "structural": "association"
         },
         "sense": "a_to_b",
-        "caption": "道具として使われる"
+        "caption": "道具"
       },
       "appearance": {
         "end_a": {
@@ -2241,7 +2241,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 4.5,
+          "font_size": 6,
           "pose": {
             "front": [
               0,
