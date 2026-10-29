@@ -489,7 +489,7 @@ export class PointerInput {
             : settings.panSpeed * distance * settings.panFactor;
           const panX = dmx * unitsPerPixel;
           const panY = dmy * unitsPerPixel;
-          if (!this.dispatch('panDelta', panX, panY)) this.dispatch('pan', panX, panY);
+          if (!this.dispatch('panDelta', panX, panY, { direct: !!this.hub?.browsing })) this.dispatch('pan', panX, panY);
         }
 
         this._pinchLastDist = pb.dist;
