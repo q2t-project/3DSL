@@ -477,13 +477,18 @@ export class PointerInput {
           if (!this.dispatch('zoomDelta', zoomDelta)) this.dispatch('zoom', zoomDelta);
         }
 
-        // pan は既存の距離スケール計算を流用
+        // Reading touch pan tracks CSS pixels at the target depth. The legacy
+        // mouse gain multiplies two small factors and barely moves on phones.
         if ((dmx || dmy) && Number.isFinite(dmx) && Number.isFinite(dmy)) {
           const camState = this.getCameraState();
           const distance = camState && typeof camState.distance === 'number' ? camState.distance : 1;
-          const panScale = distance * settings.panFactor;
-          const panX = dmx * settings.panSpeed * panScale;
-          const panY = dmy * settings.panSpeed * panScale;
+          const height = this.canvas.getBoundingClientRect().height;
+          const fov = _num(camState?.fov, 50);
+          const unitsPerPixel = this.hub?.browsing && height > 0 && fov > 0 && fov < 180
+            ? 2 * distance * Math.tan(fov * Math.PI / 360) / height
+            : settings.panSpeed * distance * settings.panFactor;
+          const panX = dmx * unitsPerPixel;
+          const panY = dmy * unitsPerPixel;
           if (!this.dispatch('panDelta', panX, panY)) this.dispatch('pan', panX, panY);
         }
 

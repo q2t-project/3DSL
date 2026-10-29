@@ -302,6 +302,28 @@ if (!chrome) {
         await evaluate('window.viewerDiagnostics.cameraReset()');
         await touch('touchStart',[await projectPoint([-40,0,67])]);await touch('touchCancel',[]);await painted();
         assert.equal(await evaluate('window.viewerDiagnostics.snapshot().selectedId'),null,'cancelled touch does not select');
+        // Measure actual projected movement, rather than merely checking that
+        // the camera changed. The old gain moved only ~1px for a 40px gesture.
+        for(const zoom of [0,-0.5]) {
+          await evaluate('window.viewerDiagnostics.cameraReset()');
+          if(zoom)await evaluate(`window.viewerDiagnostics.cameraZoom(${zoom})`);
+          const panBefore=await evaluate('window.viewerDiagnostics.snapshot().camera');
+          const anchor=[panBefore.target.x,panBefore.target.y,panBefore.target.z];
+          const projectedBefore=await projectPoint(anchor);
+          const fingers=[{x:projectedBefore.x-30,y:projectedBefore.y},{x:projectedBefore.x+30,y:projectedBefore.y}];
+          await touch('touchStart',fingers);
+          for(let step=1;step<=8;step++)await touch('touchMove',fingers.map(p=>({x:p.x+40*step/8,y:p.y+24*step/8})));
+          await touch('touchEnd',[]);await painted();
+          const projectedAfter=await projectPoint(anchor);
+          const panAfter=await evaluate('window.viewerDiagnostics.snapshot().camera');
+          const movement={x:projectedAfter.x-projectedBefore.x,y:projectedAfter.y-projectedBefore.y};
+          assert(Math.abs(movement.x-40)<3&&Math.abs(movement.y-24)<3,`two-finger pan follows screen distance at zoom ${zoom}: ${JSON.stringify(movement)}`);
+          assert.equal(panAfter.theta,panBefore.theta,'two-finger pan does not rotate horizontally');
+          assert.equal(panAfter.phi,panBefore.phi,'two-finger pan does not rotate vertically');
+          assert.equal(await evaluate('window.viewerDiagnostics.snapshot().selectedId'),null,'two-finger pan does not select');
+          console.log('[check:meal-mobile] PAN '+JSON.stringify({width,zoom,movement}));
+        }
+        await evaluate('window.viewerDiagnostics.cameraReset()');
         await evaluate('window.viewerDiagnostics.setFrame(1)');
         await tap(await projectPoint([-40,0,67]));
         assert.notEqual(await evaluate('window.viewerDiagnostics.snapshot().bridgeState.selection?.uuid'),roleId,'hidden-frame label cannot be picked');
