@@ -132,7 +132,9 @@ if (!chrome) {
         if (await evaluate(expression)) return;
         await sleep(50);
       }
-      assert.fail(message + ': ' + JSON.stringify(await evaluate('window.viewerDiagnostics.snapshot()')));
+      const failure=await evaluate('({state:window.viewerDiagnostics.snapshot(),events:window.__mealPointerEvents??[]})');
+      await fs.writeFile(path.join(logs,'meal-mobile-last-input.json'),JSON.stringify(failure,null,2));
+      assert.fail(message + ': ' + JSON.stringify(failure));
     }
     async function touch(type, points) {
       await cmd('Input.dispatchTouchEvent', {type, touchPoints:points.map((point,i)=>({x:point.x,y:point.y,id:i+1,radiusX:2,radiusY:2}))});

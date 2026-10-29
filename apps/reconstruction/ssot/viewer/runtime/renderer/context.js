@@ -529,6 +529,7 @@ function maybeForceContextLoss(renderer, enabled) {
 
   /** @type {THREE.Object3D[]} */
   const pickTargets = [];
+  const raycaster = new THREE.Raycaster();
   /** @type {WeakSet<object>} */
   let _pickTargetSet = new WeakSet();
 
