@@ -803,7 +803,7 @@
       },
       "appearance": {
         "position": [
-          60,
+          0,
           -130,
           75
         ],
@@ -852,7 +852,7 @@
       },
       "appearance": {
         "position": [
-          60,
+          0,
           -30,
           75
         ],
@@ -901,7 +901,7 @@
       },
       "appearance": {
         "position": [
-          60,
+          0,
           25,
           75
         ],
@@ -950,7 +950,7 @@
       },
       "appearance": {
         "position": [
-          60,
+          0,
           80,
           75
         ],
