@@ -2541,6 +2541,12 @@ for (const aux of axs) {
   // spec 名（applySelection）とのズレ吸収：まずは alias（中身は後で戻す）
   ctx.applySelection = (selectionState, camState, visibleSet) =>
     ctx.applySelectionHighlight(selectionState, camState, visibleSet);
+  const isObjectVisible = object => {
+    for (let current = object; current; current = current.parent) {
+      if (current.visible === false) return false;
+    }
+    return true;
+  };
   ctx.pickObjectAt = (ndcX, ndcY) => {
     if (ctx._disposed) return null;
     const x = Number(ndcX);

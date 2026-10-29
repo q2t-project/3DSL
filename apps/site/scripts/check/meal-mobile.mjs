@@ -201,11 +201,12 @@ if (!chrome) {
         assert.equal(await evaluate(`document.getElementById('reading-tools').open`), false, 'controls collapse again');
       } else assert.equal(actual.toolsOpen, true, 'desktop controls remain expanded');
       const roleId='f225f07d-b1ab-5ece-8834-d60b3726bec7';
-      await evaluate(`document.getElementById('viewer-canvas').scrollIntoView({block:'center'});window.__mealPointerEvents=[];for(const type of ['pointerdown','pointerup'])document.getElementById('viewer-canvas').addEventListener(type,event=>window.__mealPointerEvents.push({type:event.type,trusted:event.isTrusted,pointerType:event.pointerType}),{passive:true});`);
+      await evaluate(`document.getElementById('viewer-canvas').scrollIntoView({block:'center'});window.__mealPointerEvents=[];for(const type of ['pointerdown','pointerup','pointermove','pointerleave','pointercancel'])document.getElementById('viewer-canvas').addEventListener(type,event=>window.__mealPointerEvents.push({type:event.type,trusted:event.isTrusted,pointerType:event.pointerType,primary:event.isPrimary,button:event.button,buttons:event.buttons,x:event.clientX,y:event.clientY}),{passive:true});`);
       await painted();
       const beforePick=await evaluate('window.viewerDiagnostics.snapshot().camera');
       // Inside the visible word but away from its 0.4-radius marker and links.
       const word=await projectPoint([-40,0,67]);
+      await fs.writeFile(path.join(logs,`meal-mobile-input-${width}.json`),JSON.stringify({word,beforePick},null,2));
       assert(word.y>0&&word.y<900&&word.x>0&&word.x<width,'word target inside viewport');
       if(useTouch)await tap(word);
       else {
