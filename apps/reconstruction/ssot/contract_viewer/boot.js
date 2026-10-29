@@ -19,7 +19,7 @@ const validator=createCoreControllers({emit(){}}).validator;
 const searchInput=byId('reading-search'),frame=byId('reading-frame'),scope=byId('reading-scope');
 const resultList=byId('reading-result-list'),results=byId('reading-results'),pages=byId('reading-result-pages');
 let busy=false,lastModel=null,resultOffset=0,lastQuery='',lastSelectedId=null,lastInfoKey='',controller,controlsUI;
-let mobilePanel='diagram';
+let mobilePanel='info';
 const panelIds={diagram:'viewer-root',info:'contract-info',find:'reading-find',tools:'reading-tools'};
 function syncMobilePanels() {
   const mobile=mobileViewport.matches;
@@ -28,7 +28,7 @@ function syncMobilePanels() {
   if(mobile)byId('reading-info-toggle').setAttribute('aria-expanded',String(mobilePanel==='info'));
   readingTools.open=true;
   for(const [name,id] of Object.entries(panelIds)) {
-    const node=byId(id),inactive=mobile&&mobilePanel!==name;
+    const node=byId(id),inactive=mobile&&name!=='diagram'&&mobilePanel!==name;
     if(inactive&&node.contains?.(document.activeElement))document.activeElement?.blur?.();
     node.inert=inactive||(name==='diagram'&&busy);
     byId(`reading-tab-${name}`).setAttribute('aria-pressed',String(name===mobilePanel));
@@ -49,7 +49,6 @@ function showInformation() {
   if(!showMobilePanel('info'))byId('contract-info').scrollIntoView({block:'start',behavior:'smooth'});
 }
 async function showSelected() {
-  showMobilePanel('diagram');
   await controller.fitSelection();
   if(!mobileViewport.matches)byId('viewer-canvas').scrollIntoView({block:'center',behavior:'smooth'});
 }

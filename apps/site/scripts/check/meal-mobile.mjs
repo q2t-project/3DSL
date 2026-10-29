@@ -184,6 +184,10 @@ if (!chrome) {
       assert(layout.nav.top>=0&&layout.nav.bottom<=layout.height+1,message+': navigation remains inside viewport');
       for(const button of layout.buttons)assert(button.height>=44&&button.reachable,message+': reachable touch target '+button.name);
       assert(layout.canvas.every(n=>n>0),message+': mounted canvas keeps nonzero dimensions');
+      const diagram=await evaluate(`(() => {const root=document.getElementById('viewer-root'),canvas=document.getElementById('viewer-canvas'),r=canvas.getBoundingClientRect();const panel=document.getElementById({info:'contract-info',find:'reading-find',tools:'reading-tools'}[document.body.dataset.readingPanel]);return {inert:root.inert,visibility:getComputedStyle(root).visibility,opacity:getComputedStyle(root).opacity,hit:document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)?.id,top:r.top,bottom:r.bottom,height:r.height,panel:panel?{top:panel.getBoundingClientRect().top,height:panel.getBoundingClientRect().height}:null};})()`);
+      assert(!diagram.inert&&diagram.visibility==='visible'&&diagram.opacity==='1'&&diagram.hit==='viewer-canvas',message+': diagram remains visible and touchable '+JSON.stringify(diagram));
+      assert(diagram.top>=0&&diagram.height>=180,message+': useful model area stays on screen');
+      if(diagram.panel)assert(diagram.panel.height>=120&&diagram.panel.top>=diagram.bottom,message+': information and model do not overlap');
       return layout;
     }
     async function choosePanel(name) {
@@ -251,7 +255,7 @@ if (!chrome) {
       assert(actual.canvasPixels.every(n => n > 0), 'render canvas has pixels');
       if (width < 650) {
         const initialLayout=await assertMobileViewport('initial diagram');
-        assert.equal(initialLayout.panel,'diagram','mobile starts on diagram');
+        assert.equal(initialLayout.panel,'info','mobile starts with diagram and information together');
         assert(actual.canvasHeight >= 360, 'actual mobile canvas height >=360px');
         assert(actual.canvasBottom <= actual.dockTop + 1, 'mobile gizmo strip does not overlap drawing');
         const toolLayout=await choosePanel('tools');
@@ -261,7 +265,7 @@ if (!chrome) {
         assert.deepEqual(findLayout.canvas,initialLayout.canvas,'find pane preserves canvas dimensions');
         assert(await evaluate(`getComputedStyle(document.getElementById('reading-search')).visibility==='visible'`),'search is available from persistent navigation');
         assert(await evaluate(`!['auto','scroll'].includes(getComputedStyle(document.getElementById('reading-result-list')).overflowY)`),'result list does not introduce another scroll container');
-        await choosePanel('diagram');
+        await choosePanel('info');
       } else assert.equal(actual.toolsOpen, true, 'desktop controls remain expanded');
       const roleId='f225f07d-b1ab-5ece-8834-d60b3726bec7';
       await evaluate(`document.getElementById('viewer-canvas').scrollIntoView({block:'center'});window.__mealPointerEvents=[];for(const type of ['pointerdown','pointerup','pointermove','pointerleave','pointercancel','touchstart','touchend','click'])document.addEventListener(type,event=>window.__mealPointerEvents.push({target:event.target.id,type:event.type,timeStamp:event.timeStamp,panel:document.body.dataset.readingPanel,trusted:event.isTrusted,pointerType:event.pointerType,primary:event.isPrimary,button:event.button,buttons:event.buttons,x:event.clientX,y:event.clientY}),{passive:true,capture:true});`);
@@ -344,17 +348,23 @@ if (!chrome) {
       await until(`window.viewerDiagnostics.snapshot().camera.distance<100`,'explicit show fits the selected word');
       await painted();
       const fitted=await evaluate('window.viewerDiagnostics.snapshot()');
-      if(useTouch)await until(`document.body.dataset.readingPanel==='diagram'`,'explicit show opens diagram');
+      if(useTouch)await until(`document.body.dataset.readingPanel==='info'`,'fitting selection keeps information beside the diagram');
       assert(fitted.camera.distance>15,'fit includes word extent instead of zooming into tiny point');
       for(const p of [[-45,0,62.2],[-25,0,69.2]])assert((await projectPoint(p)).ndc.slice(0,2).every(n=>Math.abs(n)<1),'selected word remains inside drawing');
       const selectedScreenshot=await cmd('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
       await fs.writeFile(path.join(logs,`meal-mobile-selected-${width}.png`),Buffer.from(selectedScreenshot.data,'base64'));
-      await clickElement(`document.getElementById('reading-selection-info')`,useTouch);
+      await clickElement(`document.getElementById(${JSON.stringify(useTouch?'reading-tab-info':'reading-selection-info')})`,useTouch);
       if(useTouch) {
         await until(`document.body.dataset.readingPanel==='info'`,'information action opens pane');
         const infoLayout=await assertMobileViewport('selected information');
         const infoTopScreenshot=await cmd('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
         await fs.writeFile(path.join(logs,`meal-mobile-info-top-${width}.png`),Buffer.from(infoTopScreenshot.data,'base64'));
+        await clickElement(`document.querySelector('#contract-reading .connection-row button')`,true);
+        await until(`window.viewerDiagnostics.snapshot().selectedId!==${JSON.stringify(roleId)}`,'follow connection updates selection while the diagram remains visible');
+        await assertMobileViewport('followed connection');
+        assert.equal(await evaluate('document.body.dataset.readingPanel'),'info','following a connection keeps the information panel open');
+        await evaluate('window.viewerDiagnostics.back()');
+        await until(`window.viewerDiagnostics.snapshot().selectedId===${JSON.stringify(roleId)}`,'back restores selected role');
         const beforeSwipe=await evaluate('window.viewerDiagnostics.snapshot()');
         // Expand an actual model record so a long article/record is exercised,
         // rather than fabricating tall fixture content or assigning scrollTop.
@@ -362,7 +372,7 @@ if (!chrome) {
         await until(`document.querySelector('#contract-reading pre')!==null`,'record content rendered');
         assert(await evaluate(`document.getElementById('contract-info').scrollHeight>document.getElementById('contract-info').clientHeight+100`),'information has real scrollable content');
         assert(await evaluate(`!['auto','scroll'].includes(getComputedStyle(document.querySelector('#contract-reading pre')).overflowY)`),'record does not introduce a nested vertical scroller');
-        await clickElement(`document.getElementById('reading-selection-info')`,true);
+        await clickElement(`document.getElementById('reading-tab-info')`,true);
         await until(`document.activeElement===document.getElementById('contract-info')`,'information action focuses the scrollable pane');
         await cmd('Input.dispatchKeyEvent',{type:'keyDown',key:'ArrowDown',code:'ArrowDown',windowsVirtualKeyCode:40,nativeVirtualKeyCode:40});
         await cmd('Input.dispatchKeyEvent',{type:'keyUp',key:'ArrowDown',code:'ArrowDown',windowsVirtualKeyCode:40,nativeVirtualKeyCode:40});
@@ -383,7 +393,7 @@ if (!chrome) {
         const infoScreenshot=await cmd('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
         await fs.writeFile(path.join(logs,`meal-mobile-info-${width}.png`),Buffer.from(infoScreenshot.data,'base64'));
         const diagramLayout=await choosePanel('diagram');
-        assert.deepEqual(diagramLayout.canvas,infoLayout.canvas,'returning to diagram preserves canvas size');
+        assert(diagramLayout.canvas[1]>infoLayout.canvas[1],'wide diagram expands only on explicit request');
         assert.deepEqual(await evaluate('window.viewerDiagnostics.snapshot().camera'),beforeSwipe.camera,'pane navigation preserves camera');
         assert.equal(await evaluate('window.viewerDiagnostics.snapshot().selectedId'),beforeSwipe.selectedId,'pane navigation preserves selection');
         await choosePanel('info');
@@ -395,7 +405,6 @@ if (!chrome) {
         const shortLayout=await assertMobileViewport('short viewport');
         assert(shortLayout.canvas[1]>0,'short viewport retains a drawing area');
         await choosePanel('info');
-        await choosePanel('diagram');
         const shortScreenshot=await cmd('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
         await fs.writeFile(path.join(logs,`meal-mobile-short-${width}.png`),Buffer.from(shortScreenshot.data,'base64'));
         await cmd('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:true});

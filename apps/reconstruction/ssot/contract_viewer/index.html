@@ -37,10 +37,11 @@
     <span id="reading-file">作品を開いてください</span>
     <a href="/RECONSTRUCTION.html">作品の入口へ</a>
     <button type="button" id="reading-info-toggle" aria-expanded="true" aria-controls="contract-info">情報欄</button>
-    <details id="reading-help" class="reading-popup"><summary>操作ヘルプ</summary><div>
+    <details id="reading-help" class="reading-popup"><summary>ヘルプ</summary><div>
       <h2>閲覧操作</h2>
       <p>点・線・文字をタップして選択。通常の選択では視点は変わりません。名前が分かれば検索で直接選べます。</p>
-      <p>スマホ：下端の「図・情報・探す・操作」で画面を切り替えます。情報はその画面内でスクロールできます。図では1本指で回転、2本指で拡大縮小・移動。「図で見る」で選んだ要素へ移動できます。</p>
+      <p>スマホ：図は常に上側に表示されます。下端の「情報・探す・操作」で下側の補助パネルを切り替え、その中だけをスクロールできます。「図を広く」で補助パネルを閉じます。図では1本指で回転、2本指で拡大縮小・移動。「選択へ」で選んだ要素へ視点を移せます。</p>
+      <p><a href="/RECONSTRUCTION.html">作品の入口へ</a></p>
       <p>左・中ドラッグ：回転 ／ 右ドラッグ・Ctrl＋左ドラッグ：平行移動 ／ ホイール：拡大縮小</p>
       <table><tr><th>キー</th><th>操作</th></tr>
       <tr><td>Home</td><td>開いたときの視点へ</td></tr>
@@ -234,15 +235,15 @@
   </div>
 
   <aside id="contract-info" aria-label="作品の読み取り情報" tabindex="-1">
-  <div id="reading-notices" hidden><button id="reading-notice" type="button" aria-controls="contract-info">読み取りの注意</button><span id="reading-notice-summary"></span></div>
     <div id="contract-reading"></div>
+  <div id="reading-notices" hidden><button id="reading-notice" type="button" aria-controls="contract-info">読み取りの注意</button><span id="reading-notice-summary"></span></div>
   </aside>
   </div>
   <p id="reading-hint">点・線・文字を選択。名前で検索して直接選べます。ドラッグで回転・右ドラッグで移動・ホイールで拡大縮小。</p>
   </main>
-    <div id="reading-selection" hidden><span role="status">選択中：<strong id="reading-selection-label"></strong></span><button type="button" id="reading-selection-info">情報を見る</button><button type="button" id="reading-selection-show">図で見る</button></div>
-  <nav id="reading-mobile-nav" aria-label="閲覧画面の切り替え">
-    <button id="reading-tab-diagram" type="button" aria-controls="viewer-root" aria-pressed="true">図</button>
+    <div id="reading-selection" hidden><span role="status">選択中：<strong id="reading-selection-label"></strong></span><button type="button" id="reading-selection-info">情報を見る</button><button type="button" id="reading-selection-show">選択へ</button></div>
+  <nav id="reading-mobile-nav" aria-label="図の補助パネル">
+    <button id="reading-tab-diagram" type="button" aria-controls="viewer-root" aria-pressed="true">図を広く</button>
     <button id="reading-tab-info" type="button" aria-controls="contract-info" aria-pressed="false">情報</button>
     <button id="reading-tab-find" type="button" aria-controls="reading-find" aria-pressed="false">探す</button>
     <button id="reading-tab-tools" type="button" aria-controls="reading-tools" aria-pressed="false">操作</button>
