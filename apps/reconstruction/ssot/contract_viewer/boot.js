@@ -10,12 +10,7 @@ import { receiveViewerSnapshot } from '../shared/viewerHandoff.js';
 import { assertLocalFileSize } from '../shared/localFile.js';
 
 const byId=id=>document.getElementById(id);
-// Native details keeps all controls reachable by touch and keyboard while the
-// first mobile screen gives priority to the drawing. Desktop remains expanded.
 const readingTools=byId('reading-tools'),mobileViewport=window.matchMedia('(max-width:650px)');
-const syncToolsViewport=()=>{readingTools.open=!mobileViewport.matches;};
-syncToolsViewport();
-mobileViewport.addEventListener('change',syncToolsViewport);
 const resizeAfterToolsToggle=()=>window.dispatchEvent(new Event('resize'));
 readingTools.addEventListener('toggle',resizeAfterToolsToggle);
 byId('reading-results').addEventListener('toggle',resizeAfterToolsToggle);
@@ -24,6 +19,46 @@ const validator=createCoreControllers({emit(){}}).validator;
 const searchInput=byId('reading-search'),frame=byId('reading-frame'),scope=byId('reading-scope');
 const resultList=byId('reading-result-list'),results=byId('reading-results'),pages=byId('reading-result-pages');
 let busy=false,lastModel=null,resultOffset=0,lastQuery='',lastSelectedId=null,lastInfoKey='',controller,controlsUI;
+let mobilePanel='diagram';
+const panelIds={diagram:'viewer-root',info:'contract-info',find:'reading-find',tools:'reading-tools'};
+function syncMobilePanels() {
+  const mobile=mobileViewport.matches;
+  if(mobile)document.body.dataset.readingPanel=mobilePanel;
+  else delete document.body.dataset.readingPanel;
+  if(mobile)byId('reading-info-toggle').setAttribute('aria-expanded',String(mobilePanel==='info'));
+  readingTools.open=true;
+  for(const [name,id] of Object.entries(panelIds)) {
+    const node=byId(id),inactive=mobile&&mobilePanel!==name;
+    if(inactive&&node.contains?.(document.activeElement))document.activeElement?.blur?.();
+    node.inert=inactive||(name==='diagram'&&busy);
+    byId(`reading-tab-${name}`).setAttribute('aria-pressed',String(name===mobilePanel));
+  }
+}
+function showMobilePanel(name) {
+  if(!mobileViewport.matches)return false;
+  mobilePanel=name;
+  byId('reading-help').open=false;
+  if(name==='find')results.open=true;
+  if(name==='info')controller.setInfoOpen(true);
+  syncMobilePanels();
+  if(name!=='diagram')byId(panelIds[name]).focus?.({preventScroll:true});
+  return true;
+}
+function showInformation() {
+  controller.setInfoOpen(true);
+  if(!showMobilePanel('info'))byId('contract-info').scrollIntoView({block:'start',behavior:'smooth'});
+}
+async function showSelected() {
+  showMobilePanel('diagram');
+  await controller.fitSelection();
+  if(!mobileViewport.matches)byId('viewer-canvas').scrollIntoView({block:'center',behavior:'smooth'});
+}
+const syncToolsViewport=()=>{syncMobilePanels();if(controller)render(controller.snapshot());};
+syncMobilePanels();
+mobileViewport.addEventListener('change',syncToolsViewport);
+for(const name of Object.keys(panelIds))byId(`reading-tab-${name}`).addEventListener('click',()=>{
+  if(name==='info')showInformation();else showMobilePanel(name);
+});
 let handoffReceiver=null,handoffPending=false;
 let successfulLocalOpen=0;
 const snapshotNotice=byId('reading-snapshot-notice');
@@ -39,7 +74,7 @@ function renderResults(state,index) {
   for(const item of items) {
     const button=el('button');button.type='button';button.className='result-button';button.setAttribute('aria-current',String(item.id===state.selectedId));
     button.append(el('span',item.label),el('small',`${item.id} / 表示 ${item.frames.length?item.frames.join(', '):'すべて'}${item.placed?'':' / 図に出現なし'}`));
-    button.addEventListener('click',()=>act(()=>controller.select(item.id)));resultList.append(button);
+    button.addEventListener('click',()=>act(async()=>{await controller.select(item.id);if(mobileViewport.matches)showInformation();}));resultList.append(button);
   }
   if(state.resultCount>50) {
     const prev=el('button','前'),next=el('button','次');prev.type=next.type='button';prev.disabled=resultOffset===0;next.disabled=resultOffset+50>=state.resultCount;
@@ -50,7 +85,7 @@ function renderResults(state,index) {
 const infoKey=state=>JSON.stringify([state.frame,state.selectedId,state.bridgeState?.selection?.visible,state.scope,state.scopeRootId,state.filters]);
 function renderInfo(state) {
   lastInfoKey=infoKey(state);
-  renderBrowsingInfo(reading,{model:controller?.getModel(),index:controller?.getIndex(),state,select:id=>act(()=>controller.select(id)),explore:id=>act(()=>controller.explore(id)),fitSelection:()=>act(()=>controller.fitSelection())});
+  renderBrowsingInfo(reading,{model:controller?.getModel(),index:controller?.getIndex(),state,select:id=>act(()=>controller.select(id)),explore:id=>act(()=>controller.explore(id)),fitSelection:()=>act(showSelected)});
 }
 function renderControls(state,syncInfo=true) {
   controlsUI?.render(state);
@@ -70,20 +105,22 @@ function render(state) {
   byId('reading-back').disabled=busy||!ready||!state.historyDepth;
   for(const id of ['reading-all','reading-search-button'])byId(id).disabled=busy||!ready;
   for(const id of ['reading-show','reading-explore'])byId(id).disabled=busy||!ready||!entry;
-  byId('reading-selection').hidden=!entry;
-  byId('reading-selection-label').textContent=entry?.label||'';
+  byId('reading-selection').hidden=!entry&&!mobileViewport.matches;
+  byId('reading-selection-label').textContent=entry?.label||'未選択';
+  byId('reading-selection-label').title=entry?.label||'';
   for(const id of ['reading-selection-info','reading-selection-show'])byId(id).disabled=busy||!ready||!entry;
   scope.disabled=searchInput.disabled=busy||!ready;
   for(const key of ['points','lines','aux']){const node=byId(`reading-${key}`);node.checked=state.filters[key];node.disabled=busy||!ready;}
   input.disabled=busy||handoffPending;
   renderResults(state,index);
   if(modelChanged||infoKey(state)!==lastInfoKey)renderInfo(state);
+  syncMobilePanels();
 }
 controller=createBrowsingController({buildReadModel,createReadingIndex,validateReadModel:model=>validateReadModel(model,validator),
   async mount(model) {
     const host=await mountViewerHost({document3dss:model.scene,modelLabel:model.label,profile:'prod_full',readOnlyBrowsing:true});
     try {const bridge=createViewerBridge(host,{scene:model.scene});await bridge.waitForPaint();return {host,bridge};}catch(error){host.dispose();throw error;}
-  },onChange:render,onControlsChange:renderControls,onStatus:message=>{status.textContent=message;},onBusy:value=>{busy=value;input.disabled=value||handoffPending;byId('viewer-root').inert=value;if(controller)render(controller.snapshot());}
+  },onChange:render,onControlsChange:renderControls,onStatus:message=>{status.textContent=message;},onBusy:value=>{busy=value;input.disabled=value||handoffPending;syncMobilePanels();if(controller)render(controller.snapshot());}
 });
 async function openFileText(text,label) {
   // A deliberate local open supersedes a pending transfer. The receiver cannot
@@ -93,15 +130,15 @@ async function openFileText(text,label) {
   if(result?.ok===true){successfulLocalOpen++;snapshotNotice.hidden=true;}
   return result;
 }
-controlsUI=attachReadingControls({getController:()=>controller,getBusy:()=>busy,act});
-byId('reading-notice').addEventListener('click',()=>{controller.setInfoOpen(true);byId('reading-capabilities')?.scrollIntoView({block:'start',behavior:'smooth'});});
+controlsUI=attachReadingControls({getController:()=>controller,getBusy:()=>busy,allowKeyboard:()=>!mobileViewport.matches||mobilePanel==='diagram',act});
+byId('reading-notice').addEventListener('click',()=>{showInformation();byId('reading-capabilities')?.scrollIntoView({block:'start',behavior:mobileViewport.matches?'instant':'smooth'});});
 byId('reading-back').addEventListener('click',()=>act(()=>controller.back()));
-byId('reading-show').addEventListener('click',()=>act(()=>controller.fitSelection()));
+byId('reading-show').addEventListener('click',()=>act(showSelected));
 byId('reading-all').addEventListener('click',()=>act(()=>controller.fitAll()));
 byId('reading-explore').addEventListener('click',()=>act(()=>controller.explore()));
-byId('reading-info-toggle').addEventListener('click',()=>controller.setInfoOpen(!controller.snapshot().infoOpen));
-byId('reading-selection-info').addEventListener('click',()=>{controller.setInfoOpen(true);byId('contract-info').scrollIntoView({block:'start',behavior:'smooth'});});
-byId('reading-selection-show').addEventListener('click',()=>act(async()=>{await controller.fitSelection();byId('viewer-canvas').scrollIntoView({block:'center',behavior:'smooth'});}));
+byId('reading-info-toggle').addEventListener('click',()=>{if(mobileViewport.matches){if(mobilePanel==='info')showMobilePanel('diagram');else showInformation();}else controller.setInfoOpen(!controller.snapshot().infoOpen);});
+byId('reading-selection-info').addEventListener('click',showInformation);
+byId('reading-selection-show').addEventListener('click',()=>act(showSelected));
 scope.addEventListener('change',()=>act(()=>controller.setScope(scope.value)));
 for(const key of ['points','lines','aux'])byId(`reading-${key}`).addEventListener('change',event=>act(()=>controller.setFilters({[key]:event.target.checked})));
 byId('reading-search-form').addEventListener('submit',event=>{event.preventDefault();act(async()=>{await controller.search(searchInput.value);controller.setInfoOpen(true);results.open=true;});});

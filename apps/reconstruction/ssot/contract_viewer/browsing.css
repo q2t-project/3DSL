@@ -22,7 +22,7 @@ button,.open-button,summary,select{cursor:pointer}button:hover:not(:disabled),.o
 #reading-notices{display:flex;align-items:center;gap:10px;padding:5px 12px;background:#2a261c;border-bottom:1px solid #705b35;color:#f0d2a0;font-size:12px}#reading-notices[hidden]{display:none}#reading-notice{font-size:12px;padding:4px 8px;min-height:29px;white-space:nowrap;background:#3a3022;border-color:#8d7045}#reading-notice-summary{display:block;line-height:1.4;overflow-wrap:anywhere}
 
 
-/* The native disclosure only collapses the controls on phones. */
+/* Search and controls become independent, full-height panels on phones. */
 #reading-find{position:relative;z-index:2;flex-shrink:0;padding:6px 12px;background:#121c28;border-bottom:1px solid #314358}
 #reading-find #reading-search-form{margin:0;width:100%;max-width:680px}
 #reading-find #reading-search{flex:1;min-width:0;width:auto}
@@ -35,32 +35,47 @@ button,.open-button,summary,select{cursor:pointer}button:hover:not(:disabled),.o
 #reading-selection strong{color:#bce2ff}
 #reading-tools{flex-shrink:0}
 #reading-tools>summary{display:none}
+#reading-stage{display:contents}
+#reading-mobile-nav{display:none}
+#reading-selection{flex-shrink:0;padding:6px 12px;background:#152231;border-top:1px solid #41566e}
 @media(max-width:650px){
-  body.contract-viewer{height:auto;min-height:100dvh;overflow-x:hidden;overflow-y:auto}
+  html{height:100%;overflow:hidden}
+  body.contract-viewer{height:100dvh!important;min-height:0;overflow:hidden;overscroll-behavior:none}
   .contract-viewer #reading-header{gap:6px;flex-shrink:0}
   .contract-viewer #reading-header strong{font-size:16px}
   .contract-viewer #reading-header button,.contract-viewer #reading-header .open-button,.contract-viewer #reading-header summary{min-height:44px;box-sizing:border-box}
   .contract-viewer #reading-file{min-width:0;max-width:none;flex:1 1 100px}
-  .contract-viewer #reading-tools>summary{display:list-item;padding:12px 14px;border-bottom:1px solid #41566e;background:#152231;min-height:44px;box-sizing:border-box;color:#bee2ff}
-  .contract-viewer #reading-tools:not([open])>summary::after{content:"を開く"}
-  .contract-viewer #reading-tools[open]>summary::after{content:"を閉じる"}
+  .contract-viewer #contract-status{flex-shrink:0;box-sizing:border-box;min-height:0}
+  .contract-viewer #reading-snapshot-notice{flex-shrink:0}
+  .contract-viewer #reading-stage{display:block;position:relative;flex:1;min-height:0;overflow:hidden;isolation:isolate}
+  .contract-viewer #reading-layout,.contract-viewer #reading-layout.info-hidden{position:absolute;inset:0;display:block;min-height:0}
+  .contract-viewer #viewer-root{position:absolute;inset:0;height:100%;min-height:0}
+  .contract-viewer #viewer-canvas{height:calc(100% - 96px)!important;bottom:auto!important}
+  .contract-viewer #contract-info,.contract-viewer #reading-layout.info-hidden #contract-info,
+  .contract-viewer #reading-find,.contract-viewer #reading-tools{display:block;position:absolute;inset:0;width:100%;height:100%;max-height:none;min-height:0;box-sizing:border-box;overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain;touch-action:pan-y pinch-zoom;background:#14202d}
+  .contract-viewer #viewer-root,.contract-viewer #contract-info,.contract-viewer #reading-find,.contract-viewer #reading-tools{visibility:hidden;opacity:0;pointer-events:none}
+  .contract-viewer[data-reading-panel=diagram] #viewer-root,
+  .contract-viewer[data-reading-panel=info] #contract-info,
+  .contract-viewer[data-reading-panel=find] #reading-find,
+  .contract-viewer[data-reading-panel=tools] #reading-tools{visibility:visible;opacity:1;pointer-events:auto}
+  .contract-viewer #reading-tools>summary{display:none}
   .contract-viewer #reading-toolbar{gap:6px;padding:8px}
-  .contract-viewer #reading-toolbar button,.contract-viewer #reading-toolbar select,.contract-viewer #reading-controls button,.contract-viewer #reading-controls select{min-height:44px}
-  .contract-viewer #reading-search-form{width:100%;min-width:0}
-  .contract-viewer #reading-search{flex:1;min-width:0;width:auto}
+  .contract-viewer #reading-toolbar button,.contract-viewer #reading-toolbar select,.contract-viewer #reading-controls button,.contract-viewer #reading-controls select,.contract-viewer #contract-info button{min-height:44px}
+  .contract-viewer #reading-search-form{width:100%;min-width:0;position:sticky;top:0;background:#14202d;padding:4px 0;z-index:1}
+  .contract-viewer #reading-search{flex:1;min-width:0;width:auto;font-size:16px}
+  .contract-viewer #reading-result-list,.contract-viewer #contract-info pre{max-height:none;overflow:visible}
   .contract-viewer #reading-controls{max-height:none;overflow:visible;padding:8px}
   .contract-viewer .reading-control-group{flex-wrap:wrap;width:100%}
-  .contract-viewer #reading-layout,.contract-viewer #reading-layout.info-hidden{flex:none;grid-template-columns:minmax(0,1fr);grid-template-rows:calc(max(360px,55svh) + 110px) auto}
-  .contract-viewer #viewer-root{height:calc(max(360px,55svh) + 110px);min-height:470px}
-  .contract-viewer #viewer-canvas{height:calc(100% - 110px)!important;bottom:auto!important}
-  .contract-viewer #contract-info{max-height:45svh;min-height:160px;box-sizing:border-box}
-  .contract-viewer #contract-status{flex-shrink:0;box-sizing:border-box}
-  .contract-viewer #reading-notices{padding:4px 8px;flex-shrink:0}
+  .contract-viewer #reading-controls .reading-popup>div{position:static;max-height:none;min-width:0;width:auto;overflow:visible;box-shadow:none}
+  .contract-viewer #reading-filters{width:100%}
+  .contract-viewer #reading-notices{padding:4px 8px;flex-wrap:wrap}
   .contract-viewer #reading-notice{min-height:44px}
-  .contract-viewer #reading-notice-summary{display:none}
-  /* Redundant legacy controls remain available in the expanded settings. The
-     orientation gizmo stays visible in a reserved strip below the drawing. */
-  .contract-viewer #viewer-rightdock{right:8px;bottom:8px;transform:scale(.6);transform-origin:right bottom}
+  .contract-viewer #viewer-rightdock{right:8px;bottom:8px;transform:scale(.5);transform-origin:right bottom}
   .contract-viewer #auto-orbit-slot{display:none!important}
-  .contract-viewer #reading-controls .reading-popup>div{max-height:70svh}
+  .contract-viewer #reading-selection{gap:4px;padding:4px 8px;flex-wrap:nowrap;min-height:52px;box-sizing:border-box}
+  .contract-viewer #reading-selection>span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .contract-viewer #reading-selection button{min-height:44px;white-space:nowrap;padding:6px 8px}
+  .contract-viewer #reading-mobile-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:4px 8px calc(4px + env(safe-area-inset-bottom));flex-shrink:0;background:#111e2c;border-top:1px solid #41566e}
+  .contract-viewer #reading-mobile-nav button{min-height:48px;touch-action:manipulation}
+  .contract-viewer #reading-mobile-nav button[aria-pressed=true]{background:#295478;border-color:#8ad2ff;color:#fff}
 }

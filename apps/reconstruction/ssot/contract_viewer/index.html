@@ -40,7 +40,7 @@
     <details id="reading-help" class="reading-popup"><summary>操作ヘルプ</summary><div>
       <h2>閲覧操作</h2>
       <p>点・線・文字をタップして選択。通常の選択では視点は変わりません。名前が分かれば検索で直接選べます。</p>
-      <p>スマホ：1本指でドラッグすると回転、2本指で拡大縮小・移動。「図で見る」で選んだ要素へ移動できます。</p>
+      <p>スマホ：下端の「図・情報・探す・操作」で画面を切り替えます。情報はその画面内でスクロールできます。図では1本指で回転、2本指で拡大縮小・移動。「図で見る」で選んだ要素へ移動できます。</p>
       <p>左・中ドラッグ：回転 ／ 右ドラッグ・Ctrl＋左ドラッグ：平行移動 ／ ホイール：拡大縮小</p>
       <table><tr><th>キー</th><th>操作</th></tr>
       <tr><td>Home</td><td>開いたときの視点へ</td></tr>
@@ -54,12 +54,14 @@
       <p>「接続先へ」は記録された関係を辿る操作、「局所観察」は選択周辺を強調して見る操作です。どちらも作品の内容は変えません。</p>
     </div></details>
   </header>
-  <div id="reading-find">
+  <p id="contract-status" role="status">作品を開いてください。</p>
+  <p id="reading-snapshot-notice" role="note" hidden>制作中の写し（保存ではありません・自動同期しません）</p>
+  <main id="reading-stage">
+  <div id="reading-find" tabindex="-1">
     <form id="reading-search-form" role="search"><input id="reading-search" type="search" placeholder="名前で要素を探す" aria-label="名前・ラベル・IDで検索"><button type="submit" id="reading-search-button" disabled>検索</button></form>
     <details id="reading-results"><summary id="reading-result-summary">要素一覧</summary><div id="reading-result-list"></div><div id="reading-result-pages"></div></details>
-    <div id="reading-selection" hidden><span role="status">選択中：<strong id="reading-selection-label"></strong></span><button type="button" id="reading-selection-info">情報を見る</button><button type="button" id="reading-selection-show">図で見る</button></div>
   </div>
-  <details id="reading-tools" open>
+  <details id="reading-tools" tabindex="-1" open>
     <summary id="reading-tools-toggle" aria-controls="reading-toolbar reading-controls">表示・視点</summary>
   <div id="reading-toolbar" aria-label="閲覧操作">
     <button id="reading-back" type="button" disabled>探索を戻る</button>
@@ -99,9 +101,6 @@
     </div></details>
   </div>
   </details>
-  <div id="reading-notices" hidden><button id="reading-notice" type="button" aria-controls="contract-info">読み取りの注意</button><span id="reading-notice-summary"></span></div>
-  <p id="contract-status" role="status">作品を開いてください。</p>
-  <p id="reading-snapshot-notice" role="note" hidden>制作中の写し（保存ではありません・自動同期しません）</p>
   <div id="reading-layout">
 
   <div id="viewer-root" class="viewer-root">
@@ -234,11 +233,20 @@
 
   </div>
 
-  <aside id="contract-info" aria-label="作品の読み取り情報">
+  <aside id="contract-info" aria-label="作品の読み取り情報" tabindex="-1">
+  <div id="reading-notices" hidden><button id="reading-notice" type="button" aria-controls="contract-info">読み取りの注意</button><span id="reading-notice-summary"></span></div>
     <div id="contract-reading"></div>
   </aside>
   </div>
   <p id="reading-hint">点・線・文字を選択。名前で検索して直接選べます。ドラッグで回転・右ドラッグで移動・ホイールで拡大縮小。</p>
+  </main>
+    <div id="reading-selection" hidden><span role="status">選択中：<strong id="reading-selection-label"></strong></span><button type="button" id="reading-selection-info">情報を見る</button><button type="button" id="reading-selection-show">図で見る</button></div>
+  <nav id="reading-mobile-nav" aria-label="閲覧画面の切り替え">
+    <button id="reading-tab-diagram" type="button" aria-controls="viewer-root" aria-pressed="true">図</button>
+    <button id="reading-tab-info" type="button" aria-controls="contract-info" aria-pressed="false">情報</button>
+    <button id="reading-tab-find" type="button" aria-controls="reading-find" aria-pressed="false">探す</button>
+    <button id="reading-tab-tools" type="button" aria-controls="reading-tools" aria-pressed="false">操作</button>
+  </nav>
     <script type="module" src="/contract_viewer/boot.js"></script>
 </body>
 

@@ -70,7 +70,7 @@ if (!chrome) {
     cases.push(...result.cases);
   }
   await fs.writeFile(path.join(site,'ci-logs','meal-mobile-results.json'),JSON.stringify({cases,scope:'Generated actual Viewer, software WebGL, trusted CDP touch at 360/390 and mouse at 1280; not Android hardware or reader comprehension.'},null,2));
-  console.log('[check:meal-mobile] PASS 360/390 trusted emulated touch: word pick, 6px jitter, drag/pinch/cancel safety, hidden label, search, selected fit, unchanged input; 1280 mouse. Not Android hardware.');
+  console.log('[check:meal-mobile] PASS 360/390 trusted emulated touch: word pick, 6px jitter, drag/pinch/cancel safety, fixed pane navigation, information swipe without page scroll, short viewport, search, selected fit, unchanged input; 1280 mouse. Not Android hardware.');
 } else {
   assert([360,390,1280].includes(viewportWidth),'known interaction test viewport');
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), '3dsl-meal-mobile-'));
@@ -173,6 +173,37 @@ if (!chrome) {
         await painted();
       }
     }
+    async function mobileLayout() {
+      return evaluate(`(() => {const canvas=document.getElementById('viewer-canvas'),nav=document.getElementById('reading-tab-diagram').closest('nav'),rect=nav.getBoundingClientRect();return {panel:document.body.dataset.readingPanel,width:innerWidth,height:innerHeight,pageY:scrollY,pageHeight:document.scrollingElement.scrollHeight,pageWidth:document.scrollingElement.scrollWidth,nav:{top:rect.top,bottom:rect.bottom},canvas:[canvas.clientWidth,canvas.clientHeight],buttons:['diagram','info','find','tools'].map(name=>{const b=document.getElementById('reading-tab-'+name),r=b.getBoundingClientRect();return {name,pressed:b.getAttribute('aria-pressed'),top:r.top,bottom:r.bottom,height:r.height,reachable:document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)?.closest('button')===b};})};})()`);
+    }
+    async function assertMobileViewport(message) {
+      const layout=await mobileLayout();
+      assert.equal(layout.pageY,0,message+': page stays at origin');
+      assert(layout.pageHeight<=layout.height+1,message+': no vertically scrolling page '+JSON.stringify(layout));
+      assert(layout.pageWidth<=layout.width+1,message+': no horizontal page overflow');
+      assert(layout.nav.top>=0&&layout.nav.bottom<=layout.height+1,message+': navigation remains inside viewport');
+      for(const button of layout.buttons)assert(button.height>=44&&button.reachable,message+': reachable touch target '+button.name);
+      assert(layout.canvas.every(n=>n>0),message+': mounted canvas keeps nonzero dimensions');
+      return layout;
+    }
+    async function choosePanel(name) {
+      await clickElement(`document.getElementById('reading-tab-${name}')`,true);
+      await until(`document.body.dataset.readingPanel===${JSON.stringify(name)}`,'navigation opens '+name);
+      const layout=await assertMobileViewport(name+' pane');
+      assert.equal(layout.buttons.find(button=>button.name===name).pressed,'true','active navigation state');
+      return layout;
+    }
+    async function swipeInformation() {
+      const rect=await evaluate(`(() => {const r=document.getElementById('contract-info').getBoundingClientRect();return {left:r.left,top:r.top,width:r.width,height:r.height};})()`);
+      const x=rect.left+rect.width*.65,startY=rect.top+rect.height*.8,endY=rect.top+rect.height*.25;
+      await touch('touchStart',[{x,y:startY}]);
+      for(let step=1;step<=7;step++) {
+        await touch('touchMove',[{x,y:startY+(endY-startY)*step/7}]);
+        await sleep(25);
+      }
+      await touch('touchEnd',[]);
+      await painted();
+    }
     async function projectPoint(point) {
       return evaluate(`(async()=>{const THREE=await import('/preview-reconstruction/vendor/three/build/three.module.js'),s=window.viewerDiagnostics.snapshot().camera,r=document.getElementById('viewer-canvas').getBoundingClientRect(),c=new THREE.PerspectiveCamera(s.fov,r.width/r.height,.1,10000),t=s.target;c.up.set(0,0,1);c.position.set(t.x+s.distance*Math.sin(s.phi)*Math.cos(s.theta),t.y+s.distance*Math.sin(s.phi)*Math.sin(s.theta),t.z+s.distance*Math.cos(s.phi));c.lookAt(t.x,t.y,t.z);c.updateMatrixWorld(true);const p=new THREE.Vector3(...${JSON.stringify(point)}).project(c);return {x:r.left+(p.x+1)*r.width/2,y:r.top+(1-p.y)*r.height/2,ndc:[p.x,p.y,p.z]};})()`);
     }
@@ -208,19 +239,18 @@ if (!chrome) {
       assert(Math.abs(actual.state.camera?.phi - Math.PI / 2) < 1e-6, `XZ presentation camera: ${JSON.stringify(actual.state.camera)}`);
       assert(actual.canvasPixels.every(n => n > 0), 'render canvas has pixels');
       if (width < 650) {
-        assert.equal(actual.toolsOpen, false, 'mobile starts with controls collapsed');
-        assert(await evaluate(`document.getElementById('reading-search').getClientRects().length>0`),'search available without opening controls');
+        const initialLayout=await assertMobileViewport('initial diagram');
+        assert.equal(initialLayout.panel,'diagram','mobile starts on diagram');
         assert(actual.canvasHeight >= 360, 'actual mobile canvas height >=360px');
         assert(actual.canvasBottom <= actual.dockTop + 1, 'mobile gizmo strip does not overlap drawing');
-        await evaluate(`document.getElementById('reading-tools-toggle').click()`);
-        const expanded = await evaluate(`({open:document.getElementById('reading-tools').open,searchVisible:document.getElementById('reading-search').getClientRects().length>0,presetVisible:document.getElementById('reading-preset').getClientRects().length>0,scroll:document.documentElement.scrollWidth})`);
-        assert(expanded.open && expanded.searchVisible && expanded.presetVisible, 'expanded search and preset accessible');
-        assert(expanded.scroll <= width + 1, 'expanded controls do not overflow');
-        const expandedLayout = await evaluate(measure);
-        assert(expandedLayout.canvasHeight >= 360, 'expanded controls preserve canvas height');
-        assert(expandedLayout.canvasBottom <= expandedLayout.dockTop + 1, 'expanded controls preserve gizmo strip');
-        await evaluate(`document.getElementById('reading-tools-toggle').click()`);
-        assert.equal(await evaluate(`document.getElementById('reading-tools').open`), false, 'controls collapse again');
+        const toolLayout=await choosePanel('tools');
+        assert.deepEqual(toolLayout.canvas,initialLayout.canvas,'tools pane preserves canvas dimensions');
+        assert(await evaluate(`document.getElementById('reading-tools').open&&getComputedStyle(document.getElementById('reading-preset')).visibility==='visible'`),'operation pane exposes preset controls');
+        const findLayout=await choosePanel('find');
+        assert.deepEqual(findLayout.canvas,initialLayout.canvas,'find pane preserves canvas dimensions');
+        assert(await evaluate(`getComputedStyle(document.getElementById('reading-search')).visibility==='visible'`),'search is available from persistent navigation');
+        assert(await evaluate(`!['auto','scroll'].includes(getComputedStyle(document.getElementById('reading-result-list')).overflowY)`),'result list does not introduce another scroll container');
+        await choosePanel('diagram');
       } else assert.equal(actual.toolsOpen, true, 'desktop controls remain expanded');
       const roleId='f225f07d-b1ab-5ece-8834-d60b3726bec7';
       await evaluate(`document.getElementById('viewer-canvas').scrollIntoView({block:'center'});window.__mealPointerEvents=[];for(const type of ['pointerdown','pointerup','pointermove','pointerleave','pointercancel','touchstart','touchend'])document.addEventListener(type,event=>window.__mealPointerEvents.push({target:event.target.id,type:event.type,trusted:event.isTrusted,pointerType:event.pointerType,primary:event.isPrimary,button:event.button,buttons:event.buttons,x:event.clientX,y:event.clientY}),{passive:true,capture:true});`);
@@ -268,6 +298,7 @@ if (!chrome) {
       }
       await evaluate('window.viewerDiagnostics.select(null)');
       const beforeSearch=await evaluate('window.viewerDiagnostics.snapshot().camera');
+      if(useTouch)await choosePanel('find');
       await clickElement(`document.getElementById('reading-search')`,useTouch);
       await cmd('Input.insertText',{text:'調理役'});
       await clickElement(`document.getElementById('reading-search-button')`,useTouch);
@@ -275,16 +306,65 @@ if (!chrome) {
       await clickElement(`document.querySelector('#reading-result-list .result-button')`,useTouch);
       await until(`window.viewerDiagnostics.snapshot().bridgeState.selection?.uuid===${JSON.stringify(roleId)}`,'search result selects role without traversing connections');
       assert.deepEqual(await evaluate('window.viewerDiagnostics.snapshot().camera'),beforeSearch,'search selection preserves camera');
+      if(useTouch)await until(`document.body.dataset.readingPanel==='info'`,'choosing search result opens information');
       await clickElement(`document.getElementById('reading-selection-show')`,useTouch);
       await until(`window.viewerDiagnostics.snapshot().camera.distance<100`,'explicit show fits the selected word');
       await painted();
       const fitted=await evaluate('window.viewerDiagnostics.snapshot()');
+      if(useTouch)await until(`document.body.dataset.readingPanel==='diagram'`,'explicit show opens diagram');
       assert(fitted.camera.distance>15,'fit includes word extent instead of zooming into tiny point');
       for(const p of [[-45,0,62.2],[-25,0,69.2]])assert((await projectPoint(p)).ndc.slice(0,2).every(n=>Math.abs(n)<1),'selected word remains inside drawing');
       const selectedScreenshot=await cmd('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
       await fs.writeFile(path.join(logs,`meal-mobile-selected-${width}.png`),Buffer.from(selectedScreenshot.data,'base64'));
       await clickElement(`document.getElementById('reading-selection-info')`,useTouch);
-      await until(`document.getElementById('contract-info').getBoundingClientRect().top<innerHeight`,'information button reaches selected details after smooth scrolling');
+      if(useTouch) {
+        await until(`document.body.dataset.readingPanel==='info'`,'information action opens pane');
+        const infoLayout=await assertMobileViewport('selected information');
+        const beforeSwipe=await evaluate('window.viewerDiagnostics.snapshot()');
+        // Expand an actual model record so a long article/record is exercised,
+        // rather than fabricating tall fixture content or assigning scrollTop.
+        await clickElement(`Array.from(document.querySelectorAll('#contract-reading details>summary')).find(node=>node.textContent==='選択した記録の詳細')`,true);
+        await until(`document.querySelector('#contract-reading pre')!==null`,'record content rendered');
+        assert(await evaluate(`document.getElementById('contract-info').scrollHeight>document.getElementById('contract-info').clientHeight+100`),'information has real scrollable content');
+        assert(await evaluate(`!['auto','scroll'].includes(getComputedStyle(document.querySelector('#contract-reading pre')).overflowY)`),'record does not introduce a nested vertical scroller');
+        await clickElement(`document.getElementById('reading-selection-info')`,true);
+        await until(`document.activeElement===document.getElementById('contract-info')`,'information action focuses the scrollable pane');
+        await cmd('Input.dispatchKeyEvent',{type:'keyDown',key:'ArrowDown',code:'ArrowDown',windowsVirtualKeyCode:40,nativeVirtualKeyCode:40});
+        await cmd('Input.dispatchKeyEvent',{type:'keyUp',key:'ArrowDown',code:'ArrowDown',windowsVirtualKeyCode:40,nativeVirtualKeyCode:40});
+        await painted();
+        assert.deepEqual(await evaluate('window.viewerDiagnostics.snapshot().camera'),beforeSwipe.camera,'arrow key in information does not move the drawing');
+        assert.equal(await evaluate('window.viewerDiagnostics.snapshot().selectedId'),beforeSwipe.selectedId,'arrow key in information preserves selection');
+        await assertMobileViewport('keyboard-focused information');
+        const beforeScroll=await evaluate(`document.getElementById('contract-info').scrollTop`);
+        await swipeInformation();
+        await until(`document.getElementById('contract-info').scrollTop>${beforeScroll}+30`,'native finger swipe scrolls information');
+        const afterScroll=await evaluate(`document.getElementById('contract-info').scrollTop`);
+        await assertMobileViewport('scrolled information');
+        assert.deepEqual(await evaluate('window.viewerDiagnostics.snapshot().camera'),beforeSwipe.camera,'information swipes do not orbit the drawing');
+        assert.equal(await evaluate('window.viewerDiagnostics.snapshot().selectedId'),beforeSwipe.selectedId,'information swipes preserve selection');
+        const infoScreenshot=await cmd('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
+        await fs.writeFile(path.join(logs,`meal-mobile-info-${width}.png`),Buffer.from(infoScreenshot.data,'base64'));
+        const diagramLayout=await choosePanel('diagram');
+        assert.deepEqual(diagramLayout.canvas,infoLayout.canvas,'returning to diagram preserves canvas size');
+        assert.deepEqual(await evaluate('window.viewerDiagnostics.snapshot().camera'),beforeSwipe.camera,'pane navigation preserves camera');
+        assert.equal(await evaluate('window.viewerDiagnostics.snapshot().selectedId'),beforeSwipe.selectedId,'pane navigation preserves selection');
+        await choosePanel('info');
+        assert(await evaluate(`document.getElementById('contract-info').scrollTop>=${afterScroll}`),'information reading position survives pane switch');
+        await choosePanel('diagram');
+        await cmd('Emulation.setDeviceMetricsOverride',{width,height:640,deviceScaleFactor:1,mobile:true});
+        await until('innerHeight===640','short mobile viewport applied');
+        await painted();
+        const shortLayout=await assertMobileViewport('short viewport');
+        assert(shortLayout.canvas[1]>0,'short viewport retains a drawing area');
+        await choosePanel('info');
+        await choosePanel('diagram');
+        const shortScreenshot=await cmd('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
+        await fs.writeFile(path.join(logs,`meal-mobile-short-${width}.png`),Buffer.from(shortScreenshot.data,'base64'));
+        await cmd('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:true});
+        await until('innerHeight===900','full mobile viewport restored');
+        await painted();
+        await assertMobileViewport('restored viewport');
+      } else await until(`document.getElementById('contract-info').getBoundingClientRect().top<innerHeight`,'information button reaches selected details');
       await evaluate('window.viewerDiagnostics.cameraReset()');
       await evaluate('window.viewerDiagnostics.setFrame(2)');
       await evaluate('window.viewerDiagnostics.fitAll()');
@@ -299,7 +379,7 @@ if (!chrome) {
       const screenshot = await cmd('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
       await fs.writeFile(path.join(logs, `meal-mobile-${width}.png`), Buffer.from(screenshot.data, 'base64'));
       assert.deepEqual(errors, [], 'no browser runtime/renderer exceptions');
-      cases.push({ width, input:useTouch?'trusted emulated touch':'trusted mouse', directLabelPick:true, nameSearch:true, selectedFitDistance:fitted.camera.distance, scroll: actual.scroll, canvasHeight: actual.canvasHeight, canvasBottom: actual.canvasBottom, dockTop: actual.dockTop, toolsOpen: actual.toolsOpen, entryCount: actual.state.entryCount, camera: actual.state.camera, frame2: focused.frame });
+      cases.push({ width, input:useTouch?'trusted emulated touch':'trusted mouse', directLabelPick:true, nameSearch:true, mobilePanels:useTouch, informationSwipe:useTouch, shortViewport:useTouch, selectedFitDistance:fitted.camera.distance, scroll: actual.scroll, canvasHeight: actual.canvasHeight, canvasBottom: actual.canvasBottom, dockTop: actual.dockTop, toolsOpen: actual.toolsOpen, entryCount: actual.state.entryCount, camera: actual.state.camera, frame2: focused.frame });
       console.log('[check:meal-mobile] CASE PASS ' + JSON.stringify(cases.at(-1)));
     }
     await fs.writeFile(path.join(logs, `meal-mobile-results-${viewportWidth}.json`), JSON.stringify({ cases }, null, 2));

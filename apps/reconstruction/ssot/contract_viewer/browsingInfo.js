@@ -9,7 +9,7 @@ export function renderBrowsingInfo(container,{model,index,state,select,explore,f
   if(!model){container.append(el('p','作品を開くと、図で選んだ対象の情報をここに表示します。'));return;}
   const entry=index.get(state.selectedId);
   const header=el('section');header.append(el('h2',entry?.label||'図から選んで読む'));
-  if(!entry)header.append(el('p','図上の点・線・文字をタップすると、対応する情報と接続先を読めます。上の検索から名前で直接選べます。'));
+  if(!entry)header.append(el('p','図上の点・線・文字をタップすると、対応する情報と接続先を読めます。検索から名前で直接選べます。スマホでは下端の「探す」を使ってください。'));
   container.append(header);
   if(entry) {
     row(header,'種類',kindLabels[entry.kind]||entry.kind);row(header,'ID',entry.id);

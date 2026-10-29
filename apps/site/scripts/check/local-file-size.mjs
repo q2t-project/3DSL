@@ -48,6 +48,7 @@ function observedFile(file, { textOnly = false, rejectReads = false, events = []
 function globals() {
   const nodes = new Map();
   const document = {
+    body: new Element(),
     getElementById(id) { if (!nodes.has(id)) nodes.set(id, new Element()); return nodes.get(id); },
     createElement: () => new Element(), createTextNode: text => ({ textContent: text }),
   };
