@@ -140,6 +140,11 @@ if (!chrome) {
       assert.equal(opened?.ok, true, `Viewer opened: ${JSON.stringify(opened)}`);
       await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
       const actual = await evaluate(measure);
+      // Preserve the failing initial view too: camera assertions must not hide
+      // the geometry and UI evidence needed to diagnose an auto-fit rejection.
+      await fs.writeFile(path.join(logs, `meal-mobile-initial-${width}.json`), JSON.stringify(actual, null, 2));
+      const initialScreenshot = await cmd('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+      await fs.writeFile(path.join(logs, `meal-mobile-initial-${width}.png`), Buffer.from(initialScreenshot.data, 'base64'));
       assert.equal(actual.width, width);
       assert(actual.scroll <= width + 1, `no horizontal overflow: ${JSON.stringify(actual)}`);
       assert.equal(actual.state.entryCount, 35, '17 points + 18 lines');

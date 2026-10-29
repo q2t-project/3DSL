@@ -36,6 +36,12 @@ jobs:
         working-directory: apps/site
         run: npm ci --verbose
 
+      - name: Install bundled Japanese fonts for browser checks
+        run: |
+          mkdir -p "$HOME/.local/share/fonts/3dsl"
+          cp packages/vendor/fonts/noto-sans-jp/*.ttf "$HOME/.local/share/fonts/3dsl/"
+          fc-cache -f
+
       - name: Run build (capture logs)
         shell: bash
         working-directory: apps/site
