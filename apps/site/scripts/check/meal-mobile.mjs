@@ -53,9 +53,26 @@ assert.deepEqual(counts, [[7, 6], [6, 5], [5, 4], [17, 18]], 'cooking / procurem
 console.log('[check:meal-mobile] STATIC PASS actual bundled Ajv + compatibility/structural checks, 17p18l, four frames with visible endpoint closure.');
 const chrome = ['google-chrome', 'chromium', 'chromium-browser'].find(name => spawnSync(name, ['--version'], { encoding: 'utf8' }).status === 0);
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const viewportWidth = Number(process.env.MEAL_TOUCH_VIEWPORT_WIDTH) || null;
 if (!chrome) {
   console.log('[check:meal-mobile] SKIP: Chromium unavailable; no Viewer/WebGL/mobile display PASS claimed.');
+} else if (!viewportWidth) {
+  // Use a fresh Chromium process for each device. Its emulated touchscreen can
+  // otherwise retain browser gesture state across viewport changes/navigation.
+  const cases=[];
+  for(const width of [360,390,1280]) {
+    const child=spawn(process.execPath,[fileURLToPath(import.meta.url)],{env:{...process.env,MEAL_TOUCH_VIEWPORT_WIDTH:String(width)},stdio:'inherit'});
+    await new Promise((resolve,reject)=>{
+      child.on('error',reject);
+      child.on('exit',(code,signal)=>code===0?resolve():reject(new Error(`Meal interaction check ${width} failed (${code??signal})`)));
+    });
+    const result=JSON.parse(await fs.readFile(path.join(site,'ci-logs',`meal-mobile-results-${width}.json`),'utf8'));
+    cases.push(...result.cases);
+  }
+  await fs.writeFile(path.join(site,'ci-logs','meal-mobile-results.json'),JSON.stringify({cases,scope:'Generated actual Viewer, software WebGL, trusted CDP touch at 360/390 and mouse at 1280; not Android hardware or reader comprehension.'},null,2));
+  console.log('[check:meal-mobile] PASS 360/390 trusted emulated touch: word pick, 6px jitter, drag/pinch/cancel safety, hidden label, search, selected fit, unchanged input; 1280 mouse. Not Android hardware.');
 } else {
+  assert([360,390,1280].includes(viewportWidth),'known interaction test viewport');
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), '3dsl-meal-mobile-'));
   const logs = path.join(site, 'ci-logs');
   await fs.mkdir(logs, { recursive: true });
@@ -163,7 +180,7 @@ if (!chrome) {
     await cmd('Page.enable');
     await cmd('Runtime.enable');
     const cases = [];
-    for (const width of [360, 390, 1280]) {
+    for (const width of [viewportWidth]) {
       errors.length = 0;
       const useTouch=width<650;
       // Reset Chromium's emulated touchscreen between documents/viewports.
@@ -285,8 +302,7 @@ if (!chrome) {
       cases.push({ width, input:useTouch?'trusted emulated touch':'trusted mouse', directLabelPick:true, nameSearch:true, selectedFitDistance:fitted.camera.distance, scroll: actual.scroll, canvasHeight: actual.canvasHeight, canvasBottom: actual.canvasBottom, dockTop: actual.dockTop, toolsOpen: actual.toolsOpen, entryCount: actual.state.entryCount, camera: actual.state.camera, frame2: focused.frame });
       console.log('[check:meal-mobile] CASE PASS ' + JSON.stringify(cases.at(-1)));
     }
-    await fs.writeFile(path.join(logs, 'meal-mobile-results.json'), JSON.stringify({ cases, scope: 'Generated actual Viewer, software WebGL, trusted CDP touch at 360/390 and mouse at 1280; not Android hardware or reader comprehension.' }, null, 2));
-    console.log('[check:meal-mobile] PASS 360/390 trusted emulated touch: word pick, 6px jitter, drag/pinch/cancel safety, hidden label, search, selected fit, unchanged input; 1280 mouse. Not Android hardware.');
+    await fs.writeFile(path.join(logs, `meal-mobile-results-${viewportWidth}.json`), JSON.stringify({ cases }, null, 2));
   } catch (error) {
     if(ws?.readyState===WebSocket.OPEN) {
       // Keep visual evidence even when an interaction assertion fails.
