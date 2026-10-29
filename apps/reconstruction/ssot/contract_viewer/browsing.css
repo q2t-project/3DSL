@@ -40,15 +40,16 @@ button,.open-button,summary,select{cursor:pointer}button:hover:not(:disabled),.o
   .contract-viewer #reading-search{flex:1;min-width:0;width:auto}
   .contract-viewer #reading-controls{max-height:none;overflow:visible;padding:8px}
   .contract-viewer .reading-control-group{flex-wrap:wrap;width:100%}
-  .contract-viewer #reading-layout,.contract-viewer #reading-layout.info-hidden{flex:none;grid-template-columns:minmax(0,1fr);grid-template-rows:max(360px,55svh) auto}
-  .contract-viewer #viewer-root{height:max(360px,55svh);min-height:360px}
+  .contract-viewer #reading-layout,.contract-viewer #reading-layout.info-hidden{flex:none;grid-template-columns:minmax(0,1fr);grid-template-rows:calc(max(360px,55svh) + 110px) auto}
+  .contract-viewer #viewer-root{height:calc(max(360px,55svh) + 110px);min-height:470px}
+  .contract-viewer #viewer-canvas{height:calc(100% - 110px)!important;bottom:auto!important}
   .contract-viewer #contract-info{max-height:45svh;min-height:160px;box-sizing:border-box}
   .contract-viewer #contract-status{flex-shrink:0;box-sizing:border-box}
   .contract-viewer #reading-notices{padding:4px 8px;flex-shrink:0}
   .contract-viewer #reading-notice{min-height:44px}
   .contract-viewer #reading-notice-summary{display:none}
   /* Redundant legacy controls remain available in the expanded settings. The
-     orientation gizmo stays visible with a smaller footprint over the drawing. */
+     orientation gizmo stays visible in a reserved strip below the drawing. */
   .contract-viewer #viewer-rightdock{right:8px;bottom:8px;transform:scale(.6);transform-origin:right bottom}
   .contract-viewer #auto-orbit-slot{display:none!important}
   .contract-viewer #reading-controls .reading-popup>div{max-height:70svh}

@@ -125,7 +125,7 @@ if (!chrome) {
       }
       assert.fail(`Viewer boot hook unavailable: ${JSON.stringify(errors)}`);
     }
-    const measure = `(() => { const root=document.getElementById('viewer-root'),canvas=document.getElementById('viewer-canvas'),tools=document.getElementById('reading-tools'); return {width:innerWidth,scroll:document.documentElement.scrollWidth,canvasHeight:root.getBoundingClientRect().height,canvasWidth:root.getBoundingClientRect().width,canvasPixels:[canvas.width,canvas.height],toolsOpen:tools.open,state:window.viewerDiagnostics.snapshot()}; })()`;
+    const measure = `(() => { const root=document.getElementById('viewer-root'),canvas=document.getElementById('viewer-canvas'),tools=document.getElementById('reading-tools'),dock=document.getElementById('viewer-rightdock'); const canvasRect=canvas.getBoundingClientRect(),dockRect=dock.getBoundingClientRect(); return {width:innerWidth,scroll:document.documentElement.scrollWidth,rootHeight:root.getBoundingClientRect().height,canvasHeight:canvas.clientHeight,canvasWidth:canvas.clientWidth,canvasBottom:canvasRect.bottom,dockTop:dockRect.top,canvasPixels:[canvas.width,canvas.height],toolsOpen:tools.open,state:window.viewerDiagnostics.snapshot()}; })()`;
     await cmd('Page.enable');
     await cmd('Runtime.enable');
     const cases = [];
@@ -153,11 +153,15 @@ if (!chrome) {
       assert(actual.canvasPixels.every(n => n > 0), 'render canvas has pixels');
       if (width < 650) {
         assert.equal(actual.toolsOpen, false, 'mobile starts with controls collapsed');
-        assert(actual.canvasHeight >= 360, 'mobile drawing height >=360px');
+        assert(actual.canvasHeight >= 360, 'actual mobile canvas height >=360px');
+        assert(actual.canvasBottom <= actual.dockTop + 1, 'mobile gizmo strip does not overlap drawing');
         await evaluate(`document.getElementById('reading-tools-toggle').click()`);
         const expanded = await evaluate(`({open:document.getElementById('reading-tools').open,searchVisible:document.getElementById('reading-search').getClientRects().length>0,presetVisible:document.getElementById('reading-preset').getClientRects().length>0,scroll:document.documentElement.scrollWidth})`);
         assert(expanded.open && expanded.searchVisible && expanded.presetVisible, 'expanded search and preset accessible');
         assert(expanded.scroll <= width + 1, 'expanded controls do not overflow');
+        const expandedLayout = await evaluate(measure);
+        assert(expandedLayout.canvasHeight >= 360, 'expanded controls preserve canvas height');
+        assert(expandedLayout.canvasBottom <= expandedLayout.dockTop + 1, 'expanded controls preserve gizmo strip');
         await evaluate(`document.getElementById('reading-tools-toggle').click()`);
         assert.equal(await evaluate(`document.getElementById('reading-tools').open`), false, 'controls collapse again');
       } else assert.equal(actual.toolsOpen, true, 'desktop controls remain expanded');
@@ -168,11 +172,13 @@ if (!chrome) {
       assert(Math.abs(focused.camera?.phi - Math.PI / 2) < 1e-6, 'frame 2 remains front-facing');
       await evaluate('window.viewerDiagnostics.setFrame(0)');
       await evaluate('window.viewerDiagnostics.fitAll()');
+      const retained = await evaluate('window.viewerDiagnostics.rawSnapshot()');
+      assert.deepEqual(retained, model, 'frame switching and fitting leave the input model unchanged');
       await evaluate('window.scrollTo(0,0);new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
       const screenshot = await cmd('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
       await fs.writeFile(path.join(logs, `meal-mobile-${width}.png`), Buffer.from(screenshot.data, 'base64'));
       assert.deepEqual(errors, [], 'no browser runtime/renderer exceptions');
-      cases.push({ width, scroll: actual.scroll, canvasHeight: actual.canvasHeight, toolsOpen: actual.toolsOpen, entryCount: actual.state.entryCount, camera: actual.state.camera, frame2: focused.frame });
+      cases.push({ width, scroll: actual.scroll, canvasHeight: actual.canvasHeight, canvasBottom: actual.canvasBottom, dockTop: actual.dockTop, toolsOpen: actual.toolsOpen, entryCount: actual.state.entryCount, camera: actual.state.camera, frame2: focused.frame });
       console.log('[check:meal-mobile] CASE PASS ' + JSON.stringify(cases.at(-1)));
     }
     await fs.writeFile(path.join(logs, 'meal-mobile-results.json'), JSON.stringify({ cases, scope: 'Generated actual Viewer, software WebGL, desktop Chromium at phone widths; not Android touch or reader comprehension.' }, null, 2));

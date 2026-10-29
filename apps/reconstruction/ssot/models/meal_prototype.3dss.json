@@ -504,9 +504,9 @@
       },
       "appearance": {
         "position": [
-          30,
+          -35,
           0,
-          80
+          65
         ],
         "frames": [
           0,
@@ -1392,7 +1392,7 @@
           "structural": "association"
         },
         "sense": "a_to_b",
-        "caption": "使用される"
+        "caption": "支える"
       },
       "appearance": {
         "end_a": {
@@ -1440,7 +1440,7 @@
           "structural": "association"
         },
         "sense": "a_to_b",
-        "caption": "使用される"
+        "caption": "支える"
       },
       "appearance": {
         "end_a": {
@@ -1488,7 +1488,7 @@
           "structural": "association"
         },
         "sense": "a_to_b",
-        "caption": "使用される"
+        "caption": "支える"
       },
       "appearance": {
         "end_a": {
@@ -1536,7 +1536,7 @@
           "structural": "association"
         },
         "sense": "a_to_b",
-        "caption": "使用される"
+        "caption": "支える"
       },
       "appearance": {
         "end_a": {
@@ -1584,7 +1584,7 @@
           "structural": "association"
         },
         "sense": "a_to_b",
-        "caption": "使用される"
+        "caption": "支える"
       },
       "appearance": {
         "end_a": {
