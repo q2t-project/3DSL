@@ -7,6 +7,7 @@ import os from 'node:os';
 import http from 'node:http';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import './initial-reading-view.mjs';
 
 const site = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const repo = path.resolve(site, '../..');
@@ -16,8 +17,40 @@ const dist = path.join(site, 'dist');
 // run unchanged. Browser cases below additionally exercise the served validator.
 const modelText = await fs.readFile(path.join(repo, 'apps/reconstruction/ssot/models/meal_prototype.3dss.json'), 'utf8');
 const model = JSON.parse(modelText);
-assert.equal(model.points.length, 17);
-assert.equal(model.lines.length, 18);
+const roleId='f225f07d-b1ab-5ece-8834-d60b3726bec7';
+const role=model.points.find(point=>point.meta.uuid===roleId);
+assert(role,'authored cooking role remains available');
+const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+const dot=(a,b)=>a.reduce((total,value,index)=>total+value*b[index],0);
+const rolePose=role.appearance.marker.text.pose,roleRight=cross(rolePose.up,rolePose.front);
+const roleLabelPoint=(horizontal,vertical)=>role.appearance.position.map((value,index)=>value+horizontal*roleRight[index]+vertical*rolePose.up[index]);
+assert.equal(model.points.length, 21);
+assert.equal(model.lines.length, 23);
+const faceDefinitions=[
+  {tag:'m:meal-state',count:8,front:[0,1,0],up:[0,0,1]},
+  {tag:'m:meal-temporal-process',count:6,front:[1,0,0],up:[0,0,1]},
+  {tag:'m:meal-structure',count:7,front:[0,0,1],up:[0,-1,0]},
+];
+const visibleAt=(element,frame)=>element.appearance.visible!==false&&(!element.appearance.frames||[].concat(element.appearance.frames).includes(frame));
+const faceSamples=faceDefinitions.map(({tag,count,front,up})=>{
+  const points=model.points.filter(point=>point.meta.tags?.includes(tag));
+  assert.equal(points.length,count,`${tag} authored category count`);
+  for(const point of points)assert.deepEqual(point.appearance.marker.text.pose,{front,up},`${point.signification.name}: authored category keeps its fixed word plane`);
+  const sample=points.find(point=>visibleAt(point,0));
+  assert(sample,`${tag} is represented in the initial frame`);
+  return {tag,uuid:sample.meta.uuid,normalAxis:front.findIndex(component=>component===1)};
+});
+for(const {tag,count,pose} of [
+  {tag:'m:meal-temporal-link',count:13,pose:{front:[1,0,0],up:[0,0,1]}},
+  {tag:'m:meal-participation',count:10,pose:{front:[0,0,1],up:[0,-1,0]}},
+]) {
+  const lines=model.lines.filter(line=>line.meta.tags?.includes(tag));
+  assert.equal(lines.length,count,`${tag} authored line count`);
+  for(const line of lines)assert.deepEqual(line.appearance.caption_text.pose,pose,`${line.signification.caption}: line caption keeps its authored category plane`);
+}
+const initialPositions=model.points.filter(point=>visibleAt(point,0)).map(point=>point.appearance.position);
+const originPosition=initialPositions[0],vectors=initialPositions.map(point=>point.map((value,index)=>value-originPosition[index]));
+assert(vectors.some(a=>vectors.some(b=>vectors.some(c=>Math.abs(dot(cross(a,b),c))>1e-3))),'initial authored geometry spans three dimensions instead of regressing to one plane');
 const schema = JSON.parse(await fs.readFile(path.join(repo, 'apps/reconstruction/ssot/schemas/3DSS.schema.json'), 'utf8'));
 const { default: createAjv } = await import('../../../reconstruction/ssot/vendor/ajv/dist/ajv.js');
 const previousAjv = globalThis.Ajv, previousFetch = globalThis.fetch;
@@ -40,7 +73,7 @@ const pointIds = new Set(model.points.map(point => point.meta.uuid));
 assert.equal(pointIds.size, model.points.length, 'unique point IDs');
 const counts = [];
 for (const frame of [0, 1, 2, 3]) {
-  const visible = element => element.appearance.visible !== false && (!element.appearance.frames || [].concat(element.appearance.frames).includes(frame));
+  const visible = element => visibleAt(element,frame);
   const points = model.points.filter(visible), lines = model.lines.filter(visible), visibleIds = new Set(points.map(point => point.meta.uuid));
   for (const line of lines) for (const side of ['end_a', 'end_b']) {
     const ref = line.appearance[side]?.ref;
@@ -49,8 +82,8 @@ for (const frame of [0, 1, 2, 3]) {
   }
   counts.push([points.length, lines.length]);
 }
-assert.deepEqual(counts, [[7, 6], [6, 5], [5, 4], [17, 18]], 'cooking / procurement-storage / serving / overview');
-console.log('[check:meal-mobile] STATIC PASS actual bundled Ajv + compatibility/structural checks, 17p18l, four frames with visible endpoint closure.');
+assert.deepEqual(counts, [[10, 10], [9, 9], [5, 4], [21, 23]], 'cooking / procurement-storage / serving / overview');
+console.log('[check:meal-mobile] STATIC PASS actual bundled Ajv + compatibility/structural checks, 21p23l, three authored word planes and noncoplanar geometry, four frames with visible endpoint closure.');
 const chrome = ['google-chrome', 'chromium', 'chromium-browser'].find(name => spawnSync(name, ['--version'], { encoding: 'utf8' }).status === 0);
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const viewportWidth = Number(process.env.MEAL_TOUCH_VIEWPORT_WIDTH) || null;
@@ -234,7 +267,7 @@ if (!chrome) {
       await cmd('Emulation.setTouchEmulationEnabled', {enabled:false});
       await cmd('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: useTouch });
       await cmd('Emulation.setTouchEmulationEnabled', {enabled:useTouch,maxTouchPoints:2});
-      const query = `?meal-smoke=${width}`;
+      const query = `?meal-smoke=${width}&dbgHub=1`;
       await cmd('Page.navigate', { url: origin + '/preview-reconstruction/contract_viewer/index.html' + query });
       await ready(query);
       await evaluate('window.viewerBootReady');
@@ -249,10 +282,28 @@ if (!chrome) {
       await fs.writeFile(path.join(logs, `meal-mobile-initial-${width}.png`), Buffer.from(initialScreenshot.data, 'base64'));
       assert.equal(actual.width, width);
       assert(actual.scroll <= width + 1, `no horizontal overflow: ${JSON.stringify(actual)}`);
-      assert.equal(actual.state.entryCount, 35, '17 points + 18 lines');
+      assert.equal(actual.state.entryCount, model.points.length+model.lines.length, 'all authored points and lines indexed');
       assert.equal(actual.state.renderAvailable, true, 'renderer mounted');
-      assert(Math.abs(actual.state.camera?.phi - Math.PI / 2) < 1e-6, `XZ presentation camera: ${JSON.stringify(actual.state.camera)}`);
+      const initialCamera=actual.state.camera;
+      const initialDirection=[Math.sin(initialCamera.phi)*Math.cos(initialCamera.theta),Math.sin(initialCamera.phi)*Math.sin(initialCamera.theta),Math.cos(initialCamera.phi)];
+      assert(initialDirection.every(component=>Number.isFinite(component)&&component>.2), `initial view exposes +X/+Y/+Z word planes: ${JSON.stringify(initialCamera)}`);
       assert(actual.canvasPixels.every(n => n > 0), 'render canvas has pixels');
+      // Existing debug access combines rendered label corners and marker bounds.
+      // Their normal extent includes marker thickness and the world-Z lift, so
+      // compare axes without assuming a zero-thickness label-only rectangle.
+      const renderedBoundsExpression=`${JSON.stringify(faceSamples)}.map(sample=>({...sample,bounds:window.viewerHub.browsing.getBounds([sample.uuid])}))`;
+      const renderedFaces=await evaluate(renderedBoundsExpression);
+      for(const face of renderedFaces) {
+        assert(face.bounds,`${face.tag}: rendered label bounds exist`);
+        const extents=face.bounds.max.map((value,index)=>value-face.bounds.min[index]);
+        assert(extents.every((extent,index)=>index===face.normalAxis||extent>extents[face.normalAxis]+1e-6),`${face.tag}: combined rendered bounds are narrowest on the authored normal axis: ${JSON.stringify(extents)}`);
+      }
+      await evaluate('window.viewerDiagnostics.cameraOrbit(.3,.15)');
+      await painted();
+      const rotatedFaces=await evaluate(renderedBoundsExpression);
+      for(let index=0;index<renderedFaces.length;index++)for(const edge of ['min','max'])for(let axis=0;axis<3;axis++)assert(Math.abs(rotatedFaces[index].bounds[edge][axis]-renderedFaces[index].bounds[edge][axis])<1e-7,'rendered word bounds remain fixed when the camera rotates');
+      await evaluate('window.viewerDiagnostics.cameraReset()');
+      await painted();
       if (width < 650) {
         const initialLayout=await assertMobileViewport('initial diagram');
         assert.equal(initialLayout.panel,'info','mobile starts with diagram and information together');
@@ -267,13 +318,20 @@ if (!chrome) {
         assert(await evaluate(`!['auto','scroll'].includes(getComputedStyle(document.getElementById('reading-result-list')).overflowY)`),'result list does not introduce another scroll container');
         await choosePanel('info');
       } else assert.equal(actual.toolsOpen, true, 'desktop controls remain expanded');
-      const roleId='f225f07d-b1ab-5ece-8834-d60b3726bec7';
       await evaluate(`document.getElementById('viewer-canvas').scrollIntoView({block:'center'});window.__mealPointerEvents=[];for(const type of ['pointerdown','pointerup','pointermove','pointerleave','pointercancel','touchstart','touchend','click'])document.addEventListener(type,event=>window.__mealPointerEvents.push({target:event.target.id,type:event.type,timeStamp:event.timeStamp,panel:document.body.dataset.readingPanel,trusted:event.isTrusted,pointerType:event.pointerType,primary:event.isPrimary,button:event.button,buttons:event.buttons,x:event.clientX,y:event.clientY}),{passive:true,capture:true});`);
       await painted();
       const beforePick=await evaluate('window.viewerDiagnostics.snapshot().camera');
+      const renderedRoleBounds=await evaluate(`window.viewerHub.browsing.getBounds([${JSON.stringify(roleId)}])`);
+      assert(renderedRoleBounds,'rendered cooking-role word bounds exist');
+      // The horizontal word can be lifted along world Z. Its max Z exposes
+      // that plane when above the sphere; with no lift the sphere alone adds
+      // radius to the bounds, so retain the authored plane in that case.
+      const rolePickPoint=roleLabelPoint(-5,2);
+      const markerTop=role.appearance.position[2]+role.appearance.marker.radius;
+      if(renderedRoleBounds.max[2]>markerTop+1e-6)rolePickPoint[2]=renderedRoleBounds.max[2];
       // Inside the visible word but away from its 0.4-radius marker and links.
-      const word=await projectPoint([-40,0,67]);
-      await fs.writeFile(path.join(logs,`meal-mobile-input-${width}.json`),JSON.stringify({word,beforePick},null,2));
+      const word=await projectPoint(rolePickPoint);
+      await fs.writeFile(path.join(logs,`meal-mobile-input-${width}.json`),JSON.stringify({word,rolePickPoint,renderedRoleBounds,beforePick},null,2));
       assert(word.y>0&&word.y<900&&word.x>0&&word.x<width,'word target inside viewport');
       assert.equal(await evaluate(`document.elementFromPoint(${word.x},${word.y})?.id`),'viewer-canvas','projected word reaches the canvas');
       if(useTouch)await tap(word);
@@ -288,28 +346,31 @@ if (!chrome) {
       assert(await evaluate(`window.__mealPointerEvents.some(event=>event.target==='viewer-canvas'&&event.type==='pointerup'&&event.trusted&&event.pointerType===${JSON.stringify(useTouch?'touch':'mouse')})`),'trusted browser pointer path exercised');
       if(useTouch) {
         await evaluate('window.viewerDiagnostics.select(null)');
-        await tap(await projectPoint([-40,0,67]),6);
+        await tap(await projectPoint(rolePickPoint),6);
         await until(`window.viewerDiagnostics.snapshot().bridgeState.selection?.uuid===${JSON.stringify(roleId)}`,'6px finger jitter still selects');
         assert.deepEqual(await evaluate('window.viewerDiagnostics.snapshot().camera'),beforePick,'small touch jitter does not rotate');
         await evaluate('window.viewerDiagnostics.select(null)');
-        const start=await projectPoint([-40,0,67]);
+        const start=await projectPoint(rolePickPoint);
         await touch('touchStart',[start]);await touch('touchMove',[{x:start.x+35,y:start.y+20}]);await touch('touchEnd',[]);await painted();
         assert.equal(await evaluate('window.viewerDiagnostics.snapshot().selectedId'),null,'drag does not accidentally select');
         assert.notDeepEqual(await evaluate('window.viewerDiagnostics.snapshot().camera'),beforePick,'drag still rotates');
         await evaluate('window.viewerDiagnostics.cameraReset()');
-        const center=await projectPoint([-40,0,67]);
+        const center=await projectPoint(rolePickPoint);
         await touch('touchStart',[center,{x:center.x+50,y:center.y}]);
         await touch('touchMove',[{x:center.x-10,y:center.y},{x:center.x+65,y:center.y}]);
         await touch('touchEnd',[]);await painted();
         assert.equal(await evaluate('window.viewerDiagnostics.snapshot().selectedId'),null,'pinch does not accidentally select');
         assert.notDeepEqual(await evaluate('window.viewerDiagnostics.snapshot().camera'),beforePick,'pinch still changes view');
         await evaluate('window.viewerDiagnostics.cameraReset()');
-        await touch('touchStart',[await projectPoint([-40,0,67])]);await touch('touchCancel',[]);await painted();
+        await touch('touchStart',[await projectPoint(rolePickPoint)]);await touch('touchCancel',[]);await painted();
         assert.equal(await evaluate('window.viewerDiagnostics.snapshot().selectedId'),null,'cancelled touch does not select');
         // Measure actual projected movement, rather than merely checking that
         // the camera changed. The old gain moved only ~1px for a 40px gesture.
         for(const zoom of [0,-0.5]) {
           await evaluate('window.viewerDiagnostics.cameraReset()');
+          // This exact screen-distance check covers the front preset only;
+          // the authored three-plane initial view remains diagonal.
+          await evaluate('window.viewerDiagnostics.cameraPreset(1)');
           if(zoom)await evaluate(`window.viewerDiagnostics.cameraZoom(${zoom})`);
           const panBefore=await evaluate('window.viewerDiagnostics.snapshot().camera');
           const anchor=[panBefore.target.x,panBefore.target.y,panBefore.target.z];
@@ -321,15 +382,15 @@ if (!chrome) {
           const projectedAfter=await projectPoint(anchor);
           const panAfter=await evaluate('window.viewerDiagnostics.snapshot().camera');
           const movement={x:projectedAfter.x-projectedBefore.x,y:projectedAfter.y-projectedBefore.y};
-          assert(Math.abs(movement.x-40)<3&&Math.abs(movement.y-24)<3,`two-finger pan follows screen distance at zoom ${zoom}: ${JSON.stringify(movement)}`);
+          assert(Math.abs(movement.x-40)<3&&Math.abs(movement.y-24)<3,`front-view two-finger pan follows screen distance at zoom ${zoom}: ${JSON.stringify(movement)}`);
           assert.equal(panAfter.theta,panBefore.theta,'two-finger pan does not rotate horizontally');
           assert.equal(panAfter.phi,panBefore.phi,'two-finger pan does not rotate vertically');
           assert.equal(await evaluate('window.viewerDiagnostics.snapshot().selectedId'),null,'two-finger pan does not select');
-          console.log('[check:meal-mobile] PAN '+JSON.stringify({width,zoom,movement}));
+          console.log('[check:meal-mobile] PAN '+JSON.stringify({width,preset:'front +Y',zoom,movement}));
         }
         await evaluate('window.viewerDiagnostics.cameraReset()');
         await evaluate('window.viewerDiagnostics.setFrame(1)');
-        await tap(await projectPoint([-40,0,67]));
+        await tap(await projectPoint(rolePickPoint));
         assert.notEqual(await evaluate('window.viewerDiagnostics.snapshot().bridgeState.selection?.uuid'),roleId,'hidden-frame label cannot be picked');
         await evaluate('window.viewerDiagnostics.setFrame(0)');
       }
@@ -350,7 +411,9 @@ if (!chrome) {
       const fitted=await evaluate('window.viewerDiagnostics.snapshot()');
       if(useTouch)await until(`document.body.dataset.readingPanel==='info'`,'fitting selection keeps information beside the diagram');
       assert(fitted.camera.distance>15,'fit includes word extent instead of zooming into tiny point');
-      for(const p of [[-45,0,62.2],[-25,0,69.2]])assert((await projectPoint(p)).ndc.slice(0,2).every(n=>Math.abs(n)<1),'selected word remains inside drawing');
+      const fittedBounds=await evaluate(`window.viewerHub.browsing.getBounds([${JSON.stringify(roleId)}])`);
+      assert(fittedBounds,'selected rendered word bounds remain available');
+      for(const x of [fittedBounds.min[0],fittedBounds.max[0]])for(const y of [fittedBounds.min[1],fittedBounds.max[1]])for(const z of [fittedBounds.min[2],fittedBounds.max[2]])assert((await projectPoint([x,y,z])).ndc.slice(0,2).every(n=>Math.abs(n)<1),'selected rendered word bounds remain inside drawing');
       const selectedScreenshot=await cmd('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
       await fs.writeFile(path.join(logs,`meal-mobile-selected-${width}.png`),Buffer.from(selectedScreenshot.data,'base64'));
       await clickElement(`document.getElementById(${JSON.stringify(useTouch?'reading-tab-info':'reading-selection-info')})`,useTouch);
@@ -417,7 +480,8 @@ if (!chrome) {
       await evaluate('window.viewerDiagnostics.fitAll()');
       const focused = await evaluate('window.viewerDiagnostics.snapshot()');
       assert.equal(focused.frame, 2, 'frame 2 selected');
-      assert(Math.abs(focused.camera?.phi - Math.PI / 2) < 1e-6, 'frame 2 remains front-facing');
+      assert.equal(focused.camera.theta,initialCamera.theta,'frame 2 fitting preserves initial diagonal azimuth');
+      assert.equal(focused.camera.phi,initialCamera.phi,'frame 2 fitting preserves initial diagonal elevation');
       await evaluate('window.viewerDiagnostics.setFrame(0)');
       await evaluate('window.viewerDiagnostics.fitAll()');
       const retained = await evaluate('window.viewerDiagnostics.rawSnapshot()');
@@ -426,7 +490,7 @@ if (!chrome) {
       const screenshot = await cmd('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
       await fs.writeFile(path.join(logs, `meal-mobile-${width}.png`), Buffer.from(screenshot.data, 'base64'));
       assert.deepEqual(errors, [], 'no browser runtime/renderer exceptions');
-      cases.push({ width, input:useTouch?'trusted emulated touch':'trusted mouse', directLabelPick:true, nameSearch:true, mobilePanels:useTouch, informationSwipe:useTouch, shortViewport:useTouch, selectedFitDistance:fitted.camera.distance, scroll: actual.scroll, canvasHeight: actual.canvasHeight, canvasBottom: actual.canvasBottom, dockTop: actual.dockTop, toolsOpen: actual.toolsOpen, entryCount: actual.state.entryCount, camera: actual.state.camera, frame2: focused.frame });
+      cases.push({ width, input:useTouch?'trusted emulated touch':'trusted mouse', directLabelPick:true, nameSearch:true, mobilePanels:useTouch, informationSwipe:useTouch, shortViewport:useTouch, renderedWordBounds:renderedFaces, renderedBoundsRotationInvariant:true, panScope:useTouch?'front +Y preset only':null, selectedFitDistance:fitted.camera.distance, scroll: actual.scroll, canvasHeight: actual.canvasHeight, canvasBottom: actual.canvasBottom, dockTop: actual.dockTop, toolsOpen: actual.toolsOpen, entryCount: actual.state.entryCount, camera: actual.state.camera, frame2: focused.frame });
       console.log('[check:meal-mobile] CASE PASS ' + JSON.stringify(cases.at(-1)));
     }
     await fs.writeFile(path.join(logs, `meal-mobile-results-${viewportWidth}.json`), JSON.stringify({ cases }, null, 2));

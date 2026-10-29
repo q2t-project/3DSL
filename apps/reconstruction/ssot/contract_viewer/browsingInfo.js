@@ -4,17 +4,26 @@ const lazy=(parent,title,render)=>{const d=el('details');d.append(el('summary',t
 const record=(parent,title,value)=>{if(value!==undefined&&value!==null)lazy(parent,title,d=>d.append(el('pre',typeof value==='string'?value:JSON.stringify(value,null,2))));};
 const row=(parent,label,value)=>{const p=el('p');p.append(el('strong',`${label}: `),document.createTextNode(String(value??'記録なし')));parent.append(p);};
 const kindLabels={occurrence:'出現',target:'対象',relation:'関係',participant:'参与枠',participation:'参与枠',point:'点',line:'線',aux:'補助要素',boundary:'境界'};
+const localized=value=>typeof value==='string'?value:value?.ja||value?.en||'';
 export function renderBrowsingInfo(container,{model,index,state,select,explore,fitSelection}) {
   container.replaceChildren();
   if(!model){container.append(el('p','作品を開くと、図で選んだ対象の情報をここに表示します。'));return;}
   const entry=index.get(state.selectedId);
   const header=el('section');header.append(el('h2',entry?.label||'図から選んで読む'));
-  if(!entry)header.append(el('p','図上の点・線・文字をタップすると、対応する情報と接続先を読めます。検索から名前で直接選べます。スマホでは下端の「探す」を使ってください。'));
+  if(!entry){
+    const summary=localized(model.scene?.document_meta?.document_summary);
+    if(summary)header.append(el('p',summary));
+    header.append(el('p','図上の点・線・文字をタップすると、対応する情報と接続先を読めます。検索から名前で直接選べます。スマホでは下端の「探す」を使ってください。'));
+    const memo=model.scene?.document_meta?.creator_memo;
+    if(typeof memo==='string'&&memo.trim())lazy(header,'作者メモ',d=>d.append(el('p',memo)));
+  }
   container.append(header);
   if(entry) {
     row(header,'種類',kindLabels[entry.kind]||entry.kind);
     const metadata=el('details');metadata.append(el('summary','ID・位置・表示'));row(metadata,'ID',entry.id);
     const details=entry.details||{};
+    const memo=details.element?.meta?.creator_memo;
+    if(typeof memo==='string'&&memo.trim())row(header,'作者メモ',memo);
     if(details.target){
       row(header,'対象',details.target.name||details.target.id);row(header,'対象ID',details.target.id);
       const recorded=details.target.epistemic;
