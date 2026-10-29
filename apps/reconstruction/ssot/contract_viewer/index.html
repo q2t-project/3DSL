@@ -30,7 +30,7 @@
 <link rel="stylesheet" href="/contract_viewer/browsing.css" />
 </head>
 
-<body>
+<body class="contract-viewer">
   <header id="reading-header">
     <strong>3DSL Viewer <small>読取専用 r0.5</small></strong>
     <label class="open-button">開く…<input id="contract-open" type="file" accept=".json,application/json"></label>
@@ -53,6 +53,8 @@
       <p>「接続先へ」は記録された関係を辿る操作、「局所観察」は選択周辺を強調して見る操作です。どちらも作品の内容は変えません。</p>
     </div></details>
   </header>
+  <details id="reading-tools" open>
+    <summary id="reading-tools-toggle" aria-controls="reading-toolbar reading-controls">表示・視点・検索</summary>
   <div id="reading-toolbar" aria-label="閲覧操作">
     <button id="reading-back" type="button" disabled>探索を戻る</button>
     <label>範囲 <select id="reading-scope" aria-label="範囲" disabled><option value="all">表示全体</option><option value="related">選択と接続先</option></select></label>
@@ -91,6 +93,7 @@
       <fieldset><legend>自動回転</legend><label><input type="checkbox" id="reading-auto-orbit">自動回転する</label><label>方向 <select id="reading-auto-direction"><option value="cw">時計回り</option><option value="ccw">反時計回り</option></select></label><label>速さ <select id="reading-auto-speed"><option value="1">低速</option><option value="2">中速</option><option value="3">高速</option></select></label></fieldset>
     </div></details>
   </div>
+  </details>
   <div id="reading-notices" hidden><button id="reading-notice" type="button" aria-controls="contract-info">読み取りの注意</button><span id="reading-notice-summary"></span></div>
   <p id="contract-status" role="status">作品を開いてください。</p>
   <p id="reading-snapshot-notice" role="note" hidden>制作中の写し（保存ではありません・自動同期しません）</p>

@@ -48,5 +48,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ci-build-log
-          path: apps/site/ci-logs/ci-build.log
+          path: apps/site/ci-logs/
           if-no-files-found: warn

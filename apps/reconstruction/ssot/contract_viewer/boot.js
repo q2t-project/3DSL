@@ -10,6 +10,14 @@ import { receiveViewerSnapshot } from '../shared/viewerHandoff.js';
 import { assertLocalFileSize } from '../shared/localFile.js';
 
 const byId=id=>document.getElementById(id);
+// Native details keeps all controls reachable by touch and keyboard while the
+// first mobile screen gives priority to the drawing. Desktop remains expanded.
+const readingTools=byId('reading-tools'),mobileViewport=window.matchMedia('(max-width:650px)');
+const syncToolsViewport=()=>{readingTools.open=!mobileViewport.matches;};
+syncToolsViewport();
+mobileViewport.addEventListener('change',syncToolsViewport);
+const resizeAfterToolsToggle=()=>window.dispatchEvent(new Event('resize'));
+readingTools.addEventListener('toggle',resizeAfterToolsToggle);
 const status=byId('contract-status'),input=byId('contract-open'),reading=byId('contract-reading');
 const validator=createCoreControllers({emit(){}}).validator;
 const searchInput=byId('reading-search'),frame=byId('reading-frame'),scope=byId('reading-scope');
@@ -138,4 +146,4 @@ window.viewerBootReady=(async()=>{
     return openFileText(await response.text(),modelUrl.split('/').at(-1));
   }catch(error){reportError(error);return {ok:false,error:String(error?.message||error)};}
 })();
-window.addEventListener('pagehide',()=>{handoffReceiver?.dispose();controlsUI.dispose();controller.dispose();},{once:true});
+window.addEventListener('pagehide',()=>{mobileViewport.removeEventListener('change',syncToolsViewport);readingTools.removeEventListener('toggle',resizeAfterToolsToggle);handoffReceiver?.dispose();controlsUI.dispose();controller.dispose();},{once:true});

@@ -1,0 +1,1630 @@
+{
+  "document_meta": {
+    "document_title": "米がご飯になるまで — 食材・働き・支援条件",
+    "document_summary": "米の調達・保管・炊飯・配膳を例に、食材の経路と支援条件を分けて読む未公開試作。",
+    "document_uuid": "20ed0153-f0c6-510c-a162-92d465b3447e",
+    "version": "1.1.4",
+    "created_at": "2026-10-28T00:00:00Z",
+    "revised_at": "2026-10-29T08:00:00Z",
+    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
+    "author": "3DSL-prototype",
+    "coordinate_system": "Z+up/freeXY",
+    "units": "non_si:px",
+    "i18n": "ja",
+    "creator_memo": "未公開試作0.2。schema互換性1.1.4。X=工程順、Z=役割区分、Y=0。間隔は時間・量を示さない。AI作成、作者の公開判断前。"
+  },
+  "points": [
+    {
+      "signification": {
+        "name": "店の生米"
+      },
+      "appearance": {
+        "position": [
+          -120,
+          0,
+          0
+        ],
+        "frames": [
+          1,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.2,
+          "common": {
+            "color": "#7dd3fc",
+            "opacity": 1
+          },
+          "text": {
+            "content": "店の米",
+            "size": 7,
+            "pose": {
+              "front": [
+                0,
+                -1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "2e2f2a84-83c0-5a8f-880d-731e1fb4b2b0",
+        "creator_memo": "表示名: 店の米。正式名: 店の生米"
+      }
+    },
+    {
+      "signification": {
+        "name": "家に保管された生米"
+      },
+      "appearance": {
+        "position": [
+          -60,
+          0,
+          0
+        ],
+        "frames": [
+          1,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.2,
+          "common": {
+            "color": "#7dd3fc",
+            "opacity": 1
+          },
+          "text": {
+            "content": "家の米",
+            "size": 7,
+            "pose": {
+              "front": [
+                0,
+                -1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "17d879e8-0d08-590e-ae78-da78a8a5c5f4",
+        "creator_memo": "表示名: 家の米。正式名: 家に保管された生米"
+      }
+    },
+    {
+      "signification": {
+        "name": "炊飯に取り分けた生米"
+      },
+      "appearance": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "frames": [
+          0,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.2,
+          "common": {
+            "color": "#7dd3fc",
+            "opacity": 1
+          },
+          "text": {
+            "content": "取り分けた米",
+            "size": 7,
+            "pose": {
+              "front": [
+                0,
+                -1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "751a0bff-c93a-5e29-af98-f5d7484061ae",
+        "creator_memo": "表示名: 取り分けた米。正式名: 炊飯に取り分けた生米"
+      }
+    },
+    {
+      "signification": {
+        "name": "炊けたご飯"
+      },
+      "appearance": {
+        "position": [
+          60,
+          0,
+          0
+        ],
+        "frames": [
+          0,
+          2,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.2,
+          "common": {
+            "color": "#7dd3fc",
+            "opacity": 1
+          },
+          "text": {
+            "content": "ご飯",
+            "size": 7,
+            "pose": {
+              "front": [
+                0,
+                -1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "30488e58-0e69-52e8-9448-b7bdc5620b39",
+        "creator_memo": "表示名: ご飯。正式名: 炊けたご飯"
+      }
+    },
+    {
+      "signification": {
+        "name": "配膳されたご飯"
+      },
+      "appearance": {
+        "position": [
+          120,
+          0,
+          0
+        ],
+        "frames": [
+          2,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.2,
+          "common": {
+            "color": "#7dd3fc",
+            "opacity": 1
+          },
+          "text": {
+            "content": "配膳後",
+            "size": 7,
+            "pose": {
+              "front": [
+                0,
+                -1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "37bed8ce-384d-5164-8cba-c6e1462458ff",
+        "creator_memo": "表示名: 配膳後。正式名: 配膳されたご飯"
+      }
+    },
+    {
+      "signification": {
+        "name": "購入・運搬"
+      },
+      "appearance": {
+        "position": [
+          -90,
+          0,
+          40
+        ],
+        "frames": [
+          1,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.2,
+          "common": {
+            "color": "#fbbf24",
+            "opacity": 1
+          },
+          "text": {
+            "content": "購入・運搬",
+            "size": 7,
+            "pose": {
+              "front": [
+                0,
+                -1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "0096a7da-0051-55f7-85c8-136baa903e25",
+        "creator_memo": "表示名: 購入・運搬。正式名: 購入・運搬"
+      }
+    },
+    {
+      "signification": {
+        "name": "保管"
+      },
+      "appearance": {
+        "position": [
+          -60,
+          0,
+          40
+        ],
+        "frames": [
+          1,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.2,
+          "common": {
+            "color": "#fbbf24",
+            "opacity": 1
+          },
+          "text": {
+            "content": "保管",
+            "size": 7,
+            "pose": {
+              "front": [
+                0,
+                -1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "7ccaa8f2-eaf1-5e0a-9991-2de984defa8c",
+        "creator_memo": "表示名: 保管。正式名: 保管"
+      }
+    },
+    {
+      "signification": {
+        "name": "取り分け"
+      },
+      "appearance": {
+        "position": [
+          -30,
+          0,
+          40
+        ],
+        "frames": [
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.2,
+          "common": {
+            "color": "#fbbf24",
+            "opacity": 1
+          },
+          "text": {
+            "content": "取り分け",
+            "size": 7,
+            "pose": {
+              "front": [
+                0,
+                -1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "c463f66b-bb42-5768-a0be-9cdb8cd91431",
+        "creator_memo": "表示名: 取り分け。正式名: 取り分け"
+      }
+    },
+    {
+      "signification": {
+        "name": "炊飯"
+      },
+      "appearance": {
+        "position": [
+          30,
+          0,
+          40
+        ],
+        "frames": [
+          0,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.2,
+          "common": {
+            "color": "#fbbf24",
+            "opacity": 1
+          },
+          "text": {
+            "content": "炊飯",
+            "size": 7,
+            "pose": {
+              "front": [
+                0,
+                -1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "536d0a4e-de2d-59c4-860d-f11f77d296cc",
+        "creator_memo": "表示名: 炊飯。正式名: 炊飯"
+      }
+    },
+    {
+      "signification": {
+        "name": "配膳"
+      },
+      "appearance": {
+        "position": [
+          90,
+          0,
+          40
+        ],
+        "frames": [
+          2,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.2,
+          "common": {
+            "color": "#fbbf24",
+            "opacity": 1
+          },
+          "text": {
+            "content": "配膳",
+            "size": 7,
+            "pose": {
+              "front": [
+                0,
+                -1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "0e45eeff-5599-5842-876a-d2132bcbe46e",
+        "creator_memo": "表示名: 配膳。正式名: 配膳"
+      }
+    },
+    {
+      "signification": {
+        "name": "調達する人"
+      },
+      "appearance": {
+        "position": [
+          -90,
+          0,
+          80
+        ],
+        "frames": [
+          1,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.2,
+          "common": {
+            "color": "#a7f3d0",
+            "opacity": 1
+          },
+          "text": {
+            "content": "調達役",
+            "size": 7,
+            "pose": {
+              "front": [
+                0,
+                -1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "cf1e0808-7859-510c-8438-205581114bf9",
+        "creator_memo": "表示名: 調達役。正式名: 調達する人"
+      }
+    },
+    {
+      "signification": {
+        "name": "調理する人"
+      },
+      "appearance": {
+        "position": [
+          30,
+          0,
+          80
+        ],
+        "frames": [
+          0,
+          2,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.2,
+          "common": {
+            "color": "#a7f3d0",
+            "opacity": 1
+          },
+          "text": {
+            "content": "調理役",
+            "size": 7,
+            "pose": {
+              "front": [
+                0,
+                -1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "f225f07d-b1ab-5ece-8834-d60b3726bec7",
+        "creator_memo": "表示名: 調理役。正式名: 調理する人"
+      }
+    },
+    {
+      "signification": {
+        "name": "保管容器"
+      },
+      "appearance": {
+        "position": [
+          -60,
+          0,
+          120
+        ],
+        "frames": [
+          1,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.2,
+          "common": {
+            "color": "#a7f3d0",
+            "opacity": 1
+          },
+          "text": {
+            "content": "保管容器",
+            "size": 7,
+            "pose": {
+              "front": [
+                0,
+                -1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "8f39bd5c-0383-5176-9afa-db0201e3d8ff",
+        "creator_memo": "表示名: 保管容器。正式名: 保管容器"
+      }
+    },
+    {
+      "signification": {
+        "name": "水"
+      },
+      "appearance": {
+        "position": [
+          -10,
+          0,
+          120
+        ],
+        "frames": [
+          0,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.2,
+          "common": {
+            "color": "#a7f3d0",
+            "opacity": 1
+          },
+          "text": {
+            "content": "水",
+            "size": 7,
+            "pose": {
+              "front": [
+                0,
+                -1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "8ec91bf7-3e31-5bd0-915a-2d35be791d1b",
+        "creator_memo": "表示名: 水。正式名: 水"
+      }
+    },
+    {
+      "signification": {
+        "name": "炊飯器"
+      },
+      "appearance": {
+        "position": [
+          30,
+          0,
+          120
+        ],
+        "frames": [
+          0,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.2,
+          "common": {
+            "color": "#a7f3d0",
+            "opacity": 1
+          },
+          "text": {
+            "content": "炊飯器",
+            "size": 7,
+            "pose": {
+              "front": [
+                0,
+                -1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "d4820873-ac70-5c85-a637-de1cfc6c57b0",
+        "creator_memo": "表示名: 炊飯器。正式名: 炊飯器"
+      }
+    },
+    {
+      "signification": {
+        "name": "電気"
+      },
+      "appearance": {
+        "position": [
+          70,
+          0,
+          120
+        ],
+        "frames": [
+          0,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.2,
+          "common": {
+            "color": "#a7f3d0",
+            "opacity": 1
+          },
+          "text": {
+            "content": "電気",
+            "size": 7,
+            "pose": {
+              "front": [
+                0,
+                -1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "4ddf93cf-e743-5b50-ab52-f0f87cac1078",
+        "creator_memo": "表示名: 電気。正式名: 電気"
+      }
+    },
+    {
+      "signification": {
+        "name": "食器"
+      },
+      "appearance": {
+        "position": [
+          110,
+          0,
+          120
+        ],
+        "frames": [
+          2,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.2,
+          "common": {
+            "color": "#a7f3d0",
+            "opacity": 1
+          },
+          "text": {
+            "content": "食器",
+            "size": 7,
+            "pose": {
+              "front": [
+                0,
+                -1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "7255e7b0-268b-5f59-8c60-4a775b0a5b54",
+        "creator_memo": "表示名: 食器。正式名: 食器"
+      }
+    }
+  ],
+  "lines": [
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "投入"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "2e2f2a84-83c0-5a8f-880d-731e1fb4b2b0"
+        },
+        "end_b": {
+          "ref": "0096a7da-0051-55f7-85c8-136baa903e25"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          1,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 4.5,
+          "pose": {
+            "front": [
+              0,
+              -1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "758ebfac-6b29-5218-8c0e-7040833077ad"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "届ける"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "0096a7da-0051-55f7-85c8-136baa903e25"
+        },
+        "end_b": {
+          "ref": "17d879e8-0d08-590e-ae78-da78a8a5c5f4"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          1,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 4.5,
+          "pose": {
+            "front": [
+              0,
+              -1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "c93bf416-18ef-51a5-b239-2b8f889ecc7b"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "neutral",
+        "caption": "保管対象"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "17d879e8-0d08-590e-ae78-da78a8a5c5f4"
+        },
+        "end_b": {
+          "ref": "7ccaa8f2-eaf1-5e0a-9991-2de984defa8c"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          1,
+          3
+        ],
+        "arrow": {
+          "primitive": "none",
+          "radius": 0.8,
+          "height": 2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 4.5,
+          "pose": {
+            "front": [
+              0,
+              -1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "cc83ec44-b45a-5108-a9c7-54a6a31f9957"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "取り分ける対象"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "17d879e8-0d08-590e-ae78-da78a8a5c5f4"
+        },
+        "end_b": {
+          "ref": "c463f66b-bb42-5768-a0be-9cdb8cd91431"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 4.5,
+          "pose": {
+            "front": [
+              0,
+              -1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "5685e0f7-883d-538a-914d-6e0e55dddf66"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "取り分け後"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "c463f66b-bb42-5768-a0be-9cdb8cd91431"
+        },
+        "end_b": {
+          "ref": "751a0bff-c93a-5e29-af98-f5d7484061ae"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 4.5,
+          "pose": {
+            "front": [
+              0,
+              -1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "5ea7d7c7-b9bb-5ed8-ab5d-c2d2fdda08d9"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "投入"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "751a0bff-c93a-5e29-af98-f5d7484061ae"
+        },
+        "end_b": {
+          "ref": "536d0a4e-de2d-59c4-860d-f11f77d296cc"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          0,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 4.5,
+          "pose": {
+            "front": [
+              0,
+              -1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "5209adfe-d6b7-5f35-8722-1de89172279a"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "炊飯後"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "536d0a4e-de2d-59c4-860d-f11f77d296cc"
+        },
+        "end_b": {
+          "ref": "30488e58-0e69-52e8-9448-b7bdc5620b39"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          0,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 4.5,
+          "pose": {
+            "front": [
+              0,
+              -1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "2c5df850-c3c0-5e12-ba54-2a7870ed8435"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "配膳する対象"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "30488e58-0e69-52e8-9448-b7bdc5620b39"
+        },
+        "end_b": {
+          "ref": "0e45eeff-5599-5842-876a-d2132bcbe46e"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          2,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 4.5,
+          "pose": {
+            "front": [
+              0,
+              -1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "02087fd8-a1c9-5509-b6f2-c33b975e1f6a"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "配膳後"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "0e45eeff-5599-5842-876a-d2132bcbe46e"
+        },
+        "end_b": {
+          "ref": "37bed8ce-384d-5164-8cba-c6e1462458ff"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          2,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 4.5,
+          "pose": {
+            "front": [
+              0,
+              -1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "ed9e1892-e9e2-5cc2-9489-7ce417d01858"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "担う"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "cf1e0808-7859-510c-8438-205581114bf9"
+        },
+        "end_b": {
+          "ref": "0096a7da-0051-55f7-85c8-136baa903e25"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          1,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 4.5,
+          "pose": {
+            "front": [
+              0,
+              -1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "d762431a-7f99-5c27-9502-86f96dc7141a"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "担う"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "f225f07d-b1ab-5ece-8834-d60b3726bec7"
+        },
+        "end_b": {
+          "ref": "c463f66b-bb42-5768-a0be-9cdb8cd91431"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 4.5,
+          "pose": {
+            "front": [
+              0,
+              -1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "92168311-e098-5cfa-873d-0d3ea9f23b10"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "担う"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "f225f07d-b1ab-5ece-8834-d60b3726bec7"
+        },
+        "end_b": {
+          "ref": "536d0a4e-de2d-59c4-860d-f11f77d296cc"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          0,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 4.5,
+          "pose": {
+            "front": [
+              0,
+              -1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "5095ce4e-bb63-5a8b-9cd7-bae57163ca4c"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "担う"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "f225f07d-b1ab-5ece-8834-d60b3726bec7"
+        },
+        "end_b": {
+          "ref": "0e45eeff-5599-5842-876a-d2132bcbe46e"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          2,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 4.5,
+          "pose": {
+            "front": [
+              0,
+              -1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "c783bff0-a6ed-5d9e-afbc-2d663560b0d9"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "使用される"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "8f39bd5c-0383-5176-9afa-db0201e3d8ff"
+        },
+        "end_b": {
+          "ref": "7ccaa8f2-eaf1-5e0a-9991-2de984defa8c"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          1,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 4.5,
+          "pose": {
+            "front": [
+              0,
+              -1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "fac9eb42-4736-508b-86fb-884836f6d2f9"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "使用される"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "8ec91bf7-3e31-5bd0-915a-2d35be791d1b"
+        },
+        "end_b": {
+          "ref": "536d0a4e-de2d-59c4-860d-f11f77d296cc"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          0,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 4.5,
+          "pose": {
+            "front": [
+              0,
+              -1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "fbb2e8d7-6dd5-50c9-8570-1ea9a8e6b882"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "使用される"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "d4820873-ac70-5c85-a637-de1cfc6c57b0"
+        },
+        "end_b": {
+          "ref": "536d0a4e-de2d-59c4-860d-f11f77d296cc"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          0,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 4.5,
+          "pose": {
+            "front": [
+              0,
+              -1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "0b7d12f2-bd3d-5062-a806-1c73f9145173"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "使用される"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "4ddf93cf-e743-5b50-ab52-f0f87cac1078"
+        },
+        "end_b": {
+          "ref": "536d0a4e-de2d-59c4-860d-f11f77d296cc"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          0,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 4.5,
+          "pose": {
+            "front": [
+              0,
+              -1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "9613e70b-45a7-534d-834b-9b89fd2ca3b5"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "使用される"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "7255e7b0-268b-5f59-8c60-4a775b0a5b54"
+        },
+        "end_b": {
+          "ref": "0e45eeff-5599-5842-876a-d2132bcbe46e"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          2,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 4.5,
+          "pose": {
+            "front": [
+              0,
+              -1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "5ae07833-d1e6-536b-be1b-c2e9af9e70c3"
+      }
+    }
+  ]
+}

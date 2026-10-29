@@ -20,3 +20,36 @@ button,.open-button,summary,select{cursor:pointer}button:hover:not(:disabled),.o
 @media(max-width:900px){#reading-controls{gap:6px;padding:5px}#reading-controls .reading-control-state{display:none}#reading-frame-slider{width:80px}#reading-help>div{right:-5px}}@media(max-width:600px){#reading-controls{max-height:155px;overflow-y:auto}#reading-controls .reading-popup>div{position:fixed;right:10px;top:130px}#reading-help>div{position:fixed;right:10px;top:65px}#reading-controls button,#reading-controls select{padding:4px 6px}#reading-frame-slider{width:70px}}
 
 #reading-notices{display:flex;align-items:center;gap:10px;padding:5px 12px;background:#2a261c;border-bottom:1px solid #705b35;color:#f0d2a0;font-size:12px}#reading-notices[hidden]{display:none}#reading-notice{font-size:12px;padding:4px 8px;min-height:29px;white-space:nowrap;background:#3a3022;border-color:#8d7045}#reading-notice-summary{display:block;line-height:1.4;overflow-wrap:anywhere}
+
+
+/* The native disclosure only collapses the controls on phones. */
+#reading-tools{flex-shrink:0}
+#reading-tools>summary{display:none}
+@media(max-width:650px){
+  body.contract-viewer{height:auto;min-height:100dvh;overflow-x:hidden;overflow-y:auto}
+  .contract-viewer #reading-header{gap:6px;flex-shrink:0}
+  .contract-viewer #reading-header strong{font-size:16px}
+  .contract-viewer #reading-header button,.contract-viewer #reading-header .open-button,.contract-viewer #reading-header summary{min-height:44px;box-sizing:border-box}
+  .contract-viewer #reading-file{min-width:0;max-width:none;flex:1 1 100px}
+  .contract-viewer #reading-tools>summary{display:list-item;padding:12px 14px;border-bottom:1px solid #41566e;background:#152231;min-height:44px;box-sizing:border-box;color:#bee2ff}
+  .contract-viewer #reading-tools:not([open])>summary::after{content:"を開く"}
+  .contract-viewer #reading-tools[open]>summary::after{content:"を閉じる"}
+  .contract-viewer #reading-toolbar{gap:6px;padding:8px}
+  .contract-viewer #reading-toolbar button,.contract-viewer #reading-toolbar select,.contract-viewer #reading-controls button,.contract-viewer #reading-controls select{min-height:44px}
+  .contract-viewer #reading-search-form{width:100%;min-width:0}
+  .contract-viewer #reading-search{flex:1;min-width:0;width:auto}
+  .contract-viewer #reading-controls{max-height:none;overflow:visible;padding:8px}
+  .contract-viewer .reading-control-group{flex-wrap:wrap;width:100%}
+  .contract-viewer #reading-layout,.contract-viewer #reading-layout.info-hidden{flex:none;grid-template-columns:minmax(0,1fr);grid-template-rows:max(360px,55svh) auto}
+  .contract-viewer #viewer-root{height:max(360px,55svh);min-height:360px}
+  .contract-viewer #contract-info{max-height:45svh;min-height:160px;box-sizing:border-box}
+  .contract-viewer #contract-status{flex-shrink:0;box-sizing:border-box}
+  .contract-viewer #reading-notices{padding:4px 8px;flex-shrink:0}
+  .contract-viewer #reading-notice{min-height:44px}
+  .contract-viewer #reading-notice-summary{display:none}
+  /* Redundant legacy controls remain available in the expanded settings. The
+     orientation gizmo stays visible with a smaller footprint over the drawing. */
+  .contract-viewer #viewer-rightdock{right:8px;bottom:8px;transform:scale(.6);transform-origin:right bottom}
+  .contract-viewer #auto-orbit-slot{display:none!important}
+  .contract-viewer #reading-controls .reading-popup>div{max-height:70svh}
+}
