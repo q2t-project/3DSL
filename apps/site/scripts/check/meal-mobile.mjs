@@ -166,6 +166,9 @@ if (!chrome) {
     for (const width of [360, 390, 1280]) {
       errors.length = 0;
       const useTouch=width<650;
+      // Reset Chromium's emulated touchscreen between documents/viewports.
+      // A completed gesture in the prior case must not suppress the next page.
+      await cmd('Emulation.setTouchEmulationEnabled', {enabled:false});
       await cmd('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: useTouch });
       await cmd('Emulation.setTouchEmulationEnabled', {enabled:useTouch,maxTouchPoints:2});
       const query = `?meal-smoke=${width}`;
@@ -203,13 +206,14 @@ if (!chrome) {
         assert.equal(await evaluate(`document.getElementById('reading-tools').open`), false, 'controls collapse again');
       } else assert.equal(actual.toolsOpen, true, 'desktop controls remain expanded');
       const roleId='f225f07d-b1ab-5ece-8834-d60b3726bec7';
-      await evaluate(`document.getElementById('viewer-canvas').scrollIntoView({block:'center'});window.__mealPointerEvents=[];for(const type of ['pointerdown','pointerup','pointermove','pointerleave','pointercancel'])document.getElementById('viewer-canvas').addEventListener(type,event=>window.__mealPointerEvents.push({type:event.type,trusted:event.isTrusted,pointerType:event.pointerType,primary:event.isPrimary,button:event.button,buttons:event.buttons,x:event.clientX,y:event.clientY}),{passive:true});`);
+      await evaluate(`document.getElementById('viewer-canvas').scrollIntoView({block:'center'});window.__mealPointerEvents=[];for(const type of ['pointerdown','pointerup','pointermove','pointerleave','pointercancel','touchstart','touchend'])document.addEventListener(type,event=>window.__mealPointerEvents.push({target:event.target.id,type:event.type,trusted:event.isTrusted,pointerType:event.pointerType,primary:event.isPrimary,button:event.button,buttons:event.buttons,x:event.clientX,y:event.clientY}),{passive:true,capture:true});`);
       await painted();
       const beforePick=await evaluate('window.viewerDiagnostics.snapshot().camera');
       // Inside the visible word but away from its 0.4-radius marker and links.
       const word=await projectPoint([-40,0,67]);
       await fs.writeFile(path.join(logs,`meal-mobile-input-${width}.json`),JSON.stringify({word,beforePick},null,2));
       assert(word.y>0&&word.y<900&&word.x>0&&word.x<width,'word target inside viewport');
+      assert.equal(await evaluate(`document.elementFromPoint(${word.x},${word.y})?.id`),'viewer-canvas','projected word reaches the canvas');
       if(useTouch)await tap(word);
       else {
         await cmd('Input.dispatchMouseEvent',{type:'mousePressed',x:word.x,y:word.y,button:'left',clickCount:1});
@@ -219,7 +223,7 @@ if (!chrome) {
       assert.deepEqual(await evaluate('window.viewerDiagnostics.snapshot().camera'),beforePick,'normal word selection does not move the camera');
       assert.equal(await evaluate(`document.getElementById('reading-selection-label').textContent`),'調理役','selection feedback identifies tapped word');
       assert(await evaluate(`document.getElementById('contract-reading').textContent.includes('調理役')`),'tap updates information');
-      assert(await evaluate(`window.__mealPointerEvents.some(event=>event.type==='pointerup'&&event.trusted&&event.pointerType===${JSON.stringify(useTouch?'touch':'mouse')})`),'trusted browser pointer path exercised');
+      assert(await evaluate(`window.__mealPointerEvents.some(event=>event.target==='viewer-canvas'&&event.type==='pointerup'&&event.trusted&&event.pointerType===${JSON.stringify(useTouch?'touch':'mouse')})`),'trusted browser pointer path exercised');
       if(useTouch) {
         await evaluate('window.viewerDiagnostics.select(null)');
         await tap(await projectPoint([-40,0,67]),6);
