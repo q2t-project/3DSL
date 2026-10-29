@@ -18,6 +18,7 @@ syncToolsViewport();
 mobileViewport.addEventListener('change',syncToolsViewport);
 const resizeAfterToolsToggle=()=>window.dispatchEvent(new Event('resize'));
 readingTools.addEventListener('toggle',resizeAfterToolsToggle);
+byId('reading-results').addEventListener('toggle',resizeAfterToolsToggle);
 const status=byId('contract-status'),input=byId('contract-open'),reading=byId('contract-reading');
 const validator=createCoreControllers({emit(){}}).validator;
 const searchInput=byId('reading-search'),frame=byId('reading-frame'),scope=byId('reading-scope');
@@ -69,6 +70,9 @@ function render(state) {
   byId('reading-back').disabled=busy||!ready||!state.historyDepth;
   for(const id of ['reading-all','reading-search-button'])byId(id).disabled=busy||!ready;
   for(const id of ['reading-show','reading-explore'])byId(id).disabled=busy||!ready||!entry;
+  byId('reading-selection').hidden=!entry;
+  byId('reading-selection-label').textContent=entry?.label||'';
+  for(const id of ['reading-selection-info','reading-selection-show'])byId(id).disabled=busy||!ready||!entry;
   scope.disabled=searchInput.disabled=busy||!ready;
   for(const key of ['points','lines','aux']){const node=byId(`reading-${key}`);node.checked=state.filters[key];node.disabled=busy||!ready;}
   input.disabled=busy||handoffPending;
@@ -96,6 +100,8 @@ byId('reading-show').addEventListener('click',()=>act(()=>controller.fitSelectio
 byId('reading-all').addEventListener('click',()=>act(()=>controller.fitAll()));
 byId('reading-explore').addEventListener('click',()=>act(()=>controller.explore()));
 byId('reading-info-toggle').addEventListener('click',()=>controller.setInfoOpen(!controller.snapshot().infoOpen));
+byId('reading-selection-info').addEventListener('click',()=>{controller.setInfoOpen(true);byId('contract-info').scrollIntoView({block:'start',behavior:'smooth'});});
+byId('reading-selection-show').addEventListener('click',()=>act(async()=>{await controller.fitSelection();byId('viewer-canvas').scrollIntoView({block:'center',behavior:'smooth'});}));
 scope.addEventListener('change',()=>act(()=>controller.setScope(scope.value)));
 for(const key of ['points','lines','aux'])byId(`reading-${key}`).addEventListener('change',event=>act(()=>controller.setFilters({[key]:event.target.checked})));
 byId('reading-search-form').addEventListener('submit',event=>{event.preventDefault();act(async()=>{await controller.search(searchInput.value);controller.setInfoOpen(true);results.open=true;});});

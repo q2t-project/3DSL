@@ -1798,6 +1798,18 @@ function flushCommandQueue() {
         return enqueueCommand({ type: restore ? "reading.restore" : "reading.apply", state: structuredClone(state) });
       },
       getControls: getReadingControls,
+      getBounds(uuids) {
+        if (disposed) return null;
+        const wanted = new Set(uuids), visible = core.uiState?.visibleSet;
+        const subset = Object.fromEntries(["points", "lines", "aux"].map(kind => [kind, new Set(Array.from(visible?.[kind] ?? []).filter(id => wanted.has(id)))]));
+        const layout = renderer?.getInitialReadingLayout?.(subset);
+        const points = [...(layout?.geometry ?? []), ...(layout?.labels ?? []).flatMap(label => label.corners)];
+        if (!points.length) return null;
+        return {
+          min: [0,1,2].map(i => Math.min(...points.map(point => point[i]))),
+          max: [0,1,2].map(i => Math.max(...points.map(point => point[i]))),
+        };
+      },
       isCameraTransitioning() { return !!cameraTransition?.isActive?.(); },
       control(action, value) {
         if (disposed) return false;

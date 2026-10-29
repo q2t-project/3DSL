@@ -1,5 +1,5 @@
-// Actual generated Viewer smoke test with software WebGL. This is desktop
-// Chromium at phone widths, not Android touch or independent reader testing.
+// Actual generated Viewer with software WebGL and trusted CDP touch input.
+// Emulated Chromium touch is not Android hardware or reader comprehension.
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -125,13 +125,47 @@ if (!chrome) {
       }
       assert.fail(`Viewer boot hook unavailable: ${JSON.stringify(errors)}`);
     }
+    const painted = () => evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
+    async function until(expression, message) {
+      const deadline = Date.now() + 10000;
+      while (Date.now() < deadline) {
+        if (await evaluate(expression)) return;
+        await sleep(50);
+      }
+      assert.fail(message + ': ' + JSON.stringify(await evaluate('window.viewerDiagnostics.snapshot()')));
+    }
+    async function touch(type, points) {
+      await cmd('Input.dispatchTouchEvent', {type, touchPoints:points.map((point,i)=>({x:point.x,y:point.y,id:i+1,radiusX:2,radiusY:2}))});
+    }
+    async function tap(point, jitter = 0) {
+      await touch('touchStart',[point]);
+      if(jitter)await touch('touchMove',[{x:point.x+jitter,y:point.y}]);
+      await touch('touchEnd',[]);
+      await painted();
+    }
+    async function clickElement(expression, useTouch) {
+      await evaluate(`(${expression}).scrollIntoView({block:'center'})`);
+      await painted();
+      const point=await evaluate(`(() => {const r=(${expression}).getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()`);
+      if(useTouch)await tap(point);
+      else {
+        await cmd('Input.dispatchMouseEvent',{type:'mousePressed',...point,button:'left',clickCount:1});
+        await cmd('Input.dispatchMouseEvent',{type:'mouseReleased',...point,button:'left',clickCount:1});
+        await painted();
+      }
+    }
+    async function projectPoint(point) {
+      return evaluate(`(async()=>{const THREE=await import('/preview-reconstruction/vendor/three/build/three.module.js'),s=window.viewerDiagnostics.snapshot().camera,r=document.getElementById('viewer-canvas').getBoundingClientRect(),c=new THREE.PerspectiveCamera(s.fov,r.width/r.height,.1,10000),t=s.target;c.up.set(0,0,1);c.position.set(t.x+s.distance*Math.sin(s.phi)*Math.cos(s.theta),t.y+s.distance*Math.sin(s.phi)*Math.sin(s.theta),t.z+s.distance*Math.cos(s.phi));c.lookAt(t.x,t.y,t.z);c.updateMatrixWorld(true);const p=new THREE.Vector3(...${JSON.stringify(point)}).project(c);return {x:r.left+(p.x+1)*r.width/2,y:r.top+(1-p.y)*r.height/2,ndc:[p.x,p.y,p.z]};})()`);
+    }
     const measure = `(() => { const root=document.getElementById('viewer-root'),canvas=document.getElementById('viewer-canvas'),tools=document.getElementById('reading-tools'),dock=document.getElementById('viewer-rightdock'); const canvasRect=canvas.getBoundingClientRect(),dockRect=dock.getBoundingClientRect(); return {width:innerWidth,scroll:document.documentElement.scrollWidth,rootHeight:root.getBoundingClientRect().height,canvasHeight:canvas.clientHeight,canvasWidth:canvas.clientWidth,canvasBottom:canvasRect.bottom,dockTop:dockRect.top,canvasPixels:[canvas.width,canvas.height],toolsOpen:tools.open,state:window.viewerDiagnostics.snapshot()}; })()`;
     await cmd('Page.enable');
     await cmd('Runtime.enable');
     const cases = [];
     for (const width of [360, 390, 1280]) {
       errors.length = 0;
-      await cmd('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: false });
+      const useTouch=width<650;
+      await cmd('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: useTouch });
+      await cmd('Emulation.setTouchEmulationEnabled', {enabled:useTouch,maxTouchPoints:2});
       const query = `?meal-smoke=${width}`;
       await cmd('Page.navigate', { url: origin + '/preview-reconstruction/contract_viewer/index.html' + query });
       await ready(query);
@@ -153,6 +187,7 @@ if (!chrome) {
       assert(actual.canvasPixels.every(n => n > 0), 'render canvas has pixels');
       if (width < 650) {
         assert.equal(actual.toolsOpen, false, 'mobile starts with controls collapsed');
+        assert(await evaluate(`document.getElementById('reading-search').getClientRects().length>0`),'search available without opening controls');
         assert(actual.canvasHeight >= 360, 'actual mobile canvas height >=360px');
         assert(actual.canvasBottom <= actual.dockTop + 1, 'mobile gizmo strip does not overlap drawing');
         await evaluate(`document.getElementById('reading-tools-toggle').click()`);
@@ -165,6 +200,69 @@ if (!chrome) {
         await evaluate(`document.getElementById('reading-tools-toggle').click()`);
         assert.equal(await evaluate(`document.getElementById('reading-tools').open`), false, 'controls collapse again');
       } else assert.equal(actual.toolsOpen, true, 'desktop controls remain expanded');
+      const roleId='f225f07d-b1ab-5ece-8834-d60b3726bec7';
+      await evaluate(`document.getElementById('viewer-canvas').scrollIntoView({block:'center'});window.__mealPointerEvents=[];for(const type of ['pointerdown','pointerup'])document.getElementById('viewer-canvas').addEventListener(type,event=>window.__mealPointerEvents.push({type:event.type,trusted:event.isTrusted,pointerType:event.pointerType}),{passive:true});`);
+      await painted();
+      const beforePick=await evaluate('window.viewerDiagnostics.snapshot().camera');
+      // Inside the visible word but away from its 0.4-radius marker and links.
+      const word=await projectPoint([-40,0,67]);
+      assert(word.y>0&&word.y<900&&word.x>0&&word.x<width,'word target inside viewport');
+      if(useTouch)await tap(word);
+      else {
+        await cmd('Input.dispatchMouseEvent',{type:'mousePressed',x:word.x,y:word.y,button:'left',clickCount:1});
+        await cmd('Input.dispatchMouseEvent',{type:'mouseReleased',x:word.x,y:word.y,button:'left',clickCount:1});
+      }
+      await until(`window.viewerDiagnostics.snapshot().bridgeState.selection?.uuid===${JSON.stringify(roleId)}`,'visible role word selects directly');
+      assert.deepEqual(await evaluate('window.viewerDiagnostics.snapshot().camera'),beforePick,'normal word selection does not move the camera');
+      assert.equal(await evaluate(`document.getElementById('reading-selection-label').textContent`),'調理役','selection feedback identifies tapped word');
+      assert(await evaluate(`document.getElementById('contract-reading').textContent.includes('調理役')`),'tap updates information');
+      assert(await evaluate(`window.__mealPointerEvents.some(event=>event.type==='pointerup'&&event.trusted&&event.pointerType===${JSON.stringify(useTouch?'touch':'mouse')})`),'trusted browser pointer path exercised');
+      if(useTouch) {
+        await evaluate('window.viewerDiagnostics.select(null)');
+        await tap(await projectPoint([-40,0,67]),6);
+        await until(`window.viewerDiagnostics.snapshot().bridgeState.selection?.uuid===${JSON.stringify(roleId)}`,'6px finger jitter still selects');
+        assert.deepEqual(await evaluate('window.viewerDiagnostics.snapshot().camera'),beforePick,'small touch jitter does not rotate');
+        await evaluate('window.viewerDiagnostics.select(null)');
+        const start=await projectPoint([-40,0,67]);
+        await touch('touchStart',[start]);await touch('touchMove',[{x:start.x+35,y:start.y+20}]);await touch('touchEnd',[]);await painted();
+        assert.equal(await evaluate('window.viewerDiagnostics.snapshot().selectedId'),null,'drag does not accidentally select');
+        assert.notDeepEqual(await evaluate('window.viewerDiagnostics.snapshot().camera'),beforePick,'drag still rotates');
+        await evaluate('window.viewerDiagnostics.cameraReset()');
+        const center=await projectPoint([-40,0,67]);
+        await touch('touchStart',[center,{x:center.x+50,y:center.y}]);
+        await touch('touchMove',[{x:center.x-10,y:center.y},{x:center.x+65,y:center.y}]);
+        await touch('touchEnd',[]);await painted();
+        assert.equal(await evaluate('window.viewerDiagnostics.snapshot().selectedId'),null,'pinch does not accidentally select');
+        assert.notDeepEqual(await evaluate('window.viewerDiagnostics.snapshot().camera'),beforePick,'pinch still changes view');
+        await evaluate('window.viewerDiagnostics.cameraReset()');
+        await touch('touchStart',[await projectPoint([-40,0,67])]);await touch('touchCancel',[]);await painted();
+        assert.equal(await evaluate('window.viewerDiagnostics.snapshot().selectedId'),null,'cancelled touch does not select');
+        await evaluate('window.viewerDiagnostics.setFrame(1)');
+        await tap(await projectPoint([-40,0,67]));
+        assert.notEqual(await evaluate('window.viewerDiagnostics.snapshot().bridgeState.selection?.uuid'),roleId,'hidden-frame label cannot be picked');
+        await evaluate('window.viewerDiagnostics.setFrame(0)');
+      }
+      await evaluate('window.viewerDiagnostics.select(null)');
+      const beforeSearch=await evaluate('window.viewerDiagnostics.snapshot().camera');
+      await clickElement(`document.getElementById('reading-search')`,useTouch);
+      await cmd('Input.insertText',{text:'調理役'});
+      await clickElement(`document.getElementById('reading-search-button')`,useTouch);
+      await until(`document.getElementById('reading-results').open&&document.querySelectorAll('#reading-result-list .result-button').length===1`,'name search returns role directly');
+      await clickElement(`document.querySelector('#reading-result-list .result-button')`,useTouch);
+      await until(`window.viewerDiagnostics.snapshot().bridgeState.selection?.uuid===${JSON.stringify(roleId)}`,'search result selects role without traversing connections');
+      assert.deepEqual(await evaluate('window.viewerDiagnostics.snapshot().camera'),beforeSearch,'search selection preserves camera');
+      await clickElement(`document.getElementById('reading-selection-show')`,useTouch);
+      await until(`window.viewerDiagnostics.snapshot().camera.distance<100`,'explicit show fits the selected word');
+      await painted();
+      const fitted=await evaluate('window.viewerDiagnostics.snapshot()');
+      assert(fitted.camera.distance>15,'fit includes word extent instead of zooming into tiny point');
+      for(const p of [[-45,0,62.2],[-25,0,69.2]])assert((await projectPoint(p)).ndc.slice(0,2).every(n=>Math.abs(n)<1),'selected word remains inside drawing');
+      const selectedScreenshot=await cmd('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
+      await fs.writeFile(path.join(logs,`meal-mobile-selected-${width}.png`),Buffer.from(selectedScreenshot.data,'base64'));
+      await clickElement(`document.getElementById('reading-selection-info')`,useTouch);
+      await painted();
+      assert(await evaluate(`document.getElementById('contract-info').getBoundingClientRect().top<innerHeight`),'information button reaches selected details');
+      await evaluate('window.viewerDiagnostics.cameraReset()');
       await evaluate('window.viewerDiagnostics.setFrame(2)');
       await evaluate('window.viewerDiagnostics.fitAll()');
       const focused = await evaluate('window.viewerDiagnostics.snapshot()');
@@ -178,12 +276,17 @@ if (!chrome) {
       const screenshot = await cmd('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
       await fs.writeFile(path.join(logs, `meal-mobile-${width}.png`), Buffer.from(screenshot.data, 'base64'));
       assert.deepEqual(errors, [], 'no browser runtime/renderer exceptions');
-      cases.push({ width, scroll: actual.scroll, canvasHeight: actual.canvasHeight, canvasBottom: actual.canvasBottom, dockTop: actual.dockTop, toolsOpen: actual.toolsOpen, entryCount: actual.state.entryCount, camera: actual.state.camera, frame2: focused.frame });
+      cases.push({ width, input:useTouch?'trusted emulated touch':'trusted mouse', directLabelPick:true, nameSearch:true, selectedFitDistance:fitted.camera.distance, scroll: actual.scroll, canvasHeight: actual.canvasHeight, canvasBottom: actual.canvasBottom, dockTop: actual.dockTop, toolsOpen: actual.toolsOpen, entryCount: actual.state.entryCount, camera: actual.state.camera, frame2: focused.frame });
       console.log('[check:meal-mobile] CASE PASS ' + JSON.stringify(cases.at(-1)));
     }
-    await fs.writeFile(path.join(logs, 'meal-mobile-results.json'), JSON.stringify({ cases, scope: 'Generated actual Viewer, software WebGL, desktop Chromium at phone widths; not Android touch or reader comprehension.' }, null, 2));
-    console.log('[check:meal-mobile] PASS 360/390/1280 actual Viewer load, front-facing camera, controls, frame 2 and no exceptions. Not an Android or comprehension test.');
+    await fs.writeFile(path.join(logs, 'meal-mobile-results.json'), JSON.stringify({ cases, scope: 'Generated actual Viewer, software WebGL, trusted CDP touch at 360/390 and mouse at 1280; not Android hardware or reader comprehension.' }, null, 2));
+    console.log('[check:meal-mobile] PASS 360/390 trusted emulated touch: word pick, 6px jitter, drag/pinch/cancel safety, hidden label, search, selected fit, unchanged input; 1280 mouse. Not Android hardware.');
   } catch (error) {
+    if(ws?.readyState===WebSocket.OPEN) {
+      // Keep visual evidence even when an interaction assertion fails.
+      const failure=await new Promise(resolve=>{const id=900000;const timer=setTimeout(()=>resolve(null),3000);ws.addEventListener('message',event=>{const message=JSON.parse(event.data);if(message.id===id){clearTimeout(timer);resolve(message.result);} });ws.send(JSON.stringify({id,method:'Page.captureScreenshot',params:{format:'png'}}));});
+      if(failure?.data)await fs.writeFile(path.join(logs,'meal-mobile-failure.png'),Buffer.from(failure.data,'base64'));
+    }
     await fs.writeFile(path.join(logs, 'meal-mobile-chrome-stderr.log'), stderr);
     throw error;
   } finally {

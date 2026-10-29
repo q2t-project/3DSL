@@ -23,6 +23,16 @@ button,.open-button,summary,select{cursor:pointer}button:hover:not(:disabled),.o
 
 
 /* The native disclosure only collapses the controls on phones. */
+#reading-find{position:relative;z-index:2;flex-shrink:0;padding:6px 12px;background:#121c28;border-bottom:1px solid #314358}
+#reading-find #reading-search-form{margin:0;width:100%;max-width:680px}
+#reading-find #reading-search{flex:1;min-width:0;width:auto}
+#reading-find input,#reading-find button,#reading-find summary{min-height:44px;box-sizing:border-box}
+#reading-results>summary{padding:10px 0;color:#bee2ff}
+#reading-result-list{max-height:30svh;overflow:auto}
+#reading-selection{display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-size:13px}
+#reading-selection[hidden]{display:none}
+#reading-selection>span{flex:1;min-width:100px;overflow-wrap:anywhere}
+#reading-selection strong{color:#bce2ff}
 #reading-tools{flex-shrink:0}
 #reading-tools>summary{display:none}
 @media(max-width:650px){

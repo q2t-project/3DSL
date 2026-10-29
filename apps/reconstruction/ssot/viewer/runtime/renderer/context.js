@@ -2553,9 +2553,14 @@ for (const aux of axs) {
       try { scene.updateMatrixWorld(true); } catch (_e) {}
 
       raycaster.setFromCamera({ x, y }, camera);
-      const targets = (pickTargets && pickTargets.length)
+      const geometryTargets = (pickTargets && pickTargets.length)
         ? pickTargets
         : [groups.points, groups.lines, groups.aux].filter(Boolean);
+      // Read-only browsing selects the visible word as well as its small point
+      // or line. Keep editing profiles' existing pick/property contract intact.
+      const targets = opts.readingPresentation === true
+        ? [...geometryTargets, ...labelLayer.runtime.getPickTargets()]
+        : geometryTargets;
       if (!targets.length) return null;
 
       const hits = raycaster.intersectObjects(targets, true);

@@ -5,6 +5,7 @@
 import { mapDragToOrbitDelta } from './orbitMapping.js';
 import { createHubFacade } from './hubFacade.js';
 import { DEFAULT_INPUT_POINTER, resolveInputDefaults } from './inputDefaults.js';
+import { TOUCH_TAP_SLOP_PX } from './tapGesture.js';
 
 
 function _num(v, fallback) {
@@ -253,7 +254,8 @@ export class PointerInput {
     const src = p0 || fallbackPointer;
     const fast = !!event?.shiftKey;
 
-    const minDragPx = Math.max(0, _int(src.minDragPx, fallbackPointer.minDragPx));
+    const tapSlop = this.hub?.browsing && event?.pointerType === 'touch' ? TOUCH_TAP_SLOP_PX : 0;
+    const minDragPx = Math.max(tapSlop, _int(src.minDragPx, fallbackPointer.minDragPx));
     const clickMovePx = Math.max(0, _num(src.clickMovePx, fallbackPointer.clickMovePx));
 
     const rotateSpeed = _num(
