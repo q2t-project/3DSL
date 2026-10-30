@@ -67,7 +67,7 @@ if (!chrome) {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const origin = `http://127.0.0.1:${server.address().port}`;
   const proc = spawn(chrome, ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--remote-debugging-port=0', `--user-data-dir=${dir}`, 'about:blank'], { stdio: ['ignore', 'ignore', 'pipe'] });
-  let stderr = '', processError, ws;
+  let stderr = '', processError, ws, captureDiagnostics;
   proc.stderr.on('data', chunk => { stderr = (stderr + chunk).slice(-12000); });
   proc.on('error', error => { processError = error; });
   try {
@@ -141,6 +141,12 @@ if (!chrome) {
         stage:rect(document.getElementById('model-stage')),panel:rect(document.getElementById('support-panel')),
         labels:[...document.querySelectorAll('.model-label[data-element-id]')].map(el=>{const ink=el.querySelector('.label-ink')||el,s=getComputedStyle(ink);return {id:el.dataset.elementId,text:ink.textContent,kind:el.dataset.kind,writing:s.writingMode,font:s.fontFamily,color:s.color,rect:rect(ink),localWidth:ink.offsetWidth,localHeight:ink.offsetHeight,display:s.display,visibility:s.visibility};})};
     })()`);
+    captureDiagnostics = async () => {
+      const current = await evaluate('window.legendLab?.getState?.() ?? null');
+      const layout = current ? await domSnapshot() : null;
+      await fs.writeFile(path.join(logs, `visual-grammar-lab-failure-${width}.json`), JSON.stringify({ width, state: current, layout, errors, failedResponses }, null, 2));
+      await screenshot('failure');
+    };
     function preserve(before, after, message) {
       assert.deepEqual(after.model, model, message + ': source data unchanged');
       assert.equal(after.modelUnchanged, true, message + ': live source data unchanged');
@@ -326,18 +332,27 @@ if (!chrome) {
       assert.equal(current.labels.length, initial.labels.length, key + ': other model elements are retained');
       const group = current.readingGroups[key];
       assert(group?.ids?.length > 2, key + ': reading view includes a relation group');
+      const actualDirection = current.camera.position.map((value, index) => value - current.camera.target[index]);
+      const actualDistance = Math.hypot(...actualDirection), expectedLength = Math.hypot(...group.direction);
+      assert(actualDirection.every((value, index) => Math.abs(value / actualDistance - group.direction[index] / expectedLength) < 1e-6), key + ': explicit reading view uses its authored camera direction');
       const ids = new Set(group.ids);
       const relations = model.lines.filter(line => ids.has(line.meta.uuid));
       assert(relations.length > 0, key + ': reading view contains actual model relations');
       for (const line of relations) for (const side of ['end_a', 'end_b']) assert(ids.has(line.appearance[side].ref), key + ': both relation endpoints remain in the reading group');
       const corners = current.labels.filter(label => ids.has(label.id)).flatMap(label => label.worldCorners);
       const projectedFit = checkProjectedFit(corners, current, dom, key + ' relationship fit');
+      // All comparison-stage corners and relation geometry are fitted together.
+      // Some groups already span most of the full view, so a fixed word-area
+      // enlargement ratio is not a valid requirement for this camera operation.
+      const completeFit = checkProjectedFit(group.fitPoints, current, dom, key + ' complete group fit', true);
       const previousWord = beforeDom.labels.find(label => label.text === targetWord), currentWord = dom.labels.find(label => label.text === targetWord);
       assert(previousWord && currentWord, key + ': target word exists');
       const areaRatio = currentWord.rect.width * currentWord.rect.height / (previousWord.rect.width * previousWord.rect.height);
-      assert(areaRatio > 1.1, key + ': target word becomes visibly larger through camera fitting');
       assert.notDeepEqual(current.camera.position, before.camera.position, key + ': scope button actually changes camera');
-      readingViews.push({ key, targetWord, group, areaRatio, projectedFit, screenMetrics: screenMetrics(dom, current) });
+      assert.notDeepEqual(current.camera.target, before.camera.target, key + ': scope button centers its relationship group');
+      readingViews.push({ key, targetWord, group: { label: group.label, ids: group.ids, direction: group.direction }, areaRatio,
+        areaRatioCaveat: 'Projected word-box area may change because of camera direction as well as distance; it is recorded rather than used as a universal enlargement requirement.',
+        projectedFit, completeFit, screenMetrics: screenMetrics(dom, current) });
       await screenshot('view-' + key);
     }
     await click('#reset-view'); await painted();
@@ -410,7 +425,9 @@ if (!chrome) {
     console.log(`[check:visual-grammar-lab] PASS ${width}px, ${allIds.length} labels, ${overlap.length} bounding-box overlap candidates recorded.`);
   } catch (error) {
     if (ws?.readyState === WebSocket.OPEN) {
-      // Successful captures are saved incrementally; the error keeps CDP output.
+      // Preserve the actual failing view, including failures before a planned
+      // screenshot, so visual problems can be distinguished from test limits.
+      await captureDiagnostics?.().catch(() => {});
       await fs.writeFile(path.join(logs, `visual-grammar-lab-failure-${width}.txt`), String(error.stack || error));
     }
     throw error;

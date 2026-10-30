@@ -11,7 +11,7 @@
     "coordinate_system": "Z+up/freeXY",
     "units": "non_si:px",
     "i18n": "ja",
-    "creator_memo": "この見本は文字面の読み比べが目的で、q・Q・tの全座標を定義した完成済みの共通軸モデルではありません。位置は説明配置で、米の主経路に限り+Yを工程順序に使います。HG-V1用の独立した候補見本です。q=+Z、Q=-X、t=+Yを読む面の規約として使います。XZ=qQ、YZ=qt、XY=Qt。旧試作のXY=非時間という対応は継承しません。状態は時点を持ちますが、その切片の文字面にはtを含めません。役割・種類のXZ面は時点を置かない記述であり、状態の切片と同一ではありません。工程点と米の状態の+Yは順序だけを表し、距離を経過時間としません。数量・物理的位置・特定の個人や機器は未記録です。注記点は図を読むためのメタ記述で、米・過程・参与者ではありません。サイズ16と8はこの見本で何を全体から先に読むかという相対的なスコープです。色は線の関係系列を補助し、点を排他的な色分類へ分けません。",
+    "creator_memo": "この見本は文字面の読み比べが目的で、q・Q・tの全座標を定義した完成済みの共通軸モデルではありません。位置は説明配置で、米の主経路に限り+Yを工程順序に使います。HG-V1用の独立した候補見本です。q=+Z、Q=-X、t=+Yを読む面の規約として使います。XZ=qQ、YZ=qt、XY=Qt。旧試作のXY=非時間という対応は継承しません。状態は時点を持ちますが、その切片の文字面にはtを含めません。役割・種類のXZ面は時点を置かない記述であり、状態の切片と同一ではありません。工程点と米の状態の+Yは順序だけを表し、距離を経過時間としません。数量・物理的位置・特定の個人や機器は未記録です。注記点は図を読むためのメタ記述で、米・過程・参与者ではありません。サイズ16は全体から先に読む語、8は点の詳細と注記、4は接続を拡大して読む関係語という相対的なスコープです。色は線の関係系列を補助し、点を排他的な色分類へ分けません。",
     "tags": [
       "m:visual-legend-candidate",
       "x:hg-v1"
@@ -25,7 +25,7 @@
       "appearance": {
         "position": [
           0,
-          -140,
+          -180,
           0
         ],
         "frames": [
@@ -81,7 +81,7 @@
       "appearance": {
         "position": [
           0,
-          -100,
+          -120,
           0
         ],
         "frames": [
@@ -704,7 +704,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 8,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -731,7 +731,7 @@
         ],
         "legend_refs": [
           "rice-series",
-          "detail-scope"
+          "relation-scope"
         ]
       }
     },
@@ -764,7 +764,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 8,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -791,7 +791,7 @@
         ],
         "legend_refs": [
           "rice-series",
-          "detail-scope"
+          "relation-scope"
         ]
       }
     },
@@ -824,7 +824,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 8,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -851,7 +851,7 @@
         ],
         "legend_refs": [
           "rice-series",
-          "detail-scope"
+          "relation-scope"
         ]
       }
     },
@@ -884,7 +884,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 8,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -911,7 +911,7 @@
         ],
         "legend_refs": [
           "rice-series",
-          "detail-scope"
+          "relation-scope"
         ]
       }
     },
@@ -944,7 +944,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 8,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -971,7 +971,7 @@
         ],
         "legend_refs": [
           "rice-series",
-          "detail-scope"
+          "relation-scope"
         ]
       }
     },
@@ -1004,7 +1004,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 8,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -1031,7 +1031,7 @@
         ],
         "legend_refs": [
           "rice-series",
-          "detail-scope"
+          "relation-scope"
         ]
       }
     },
@@ -1064,7 +1064,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 8,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -1091,7 +1091,7 @@
         ],
         "legend_refs": [
           "rice-series",
-          "detail-scope"
+          "relation-scope"
         ]
       }
     },
@@ -1124,7 +1124,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 8,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -1151,7 +1151,7 @@
         ],
         "legend_refs": [
           "role-series",
-          "detail-scope"
+          "relation-scope"
         ]
       }
     },
@@ -1184,7 +1184,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 8,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -1211,7 +1211,7 @@
         ],
         "legend_refs": [
           "role-series",
-          "detail-scope"
+          "relation-scope"
         ]
       }
     },
@@ -1244,7 +1244,7 @@
           "placement": "end_b"
         },
         "caption_text": {
-          "font_size": 8,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -1271,7 +1271,7 @@
         ],
         "legend_refs": [
           "energy-series",
-          "detail-scope"
+          "relation-scope"
         ]
       }
     }
@@ -1372,14 +1372,24 @@
     },
     {
       "id": "detail-scope",
-      "label": "8：関係を近づいて読む語",
-      "description": "取り分けの枝、対象・担当等の関係語、注記を読むための段階。この見本内の相対的なスコープです。縮小して読めない時は拡大し、階層を一律に書き換えません。",
+      "label": "8：枝・種類・注記を読む語",
+      "description": "取り分けの枝、電気の種類、作者注を読む段階。この見本内の相対的なスコープです。関係の細部はさらに小さい4とし、拡大して読みます。",
       "applies_to": [
-        "point_text",
-        "line_caption"
+        "point_text"
       ],
       "sample": {
         "size": 8
+      }
+    },
+    {
+      "id": "relation-scope",
+      "label": "4：接続を拡大して読む語",
+      "description": "対象・保管後・担当等の関係語。全体では主要語を遮らず、局所へ拡大して接続の意味を読みます。色をなくしても関係語は残りますが、全体表示だけですべて読めるとはしません。",
+      "applies_to": [
+        "line_caption"
+      ],
+      "sample": {
+        "size": 4
       }
     },
     {

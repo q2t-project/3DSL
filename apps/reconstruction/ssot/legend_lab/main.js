@@ -37,10 +37,12 @@ const labelFitPoints = new Map();
 const readingGroups = {
   storage: {
     label: '保管を見る',
+    direction: [1, 1.3, 1.15],
     ids: ['9c888f3a-3fc8-5aa9-acf3-57772f791324', 'f718df2a-696c-5eea-b110-00480e58c191', '78f6242e-6b30-5320-b6c4-8f80fe3bbd90', '75b49b41-e0af-5dfa-8116-56937161e397', 'd58c225c-b2f1-5413-ba75-2114beeed6ba'],
   },
   cooking: {
     label: '炊飯を見る',
+    direction: [0.25, 1, 1.1],
     ids: ['908a867e-c0ba-5a73-a817-46153520398c', '4c862590-5943-5ca2-ae32-aeb7e0fae2e3', '42c89567-1b44-5c7c-9f38-82ccde2c8a3f', 'f225f07d-b1ab-5ece-8834-d60b3726bec7', '9198ffbd-1d87-5b39-9881-b5006e35fbd1', 'a37e1d91-6780-51c3-94c9-cd62cb8600a0', 'e8835fe6-016d-5ab7-b733-d1d1d7ce9cff', 'ad17bb62-8ce5-5705-a6c9-38e68d0c3652', '571f1466-2695-5f35-a327-1252976272ca'],
   },
 };
@@ -258,11 +260,16 @@ function actualFitPoints() {
   return [...labels.flatMap(getWorldCorners), ...geometryFitPoints()];
 }
 
-function fitReadingGroup(key) {
+function readingGroupPoints(key) {
   const group = readingGroups[key];
   const points = group.ids.flatMap((id) => labelFitPoints.get(id) ?? []);
   points.push(...geometryFitPoints(new Set(group.ids)));
-  fit(points);
+  return points;
+}
+
+function fitReadingGroup(key) {
+  const group = readingGroups[key];
+  fit(readingGroupPoints(key), false, group.direction);
 }
 
 function appendReadingViews(parent) {
@@ -275,11 +282,13 @@ function appendReadingViews(parent) {
   }
 }
 
-function fit(points, resetDirection = false) {
+function fit(points, resetDirection = false, explicitDirection = null) {
   if (!points.length) return;
-  const direction = resetDirection
-    ? new THREE.Vector3(1, 1.3, 1.15).normalize()
-    : camera.position.clone().sub(controls.target).normalize();
+  const direction = explicitDirection
+    ? vector(explicitDirection).normalize()
+    : resetDirection
+      ? new THREE.Vector3(1, 1.3, 1.15).normalize()
+      : camera.position.clone().sub(controls.target).normalize();
   const { width, height } = stage.getBoundingClientRect();
   const horizontalInset = Math.max(16, width * 0.06);
   const insets = { left: horizontalInset, right: horizontalInset, top: 58, bottom: 30 };
@@ -486,7 +495,10 @@ window.legendLab = {
       selectedId, step, noColor, singleFont,
       fitInsets: lastFitInsets ? { ...lastFitInsets } : null,
       initialFitPoints: allFitPoints.map((point) => point.slice()),
-      readingGroups: Object.fromEntries(Object.entries(readingGroups).map(([key, group]) => [key, { label: group.label, ids: group.ids.slice() }])),
+      readingGroups: Object.fromEntries(Object.entries(readingGroups).map(([key, group]) => [key, {
+        label: group.label, ids: group.ids.slice(), direction: group.direction.slice(),
+        fitPoints: readingGroupPoints(key).map((point) => point.slice()),
+      }])),
       renderColors: coloredObjects.map((record) => record.object.material.color.getHexString()),
       labels: labels.map((entry) => {
         const rect = entry.ink.getBoundingClientRect();

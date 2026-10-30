@@ -6,22 +6,22 @@
     {
       "file": "NotoSansJP.woff2",
       "source_sha256": "d930d5d52d15231c283089760f84584272ad5e37e14607ba0d19c798e7a9caec",
-      "sha256": "d4b13005371ebd2d24f8595aa71cffd3bb76798f26652b83fea600045ee6aa11",
-      "bytes": 81516,
+      "sha256": "61fc3315936d14aa8abaae72f7433331eb915dea090b55a0612ab5d7f1f4b294",
+      "bytes": 81756,
       "missing_source_codepoints": []
     },
     {
       "file": "NotoSansJP-Bold.woff2",
       "source_sha256": "c5b7b9d6a6eb682b0d4e6bbb38509575fd2759a28f147daa74714d1359a7909e",
-      "sha256": "49aa0825c22850eb3d1d295ff030327748d60e23fccfe47de6d58d890cb5def2",
-      "bytes": 83464,
+      "sha256": "9fefda1b8f3f98402d7e6cab2b319a6d0cbb29712764be61c3661cd80caa2032",
+      "bytes": 83540,
       "missing_source_codepoints": []
     },
     {
       "file": "NotoSerifJP.woff2",
       "source_sha256": "2fd527ba12b6a44ec30d796d633360da0aeba6c5d4af1304ce12bb4dc15a7dfc",
-      "sha256": "b1440f9bef71f9d30bfd484d3c269800cb70b53668e8305edbda92c72ce019ff",
-      "bytes": 213580,
+      "sha256": "d3909df6963d5eea89375c0ba79ec51ca5cb9803de74a009776ee422217fdcb2",
+      "bytes": 213588,
       "missing_source_codepoints": []
     }
   ]
