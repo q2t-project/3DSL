@@ -137,7 +137,7 @@ if (!chrome) {
     }
     const domSnapshot = () => evaluate(`(() => {
       const rect=el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom};};
-      return {width:innerWidth,height:innerHeight,pageWidth:document.scrollingElement.scrollWidth,pageHeight:document.scrollingElement.scrollHeight,scrollY,
+      return {width:innerWidth,height:innerHeight,pageWidth:document.scrollingElement.scrollWidth,pageHeight:document.scrollingElement.scrollHeight,scrollY,background:getComputedStyle(document.getElementById('model-stage')).backgroundColor,
         stage:rect(document.getElementById('model-stage')),panel:rect(document.getElementById('support-panel')),
         labels:[...document.querySelectorAll('.model-label[data-element-id]')].map(el=>{const ink=el.querySelector('.label-ink')||el,s=getComputedStyle(ink);return {id:el.dataset.elementId,text:ink.textContent,kind:el.dataset.kind,writing:s.writingMode,font:s.fontFamily,color:s.color,rect:rect(ink),localWidth:ink.offsetWidth,localHeight:ink.offsetHeight,display:s.display,visibility:s.visibility};})};
     })()`);
@@ -154,6 +154,92 @@ if (!chrome) {
       if (useTouch) assert(dom.panel.y >= dom.stage.bottom - 1, message + ': information remains beneath model');
       else assert(dom.panel.x >= dom.stage.right - 1 && dom.panel.right <= dom.width + 1, message + ': information remains alongside model');
       assert(dom.pageWidth <= dom.width + 1 && dom.pageHeight <= dom.height + 1 && dom.scrollY === 0, message + ': no page overflow or jump');
+    }
+    function screenMetrics(dom, current) {
+      const stage = dom.stage;
+      const rects = dom.labels.map(label => ({
+        x: Math.max(stage.x, label.rect.x), y: Math.max(stage.y, label.rect.y),
+        right: Math.min(stage.right, label.rect.right), bottom: Math.min(stage.bottom, label.rect.bottom),
+      })).filter(rect => rect.right > rect.x && rect.bottom > rect.y);
+      // Exact union of clipped screen AABBs, not glyph ink or projected quads.
+      const xs = [...new Set(rects.flatMap(rect => [rect.x, rect.right]))].sort((a, b) => a - b);
+      let unionArea = 0;
+      for (let i = 1; i < xs.length; i++) {
+        const left = xs[i - 1], right = xs[i];
+        const intervals = rects.filter(rect => rect.x < right && rect.right > left).map(rect => [rect.y, rect.bottom]).sort((a, b) => a[0] - b[0]);
+        let height = 0, start = null, end = null;
+        for (const [a, b] of intervals) {
+          if (start === null) { start = a; end = b; }
+          else if (a <= end) end = Math.max(end, b);
+          else { height += end - start; start = a; end = b; }
+        }
+        if (start !== null) height += end - start;
+        unionArea += (right - left) * height;
+      }
+      const round = value => Number(value.toFixed(4));
+      const envelope = rects.length ? {
+        x: Math.min(...rects.map(rect => rect.x)), y: Math.min(...rects.map(rect => rect.y)),
+        right: Math.max(...rects.map(rect => rect.right)), bottom: Math.max(...rects.map(rect => rect.bottom)),
+      } : { x: 0, y: 0, right: 0, bottom: 0 };
+      return {
+        caveat: 'Axis-aligned label boxes include whitespace and overestimate slanted glyph footprints. These measurements do not establish legibility.',
+        aabbUnionAreaRatio: round(unionArea / (stage.width * stage.height)),
+        envelopeWidthRatio: round((envelope.right - envelope.x) / stage.width),
+        envelopeHeightRatio: round((envelope.bottom - envelope.y) / stage.height),
+        visibleBoxCount: rects.length,
+        primaryLabels: dom.labels.filter(label => ['家の米', '保管', '炊飯', '調理役', 'ご飯'].includes(label.text)).map(label => ({
+          text: label.text, id: label.id, writing: label.writing, font: label.font,
+          modelSize: current.labels.find(item => item.id === label.id)?.size,
+          screenRect: label.rect,
+        })),
+      };
+    }
+    function contrastMetrics(dom, current) {
+      const parse = color => {
+        if (/^#?[0-9a-f]{6}$/i.test(color)) {
+          const hex = color.replace(/^#/, '');
+          return [0, 2, 4].map(offset => parseInt(hex.slice(offset, offset + 2), 16) / 255);
+        }
+        const match = color.match(/^rgba?\(\s*([\d.]+)[, ]+([\d.]+)[, ]+([\d.]+)(?:\s*[,/]\s*([\d.]+))?\s*\)$/);
+        assert(match && (match[4] === undefined || Number(match[4]) === 1), 'contrast metric requires opaque sRGB colors');
+        return match.slice(1, 4).map(value => Number(value) / 255);
+      };
+      const luminance = color => parse(color).map(value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4)
+        .reduce((total, value, index) => total + value * [.2126, .7152, .0722][index], 0);
+      const bg = luminance(dom.background);
+      const ratio = color => { const fg = luminance(color); return (Math.max(fg, bg) + .05) / (Math.min(fg, bg) + .05); };
+      const texts = [...new Set(dom.labels.map(label => label.color))].map(color => ({ color, ratio: ratio(color) }));
+      const lines = [...new Set(current.renderColors)].map(color => ({ color: '#' + color, ratio: ratio(color) }));
+      assert(texts.every(item => item.ratio >= 4.5), 'authored text colors meet 4.5:1 against flat stage background');
+      assert(lines.every(item => item.ratio >= 3), 'authored line colors meet 3:1 against flat stage background');
+      return { background: dom.background, texts, lines, caveat: 'Specified sRGB colors against the flat stage background only. Not a test of thin-line rasterization, overlaps, color-vision discrimination, or whole-site WCAG conformance.' };
+    }
+    function checkProjectedFit(points, current, dom, message, tight = false) {
+      assert(points.length > 0 && points.every(point => point.length === 3 && point.every(Number.isFinite)), message + ': finite actual fit points');
+      const dot = (a, b) => a.reduce((total, value, index) => total + value * b[index], 0);
+      const cross = (a, b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+      const unit = vector => { const length = Math.hypot(...vector); return vector.map(value => value / length); };
+      const camera = current.camera, stage = dom.stage, inset = current.fitInsets;
+      assert(inset && Object.values(inset).every(Number.isFinite), message + ': actual fit insets are available');
+      const backwards = unit(camera.position.map((value, index) => value - camera.target[index]));
+      const right = unit(cross(camera.up, backwards));
+      const up = unit(cross(backwards, right));
+      const tanY = Math.tan(camera.fov * Math.PI / 360), tanX = tanY * camera.aspect;
+      assert(Math.abs(camera.aspect - stage.width / stage.height) < 1e-9, message + ': camera aspect equals rendered stage');
+      const projected = points.map(point => {
+        const relative = point.map((value, index) => value - camera.position[index]);
+        const depth = -dot(relative, backwards);
+        assert(depth > 0.1, message + ': point is in front of camera');
+        return { x: stage.x + (1 + dot(relative, right) / (depth * tanX)) * stage.width / 2,
+          y: stage.y + (1 - dot(relative, up) / (depth * tanY)) * stage.height / 2 };
+      });
+      const allowed = { left: stage.x + inset.left, right: stage.right - inset.right, top: stage.y + inset.top, bottom: stage.bottom - inset.bottom };
+      for (const point of projected) assert(point.x >= allowed.left - .02 && point.x <= allowed.right + .02 && point.y >= allowed.top - .02 && point.y <= allowed.bottom + .02,
+        message + ': actual corner stays within control-free viewport: ' + JSON.stringify({ point, allowed }));
+      const extrema = { left: Math.min(...projected.map(point => point.x)), right: Math.max(...projected.map(point => point.x)), top: Math.min(...projected.map(point => point.y)), bottom: Math.max(...projected.map(point => point.y)) };
+      const widthRatio = (extrema.right - extrema.left) / (allowed.right - allowed.left), heightRatio = (extrema.bottom - extrema.top) / (allowed.bottom - allowed.top);
+      if (tight) assert(Math.max(widthRatio, heightRatio) >= .96, message + ': actual points use available width or height instead of fitting a fictitious world box');
+      return { pointCount: points.length, allowed, extrema, widthRatio, heightRatio };
     }
     await command('Page.enable'); await command('Runtime.enable'); await command('Network.enable');
     await command('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: useTouch });
@@ -182,6 +268,7 @@ if (!chrome) {
       }
     }
     assertLayout(initialDom, 'initial');
+    const initialFit = checkProjectedFit(initial.initialFitPoints, initial, initialDom, 'initial projected fit', useTouch);
     await screenshot('initial');
 
     const fonts = await evaluate(`({loaded:[...document.fonts].map(f=>({family:f.family,status:f.status,weight:f.weight})),sans:document.fonts.check('16px "Lab Sans"','米'),serif:document.fonts.check('16px "Lab Serif"','米')})`);
@@ -205,7 +292,8 @@ if (!chrome) {
       const families = new Set(dom.labels.map(label => label.font));
       if (step < 2) assert.equal(families.size, 1, 'before font comparison one family');
       else assert(families.size >= 2, 'font comparison has distinct rendered families');
-      comparisons.push({ step, writingModes: [...new Set(dom.labels.map(label => label.writing))], families: [...families] });
+      comparisons.push({ step, writingModes: [...new Set(dom.labels.map(label => label.writing))], families: [...families], screenMetrics: screenMetrics(dom, current), contrast: contrastMetrics(dom, current) });
+      await screenshot(`step-${step}`);
     }
     await screenshot('full');
     const fullColors = (await state()).renderColors;
@@ -224,7 +312,35 @@ if (!chrome) {
     preserve(initial, await state(), 'single-font mode');
     const oneFont = await domSnapshot();
     assert.equal(new Set(oneFont.labels.map(label => label.font)).size, 1, 'single-font mode changes actual rendered families');
+    await screenshot('no-color-single-font');
     await click('#single-font'); await click('#no-color');
+
+    const readingViews = [];
+    for (const [key, targetWord] of [['storage', '保管'], ['cooking', '炊飯']]) {
+      await click('#reset-view'); await painted();
+      const before = await state(), beforeDom = await domSnapshot();
+      await click('#view-' + key); await painted();
+      const current = await state(), dom = await domSnapshot();
+      preserve(initial, current, key + ' reading view');
+      assertLayout(dom, key + ' reading view');
+      assert.equal(current.labels.length, initial.labels.length, key + ': other model elements are retained');
+      const group = current.readingGroups[key];
+      assert(group?.ids?.length > 2, key + ': reading view includes a relation group');
+      const ids = new Set(group.ids);
+      const relations = model.lines.filter(line => ids.has(line.meta.uuid));
+      assert(relations.length > 0, key + ': reading view contains actual model relations');
+      for (const line of relations) for (const side of ['end_a', 'end_b']) assert(ids.has(line.appearance[side].ref), key + ': both relation endpoints remain in the reading group');
+      const corners = current.labels.filter(label => ids.has(label.id)).flatMap(label => label.worldCorners);
+      const projectedFit = checkProjectedFit(corners, current, dom, key + ' relationship fit');
+      const previousWord = beforeDom.labels.find(label => label.text === targetWord), currentWord = dom.labels.find(label => label.text === targetWord);
+      assert(previousWord && currentWord, key + ': target word exists');
+      const areaRatio = currentWord.rect.width * currentWord.rect.height / (previousWord.rect.width * previousWord.rect.height);
+      assert(areaRatio > 1.1, key + ': target word becomes visibly larger through camera fitting');
+      assert.notDeepEqual(current.camera.position, before.camera.position, key + ': scope button actually changes camera');
+      readingViews.push({ key, targetWord, group, areaRatio, projectedFit, screenMetrics: screenMetrics(dom, current) });
+      await screenshot('view-' + key);
+    }
+    await click('#reset-view'); await painted();
 
     // Use real screen hit testing rather than calling the specimen's selection API.
     const pick = await evaluate(`(() => {
@@ -287,7 +403,7 @@ if (!chrome) {
     assert.equal(errors.length, 0, 'no runtime exceptions: ' + JSON.stringify(errors));
     assert.equal(failedResponses.length, 0, 'no failed asset responses: ' + JSON.stringify(failedResponses));
     await fs.writeFile(path.join(logs, `visual-grammar-lab-${width}.json`), JSON.stringify({
-      width, result: 'pass', fonts, comparisons, initialLayout: initialDom, overlapCandidates: overlap,
+      width, result: 'pass', fonts, comparisons, initialFit, readingViews, initialLayout: initialDom, initialScreenMetrics: screenMetrics(initialDom, initial), overlapCandidates: overlap,
       selectedId: pick.id, runtimeErrors: errors, failedResponses,
       scope: 'Browser emulation and structural/rendering invariants; overlap candidates require image review; no human-comprehension claim.',
     }, null, 2));

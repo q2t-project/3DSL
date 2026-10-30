@@ -52,7 +52,7 @@ jobs:
       - name: Check candidate visual grammar
         working-directory: apps/site
         run: |
-          node scripts/check/visual-grammar-schema.mjs
+          node scripts/check/visual-grammar-schema.mjs ../../apps/reconstruction/ssot/legend_lab/model.3dss.json
           node scripts/check/visual-grammar-lab.mjs
 
       - name: Upload build log artifact

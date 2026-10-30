@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from '../vendor/three/examples/jsm/controls/OrbitControls.js';
 import { CSS3DObject, CSS3DRenderer } from '../vendor/three/examples/jsm/renderers/CSS3DRenderer.js';
+import { fitProjectedPoints } from './projectedFit.js';
 
 const $ = (id) => document.getElementById(id);
 const stage = $('model-stage');
@@ -28,7 +29,24 @@ let step = Number($('comparison-step').value);
 let noColor = false;
 let singleFont = false;
 let ready = false;
-let allBounds = new THREE.Box3();
+let lastFitInsets = null;
+const allFitPoints = [];
+const labelFitPoints = new Map();
+// These two reading scopes belong to this authored specimen. They are not
+// inferred from names, colors, poses, or a universal process classification.
+const readingGroups = {
+  storage: {
+    label: '保管を見る',
+    ids: ['9c888f3a-3fc8-5aa9-acf3-57772f791324', 'f718df2a-696c-5eea-b110-00480e58c191', '78f6242e-6b30-5320-b6c4-8f80fe3bbd90', '75b49b41-e0af-5dfa-8116-56937161e397', 'd58c225c-b2f1-5413-ba75-2114beeed6ba'],
+  },
+  cooking: {
+    label: '炊飯を見る',
+    ids: ['908a867e-c0ba-5a73-a817-46153520398c', '4c862590-5943-5ca2-ae32-aeb7e0fae2e3', '42c89567-1b44-5c7c-9f38-82ccde2c8a3f', 'f225f07d-b1ab-5ece-8834-d60b3726bec7', '9198ffbd-1d87-5b39-9881-b5006e35fbd1', 'a37e1d91-6780-51c3-94c9-cd62cb8600a0', 'e8835fe6-016d-5ab7-b733-d1d1d7ce9cff', 'ad17bb62-8ce5-5705-a6c9-38e68d0c3652', '571f1466-2695-5f35-a327-1252976272ca'],
+  },
+};
+for (const group of Object.values(readingGroups)) {
+  if (group.ids.some((id) => !elements.has(id))) throw new Error('見本の視点に対応する要素がありません。');
+}
 
 const scene = new THREE.Scene();
 const labelScene = new THREE.Scene();
@@ -118,6 +136,7 @@ for (const point of source.points) {
   if (marker.primitive !== 'none') {
     const node = new THREE.Mesh(new THREE.SphereGeometry(marker.radius ?? 0.6, 10, 8), pointMaterial);
     node.position.copy(position);
+    node.userData.elementId = point.meta.uuid;
     scene.add(node);
   }
   if (marker.text) addLabel(point, 'point', labelTextOf(point), position, marker.text);
@@ -150,6 +169,7 @@ for (const line of source.lines) {
   if (!a || !b || a.distanceToSquared(b) < 0.0001) throw new Error(`線の端点を表示できません: ${line.meta.uuid}`);
   const authoredColor = line.appearance.color ?? '#d9e1e8';
   const stroke = addStroke(a, b, authoredColor);
+  stroke.userData.elementId = line.meta.uuid;
   coloredObjects.push({ object: stroke, color: authoredColor });
   const arrow = line.appearance.arrow;
   if (arrow && arrow.primitive !== 'none') {
@@ -160,6 +180,7 @@ for (const line of source.lines) {
     const forward = direction.clone().multiplyScalar(towardsA ? -1 : 1);
     cone.position.copy(towardsA ? a : b).addScaledVector(forward, -arrowLength * 0.65);
     cone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), forward);
+    cone.userData.elementId = line.meta.uuid;
     scene.add(cone);
     coloredObjects.push({ object: cone, color: authoredColor });
   }
@@ -203,44 +224,73 @@ function applyComparison() {
   render();
 }
 
-function getWorldBounds(entry) {
+function getWorldCorners(entry) {
   const width = entry.button.offsetWidth;
   const height = entry.button.offsetHeight;
   entry.object.updateMatrixWorld(true);
-  const box = new THREE.Box3();
+  const corners = [];
   for (const x of [-width / 2, width / 2]) {
     for (const y of [-height / 2, height / 2]) {
-      box.expandByPoint(new THREE.Vector3(x, y, 0).applyMatrix4(entry.object.matrixWorld));
+      corners.push(new THREE.Vector3(x, y, 0).applyMatrix4(entry.object.matrixWorld).toArray());
     }
   }
-  return box;
+  return corners;
 }
 
-function boundsForAll() {
-  const box = new THREE.Box3();
-  for (const entry of labels) box.union(getWorldBounds(entry));
-  for (const point of source.points) box.expandByPoint(vector(point.appearance.position));
-  return box;
+function getWorldBounds(entry) {
+  return new THREE.Box3().setFromPoints(getWorldCorners(entry).map((corner) => vector(corner)));
 }
 
-function fit(box, resetDirection = false) {
-  if (box.isEmpty()) return;
-  const target = box.getCenter(new THREE.Vector3());
+function geometryFitPoints(includedIds = null) {
+  const points = [];
+  scene.updateMatrixWorld(true);
+  scene.traverse((object) => {
+    const vertices = object.geometry?.getAttribute('position');
+    if (!vertices || !object.visible || (includedIds && !includedIds.has(object.userData.elementId))) return;
+    for (let index = 0; index < vertices.count; index += 1) {
+      points.push(new THREE.Vector3().fromBufferAttribute(vertices, index).applyMatrix4(object.matrixWorld).toArray());
+    }
+  });
+  return points;
+}
+
+function actualFitPoints() {
+  return [...labels.flatMap(getWorldCorners), ...geometryFitPoints()];
+}
+
+function fitReadingGroup(key) {
+  const group = readingGroups[key];
+  const points = group.ids.flatMap((id) => labelFitPoints.get(id) ?? []);
+  points.push(...geometryFitPoints(new Set(group.ids)));
+  fit(points);
+}
+
+function appendReadingViews(parent) {
+  const buttons = append('div', parent, undefined, 'reading-views');
+  for (const [key, group] of Object.entries(readingGroups)) {
+    const button = append('button', buttons, group.label);
+    button.type = 'button';
+    button.id = `view-${key}`;
+    button.addEventListener('click', () => fitReadingGroup(key));
+  }
+}
+
+function fit(points, resetDirection = false) {
+  if (!points.length) return;
   const direction = resetDirection
     ? new THREE.Vector3(1, 1.3, 1.15).normalize()
     : camera.position.clone().sub(controls.target).normalize();
-  const right = new THREE.Vector3().crossVectors(camera.up, direction).normalize();
-  const up = new THREE.Vector3().crossVectors(direction, right).normalize();
-  const tanY = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
-  const tanX = tanY * camera.aspect;
-  let distance = 40;
-  for (const x of [box.min.x, box.max.x]) for (const y of [box.min.y, box.max.y]) for (const z of [box.min.z, box.max.z]) {
-    const v = new THREE.Vector3(x, y, z).sub(target);
-    distance = Math.max(distance, v.dot(direction) + Math.abs(v.dot(right)) / tanX, v.dot(direction) + Math.abs(v.dot(up)) / tanY);
-  }
-  distance *= 1.22;
-  controls.target.copy(target);
-  camera.position.copy(target).addScaledVector(direction, distance);
+  const { width, height } = stage.getBoundingClientRect();
+  const horizontalInset = Math.max(16, width * 0.06);
+  const insets = { left: horizontalInset, right: horizontalInset, top: 58, bottom: 30 };
+  const result = fitProjectedPoints(points, {
+    direction: direction.toArray(), up: camera.up.toArray(), width, height, fov: camera.fov,
+    insets,
+    minDistance: controls.minDistance, maxDistance: controls.maxDistance,
+  });
+  lastFitInsets = { ...insets };
+  controls.target.fromArray(result.target);
+  camera.position.fromArray(result.position);
   controls.update();
   render();
 }
@@ -332,6 +382,7 @@ function renderPanel() {
     }
     const selectedLegends = (element.meta.legend_refs ?? []).map((id) => legendById.get(id)).filter(Boolean);
     if (selectedLegends.length) append('p', support, selectedLegends.map((legend) => local(legend.label)).join(' / '), 'meta-line');
+    appendReadingViews(support);
     const connections = [];
     if (pointById.has(selectedId)) {
       for (const line of source.lines) {
@@ -362,6 +413,7 @@ function renderPanel() {
   } else {
     append('h2', support, '米の状態・保管・炊飯を比べる');
     append('p', support, '文字をタップすると、図を残したままここに説明が出ます。');
+    appendReadingViews(support);
     append('p', support, '「比較」で表現を順に加えて、保管と炊飯の違い、調理役との関係が読み取りやすくなるか確かめてください。');
     append('p', support, local(source.document_meta.document_summary), 'quiet');
   }
@@ -397,11 +449,11 @@ textRenderer.domElement.addEventListener('pointercancel', (event) => {
 for (const id of ['comparison-step', 'no-color', 'single-font']) $(id).addEventListener('change', applyComparison);
 $('tab-info').addEventListener('click', () => { activeTab = 'info'; renderPanel(); support.scrollTop = 0; });
 $('tab-legend').addEventListener('click', () => { activeTab = 'legend'; renderPanel(); support.scrollTop = 0; });
-$('reset-view').addEventListener('click', () => fit(allBounds, true));
-$('fit-all').addEventListener('click', () => fit(boundsForAll()));
+$('reset-view').addEventListener('click', () => fit(allFitPoints, true));
+$('fit-all').addEventListener('click', () => fit(actualFitPoints()));
 $('fit-selected').addEventListener('click', () => {
   const entry = labels.find((label) => label.id === selectedId);
-  if (entry) fit(getWorldBounds(entry).expandByScalar(10));
+  if (entry) fit(getWorldCorners(entry));
 });
 for (const [id, factor] of [['zoom-in', 0.8], ['zoom-out', 1.25]]) $(id).addEventListener('click', () => {
   const offset = camera.position.clone().sub(controls.target);
@@ -419,7 +471,7 @@ function resize() {
   camera.updateProjectionMatrix();
   renderer.setSize(width, height);
   textRenderer.setSize(width, height);
-  if (ready) fit(allBounds);
+  if (ready) fit(allFitPoints);
   else render();
 }
 new ResizeObserver(resize).observe(stage);
@@ -430,8 +482,11 @@ window.legendLab = {
   getState() {
     return {
       ready, model: JSON.parse(originalModel), modelUnchanged: JSON.stringify(source) === originalModel,
-      camera: { position: camera.position.toArray(), target: controls.target.toArray() },
+      camera: { position: camera.position.toArray(), target: controls.target.toArray(), up: camera.up.toArray(), fov: camera.fov, aspect: camera.aspect },
       selectedId, step, noColor, singleFont,
+      fitInsets: lastFitInsets ? { ...lastFitInsets } : null,
+      initialFitPoints: allFitPoints.map((point) => point.slice()),
+      readingGroups: Object.fromEntries(Object.entries(readingGroups).map(([key, group]) => [key, { label: group.label, ids: group.ids.slice() }])),
       renderColors: coloredObjects.map((record) => record.object.material.color.getHexString()),
       labels: labels.map((entry) => {
         const rect = entry.ink.getBoundingClientRect();
@@ -441,6 +496,7 @@ window.legendLab = {
           size: entry.size, writingMode: entry.button.dataset.writingMode, font: entry.button.dataset.font,
           bounds: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
           worldBounds: { min: bounds.min.toArray(), max: bounds.max.toArray() },
+          worldCorners: getWorldCorners(entry),
         };
       }),
     };
@@ -457,15 +513,22 @@ try {
   const intendedStep = $('comparison-step').value;
   // One common initial framing contains every comparison step. Changing the
   // writing mode or typeface therefore never moves the camera by itself.
+  allFitPoints.push(...geometryFitPoints());
   for (const value of ['0', '1', '2', '3']) {
     $('comparison-step').value = value;
     applyComparison();
-    allBounds.union(boundsForAll());
+    for (const entry of labels) {
+      const corners = getWorldCorners(entry);
+      allFitPoints.push(...corners);
+      const previous = labelFitPoints.get(entry.id) ?? [];
+      previous.push(...corners);
+      labelFitPoints.set(entry.id, previous);
+    }
   }
   $('comparison-step').value = intendedStep;
   applyComparison();
   ready = true;
-  fit(allBounds, true);
+  fit(allFitPoints, true);
   status.hidden = true;
 } catch (error) {
   status.textContent = '書体を読み込めませんでした。再読み込みして確認してください。';

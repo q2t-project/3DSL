@@ -72,6 +72,8 @@ h1 span { margin-left: 5px; font-weight: 400; font-size: 14px; }
 .connection-list, .legend-list { list-style: none; padding: 0; margin: 7px 0 0; }
 .connection-list li { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-top: 1px solid #34465a; }
 .connection-list button { margin-left: auto; min-height: 36px; padding: 4px 12px; white-space: nowrap; }
+.reading-views { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
+.reading-views button { min-height: 38px; padding: 5px 13px; }
 .legend-list li { margin: 0 0 11px; }
 .legend-title { display: flex; align-items: center; gap: 8px; font-weight: 700; }
 .legend-swatch { display: inline-block; width: 25px; height: 4px; background: var(--swatch, #d9e1e8); flex: 0 0 auto; }
