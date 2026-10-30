@@ -1,0 +1,305 @@
+// HG-V1 display specimen, served from generated assets and exercised by CDP.
+// This checks browser behavior, not Android hardware or human interpretation.
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import os from 'node:os';
+import http from 'node:http';
+import { spawn, spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
+const site = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const repo = path.resolve(site, '../..');
+const webRoot = process.env.VISUAL_GRAMMAR_WEB_ROOT || path.join(site, 'dist');
+const route = '/preview-reconstruction/legend_lab/';
+const source = path.join(repo, 'apps/reconstruction/ssot/legend_lab');
+const sourceText = await fs.readFile(path.join(source, 'model.3dss.json'), 'utf8');
+const model = JSON.parse(sourceText);
+const shipped = await fs.readFile(path.join(webRoot, route, 'model.3dss.json'), 'utf8');
+assert.equal(shipped, sourceText, 'served specimen is the authored source');
+const pointIds = new Set(model.points.map(point => point.meta.uuid));
+const allIds = [...pointIds, ...model.lines.map(line => line.meta.uuid)];
+assert.equal(new Set(allIds).size, model.points.length + model.lines.length, 'unique specimen element IDs');
+for (const line of model.lines) for (const side of ['end_a', 'end_b']) {
+  assert(pointIds.has(line.appearance[side]?.ref), 'specimen endpoints reference actual points');
+}
+const chrome = [process.env.CHROME_BIN, 'google-chrome', 'chromium', 'chromium-browser'].filter(Boolean)
+  .find(name => spawnSync(name, ['--version'], { encoding: 'utf8' }).status === 0);
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const width = Number(process.env.VISUAL_GRAMMAR_VIEWPORT_WIDTH) || null;
+const logs = path.join(site, 'ci-logs');
+await fs.mkdir(logs, { recursive: true });
+
+if (!chrome) {
+  console.log('[check:visual-grammar-lab] STATIC PASS source/distribution and endpoints. SKIP browser: Chromium unavailable; no display or gesture PASS claimed.');
+} else if (!width) {
+  const cases = [];
+  for (const viewport of [360, 390, 1280]) {
+    const proc = spawn(process.execPath, [fileURLToPath(import.meta.url)], {
+      env: { ...process.env, CHROME_BIN: chrome, VISUAL_GRAMMAR_VIEWPORT_WIDTH: String(viewport) }, stdio: 'inherit',
+    });
+    await new Promise((resolve, reject) => {
+      proc.on('error', reject);
+      proc.on('exit', (code, signal) => code === 0 ? resolve() : reject(new Error(`Specimen check ${viewport} failed (${code ?? signal})`)));
+    });
+    cases.push(JSON.parse(await fs.readFile(path.join(logs, `visual-grammar-lab-${viewport}.json`), 'utf8')));
+  }
+  await fs.writeFile(path.join(logs, 'visual-grammar-lab-results.json'), JSON.stringify({
+    scope: 'Generated HG-V1 specimen, Chromium software WebGL with emulated touch. Not Android hardware or human comprehension.', cases,
+  }, null, 2));
+  console.log('[check:visual-grammar-lab] PASS 360/390/1280: actual fonts, vertical writing, stable authored data/poses/sizes, display comparisons, selection and rotation, simultaneous diagram/information.');
+} else {
+  assert([360, 390, 1280].includes(width), 'known viewport');
+  const useTouch = width < 650;
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), '3dsl-visual-grammar-'));
+  const server = http.createServer(async (req, res) => {
+    try {
+      const url = new URL(req.url, 'http://127.0.0.1');
+      if (url.pathname === '/favicon.ico') { res.writeHead(204).end(); return; }
+      let file = path.resolve(webRoot, '.' + decodeURIComponent(url.pathname));
+      if (file !== webRoot && !file.startsWith(webRoot + path.sep)) { res.writeHead(403).end(); return; }
+      if ((await fs.stat(file)).isDirectory()) file = path.join(file, 'index.html');
+      const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.svg': 'image/svg+xml' };
+      res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream' });
+      res.end(await fs.readFile(file));
+    } catch { res.writeHead(404).end('Not found'); }
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  const proc = spawn(chrome, ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--remote-debugging-port=0', `--user-data-dir=${dir}`, 'about:blank'], { stdio: ['ignore', 'ignore', 'pipe'] });
+  let stderr = '', processError, ws;
+  proc.stderr.on('data', chunk => { stderr = (stderr + chunk).slice(-12000); });
+  proc.on('error', error => { processError = error; });
+  try {
+    let port;
+    const deadline = Date.now() + 30000;
+    while (Date.now() < deadline) {
+      const active = await fs.readFile(path.join(dir, 'DevToolsActivePort'), 'utf8').catch(() => '');
+      if (active) { port = active.split('\n')[0]; break; }
+      if (processError) throw processError;
+      if (proc.exitCode !== null || proc.signalCode !== null) throw new Error(`Chromium exited (${proc.exitCode ?? proc.signalCode}): ${stderr}`);
+      await sleep(100);
+    }
+    assert(port, `Chromium debugger started: ${stderr}`);
+    const targets = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
+    ws = new WebSocket(targets.find(target => target.type === 'page').webSocketDebuggerUrl);
+    await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('CDP connection timeout')), 15000);
+      ws.addEventListener('open', () => { clearTimeout(timer); resolve(); }, { once: true });
+      ws.addEventListener('error', error => { clearTimeout(timer); reject(error); }, { once: true });
+    });
+    let seq = 0;
+    const pending = new Map(), errors = [], failedResponses = [];
+    ws.addEventListener('message', event => {
+      const message = JSON.parse(event.data);
+      if (message.method === 'Runtime.exceptionThrown') errors.push(message.params.exceptionDetails);
+      if (message.method === 'Network.responseReceived' && message.params.response.status >= 400) {
+        failedResponses.push({ status: message.params.response.status, url: message.params.response.url });
+      }
+      const entry = pending.get(message.id);
+      if (entry) {
+        pending.delete(message.id); clearTimeout(entry.timer);
+        message.error ? entry.reject(new Error(JSON.stringify(message.error))) : entry.resolve(message.result);
+      }
+    });
+    const command = (method, params = {}) => new Promise((resolve, reject) => {
+      const id = ++seq;
+      const timer = setTimeout(() => { pending.delete(id); reject(new Error(`CDP timeout: ${method}`)); }, 30000);
+      pending.set(id, { resolve, reject, timer }); ws.send(JSON.stringify({ id, method, params }));
+    });
+    async function evaluate(expression) {
+      const result = await command('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
+      assert(!result.exceptionDetails, 'browser evaluation: ' + JSON.stringify(result.exceptionDetails));
+      return result.result.value;
+    }
+    async function until(expression, message) {
+      const limit = Date.now() + 20000;
+      while (Date.now() < limit) {
+        if (await evaluate(expression)) return;
+        await sleep(75);
+      }
+      assert.fail(message + ': ' + JSON.stringify({ errors, failedResponses }));
+    }
+    const painted = () => evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))');
+    const state = () => evaluate('window.legendLab.getState()');
+    async function screenshot(name) {
+      const result = await command('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+      await fs.writeFile(path.join(logs, `visual-grammar-${name}-${width}.png`), Buffer.from(result.data, 'base64'));
+    }
+    async function pointer(type, point) {
+      if (useTouch) await command('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ ...point, id: 1, radiusX: 2, radiusY: 2 }] });
+      else await command('Input.dispatchMouseEvent', { type: ({ touchStart: 'mousePressed', touchMove: 'mouseMoved', touchEnd: 'mouseReleased' })[type], ...point, button: 'left', buttons: type === 'touchEnd' ? 0 : 1, clickCount: type === 'touchMove' ? 0 : 1 });
+    }
+    async function click(selector) {
+      const point = await evaluate(`(() => {const el=document.querySelector(${JSON.stringify(selector)});if(!el)return null;const r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()`);
+      assert(point, 'click target exists: ' + selector);
+      await pointer('touchStart', point); await pointer('touchEnd', point); await painted();
+    }
+    const domSnapshot = () => evaluate(`(() => {
+      const rect=el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom};};
+      return {width:innerWidth,height:innerHeight,pageWidth:document.scrollingElement.scrollWidth,pageHeight:document.scrollingElement.scrollHeight,scrollY,
+        stage:rect(document.getElementById('model-stage')),panel:rect(document.getElementById('support-panel')),
+        labels:[...document.querySelectorAll('.model-label[data-element-id]')].map(el=>{const ink=el.querySelector('.label-ink')||el,s=getComputedStyle(ink);return {id:el.dataset.elementId,text:ink.textContent,kind:el.dataset.kind,writing:s.writingMode,font:s.fontFamily,color:s.color,rect:rect(ink),localWidth:ink.offsetWidth,localHeight:ink.offsetHeight,display:s.display,visibility:s.visibility};})};
+    })()`);
+    function preserve(before, after, message) {
+      assert.deepEqual(after.model, model, message + ': source data unchanged');
+      assert.equal(after.modelUnchanged, true, message + ': live source data unchanged');
+      const props = snapshot => snapshot.labels.map(label => ({ id: label.id, position: label.position, quaternion: label.quaternion, size: label.size })).sort((a, b) => a.id.localeCompare(b.id));
+      assert.deepEqual(props(after), props(before), message + ': authored position, pose and size unchanged');
+    }
+    function assertLayout(dom, message) {
+      assert(dom.stage.width > 200 && dom.stage.height >= (useTouch ? 300 : 250), message + ': usable model area');
+      assert(dom.stage.y >= 0 && dom.stage.bottom <= dom.height + 1, message + ': model inside viewport');
+      assert(dom.panel.height >= 100 && dom.panel.bottom <= dom.height + 1, message + ': useful information area remains in viewport');
+      if (useTouch) assert(dom.panel.y >= dom.stage.bottom - 1, message + ': information remains beneath model');
+      else assert(dom.panel.x >= dom.stage.right - 1 && dom.panel.right <= dom.width + 1, message + ': information remains alongside model');
+      assert(dom.pageWidth <= dom.width + 1 && dom.pageHeight <= dom.height + 1 && dom.scrollY === 0, message + ': no page overflow or jump');
+    }
+    await command('Page.enable'); await command('Runtime.enable'); await command('Network.enable');
+    await command('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: useTouch });
+    await command('Emulation.setTouchEmulationEnabled', { enabled: useTouch, maxTouchPoints: 2 });
+    await command('Page.navigate', { url: origin + route + '?test=1' });
+    await until('window.legendLab?.ready === true', 'specimen ready');
+    await evaluate('document.fonts.ready'); await painted();
+    const initial = await state(), initialDom = await domSnapshot();
+    assert.deepEqual(initial.model, model, 'browser model equals authored JSON');
+    assert.equal(initial.modelUnchanged, true, 'live source is unchanged after rendering');
+    assert.equal(new Set(initial.labels.map(label => label.id)).size, allIds.length, 'all model labels are represented');
+    function rotateByQuaternion(v, q) {
+      const [x, y, z, w] = q;
+      const cross = (a, b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+      const uv = cross([x, y, z], v), uuv = cross([x, y, z], uv);
+      return v.map((value, index) => value + 2 * (w * uv[index] + uuv[index]));
+    }
+    for (const label of initial.labels) {
+      const element = (label.kind === 'point' ? model.points : model.lines).find(item => item.meta.uuid === label.id);
+      assert(element, 'rendered label belongs to source');
+      const config = label.kind === 'point' ? element.appearance.marker.text : element.appearance.caption_text;
+      assert.equal(label.size, config[label.kind === 'point' ? 'size' : 'font_size'] ?? 8, 'rendered label keeps source size');
+      for (const [axis, basis] of [['front', [0, 0, 1]], ['up', [0, 1, 0]]]) {
+        const actual = rotateByQuaternion(basis, label.quaternion);
+        assert(actual.every((value, index) => Math.abs(value - config.pose[axis][index]) < 1e-6), `${label.id}: rendered ${axis} matches authored pose`);
+      }
+    }
+    assertLayout(initialDom, 'initial');
+    await screenshot('initial');
+
+    const fonts = await evaluate(`({loaded:[...document.fonts].map(f=>({family:f.family,status:f.status,weight:f.weight})),sans:document.fonts.check('16px "Lab Sans"','米'),serif:document.fonts.check('16px "Lab Serif"','米')})`);
+    assert(fonts.sans && fonts.serif, 'Japanese specimen fonts can render');
+    for (const family of ['Lab Sans', 'Lab Serif']) assert(fonts.loaded.some(font => font.family.replaceAll('"', '') === family && font.status === 'loaded'), `${family}: actual FontFace loaded`);
+
+    const comparisons = [];
+    for (const step of [0, 1, 2, 3]) {
+      await evaluate(`(()=>{const el=document.getElementById('comparison-step');el.value='${step}';el.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+      await painted();
+      const current = await state(), dom = await domSnapshot();
+      assert.equal(Number(current.step), step, 'comparison control changed step');
+      preserve(initial, current, 'step ' + step);
+      assertLayout(dom, 'step ' + step);
+      if (step === 0) assert(dom.labels.every(label => label.writing === 'horizontal-tb'), 'plane-only comparison uses horizontal text');
+      else {
+        const vertical = dom.labels.filter(label => label.writing === 'vertical-rl');
+        assert(vertical.length > 0, 'authored vertical text has actual CSS vertical writing');
+        assert(vertical.some(label => label.text.trim().length > 1 && label.localHeight > label.localWidth), 'vertical run has a vertical local layout independent of camera projection');
+      }
+      const families = new Set(dom.labels.map(label => label.font));
+      if (step < 2) assert.equal(families.size, 1, 'before font comparison one family');
+      else assert(families.size >= 2, 'font comparison has distinct rendered families');
+      comparisons.push({ step, writingModes: [...new Set(dom.labels.map(label => label.writing))], families: [...families] });
+    }
+    await screenshot('full');
+    const fullColors = (await state()).renderColors;
+    assert(Array.isArray(fullColors) && new Set(fullColors).size >= 2, 'full comparison actually colors rendered relations');
+
+    await click('#no-color');
+    await until('window.legendLab.getState().noColor === true', 'color-free mode enabled');
+    preserve(initial, await state(), 'color-free mode');
+    assert.equal(new Set((await state()).renderColors).size, 1, 'color-free mode changes actual rendered line materials');
+    const mono = await domSnapshot();
+    assertLayout(mono, 'color-free');
+    assert.deepEqual(mono.labels.map(label => [label.id, label.text]).sort(), initialDom.labels.map(label => [label.id, label.text]).sort(), 'color-free mode retains every word');
+    await screenshot('no-color');
+    await click('#single-font');
+    await until('window.legendLab.getState().singleFont === true', 'single-font mode enabled');
+    preserve(initial, await state(), 'single-font mode');
+    const oneFont = await domSnapshot();
+    assert.equal(new Set(oneFont.labels.map(label => label.font)).size, 1, 'single-font mode changes actual rendered families');
+    await click('#single-font'); await click('#no-color');
+
+    // Use real screen hit testing rather than calling the specimen's selection API.
+    const pick = await evaluate(`(() => {
+      const stage=document.getElementById('model-stage').getBoundingClientRect();
+      for(const el of document.querySelectorAll('.model-label[data-element-id][data-kind="point"]')){
+        const r=(el.querySelector('.label-ink')||el).getBoundingClientRect();
+        for(const fx of [.5,.35,.65])for(const fy of [.5,.35,.65]){
+          const x=r.left+r.width*fx,y=r.top+r.height*fy;
+          if(x<stage.left||x>stage.right||y<stage.top||y>stage.bottom)continue;
+          if(document.elementFromPoint(x,y)?.closest('[data-element-id]')===el)return {id:el.dataset.elementId,x,y};
+        }
+      }return null;
+    })()`);
+    assert(pick, 'a model word is screen-pickable');
+    const beforePick = await state();
+    await pointer('touchStart', { x: pick.x, y: pick.y }); await pointer('touchEnd', { x: pick.x, y: pick.y });
+    await until(`window.legendLab.getState().selectedId === ${JSON.stringify(pick.id)}`, 'trusted pointer selects hit word');
+    const selected = await state();
+    preserve(initial, selected, 'selection');
+    assert.deepEqual(selected.renderColors, fullColors, 'selection retains authored relation colors');
+    assert.deepEqual(selected.camera, beforePick.camera, 'selecting information does not move the camera');
+    assertLayout(await domSnapshot(), 'selected information');
+    await screenshot('selected');
+    await click('#tab-legend');
+    assertLayout(await domSnapshot(), 'legend panel');
+    await click('#tab-info');
+    assertLayout(await domSnapshot(), 'information panel');
+
+    const beforeOrbit = await state();
+    const stage = (await domSnapshot()).stage;
+    const a = { x: stage.x + stage.width * .18, y: stage.y + stage.height * .38 };
+    const b = { x: a.x + Math.min(75, stage.width * .2), y: a.y + 25 };
+    await pointer('touchStart', a);
+    for (let step = 1; step <= 6; step++) {
+      await pointer('touchMove', { x: a.x + (b.x - a.x) * step / 6, y: a.y + (b.y - a.y) * step / 6 }); await sleep(20);
+    }
+    await pointer('touchEnd', b); await painted();
+    const afterOrbit = await state();
+    assert.notDeepEqual(afterOrbit.camera.position, beforeOrbit.camera.position, 'trusted drag rotates model view');
+    preserve(initial, afterOrbit, 'camera rotation');
+    await screenshot('rotated');
+    await click('#reset-view'); await painted();
+    assertLayout(await domSnapshot(), 'reset view');
+
+    if (useTouch) {
+      await command('Emulation.setDeviceMetricsOverride', { width, height: 640, deviceScaleFactor: 1, mobile: true });
+      await painted();
+      assertLayout(await domSnapshot(), 'short viewport');
+      await screenshot('short');
+    }
+    const overlap = [];
+    for (let i = 0; i < initialDom.labels.length; i++) for (let j = i + 1; j < initialDom.labels.length; j++) {
+      const a = initialDom.labels[i], b = initialDom.labels[j], ar = a.rect, br = b.rect;
+      const area = Math.max(0, Math.min(ar.right, br.right) - Math.max(ar.x, br.x)) * Math.max(0, Math.min(ar.bottom, br.bottom) - Math.max(ar.y, br.y));
+      const fraction = area / Math.max(1, Math.min(ar.width * ar.height, br.width * br.height));
+      if (fraction > .35) overlap.push({ a: a.text, b: b.text, fraction: Number(fraction.toFixed(3)) });
+    }
+    // Rectangular screen bounds overestimate overlap of slanted glyph planes.
+    // Record candidates for image review; do not claim this proves legibility.
+    assert.equal(errors.length, 0, 'no runtime exceptions: ' + JSON.stringify(errors));
+    assert.equal(failedResponses.length, 0, 'no failed asset responses: ' + JSON.stringify(failedResponses));
+    await fs.writeFile(path.join(logs, `visual-grammar-lab-${width}.json`), JSON.stringify({
+      width, result: 'pass', fonts, comparisons, initialLayout: initialDom, overlapCandidates: overlap,
+      selectedId: pick.id, runtimeErrors: errors, failedResponses,
+      scope: 'Browser emulation and structural/rendering invariants; overlap candidates require image review; no human-comprehension claim.',
+    }, null, 2));
+    console.log(`[check:visual-grammar-lab] PASS ${width}px, ${allIds.length} labels, ${overlap.length} bounding-box overlap candidates recorded.`);
+  } catch (error) {
+    if (ws?.readyState === WebSocket.OPEN) {
+      // Successful captures are saved incrementally; the error keeps CDP output.
+      await fs.writeFile(path.join(logs, `visual-grammar-lab-failure-${width}.txt`), String(error.stack || error));
+    }
+    throw error;
+  } finally {
+    ws?.close(); proc.kill(); server.close();
+    await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
+  }
+}

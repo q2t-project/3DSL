@@ -24,6 +24,7 @@ const SRC_ROOT = path.join(REPO_ROOT, "packages", "schemas");
 const SRC_LATEST_SCHEMA = path.join(SRC_ROOT, "3DSS.schema.json");
 const SRC_SPEC = path.join(SRC_ROOT, "3DSS_spec.md");
 const SRC_RELEASE_DIR = path.join(SRC_ROOT, "release");
+const SRC_CANDIDATE_DIR = path.join(SRC_ROOT, "candidates");
 
 const OUT_ROOT = path.join(SITE_ROOT, "public", "schemas");
 const OUT_LATEST_SCHEMA = path.join(OUT_ROOT, "3DSS.schema.json");
@@ -62,6 +63,16 @@ function main() {
   if (fs.existsSync(SRC_SPEC)) copyFile(SRC_SPEC, OUT_LATEST_DIR_SPEC);
 
   copyDir(SRC_RELEASE_DIR, OUT_RELEASE_DIR);
+
+  // Candidate contracts are addressable for review without replacing latest
+  // or a frozen release. Audit inventories and invalid fixtures stay in source.
+  if (fs.existsSync(SRC_CANDIDATE_DIR)) {
+    for (const entry of fs.readdirSync(SRC_CANDIDATE_DIR, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const schema = path.join(SRC_CANDIDATE_DIR, entry.name, "3DSS.schema.json");
+      if (fs.existsSync(schema)) copyFile(schema, path.join(OUT_ROOT, "candidates", entry.name, "3DSS.schema.json"));
+    }
+  }
 
   console.log(`[sync] schemas: mirrored (packages/schemas -> apps/site/public/schemas)`);
 }

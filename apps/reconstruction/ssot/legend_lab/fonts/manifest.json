@@ -1,0 +1,28 @@
+{
+  "scope": "HG-V1 specimen text only; not a general-purpose Japanese font package",
+  "serif_source": "https://github.com/google/fonts/blob/8b0a1d0f5983c89bc2b93f1b5fb55f9e252744b5/ofl/notoserifjp/NotoSerifJP%5Bwght%5D.ttf",
+  "character_count": 423,
+  "files": [
+    {
+      "file": "NotoSansJP.woff2",
+      "source_sha256": "d930d5d52d15231c283089760f84584272ad5e37e14607ba0d19c798e7a9caec",
+      "sha256": "d4b13005371ebd2d24f8595aa71cffd3bb76798f26652b83fea600045ee6aa11",
+      "bytes": 81516,
+      "missing_source_codepoints": []
+    },
+    {
+      "file": "NotoSansJP-Bold.woff2",
+      "source_sha256": "c5b7b9d6a6eb682b0d4e6bbb38509575fd2759a28f147daa74714d1359a7909e",
+      "sha256": "49aa0825c22850eb3d1d295ff030327748d60e23fccfe47de6d58d890cb5def2",
+      "bytes": 83464,
+      "missing_source_codepoints": []
+    },
+    {
+      "file": "NotoSerifJP.woff2",
+      "source_sha256": "2fd527ba12b6a44ec30d796d633360da0aeba6c5d4af1304ce12bb4dc15a7dfc",
+      "sha256": "b1440f9bef71f9d30bfd484d3c269800cb70b53668e8305edbda92c72ce019ff",
+      "bytes": 213580,
+      "missing_source_codepoints": []
+    }
+  ]
+}

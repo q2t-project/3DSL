@@ -1,0 +1,1446 @@
+{
+  "document_meta": {
+    "document_title": "文字の凡例を読む — 米の状態・過程・役割",
+    "document_summary": "文字面の読み方を比べる見本です。位置は説明のための配置で、米の経路の+Yだけを工程順序として読みます。状態・保管による維持・炊飯による性質変化・調理役の参与を比較します。",
+    "document_uuid": "43e9216b-f6eb-552b-8025-a6ca435baee6",
+    "version": "2.0.0",
+    "created_at": "2026-10-30T00:00:00Z",
+    "revised_at": "2026-10-30T00:00:00Z",
+    "schema_uri": "https://3dsl.jp/schemas/candidates/v2.0.0/3DSS.schema.json#v2.0.0",
+    "author": "3DSL-prototype",
+    "coordinate_system": "Z+up/freeXY",
+    "units": "non_si:px",
+    "i18n": "ja",
+    "creator_memo": "この見本は文字面の読み比べが目的で、q・Q・tの全座標を定義した完成済みの共通軸モデルではありません。位置は説明配置で、米の主経路に限り+Yを工程順序に使います。HG-V1用の独立した候補見本です。q=+Z、Q=-X、t=+Yを読む面の規約として使います。XZ=qQ、YZ=qt、XY=Qt。旧試作のXY=非時間という対応は継承しません。状態は時点を持ちますが、その切片の文字面にはtを含めません。役割・種類のXZ面は時点を置かない記述であり、状態の切片と同一ではありません。工程点と米の状態の+Yは順序だけを表し、距離を経過時間としません。数量・物理的位置・特定の個人や機器は未記録です。注記点は図を読むためのメタ記述で、米・過程・参与者ではありません。サイズ16と8はこの見本で何を全体から先に読むかという相対的なスコープです。色は線の関係系列を補助し、点を排他的な色分類へ分けません。",
+    "tags": [
+      "m:visual-legend-candidate",
+      "x:hg-v1"
+    ]
+  },
+  "points": [
+    {
+      "signification": {
+        "name": "保管前の家の米"
+      },
+      "appearance": {
+        "position": [
+          0,
+          -140,
+          0
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "color": "#F3F4F6",
+            "opacity": 1
+          },
+          "text": {
+            "content": "保管前の米",
+            "size": 8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "writing_mode": "horizontal-tb",
+            "font": "noto-sans-jp",
+            "font_weight": 400,
+            "color": "#F3F4F6"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "9c888f3a-3fc8-5aa9-acf3-57772f791324",
+        "creator_memo": "保管へ入る前の米の状態。ある時点の切片をXZ面で読みます。時点を持つことと、その文字面に時間軸を含めることは別です。",
+        "tags": [
+          "m:state",
+          "m:stock"
+        ],
+        "legend_refs": [
+          "state-plane",
+          "detail-scope"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "米の保管"
+      },
+      "appearance": {
+        "position": [
+          0,
+          -100,
+          0
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "color": "#F3F4F6",
+            "opacity": 1
+          },
+          "text": {
+            "content": "保管",
+            "size": 16,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                1,
+                0,
+                0
+              ],
+              "up": [
+                0,
+                -1,
+                0
+              ]
+            },
+            "writing_mode": "vertical-rl",
+            "font": "noto-sans-jp",
+            "font_weight": 400,
+            "color": "#F3F4F6"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "f718df2a-696c-5eea-b110-00480e58c191",
+        "creator_memo": "米のストックを保つ、時間的な維持の側面をqt面で読みます。この例では増減させず保つものとして描きますが、実測量や保管期間は未記録で、米の性質が変化しないとは断定しません。",
+        "tags": [
+          "m:temporal-maintenance"
+        ],
+        "legend_refs": [
+          "quantity-time-plane",
+          "overview-scope"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "保管後の家の米"
+      },
+      "appearance": {
+        "position": [
+          0,
+          -60,
+          0
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "color": "#F3F4F6",
+            "opacity": 1
+          },
+          "text": {
+            "content": "家の米",
+            "size": 16,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "writing_mode": "horizontal-tb",
+            "font": "noto-sans-jp",
+            "font_weight": 400,
+            "color": "#F3F4F6"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "78f6242e-6b30-5320-b6c4-8f80fe3bbd90",
+        "creator_memo": "保管後、取り分け前に家にある米の状態です。XZの切片から、炊く分と残す分へ分かれる前の対象を読みます。",
+        "tags": [
+          "m:state",
+          "m:stock"
+        ],
+        "legend_refs": [
+          "state-plane",
+          "overview-scope"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "米の取り分け"
+      },
+      "appearance": {
+        "position": [
+          0,
+          -20,
+          0
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "color": "#F3F4F6",
+            "opacity": 1
+          },
+          "text": {
+            "content": "取り分け",
+            "size": 8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                1,
+                0,
+                0
+              ],
+              "up": [
+                0,
+                -1,
+                0
+              ]
+            },
+            "writing_mode": "vertical-rl",
+            "font": "noto-sans-jp",
+            "font_weight": 400,
+            "color": "#F3F4F6"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "1e563134-03fb-55ee-a752-603770ffb1c5",
+        "creator_memo": "米の数量を炊く分と残す分へ配分する側面をqt面で読みます。何グラムか、比率がいくつかは記録しません。二つの結果を同じ段階に置きます。",
+        "tags": [
+          "m:quantity-process"
+        ],
+        "legend_refs": [
+          "quantity-time-plane",
+          "detail-scope"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "炊飯に取り分けた生米"
+      },
+      "appearance": {
+        "position": [
+          0,
+          20,
+          0
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "color": "#F3F4F6",
+            "opacity": 1
+          },
+          "text": {
+            "content": "炊く分の米",
+            "size": 8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "writing_mode": "horizontal-tb",
+            "font": "noto-sans-jp",
+            "font_weight": 400,
+            "color": "#F3F4F6"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "908a867e-c0ba-5a73-a817-46153520398c",
+        "creator_memo": "取り分け直後の、これから炊飯する米です。残す分の米と同じYにあり、同じ切片の枝として比べます。位置や文字サイズは米の量ではありません。",
+        "tags": [
+          "m:state",
+          "m:stock"
+        ],
+        "legend_refs": [
+          "state-plane",
+          "detail-scope"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "取り分け後に残す生米"
+      },
+      "appearance": {
+        "position": [
+          -80,
+          20,
+          0
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "color": "#F3F4F6",
+            "opacity": 1
+          },
+          "text": {
+            "content": "残す分の米",
+            "size": 8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "writing_mode": "horizontal-tb",
+            "font": "noto-sans-jp",
+            "font_weight": 400,
+            "color": "#F3F4F6"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "c4a087cc-95da-51d1-a0af-b3994797ab04",
+        "creator_memo": "取り分け直後に家に残す米です。炊く分と同じ切片ですが、炊飯へは接続していません。家の米すべてを炊くという読みを避ける枝です。",
+        "tags": [
+          "m:state",
+          "m:stock"
+        ],
+        "legend_refs": [
+          "state-plane",
+          "detail-scope"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "米を炊く過程"
+      },
+      "appearance": {
+        "position": [
+          0,
+          65,
+          0
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "color": "#F3F4F6",
+            "opacity": 1
+          },
+          "text": {
+            "content": "炊飯",
+            "size": 16,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                -1,
+                0
+              ]
+            },
+            "writing_mode": "vertical-rl",
+            "font": "noto-sans-jp",
+            "font_weight": 400,
+            "color": "#F3F4F6"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "4c862590-5943-5ca2-ae32-aeb7e0fae2e3",
+        "creator_memo": "生米からご飯へという性質変化の側面をQt面で読みます。水量や消費電力量の計算ではありません。同じ炊飯へ、米・調理役・電気が異なる関係で参加します。",
+        "tags": [
+          "m:quality-process"
+        ],
+        "legend_refs": [
+          "quality-time-plane",
+          "overview-scope"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "炊飯後のご飯"
+      },
+      "appearance": {
+        "position": [
+          0,
+          110,
+          0
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "color": "#F3F4F6",
+            "opacity": 1
+          },
+          "text": {
+            "content": "ご飯",
+            "size": 16,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "writing_mode": "horizontal-tb",
+            "font": "noto-sans-jp",
+            "font_weight": 400,
+            "color": "#F3F4F6"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "42c89567-1b44-5c7c-9f38-82ccde2c8a3f",
+        "creator_memo": "炊飯後の米の状態です。Qt面の過程に対して、結果の状態をXZの切片で読みます。食事全体が成立したことまでは記録していません。",
+        "tags": [
+          "m:state",
+          "m:stock"
+        ],
+        "legend_refs": [
+          "state-plane",
+          "overview-scope"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "調理を担う役割"
+      },
+      "appearance": {
+        "position": [
+          -100,
+          65,
+          0
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "color": "#F3F4F6",
+            "opacity": 1
+          },
+          "text": {
+            "content": "調理役",
+            "size": 16,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "writing_mode": "horizontal-tb",
+            "font": "noto-sans-jp",
+            "font_weight": 400,
+            "color": "#F3F4F6"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "f225f07d-b1ab-5ece-8834-d60b3726bec7",
+        "creator_memo": "ある時点の人の状態ではなく、取り分けや炊飯を担う役割の型です。XZ面から時間を捨象して読みます。配置Yは担当の発生時刻ではなく、複数の担当線は同一人物を保証しません。",
+        "tags": [
+          "m:role-type"
+        ],
+        "legend_refs": [
+          "state-plane",
+          "overview-scope"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "電気というエネルギーの種類"
+      },
+      "appearance": {
+        "position": [
+          90,
+          65,
+          0
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.7,
+          "common": {
+            "color": "#F3F4F6",
+            "opacity": 1
+          },
+          "text": {
+            "content": "電気〔種類〕",
+            "size": 8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "writing_mode": "horizontal-tb",
+            "font": "noto-sans-jp",
+            "font_weight": 400,
+            "color": "#F3F4F6"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "9198ffbd-1d87-5b39-9881-b5006e35fbd1",
+        "creator_memo": "炊飯を支えるエネルギーの種類です。電力量のストック、供給期間、特定の発電源は記録していません。ここでの位置は供給時刻や物理的位置ではありません。",
+        "tags": [
+          "m:energy-type"
+        ],
+        "legend_refs": [
+          "state-plane",
+          "detail-scope"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "注：同じ切片"
+      },
+      "appearance": {
+        "position": [
+          -40,
+          20,
+          30
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "text": {
+            "content": "注：同じ切片",
+            "size": 8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "writing_mode": "horizontal-tb",
+            "font": "noto-serif-jp",
+            "font_weight": 400,
+            "color": "#F3F4F6"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "fa263ea7-3172-5a04-a691-1b008e78d24c",
+        "creator_memo": "「炊く分の米」と「残す分の米」は取り分け直後の同じ切片です。この注記自体は米の状態や過程ではありません。注記の高さは量を表しません。",
+        "tags": [
+          "m:author-annotation"
+        ],
+        "legend_refs": [
+          "author-note",
+          "detail-scope"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "注：役割の型"
+      },
+      "appearance": {
+        "position": [
+          -100,
+          65,
+          30
+        ],
+        "frames": [
+          0
+        ],
+        "marker": {
+          "primitive": "none",
+          "text": {
+            "content": "注：役割の型",
+            "size": 8,
+            "align": "center&middle",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "writing_mode": "horizontal-tb",
+            "font": "noto-serif-jp",
+            "font_weight": 400,
+            "color": "#F3F4F6"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "0e59d4bf-507c-5b79-b4e9-6cb230966d35",
+        "creator_memo": "調理役は、ある時点の具体的な人の状態と区別して読む型の記述です。書体を共通にしても「注：」を残します。この注記自体は参与者ではありません。",
+        "tags": [
+          "m:author-annotation"
+        ],
+        "legend_refs": [
+          "author-note",
+          "detail-scope"
+        ]
+      }
+    }
+  ],
+  "lines": [
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "対象"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "9c888f3a-3fc8-5aa9-acf3-57772f791324"
+        },
+        "end_b": {
+          "ref": "f718df2a-696c-5eea-b110-00480e58c191"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#E8B86D",
+        "opacity": 1,
+        "frames": [
+          0
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2.4,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          },
+          "writing_mode": "horizontal-tb",
+          "font": "noto-sans-jp",
+          "font_weight": 400,
+          "color": "#F3F4F6"
+        }
+      },
+      "meta": {
+        "uuid": "75b49b41-e0af-5dfa-8116-56937161e397",
+        "creator_memo": "保管前の米を、保管によって維持する対象として読みます。",
+        "tags": [
+          "m:rice-series"
+        ],
+        "legend_refs": [
+          "rice-series",
+          "detail-scope"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "保管後"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "f718df2a-696c-5eea-b110-00480e58c191"
+        },
+        "end_b": {
+          "ref": "78f6242e-6b30-5320-b6c4-8f80fe3bbd90"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#E8B86D",
+        "opacity": 1,
+        "frames": [
+          0
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2.4,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          },
+          "writing_mode": "horizontal-tb",
+          "font": "noto-sans-jp",
+          "font_weight": 400,
+          "color": "#F3F4F6"
+        }
+      },
+      "meta": {
+        "uuid": "d58c225c-b2f1-5413-ba75-2114beeed6ba",
+        "creator_memo": "保管の後に捉えた米の状態です。時間的な維持と、その結果の切片を分けます。",
+        "tags": [
+          "m:rice-series"
+        ],
+        "legend_refs": [
+          "rice-series",
+          "detail-scope"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "対象"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "78f6242e-6b30-5320-b6c4-8f80fe3bbd90"
+        },
+        "end_b": {
+          "ref": "1e563134-03fb-55ee-a752-603770ffb1c5"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#E8B86D",
+        "opacity": 1,
+        "frames": [
+          0
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2.4,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          },
+          "writing_mode": "horizontal-tb",
+          "font": "noto-sans-jp",
+          "font_weight": 400,
+          "color": "#F3F4F6"
+        }
+      },
+      "meta": {
+        "uuid": "45155f6d-9dc8-5bb9-b7eb-001838bfbfab",
+        "creator_memo": "家の米を、取り分けの対象として読みます。家の米すべてを炊飯に送る線ではありません。",
+        "tags": [
+          "m:rice-series"
+        ],
+        "legend_refs": [
+          "rice-series",
+          "detail-scope"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "炊く分"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "1e563134-03fb-55ee-a752-603770ffb1c5"
+        },
+        "end_b": {
+          "ref": "908a867e-c0ba-5a73-a817-46153520398c"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#E8B86D",
+        "opacity": 1,
+        "frames": [
+          0
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2.4,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          },
+          "writing_mode": "horizontal-tb",
+          "font": "noto-sans-jp",
+          "font_weight": 400,
+          "color": "#F3F4F6"
+        }
+      },
+      "meta": {
+        "uuid": "1f555e34-4104-57ab-8e82-01df661bfc18",
+        "creator_memo": "取り分けたうち、炊飯へ進める枝です。数量と比率は未記録です。",
+        "tags": [
+          "m:rice-series"
+        ],
+        "legend_refs": [
+          "rice-series",
+          "detail-scope"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "残す分"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "1e563134-03fb-55ee-a752-603770ffb1c5"
+        },
+        "end_b": {
+          "ref": "c4a087cc-95da-51d1-a0af-b3994797ab04"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#E8B86D",
+        "opacity": 1,
+        "frames": [
+          0
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2.4,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          },
+          "writing_mode": "horizontal-tb",
+          "font": "noto-sans-jp",
+          "font_weight": 400,
+          "color": "#F3F4F6"
+        }
+      },
+      "meta": {
+        "uuid": "0686d272-829c-5c93-be55-fa230e5c593c",
+        "creator_memo": "取り分けたうち、家に残す枝です。炊く分と同じ切片で読みます。",
+        "tags": [
+          "m:rice-series"
+        ],
+        "legend_refs": [
+          "rice-series",
+          "detail-scope"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "対象"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "908a867e-c0ba-5a73-a817-46153520398c"
+        },
+        "end_b": {
+          "ref": "4c862590-5943-5ca2-ae32-aeb7e0fae2e3"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#E8B86D",
+        "opacity": 1,
+        "frames": [
+          0
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2.4,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          },
+          "writing_mode": "horizontal-tb",
+          "font": "noto-sans-jp",
+          "font_weight": 400,
+          "color": "#F3F4F6"
+        }
+      },
+      "meta": {
+        "uuid": "a37e1d91-6780-51c3-94c9-cd62cb8600a0",
+        "creator_memo": "炊く分の米が炊飯の対象になります。家に残す分はこの線へ入りません。",
+        "tags": [
+          "m:rice-series"
+        ],
+        "legend_refs": [
+          "rice-series",
+          "detail-scope"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "結果"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "4c862590-5943-5ca2-ae32-aeb7e0fae2e3"
+        },
+        "end_b": {
+          "ref": "42c89567-1b44-5c7c-9f38-82ccde2c8a3f"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#E8B86D",
+        "opacity": 1,
+        "frames": [
+          0
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2.4,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          },
+          "writing_mode": "horizontal-tb",
+          "font": "noto-sans-jp",
+          "font_weight": 400,
+          "color": "#F3F4F6"
+        }
+      },
+      "meta": {
+        "uuid": "e8835fe6-016d-5ab7-b733-d1d1d7ce9cff",
+        "creator_memo": "生米からご飯への性質変化の結果を読みます。",
+        "tags": [
+          "m:rice-series"
+        ],
+        "legend_refs": [
+          "rice-series",
+          "detail-scope"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "担当"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "f225f07d-b1ab-5ece-8834-d60b3726bec7"
+        },
+        "end_b": {
+          "ref": "1e563134-03fb-55ee-a752-603770ffb1c5"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#C4A9F5",
+        "opacity": 1,
+        "frames": [
+          0
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2.4,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          },
+          "writing_mode": "horizontal-tb",
+          "font": "noto-sans-jp",
+          "font_weight": 400,
+          "color": "#F3F4F6"
+        }
+      },
+      "meta": {
+        "uuid": "445c6552-6773-57c5-b83e-c25401dff6a6",
+        "creator_memo": "調理役という役割が取り分けを担う関係です。時刻の推移や物質の移動ではありません。",
+        "tags": [
+          "m:role-series"
+        ],
+        "legend_refs": [
+          "role-series",
+          "detail-scope"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "担当"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "f225f07d-b1ab-5ece-8834-d60b3726bec7"
+        },
+        "end_b": {
+          "ref": "4c862590-5943-5ca2-ae32-aeb7e0fae2e3"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#C4A9F5",
+        "opacity": 1,
+        "frames": [
+          0
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2.4,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          },
+          "writing_mode": "horizontal-tb",
+          "font": "noto-sans-jp",
+          "font_weight": 400,
+          "color": "#F3F4F6"
+        }
+      },
+      "meta": {
+        "uuid": "ad17bb62-8ce5-5705-a6c9-38e68d0c3652",
+        "creator_memo": "調理役という役割が炊飯を担う関係です。別の担当線と同じ一人が担うかは未記録です。",
+        "tags": [
+          "m:role-series"
+        ],
+        "legend_refs": [
+          "role-series",
+          "detail-scope"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "エネルギー"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "9198ffbd-1d87-5b39-9881-b5006e35fbd1"
+        },
+        "end_b": {
+          "ref": "4c862590-5943-5ca2-ae32-aeb7e0fae2e3"
+        },
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#62CDD5",
+        "opacity": 1,
+        "frames": [
+          0
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2.4,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          },
+          "writing_mode": "horizontal-tb",
+          "font": "noto-sans-jp",
+          "font_weight": 400,
+          "color": "#F3F4F6"
+        }
+      },
+      "meta": {
+        "uuid": "571f1466-2695-5f35-a327-1252976272ca",
+        "creator_memo": "電気が炊飯を支えるエネルギーとして参与します。供給量・供給期間は未記録です。",
+        "tags": [
+          "m:energy-series"
+        ],
+        "legend_refs": [
+          "energy-series",
+          "detail-scope"
+        ]
+      }
+    }
+  ],
+  "visual_legend": [
+    {
+      "id": "state-plane",
+      "label": "XZ＝qQ：状態・構成を捉える",
+      "description": "文字面に時間軸を含めない読み方。状態の切片と、時刻を置かない役割・種類の記述は、語と「注：」で分けます。本文はゴシック体です。",
+      "applies_to": [
+        "point_text"
+      ],
+      "sample": {
+        "size": 16,
+        "pose": {
+          "front": [
+            0,
+            1,
+            0
+          ],
+          "up": [
+            0,
+            0,
+            1
+          ]
+        },
+        "writing_mode": "horizontal-tb",
+        "font": "noto-sans-jp",
+        "font_weight": 400,
+        "color": "#F3F4F6"
+      }
+    },
+    {
+      "id": "quantity-time-plane",
+      "label": "YZ＝qt：量の維持・配分を追う",
+      "description": "保管は維持、取り分けは数量の配分という側面。具体量や経過時間は未記録です。縦組の読む方向を+Yに沿わせます。",
+      "applies_to": [
+        "point_text"
+      ],
+      "sample": {
+        "size": 16,
+        "pose": {
+          "front": [
+            1,
+            0,
+            0
+          ],
+          "up": [
+            0,
+            -1,
+            0
+          ]
+        },
+        "writing_mode": "vertical-rl",
+        "font": "noto-sans-jp",
+        "font_weight": 400,
+        "color": "#F3F4F6"
+      }
+    },
+    {
+      "id": "quality-time-plane",
+      "label": "XY＝Qt：性質変化を追う",
+      "description": "炊飯を、生米からご飯への性質変化として読みます。縦組の読む方向は+Y。XYを非時間の面とはしません。",
+      "applies_to": [
+        "point_text"
+      ],
+      "sample": {
+        "size": 16,
+        "pose": {
+          "front": [
+            0,
+            0,
+            1
+          ],
+          "up": [
+            0,
+            -1,
+            0
+          ]
+        },
+        "writing_mode": "vertical-rl",
+        "font": "noto-sans-jp",
+        "font_weight": 400,
+        "color": "#F3F4F6"
+      }
+    },
+    {
+      "id": "overview-scope",
+      "label": "16：全体から先に読む語",
+      "description": "この見本では家の米・保管・炊飯・ご飯・調理役を先に読む語として置きます。価値・数量・本質的な重要さではありません。",
+      "applies_to": [
+        "point_text",
+        "line_caption"
+      ],
+      "sample": {
+        "size": 16
+      }
+    },
+    {
+      "id": "detail-scope",
+      "label": "8：関係を近づいて読む語",
+      "description": "取り分けの枝、対象・担当等の関係語、注記を読むための段階。この見本内の相対的なスコープです。縮小して読めない時は拡大し、階層を一律に書き換えません。",
+      "applies_to": [
+        "point_text",
+        "line_caption"
+      ],
+      "sample": {
+        "size": 8
+      }
+    },
+    {
+      "id": "author-note",
+      "label": "明朝＋「注：」：作者による読みの説明",
+      "description": "注記だけを書体で補助的に分けます。書体を一つにしても「注：」が残り、モデル内の米・過程・参与者とは区別できます。",
+      "applies_to": [
+        "point_text"
+      ],
+      "sample": {
+        "size": 8,
+        "writing_mode": "horizontal-tb",
+        "font": "noto-serif-jp",
+        "font_weight": 400,
+        "color": "#F3F4F6",
+        "pose": {
+          "front": [
+            0,
+            1,
+            0
+          ],
+          "up": [
+            0,
+            0,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "id": "rice-series",
+      "label": "米の経路",
+      "description": "米の状態と過程をつなぐ線。対象・保管後・炊く分・残す分・結果という語と矢印で、色がなくても経路を読めます。色は数量を表しません。",
+      "applies_to": [
+        "line"
+      ],
+      "sample": {
+        "color": "#E8B86D"
+      }
+    },
+    {
+      "id": "role-series",
+      "label": "役割の参与",
+      "description": "「担当」の線で、調理役と過程を結びます。点を一色の所属へ固定せず、炊飯等で複数の系列を受けられます。",
+      "applies_to": [
+        "line"
+      ],
+      "sample": {
+        "color": "#C4A9F5"
+      }
+    },
+    {
+      "id": "energy-series",
+      "label": "エネルギーの参与",
+      "description": "「エネルギー」の線で電気と炊飯を結びます。軸の色とは別の局所凡例です。色のない比較でも関係語と矢印は残ります。",
+      "applies_to": [
+        "line"
+      ],
+      "sample": {
+        "color": "#62CDD5"
+      }
+    }
+  ]
+}

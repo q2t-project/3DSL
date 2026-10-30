@@ -1,0 +1,234 @@
+{
+  "document_meta": {
+    "document_title": "文字と色の候補契約の検査例",
+    "document_summary": "HG-V1 contract fixture; not a production-format model.",
+    "document_uuid": "11111111-1111-4111-8111-111111111111",
+    "schema_uri": "https://3dsl.jp/schemas/candidates/v2.0.0/3DSS.schema.json#v2.0.0",
+    "author": "canonical",
+    "version": "2.0.0",
+    "tags": [
+      "s:canonical",
+      "m:minimal"
+    ],
+    "coordinate_system": "Z+up/freeXY",
+    "units": "non_si:px",
+    "i18n": "ja",
+    "created_at": "2026-01-01T00:00:00Z",
+    "revised_at": "2026-01-01T00:00:00Z"
+  },
+  "points": [
+    {
+      "signification": {
+        "name": "家の米"
+      },
+      "appearance": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "sphere",
+          "radius": 2.0,
+          "common": {
+            "color": "#66ccff"
+          },
+          "text": {
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ]
+            },
+            "content": "家の米",
+            "size": 8,
+            "align": "center&middle",
+            "font": "noto_sans_jp_regular",
+            "font_weight": 400,
+            "writing_mode": "horizontal-tb",
+            "color": "#ffffff"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "11111111-1111-4111-8111-111111111112",
+        "tags": [
+          "s:node"
+        ],
+        "legend_refs": [
+          "state",
+          "rice"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "保管"
+      },
+      "appearance": {
+        "position": [
+          0,
+          25,
+          0
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "sphere",
+          "radius": 2.0,
+          "common": {
+            "color": "#66ccff"
+          },
+          "text": {
+            "pose": {
+              "front": [
+                1,
+                0,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "content": "保管",
+            "size": 8,
+            "align": "center&middle",
+            "font": "noto_sans_jp_regular",
+            "font_weight": 700,
+            "writing_mode": "vertical-rl",
+            "color": "#ffffff"
+          }
+        }
+      },
+      "meta": {
+        "uuid": "11111111-1111-4111-8111-111111111113",
+        "tags": [
+          "s:node"
+        ],
+        "legend_refs": [
+          "process",
+          "rice"
+        ]
+      }
+    }
+  ],
+  "lines": [
+    {
+      "meta": {
+        "uuid": "11111111-1111-4111-8111-111111111114",
+        "legend_refs": [
+          "rice"
+        ]
+      },
+      "signification": {
+        "caption": "維持"
+      },
+      "appearance": {
+        "line_type": "straight",
+        "end_a": {
+          "ref": "11111111-1111-4111-8111-111111111112"
+        },
+        "end_b": {
+          "ref": "11111111-1111-4111-8111-111111111113"
+        },
+        "color": "#56b4e9",
+        "caption_text": {
+          "font_size": 4,
+          "font": "noto_sans_jp_regular",
+          "font_weight": 400,
+          "writing_mode": "vertical-rl",
+          "color": "#fff",
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "aux": [
+    {
+      "meta": {
+        "uuid": "11111111-1111-4111-8111-111111111115"
+      },
+      "appearance": {
+        "module": {
+          "extension": {
+            "latex": {
+              "content": "q_t",
+              "font_size": 10,
+              "pose": {
+                "front": [
+                  0,
+                  1,
+                  0
+                ],
+                "up": [
+                  0,
+                  0,
+                  1
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "visual_legend": [
+    {
+      "id": "state",
+      "label": "状態",
+      "description": "ある時点の状態として読む。",
+      "applies_to": [
+        "point_text"
+      ],
+      "sample": {
+        "writing_mode": "horizontal-tb"
+      }
+    },
+    {
+      "id": "process",
+      "label": {
+        "ja": "過程",
+        "en": "Process"
+      },
+      "description": "方向に沿って読む。維持を含む。",
+      "applies_to": [
+        "point_text",
+        "line_caption"
+      ],
+      "sample": {
+        "writing_mode": "vertical-rl"
+      }
+    },
+    {
+      "id": "rice",
+      "label": "米の系列",
+      "description": "状態と過程をまたいで米を追う。色だけで識別しない。",
+      "applies_to": [
+        "point_text",
+        "line"
+      ],
+      "sample": {
+        "color": "#56b4e9"
+      }
+    }
+  ]
+}
