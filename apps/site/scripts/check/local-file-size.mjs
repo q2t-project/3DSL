@@ -48,11 +48,22 @@ function observedFile(file, { textOnly = false, rejectReads = false, events = []
 function globals() {
   const nodes = new Map();
   const document = {
+    body: new Element(),
     getElementById(id) { if (!nodes.has(id)) nodes.set(id, new Element()); return nodes.get(id); },
     createElement: () => new Element(), createTextNode: text => ({ textContent: text }),
   };
   const location = { origin: 'https://example.test', href: 'https://example.test/', search: '' };
-  const window = { location, addEventListener() {}, confirm() { throw new Error('unexpected confirmation'); } };
+  // This fixture represents a desktop viewport. Keep the browser MediaQueryList
+  // event surface used by Viewer boot without replacing its responsive logic.
+  const mediaQueries = new Map();
+  const window = {
+    location, addEventListener() {},
+    matchMedia(query) {
+      if (!mediaQueries.has(query)) mediaQueries.set(query, Object.assign(new EventTarget(), { matches: false, media: String(query), onchange: null }));
+      return mediaQueries.get(query);
+    },
+    confirm() { throw new Error('unexpected confirmation'); },
+  };
   return {
     module: { exports: {} }, window, document, location, nodes,
     URL, URLSearchParams, TextEncoder, TextDecoder, structuredClone, setTimeout, clearTimeout,

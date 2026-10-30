@@ -5,6 +5,7 @@
 import { mapDragToOrbitDelta } from './orbitMapping.js';
 import { createHubFacade } from './hubFacade.js';
 import { DEFAULT_INPUT_POINTER, resolveInputDefaults } from './inputDefaults.js';
+import { TOUCH_TAP_SLOP_PX } from './tapGesture.js';
 
 
 function _num(v, fallback) {
@@ -253,7 +254,8 @@ export class PointerInput {
     const src = p0 || fallbackPointer;
     const fast = !!event?.shiftKey;
 
-    const minDragPx = Math.max(0, _int(src.minDragPx, fallbackPointer.minDragPx));
+    const tapSlop = this.hub?.browsing && event?.pointerType === 'touch' ? TOUCH_TAP_SLOP_PX : 0;
+    const minDragPx = Math.max(tapSlop, _int(src.minDragPx, fallbackPointer.minDragPx));
     const clickMovePx = Math.max(0, _num(src.clickMovePx, fallbackPointer.clickMovePx));
 
     const rotateSpeed = _num(
@@ -475,14 +477,19 @@ export class PointerInput {
           if (!this.dispatch('zoomDelta', zoomDelta)) this.dispatch('zoom', zoomDelta);
         }
 
-        // pan は既存の距離スケール計算を流用
+        // Reading touch pan tracks CSS pixels at the target depth. The legacy
+        // mouse gain multiplies two small factors and barely moves on phones.
         if ((dmx || dmy) && Number.isFinite(dmx) && Number.isFinite(dmy)) {
           const camState = this.getCameraState();
           const distance = camState && typeof camState.distance === 'number' ? camState.distance : 1;
-          const panScale = distance * settings.panFactor;
-          const panX = dmx * settings.panSpeed * panScale;
-          const panY = dmy * settings.panSpeed * panScale;
-          if (!this.dispatch('panDelta', panX, panY)) this.dispatch('pan', panX, panY);
+          const height = this.canvas.getBoundingClientRect().height;
+          const fov = _num(camState?.fov, 50);
+          const unitsPerPixel = this.hub?.browsing && height > 0 && fov > 0 && fov < 180
+            ? 2 * distance * Math.tan(fov * Math.PI / 360) / height
+            : settings.panSpeed * distance * settings.panFactor;
+          const panX = dmx * unitsPerPixel;
+          const panY = dmy * unitsPerPixel;
+          if (!this.dispatch('panDelta', panX, panY, { direct: !!this.hub?.browsing })) this.dispatch('pan', panX, panY);
         }
 
         this._pinchLastDist = pb.dist;

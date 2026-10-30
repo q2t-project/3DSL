@@ -4,16 +4,26 @@ const lazy=(parent,title,render)=>{const d=el('details');d.append(el('summary',t
 const record=(parent,title,value)=>{if(value!==undefined&&value!==null)lazy(parent,title,d=>d.append(el('pre',typeof value==='string'?value:JSON.stringify(value,null,2))));};
 const row=(parent,label,value)=>{const p=el('p');p.append(el('strong',`${label}: `),document.createTextNode(String(value??'記録なし')));parent.append(p);};
 const kindLabels={occurrence:'出現',target:'対象',relation:'関係',participant:'参与枠',participation:'参与枠',point:'点',line:'線',aux:'補助要素',boundary:'境界'};
+const localized=value=>typeof value==='string'?value:value?.ja||value?.en||'';
 export function renderBrowsingInfo(container,{model,index,state,select,explore,fitSelection}) {
   container.replaceChildren();
   if(!model){container.append(el('p','作品を開くと、図で選んだ対象の情報をここに表示します。'));return;}
   const entry=index.get(state.selectedId);
   const header=el('section');header.append(el('h2',entry?.label||'図から選んで読む'));
-  if(!entry)header.append(el('p','図上の点・線をクリックすると、対応する情報と接続先を読めます。検索からも選べます。'));
+  if(!entry){
+    const summary=localized(model.scene?.document_meta?.document_summary);
+    if(summary)header.append(el('p',summary));
+    header.append(el('p','図上の点・線・文字をタップすると、対応する情報と接続先を読めます。検索から名前で直接選べます。スマホでは下端の「探す」を使ってください。'));
+    const memo=model.scene?.document_meta?.creator_memo;
+    if(typeof memo==='string'&&memo.trim())lazy(header,'作者メモ',d=>d.append(el('p',memo)));
+  }
   container.append(header);
   if(entry) {
-    row(header,'種類',kindLabels[entry.kind]||entry.kind);row(header,'ID',entry.id);
+    row(header,'種類',kindLabels[entry.kind]||entry.kind);
+    const metadata=el('details');metadata.append(el('summary','ID・位置・表示'));row(metadata,'ID',entry.id);
     const details=entry.details||{};
+    const memo=details.element?.meta?.creator_memo;
+    if(typeof memo==='string'&&memo.trim())row(header,'作者メモ',memo);
     if(details.target){
       row(header,'対象',details.target.name||details.target.id);row(header,'対象ID',details.target.id);
       const recorded=details.target.epistemic;
@@ -23,11 +33,11 @@ export function renderBrowsingInfo(container,{model,index,state,select,explore,f
     }
     if(details.occurrence){row(header,'出現ID',details.occurrence.id);row(header,'表示ラベル',details.occurrence.labelOverride??'対象の共有名を使用');}
     const authoredPosition=details.position??(entry.kind==='point'?details.element?.appearance?.position:null);
-    if(authoredPosition)row(header,'位置',authoredPosition.join(', '));
-    else if(entry.position)row(header,'表示範囲の中心',entry.position.join(', '));
+    if(authoredPosition)row(metadata,'位置',authoredPosition.join(', '));
+    else if(entry.position)row(metadata,'表示範囲の中心',entry.position.join(', '));
     if(details.axis)row(header,'意味軸の値',`${details.axis.declaration.quantity}: ${details.axis.value} ${details.axis.declaration.unit}`);
     if(details.boundary?.declaration)row(header,'宣言境界との位置',details.boundary.inside?'内側（辺を含む）':'外側');
-    row(header,'表示',entry.frames?.length?entry.frames.join(', '):'すべての表示');
+    row(metadata,'表示',entry.frames?.length?entry.frames.join(', '):'すべての表示');
     const shown=!entry.frames?.length||entry.frames.includes(state.frame);
     if(!entry.placed||!entry.sceneIds?.length)header.append(el('p','この記録には図上の出現がありません。情報は保持しています。','notice'));
     else if(!shown)header.append(el('p',`現在の表示 ${state.frame} には含まれません。「選択を表示」で所属する表示へ移れます。`,'notice'));
@@ -36,7 +46,7 @@ export function renderBrowsingInfo(container,{model,index,state,select,explore,f
     for(const warning of entry.warnings||[])header.append(el('p',warning,'notice'));
     if(details.slot){row(header,'参与役割',details.slot.role);row(header,'接続対象',details.slot.target??details.slot.relation);}
     if(details.relation){row(header,'関係名',details.relation.name||details.relation.id);row(header,'方向',details.relation.direction);row(header,'条件',details.relation.condition||'指定なし');}
-    const show=el('button','選択を表示');show.type='button';show.disabled=!entry.sceneIds?.length;show.addEventListener('click',()=>fitSelection());header.append(show);
+    const show=el('button','選択を表示','reading-fit-selection');show.type='button';show.disabled=!entry.sceneIds?.length;show.addEventListener('click',()=>fitSelection());header.append(show);
     if(details.target){const copies=index.neighbors(`target:${encodeURIComponent(details.target.id)}`).map(edge=>index.get(edge.toId)).filter(other=>other&&other.id!==entry.id);if(copies.length)lazy(container,'同じ対象の別出現',d=>{for(const other of copies){const button=el('button',`${other.label} · ${other.occurrenceId} / 表示 ${other.frames.length?other.frames.join(', '):'すべて'}`,'part-link');button.type='button';button.addEventListener('click',()=>select(other.id));d.append(button);}});}
     const connections=el('section');connections.append(el('h3','記録された接続先'));
     const edges=index.neighbors(entry.id);
@@ -49,6 +59,7 @@ export function renderBrowsingInfo(container,{model,index,state,select,explore,f
       connections.append(line);
     }
     container.append(connections);
+    container.append(metadata);
     const parts=index.relatedParts?.(entry.id);
     if(parts&&(parts.items?.length||parts.missingIds?.length))lazy(container,parts.reason||'編集前の原記録との対応',d=>{
       d.append(el('p','編集前の対応記録による案内です。現在の同一対象や関係を断定するものではありません。','notice'));

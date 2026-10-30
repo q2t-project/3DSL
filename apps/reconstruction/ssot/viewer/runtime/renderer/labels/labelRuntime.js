@@ -331,6 +331,8 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null, re
       stats.textRebuilds += 1;
 
       obj.name = `label:${uuid}`;
+      obj.userData.uuid = uuid;
+      obj.userData.kind = entry.kind;
       obj.visible = false;
 
       group.add(obj);
@@ -673,6 +675,7 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null, re
     update,
     getStats,
     getReadingLayout,
+    getPickTargets: () => Array.from(labels.values(), ({obj}) => obj).filter(obj => obj.visible),
 
     clear,
     dispose,

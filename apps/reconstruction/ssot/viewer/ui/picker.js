@@ -1,5 +1,6 @@
 // viewer/ui/picker.js
 import { createHubFacade } from './hubFacade.js';
+import { TOUCH_TAP_SLOP_PX } from './tapGesture.js';
 
 export function createPicker(hub, opts = {}) {
   const hf = createHubFacade(hub);
@@ -28,12 +29,13 @@ export function createPicker(hub, opts = {}) {
 
   function onDown(ev) {
     if (!ev.isPrimary || ev.button !== 0) { down = null; return; }
-    down = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, moved: false };
+    const slop = selectionOnly && ev.pointerType === 'touch' ? Math.max(CLICK_MOVE_PX, TOUCH_TAP_SLOP_PX) : CLICK_MOVE_PX;
+    down = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, moved: false, slop };
   }
 
   function onMove(ev) {
     if (!down || ev.pointerId !== down.id) return;
-    if (Math.hypot(ev.clientX - down.x, ev.clientY - down.y) > CLICK_MOVE_PX) down.moved = true;
+    if (Math.hypot(ev.clientX - down.x, ev.clientY - down.y) > down.slop) down.moved = true;
   }
 
   function onCancel() {
@@ -45,9 +47,10 @@ export function createPicker(hub, opts = {}) {
     if (!down || ev.pointerId !== down.id) return;
 
     const dragged = down.moved;
+    const slop = down.slop;
     const moved = Math.hypot(ev.clientX - down.x, ev.clientY - down.y);
     down = null;
-    if (dragged || moved > CLICK_MOVE_PX || ev.button !== 0 || ev.buttons) return;
+    if (dragged || moved > slop || ev.button !== 0 || ev.buttons) return;
 
     if (!hub || typeof hub.pickObjectAt !== 'function') {
       console.warn('[picker] hub.pickObjectAt missing');
