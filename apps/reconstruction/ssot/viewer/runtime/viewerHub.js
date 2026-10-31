@@ -1,3 +1,4 @@
+import { computeInitialReadingView } from './initialView.js';
 // viewer/runtime/viewerHub.js
 // ADD: minimal public UI bridge (i18n + error overlay) with no external deps.
 // - No bare specifiers
@@ -1810,6 +1811,13 @@ function flushCommandQueue() {
         return enqueueCommand({ type: restore ? "reading.restore" : "reading.apply", state: structuredClone(state) });
       },
       getControls: getReadingControls,
+      getReadingCamera(viewport) {
+        if (disposed) return null;
+        const state = core.uiState?.cameraState;
+        const size = state?.viewport;
+        return computeInitialReadingView({layout:renderer?.getInitialReadingLayout?.(core.uiState?.visibleSet),
+          camera:core.camera?.getState?.(),width:viewport?.width ?? size?.width,height:viewport?.height ?? size?.height});
+      },
       getBounds(uuids) {
         if (disposed) return null;
         const wanted = new Set(uuids), visible = core.uiState?.visibleSet;

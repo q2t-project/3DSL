@@ -456,7 +456,8 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null, re
     }
 
     const minPx = readScalar(lod.screenSize?.minPixels, 0);
-    const useScreenCull = !readingPresentation && lodEnabled && minPx > 0 && viewportH > 0 && hasCameraPos;
+    const denseReading = readingPresentation && labels.size>(Number(lod.screenSize?.readingDenseThreshold)||80);
+    const useScreenCull = (!readingPresentation || denseReading) && lodEnabled && minPx > 0 && viewportH > 0 && hasCameraPos;
 
     const fovRad = (fov * Math.PI) / 180;
     const tanHalfFov = Math.tan(fovRad / 2);
@@ -556,7 +557,7 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null, re
           continue;
         }
 
-        if (useScreenCull && Number.isFinite(distToCam) && distToCam > 0 && tanHalfFov > 0) {
+        if (useScreenCull && uuid!==fx.focusUuid && Number.isFinite(distToCam) && distToCam > 0 && tanHalfFov > 0) {
           const denom = 2 * tanHalfFov * distToCam;
           const approxPx = denom > 0 ? (h * viewportH) / denom : Infinity;
           if (approxPx < minPx) {
