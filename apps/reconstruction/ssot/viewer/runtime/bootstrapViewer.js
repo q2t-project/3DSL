@@ -1261,6 +1261,7 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
 
   const hub = createViewerHub({ core, renderer, readOnlyBrowsing: options.readOnlyBrowsing === true });
   // Observational diagnostics only: detached rendering counters, no renderer handle.
+  hub.getReadingViewport = () => ({width:canvasEl.clientWidth,height:canvasEl.clientHeight});
   hub.getRenderDiagnostics = () => ({...structuredClone(renderer.getDebugMetrics?.() ?? {}), initialReadingView});
   // ------------------------------------------------------------
   // Capabilities/Addons (delta injection)

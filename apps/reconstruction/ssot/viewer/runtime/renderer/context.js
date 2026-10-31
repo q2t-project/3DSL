@@ -2077,7 +2077,7 @@ for (const aux of axs) {
 
     // labels: points.marker.text + lines.signification.caption + aux.module.extension
     try {
-      const labelIndex = buildLabelIndex(struct);
+      const labelIndex = buildLabelIndex(struct, {readingPresentation:opts.readingPresentation===true});
       labelLayer.sync(labelIndex, { points: maps.points, lines: lineCaptionAnchors, aux: auxExtensionAnchors });
       refreshLabelObjects();
     } catch (_e) {}

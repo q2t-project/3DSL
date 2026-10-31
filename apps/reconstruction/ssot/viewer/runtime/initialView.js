@@ -37,21 +37,26 @@ export function computeInitialReadingView({ layout, camera, width, height, expli
   if(labels.length<2 || geometry.length<3 || !geometry.every(finite3)) return null;
   const pose=labels[0]?.pose;
   const firstNormal=unit(pose?.front), firstUp=unit(pose?.up);
-  const planar=firstNormal && firstUp && Math.abs(firstNormal[2])<=1e-6 && same(firstUp,[0,0,1])
+  const commonPlane=firstNormal && firstUp && Math.abs(firstNormal[2])<=1e-6 && same(firstUp,[0,0,1])
     && labels.every(label=>label.pose?.mode==='fixed' && same(unit(label.pose.front),firstNormal) && same(unit(label.pose.up),firstUp));
-  const normal=planar?firstNormal:mixedFaceNormal(labels);
+  let planar=commonPlane;
+  let normal=commonPlane?firstNormal:mixedFaceNormal(labels);
   if(!normal) return null;
-  const right=unit(cross(planar?firstUp:[0,0,1],normal));
+  let right=unit(cross(commonPlane?firstUp:[0,0,1],normal));
   if(!right) return null;
-  const up=planar?firstUp:unit(cross(normal,right));
+  let up=commonPlane?firstUp:unit(cross(normal,right));
   const project = points => points.map(p=>[dot(p,right),dot(p,up),dot(p,normal)]);
   const g=project(geometry);
   const [gx0,gx1]=range(g,0),[gy0,gy1]=range(g,1),[gz0,gz1]=range(g,2);
   const lateral=Math.max(gx1-gx0,gy1-gy0);
   if(gx1-gx0<1e-5 || gy1-gy0<1e-5) return null;
-  // Keep the existing planar eligibility threshold. Mixed-face works are
-  // genuinely spatial, and are fitted by perspective depth rather than flattened.
-  if(planar && gz1-gz0>Math.max(1e-6,lateral*.01)) return null;
+  // Thin volumetric marks (for example stacked bars) remain readable head-on.
+  // A deep series of similarly oriented labels needs an oblique view so that
+  // its depth remains visible. Fit only this frame, preserving every coordinate.
+  if(commonPlane && gz1-gz0>Math.max(1e-6,lateral*.1)) {
+    normal=unit(firstNormal.map((v,i)=>v+.8*right[i]+.6*firstUp[i]));
+    right=unit(cross([0,0,1],normal));up=unit(cross(normal,right));planar=false;
+  }
   const corners=labels.flatMap(label=>label.corners ?? []);
   if(corners.length!==labels.length*4 || !corners.every(finite3)) return null;
   const all=project([...geometry,...corners]);

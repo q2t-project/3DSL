@@ -26,7 +26,7 @@ function assertContained(layout,view,width,height) {
   return outward;
 }
 // Existing vertical planar works keep a head-on view; a spatial/thick single
-// plane, horizontal-only work, or authored roll still keeps its ordinary camera.
+// plane gets an oblique fit; horizontal-only work or authored roll retains its camera.
 const planar={geometry:[[-40,0,-20],[40,0,-20],[-40,0,20],[40,0,20]],labels:[label([0,1,0],[-25,0,0],8),label([0,1,0],[25,0,0],8)]};
 const planarView=fit(planar);
 assert.equal(planarView.phi,Math.PI/2);
@@ -34,7 +34,9 @@ assert.equal(planarView.theta,Math.PI/2);
 assertContained(planar,planarView,360,900);
 const reversePlanar=structuredClone(planar);reversePlanar.labels.forEach(l=>{l.pose.front=[0,-1,0];});
 assert.equal(fit(reversePlanar).theta,-Math.PI/2);
-assert.equal(fit({...planar,geometry:cube()}),null,'thick single-plane geometry is not flattened');
+assertContained({...planar,geometry:cube()},fit({...planar,geometry:cube()}),360,900);
+assert.notEqual(fit({...planar,geometry:cube()}).phi,Math.PI/2,'deep geometry keeps an oblique view');
+assert.equal(fit({...planar,geometry:cube(30).map(p=>[p[0],p[1]*.02,p[2]])}).phi,Math.PI/2,'thin volumetric bars are fitted head-on');
 assert.equal(fit({geometry:cube(),labels:[label([0,0,1]),label([0,0,1],[5,5,0])]}),null,'single top plane retains ordinary orbit');
 // Every compatible sign combination chooses the authored-facing octant. A
 // repeated face must not bias the camera towards the most numerous label class.

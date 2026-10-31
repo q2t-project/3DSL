@@ -67,6 +67,10 @@ export function createViewerBridge(mountedViewer, { scene = null, timeoutMs = 15
     requireAlive();
     if (!hub.browsing.control(action, value)) throw new Error('Viewerが操作を受け付けませんでした。');
     await waitForPaint();
+    if (['setFrame','frameFirst','frameLast','frameStep'].includes(action)) {
+      const next=hub.browsing.getReadingCamera?.(hub.getReadingViewport?.());
+      if(next){await apply({camera:next});}
+    }
     return snapshot();
   }
   function snapshot() {

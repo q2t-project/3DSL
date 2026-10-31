@@ -19,7 +19,7 @@ const validator=createCoreControllers({emit(){}}).validator;
 const searchInput=byId('reading-search'),frame=byId('reading-frame'),scope=byId('reading-scope');
 const resultList=byId('reading-result-list'),results=byId('reading-results'),pages=byId('reading-result-pages');
 let busy=false,lastModel=null,resultOffset=0,lastQuery='',lastSelectedId=null,lastInfoKey='',controller,controlsUI;
-let mobilePanel='info';
+let mobilePanel='diagram';
 const panelIds={diagram:'viewer-root',info:'contract-info',find:'reading-find',tools:'reading-tools'};
 function syncMobilePanels() {
   const mobile=mobileViewport.matches;
@@ -105,7 +105,9 @@ function render(state) {
   for(const id of ['reading-all','reading-search-button'])byId(id).disabled=busy||!ready;
   for(const id of ['reading-show','reading-explore'])byId(id).disabled=busy||!ready||!entry;
   byId('reading-selection').hidden=!entry&&!mobileViewport.matches;
-  byId('reading-selection-label').textContent=entry?.label||'未選択';
+  byId('reading-selection-label').textContent=entry?`選択中：${entry.label}`:(ready?`表示 ${state.frame} / ${state.controls?.frameRange?.max ?? state.frame}`:'未選択');
+  byId('reading-mobile-next').hidden=!!entry;
+  byId('reading-mobile-next').disabled=busy||!ready||state.frame>=state.controls?.frameRange?.max;
   byId('reading-selection-label').title=entry?.label||'';
   for(const id of ['reading-selection-info','reading-selection-show'])byId(id).disabled=busy||!ready||!entry;
   scope.disabled=searchInput.disabled=busy||!ready;
@@ -125,8 +127,10 @@ async function openFileText(text,label) {
   // A deliberate local open supersedes a pending transfer. The receiver cannot
   // later replace the user's newly opened file or relabel it as a snapshot.
   handoffReceiver?.dispose();handoffReceiver=null;handoffPending=false;
+  const previousPanel=mobilePanel;showMobilePanel('diagram');
   const result=await controller.openText(text,label);
-  if(result?.ok===true){successfulLocalOpen++;snapshotNotice.hidden=true;}
+  if(!result?.ok)showMobilePanel(previousPanel);
+  if(result?.ok===true){successfulLocalOpen++;snapshotNotice.hidden=true;showMobilePanel('diagram');}
   return result;
 }
 controlsUI=attachReadingControls({getController:()=>controller,getBusy:()=>busy,allowKeyboard:()=>!mobileViewport.matches||mobilePanel==='diagram',act});
@@ -137,6 +141,7 @@ byId('reading-all').addEventListener('click',()=>act(()=>controller.fitAll()));
 byId('reading-explore').addEventListener('click',()=>act(()=>controller.explore()));
 byId('reading-info-toggle').addEventListener('click',()=>{if(mobileViewport.matches){if(mobilePanel==='info')showMobilePanel('diagram');else showInformation();}else controller.setInfoOpen(!controller.snapshot().infoOpen);});
 byId('reading-selection-info').addEventListener('click',showInformation);
+byId('reading-mobile-next').addEventListener('click',()=>act(()=>controller.frameStep(1)));
 byId('reading-selection-show').addEventListener('click',()=>act(showSelected));
 scope.addEventListener('change',()=>act(()=>controller.setScope(scope.value)));
 for(const key of ['points','lines','aux'])byId(`reading-${key}`).addEventListener('change',event=>act(()=>controller.setFilters({[key]:event.target.checked})));

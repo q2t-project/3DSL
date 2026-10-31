@@ -39,7 +39,7 @@ export const labelConfig = {
     // NOTE: CanvasTexture は縮小時にボヤけやすいので少し高めにしておく
     supersamplePx: 96,
     // フォント px の下限／上限
-    minFontPx: 8,
+    minFontPx: 24,
     maxFontPx: 256,
     // 文字周りの padding(px)
     padding: 4,
@@ -86,6 +86,7 @@ export const labelConfig = {
     },
     screenSize: {
       minPixels: 10,
+      readingDenseThreshold: 80,
     },
     throttleMs: 80,
     frustum: {
