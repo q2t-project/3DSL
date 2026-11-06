@@ -1,0 +1,2269 @@
+{
+  "document_meta": {
+    "document_title": "米がご飯になるまで — 状態・過程・役割の向き",
+    "document_summary": "立った文字の二つの面で、米の状態と時間のある過程を読み分けます。寝かせた文字は、時刻を置かない役割・材料・道具。取り分けた米と残した米を同じ段階で比べます。",
+    "document_uuid": "20ed0153-f0c6-510c-a162-92d465b3447e",
+    "version": "1.1.4",
+    "created_at": "2026-10-28T00:00:00Z",
+    "revised_at": "2026-10-30T00:00:00Z",
+    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
+    "author": "3DSL-prototype",
+    "coordinate_system": "Z+up/freeXY",
+    "units": "non_si:px",
+    "i18n": "ja",
+    "creator_memo": "文字の向きの試作です。米の状態・ストックと、購入・取り分け・炊飯などの時間的な過程は異なる面に置いています。保管は状態を保つ過程です。寝かせた役割・材料・道具は時間を捨象した記述。工程順は米と過程の領域だけにあり、役割の位置は時刻を表しません。距離は時間や量の尺度ではなく、家の物理的な配置でもありません。状態／変化、ストック／フロー、時間的／非時間的を同じ三分類にはしていません。 個人や器具の同一性、測定した数量や供給期間は記録していません。",
+    "tags": [
+      "m:meal-orientation-candidate",
+      "x:prototype-0.3"
+    ]
+  },
+  "points": [
+    {
+      "signification": {
+        "name": "店の生米"
+      },
+      "appearance": {
+        "position": [
+          0,
+          -280,
+          0
+        ],
+        "frames": [
+          1,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.4,
+          "common": {
+            "color": "#7dd3fc",
+            "opacity": 1
+          },
+          "text": {
+            "content": "店の米",
+            "size": 13,
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "2e2f2a84-83c0-5a8f-880d-731e1fb4b2b0",
+        "creator_memo": "購入前に店にある米のストック。立った状態の面で、この段階に何があるかを読みます。次は購入の出来事です。",
+        "tags": [
+          "m:meal-state",
+          "m:meal-stock"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "購入"
+      },
+      "appearance": {
+        "position": [
+          0,
+          -245,
+          0
+        ],
+        "frames": [
+          1,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.4,
+          "common": {
+            "color": "#fbbf24",
+            "opacity": 1
+          },
+          "text": {
+            "content": "購入",
+            "size": 13,
+            "pose": {
+              "front": [
+                1,
+                0,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "0096a7da-0051-55f7-85c8-136baa903e25",
+        "creator_memo": "米を購入する出来事。所有の移りを、家へ運ぶ過程と分けます。文字の横方向に工程順を辿ります。",
+        "tags": [
+          "m:meal-temporal-process",
+          "m:meal-change",
+          "m:meal-flow"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "購入した生米"
+      },
+      "appearance": {
+        "position": [
+          0,
+          -210,
+          0
+        ],
+        "frames": [
+          1,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.4,
+          "common": {
+            "color": "#7dd3fc",
+            "opacity": 1
+          },
+          "text": {
+            "content": "購入後の米",
+            "size": 13,
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "e6166a53-b425-5467-8d6c-9d80a6ee4229",
+        "creator_memo": "購入済みで、まだ家へ運ぶ前の米の状態。購入と移動を別の変化として読むための切片です。",
+        "tags": [
+          "m:meal-state",
+          "m:meal-stock"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "家への運搬"
+      },
+      "appearance": {
+        "position": [
+          0,
+          -175,
+          0
+        ],
+        "frames": [
+          1,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.4,
+          "common": {
+            "color": "#fbbf24",
+            "opacity": 1
+          },
+          "text": {
+            "content": "運搬",
+            "size": 13,
+            "pose": {
+              "front": [
+                1,
+                0,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "3d26246b-873d-5e1a-bac3-f0b75199462f",
+        "creator_memo": "購入した米を店から家へ運ぶ出来事。時間のある過程の面で、購入による所有の移りと場所の移りを分けます。",
+        "tags": [
+          "m:meal-temporal-process",
+          "m:meal-change",
+          "m:meal-flow"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "家に運ばれた生米"
+      },
+      "appearance": {
+        "position": [
+          0,
+          -140,
+          0
+        ],
+        "frames": [
+          1,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.4,
+          "common": {
+            "color": "#7dd3fc",
+            "opacity": 1
+          },
+          "text": {
+            "content": "到着した米",
+            "size": 13,
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "74334635-be39-5c3d-9c39-648a3861e074",
+        "creator_memo": "家に到着し、これから保管する米の状態。保管後の家の米とは別の段階として、状態の面に置きます。",
+        "tags": [
+          "m:meal-state",
+          "m:meal-stock"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "保管"
+      },
+      "appearance": {
+        "position": [
+          0,
+          -105,
+          0
+        ],
+        "frames": [
+          1,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.4,
+          "common": {
+            "color": "#fbbf24",
+            "opacity": 1
+          },
+          "text": {
+            "content": "保管",
+            "size": 13,
+            "pose": {
+              "front": [
+                1,
+                0,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "7ccaa8f2-eaf1-5e0a-9991-2de984defa8c",
+        "creator_memo": "米を家で保つ時間的な過程。状態を維持することにも時間があり、変化や移送と同義ではありません。",
+        "tags": [
+          "m:meal-temporal-process",
+          "m:meal-maintenance"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "家に保管された生米"
+      },
+      "appearance": {
+        "position": [
+          0,
+          -70,
+          0
+        ],
+        "frames": [
+          0,
+          1,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.4,
+          "common": {
+            "color": "#7dd3fc",
+            "opacity": 1
+          },
+          "text": {
+            "content": "家の米",
+            "size": 13,
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "17d879e8-0d08-590e-ae78-da78a8a5c5f4",
+        "creator_memo": "保管後、取り分ける前に家にある米のストック。状態の面から取り分けを辿ると、炊く分と残す分へ分かれます。",
+        "tags": [
+          "m:meal-state",
+          "m:meal-stock"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "取り分け"
+      },
+      "appearance": {
+        "position": [
+          0,
+          -35,
+          0
+        ],
+        "frames": [
+          0,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.4,
+          "common": {
+            "color": "#fbbf24",
+            "opacity": 1
+          },
+          "text": {
+            "content": "取り分け",
+            "size": 13,
+            "pose": {
+              "front": [
+                1,
+                0,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "c463f66b-bb42-5768-a0be-9cdb8cd91431",
+        "creator_memo": "家の米を、今回炊く米と保管に残す米へ分ける出来事。過程の面に置き、二つの結果を同じ段階へ接続します。",
+        "tags": [
+          "m:meal-temporal-process",
+          "m:meal-change",
+          "m:meal-flow"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "炊飯に取り分けた生米"
+      },
+      "appearance": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "frames": [
+          0,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.4,
+          "common": {
+            "color": "#7dd3fc",
+            "opacity": 1
+          },
+          "text": {
+            "content": "炊く米",
+            "size": 13,
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "751a0bff-c93a-5e29-af98-f5d7484061ae",
+        "creator_memo": "今回の炊飯に取り分けた米の状態。残した米と同じ段階にあり、こちらの枝だけを炊飯へ辿ります。",
+        "tags": [
+          "m:meal-state",
+          "m:meal-stock"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "取り分け後に残した生米"
+      },
+      "appearance": {
+        "position": [
+          -80,
+          0,
+          0
+        ],
+        "frames": [
+          0,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.4,
+          "common": {
+            "color": "#7dd3fc",
+            "opacity": 1
+          },
+          "text": {
+            "content": "残す米",
+            "size": 13,
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "a591fe85-5685-5a6a-8b6d-1a17eb150272",
+        "creator_memo": "取り分け後も保管に残る米のストック。炊く分と同じ段階に置き、家の米すべてを炊飯へ送ったという読みを避けます。",
+        "tags": [
+          "m:meal-state",
+          "m:meal-stock",
+          "m:meal-remainder"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "炊飯"
+      },
+      "appearance": {
+        "position": [
+          0,
+          35,
+          0
+        ],
+        "frames": [
+          0,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.4,
+          "common": {
+            "color": "#fbbf24",
+            "opacity": 1
+          },
+          "text": {
+            "content": "炊飯",
+            "size": 13,
+            "pose": {
+              "front": [
+                1,
+                0,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "536d0a4e-de2d-59c4-860d-f11f77d296cc",
+        "creator_memo": "取り分けた生米をご飯にする出来事。場所の移送だけでなく状態の変化も、時間のある過程として読みます。",
+        "tags": [
+          "m:meal-temporal-process",
+          "m:meal-change",
+          "m:meal-flow"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "炊けたご飯"
+      },
+      "appearance": {
+        "position": [
+          0,
+          70,
+          0
+        ],
+        "frames": [
+          0,
+          2,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.4,
+          "common": {
+            "color": "#7dd3fc",
+            "opacity": 1
+          },
+          "text": {
+            "content": "ご飯",
+            "size": 13,
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "30488e58-0e69-52e8-9448-b7bdc5620b39",
+        "creator_memo": "炊飯を終えたご飯の状態。過程の面にある炊飯を挟み、生米からご飯への状態の違いを読みます。",
+        "tags": [
+          "m:meal-state",
+          "m:meal-stock"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "配膳"
+      },
+      "appearance": {
+        "position": [
+          0,
+          105,
+          0
+        ],
+        "frames": [
+          2,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.4,
+          "common": {
+            "color": "#fbbf24",
+            "opacity": 1
+          },
+          "text": {
+            "content": "配膳",
+            "size": 13,
+            "pose": {
+              "front": [
+                1,
+                0,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "0e45eeff-5599-5842-876a-d2132bcbe46e",
+        "creator_memo": "炊けたご飯を食器へ盛り、配膳する出来事。ご飯の置かれ方が変わる経路を、時間のある過程として辿ります。",
+        "tags": [
+          "m:meal-temporal-process",
+          "m:meal-change",
+          "m:meal-flow"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "配膳されたご飯"
+      },
+      "appearance": {
+        "position": [
+          0,
+          140,
+          0
+        ],
+        "frames": [
+          2,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.4,
+          "common": {
+            "color": "#7dd3fc",
+            "opacity": 1
+          },
+          "text": {
+            "content": "配膳後",
+            "size": 13,
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "37bed8ce-384d-5164-8cba-c6e1462458ff",
+        "creator_memo": "配膳後のご飯を、状態の面に置きます。この図で辿れる最後の段階で、食べた結果はまだ扱っていません。",
+        "tags": [
+          "m:meal-state",
+          "m:meal-stock"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "調達する人"
+      },
+      "appearance": {
+        "position": [
+          -65,
+          -210,
+          75
+        ],
+        "frames": [
+          1,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.4,
+          "common": {
+            "color": "#a7f3d0",
+            "opacity": 1
+          },
+          "text": {
+            "content": "調達役",
+            "size": 13,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                -1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "cf1e0808-7859-510c-8438-205581114bf9",
+        "creator_memo": "調達を担う役割。寝かせた面で時間を捨象して示します。二本の線は、今回の購入・運搬との対応です。",
+        "tags": [
+          "m:meal-structure",
+          "m:meal-atemporal",
+          "s:role"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "調理する人"
+      },
+      "appearance": {
+        "position": [
+          -65,
+          25,
+          75
+        ],
+        "frames": [
+          0,
+          2,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.4,
+          "common": {
+            "color": "#a7f3d0",
+            "opacity": 1
+          },
+          "text": {
+            "content": "調理役",
+            "size": 13,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                -1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "f225f07d-b1ab-5ece-8834-d60b3726bec7",
+        "creator_memo": "調理を担う役割。寝かせた面で時間を捨象して示します。線は今回の取り分け・炊飯・配膳との対応です。",
+        "tags": [
+          "m:meal-structure",
+          "m:meal-atemporal",
+          "s:role"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "保管容器"
+      },
+      "appearance": {
+        "position": [
+          0,
+          -130,
+          75
+        ],
+        "frames": [
+          1,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.4,
+          "common": {
+            "color": "#a7f3d0",
+            "opacity": 1
+          },
+          "text": {
+            "content": "保管容器",
+            "size": 13,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                -1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "8f39bd5c-0383-5176-9afa-db0201e3d8ff",
+        "creator_memo": "保管に用いる道具の種類。寝かせた面で時間を捨象し、米のストックや材料の投入とは別の関係として示します。",
+        "tags": [
+          "m:meal-structure",
+          "m:meal-atemporal",
+          "s:tool"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "水"
+      },
+      "appearance": {
+        "position": [
+          0,
+          -30,
+          75
+        ],
+        "frames": [
+          0,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.4,
+          "common": {
+            "color": "#a7f3d0",
+            "opacity": 1
+          },
+          "text": {
+            "content": "水",
+            "size": 13,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                -1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "8ec91bf7-3e31-5bd0-915a-2d35be791d1b",
+        "creator_memo": "炊飯に加える材料の種類。寝かせた面で時間を捨象して示し、個々の水のストックを追う点とは分けています。",
+        "tags": [
+          "m:meal-structure",
+          "m:meal-atemporal",
+          "s:material"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "炊飯器"
+      },
+      "appearance": {
+        "position": [
+          0,
+          25,
+          75
+        ],
+        "frames": [
+          0,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.4,
+          "common": {
+            "color": "#a7f3d0",
+            "opacity": 1
+          },
+          "text": {
+            "content": "炊飯器",
+            "size": 13,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                -1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "d4820873-ac70-5c85-a637-de1cfc6c57b0",
+        "creator_memo": "炊飯に使う道具の種類。寝かせた面で時間を捨象し、水のように材料として加わる関係と読み分けます。",
+        "tags": [
+          "m:meal-structure",
+          "m:meal-atemporal",
+          "s:tool"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "電気"
+      },
+      "appearance": {
+        "position": [
+          0,
+          80,
+          75
+        ],
+        "frames": [
+          0,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.4,
+          "common": {
+            "color": "#a7f3d0",
+            "opacity": 1
+          },
+          "text": {
+            "content": "電気",
+            "size": 13,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                -1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "4ddf93cf-e743-5b50-ab52-f0f87cac1078",
+        "creator_memo": "炊飯で使うエネルギーの種類。寝かせた面で時間を捨象し、材料や道具とは異なる参与として示します。",
+        "tags": [
+          "m:meal-structure",
+          "m:meal-atemporal",
+          "s:energy"
+        ]
+      }
+    },
+    {
+      "signification": {
+        "name": "食器"
+      },
+      "appearance": {
+        "position": [
+          -65,
+          130,
+          75
+        ],
+        "frames": [
+          2,
+          3
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.4,
+          "common": {
+            "color": "#a7f3d0",
+            "opacity": 1
+          },
+          "text": {
+            "content": "食器",
+            "size": 13,
+            "pose": {
+              "front": [
+                0,
+                0,
+                1
+              ],
+              "up": [
+                0,
+                -1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      "meta": {
+        "uuid": "7255e7b0-268b-5f59-8c60-4a775b0a5b54",
+        "creator_memo": "配膳に使う道具の種類。寝かせた面で時間を捨象し、ご飯の状態や配膳の出来事とは区別して読みます。",
+        "tags": [
+          "m:meal-structure",
+          "m:meal-atemporal",
+          "s:tool"
+        ]
+      }
+    }
+  ],
+  "lines": [
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "対象"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "2e2f2a84-83c0-5a8f-880d-731e1fb4b2b0"
+        },
+        "end_b": {
+          "ref": "0096a7da-0051-55f7-85c8-136baa903e25"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          1,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.3,
+          "height": 1.2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 6,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "758ebfac-6b29-5218-8c0e-7040833077ad",
+        "tags": [
+          "m:meal-temporal-link",
+          "m:meal-flow"
+        ],
+        "creator_memo": "店にある米を購入の対象として読みます。運搬の開始はまだ述べていません。"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "結果"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "0096a7da-0051-55f7-85c8-136baa903e25"
+        },
+        "end_b": {
+          "ref": "e6166a53-b425-5467-8d6c-9d80a6ee4229"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          1,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.3,
+          "height": 1.2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 6,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "d96c924d-8be7-5083-afc4-2f98ba23058c",
+        "tags": [
+          "m:meal-temporal-link",
+          "m:meal-flow"
+        ],
+        "creator_memo": "購入の結果、購入済みの米の状態へ辿ります。家への移動とは別です。"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "対象"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "e6166a53-b425-5467-8d6c-9d80a6ee4229"
+        },
+        "end_b": {
+          "ref": "3d26246b-873d-5e1a-bac3-f0b75199462f"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          1,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.3,
+          "height": 1.2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 6,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "19160587-7ce2-57f5-998f-2cce534ed964",
+        "tags": [
+          "m:meal-temporal-link",
+          "m:meal-flow"
+        ],
+        "creator_memo": "購入した米が、家への運搬に参与することを示します。"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "結果"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "3d26246b-873d-5e1a-bac3-f0b75199462f"
+        },
+        "end_b": {
+          "ref": "74334635-be39-5c3d-9c39-648a3861e074"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          1,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.3,
+          "height": 1.2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 6,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "c93bf416-18ef-51a5-b239-2b8f889ecc7b",
+        "tags": [
+          "m:meal-temporal-link",
+          "m:meal-flow"
+        ],
+        "creator_memo": "運搬の結果、家に到着した米の状態へ辿ります。"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "対象"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "74334635-be39-5c3d-9c39-648a3861e074"
+        },
+        "end_b": {
+          "ref": "7ccaa8f2-eaf1-5e0a-9991-2de984defa8c"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          1,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.3,
+          "height": 1.2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 6,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "2fb55d97-529b-58c4-a80b-3a59b0492b4b",
+        "tags": [
+          "m:meal-temporal-link",
+          "m:meal-maintenance"
+        ],
+        "creator_memo": "家に到着した米を保管する経路です。"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "結果"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "7ccaa8f2-eaf1-5e0a-9991-2de984defa8c"
+        },
+        "end_b": {
+          "ref": "17d879e8-0d08-590e-ae78-da78a8a5c5f4"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          1,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.3,
+          "height": 1.2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 6,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "cc83ec44-b45a-5108-a9c7-54a6a31f9957",
+        "tags": [
+          "m:meal-temporal-link",
+          "m:meal-maintenance"
+        ],
+        "creator_memo": "時間をかけて保った後、取り分け前のストックを読みます。保管だけで別の物へ変わるとは述べていません。"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "対象"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "17d879e8-0d08-590e-ae78-da78a8a5c5f4"
+        },
+        "end_b": {
+          "ref": "c463f66b-bb42-5768-a0be-9cdb8cd91431"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          0,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.3,
+          "height": 1.2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 6,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "5685e0f7-883d-538a-914d-6e0e55dddf66",
+        "tags": [
+          "m:meal-temporal-link",
+          "m:meal-flow"
+        ],
+        "creator_memo": "家の米を今回炊く分と残す分へ分けます。量の比率は記録していません。"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "炊く分"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "c463f66b-bb42-5768-a0be-9cdb8cd91431"
+        },
+        "end_b": {
+          "ref": "751a0bff-c93a-5e29-af98-f5d7484061ae"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          0,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.3,
+          "height": 1.2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 6,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "5ea7d7c7-b9bb-5ed8-ab5d-c2d2fdda08d9",
+        "tags": [
+          "m:meal-temporal-link",
+          "m:meal-flow"
+        ],
+        "creator_memo": "取り分けた結果のうち、今回の炊飯へ進む枝です。"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "残す分"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "c463f66b-bb42-5768-a0be-9cdb8cd91431"
+        },
+        "end_b": {
+          "ref": "a591fe85-5685-5a6a-8b6d-1a17eb150272"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          0,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.3,
+          "height": 1.2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 6,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "4e4ae153-97d4-5dd4-9ee3-ead17cad60a8",
+        "tags": [
+          "m:meal-temporal-link",
+          "m:meal-flow",
+          "m:meal-remainder"
+        ],
+        "creator_memo": "取り分けた結果のうち、家に残す枝です。炊く分と同じ工程の切片へ繋がります。"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "材料"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "751a0bff-c93a-5e29-af98-f5d7484061ae"
+        },
+        "end_b": {
+          "ref": "536d0a4e-de2d-59c4-860d-f11f77d296cc"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          0,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.3,
+          "height": 1.2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 6,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "5209adfe-d6b7-5f35-8722-1de89172279a",
+        "tags": [
+          "m:meal-temporal-link",
+          "m:meal-flow",
+          "s:material"
+        ],
+        "creator_memo": "取り分けた米を炊飯の材料として投入する経路です。"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "結果"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "536d0a4e-de2d-59c4-860d-f11f77d296cc"
+        },
+        "end_b": {
+          "ref": "30488e58-0e69-52e8-9448-b7bdc5620b39"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          0,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.3,
+          "height": 1.2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 6,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "2c5df850-c3c0-5e12-ba54-2a7870ed8435",
+        "tags": [
+          "m:meal-temporal-link",
+          "m:meal-flow"
+        ],
+        "creator_memo": "炊飯による状態変化の結果をご飯として読みます。輸送だけをフローとは扱いません。"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "対象"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "30488e58-0e69-52e8-9448-b7bdc5620b39"
+        },
+        "end_b": {
+          "ref": "0e45eeff-5599-5842-876a-d2132bcbe46e"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          2,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.3,
+          "height": 1.2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 6,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "02087fd8-a1c9-5509-b6f2-c33b975e1f6a",
+        "tags": [
+          "m:meal-temporal-link",
+          "m:meal-flow"
+        ],
+        "creator_memo": "炊けたご飯を配膳の対象として読みます。"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "結果"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "0e45eeff-5599-5842-876a-d2132bcbe46e"
+        },
+        "end_b": {
+          "ref": "37bed8ce-384d-5164-8cba-c6e1462458ff"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          2,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.3,
+          "height": 1.2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 6,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "ed9e1892-e9e2-5cc2-9489-7ce417d01858",
+        "tags": [
+          "m:meal-temporal-link",
+          "m:meal-flow"
+        ],
+        "creator_memo": "配膳した結果のご飯へ辿ります。食事や廃棄はこの先の未記録です。"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "担当"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "cf1e0808-7859-510c-8438-205581114bf9"
+        },
+        "end_b": {
+          "ref": "0096a7da-0051-55f7-85c8-136baa903e25"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          1,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.3,
+          "height": 1.2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 6,
+          "pose": {
+            "front": [
+              0,
+              0,
+              1
+            ],
+            "up": [
+              0,
+              -1,
+              0
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "d762431a-7f99-5c27-9502-86f96dc7141a",
+        "tags": [
+          "m:meal-participation",
+          "s:role"
+        ],
+        "creator_memo": "購入を担う役割との対応です。役割を示す点の位置を、その人が購入した時刻とは読みません。"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "担当"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "cf1e0808-7859-510c-8438-205581114bf9"
+        },
+        "end_b": {
+          "ref": "3d26246b-873d-5e1a-bac3-f0b75199462f"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          1,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.3,
+          "height": 1.2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 6,
+          "pose": {
+            "front": [
+              0,
+              0,
+              1
+            ],
+            "up": [
+              0,
+              -1,
+              0
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "289e46f5-a862-5737-8c95-c711e53a5461",
+        "tags": [
+          "m:meal-participation",
+          "s:role"
+        ],
+        "creator_memo": "運搬を担う役割との対応です。購入と運搬を同じ個人が担うかは未記録です。"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "担当"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "f225f07d-b1ab-5ece-8834-d60b3726bec7"
+        },
+        "end_b": {
+          "ref": "c463f66b-bb42-5768-a0be-9cdb8cd91431"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          0,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.3,
+          "height": 1.2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 6,
+          "pose": {
+            "front": [
+              0,
+              0,
+              1
+            ],
+            "up": [
+              0,
+              -1,
+              0
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "92168311-e098-5cfa-873d-0d3ea9f23b10",
+        "tags": [
+          "m:meal-participation",
+          "s:role"
+        ],
+        "creator_memo": "取り分けを担う役割との対応です。特定個人の参与記録ではありません。"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "担当"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "f225f07d-b1ab-5ece-8834-d60b3726bec7"
+        },
+        "end_b": {
+          "ref": "536d0a4e-de2d-59c4-860d-f11f77d296cc"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          0,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.3,
+          "height": 1.2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 6,
+          "pose": {
+            "front": [
+              0,
+              0,
+              1
+            ],
+            "up": [
+              0,
+              -1,
+              0
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "5095ce4e-bb63-5a8b-9cd7-bae57163ca4c",
+        "tags": [
+          "m:meal-participation",
+          "s:role"
+        ],
+        "creator_memo": "炊飯を担う役割との対応です。役割の種類と、時点を持つ炊飯の出来事を結びます。"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "担当"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "f225f07d-b1ab-5ece-8834-d60b3726bec7"
+        },
+        "end_b": {
+          "ref": "0e45eeff-5599-5842-876a-d2132bcbe46e"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          2,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.3,
+          "height": 1.2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 6,
+          "pose": {
+            "front": [
+              0,
+              0,
+              1
+            ],
+            "up": [
+              0,
+              -1,
+              0
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "c783bff0-a6ed-5d9e-afbc-2d663560b0d9",
+        "tags": [
+          "m:meal-participation",
+          "s:role"
+        ],
+        "creator_memo": "配膳を担う役割との対応です。炊飯と同じ人かは、この線だけでは決まりません。"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "道具"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "8f39bd5c-0383-5176-9afa-db0201e3d8ff"
+        },
+        "end_b": {
+          "ref": "7ccaa8f2-eaf1-5e0a-9991-2de984defa8c"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          1,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.3,
+          "height": 1.2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 6,
+          "pose": {
+            "front": [
+              0,
+              0,
+              1
+            ],
+            "up": [
+              0,
+              -1,
+              0
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "fac9eb42-4736-508b-86fb-884836f6d2f9",
+        "tags": [
+          "m:meal-participation",
+          "s:tool"
+        ],
+        "creator_memo": "保管に用いる道具の種類を示します。米の入出力とは別の関係です。"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "材料"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "8ec91bf7-3e31-5bd0-915a-2d35be791d1b"
+        },
+        "end_b": {
+          "ref": "536d0a4e-de2d-59c4-860d-f11f77d296cc"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          0,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.3,
+          "height": 1.2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 6,
+          "pose": {
+            "front": [
+              0,
+              0,
+              1
+            ],
+            "up": [
+              0,
+              -1,
+              0
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "fbb2e8d7-6dd5-50c9-8570-1ea9a8e6b882",
+        "tags": [
+          "m:meal-participation",
+          "s:material"
+        ],
+        "creator_memo": "水を炊飯の材料として使う対応です。個別の水のストックや投入量を示すフロー記録ではありません。"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "道具"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "d4820873-ac70-5c85-a637-de1cfc6c57b0"
+        },
+        "end_b": {
+          "ref": "536d0a4e-de2d-59c4-860d-f11f77d296cc"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          0,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.3,
+          "height": 1.2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 6,
+          "pose": {
+            "front": [
+              0,
+              0,
+              1
+            ],
+            "up": [
+              0,
+              -1,
+              0
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "0b7d12f2-bd3d-5062-a806-1c73f9145173",
+        "tags": [
+          "m:meal-participation",
+          "s:tool"
+        ],
+        "creator_memo": "炊飯器を道具として使う対応です。材料として消費する関係と区別します。"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "エネルギー"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "4ddf93cf-e743-5b50-ab52-f0f87cac1078"
+        },
+        "end_b": {
+          "ref": "536d0a4e-de2d-59c4-860d-f11f77d296cc"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          0,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.3,
+          "height": 1.2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 6,
+          "pose": {
+            "front": [
+              0,
+              0,
+              1
+            ],
+            "up": [
+              0,
+              -1,
+              0
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "9613e70b-45a7-534d-834b-9b89fd2ca3b5",
+        "tags": [
+          "m:meal-participation",
+          "s:energy"
+        ],
+        "creator_memo": "炊飯でエネルギーとして電気を使う対応です。消費量や供給過程の詳細は記録していません。"
+      }
+    },
+    {
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "道具"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "7255e7b0-268b-5f59-8c60-4a775b0a5b54"
+        },
+        "end_b": {
+          "ref": "0e45eeff-5599-5842-876a-d2132bcbe46e"
+        },
+        "line_type": "straight",
+        "color": "#94a3b8",
+        "opacity": 0.8,
+        "frames": [
+          2,
+          3
+        ],
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.3,
+          "height": 1.2,
+          "placement": "end_b"
+        },
+        "caption_text": {
+          "font_size": 6,
+          "pose": {
+            "front": [
+              0,
+              0,
+              1
+            ],
+            "up": [
+              0,
+              -1,
+              0
+            ]
+          }
+        }
+      },
+      "meta": {
+        "uuid": "5ae07833-d1e6-536b-be1b-c2e9af9e70c3",
+        "tags": [
+          "m:meal-participation",
+          "s:tool"
+        ],
+        "creator_memo": "配膳に食器を用いる対応です。ご飯と同じ入出力の物として扱いません。"
+      }
+    }
+  ]
+}

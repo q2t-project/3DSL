@@ -67,6 +67,10 @@ export function createViewerBridge(mountedViewer, { scene = null, timeoutMs = 15
     requireAlive();
     if (!hub.browsing.control(action, value)) throw new Error('Viewerが操作を受け付けませんでした。');
     await waitForPaint();
+    if (['setFrame','frameFirst','frameLast','frameStep'].includes(action)) {
+      const next=hub.browsing.getReadingCamera?.(hub.getReadingViewport?.());
+      if(next){await apply({camera:next});}
+    }
     return snapshot();
   }
   function snapshot() {
@@ -187,7 +191,8 @@ export function createViewerBridge(mountedViewer, { scene = null, timeoutMs = 15
     return points.filter(Boolean);
   }
   function fit(uuids) {
-    const points = Array.from(uuids).flatMap(coordinates);
+    const ids = Array.from(uuids), bounds = hub.browsing?.getBounds?.(ids);
+    const points = bounds ? [bounds.min, bounds.max] : ids.flatMap(coordinates);
     if (!points.length) return Promise.resolve(false);
     const min = [0,1,2].map(i => Math.min(...points.map(p=>p[i])));
     const max = [0,1,2].map(i => Math.max(...points.map(p=>p[i])));

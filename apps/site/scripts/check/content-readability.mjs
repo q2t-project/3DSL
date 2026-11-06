@@ -151,3 +151,5 @@ if (!chrome) {
     await fs.rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 }
+
+await import("./meal-mobile.mjs");

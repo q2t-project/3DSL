@@ -48,7 +48,7 @@ const seoTitle = firstNonEmptyString(meta?.seo?.title, item.meta_title, item.tit
 const seoDescription = firstNonEmptyString(meta?.seo?.description, item.meta_description, item.summary);
 
 // Viewer routes
-const appViewerUrl = `/app/viewer?${new URLSearchParams({
+const appViewerUrl = `/app/viewer/?${new URLSearchParams({
   model: modelUrl,
   from: "library",
   return: pagePath,
@@ -319,7 +319,7 @@ const thirdParty = Array.isArray(rights?.third_party)
                 <a
                   href={appViewerUrl}
                   class="absolute inset-0 block"
-                  aria-label="従来版Viewerで開く"
+                  aria-label="3DSL Viewerで開く"
                 >
                 </a>
               </div>
@@ -330,7 +330,7 @@ const thirdParty = Array.isArray(rights?.third_party)
                   class="inline-flex items-center justify-center gap-2 rounded-xl bg-neutral-100/10 px-4 py-3 text-sm font-semibold text-neutral-50 ring-1 ring-inset ring-neutral-200/15 transition hover:bg-neutral-100/15 active:scale-[0.99]"
                 >
                   <svg viewBox="0 0 24 24" width="16" height="16" class="h-4 w-4 shrink-0" aria-hidden="true"><path fill="currentColor" d="M7 3h4v2H7v4H5V5a2 2 0 0 1 2-2Zm12 0a2 2 0 0 1 2 2v4h-2V5h-4V3h4ZM5 15h2v4h4v2H7a2 2 0 0 1-2-2v-4Zm14 0h2v4a2 2 0 0 1-2 2h-4v-2h4v-4Z"/></svg>
-                  従来版Viewerで開く
+                  3DSL Viewerで開く
                 </a>
 
                 <a

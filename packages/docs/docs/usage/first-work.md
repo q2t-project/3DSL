@@ -9,7 +9,7 @@ summary: 光速度の二つの記録を題材に、7つの要素を選び、配�
 
 これは3DSLのすべての機能を使う練習ではありません。要素を選ぶ、違いが分かるように置く、関係を記録する、保存して読み直す、という一巡を体験するための制作実例です。PCではこの解説とModelerを別タブで開くと進めやすくなります。
 
-<a href="/preview-reconstruction/modeler_app/index.html" target="_blank" rel="noopener">Modelerを開いて作る（別タブ）</a> ／ <a href="/preview-reconstruction/modeler_app/index.html?model=/preview-reconstruction/models/first_work.3dsl-work.json" target="_blank" rel="noopener">完成例をModelerで開く（別タブ）</a> ／ <a href="/preview-reconstruction/contract_viewer/index.html?model=/preview-reconstruction/models/first_work.3dsl-work.json" target="_blank" rel="noopener">完成例をViewerで読む（別タブ）</a>
+<a href="/preview-reconstruction/modeler_app/index.html" target="_blank" rel="noopener">Modelerを開いて作る（別タブ）</a> ／ <a href="/preview-reconstruction/modeler_app/index.html?model=/preview-reconstruction/models/first_work.3dsl-work.json" target="_blank" rel="noopener">完成例をModelerで開く（別タブ）</a> ／ <a href="/app/viewer/?model=/preview-reconstruction/models/first_work.3dsl-work.json" target="_blank" rel="noopener">完成例をViewerで読む（別タブ）</a>
 
 完成例を操作するときは、[練習用サンプルの利用条件](/policy/content-usage#practice-samples)に従ってください。
 

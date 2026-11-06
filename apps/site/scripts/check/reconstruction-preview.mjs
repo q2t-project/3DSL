@@ -10,6 +10,7 @@ const origin = 'https://preview.invalid';
 // These explicit navigation links leave the isolated app; assets must not.
 // Their generated HTML is checked after the site build.
 const siteDocumentLinks = new Map([
+  ['/app/viewer', path.resolve(siteRoot, 'src/pages/app/viewer.astro')],
   ['/docs/usage/create-save-read', path.resolve(siteRoot, 'src/content/docs/usage/create-save-read.md')],
   ['/docs/usage/first-work', path.resolve(siteRoot, 'src/content/docs/usage/first-work.md')],
   ['/docs/usage/read-a-work', path.resolve(siteRoot, 'src/content/docs/usage/read-a-work.md')],

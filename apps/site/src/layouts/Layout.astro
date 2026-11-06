@@ -25,7 +25,7 @@ const nav = [
   { href: "/", label: "Home" },
   { href: "/preview-reconstruction/", label: "作る・開く" },
   { href: "/library", label: "Library" },
-  { href: "/app/viewer", label: "従来版Viewer" },
+  { href: "/app/viewer/", label: "3DSL Viewer" },
   { href: "/docs", label: "Docs" },
   { href: "/concept", label: "Concept" },
 ];
@@ -128,7 +128,7 @@ function isActive(href: string) {
             <a class="hover:text-neutral-200" href="/docs">Docs</a>
             <a class="hover:text-neutral-200" href="/faq">FAQ</a>
             <a class="hover:text-neutral-200" href="/library">Library</a>
-            <a class="hover:text-neutral-200" href="/app/viewer">従来版Viewer</a>
+            <a class="hover:text-neutral-200" href="/app/viewer/">3DSL Viewer</a>
           </div>
         </div>
       </div>
@@ -228,7 +228,7 @@ function isActive(href: string) {
           const sp = new URLSearchParams(location.search || "");
           if (sp.get("swipe") === "1") return;
 
-          const ROUTES = ["/", "/library", "/app/viewer", "/concept", "/contact"];
+          const ROUTES = ["/", "/library", "/app/viewer/", "/concept", "/contact"];
           const path = location.pathname || "/";
           const getIndex = () => {
             for (let i = 0; i < ROUTES.length; i++) {

@@ -448,11 +448,25 @@ function buildAuxExtensionLabelIndex(document3dss) {
   return out;
 }
 
-export function buildLabelIndex(document3dss) {
+export function buildLabelIndex(document3dss, { readingPresentation = false } = {}) {
   const points = buildPointLabelIndex(document3dss);
   const lines = buildLineCaptionIndex(document3dss);
   const aux = buildAuxExtensionLabelIndex(document3dss);
 
+  // Quantity marks may explicitly name a separate annotation point. In reading
+  // mode its name fallback would duplicate that annotation at the bar itself,
+  // with an unrelated default size/pose. Keep explicit bar text and reject
+  // incomplete references; all source names remain available to search/info.
+  const authoredPoints=readingPresentation?new Map((document3dss?.points ?? []).map(p=>[p.meta?.uuid,p])):null;
+  if(readingPresentation)for(const aux of document3dss?.aux ?? []) {
+    const profile=aux?.appearance?.module?.extension?.parametric;
+    if(profile?.type!=='org.3dsl.prototype.quantity-mark')continue;
+    const {target_uuid:target,label_uuid:annotation}=profile.params ?? {};
+    const targetPoint=authoredPoints.get(target);
+    const labelPoint=authoredPoints.get(annotation);
+    if(target!==annotation && targetPoint && !targetPoint.appearance?.marker?.text
+      && labelPoint?.appearance?.marker?.text?.content?.trim())points.delete(target);
+  }
   const merged = new Map(points);
   for (const [uuid, entry] of lines.entries()) {
     if (merged.has(uuid)) continue;

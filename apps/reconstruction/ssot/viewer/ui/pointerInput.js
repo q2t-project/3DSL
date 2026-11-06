@@ -5,6 +5,7 @@
 import { mapDragToOrbitDelta } from './orbitMapping.js';
 import { createHubFacade } from './hubFacade.js';
 import { DEFAULT_INPUT_POINTER, resolveInputDefaults } from './inputDefaults.js';
+import { TOUCH_TAP_SLOP_PX } from './tapGesture.js';
 
 
 function _num(v, fallback) {
@@ -110,15 +111,17 @@ export class PointerInput {
       this._log('lostcapture', { pointerId: e?.pointerId, type: e?.pointerType });
     });
 
-    // window blur で押下状態が壊れた時の保険
-    try {
-      this.win?.addEventListener?.('blur', () => {
-        if (this.isPointerDown) {
-          this._log('blur', {});
-          this.onPointerUp({ pointerId: this._activePointerId, pointerType: 'mouse' });
-        }
-      }, true);
-    } catch (_eB) {}
+    // Element focus changes (e.g. dismissing the gizmo) must not end a drag.
+    this._winBlur = () => {
+      if (!this.isPointerDown) return;
+      this._log('blur', {});
+      for (const id of this._touchPts.keys()) {
+        if (this.canvas.hasPointerCapture?.(id)) this.canvas.releasePointerCapture(id);
+      }
+      this._touchPts.clear();
+      this.onPointerUp({ pointerId: this._activePointerId });
+    };
+    this.win?.addEventListener?.('blur', this._winBlur);
 
     // window 側はドラッグ中だけ有効化（onPointerDown/onPointerUp で付け外し）
     this._winMove = (e) => this.onPointerMove(e);
@@ -212,6 +215,7 @@ export class PointerInput {
     canvas.removeEventListener('pointercancel', this.onPointerCancel);
     canvas.removeEventListener('wheel', this.onWheel);
     canvas.removeEventListener('contextmenu', this.onContextMenu);
+    this.win?.removeEventListener?.('blur', this._winBlur);
 
     // 念のため window 側も外す（ドラッグ中に dispose されてもリークしない）
     try {
@@ -253,7 +257,8 @@ export class PointerInput {
     const src = p0 || fallbackPointer;
     const fast = !!event?.shiftKey;
 
-    const minDragPx = Math.max(0, _int(src.minDragPx, fallbackPointer.minDragPx));
+    const tapSlop = this.hub?.browsing && event?.pointerType === 'touch' ? TOUCH_TAP_SLOP_PX : 0;
+    const minDragPx = Math.max(tapSlop, _int(src.minDragPx, fallbackPointer.minDragPx));
     const clickMovePx = Math.max(0, _num(src.clickMovePx, fallbackPointer.clickMovePx));
 
     const rotateSpeed = _num(
@@ -443,11 +448,12 @@ export class PointerInput {
   }
 
   onPointerMove(event) {
+    // Window listeners also see fingers that started on the gizmo or another control.
+    if (event.pointerType === 'touch' && !this._touchPts.has(event.pointerId)) return;
     try { event.preventDefault?.(); } catch (_eP) {}
 
     // --- touch: pinch zoom + 2-finger pan ---
     if (event.pointerType === 'touch') {
-      // pointerdown を取りこぼしても move が来ることがあるので必ず更新
       this._touchSet(event);
 
       // 2本以上なら pinch
@@ -475,14 +481,19 @@ export class PointerInput {
           if (!this.dispatch('zoomDelta', zoomDelta)) this.dispatch('zoom', zoomDelta);
         }
 
-        // pan は既存の距離スケール計算を流用
+        // Reading touch pan tracks CSS pixels at the target depth. The legacy
+        // mouse gain multiplies two small factors and barely moves on phones.
         if ((dmx || dmy) && Number.isFinite(dmx) && Number.isFinite(dmy)) {
           const camState = this.getCameraState();
           const distance = camState && typeof camState.distance === 'number' ? camState.distance : 1;
-          const panScale = distance * settings.panFactor;
-          const panX = dmx * settings.panSpeed * panScale;
-          const panY = dmy * settings.panSpeed * panScale;
-          if (!this.dispatch('panDelta', panX, panY)) this.dispatch('pan', panX, panY);
+          const height = this.canvas.getBoundingClientRect().height;
+          const fov = _num(camState?.fov, 50);
+          const unitsPerPixel = this.hub?.browsing && height > 0 && fov > 0 && fov < 180
+            ? 2 * distance * Math.tan(fov * Math.PI / 360) / height
+            : settings.panSpeed * distance * settings.panFactor;
+          const panX = dmx * unitsPerPixel;
+          const panY = dmy * unitsPerPixel;
+          if (!this.dispatch('panDelta', panX, panY, { direct: !!this.hub?.browsing })) this.dispatch('pan', panX, panY);
         }
 
         this._pinchLastDist = pb.dist;
@@ -559,6 +570,7 @@ export class PointerInput {
 
     // --- touch: pointer bookkeeping ---
     if (e && e.pointerType === 'touch') {
+      if (!this._touchPts.has(e.pointerId)) return;
       this._touchDel(e);
 
       // still 2+ fingers: keep pinch
@@ -610,9 +622,6 @@ export class PointerInput {
 
 onPointerCancel(e) {
   this._log('cancel', { pointerId: e?.pointerId, type: e?.pointerType, buttons: e?.buttons });
-  if (e && e.pointerType === 'touch') {
-    this._touchDel(e);
-  }
   // touch/pen は素直に終了。mouse だけ cancel 時に mouse へフォールバックする。
   if (!this.isPointerDown) return;
   if (e && e.pointerType === 'mouse') {

@@ -4,7 +4,7 @@ import { mapArrowKeyToOrbitDelta } from '../viewer/ui/orbitMapping.js';
 
 const CAMERA_PRESETS = ['上面 (+Z)','正面 (+Y)','右面 (+X)','斜め NE','斜め NW','斜め SW','斜め SE'];
 const editTarget = target => !!(target?.isContentEditable || ['INPUT','TEXTAREA','SELECT'].includes(target?.tagName?.toUpperCase()) || target?.closest?.('[contenteditable="true"]'));
-export function attachReadingControls({doc=document,win=window,getController,getBusy=()=>false,act=fn=>Promise.resolve().then(fn)}) {
+export function attachReadingControls({doc=document,win=window,getController,getBusy=()=>false,allowKeyboard=()=>true,act=fn=>Promise.resolve().then(fn)}) {
   const byId=id=>doc.getElementById(id),cleanup=[];
   const on=(node,type,fn)=>{node?.addEventListener(type,fn);cleanup.push(()=>node?.removeEventListener(type,fn));};
   const call=(method,...args)=>act(()=>getController()[method](...args));
@@ -35,6 +35,8 @@ export function attachReadingControls({doc=document,win=window,getController,get
     const range=controls.frameRange,knownFrames=getController()?.getIndex?.()?.allFrames||[Number.isInteger(state.frame)?state.frame:0];
     const hasRange=Number.isInteger(range?.min)&&Number.isInteger(range?.max)&&range.max>=range.min;
     const min=hasRange?range.min:Math.min(...knownFrames),max=hasRange?range.max:Math.max(...knownFrames);
+    const frameGroup=byId('reading-frame-group');
+    if(frameGroup)frameGroup.hidden=min===max;
     const frames=max-min<=127?Array.from({length:max-min+1},(_,i)=>min+i):[...new Set([...knownFrames,min,max,state.frame].filter(n=>Number.isInteger(n)&&n>=min&&n<=max))].sort((a,b)=>a-b);
     const key=frames.join(',');if(lastRange!==key){lastRange=key;frame.replaceChildren();for(const value of frames){const option=doc.createElement('option');option.value=String(value);option.textContent=String(value);frame.append(option);}}
     frame.value=String(state.frame);frame.disabled=!ready;
@@ -57,6 +59,7 @@ export function attachReadingControls({doc=document,win=window,getController,get
   }
 
   function keydown(event) {
+    if(!allowKeyboard())return;
     if(event.defaultPrevented||event.isComposing||event.keyCode===229||event.ctrlKey||event.metaKey||event.altKey||editTarget(event.target))return;
     const controller=getController(),state=controller?.snapshot();if(!state?.renderAvailable||state.loading||getBusy())return;
     const key=event.key,code=event.code;let method=null,args=[];

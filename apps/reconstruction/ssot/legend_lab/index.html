@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,follow">
+  <meta name="theme-color" content="#0b1119">
+  <title>文字と色の凡例を比べる | 3DSL</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script type="importmap">{"imports":{"three":"../vendor/three/build/three.module.js"}}</script>
+  <script type="module" src="./main.js"></script>
+</head>
+<body>
+  <header class="page-header">
+    <h1>3DSL <span>凡例の見本</span></h1>
+    <span class="candidate">検討用</span>
+  </header>
+  <div class="comparison-bar">
+    <label for="comparison-step">比較</label>
+    <select id="comparison-step" aria-label="比較する表現">
+      <option value="0">1 面とサイズ</option>
+      <option value="1">2 ＋縦書き</option>
+      <option value="2">3 ＋書体</option>
+      <option value="3" selected>4 ＋色</option>
+    </select>
+    <label class="check"><input id="no-color" type="checkbox">色なし</label>
+    <label class="check"><input id="single-font" type="checkbox">単一書体</label>
+  </div>
+  <main id="model-stage" aria-label="回転できる食事モデル">
+    <div id="model-surface"></div>
+    <div class="view-controls" aria-label="視点操作">
+      <button id="reset-view" type="button">初期</button>
+      <button id="fit-all" type="button">全体</button>
+      <button id="fit-selected" type="button" disabled>選択へ</button>
+      <button id="zoom-out" type="button" aria-label="縮小">−</button>
+      <button id="zoom-in" type="button" aria-label="拡大">＋</button>
+    </div>
+    <p id="model-hint" class="model-hint">1本指で回転・2本指で移動と拡大・文字をタップ</p>
+    <p id="load-status" class="load-status" role="status">見本を読み込んでいます</p>
+  </main>
+  <section id="support-panel" aria-label="モデルを見ながら読む情報">
+    <nav class="panel-tabs" aria-label="下部情報の切替">
+      <button id="tab-info" type="button" aria-pressed="true">選択・読み方</button>
+      <button id="tab-legend" type="button" aria-pressed="false">凡例</button>
+      <span id="selection-summary" aria-live="polite">同じ図で比較</span>
+    </nav>
+    <div id="support-content" tabindex="0"></div>
+  </section>
+</body>
+</html>

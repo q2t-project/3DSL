@@ -6,7 +6,7 @@ title: 知識と問い — 回答から根拠へ辿る
 
 **同じ答えでも、何のための答えかが変わることがあります。** この作品は、問い・活動・回答・規準・資料のつながりを、全体図と二つの具体例で表しています。回答だけを取り出さず、それを支える活動と資料へ戻って読むための図です。
 
-<a href="/preview-reconstruction/contract_viewer/index.html?model=/preview-reconstruction/models/knowledge_questions.3dsl-work.json" target="_blank" rel="noopener">作品を再構築版Viewerで開く（別タブ）</a> ／ [作る・開く](/preview-reconstruction/)
+<a href="/app/viewer/?model=/preview-reconstruction/models/knowledge_questions.3dsl-work.json" target="_blank" rel="noopener">作品を3DSL Viewerで開く（別タブ）</a> ／ [作る・開く](/preview-reconstruction/)
 
 図は新しいタブで開きます。この解説を残し、タブを切り替えながら読めます。
 
@@ -18,7 +18,7 @@ title: 知識と問い — 回答から根拠へ辿る
 
 ## 三つの表示を読む
 
-Viewer上部の「表示」にある数値欄で、**0・1・2**を選びます。「前」「次」でも切り替えられます。図を拡大しすぎた場合は「全体へ」、視点を戻したい場合は「初期位置」を使います。
+「表示」の数値欄で、**0・1・2**を選びます。「前」「次」でも切り替えられます。スマホでは「メニュー」から「表示」を開きます。図を拡大しすぎた場合は「全体へ」、視点を戻したい場合は「初期位置」を使います。
 
 | 表示 | 見る場所 | 読み取ること |
 |---|---|---|

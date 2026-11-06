@@ -140,6 +140,12 @@ await cp(src, dst, {
   },
 });
 
+// Keep distributed links working while directing every HTML entrance to the public reader.
+const compatibilityPage = path.join(repoRoot, 'apps/reconstruction/hosting/viewer-entry.html');
+for (const name of ['index.html', 'peek.html', 'peek/index.html', 'viewer_dev.html']) {
+  await cp(compatibilityPage, path.join(dst, name));
+}
+
 // Vendor dependencies are served from /public/vendor via sync:vendor.
 
 // Remove accidental duplicated viewer tree under public/viewer/ui/* (ui/runtime, ui/scripts, etc.)

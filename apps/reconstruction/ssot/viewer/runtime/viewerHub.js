@@ -1,3 +1,4 @@
+import { computeInitialReadingView } from './initialView.js';
 // viewer/runtime/viewerHub.js
 // ADD: minimal public UI bridge (i18n + error overlay) with no external deps.
 // - No bare specifiers
@@ -912,7 +913,7 @@ const commandQueue = [];
 // - UI may enqueue {type:'camera.delta', dTheta?, dPhi?, panX?, panY?, zoom?}
 // - hub collapses many deltas into a single application at the next frame boundary.
 const CAMERA_DELTA_APPLY = 'camera.applyInputDeltas';
-const _cameraDelta = { dTheta: 0, dPhi: 0, panX: 0, panY: 0, zoom: 0 };
+const _cameraDelta = { dTheta: 0, dPhi: 0, panX: 0, panY: 0, directPanX: 0, directPanY: 0, zoom: 0 };
 let _cameraDeltaScheduled = false;
 
 // OrbitControls 由来の“慣性/減衰”を hub 側で再現する
@@ -1011,6 +1012,8 @@ function _discardCameraDeltas() {
   _cameraDelta.dPhi = 0;
   _cameraDelta.panX = 0;
   _cameraDelta.panY = 0;
+  _cameraDelta.directPanX = 0;
+  _cameraDelta.directPanY = 0;
   _cameraDelta.zoom = 0;
   _cameraDeltaScheduled = false;
   _removeCameraApplyCmd();
@@ -1087,15 +1090,16 @@ function enqueueCommand(cmd) {
 // CAMERA_DELTA_APPLY を queue 末尾に1個だけ置く。
 function _enqueueCameraDelta(cmd) {
   if (!cmd || typeof cmd !== 'object') return;
-  const add = (k) => {
+  const add = (k, destination = k) => {
     const v = Number(cmd[k]);
     if (!Number.isFinite(v) || v === 0) return;
-    _cameraDelta[k] += v;
+    _cameraDelta[destination] += v;
   };
   add('dTheta');
   add('dPhi');
-  add('panX');
-  add('panY');
+  const directPan = readOnlyBrowsing && cmd.directPan === true;
+  add('panX', directPan ? 'directPanX' : 'panX');
+  add('panY', directPan ? 'directPanY' : 'panY');
   add('zoom');
 
   _scheduleCameraApply();
@@ -1119,6 +1123,13 @@ function opCameraApplyInputDeltas() {
   const a = _cameraDelta;
   if (!a) return;
   try {
+    // Touch displacement is a distance, not a velocity to repeat each frame.
+    // Apply it once at the same single-writer boundary; orbit/zoom keep inertia.
+    if (a.directPanX || a.directPanY) {
+      _cameraInertia.panX = 0;
+      _cameraInertia.panY = 0;
+      opCameraPan(a.directPanX, a.directPanY);
+    }
     // dampingFactor がある場合は inertia に積んで、render loop で少しずつ適用する
     const damp = _getInputDampingFactor();
     if (damp > 0 && damp < 1) {
@@ -1140,6 +1151,8 @@ function opCameraApplyInputDeltas() {
     a.dPhi = 0;
     a.panX = 0;
     a.panY = 0;
+    a.directPanX = 0;
+    a.directPanY = 0;
     a.zoom = 0;
     _cameraDeltaScheduled = false;
   }
@@ -1798,6 +1811,25 @@ function flushCommandQueue() {
         return enqueueCommand({ type: restore ? "reading.restore" : "reading.apply", state: structuredClone(state) });
       },
       getControls: getReadingControls,
+      getReadingCamera(viewport) {
+        if (disposed) return null;
+        const state = core.uiState?.cameraState;
+        const size = state?.viewport;
+        return computeInitialReadingView({layout:renderer?.getInitialReadingLayout?.(core.uiState?.visibleSet),
+          camera:core.camera?.getState?.(),width:viewport?.width ?? size?.width,height:viewport?.height ?? size?.height});
+      },
+      getBounds(uuids) {
+        if (disposed) return null;
+        const wanted = new Set(uuids), visible = core.uiState?.visibleSet;
+        const subset = Object.fromEntries(["points", "lines", "aux"].map(kind => [kind, new Set(Array.from(visible?.[kind] ?? []).filter(id => wanted.has(id)))]));
+        const layout = renderer?.getInitialReadingLayout?.(subset);
+        const points = [...(layout?.geometry ?? []), ...(layout?.labels ?? []).flatMap(label => label.corners)];
+        if (!points.length) return null;
+        return {
+          min: [0,1,2].map(i => Math.min(...points.map(point => point[i]))),
+          max: [0,1,2].map(i => Math.max(...points.map(point => point[i]))),
+        };
+      },
       isCameraTransitioning() { return !!cameraTransition?.isActive?.(); },
       control(action, value) {
         if (disposed) return false;
@@ -2022,9 +2054,9 @@ function flushCommandQueue() {
           core?.camera?.rotate?.(dTheta, dPhi);
         },
 
-        panDelta: (panX, panY) => {
+        panDelta: (panX, panY, options) => {
           if (!assertAlive()) return;
-          if (raf) { enqueueCommand({ type: 'camera.delta', panX, panY }); return; }
+          if (raf) { enqueueCommand({ type: 'camera.delta', panX, panY, directPan: options?.direct === true }); return; }
           core?.camera?.pan?.(panX, panY);
         },
 

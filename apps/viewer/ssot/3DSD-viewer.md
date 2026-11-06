@@ -1,3 +1,7 @@
+# 3DSL Viewer の仕様
+
+公開画面の操作と読取契約の正本は `packages/docs/docs/viewer.md`。通常、スマホ、埋込は同じ閲覧実装を使う。配信経路と互換入口の受入条件は `packages/docs/docs/ops/DEVOPS_site.md` 第10〜16節に従う。以下は以前のランタイムの内部仕様として保管する。
+
 ================================
 3DSD-viewer.md�E�Eiewer�E�E
 ================================

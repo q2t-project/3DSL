@@ -1,0 +1,732 @@
+{
+  "audit_version": "p0-v1",
+  "audit_date": "2026-10-30",
+  "method": "Static source and call-site review; not browser proof or a claim of candidate runtime support. No implementation files changed.",
+  "candidate_status": "Candidate schema only; current readers/writers remain on existing contracts.",
+  "checks_required_before_p3": [
+    "Select known schema by declared URI/version before pruning/normalization.",
+    "Keep old valid/invalid fixtures and old non-power-of-two values unchanged.",
+    "Assert candidate attributes roundtrip through actual Modeler save/reopen rather than only JSON serialization.",
+    "Measure post-font-load bounds/pick/fit in active Troika, Canvas fallback and Modeler preview.",
+    "Distinguish transient emphasis, geometry scaling, raster supersampling and authored label-size hierarchy."
+  ],
+  "impact_items": [
+    {
+      "id": "schema-source-and-release",
+      "impact": "Keep releases immutable. Register candidate with distinct ID; reconcile legacy endpoint acceptance in a version-aware adapter, not by editing frozen schema.",
+      "sources": [
+        {
+          "source_path": "packages/schemas/3DSS.schema.json",
+          "exists": true,
+          "source_sha256": "0b3c8fdf56816de40e709483004028406488199087a2fed7c4150f1e114eda5a",
+          "evidence": []
+        },
+        {
+          "source_path": "packages/schemas/release/v1.1.3/3DSS.schema.json",
+          "exists": true,
+          "source_sha256": "a47633065be5a1297d4a19ae98b8b3f6b3a5b25452bce3055c4d73e613d472a2",
+          "evidence": []
+        },
+        {
+          "source_path": "packages/schemas/release/v1.1.4/3DSS.schema.json",
+          "exists": true,
+          "source_sha256": "0b3c8fdf56816de40e709483004028406488199087a2fed7c4150f1e114eda5a",
+          "evidence": []
+        },
+        {
+          "source_path": "apps/reconstruction/ssot/schemas/3DSS.schema.json",
+          "exists": true,
+          "source_sha256": "5dbb4ae1fb3a8cbfcf3fc85b5994e3265913acfbd6c5e2a5064516fbece6ee40",
+          "evidence": []
+        },
+        {
+          "source_path": "packages/schemas/README.md",
+          "exists": true,
+          "source_sha256": "0d07289c3c2ab5e563e90aecea2ba4de0ecbed97c01c3f87d9e687e8f8fdb4e8",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "id": "viewer-validation",
+      "impact": "Select the registered schema by document version before compatibility validation. Current single-schema URI-base comparison does not by itself allow both v1.1.4 and candidate v2.",
+      "sources": [
+        {
+          "source_path": "apps/reconstruction/ssot/viewer/runtime/core/validator.js",
+          "exists": true,
+          "source_sha256": "945925755ec92b539e4f26b223a71139670176f5420bb02bd08050bdaba38236",
+          "evidence": [
+            {
+              "line": 41,
+              "needle": "normalizeSchemaBase",
+              "excerpt": "function normalizeSchemaBase(uri) {"
+            },
+            {
+              "line": 119,
+              "needle": "schema_uri major mismatch",
+              "excerpt": "message: `schema_uri major mismatch: expected ${schemaInfo.major}, got ${uriV.major}`,"
+            }
+          ]
+        },
+        {
+          "source_path": "apps/reconstruction/ssot/viewer/runtime/bootstrapViewer.js",
+          "exists": true,
+          "source_sha256": "e94ebc968bc370b9a318a2ad65f26bad02fcfe44efdd62693fb5c301e0493618",
+          "evidence": [
+            {
+              "line": 621,
+              "needle": "assertDocumentMetaCompatibility",
+              "excerpt": "function assertDocumentMetaCompatibility(doc) {"
+            },
+            {
+              "line": 645,
+              "needle": "normalizeSchemaBase",
+              "excerpt": "function normalizeSchemaBase(u) {"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "modeler-import-normalization",
+      "impact": "Candidate visual_legend and text attributes would be stripped or flagged by current old-schema import path. Update version-aware schema selection, root whitelist and preservation tests before enabling candidate import.",
+      "sources": [
+        {
+          "source_path": "apps/reconstruction/ssot/modeler_app/runtime/core/coreControllers.js",
+          "exists": true,
+          "source_sha256": "03adad3c223a1c738021078781c18eadd56096121a57375a59d9b9c4181c2074",
+          "evidence": [
+            {
+              "line": 298,
+              "needle": "pruneUnknownFields",
+              "excerpt": "function pruneUnknownFields(value, schemas, root) {"
+            },
+            {
+              "line": 490,
+              "needle": "importNormalize",
+              "excerpt": "// Import extras: unknown fields stripped during importNormalize()"
+            },
+            {
+              "line": 1313,
+              "needle": "allowedRoot = new Set([\"document_meta\", \"points\", \"lines\", \"aux\"])",
+              "excerpt": "const allowedRoot = new Set([\"document_meta\", \"points\", \"lines\", \"aux\"]);"
+            },
+            {
+              "line": 1340,
+              "needle": "Unknown fields were stripped on import and stored as extras (not exported)",
+              "excerpt": "message: \"Unknown fields were stripped on import and stored as extras (not exported)\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "modeler-persistence",
+      "impact": "Preserve fields in the validated scene before serialization. Save/SaveAs/Export semantics and Dirty/Undo remain unchanged; a schema-only change does not prove lossless save.",
+      "sources": [
+        {
+          "source_path": "apps/reconstruction/ssot/modeler_app/runtime/persistDocument.js",
+          "exists": true,
+          "source_sha256": "29d219933c231234b7888b9f109820138cc5afa901987947fbc4cbcda10cdfd2",
+          "evidence": [
+            {
+              "line": 5,
+              "needle": "payload",
+              "excerpt": "payload,           // string (JSON)"
+            },
+            {
+              "line": 31,
+              "needle": "Save / SaveAs",
+              "excerpt": "// Save / SaveAs: FSA only"
+            },
+            {
+              "line": 3,
+              "needle": "export",
+              "excerpt": "export async function persistDocument({"
+            }
+          ]
+        },
+        {
+          "source_path": "apps/reconstruction/ssot/modeler_app/ui/controllers/uiFileController.js",
+          "exists": true,
+          "source_sha256": "13e712d107c9d57c63a3c64f0bdb07f6fae53ce8a6fdb509a5bac92281601b4d",
+          "evidence": [
+            {
+              "line": 528,
+              "needle": "Save / SaveAs",
+              "excerpt": "// --- Save / SaveAs ---"
+            },
+            {
+              "line": 76,
+              "needle": "export",
+              "excerpt": "if (kind === \"export\") {"
+            }
+          ]
+        },
+        {
+          "source_path": "apps/reconstruction/ssot/modeler_app/runtime/core/coreControllers.js",
+          "exists": true,
+          "source_sha256": "03adad3c223a1c738021078781c18eadd56096121a57375a59d9b9c4181c2074",
+          "evidence": [
+            {
+              "line": 806,
+              "needle": "payload",
+              "excerpt": "const payload = {"
+            },
+            {
+              "line": 598,
+              "needle": "strictDoc",
+              "excerpt": "// raw -> { strictDoc, extras }"
+            },
+            {
+              "line": 11,
+              "needle": "export",
+              "excerpt": "// /vendor/ajv/dist/ajv.js may be CommonJS or have a different export shape"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "work-envelope",
+      "impact": "Work files contain both scene and baselineScene. Migration must handle both explicitly and keep journal/comparison identity; inventory counts embedded duplicates separately by full JSON pointer.",
+      "sources": [
+        {
+          "source_path": "apps/reconstruction/ssot/modeler_app/runtime/contractWork.js",
+          "exists": true,
+          "source_sha256": "52b36630b3e6c24c3af00d264dbba6f5b8a67a3f49a428de162eef0765969a5c",
+          "evidence": [
+            {
+              "line": 103,
+              "needle": "baselineScene",
+              "excerpt": "for (const key of Object.keys(value)) check(['format','status','scene','baselineScene','contract','baselineContract','attachments','journal'].includes(key), `未対応の作品項目: ${key}`);"
+            },
+            {
+              "line": 99,
+              "needle": "parseContractWork",
+              "excerpt": "export function parseContractWork(raw) {"
+            },
+            {
+              "line": 142,
+              "needle": "createEmptyContractWork",
+              "excerpt": "export function createEmptyContractWork() {"
+            },
+            {
+              "line": 3,
+              "needle": "assertLosslessWorkJSON",
+              "excerpt": "import { createWorkPackage, parseWorkPackage, getWorkComparison, assertLosslessWorkJSON } from './workPackage.js';"
+            }
+          ]
+        },
+        {
+          "source_path": "apps/reconstruction/ssot/modeler_app/runtime/workPackage.js",
+          "exists": true,
+          "source_sha256": "5c85251868c92eb8a42549648a848d36a6c9ede90498906b48adbc3cd98037b0",
+          "evidence": [
+            {
+              "line": 115,
+              "needle": "baselineScene",
+              "excerpt": "const baseline = sceneIndex(work.baselineScene);"
+            },
+            {
+              "line": 53,
+              "needle": "assertLosslessWorkJSON",
+              "excerpt": "export function assertLosslessWorkJSON(value) { cloneJSON(value); return true; }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "modeler-size-input",
+      "impact": "Replace arbitrary numeric step with candidate discrete values for candidate documents. Retain legacy raw values in old-version mode; do not round on edit/open.",
+      "sources": [
+        {
+          "source_path": "apps/reconstruction/ssot/modeler_app/index.html",
+          "exists": true,
+          "source_sha256": "e88963ea647fe13695477c846ce3f1e362c51fb4cc62238b0c9ad9d1766df143",
+          "evidence": [
+            {
+              "line": 197,
+              "needle": "prop-text-size",
+              "excerpt": "<input class=\"prop-input\" type=\"number\" step=\"0.1\" min=\"0\" data-role=\"prop-text-size\" id=\"modeler-prop-text-size\" aria-label=\"文字サイズ\">"
+            },
+            {
+              "line": 197,
+              "needle": "step=\"0.1\"",
+              "excerpt": "<input class=\"prop-input\" type=\"number\" step=\"0.1\" min=\"0\" data-role=\"prop-text-size\" id=\"modeler-prop-text-size\" aria-label=\"文字サイズ\">"
+            }
+          ]
+        },
+        {
+          "source_path": "apps/reconstruction/ssot/modeler_app/ui/controllers/uiPropertyController.js",
+          "exists": true,
+          "source_sha256": "798480b5f37b21162064a308de8c8330c8045584af0f4a0249ecffd2c002f3a6",
+          "evidence": [
+            {
+              "line": 273,
+              "needle": "prop-text-size",
+              "excerpt": "const inpTextSize = /** @type {HTMLInputElement|null} */ (getRoleEl(root, \"prop-text-size\"));"
+            },
+            {
+              "line": 1005,
+              "needle": "Caption font_size must be 0.125..256",
+              "excerpt": "if (size < 0.125 || size > 256) throw new Error(\"Caption font_size must be 0.125..256\");"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "viewer-label-normalization",
+      "impact": "Point fonts normalize now, line font is forced to default, regular labels lack independent style color, and LaTeX omitted size becomes 10. Extend all relevant entries and keep version-specific defaults; source audit found no stored omitted-LaTeX sample in inspected models.",
+      "sources": [
+        {
+          "source_path": "apps/reconstruction/ssot/viewer/runtime/renderer/labels/labelIndex.js",
+          "exists": true,
+          "source_sha256": "42b638dd7e34f39110cfb37211111558844bce346876589fcfadeb0c7db901d7",
+          "evidence": [
+            {
+              "line": 14,
+              "needle": "normalizeTextSize",
+              "excerpt": "normalizeTextSize,"
+            },
+            {
+              "line": 240,
+              "needle": "normalizeTextFont(null)",
+              "excerpt": "const font = normalizeTextFont(null);"
+            },
+            {
+              "line": 396,
+              "needle": "latex.font_size ?? 10",
+              "excerpt": "size = normalizeTextSize(latex.font_size ?? 10);"
+            }
+          ]
+        },
+        {
+          "source_path": "apps/reconstruction/ssot/viewer/runtime/renderer/labels/labelSpec.js",
+          "exists": true,
+          "source_sha256": "6d0bbf9b0c179a97a6639e824f830baa2597c46e750beb39637f82ba37a316a6",
+          "evidence": [
+            {
+              "line": 290,
+              "needle": "normalizeTextSize",
+              "excerpt": "export function normalizeTextSize(raw) {"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "viewer-font-assets",
+      "impact": "Only Noto Sans JP regular/bold are registered. Mincho requires real asset, token resolution, licensing, load/fallback policy and bounds invalidation.",
+      "sources": [
+        {
+          "source_path": "apps/reconstruction/ssot/viewer/runtime/renderer/labels/labelConfig.js",
+          "exists": true,
+          "source_sha256": "5604ef9c5ea273375f1b2d53a7534cb44bf9b1f13c80861911a5d01e5ca6cce1",
+          "evidence": [
+            {
+              "line": 23,
+              "needle": "NotoSansJP-Regular.ttf",
+              "excerpt": "defaultFontUrl: \"/vendor/fonts/noto-sans-jp/NotoSansJP-Regular.ttf\","
+            },
+            {
+              "line": 29,
+              "needle": "NotoSansJP-Bold.ttf",
+              "excerpt": "helvetiker_bold: \"/vendor/fonts/noto-sans-jp/NotoSansJP-Bold.ttf\","
+            },
+            {
+              "line": 27,
+              "needle": "fontMap",
+              "excerpt": "fontMap: {"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "viewer-render-paths",
+      "impact": "Implement vertical layout in active Troika and Canvas paths without codepoint-splitting text. Include writing mode, font and color in caches, measure grapheme/vertical glyph bounds, and update pick/fit after font load.",
+      "sources": [
+        {
+          "source_path": "apps/reconstruction/ssot/viewer/runtime/renderer/labels/textSprite.js",
+          "exists": true,
+          "source_sha256": "97bc6ddf24180508f78e5a38c3626558ea77c18dcf8b0bd64a84841573fdf613",
+          "evidence": [
+            {
+              "line": 10,
+              "needle": "buildCanvasFont",
+              "excerpt": "import { buildCanvasFont, normalizeTextFont } from \"./labelSpec.js\";"
+            },
+            {
+              "line": 164,
+              "needle": "makeTextTextureKey",
+              "excerpt": "export function makeTextTextureKey(text, label, cfg = labelConfig) {"
+            },
+            {
+              "line": 370,
+              "needle": "fontSize",
+              "excerpt": "size: opts.fontSize ? (Number(opts.fontSize) / 1.5) : 8,"
+            }
+          ]
+        },
+        {
+          "source_path": "apps/reconstruction/ssot/viewer/runtime/renderer/labels/LabelLayer.js",
+          "exists": true,
+          "source_sha256": "11b89ce94f1fba9f5b5a79e55c1225886ceff5d889d3e5f920a1c7c3ed37efbc",
+          "evidence": []
+        },
+        {
+          "source_path": "apps/reconstruction/ssot/viewer/runtime/renderer/labels/labelRuntime.js",
+          "exists": true,
+          "source_sha256": "21b30f38a2159238b4e4d9bffa4618df0ecd0ea33296eb09e3a3d2e9069676a6",
+          "evidence": [
+            {
+              "line": 612,
+              "needle": "fontSize",
+              "excerpt": "// scale / fontSize"
+            },
+            {
+              "line": 576,
+              "needle": "scaleMul",
+              "excerpt": "let scaleMul = 1;"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "modeler-render-path",
+      "impact": "Modeler has separate Canvas label functions; changing Viewer label code alone leaves authoring preview different. Preserve world size even though raster font pixel resolution is clamped.",
+      "sources": [
+        {
+          "source_path": "apps/reconstruction/ssot/modeler_app/runtime/renderer/modelerRenderer.js",
+          "exists": true,
+          "source_sha256": "f9d6c1577a90740f0161cfff846d9fcaae553cd16cbff924109c2c79a11ccb9f",
+          "evidence": [
+            {
+              "line": 53,
+              "needle": "ctx.font",
+              "excerpt": "ctx.font = `${Math.round(fontSize * dpr)}px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;"
+            },
+            {
+              "line": 53,
+              "needle": "system-ui",
+              "excerpt": "ctx.font = `${Math.round(fontSize * dpr)}px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;"
+            },
+            {
+              "line": 99,
+              "needle": "worldSize",
+              "excerpt": "const hWorld = Number(opts.worldSize) > 0 ? Number(opts.worldSize) : Math.max(2, fontSize * 0.25);"
+            },
+            {
+              "line": 9,
+              "needle": "lineCaptionStyle",
+              "excerpt": "import { lineCaptionStyle, plateRenderSpec, arrowPlacement } from \"../../../shared/renderConventions.js\";"
+            }
+          ]
+        },
+        {
+          "source_path": "apps/reconstruction/ssot/shared/renderConventions.js",
+          "exists": true,
+          "source_sha256": "7233bd6a052fce29fa364997271e79af040d43410a9eca4d160797c816441d93",
+          "evidence": [
+            {
+              "line": 6,
+              "needle": "worldSize",
+              "excerpt": "const worldSize = Number.isFinite(size) && size > 0 ? size : 8;"
+            },
+            {
+              "line": 3,
+              "needle": "lineCaptionStyle",
+              "excerpt": "export function lineCaptionStyle(captionText) {"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "primitive-scale-and-label-scale",
+      "impact": "Static call-site review: Viewer marker.common.scale scales marker root; labels are attached to a separate label group and copy target position, so marker scale is not the observed direct author-controlled text-size multiplier. Label runtime can instead apply optional camera scale/min-max height and transient microFX multipliers. Separate these display effects from authored power-of-two hierarchy. Current Modeler point build does not apply marker.common.scale in the inspected path.",
+      "sources": [
+        {
+          "source_path": "apps/reconstruction/ssot/viewer/runtime/renderer/context.js",
+          "exists": true,
+          "source_sha256": "22f162329737b3d1a99942b3bbdc3101c08bbb335ffdcf54178e95cb201dcf3d",
+          "evidence": [
+            {
+              "line": 833,
+              "needle": "applyScaleVec3(root, commonScale)",
+              "excerpt": "applyScaleVec3(root, commonScale);"
+            }
+          ]
+        },
+        {
+          "source_path": "apps/reconstruction/ssot/viewer/runtime/renderer/labels/labelRuntime.js",
+          "exists": true,
+          "source_sha256": "21b30f38a2159238b4e4d9bffa4618df0ecd0ea33296eb09e3a3d2e9069676a6",
+          "evidence": [
+            {
+              "line": 525,
+              "needle": "obj.position.copy(targetObj.position)",
+              "excerpt": "obj.position.copy(targetObj.position);"
+            },
+            {
+              "line": 338,
+              "needle": "group.add(obj)",
+              "excerpt": "group.add(obj);"
+            },
+            {
+              "line": 585,
+              "needle": "scaleMul = 1.12",
+              "excerpt": "scaleMul = 1.12;"
+            },
+            {
+              "line": 588,
+              "needle": "scaleMul = 1.04",
+              "excerpt": "scaleMul = 1.04;"
+            },
+            {
+              "line": 597,
+              "needle": "scaleMul = 0.98",
+              "excerpt": "scaleMul = 0.98;"
+            }
+          ]
+        },
+        {
+          "source_path": "apps/reconstruction/ssot/modeler_app/runtime/renderer/modelerRenderer.js",
+          "exists": true,
+          "source_sha256": "f9d6c1577a90740f0161cfff846d9fcaae553cd16cbff924109c2c79a11ccb9f",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "id": "library-template",
+      "impact": "New-library template is pinned to old schema and version major 1; switch only when publication supports the candidate. New candidate can be created separately before production promotion.",
+      "sources": [
+        {
+          "source_path": "packages/3dss-content/scripts/new-library-item.mjs",
+          "exists": true,
+          "source_sha256": "41c3672e58e87b8586c18a80c4a9981278a944cd77ba2c4a4bca86b899d8220b",
+          "evidence": [
+            {
+              "line": 118,
+              "needle": "schema_uri: 'https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4'",
+              "excerpt": "schema_uri: 'https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4',"
+            },
+            {
+              "line": 120,
+              "needle": "version: '1.0.0'",
+              "excerpt": "version: '1.0.0',"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "contract-authoring-template",
+      "impact": "Default contract scene explicitly uses old schema; label size 1 is already a valid power-of-two and must remain allowed.",
+      "sources": [
+        {
+          "source_path": "apps/reconstruction/ssot/modeler_app/runtime/contractWork.js",
+          "exists": true,
+          "source_sha256": "52b36630b3e6c24c3af00d264dbba6f5b8a67a3f49a428de162eef0765969a5c",
+          "evidence": [
+            {
+              "line": 142,
+              "needle": "createEmptyContractWork",
+              "excerpt": "export function createEmptyContractWork() {"
+            },
+            {
+              "line": 141,
+              "needle": "size:1",
+              "excerpt": "const makePoint = (id, position, name = '', primitive = 'sphere') => ({meta:{uuid:id},signification:{name},appearance:{position,frames:[0],marker:{primitive,...(primitive==='sphere'?{radius:0.3}:{}),text:{content:name,size:1,pose:{front:[0,0,1],up:[0,1,0]}}}}}"
+            },
+            {
+              "line": 250,
+              "needle": "font_size:1",
+              "excerpt": "for(const p of r.participants) work.scene.lines.push({meta:{uuid:p.line},signification:{caption:p.role,sense:'a_to_b'},appearance:{end_a:{ref:r.hub},end_b:{ref:get(c.occurrences,p.occurrence,'出現').port},line_type:'straight',line_style:'solid',frames:[0],arrow:"
+            },
+            {
+              "line": 144,
+              "needle": "version:'1.1.4'",
+              "excerpt": "const scene = {lines:[],points:[],aux:[],document_meta:{document_title:'新しい作品',document_uuid:makeUuid(),schema_uri:'https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4',version:'1.1.4',author:'q2t',created_at:now,revised_at:now,units:'non_si:px',coo"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "xlsx-csv-import-export",
+      "impact": "Converter headers expose old point font/size fields and not new caption/legend fields. Generic dotted-path conversion may preserve fields but end-to-end preservation remains untested. Update template metadata, export columns and raw_json merge; bundled converter schema currently matches public v1.1.4.",
+      "sources": [
+        {
+          "source_path": "packages/3dss-content/scripts/xls2json/tools/xlsx_to_3dss_v2.py",
+          "exists": true,
+          "source_sha256": "16fde373c4c2867e595b33b807cc0b9e798bef55bb226775f79a23123909af7e",
+          "evidence": [
+            {
+              "line": 243,
+              "needle": "schema_uri",
+              "excerpt": "schema_uri = \"https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4\""
+            },
+            {
+              "line": 242,
+              "needle": "_default_document_meta",
+              "excerpt": "def _default_document_meta(schema: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:"
+            },
+            {
+              "line": 51,
+              "needle": "_set_path",
+              "excerpt": "def _set_path(obj: Dict[str, Any], key: str, value: Any) -> None:"
+            }
+          ]
+        },
+        {
+          "source_path": "packages/3dss-content/scripts/xls2json/tools/csv_to_3dss.py",
+          "exists": true,
+          "source_sha256": "7cb969b15454f49f5da29fa6e763754bf33e005281486d826ec58fff2b40c578",
+          "evidence": [
+            {
+              "line": 165,
+              "needle": "schema_uri",
+              "excerpt": "schema_uri = \"https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4\""
+            },
+            {
+              "line": 164,
+              "needle": "_default_document_meta",
+              "excerpt": "def _default_document_meta(schema: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:"
+            },
+            {
+              "line": 47,
+              "needle": "_set_path",
+              "excerpt": "def _set_path(obj: Dict[str, Any], key: str, value: Any) -> None:"
+            }
+          ]
+        },
+        {
+          "source_path": "packages/3dss-content/scripts/xls2json/tools/headers_fix15.json",
+          "exists": true,
+          "source_sha256": "feec3480f6955afb1ca8c84a9d9d1bf01f47a235ae9bc783b649b3652a4c496e",
+          "evidence": [
+            {
+              "line": 19,
+              "needle": "marker_text_size",
+              "excerpt": "\"marker_text_size\","
+            },
+            {
+              "line": 18,
+              "needle": "marker_text_font",
+              "excerpt": "\"marker_text_font\","
+            },
+            {
+              "line": 35,
+              "needle": "raw_json",
+              "excerpt": "\"raw_json\","
+            }
+          ]
+        },
+        {
+          "source_path": "packages/3dss-content/scripts/xls2json/tools/document_meta.template.json",
+          "exists": true,
+          "source_sha256": "94990cf5be5c15c5d91d9676c66fb026f35bcc13ba9ac5d0476c88b7588821e8",
+          "evidence": [
+            {
+              "line": 8,
+              "needle": "schema_uri",
+              "excerpt": "\"schema_uri\": \"https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4\","
+            }
+          ]
+        },
+        {
+          "source_path": "packages/3dss-content/scripts/xls2json/3DSS.schema.json",
+          "exists": true,
+          "source_sha256": "0b3c8fdf56816de40e709483004028406488199087a2fed7c4150f1e114eda5a",
+          "evidence": [
+            {
+              "line": 35,
+              "needle": "schema_uri",
+              "excerpt": "\"schema_uri\": {"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "canonical-and-regression-checks",
+      "impact": "Keep old expected results under old schema. canonical valid sample02 has size 14 and must stay valid for v1.1.4, while a candidate-version derivative should reject it. Do not silently convert fixtures to make new checks pass.",
+      "sources": [
+        {
+          "source_path": "apps/site/scripts/validate/3dss-canonical.mjs",
+          "exists": true,
+          "source_sha256": "e28be4819c171191221ae677b4012a0c93999781627efb21027713349a952f84",
+          "evidence": [
+            {
+              "line": 4,
+              "needle": "VALID",
+              "excerpt": "//   public/3dss/canonical/valid/*.3dss.json   -> must be VALID"
+            },
+            {
+              "line": 5,
+              "needle": "INVALID",
+              "excerpt": "//   public/3dss/canonical/invalid/*.3dss.json -> must be INVALID (parse OK)"
+            },
+            {
+              "line": 27,
+              "needle": "SCHEMA_PRIMARY",
+              "excerpt": "const SCHEMA_PRIMARY = path.join(SITE_ROOT, \"public\", \"schemas\", \"3DSS.schema.json\");"
+            }
+          ]
+        },
+        {
+          "source_path": "apps/site/scripts/validate/3dss.mjs",
+          "exists": true,
+          "source_sha256": "3d7231c37ef3294409abf44d675d0f0a12c7ce36535aa425ebbeb25d3679c054",
+          "evidence": []
+        },
+        {
+          "source_path": "apps/site/scripts/check/viewer-regression-suite.mjs",
+          "exists": true,
+          "source_sha256": "3d7f429dec42220a218285dcbb563eddea7cd802528289fb974b31c5209fac0f",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "id": "schema-distribution",
+      "impact": "Current schema sync mirrors latest and releases, not candidates. Any candidate distribution must be explicit and must not switch latest or current Viewer validator during HG-V1 preparation.",
+      "sources": [
+        {
+          "source_path": "apps/site/scripts/sync/schemas.mjs",
+          "exists": true,
+          "source_sha256": "dec50b5ee755844ab286cc1a86da077c3233e2e34b7028f282e579787c5da835",
+          "evidence": [
+            {
+              "line": 26,
+              "needle": "SRC_RELEASE_DIR",
+              "excerpt": "const SRC_RELEASE_DIR = path.join(SRC_ROOT, \"release\");"
+            },
+            {
+              "line": 30,
+              "needle": "OUT_LATEST_SCHEMA",
+              "excerpt": "const OUT_LATEST_SCHEMA = path.join(OUT_ROOT, \"3DSS.schema.json\");"
+            },
+            {
+              "line": 1,
+              "needle": "/schemas",
+              "excerpt": "// scripts/sync/schemas.mjs"
+            }
+          ]
+        },
+        {
+          "source_path": "apps/site/scripts/sync/reconstruction-preview.mjs",
+          "exists": true,
+          "source_sha256": "0ff44703144b136f54a981a4c455e04e53413e7de2f2261a86a41e2faef67e6e",
+          "evidence": []
+        }
+      ]
+    }
+  ]
+}

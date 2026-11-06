@@ -36,6 +36,12 @@ jobs:
         working-directory: apps/site
         run: npm ci --verbose
 
+      - name: Install bundled Japanese fonts for browser checks
+        run: |
+          mkdir -p "$HOME/.local/share/fonts/3dsl"
+          cp packages/vendor/fonts/noto-sans-jp/*.ttf "$HOME/.local/share/fonts/3dsl/"
+          fc-cache -f
+
       - name: Run build (capture logs)
         shell: bash
         working-directory: apps/site
@@ -43,10 +49,16 @@ jobs:
           mkdir -p ci-logs
           npm --loglevel verbose run ci:build 2>&1 | tee ci-logs/ci-build.log
 
+      - name: Check candidate visual grammar
+        working-directory: apps/site
+        run: |
+          node scripts/check/visual-grammar-schema.mjs ../../apps/reconstruction/ssot/legend_lab/model.3dss.json
+          node scripts/check/visual-grammar-lab.mjs
+
       - name: Upload build log artifact
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: ci-build-log
-          path: apps/site/ci-logs/ci-build.log
+          path: apps/site/ci-logs/
           if-no-files-found: warn

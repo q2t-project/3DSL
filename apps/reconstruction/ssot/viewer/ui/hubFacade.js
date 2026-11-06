@@ -57,8 +57,8 @@ function wrapCamera(cam) {
           };
         case "panDelta":
         case "pan":
-          return (panX, panY) => {
-            if (enqueue({ type: "camera.delta", panX, panY })) return null;
+          return (panX, panY, options) => {
+            if (enqueue({ type: "camera.delta", panX, panY, directPan: options?.direct === true })) return null;
             return target.pan?.(panX, panY);
           };
         case "zoomDelta":

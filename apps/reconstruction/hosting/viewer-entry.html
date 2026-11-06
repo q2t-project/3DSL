@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,follow">
+  <title>3DSL Viewer</title>
+</head>
+<body>
+  <a href="/app/viewer/">3DSL Viewer を開く</a>
+  <script>
+    const previous = new URL(location.href);
+    const peek = /\/peek(?:\.html|\/|$)/.test(previous.pathname);
+    const target = new URL(peek ? '/preview-reconstruction/contract_viewer/reader.html' : '/app/viewer/', previous);
+    target.search = previous.search;
+    target.hash = previous.hash;
+    for (const key of ['model', 'open', 'work', 'scene', 'src']) {
+      const value = target.searchParams.get(key);
+      if (!value || (key === 'src' && !/\.json(?:[?#]|$)/i.test(value))) continue;
+      try {
+        const resolved = new URL(value, previous);
+        if (['http:', 'https:'].includes(resolved.protocol)) target.searchParams.set(key,
+          resolved.origin === previous.origin ? resolved.pathname + resolved.search + resolved.hash : resolved.href);
+      } catch {}
+    }
+    if (peek) target.searchParams.set('viewerMode', 'peek');
+    document.querySelector('a').href = target.href;
+    location.replace(target.href);
+  </script>
+</body>
+</html>

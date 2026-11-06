@@ -270,10 +270,15 @@ function maybeForceContextLoss(renderer, enabled) {
   let renderer = null;
   try {
     renderer = new THREE.WebGLRenderer({ canvas, ...webglOpts });
-  } catch (e) {
-    // ここで作成できない場合、Chrome にブロックされている可能性が高い
-    try { ctx.dispose(); } catch (_e) {}
-    throw e;
+  } catch (cause) {
+    // No renderer has been published yet, so remove the listeners directly.
+    ctx._offEvents?.();
+    // This build of Three shadows its logger when context creation fails and
+    // can consequently throw its own TypeError instead of the browser error.
+    if (/error is not a function|creating WebGL context/i.test(cause?.message || '')) {
+      throw new Error('このブラウザーでは3D表示を開始できません。WebGL対応のブラウザーで開いてください。', { cause });
+    }
+    throw cause;
   }
 
   ctx.renderer = renderer;
@@ -529,6 +534,7 @@ function maybeForceContextLoss(renderer, enabled) {
 
   /** @type {THREE.Object3D[]} */
   const pickTargets = [];
+  const raycaster = new THREE.Raycaster();
   /** @type {WeakSet<object>} */
   let _pickTargetSet = new WeakSet();
 
@@ -2076,7 +2082,7 @@ for (const aux of axs) {
 
     // labels: points.marker.text + lines.signification.caption + aux.module.extension
     try {
-      const labelIndex = buildLabelIndex(struct);
+      const labelIndex = buildLabelIndex(struct, {readingPresentation:opts.readingPresentation===true});
       labelLayer.sync(labelIndex, { points: maps.points, lines: lineCaptionAnchors, aux: auxExtensionAnchors });
       refreshLabelObjects();
     } catch (_e) {}
@@ -2541,6 +2547,12 @@ for (const aux of axs) {
   // spec 名（applySelection）とのズレ吸収：まずは alias（中身は後で戻す）
   ctx.applySelection = (selectionState, camState, visibleSet) =>
     ctx.applySelectionHighlight(selectionState, camState, visibleSet);
+  const isObjectVisible = object => {
+    for (let current = object; current; current = current.parent) {
+      if (current.visible === false) return false;
+    }
+    return true;
+  };
   ctx.pickObjectAt = (ndcX, ndcY) => {
     if (ctx._disposed) return null;
     const x = Number(ndcX);
@@ -2553,9 +2565,14 @@ for (const aux of axs) {
       try { scene.updateMatrixWorld(true); } catch (_e) {}
 
       raycaster.setFromCamera({ x, y }, camera);
-      const targets = (pickTargets && pickTargets.length)
+      const geometryTargets = (pickTargets && pickTargets.length)
         ? pickTargets
         : [groups.points, groups.lines, groups.aux].filter(Boolean);
+      // Read-only browsing selects the visible word as well as its small point
+      // or line. Keep editing profiles' existing pick/property contract intact.
+      const targets = opts.readingPresentation === true
+        ? [...geometryTargets, ...labelLayer.runtime.getPickTargets()]
+        : geometryTargets;
       if (!targets.length) return null;
 
       const hits = raycaster.intersectObjects(targets, true);
@@ -2600,7 +2617,7 @@ for (const aux of axs) {
       }
     } catch (_e) {}
     return null;
-
+  };
 
 // ------------------------------------------------------------
 // Debug snapshot (for viewer/modeler comparison)
@@ -2699,8 +2716,6 @@ ctx.getDebugPoseSnapshot = (opts = {}) => {
     return null;
   }
 };
-
-  };
 
   // 初期サイズだけ合わせとく（0サイズ事故も防ぐ）
   try { ctx.resize(canvas.clientWidth, canvas.clientHeight, globalThis.devicePixelRatio || 1); } catch (_e) {}

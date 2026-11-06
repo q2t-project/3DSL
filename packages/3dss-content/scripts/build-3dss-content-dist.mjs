@@ -142,7 +142,7 @@ function uniq(arr) {
 
 function buildViewerUrl(modelUrl) {
   // Contract: viewer entry takes `model=`. (Legacy `open=` is supported only for backward links.)
-  return `/viewer/index.html?model=${encodeURIComponent(modelUrl)}`;
+  return `/app/viewer/?model=${encodeURIComponent(modelUrl)}`;
 }
 
 function safeCpDir(srcDir, dstDir) {
