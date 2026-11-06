@@ -83,7 +83,7 @@ Cloudflare Pages は **Astro の `src/pages/404.*` ではなく**、
 Cloudflare Pages は `public/_redirects` と `public/_headers` を **そのまま配信設定として読み込む**。  
 だから **置き場所は `apps/site/public/` 固定**。
 
-末尾スラッシュのない `/viewer` だけは `/viewer/index.html` に内部書き換えし、アドレス欄のパスを保つ。それ以外の旧HTMLはPagesの静的配信に任せる。互換ページは元のURLを基準に相対作品URLを解決する。配布済みの作品指定や埋め込みを壊さないよう、`/viewer/*` を一括で `/app/viewer/` に転送しない。ビルド後の旧入口とブラウザーでの期待値は[Viewer配備時の注意点](/docs/ops/viewer_deploy_pitfalls/)を参照。
+Pages は静的ファイル `viewer.html` を `/viewer`、`viewer/index.html` を `/viewer/` で配信する。この2ファイルは同じ互換HTMLから生成する。互換ページは元のURLを基準に相対作品URLを解決する。配布済みの作品指定や埋め込みを壊さないよう、`/viewer/*` を一括で `/app/viewer/` に転送しない。ビルド後の旧入口とブラウザーでの期待値は[Viewer配備時の注意点](/docs/ops/viewer_deploy_pitfalls/)を参照。
 
 ---
 

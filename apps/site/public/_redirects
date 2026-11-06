@@ -15,7 +15,3 @@
 /modeler_app  /modeler_app/index.html  200
 /modeler_app/ /modeler_app/index.html  200
 /modeler_app/* /modeler_app/index.html 200
-
-# Resolve relative work URLs against the incoming slashless bookmark.
-# The remaining legacy entries have their own static compatibility HTML.
-/viewer  /viewer/index.html  200

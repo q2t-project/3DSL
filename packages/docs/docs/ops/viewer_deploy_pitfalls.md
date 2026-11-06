@@ -8,7 +8,7 @@
 | `/preview-reconstruction/contract_viewer/`、`/preview-reconstruction/viewer/` とそれぞれの `index.html` | 同じ正規入口に着き、指定された作品が開く |
 | `/viewer/peek.html`、`/viewer/peek/`、`/viewer/peek/index.html` | 同じ読取実装を `viewerMode=peek` で開き、埋め込みには図だけを表示する |
 
-スラッシュのない `/viewer` は互換HTMLへの内部書き換えとし、アドレス欄を移す前に作品URLを解決する。たとえば `?model=sample.json` は `/viewer` なら `/sample.json`、`/viewer/` なら `/viewer/sample.json` を指す。
+Pagesでは `viewer.html` を `/viewer`、`viewer/index.html` を `/viewer/` で開く。それぞれがアドレス欄のパスを基準に作品URLを解決する。たとえば `?model=sample.json` は `/viewer` なら `/sample.json`、`/viewer/` なら `/viewer/sample.json` を指す。
 
 `/preview-reconstruction/` 自体は制作・閲覧の案内ページ。Viewerへ一括転送しない。
 
