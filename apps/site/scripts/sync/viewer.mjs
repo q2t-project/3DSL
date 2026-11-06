@@ -142,6 +142,8 @@ await cp(src, dst, {
 
 // Keep distributed links working while directing every HTML entrance to the public reader.
 const compatibilityPage = path.join(repoRoot, 'apps/reconstruction/hosting/viewer-entry.html');
+// Serve /viewer directly so Pages does not add a slash before relative URLs are resolved.
+await cp(compatibilityPage, path.join(publicDir, 'viewer.html'));
 for (const name of ['index.html', 'peek.html', 'peek/index.html', 'viewer_dev.html']) {
   await cp(compatibilityPage, path.join(dst, name));
 }

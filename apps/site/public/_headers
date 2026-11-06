@@ -9,3 +9,26 @@
 
 /modeler_tuning.css
   Cache-Control: public, max-age=300, must-revalidate
+
+# Legacy Viewer HTML hands the original URL to the public reader.
+# Include the clean paths that Pages serves after normalizing .html URLs.
+/viewer
+  Cache-Control: no-store
+/viewer.html
+  Cache-Control: no-store
+/viewer/
+  Cache-Control: no-store
+/viewer/index.html
+  Cache-Control: no-store
+/viewer/peek
+  Cache-Control: no-store
+/viewer/peek.html
+  Cache-Control: no-store
+/viewer/peek/
+  Cache-Control: no-store
+/viewer/peek/index.html
+  Cache-Control: no-store
+/viewer/viewer_dev
+  Cache-Control: no-store
+/viewer/viewer_dev.html
+  Cache-Control: no-store

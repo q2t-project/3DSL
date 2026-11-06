@@ -15,9 +15,3 @@
 /modeler_app  /modeler_app/index.html  200
 /modeler_app/ /modeler_app/index.html  200
 /modeler_app/* /modeler_app/index.html 200
-
-# Ensure /viewer/* (static viewer bundle) is served as-is.
-/viewer/*  /viewer/:splat  200
-
-/viewer    /app/viewer     302
-/viewer/   /app/viewer     302
