@@ -8,7 +8,7 @@ title: 構造と分類 — 概念の置き方を比べる
 
 33点・0線で構成されています。接続線を辿る図とは異なり、言葉の並び・まとまり・向き・表示の切替を見比べる作品です。
 
-[作品を従来版Viewerで開く](/app/viewer?model=%2F_data%2Flibrary%2F26012201%2Fmodel.3dss.json&title=%E6%A7%8B%E9%80%A0%E3%81%A8%E5%88%86%E9%A1%9E&return=%2Fdocs%2Fworks%2Fstructure-classification%2F) ／ [Libraryの元作品を開く](/library/26012201/)
+[作品を3DSL Viewerで開く](/app/viewer/?model=%2F_data%2Flibrary%2F26012201%2Fmodel.3dss.json&title=%E6%A7%8B%E9%80%A0%E3%81%A8%E5%88%86%E9%A1%9E&return=%2Fdocs%2Fworks%2Fstructure-classification%2F) ／ [Libraryの元作品を開く](/library/26012201/)
 
 ## 最初の問い
 
@@ -18,7 +18,7 @@ title: 構造と分類 — 概念の置き方を比べる
 
 ## 表示を切り替えて比べる
 
-上の「作品を従来版Viewerで開く」から図を開き、Viewerの「戻る」でこの解説へ戻れます。元作品の詳細ページにある「従来版Viewerで開く」からも開けます。左下の前後ボタンやスライダーで表示番号を変え、次の順に見てください。この作品は従来版Viewerで開くため、再構築版Viewerの検索・情報欄とは操作が異なります。
+上のリンクから図を開き、「表示」の番号を変えて次の順に見てください。スマホでは「メニュー」に表示の操作があります。読み終えたら作品への戻りリンクでこの解説に戻れます。
 
 | 表示番号 | 主な言葉 | 見比べる問い |
 |---|---|---|

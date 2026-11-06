@@ -61,5 +61,21 @@ for (const name of [
   await writeFile(file, withoutRobots.replace(/<head\b[^>]*>/i,
     '$&\n<meta name="robots" content="noindex,follow">'));
 }
+// The public site uses one reader. The standalone distribution still opens the
+// original relative entries when served on its own.
+const compatibilityPage = path.resolve(source, '../hosting/viewer-entry.html');
+await cp(path.join(target, 'contract_viewer/index.html'), path.join(target, 'contract_viewer/reader.html'));
+for (const name of ['contract_viewer/index.html', 'viewer/index.html']) {
+  await cp(compatibilityPage, path.join(target, name));
+}
+for (const name of ['RECONSTRUCTION.html', 'OPEN_MODELS.html', 'shared/viewerHandoff.js', 'contract_viewer/diagnostics/index.html']) {
+  const file = path.join(target, name);
+  const contents = await readFile(file, 'utf8');
+  await writeFile(file, contents.replaceAll('/preview-reconstruction/contract_viewer/index.html', '/app/viewer/'));
+}
+// The embedded test harness inspects the live inner reader in its own frame.
+const diagnostic = path.join(target, 'contract_viewer/diagnostics/check.js');
+await writeFile(diagnostic, (await readFile(diagnostic, 'utf8'))
+  .replaceAll('/preview-reconstruction/contract_viewer/index.html', '/preview-reconstruction/contract_viewer/reader.html'));
 await cp(path.join(target, 'RECONSTRUCTION.html'), path.join(target, 'index.html'));
 console.log('[sync] reconstruction preview -> site/public/preview-reconstruction');

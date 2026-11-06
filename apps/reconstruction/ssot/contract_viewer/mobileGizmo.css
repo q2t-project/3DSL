@@ -1,0 +1,78 @@
+#mobile-gizmo-open,
+#mobile-gizmo-controls { display: none; }
+
+body.contract-viewer.is-compact #viewer-rightdock {
+  top: calc(8px + env(safe-area-inset-top));
+  right: calc(8px + env(safe-area-inset-right));
+  bottom: auto;
+  gap: 4px;
+  transform: none;
+  pointer-events: none;
+}
+body.contract-viewer.is-compact #viewer-rightdock:not(:has([data-role="gizmo-canvas"])) {
+  display: none;
+}
+body.contract-viewer.is-compact #gizmo-wrapper {
+  inset: auto;
+  width: 56px;
+  height: 56px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: rgba(14, 25, 37, .86);
+}
+body.contract-viewer.is-compact #gizmo-ui,
+body.contract-viewer.is-compact #auto-orbit-slot { display: none !important; }
+
+body.contract-viewer.is-compact #mobile-gizmo-open {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  touch-action: manipulation;
+}
+body.contract-viewer.is-compact #mobile-gizmo-open canvas { display: block; width: 100%; height: 100%; }
+body.contract-viewer.is-compact #viewer-rightdock:not([data-gizmo-expanded]) #gizmo-slot { visibility: hidden; }
+
+body.contract-viewer.is-compact #viewer-rightdock[data-gizmo-expanded] #gizmo-wrapper {
+  width: 152px;
+  height: 152px;
+  border-radius: 12px;
+}
+body.contract-viewer.is-compact #viewer-rightdock[data-gizmo-expanded] #gizmo-slot canvas { touch-action: none; }
+body.contract-viewer.is-compact #viewer-rightdock[data-gizmo-expanded] #mobile-gizmo-open { display: none; }
+body.contract-viewer.is-compact #viewer-rightdock[data-gizmo-expanded] #mobile-gizmo-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  width: 152px;
+  box-sizing: border-box;
+  padding: 4px;
+  border: 1px solid #41566e;
+  border-radius: 8px;
+  background: #14202d;
+  pointer-events: auto;
+}
+#mobile-gizmo-controls button, #mobile-gizmo-controls select, #mobile-gizmo-controls label {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 44px;
+  padding: 4px;
+  font-size: 13px;
+  line-height: 1.25;
+}
+#mobile-gizmo-controls select, #mobile-gizmo-controls label { grid-column: 1 / -1; }
+#mobile-gizmo-controls button:first-child { grid-column: 1; grid-row: 3; }
+#mobile-gizmo-controls button:last-child { grid-column: 2; grid-row: 3; }
+#mobile-gizmo-controls label { display: flex; align-items: center; gap: 5px; }
+@media (max-height: 360px) {
+  body.contract-viewer.is-compact #viewer-rightdock[data-gizmo-expanded] {
+    flex-direction: row-reverse;
+    align-items: flex-start;
+  }
+}

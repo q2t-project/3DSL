@@ -38,52 +38,104 @@ button,.open-button,summary,select{cursor:pointer}button:hover:not(:disabled),.o
 #reading-stage{display:contents}
 #reading-mobile-nav{display:none}
 #reading-selection{flex-shrink:0;padding:6px 12px;background:#152231;border-top:1px solid #41566e}
-@media(max-width:650px){
-  html{height:100%;overflow:hidden}
-  body.contract-viewer{height:100dvh!important;min-height:0;overflow:hidden;overscroll-behavior:none}
-  .contract-viewer #reading-header{gap:6px;flex-shrink:0}
-  .contract-viewer #reading-header strong{font-size:16px}
-  .contract-viewer #reading-header{flex-wrap:nowrap}
-  .contract-viewer #reading-header strong{flex:1}
-  .contract-viewer #reading-header>#reading-file,.contract-viewer #reading-header>a,.contract-viewer #reading-info-toggle{display:none}
-  .contract-viewer #reading-header button,.contract-viewer #reading-header .open-button,.contract-viewer #reading-header summary{min-height:44px;box-sizing:border-box}
-  .contract-viewer #reading-file{min-width:0;max-width:none;flex:1 1 100px}
-  .contract-viewer #contract-status{flex-shrink:0;box-sizing:border-box;min-height:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .contract-viewer #reading-snapshot-notice{flex-shrink:0}
-  .contract-viewer #reading-stage{--reading-support-height:36%;display:block;position:relative;flex:1;min-height:0;overflow:hidden;isolation:isolate}
-  .contract-viewer[data-reading-panel=diagram] #reading-stage{--reading-support-height:0%}
-  .contract-viewer #reading-layout,.contract-viewer #reading-layout.info-hidden{position:absolute;inset:0;display:block;min-height:0}
-  .contract-viewer #viewer-root{position:absolute;inset:0;height:calc(100% - var(--reading-support-height));min-height:0;visibility:visible;opacity:1;pointer-events:auto}
-  .contract-viewer #viewer-canvas{height:calc(100% - 64px)!important;bottom:auto!important}
-  .contract-viewer #contract-info,.contract-viewer #reading-layout.info-hidden #contract-info,
-  .contract-viewer #reading-find,.contract-viewer #reading-tools{display:block;position:absolute;inset:auto 0 0;width:100%;height:var(--reading-support-height);max-height:none;min-height:0;box-sizing:border-box;overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain;touch-action:pan-y pinch-zoom;background:#14202d;border-top:2px solid #41566e}
-  .contract-viewer #contract-info,.contract-viewer #reading-find,.contract-viewer #reading-tools{visibility:hidden;opacity:0;pointer-events:none}
-  .contract-viewer[data-reading-panel=info] #contract-info,
-  .contract-viewer[data-reading-panel=find] #reading-find,
-  .contract-viewer[data-reading-panel=tools] #reading-tools{visibility:visible;opacity:1;pointer-events:auto}
-  .contract-viewer #reading-tools>summary{display:none}
-  .contract-viewer #reading-toolbar{gap:6px;padding:8px}
-  .contract-viewer #reading-toolbar button,.contract-viewer #reading-toolbar select,.contract-viewer #reading-controls button,.contract-viewer #reading-controls select,.contract-viewer #contract-info button{min-height:44px}
-  .contract-viewer #reading-search-form{width:100%;min-width:0;position:sticky;top:0;background:#14202d;padding:4px 0;z-index:1}
-  .contract-viewer #reading-search{flex:1;min-width:0;width:auto;font-size:16px}
-  .contract-viewer #reading-result-list,.contract-viewer #contract-info pre{max-height:none;overflow:visible}
-  .contract-viewer #reading-controls{max-height:none;overflow:visible;padding:8px}
-  .contract-viewer .reading-control-group{flex-wrap:wrap;width:100%}
-  .contract-viewer #reading-controls .reading-popup>div{position:static;max-height:none;min-width:0;width:auto;overflow:visible;box-shadow:none}
-  .contract-viewer #reading-filters{width:100%}
-  .contract-viewer #reading-notices{padding:2px 8px;flex-wrap:nowrap;flex-shrink:0}
-  .contract-viewer #reading-notice-summary{display:none}
-  .contract-viewer #reading-notice{min-height:44px}
-  .contract-viewer #viewer-rightdock{right:8px;bottom:4px;transform:scale(.35);transform-origin:right bottom}
-  .contract-viewer #auto-orbit-slot{display:none!important}
-  .contract-viewer #reading-selection{gap:4px;padding:4px 8px;flex-wrap:nowrap;min-height:52px;box-sizing:border-box}
-  .contract-viewer #reading-selection>span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .contract-viewer #reading-selection button{min-height:44px;white-space:nowrap;padding:6px 8px}
-  .contract-viewer #reading-selection-info,.contract-viewer .reading-fit-selection{display:none}
-  .contract-viewer #reading-mobile-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:4px 8px calc(4px + env(safe-area-inset-bottom));flex-shrink:0;background:#111e2c;border-top:1px solid #41566e}
-  .contract-viewer #reading-mobile-nav button{min-height:48px;touch-action:manipulation}
-  .contract-viewer #reading-mobile-nav button[aria-pressed=true]{background:#295478;border-color:#8ad2ff;color:#fff}
-}
 
-#reading-mobile-next{display:none}
-@media(max-width:650px){.contract-viewer #reading-mobile-next:not([hidden]){display:block}}
+.reading-compact-only, #reading-sheet, #reading-mobile-nav { display: none; }
+body.is-compact {
+  height: 100dvh !important;
+  min-height: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  --safe-top: max(8px, env(safe-area-inset-top));
+  --safe-left: max(8px, env(safe-area-inset-left));
+  --safe-right: max(8px, env(safe-area-inset-right));
+  --safe-bottom: max(8px, env(safe-area-inset-bottom));
+  --surface: #142231;
+}
+.is-compact [hidden] { display: none !important; }
+.is-compact #reading-stage, .is-compact #reading-layout, .is-compact #reading-layout.info-hidden {
+  display: block; position: absolute; inset: 0;
+}
+.is-compact #viewer-root { position: absolute; inset: 0; width: 100%; height: 100%; }
+.is-compact #reading-hint { display: none; }
+.is-compact #reading-mobile-nav {
+  position: absolute; z-index: 3; top: var(--safe-top); left: var(--safe-left);
+  display: flex; gap: 4px; align-items: flex-start; pointer-events: none;
+}
+.is-compact #reading-mobile-nav button, .is-compact #reading-selection button,
+.is-compact #reading-sheet button, .is-compact #reading-sheet select,
+.is-compact #reading-sheet summary, .is-compact .open-button, .is-compact #reading-mobile-prompt button {
+  min-height: 44px; box-sizing: border-box;
+}
+.is-compact #reading-mobile-nav button, .is-compact #reading-selection button {
+  pointer-events: auto; background: rgba(17,30,43,.94); padding: 5px 10px;
+}
+.is-compact #reading-mobile-nav button[aria-expanded=true] { background: #295478; border-color: #8bd3ff; }
+.is-compact #reading-mobile-notice { color: #f3d197; }
+.is-compact .reading-compact-only { display: inline-block; }
+.is-compact #reading-mobile-prompt {
+  position: absolute; z-index: 5; left: 50%; top: 50%; transform: translate(-50%,-50%);
+  width: max-content; max-width: calc(100% - 32px); max-height: 80%; overflow: auto;
+  box-sizing: border-box; padding: 16px; background: var(--surface); border: 1px solid #476077;
+  border-radius: 10px; text-align: center;
+}
+.is-compact #reading-prompt-title { display: block; font-size: 18px; }
+.is-compact #reading-prompt-message { overflow-wrap: anywhere; }
+.is-compact #reading-prompt-message:empty { display: none; }
+.is-compact #reading-prompt-open { margin-top: 8px; }
+.is-compact #reading-selection {
+  position: absolute; z-index: 2; left: var(--safe-left); right: var(--safe-right); bottom: var(--safe-bottom);
+  flex-wrap: nowrap; gap: 4px; padding: 2px 4px 2px 10px; border: 1px solid #41566e;
+  border-radius: 8px; background: rgba(17,30,43,.94); box-sizing: border-box;
+}
+.is-compact #reading-selection>span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.is-compact #reading-selection button { white-space: nowrap; }
+.is-compact #reading-selection-show, .is-compact:not([data-reading-panel=diagram]) #reading-selection { display: none; }
+.is-compact #reading-sheet:not([hidden]) {
+  position: absolute; z-index: 4; inset: auto 0 var(--reading-keyboard-inset, 0);
+  display: flex; flex-direction: column; box-sizing: border-box;
+  height: min(var(--reading-sheet-height, 46%), 26rem); min-height: min(140px, var(--reading-sheet-height, 46%)); max-height: 75%;
+  padding: 0 var(--safe-right) var(--safe-bottom) var(--safe-left);
+  background: var(--surface); color: #e5edf6; border: 1px solid #516981; border-bottom: none;
+  border-radius: 12px 12px 0 0; box-shadow: 0 -4px 18px #0006;
+}
+.reading-sheet-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 3px 0; }
+.is-compact #reading-sheet-scroll { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.is-compact #reading-sheet #contract-info, .is-compact #reading-sheet #reading-find,
+.is-compact #reading-sheet #reading-header, .is-compact #reading-sheet #reading-tools {
+  position: static; width: 100%; padding: 4px 2px; border: none; box-sizing: border-box;
+  overflow: visible; max-height: none; background: transparent;
+}
+.is-compact #reading-sheet #reading-header { flex-wrap: wrap; }
+.is-compact #reading-sheet #reading-header strong { display: none; }
+.is-compact #reading-sheet #reading-file { flex: 1 1 auto; max-width: none; min-width: 0; }
+.is-compact #reading-sheet #reading-search-form { display: flex; position: sticky; top: 0; z-index: 1; background: var(--surface); }
+.is-compact #reading-search { min-width: 0; font-size: 16px; flex: 1; }
+.is-compact #reading-result-list, .is-compact #contract-info pre { overflow: visible; max-height: none; }
+.is-compact #reading-controls, .is-compact #reading-toolbar { padding: 6px 0; max-height: none; overflow: visible; }
+.is-compact .reading-control-group { flex-wrap: wrap; }
+.is-compact #reading-tools>summary { display: none; }
+.is-compact #reading-sheet #reading-filters>div, .is-compact #reading-sheet #reading-help>div {
+  position: static; width: 100%; min-width: 0; box-sizing: border-box; max-height: none; box-shadow: none;
+}
+.is-compact #reading-sheet #reading-help[open], .is-compact #reading-sheet #reading-filters { flex-basis: 100%; }
+.is-compact #reading-notices { display: none; }
+.is-compact #reading-selection-info { display: inline-block; }
+#reading-host-actions:empty, .reading-control-group[hidden] { display: none; }
+#reading-host-actions:not(:empty) { display: inline-flex; flex-wrap: wrap; gap: 5px; }
+body.reading-peek #reading-layout { display:block; position:absolute; inset:0; }
+body.reading-peek #viewer-root { position:absolute; inset:0; width:100%; height:100%; }
+body.reading-peek #reading-mobile-nav, body.reading-peek #reading-mobile-prompt,
+body.reading-peek #reading-sheet, body.reading-peek #reading-selection, body.reading-peek #reading-find,
+body.reading-peek #reading-tools, body.reading-peek #contract-info, body.reading-peek #reading-hint,
+body.reading-peek #reading-header, body.reading-peek #contract-status, body.reading-peek #reading-snapshot-notice,
+body.reading-peek #viewer-rightdock { display:none !important; }
+body.reading-peek.reading-error #reading-mobile-prompt { display:block !important; position:absolute; z-index:5; top:4px; left:4px; right:4px; transform:none; width:auto; padding:4px; background:#142231; }
+body.reading-peek #reading-prompt-open, body.reading-peek #reading-prompt-dismiss { display:none !important; }
+.is-compact #reading-snapshot-notice {
+  position: absolute; z-index: 2; bottom: var(--safe-bottom); left: var(--safe-left);
+  max-width: calc(100% - 24px); border-radius: 5px; pointer-events: none;
+}
+.is-compact:has(#reading-selection:not([hidden])) #reading-snapshot-notice { bottom: calc(var(--safe-bottom) + 56px); }
+.is-compact:not([data-reading-panel=diagram]) #reading-snapshot-notice { display: none; }
+
+.is-compact:not([data-reading-panel=diagram]) #reading-mobile-prompt { display: none; }

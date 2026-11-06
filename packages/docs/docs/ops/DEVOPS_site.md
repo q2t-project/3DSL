@@ -288,37 +288,13 @@ iframe が「縮められない状態」になり、**左半分が空く**など
 
 ---
 
-## 11) ホスト分類（固定）
+## 11) 正規の閲覧入口
 
-* Full App Host: `/viewer/index.html` などの UI 付き通常ホスト（UI 層を含む）
-* Minimal Host: `/viewer/peekBoot.js` を唯一の入口とする UI なしホスト（renderer + orbit input）
-* Embed Host: `/app/viewer` のように site 側から iframe 経由で埋め込むホスト（DOM 契約あり）
-* Dev Host: `/viewer/viewer_dev.html` や `viewerDevHarness.js`（開発専用、prod での利用禁止）
+新規リンク・共有・QRは `/app/viewer/` を使う。親ホストは既存の作品への戻り先と画像保存を扱い、閲覧操作を子のメニューにまとめる。受渡し元ウィンドウの識別が必要なModelerの写しは同じタブで読取実装へ渡す。
 
----
+## 12) 互換入口
 
-## 12) Minimal Host（peekBoot）の位置づけ
-
-* 目的: UI を持たない “最小ホスト” を **例外として許可**（増殖防止のため入口固定）
-* 入口: `/viewer/peekBoot.js` のみ（新規追加は契約更新が必須）
-* 起動 API: `bootstrapViewerFromUrl(canvasOrId, url, options?)` を使用（`bootstrapViewer` 直叩きは例外扱い）
-* 依存方向: **entry 以外に依存しない**（UI/hub/core/renderer を直接 import しない）
-* DOM 契約: UI の DOM 契約は不要、必須なのは
-
-  * `<canvas data-role="viewer-canvas">` または `#viewer-canvas` を 1 つ置くこと
-  * canvas 以外の UI レイヤは持ち込まない
-
-#### peekBoot import 連鎖（entry 起点）
-
-```txt
-peekBoot.js
-└─ runtime/bootstrapViewer.js
-   ├─ runtime/core/* (internal)
-   ├─ runtime/renderer/* (internal)
-   └─ runtime/viewerHub.js (internal)
-```
-
----
+`/viewer/`、`/viewer/index.html`、`/preview-reconstruction/contract_viewer/` と同配下の `index.html`、`/preview-reconstruction/viewer/` は同じ公開Viewerへ案内する。既存の相対作品URLは移動前の位置で解決する。埋込専用の `/viewer/peek.html` と `/viewer/peek/` は同じ実装の図のみの表示へ渡す。開発用HTMLは本番で別のViewerを起動しない。配布元は `apps/reconstruction/ssot/contract_viewer/`、サイトの変換は `apps/site/scripts/sync/reconstruction-preview.mjs` および `sync/viewer.mjs`。
 
 ## 13) 代表的な症状（致命）
 
@@ -359,29 +335,9 @@ const f = document.getElementById('app-viewer-iframe');
 
 ---
 
-## 16) Peek viewer（Home 埋め込み）: 最小ホスト契約
+## 16) 受入と切戻し
 
-Home 等に埋め込む “UI なし” の Viewer は、`peekBoot.js` を **最小ホスト**として扱う。
-
-### ルール（固定）
-
-* `peekBoot.js` が import してよいのは **`runtime/bootstrapViewer.js` のみ**
-* UI レイヤ（例: `ui/*`）や、その他の任意モジュールの import は禁止
-* 違反した場合、SSOT チェックで `MINIMAL_HOST_FORBIDDEN_IMPORT` として検出される
-
-### 目的
-
-* 埋め込み用途で **UI/DOM を引き込まない**こと（ゾンビUI再発の封じ込め）
-* “最小ホスト → runtime に委譲” の一本化で、構造の汚染を防ぐ
-
-### 変更が必要になったら
-
-* `peekBoot.js` に import を増やすのではなく、
-
-  * `runtime/bootstrapViewer.js` 側へ機能を寄せる
-  * どうしても例外が必要なら、SSOT の最小ホスト許可リスト（`minimalHostEntries`）を更新する
-
----
+同じ作品を正規入口・旧URL・埋込から読み、対象と明示接続、戻り先、パラメータを比較する。制作中の作品の受渡しはModelerと組にして検査する。小型ギズモ56 CSS px、展開152 CSS pxをAndroid実機で受け入れた。縦360・390 CSS pxのモデル直接操作面積と既配布経路を検査済み。受入記録と公開対象の確認を揃え、GitHubの作業ブランチをPRでmainへ統合し、Cloudflare PagesのProduction成功と配信コミットを確認する。配信を戻す場合は入口、生成物、リンク、説明を同じ直前リリースへ一括で戻す。
 
 # Appendix: Viewer 側の実施記録（参考）
 

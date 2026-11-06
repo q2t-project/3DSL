@@ -13,7 +13,7 @@ export function renderBrowsingInfo(container,{model,index,state,select,explore,f
   if(!entry){
     const summary=localized(model.scene?.document_meta?.document_summary);
     if(summary)header.append(el('p',summary));
-    header.append(el('p','図上の点・線・文字をタップすると、対応する情報と接続先を読めます。検索から名前で直接選べます。スマホでは下端の「探す」を使ってください。'));
+    header.append(el('p','図上の点・線・文字をタップすると、対応する情報と接続先を読めます。検索から名前で直接選べます。'));
     const memo=model.scene?.document_meta?.creator_memo;
     if(typeof memo==='string'&&memo.trim())lazy(header,'作者メモ',d=>d.append(el('p',memo)));
   }
@@ -48,7 +48,8 @@ export function renderBrowsingInfo(container,{model,index,state,select,explore,f
     if(details.relation){row(header,'関係名',details.relation.name||details.relation.id);row(header,'方向',details.relation.direction);row(header,'条件',details.relation.condition||'指定なし');}
     const show=el('button','選択を表示','reading-fit-selection');show.type='button';show.disabled=!entry.sceneIds?.length;show.addEventListener('click',()=>fitSelection());header.append(show);
     if(details.target){const copies=index.neighbors(`target:${encodeURIComponent(details.target.id)}`).map(edge=>index.get(edge.toId)).filter(other=>other&&other.id!==entry.id);if(copies.length)lazy(container,'同じ対象の別出現',d=>{for(const other of copies){const button=el('button',`${other.label} · ${other.occurrenceId} / 表示 ${other.frames.length?other.frames.join(', '):'すべて'}`,'part-link');button.type='button';button.addEventListener('click',()=>select(other.id));d.append(button);}});}
-    const connections=el('section');connections.append(el('h3','記録された接続先'));
+    const connections=el('section');connections.id='reading-connections';connections.append(el('h3','記録された接続先'));
+    if(model.format==='scene')connections.append(el('p','図に明示された端点参照だけを接続として表示しています。','muted'));
     const edges=index.neighbors(entry.id);
     if(!edges.length)connections.append(el('p','参照で記録された接続先はありません。位置の近さから接続を推測しません。','muted'));
     for(const edge of edges) {

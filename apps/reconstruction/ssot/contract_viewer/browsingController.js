@@ -43,13 +43,13 @@ export function createBrowsingController({buildReadModel, validateReadModel, cre
     });
     unsubscribe=()=>{stopSelection?.();stopControls?.();};
   }
-  async function openText(text,label='作品.json') {
+  async function openText(text,label='作品.json',sourceUrl=null) {
     return serial(async()=>{
       if(loading)return {ok:false,error:'読込中です。'};
       loading=true;onBusy(true);onStatus('作品の形式と接続を確認しています。');
       const previous={model,index,state:clone(state),history:clone(history),bridgeState:bridgeSnapshot()};let oldDisposed=false;
       try {
-        const next=buildReadModel(text);await validateReadModel(next);const nextIndex=createReadingIndex(next);
+        const next=buildReadModel(text);next.sourceUrl=sourceUrl;await validateReadModel(next);const nextIndex=createReadingIndex(next);
         unsubscribe?.();unsubscribe=null;bridge?.dispose?.();host?.dispose?.();bridge=null;host=null;oldDisposed=true;
         const mounted=await mount(next);host=mounted.host;bridge=mounted.bridge;await painted();
         model=next;index=nextIndex;history=[];
@@ -63,7 +63,7 @@ export function createBrowsingController({buildReadModel, validateReadModel, cre
           try {bridge?.dispose?.();host?.dispose?.();const mounted=await mount(previous.model);host=mounted.host;bridge=mounted.bridge;model=previous.model;index=previous.index;state=previous.state;history=previous.history;await bridge.restore(previous.bridgeState);subscribe();restored=true;}
           catch(_) {bridge?.dispose?.();host?.dispose?.();bridge=null;host=null;model=previous.model;index=previous.index;state=previous.state;history=previous.history;}
         }
-        onStatus(`読込を止めました: ${error?.message||error}${previous.model?(restored?'。前の閲覧状態を保持しています。':'。前の作品記録は保持していますが、描画の復元に失敗しました。作品を開き直してください。'):''}`);
+        onStatus(`読込を止めました: ${error?.message||error}${previous.model?(restored?'。前の閲覧状態を保持しています。':'。前の作品記録は保持していますが、描画の復元に失敗しました。作品を開き直してください。'):''}`,'error');
         return {ok:false,error:String(error?.message||error),restored};
       } finally {loading=false;onBusy(false);notify();}
     });

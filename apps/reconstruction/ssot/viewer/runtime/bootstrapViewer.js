@@ -1260,6 +1260,9 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
   }
 
   const hub = createViewerHub({ core, renderer, readOnlyBrowsing: options.readOnlyBrowsing === true });
+  if (new URLSearchParams(globalThis.location?.search).get('debugPose') === '1') {
+    hub.getDebugPoseSnapshot = options => renderer.getDebugPoseSnapshot?.(options) ?? null;
+  }
   // Observational diagnostics only: detached rendering counters, no renderer handle.
   hub.getReadingViewport = () => ({width:canvasEl.clientWidth,height:canvasEl.clientHeight});
   hub.getRenderDiagnostics = () => ({...structuredClone(renderer.getDebugMetrics?.() ?? {}), initialReadingView});

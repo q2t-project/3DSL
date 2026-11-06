@@ -3,8 +3,8 @@
 
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>3DSL 作品Viewer r0.5</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+  <title>3DSL Viewer</title>
 
   <!-- canonical base: this HTML is served at /viewer/index.html -->
   <base href="/viewer/" />
@@ -28,19 +28,22 @@
   <link rel="stylesheet" href="/viewer_tuning.css" />
 
 <link rel="stylesheet" href="/contract_viewer/browsing.css" />
+  <link rel="stylesheet" href="/contract_viewer/mobileGizmo.css" />
 </head>
 
 <body class="contract-viewer">
   <header id="reading-header">
-    <strong>3DSL Viewer <small>読取専用 r0.5</small></strong>
+    <strong>3DSL Viewer <small>読取専用</small></strong>
     <label class="open-button">開く…<input id="contract-open" type="file" accept=".json,application/json"></label>
+    <a id="reading-return" hidden>作品へ戻る</a>
+    <span id="reading-host-actions"></span>
     <span id="reading-file">作品を開いてください</span>
     <a href="/RECONSTRUCTION.html">作品の入口へ</a>
     <button type="button" id="reading-info-toggle" aria-expanded="true" aria-controls="contract-info">情報欄</button>
     <details id="reading-help" class="reading-popup"><summary>ヘルプ</summary><div>
       <h2>閲覧操作</h2>
       <p>点・線・文字をタップして選択。通常の選択では視点は変わりません。名前が分かれば検索で直接選べます。</p>
-      <p>スマホ：図は常に上側に表示されます。下端の「情報・探す・操作」で下側の補助パネルを切り替え、その中だけをスクロールできます。「図を広く」で補助パネルを閉じます。図では1本指で回転、2本指で拡大縮小・移動。「選択へ」で選んだ要素へ視点を移せます。</p>
+      <p>スマホでは、図を1本指で回転、2本指で移動・拡大縮小できます。「探す」から名前を検索するか、図をタップして要素を選んでください。右上の三軸をタップすると視点操作が開きます。</p>
       <p><a href="/RECONSTRUCTION.html">作品の入口へ</a></p>
       <p>左・中ドラッグ：回転 ／ 右ドラッグ・Ctrl＋左ドラッグ：平行移動 ／ ホイール：拡大縮小</p>
       <table><tr><th>キー</th><th>操作</th></tr>
@@ -72,7 +75,7 @@
     <button id="reading-all" type="button" disabled>全体へ</button>
   </div>
   <div id="reading-controls" aria-label="表示とカメラの操作">
-    <div class="reading-control-group" role="group" aria-label="表示を切り替える">
+    <div id="reading-frame-group" class="reading-control-group" role="group" aria-label="表示を切り替える">
       <span class="reading-control-label">表示</span>
       <button id="reading-frame-first" type="button" disabled title="最初の表示へ">先頭</button>
       <button id="reading-frame-prev" type="button" disabled title="前の表示へ（PageDown）">前</button>
@@ -241,14 +244,35 @@
   </div>
   <p id="reading-hint">点・線・文字を選択。名前で検索して直接選べます。ドラッグで回転・右ドラッグで移動・ホイールで拡大縮小。</p>
   </main>
-    <div id="reading-selection" hidden><span role="status"><strong id="reading-selection-label"></strong></span><button type="button" id="reading-selection-info">情報を見る</button><button id="reading-mobile-next" type="button" disabled>次の表示</button>
-    <button type="button" id="reading-selection-show">選択へ</button></div>
-  <nav id="reading-mobile-nav" aria-label="図の補助パネル">
-    <button id="reading-tab-diagram" type="button" aria-controls="viewer-root" aria-pressed="true">図を広く</button>
-    <button id="reading-tab-info" type="button" aria-controls="contract-info" aria-pressed="false">情報</button>
-    <button id="reading-tab-find" type="button" aria-controls="reading-find" aria-pressed="false">探す</button>
-    <button id="reading-tab-tools" type="button" aria-controls="reading-tools" aria-pressed="false">操作</button>
+  <div id="reading-selection" hidden>
+    <span role="status"><strong id="reading-selection-label"></strong></span>
+    <button type="button" id="reading-selection-info">詳細</button>
+    <button type="button" id="reading-selection-links" class="reading-compact-only" hidden>接続先</button>
+    <button type="button" id="reading-selection-show">選択へ</button>
+    <button type="button" id="reading-selection-back" class="reading-compact-only" hidden>戻る</button>
+  </div>
+  <nav id="reading-mobile-nav" aria-label="モデルの閲覧操作">
+    <button id="reading-tab-find" type="button" aria-controls="reading-sheet" aria-expanded="false">探す</button>
+    <button id="reading-tab-menu" type="button" aria-controls="reading-sheet" aria-expanded="false">メニュー</button>
+    <button id="reading-mobile-notice" type="button" aria-controls="reading-sheet" aria-expanded="false" hidden></button>
   </nav>
+  <div id="reading-mobile-prompt" class="reading-compact-only">
+    <strong id="reading-prompt-title">3DSL Viewer</strong>
+    <p id="reading-prompt-message" role="status"></p>
+    <button type="button" id="reading-prompt-open">作品を開く</button>
+    <button type="button" id="reading-prompt-dismiss" hidden>閉じる</button>
+  </div>
+  <section id="reading-sheet" hidden aria-labelledby="reading-sheet-title">
+    <div class="reading-sheet-heading">
+      <strong id="reading-sheet-title"></strong>
+      <button type="button" id="reading-sheet-close" aria-label="パネルを閉じる">閉じる</button>
+    </div>
+    <div id="reading-sheet-scroll" tabindex="-1">
+      <div id="reading-sheet-find" hidden></div>
+      <div id="reading-sheet-menu" hidden></div>
+      <div id="reading-sheet-info" hidden></div>
+    </div>
+  </section>
     <script type="module" src="/contract_viewer/boot.js"></script>
 </body>
 

@@ -207,7 +207,7 @@ if (!chrome) {
       }
     }
     async function mobileLayout() {
-      return evaluate(`(() => {const canvas=document.getElementById('viewer-canvas'),nav=document.getElementById('reading-tab-diagram').closest('nav'),rect=nav.getBoundingClientRect();return {panel:document.body.dataset.readingPanel,width:innerWidth,height:innerHeight,pageY:scrollY,pageHeight:document.scrollingElement.scrollHeight,pageWidth:document.scrollingElement.scrollWidth,nav:{top:rect.top,bottom:rect.bottom},canvas:[canvas.clientWidth,canvas.clientHeight],buttons:['diagram','info','find','tools'].map(name=>{const b=document.getElementById('reading-tab-'+name),r=b.getBoundingClientRect();return {name,pressed:b.getAttribute('aria-pressed'),top:r.top,bottom:r.bottom,height:r.height,reachable:document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)?.closest('button')===b};})};})()`);
+      return evaluate(`(() => {const canvas=document.getElementById('viewer-canvas'),nav=document.getElementById('reading-mobile-nav'),rect=nav.getBoundingClientRect();return {panel:document.body.dataset.readingPanel,width:innerWidth,height:innerHeight,pageY:scrollY,pageHeight:document.scrollingElement.scrollHeight,pageWidth:document.scrollingElement.scrollWidth,nav:{top:rect.top,bottom:rect.bottom},canvas:[canvas.clientWidth,canvas.clientHeight],buttons:['find','menu'].map(name=>{const b=document.getElementById('reading-tab-'+name),r=b.getBoundingClientRect();return {name,pressed:b.getAttribute('aria-expanded'),top:r.top,bottom:r.bottom,height:r.height,reachable:document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)?.closest('button')===b};})};})()`);
     }
     async function assertMobileViewport(message) {
       const layout=await mobileLayout();
@@ -217,21 +217,22 @@ if (!chrome) {
       assert(layout.nav.top>=0&&layout.nav.bottom<=layout.height+1,message+': navigation remains inside viewport');
       for(const button of layout.buttons)assert(button.height>=44&&button.reachable,message+': reachable touch target '+button.name);
       assert(layout.canvas.every(n=>n>0),message+': mounted canvas keeps nonzero dimensions');
-      const diagram=await evaluate(`(() => {const root=document.getElementById('viewer-root'),canvas=document.getElementById('viewer-canvas'),r=canvas.getBoundingClientRect();const panel=document.getElementById({info:'contract-info',find:'reading-find',tools:'reading-tools'}[document.body.dataset.readingPanel]);return {inert:root.inert,visibility:getComputedStyle(root).visibility,opacity:getComputedStyle(root).opacity,hit:document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)?.id,top:r.top,bottom:r.bottom,height:r.height,panel:panel?{top:panel.getBoundingClientRect().top,height:panel.getBoundingClientRect().height}:null};})()`);
+      const diagram=await evaluate(`(() => {const root=document.getElementById('viewer-root'),canvas=document.getElementById('viewer-canvas'),r=canvas.getBoundingClientRect();const panel=document.body.dataset.readingPanel==='diagram'?null:document.getElementById('reading-sheet');return {inert:root.inert,visibility:getComputedStyle(root).visibility,opacity:getComputedStyle(root).opacity,hit:document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)?.id,top:r.top,bottom:r.bottom,height:r.height,panel:panel?{top:panel.getBoundingClientRect().top,height:panel.getBoundingClientRect().height}:null};})()`);
       assert(!diagram.inert&&diagram.visibility==='visible'&&diagram.opacity==='1'&&diagram.hit==='viewer-canvas',message+': diagram remains visible and touchable '+JSON.stringify(diagram));
       assert(diagram.top>=0&&diagram.height>=180,message+': useful model area stays on screen');
-      if(diagram.panel)assert(diagram.panel.height>=120&&diagram.panel.top>=diagram.bottom,message+': information and model do not overlap');
+      if(diagram.panel)assert(diagram.panel.height>=120&&diagram.panel.top>=diagram.height*.5,message+': sheet leaves upper half for model gestures');
       return layout;
     }
     async function choosePanel(name) {
-      await clickElement(`document.getElementById('reading-tab-${name}')`,true);
+      const id=({diagram:'reading-sheet-close',info:'reading-selection-info'})[name] || 'reading-tab-'+name;
+      await clickElement(`document.getElementById(${JSON.stringify(id)})`,true);
       await until(`document.body.dataset.readingPanel===${JSON.stringify(name)}`,'navigation opens '+name);
       const layout=await assertMobileViewport(name+' pane');
-      assert.equal(layout.buttons.find(button=>button.name===name).pressed,'true','active navigation state');
+      if(['find','menu'].includes(name))assert.equal(layout.buttons.find(button=>button.name===name).pressed,'true','active navigation state');
       return layout;
     }
     async function swipeInformation() {
-      const rect=await evaluate(`(() => {const r=document.getElementById('contract-info').getBoundingClientRect();return {left:r.left,top:r.top,width:r.width,height:r.height};})()`);
+      const rect=await evaluate(`(() => {const r=document.getElementById('reading-sheet-scroll').getBoundingClientRect();return {left:r.left,top:r.top,width:r.width,height:r.height};})()`);
       const x=rect.left+rect.width*.65,startY=rect.top+rect.height*.8,endY=rect.top+rect.height*.25;
       await touch('touchStart',[{x,y:startY}]);
       for(let step=1;step<=7;step++) {
@@ -243,10 +244,10 @@ if (!chrome) {
     }
     async function waitForInformationScrollSettled() {
       const started=Date.now();
-      let previous=await evaluate(`document.getElementById('contract-info').scrollTop`),stableSince=Date.now();
+      let previous=await evaluate(`document.getElementById('reading-sheet-scroll').scrollTop`),stableSince=Date.now();
       while(Date.now()-started<5000) {
         await sleep(50);
-        const current=await evaluate(`document.getElementById('contract-info').scrollTop`);
+        const current=await evaluate(`document.getElementById('reading-sheet-scroll').scrollTop`);
         if(current!==previous){previous=current;stableSince=Date.now();}
         else if(Date.now()-stableSince>=300)return;
       }
@@ -268,7 +269,7 @@ if (!chrome) {
       await cmd('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: useTouch });
       await cmd('Emulation.setTouchEmulationEnabled', {enabled:useTouch,maxTouchPoints:2});
       const query = `?meal-smoke=${width}&dbgHub=1`;
-      await cmd('Page.navigate', { url: origin + '/preview-reconstruction/contract_viewer/index.html' + query });
+      await cmd('Page.navigate', { url: origin + '/preview-reconstruction/contract_viewer/reader.html' + query });
       await ready(query);
       await evaluate('window.viewerBootReady');
       const opened = await evaluate(`window.viewerDiagnostics.openText(${JSON.stringify(modelText)}, 'meal.3dss.json')`);
@@ -306,17 +307,17 @@ if (!chrome) {
       await painted();
       if (width < 650) {
         const initialLayout=await assertMobileViewport('initial diagram');
-        assert.equal(initialLayout.panel,'info','mobile starts with diagram and information together');
+        assert.equal(initialLayout.panel,'diagram','mobile starts on the model without an open sheet');
         assert(actual.canvasHeight >= 360, 'actual mobile canvas height >=360px');
-        assert(actual.canvasBottom <= actual.dockTop + 1, 'mobile gizmo strip does not overlap drawing');
-        const toolLayout=await choosePanel('tools');
+        assert.equal(actual.canvasHeight,initialLayout.height,'canvas uses the whole viewport');
+        const toolLayout=await choosePanel('menu');
         assert.deepEqual(toolLayout.canvas,initialLayout.canvas,'tools pane preserves canvas dimensions');
         assert(await evaluate(`document.getElementById('reading-tools').open&&getComputedStyle(document.getElementById('reading-preset')).visibility==='visible'`),'operation pane exposes preset controls');
         const findLayout=await choosePanel('find');
         assert.deepEqual(findLayout.canvas,initialLayout.canvas,'find pane preserves canvas dimensions');
         assert(await evaluate(`getComputedStyle(document.getElementById('reading-search')).visibility==='visible'`),'search is available from persistent navigation');
         assert(await evaluate(`!['auto','scroll'].includes(getComputedStyle(document.getElementById('reading-result-list')).overflowY)`),'result list does not introduce another scroll container');
-        await choosePanel('info');
+        await choosePanel('diagram');
       } else assert.equal(actual.toolsOpen, true, 'desktop controls remain expanded');
       await evaluate(`document.getElementById('viewer-canvas').scrollIntoView({block:'center'});window.__mealPointerEvents=[];for(const type of ['pointerdown','pointerup','pointermove','pointerleave','pointercancel','touchstart','touchend','click'])document.addEventListener(type,event=>window.__mealPointerEvents.push({target:event.target.id,type:event.type,timeStamp:event.timeStamp,panel:document.body.dataset.readingPanel,trusted:event.isTrusted,pointerType:event.pointerType,primary:event.isPrimary,button:event.button,buttons:event.buttons,x:event.clientX,y:event.clientY}),{passive:true,capture:true});`);
       await painted();
@@ -349,12 +350,25 @@ if (!chrome) {
         await tap(await projectPoint(rolePickPoint),6);
         await until(`window.viewerDiagnostics.snapshot().bridgeState.selection?.uuid===${JSON.stringify(roleId)}`,'6px finger jitter still selects');
         assert.deepEqual(await evaluate('window.viewerDiagnostics.snapshot().camera'),beforePick,'small touch jitter does not rotate');
+        const openGizmo = () => clickElement("document.getElementById('mobile-gizmo-open')", true);
+        await openGizmo();
+        await tap({x:16, y:90});
+        assert.equal(await evaluate('window.viewerDiagnostics.snapshot().selectedId'),roleId,'dismissing tap preserves selected word');
         await evaluate('window.viewerDiagnostics.select(null)');
+        await openGizmo();
+        await tap(word);
+        assert.equal(await evaluate('window.viewerDiagnostics.snapshot().selectedId'),null,'dismissing tap on a word does not pick it');
+        await tap(word);
+        assert.equal(await evaluate('window.viewerDiagnostics.snapshot().selectedId'),roleId,'next tap picks normally');
+        await evaluate('window.viewerDiagnostics.select(null)');
+        await openGizmo();
         const start=await projectPoint(rolePickPoint);
         await touch('touchStart',[start]);await touch('touchMove',[{x:start.x+35,y:start.y+20}]);await touch('touchEnd',[]);await painted();
+        assert.equal(await evaluate("document.getElementById('mobile-gizmo-open').getAttribute('aria-expanded')"),'false','first model drag closes the gizmo');
         assert.equal(await evaluate('window.viewerDiagnostics.snapshot().selectedId'),null,'drag does not accidentally select');
         assert.notDeepEqual(await evaluate('window.viewerDiagnostics.snapshot().camera'),beforePick,'drag still rotates');
         await evaluate('window.viewerDiagnostics.cameraReset()');
+        await openGizmo();
         const center=await projectPoint(rolePickPoint);
         await touch('touchStart',[center,{x:center.x+50,y:center.y}]);
         await touch('touchMove',[{x:center.x-10,y:center.y},{x:center.x+65,y:center.y}]);
@@ -404,19 +418,20 @@ if (!chrome) {
       await clickElement(`document.querySelector('#reading-result-list .result-button')`,useTouch);
       await until(`window.viewerDiagnostics.snapshot().bridgeState.selection?.uuid===${JSON.stringify(roleId)}`,'search result selects role without traversing connections');
       assert.deepEqual(await evaluate('window.viewerDiagnostics.snapshot().camera'),beforeSearch,'search selection preserves camera');
-      if(useTouch)await until(`document.body.dataset.readingPanel==='info'`,'choosing search result opens information');
-      await clickElement(`document.getElementById('reading-selection-show')`,useTouch);
-      await until(`window.viewerDiagnostics.snapshot().camera.distance<100`,'explicit show fits the selected word');
+      if(useTouch){await until(`document.body.dataset.readingPanel==='diagram'`,'choosing a result returns to the diagram');await choosePanel('info');}
+      await clickElement(useTouch?`document.querySelector('.reading-fit-selection')`:`document.getElementById('reading-selection-show')`,useTouch);
+      // Text bounds and fit distance vary with the installed Japanese font.
+      await until(`window.viewerDiagnostics.snapshot().camera.distance < ${beforeSearch.distance}`,'explicit show zooms in on the selected word');
       await painted();
       const fitted=await evaluate('window.viewerDiagnostics.snapshot()');
-      if(useTouch)await until(`document.body.dataset.readingPanel==='info'`,'fitting selection keeps information beside the diagram');
+      if(useTouch)await until(`document.body.dataset.readingPanel==='diagram'`,'fitting selection reveals the model');
       assert(fitted.camera.distance>15,'fit includes word extent instead of zooming into tiny point');
       const fittedBounds=await evaluate(`window.viewerHub.browsing.getBounds([${JSON.stringify(roleId)}])`);
       assert(fittedBounds,'selected rendered word bounds remain available');
       for(const x of [fittedBounds.min[0],fittedBounds.max[0]])for(const y of [fittedBounds.min[1],fittedBounds.max[1]])for(const z of [fittedBounds.min[2],fittedBounds.max[2]])assert((await projectPoint([x,y,z])).ndc.slice(0,2).every(n=>Math.abs(n)<1),'selected rendered word bounds remain inside drawing');
       const selectedScreenshot=await cmd('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
       await fs.writeFile(path.join(logs,`meal-mobile-selected-${width}.png`),Buffer.from(selectedScreenshot.data,'base64'));
-      await clickElement(`document.getElementById(${JSON.stringify(useTouch?'reading-tab-info':'reading-selection-info')})`,useTouch);
+      await clickElement(`document.getElementById('reading-selection-info')`,useTouch);
       if(useTouch) {
         await until(`document.body.dataset.readingPanel==='info'`,'information action opens pane');
         const infoLayout=await assertMobileViewport('selected information');
@@ -424,43 +439,46 @@ if (!chrome) {
         await fs.writeFile(path.join(logs,`meal-mobile-info-top-${width}.png`),Buffer.from(infoTopScreenshot.data,'base64'));
         await clickElement(`document.querySelector('#contract-reading .connection-row button')`,true);
         await until(`window.viewerDiagnostics.snapshot().selectedId!==${JSON.stringify(roleId)}`,'follow connection updates selection while the diagram remains visible');
+        await until(`document.body.dataset.readingPanel==='diagram'`,'following a connection shows the related model element');
         await assertMobileViewport('followed connection');
-        assert.equal(await evaluate('document.body.dataset.readingPanel'),'info','following a connection keeps the information panel open');
         await evaluate('window.viewerDiagnostics.back()');
         await until(`window.viewerDiagnostics.snapshot().selectedId===${JSON.stringify(roleId)}`,'back restores selected role');
+        await choosePanel('info');
         const beforeSwipe=await evaluate('window.viewerDiagnostics.snapshot()');
         // Expand an actual model record so a long article/record is exercised,
         // rather than fabricating tall fixture content or assigning scrollTop.
         await clickElement(`Array.from(document.querySelectorAll('#contract-reading details>summary')).find(node=>node.textContent==='選択した記録の詳細')`,true);
         await until(`document.querySelector('#contract-reading pre')!==null`,'record content rendered');
-        assert(await evaluate(`document.getElementById('contract-info').scrollHeight>document.getElementById('contract-info').clientHeight+100`),'information has real scrollable content');
+        assert(await evaluate(`document.getElementById('reading-sheet-scroll').scrollHeight>document.getElementById('reading-sheet-scroll').clientHeight+100`),'information has real scrollable content');
         assert(await evaluate(`!['auto','scroll'].includes(getComputedStyle(document.querySelector('#contract-reading pre')).overflowY)`),'record does not introduce a nested vertical scroller');
-        await clickElement(`document.getElementById('reading-tab-info')`,true);
-        await until(`document.activeElement===document.getElementById('contract-info')`,'information action focuses the scrollable pane');
+        await choosePanel('diagram');
+        await choosePanel('info');
+        await until(`document.activeElement===document.getElementById('reading-sheet-scroll')`,'information action focuses the scrollable pane');
         await cmd('Input.dispatchKeyEvent',{type:'keyDown',key:'ArrowDown',code:'ArrowDown',windowsVirtualKeyCode:40,nativeVirtualKeyCode:40});
         await cmd('Input.dispatchKeyEvent',{type:'keyUp',key:'ArrowDown',code:'ArrowDown',windowsVirtualKeyCode:40,nativeVirtualKeyCode:40});
         await painted();
         assert.deepEqual(await evaluate('window.viewerDiagnostics.snapshot().camera'),beforeSwipe.camera,'arrow key in information does not move the drawing');
         assert.equal(await evaluate('window.viewerDiagnostics.snapshot().selectedId'),beforeSwipe.selectedId,'arrow key in information preserves selection');
         await assertMobileViewport('keyboard-focused information');
-        const beforeScroll=await evaluate(`document.getElementById('contract-info').scrollTop`);
+        await evaluate(`document.getElementById('reading-sheet-scroll').scrollTo(0,0)`);
+        const beforeScroll=await evaluate(`document.getElementById('reading-sheet-scroll').scrollTop`);
         await swipeInformation();
-        await until(`document.getElementById('contract-info').scrollTop>${beforeScroll}+30`,'native finger swipe scrolls information');
+        await until(`document.getElementById('reading-sheet-scroll').scrollTop>${beforeScroll}+30`,'native finger swipe scrolls information');
         // A tap during native momentum can intentionally cancel the fling.
         // Wait for actual scroll stability before testing one navigation tap.
         await waitForInformationScrollSettled();
-        const afterScroll=await evaluate(`document.getElementById('contract-info').scrollTop`);
+        const afterScroll=await evaluate(`document.getElementById('reading-sheet-scroll').scrollTop`);
         await assertMobileViewport('scrolled information');
         assert.deepEqual(await evaluate('window.viewerDiagnostics.snapshot().camera'),beforeSwipe.camera,'information swipes do not orbit the drawing');
         assert.equal(await evaluate('window.viewerDiagnostics.snapshot().selectedId'),beforeSwipe.selectedId,'information swipes preserve selection');
         const infoScreenshot=await cmd('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
         await fs.writeFile(path.join(logs,`meal-mobile-info-${width}.png`),Buffer.from(infoScreenshot.data,'base64'));
         const diagramLayout=await choosePanel('diagram');
-        assert(diagramLayout.canvas[1]>infoLayout.canvas[1],'wide diagram expands only on explicit request');
+        assert.deepEqual(diagramLayout.canvas,infoLayout.canvas,'closing the sheet leaves the camera viewport stable');
         assert.deepEqual(await evaluate('window.viewerDiagnostics.snapshot().camera'),beforeSwipe.camera,'pane navigation preserves camera');
         assert.equal(await evaluate('window.viewerDiagnostics.snapshot().selectedId'),beforeSwipe.selectedId,'pane navigation preserves selection');
         await choosePanel('info');
-        assert(await evaluate(`document.getElementById('contract-info').scrollTop>=${afterScroll}`),'information reading position survives pane switch');
+        assert(await evaluate(`document.getElementById('reading-sheet-scroll').scrollTop>=${afterScroll}`),'information reading position survives pane switch');
         await choosePanel('diagram');
         await cmd('Emulation.setDeviceMetricsOverride',{width,height:640,deviceScaleFactor:1,mobile:true});
         await until('innerHeight===640','short mobile viewport applied');

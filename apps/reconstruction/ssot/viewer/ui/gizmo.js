@@ -121,6 +121,38 @@ const COLOR_AXIS_X = 0x5588ff; // X / YZ plane → blue
 const COLOR_AXIS_Y = 0x55ff55; // Y / ZX plane → green
 const COLOR_AXIS_Z = 0xff5555; // Z / XY plane → red;
 
+// Compact hosts may provide a two-dimensional XYZ display. The basis comes
+// from the same camera as the rings, including in axial and pole views.
+function drawCompactAxes(canvas, camera) {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  camera.updateMatrixWorld();
+  const basis = camera.matrixWorld.elements;
+  const colors = [COLOR_AXIS_X, COLOR_AXIS_Y, COLOR_AXIS_Z];
+  ctx.setTransform(canvas.width / 56, 0, 0, canvas.height / 56, 0, 0);
+  ctx.clearRect(0, 0, 56, 56);
+  ctx.font = 'bold 10px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineCap = 'round';
+  for (const axis of [0, 1, 2].sort((a, b) => basis[8 + a] - basis[8 + b])) {
+    const dx = basis[axis], dy = -basis[4 + axis];
+    ctx.strokeStyle = '#' + colors[axis].toString(16).padStart(6, '0');
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(28, 28);
+    ctx.lineTo(28 + 15 * dx, 28 + 15 * dy);
+    ctx.stroke();
+    const x = 28 + 21 * dx, y = 28 + 21 * dy;
+    ctx.fillStyle = ctx.strokeStyle;
+    ctx.strokeStyle = '#0e1925';
+    ctx.lineWidth = 2.5;
+    const label = 'XYZ'[axis];
+    ctx.strokeText(label, x, y);
+    ctx.fillText(label, x, y);
+  }
+}
+
 // 軸 → view 名ヘルパ（上のほうに置くと見通しが良い）
 function axisToViewName(axis) {
   switch (axis) {
@@ -1018,6 +1050,11 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
     return true;
   }
 
+  const compass = wrapper.parentElement?.querySelector('canvas[data-role="compact-gizmo-axes"]');
+  // A layout-only expansion can happen while the camera is perfectly still.
+  const resizeObserver = win.ResizeObserver ? new win.ResizeObserver(requestRender) : null;
+  resizeObserver?.observe(wrapper);
+
   let perfSamplesLeft = 8;
 
   function tick(now) {
@@ -1036,7 +1073,8 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
 
     if (needsRender || resized || isInteracting) {
       needsRender = false;
-      renderer.render(scene, camera);
+      if (compass?.offsetWidth) drawCompactAxes(compass, camera);
+      else renderer.render(scene, camera);
     }
     const t3 = performance.now();
 
@@ -1337,6 +1375,7 @@ export function attachGizmo(wrapper, hub, ctx = {}) {
     if (DEBUG) console.log('[gizmo] dispose called');
     if (isDisposed) return;
     isDisposed = true;
+    resizeObserver?.disconnect();
 
     if (monitorRafId != null) {
       try {

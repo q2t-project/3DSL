@@ -56,7 +56,7 @@ const items = getLibraryItems().filter((item) => !item.hidden).map((item) => ({
           {item.displayTags.length > 0 && <p class="reading-tags">{item.displayTags.slice(0, 8).join(" ／ ")}{item.displayTags.length > 8 ? " …" : ""}</p>}
           <div class="reading-links">
             <a href={typeof item.page === "string" ? item.page : `/library/${item.slug}/`}>作品の説明を読む</a>
-            {item.viewer_url && <a class="reading-viewer" href={viewerHref(item.viewer_url)}>従来版Viewerで開く</a>}
+            {item.viewer_url && <a class="reading-viewer" href={viewerHref(item.viewer_url)}>3DSL Viewerで開く</a>}
           </div>
         </article>
       ))}

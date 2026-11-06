@@ -90,7 +90,7 @@ for (const [name, target] of excluded) {
   assert.equal(state.location.href, state.location.pathname, `${name}: no page navigation`);
 }
 
-for (const [endX, expected] of [[150, '/app/viewer'], [350, '/']]) {
+for (const [endX, expected] of [[150, '/app/viewer/'], [350, '/']]) {
   const state = setup();
   state.touch('touchstart', 250, 0);
   assert.equal(state.touch('touchmove', endX, 100), true, 'normal horizontal swipe locks');
@@ -132,7 +132,7 @@ timeout.touch('touchstart', 250, 1100);
 assert.equal(timeout.touch('touchmove', 150, 1200), true, 'new gesture works after timeout');
 timeout.touch('touchend', 150, 1300);
 timeout.finishTransition();
-assert.equal(timeout.location.href, '/app/viewer', 'new gesture commits after timeout');
+assert.equal(timeout.location.href, '/app/viewer/', 'new gesture commits after timeout');
 
 for (const state of [setup('/docs/works/knowledge-questions/'), setup('/library/', '?swipe=1')]) {
   assert.equal(state.listeners.size, 0, 'Docs and swipe previews remain outside page-swipe handling');

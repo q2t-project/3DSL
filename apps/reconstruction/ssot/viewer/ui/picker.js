@@ -28,7 +28,7 @@ export function createPicker(hub, opts = {}) {
   }
 
   function onDown(ev) {
-    if (!ev.isPrimary || ev.button !== 0) { down = null; return; }
+    if (ev.defaultPrevented || !ev.isPrimary || ev.button !== 0) { down = null; return; }
     const slop = selectionOnly && ev.pointerType === 'touch' ? Math.max(CLICK_MOVE_PX, TOUCH_TAP_SLOP_PX) : CLICK_MOVE_PX;
     down = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, moved: false, slop };
   }

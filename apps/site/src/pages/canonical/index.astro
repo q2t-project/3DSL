@@ -22,11 +22,10 @@ function listJson(dirPublicPath: string) {
 const valid = listJson("/3dss/canonical/valid");
 const invalid = listJson("/3dss/canonical/invalid");
 
-function viewerLink(modelPath: string) {
-  return `/viewer?model=${encodeURIComponent(modelPath)}`;
-}
-function embedLink(modelPath: string) {
-  return `/app/viewer?model=${encodeURIComponent(modelPath)}`;
+function viewerLink(modelPath: string, embed = false) {
+  const query = new URLSearchParams({ model: modelPath });
+  if (embed) query.set("embed", "1");
+  return `/app/viewer/?${query}`;
 }
 ---
 
@@ -53,7 +52,7 @@ function embedLink(modelPath: string) {
                 <a class="rounded-full border border-white/15 px-3 py-1 hover:bg-white/10" href={f.p}>
                   JSON
                 </a>
-                <a class="rounded-full border border-white/15 px-3 py-1 hover:bg-white/10" href={embedLink(f.p)}>
+                <a class="rounded-full border border-white/15 px-3 py-1 hover:bg-white/10" href={viewerLink(f.p, true)}>
                   Embed
                 </a>
               </div>
@@ -82,7 +81,7 @@ function embedLink(modelPath: string) {
               <a class="rounded-full border border-white/15 px-3 py-1 hover:bg-white/10" href={f.p}>
                 JSON
               </a>
-              <a class="rounded-full border border-white/15 px-3 py-1 hover:bg-white/10" href={embedLink(f.p)}>
+              <a class="rounded-full border border-white/15 px-3 py-1 hover:bg-white/10" href={viewerLink(f.p, true)}>
                 Embed
               </a>
             </div>

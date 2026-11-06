@@ -12,9 +12,23 @@ const topHtml = await read('index.html');
 const sitemap = await read('sitemap.xml').catch(() => ''); // Preview may omit it.
 const featured = [...topHtml.matchAll(/href="\/library\/([^"/?#]+)"/g)].map((match) => match[1]);
 
+// Check generated reader links, not just whether a compatibility URL responds.
+const viewerPath = '/app/viewer/';
+const siteOrigin = 'https://3dsl.jp';
+function readerLinks(html) {
+  return [...html.matchAll(/<a\b[^>]*\bhref="(\/[^"]*)"/gi)]
+    .map(match => new URL(match[1].replace(/&(?:amp|#0*38|#x0*26);/gi, '&'), siteOrigin));
+}
+function hasWorkLink(links, model, returnTo) {
+  return links.some(url => url.pathname === viewerPath && url.searchParams.get('model') === model &&
+    url.searchParams.get('return') === returnTo);
+}
+const listLinks = readerLinks(listHtml);
 for (const item of index.items) {
   const detail = await read(`library/${item.slug}/index.html`);
   assert(await stat(path.join(dist, item.model_url.replace(/^\//, ''))), `${item.id}: model preserved`);
+  assert.equal(new URL(item.viewer_url, siteOrigin).pathname, viewerPath, `${item.id}: canonical catalog URL`);
+  assert(hasWorkLink(readerLinks(detail), item.model_url, `/library/${item.slug}/`), `${item.id}: detail opens its work and retains return path`);
   if (item.hidden === true) {
     assert(!listHtml.includes(`data-library-id="${item.id}"`), `${item.id}: hidden from public list`);
     assert(!featured.includes(item.slug), `${item.id}: hidden from featured links`);
@@ -23,6 +37,7 @@ for (const item of index.items) {
     assert(detail.includes('data-3dsl-adsense-eligible="0"'), `${item.id}: no advertising`);
   } else {
     assert(listHtml.includes(`data-library-id="${item.id}"`), `${item.id}: present in public list`);
+    assert(hasWorkLink(listLinks, item.model_url, '/library/'), `${item.id}: list opens its work and retains return path`);
   }
 }
 for (const slug of featured) {
@@ -40,6 +55,20 @@ const policy = await read('policy/content-usage/index.html');
 assert(policy.includes('id="practice-samples"'), 'sample terms anchor is generated');
 const firstWorkRoute = '/docs/usage/first-work';
 const firstWork = await read(`${firstWorkRoute.slice(1)}/index.html`);
+for (const file of ['index.html', 'canonical/index.html', 'preview-reconstruction/index.html', 'preview-reconstruction/OPEN_MODELS.html',
+  'docs/usage/create-save-read/index.html', 'docs/usage/first-work/index.html',
+  'docs/works/structure-classification/index.html', 'docs/works/knowledge-questions/index.html']) {
+  const page = await read(file);
+  const links = readerLinks(page);
+  assert(links.some(link => link.pathname === viewerPath), `${file}: canonical Viewer entry`);
+  assert(!links.some(link => /^\/(?:preview-reconstruction\/)?(?:contract_viewer|viewer)(?:\/(?:index\.html)?)?$/.test(link.pathname)),
+    `${file}: no link to an alternate Viewer`);
+  assert(!/従来版Viewer|再構築版Viewer|従来画面で同じ図/.test(page), `${file}: one reader-facing Viewer`);
+  for (const link of links.filter(link => link.pathname === viewerPath && link.searchParams.has('model'))) {
+    const model = link.searchParams.get('model');
+    assert(model.startsWith('/') && (await stat(path.join(dist, model))).isFile(), `${file}: linked work exists (${model})`);
+  }
+}
 for (const file of ['index.html', 'docs/index.html', 'docs/usage/create-save-read/index.html', 'docs/works/knowledge-questions/index.html', 'preview-reconstruction/index.html', 'preview-reconstruction/OPEN_MODELS.html']) {
   assert((await read(file)).includes(`href="${firstWorkRoute}"`), `${file}: first-work entry`);
 }

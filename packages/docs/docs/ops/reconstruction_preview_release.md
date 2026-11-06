@@ -120,3 +120,12 @@ URL名の整理や既存Viewerの一括置換は、この公開差分に含め�
 検査：`initial-reading-view.mjs`、`quantity-reading.mjs`、生成配布物の参照検査。`finance-reading-browser.mjs` は Playwright と Chromium、`FINANCE_MODEL_PATH` / `CHROME_PATH` を指定して実行する。生成配布物を実際のソフトウェアWebGLで開き、320/390/720/1280px、6表示、パネル、詳細ラベル、選択、Home、正本不変を確認する。実機Androidや人間による読解の受入とは区別する。
 
 既存の公開環境への反映・mainへの統合はこの検査結果だけで実施済みとしない。
+
+
+## スマホ閲覧と公開入口の一本化　実機受入済み（2026年11月6日）
+
+本番の閲覧画面に対応する `abe562f` と、後続のタッチ選択・財務図の初期視点を持つ `830aa82` を照合し、後者を候補の基点とした。公開の操作仕様は `packages/docs/docs/viewer.md`、通常入口は `/app/viewer/`。本人がギズモ操作と図の読みやすさを実機で合格とし、その後に本番切替を指示した。受入コードは `f1b3e824a28c60248f8e89ecea142d25ace72b89`。小型56 CSS px、展開152 CSS pxを採用する。
+
+公開対象のチェックは `apps/site/scripts/check/site-publication.mjs`、タッチ・探索は `meal-mobile.mjs`、財務図は `finance-reading-browser.mjs`。サイトビルドは `apps/site` でロックファイルから依存を復元して行う。受入コードで正規入口・旧URL・埋込・Libraryへの復帰・Modelerからの受渡し等9項目を再検査し合格。過去のPremium 2件は動作確認時の `foo` / `p_test` という登録名であり、現行の販売・公開作品2件という前提は撤回した。継続公開の判断や2作品のURL提示を切替条件にしない。切り戻す際は、サイトとルーティングを直前の検証済み配信に一括で戻す。
+
+本番切替の実行待ち。2026年11月6日にリモートmainが `abe562fbec8e5a36ec87d3ed95254ba3e5bfe0f1` で候補の祖先であることを確認した。GitHubへの送信のdry-runは認証情報不足で失敗した。認証後に作業ブランチを送信し、PRの対象HEADでCI・Pages Previewを確認してmainへ統合する。Productionの完了と配信物の確認をもって切替完了とする。

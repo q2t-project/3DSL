@@ -111,15 +111,17 @@ export class PointerInput {
       this._log('lostcapture', { pointerId: e?.pointerId, type: e?.pointerType });
     });
 
-    // window blur で押下状態が壊れた時の保険
-    try {
-      this.win?.addEventListener?.('blur', () => {
-        if (this.isPointerDown) {
-          this._log('blur', {});
-          this.onPointerUp({ pointerId: this._activePointerId, pointerType: 'mouse' });
-        }
-      }, true);
-    } catch (_eB) {}
+    // Element focus changes (e.g. dismissing the gizmo) must not end a drag.
+    this._winBlur = () => {
+      if (!this.isPointerDown) return;
+      this._log('blur', {});
+      for (const id of this._touchPts.keys()) {
+        if (this.canvas.hasPointerCapture?.(id)) this.canvas.releasePointerCapture(id);
+      }
+      this._touchPts.clear();
+      this.onPointerUp({ pointerId: this._activePointerId });
+    };
+    this.win?.addEventListener?.('blur', this._winBlur);
 
     // window 側はドラッグ中だけ有効化（onPointerDown/onPointerUp で付け外し）
     this._winMove = (e) => this.onPointerMove(e);
@@ -213,6 +215,7 @@ export class PointerInput {
     canvas.removeEventListener('pointercancel', this.onPointerCancel);
     canvas.removeEventListener('wheel', this.onWheel);
     canvas.removeEventListener('contextmenu', this.onContextMenu);
+    this.win?.removeEventListener?.('blur', this._winBlur);
 
     // 念のため window 側も外す（ドラッグ中に dispose されてもリークしない）
     try {
@@ -445,11 +448,12 @@ export class PointerInput {
   }
 
   onPointerMove(event) {
+    // Window listeners also see fingers that started on the gizmo or another control.
+    if (event.pointerType === 'touch' && !this._touchPts.has(event.pointerId)) return;
     try { event.preventDefault?.(); } catch (_eP) {}
 
     // --- touch: pinch zoom + 2-finger pan ---
     if (event.pointerType === 'touch') {
-      // pointerdown を取りこぼしても move が来ることがあるので必ず更新
       this._touchSet(event);
 
       // 2本以上なら pinch
@@ -566,6 +570,7 @@ export class PointerInput {
 
     // --- touch: pointer bookkeeping ---
     if (e && e.pointerType === 'touch') {
+      if (!this._touchPts.has(e.pointerId)) return;
       this._touchDel(e);
 
       // still 2+ fingers: keep pinch
@@ -617,9 +622,6 @@ export class PointerInput {
 
 onPointerCancel(e) {
   this._log('cancel', { pointerId: e?.pointerId, type: e?.pointerType, buttons: e?.buttons });
-  if (e && e.pointerType === 'touch') {
-    this._touchDel(e);
-  }
   // touch/pen は素直に終了。mouse だけ cancel 時に mouse へフォールバックする。
   if (!this.isPointerDown) return;
   if (e && e.pointerType === 'mouse') {

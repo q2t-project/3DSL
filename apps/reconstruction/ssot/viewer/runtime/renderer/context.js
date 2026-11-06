@@ -270,10 +270,15 @@ function maybeForceContextLoss(renderer, enabled) {
   let renderer = null;
   try {
     renderer = new THREE.WebGLRenderer({ canvas, ...webglOpts });
-  } catch (e) {
-    // ここで作成できない場合、Chrome にブロックされている可能性が高い
-    try { ctx.dispose(); } catch (_e) {}
-    throw e;
+  } catch (cause) {
+    // No renderer has been published yet, so remove the listeners directly.
+    ctx._offEvents?.();
+    // This build of Three shadows its logger when context creation fails and
+    // can consequently throw its own TypeError instead of the browser error.
+    if (/error is not a function|creating WebGL context/i.test(cause?.message || '')) {
+      throw new Error('このブラウザーでは3D表示を開始できません。WebGL対応のブラウザーで開いてください。', { cause });
+    }
+    throw cause;
   }
 
   ctx.renderer = renderer;
@@ -2612,7 +2617,7 @@ for (const aux of axs) {
       }
     } catch (_e) {}
     return null;
-
+  };
 
 // ------------------------------------------------------------
 // Debug snapshot (for viewer/modeler comparison)
@@ -2711,8 +2716,6 @@ ctx.getDebugPoseSnapshot = (opts = {}) => {
     return null;
   }
 };
-
-  };
 
   // 初期サイズだけ合わせとく（0サイズ事故も防ぐ）
   try { ctx.resize(canvas.clientWidth, canvas.clientHeight, globalThis.devicePixelRatio || 1); } catch (_e) {}

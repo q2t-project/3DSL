@@ -19,7 +19,7 @@ const titles: Record<string, string> = {
   "contracts/marker_text_interp": "文字表示の解釈規則",
   "contracts/skeltonforcodex": "Viewer実装の初期案",
   "contracts/viewer_dom_contract": "Viewer画面とDOMの契約",
-  "contracts/viewer_spec_forcodex": "Viewer実装仕様",
+  "contracts/viewer_spec_forcodex": "Viewerの実装・命名規則",
   "library/meta-fields": "作品の公開情報とメタデータ",
   "library/ops-cheatsheet": "作品登録の操作早見表",
   "library/page-policy": "作品詳細ページの表示方針",
@@ -69,7 +69,7 @@ const developmentGroups = [
 ];
 ---
 
-<Layout title="使い方と資料 | 3DSL" description="作品の読み方、制作・保存・再開、3DSSの形式を案内します。従来版の説明と技術・開発資料も目的別に辿れます。">
+<Layout title="使い方と資料 | 3DSL" description="作品の読み方、制作・保存・再開、3DSSの形式を案内します。技術・開発資料も目的別に辿れます。">
   <div class="max-w-4xl">
     <header>
       <h1 class="text-3xl font-semibold tracking-tight">使い方と資料</h1>
@@ -125,7 +125,7 @@ const developmentGroups = [
           実装の契約、検査、掲載・配備の手順と開発記録です。過去の版を対象にした文書も含まれるため、各文書の対象と更新時点を確認してください。
         </p>
         <p class="mt-3 text-sm leading-7">
-          <a class="underline underline-offset-4" href="/docs/viewer">従来版Viewerの仕様</a> ／ <a class="underline underline-offset-4" href="/docs/modeler">従来版Modelerの文書案内</a> ／ <a class="underline underline-offset-4" href="/canonical">スキーマと検証の案内</a>
+          <a class="underline underline-offset-4" href="/docs/viewer/">3DSL Viewerの仕様</a> ／ <a class="underline underline-offset-4" href="/docs/modeler">従来版Modelerの文書案内</a> ／ <a class="underline underline-offset-4" href="/canonical">スキーマと検証の案内</a>
         </p>
         {developmentGroups.map((group) => {
           const entries = groupedEntries(group.key);

@@ -1,34 +1,11 @@
 ---
-const titleParam = Astro.url?.searchParams?.get("title") ?? "";
-/**
- * Viewer Embed Contract (SSOT)
- * - /app/viewer はサイト共通レイアウトから隔離（flex/grid配下に置かない）
- * - iframe は viewport 固定（position:fixed; inset:0; width:100vw; height:100dvh）
- * - 親要素由来の min-width/overflow/transform 等で幅が膨らむ余地を作らない
- *
- * Host categories (fixed):
- * - Full App Host: /viewer/index.html (UI付き)
- * - Minimal Host: /viewer/peek.html (UIなし/entryのみ; entry module = /viewer/peekBoot.js)
- * - Embed Host: /app/viewer (this file)
- * - Dev Host: /viewer/viewer_dev.html (dev限定)
- *
- * Minimal Host rules (summary):
- * - 入口は /viewer/peek.html（entry module は /viewer/peekBoot.js）に固定（例外追加は契約更新）
- * - import は viewer/runtime・viewer/renderer 等の基盤のみ（viewer/ui/** は禁止）
- * - DOM 必須は canvas ([data-role="viewer-canvas"] or #viewer-canvas) のみ
- *
- * SSOT: apps/site/DEVOPS_site.md (Viewer Embed Contract)
- *
- * NOTE:
- *   Astro は static build のため、ビルド時に `Astro.url.search` は常に空。
- *   query (model/open/back 等) の受け渡しはブラウザ側で行う。
- */---
+---
 
 <!doctype html>
 <html lang="ja">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
     <title>3DSL Viewer</title>
   </head>
 
@@ -44,7 +21,7 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
       referrerpolicy="no-referrer"
     ></iframe>
 
-    <div class="app-viewer-topbar" aria-label="ナビゲーション">
+    <div class="app-viewer-topbar" hidden aria-label="ナビゲーション">
       <button id="app-viewer-back" class="app-viewer-back" type="button" aria-label="戻る">← 戻る</button>
       <div id="app-viewer-title" class="app-viewer-title" aria-label="現在のコンテンツ"></div>
 
@@ -85,7 +62,7 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
               <input id="app-viewer-open-url" class="app-viewer-open-input" type="url" inputmode="url" placeholder="例: /library/...json / https://..." />
               <button id="app-viewer-open-url-btn" class="app-viewer-open-btn" type="button">開く</button>
             </div>
-            <div class="app-viewer-open-help">※ /viewer/index.html の model= に渡せるやつ（/ からのパス or https）</div>
+            <div class="app-viewer-open-help">作品のURLまたはサイト内のパスを入力</div>
           </div>
 
           <div class="app-viewer-open-group">
@@ -207,9 +184,6 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
       function buildInnerFromSearch(sp) {
         const inner = new URLSearchParams(String(sp || ""));
 
-        // host-only params (do not pass into iframe)
-        inner.delete("title");
-
         // compat: legacy `open=`
         if (!inner.has("model") && inner.has("open")) {
           const v = inner.get("open");
@@ -226,26 +200,52 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
         return inner;
       }
 
+      const readerPath = '/preview-reconstruction/contract_viewer/reader.html';
+      // The in-memory Modeler handoff authenticates the newly opened window.
+      // Navigate that window directly so its opener and window identity survive.
+      if (new URLSearchParams(location.search).has('handoff')) {
+        location.replace(readerPath + location.search + location.hash);
+        return;
+      }
+
       function updateIframeFromLocation() {
         const sp = new URLSearchParams(window.location.search);
         const inner = buildInnerFromSearch(sp);
+        if (isLibraryBundleMode()) inner.set('snap', '1');
         showProgress();
         startProgressFallback();
-        iframe.src = `/viewer/index.html?${inner.toString()}`;
+        for (const key of ['model', 'open', 'scene', 'work', 'src']) {
+          const value = inner.get(key);
+          if (!value || (key === 'src' && !/\.json(?:[?#]|$)/i.test(value))) continue;
+          try { inner.set(key, new URL(value, location.href).href); } catch {}
+        }
+        iframe.src = readerPath + '?' + inner.toString() + location.hash;
       }
-
-      updateIframeFromLocation();
 
       if (iframe) {
         iframe.addEventListener("load", () => {
-          // HTML load reached; keep progress until runtime reports (or fallback).
-          startProgressFallback();
+          // Move the host actions into the reader's menu without intercepting the canvas.
+          const slot = iframe.contentDocument?.getElementById('reading-host-actions');
+          if (slot) {
+            slot.replaceChildren();
+            for (const [id, label] of [['app-viewer-back', '元のページへ戻る'], ['app-viewer-open', 'URL・履歴から開く'], ['app-viewer-snap', '画像として保存']]) {
+              const action = document.getElementById(id);
+              if (!action || action.style.display === 'none') continue;
+              const button = iframe.contentDocument.createElement('button');
+              button.type = 'button';
+              button.textContent = label;
+              button.addEventListener('click', () => action.click());
+              slot.append(button);
+            }
+            document.querySelector('.app-viewer-topbar').hidden = true;
+          }
+          // Loading timers are owned by updateIframeFromLocation and loadStart.
         });
       }
 
       window.addEventListener('message', (ev) => {
         try {
-          if (ev.origin !== window.location.origin) return;
+          if (ev.origin !== window.location.origin || ev.source !== iframe.contentWindow) return;
           const msg = ev.data;
           if (!msg || typeof msg !== 'object') return;
           const t = msg.type;
@@ -296,6 +296,8 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
       const shareBtn = document.getElementById("app-viewer-share");
       const copyBtn = document.getElementById("app-viewer-copy");
       const qrBtn = document.getElementById("app-viewer-qr");
+      updateIframeFromLocation();
+
       const snapBtn = document.getElementById("app-viewer-snap");
 
 
@@ -367,22 +369,24 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
       }
 
       function currentShareUrl() {
+        const page = new URL(location.href);
+        const share = new URL('/app/viewer/', page.origin);
+        // Share public model addresses only. A signed request or a protected
+        // entry belongs to the current reader, never to QR or image metadata.
+        const model = page.searchParams.get('model') || page.searchParams.get('open');
+        if (!model || page.searchParams.has('t') || page.searchParams.has('token')) return share.href;
         try {
-          const sp = new URLSearchParams(window.location.search || '');
-          const model = sp.get('model') || sp.get('open') || '';
-          const mode = sp.get('mode') || '';
-          const src = sp.get('src') || '';
-          const q = new URLSearchParams();
-          if (model) q.set('model', model);
-          if (mode) q.set('mode', mode);
-          if (src) q.set('src', src);
-          const u = new URL('/app/viewer?' + q.toString(), window.location.origin);
-          return u.toString();
-        } catch {
-          return window.location.href;
-        }
+          const asset = new URL(model, page);
+          if (!['http:', 'https:'].includes(asset.protocol) || asset.username || asset.password ||
+              asset.search || asset.hash || /(?:^|\/)premium(?:\/|$)/i.test(asset.pathname)) return share.href;
+          share.searchParams.set('model', asset.origin === page.origin ? asset.pathname : asset.href);
+          for (const key of ['mode', 'src']) {
+            const value = page.searchParams.get(key);
+            if (value && /^[a-z][a-z0-9_-]{0,24}$/i.test(value)) share.searchParams.set(key, value);
+          }
+        } catch {}
+        return share.href;
       }
-
 
       // ---- snapshot (library bundle only) ----
       const _snapTitleCache = new Map();
@@ -440,8 +444,9 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
         try {
           const sp = new URLSearchParams(window.location.search || '');
           const ret = (sp.get('return') || sp.get('back') || '').trim();
-          if (ret && ret.startsWith('/library')) {
-            return new URL(ret, window.location.origin).toString();
+          if (ret && /^\/library(?:\/|$)/.test(ret)) {
+            const work = new URL(ret, location.origin);
+            return work.origin + work.pathname;
           }
         } catch {}
         return currentShareUrl();
@@ -523,7 +528,7 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
 
           const onMsg = (ev) => {
             try {
-              if (ev.origin !== window.location.origin) return;
+              if (ev.origin !== window.location.origin || ev.source !== iframe.contentWindow) return;
               const m = ev.data;
               if (!m || typeof m !== 'object') return;
               if (m.type !== '3dsl.viewer.snapshotResult') return;
@@ -1010,23 +1015,6 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
       if (openBtn) openBtn.addEventListener('click', () => openOpenModal());
 
 
-      function buildShareUrlAbsolute() {
-        try {
-          const cur = new URL(window.location.href);
-          const q = new URLSearchParams();
-          const model = cur.searchParams.get('model') || cur.searchParams.get('open') || '';
-          if (model) q.set('model', model);
-          const mode = cur.searchParams.get('mode');
-          if (mode) q.set('mode', mode);
-          const src = cur.searchParams.get('src');
-          if (src) q.set('src', src);
-          const rel = '/app/viewer' + (q.toString() ? ('?' + q.toString()) : '');
-          return new URL(rel, window.location.origin).toString();
-        } catch {
-          return window.location.href;
-        }
-      }
-
       async function copyTextToClipboard(text) {
         try {
           if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
@@ -1068,7 +1056,7 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
 
       if (shareBtn) {
         shareBtn.addEventListener('click', async () => {
-          const url = buildShareUrlAbsolute();
+          const url = currentShareUrl();
           try {
             if (navigator.share && typeof navigator.share === 'function') {
               await navigator.share({ title: document.title || '3DSL', url });
@@ -1083,7 +1071,7 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
 
       if (copyBtn) {
         copyBtn.addEventListener('click', async () => {
-          const url = buildShareUrlAbsolute();
+          const url = currentShareUrl();
           const ok = await copyTextToClipboard(url);
           showToast(ok ? 'URLをコピーしました' : 'コピーに失敗しました');
         });
@@ -1091,7 +1079,7 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
 
       if (qrBtn) {
         qrBtn.addEventListener('click', () => {
-          const url = buildShareUrlAbsolute();
+          const url = currentShareUrl();
           openQrModal(url);
         });
       }
@@ -1106,7 +1094,7 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
 
       if (qrCopyBtn) {
         qrCopyBtn.addEventListener('click', async () => {
-          const url = (qrUrl && typeof qrUrl.textContent === 'string') ? qrUrl.textContent : buildShareUrlAbsolute();
+          const url = (qrUrl && typeof qrUrl.textContent === 'string') ? qrUrl.textContent : currentShareUrl();
           const ok = await copyTextToClipboard(url);
           showToast(ok ? 'URLをコピーしました' : 'コピーに失敗しました');
         });
@@ -1337,6 +1325,8 @@ const titleParam = Astro.url?.searchParams?.get("title") ?? "";
         align-items: center;
         gap: 8px;
       }
+
+      .app-viewer-topbar[hidden] { display: none; }
 
       .app-viewer-back {
         padding: 10px 12px;

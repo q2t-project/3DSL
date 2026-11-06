@@ -67,6 +67,7 @@ function globals() {
   return {
     module: { exports: {} }, window, document, location, nodes,
     URL, URLSearchParams, TextEncoder, TextDecoder, structuredClone, setTimeout, clearTimeout,
+    fetch: async () => { throw new Error("unexpected network access"); },
     console: { debug() {} }, HTMLElement: Element, HTMLButtonElement: Element, HTMLInputElement: Element,
     HTMLCanvasElement: Element, localStorage: { getItem() { return null; } },
   };
@@ -161,10 +162,19 @@ for (const fsa of [true, false]) {
 }
 
 // Keep the actual Viewer boot, read model, reading index, browsing controller
-// and controls. Only the expensive renderer/schema boundaries are replaced.
+// and controls. Mobile sheet and gizmo DOM behavior is tested by the browser suite.
 const viewerCode = await bundle('contract_viewer/boot.js', [{
   name: 'renderer-validator-boundaries',
   setup(plugin) {
+    plugin.onResolve({ filter: /mobile(?:Reading|Gizmo)\.js$/ }, args => ({path:args.path, namespace:'phone-layout-test'}));
+    plugin.onLoad({ filter: /.*/, namespace:'phone-layout-test' }, () => ({
+      loader:'js', contents:`
+        export const attachMobileGizmo = () => ({dispose() {}});
+        export const attachMobileReading = () => ({
+          compact:false, panel:'diagram', render() {}, refresh() {}, show() {}, showInfo() {},
+          dispose() {}, clearFailure() {}, reportFailure() {},
+        });`,
+    }));
     plugin.onResolve({ filter: /(?:viewerHost|viewerBridge|coreControllers)\.js$/ }, args => ({ path: args.path, namespace: 'file-size-test' }));
     plugin.onLoad({ filter: /.*/, namespace: 'file-size-test' }, args => ({ loader: 'js', contents:
       args.path.endsWith('coreControllers.js') ? 'export const createCoreControllers = () => globalThis.testCore;'
