@@ -1,4 +1,3 @@
-````md
 # DEVOPS_site.md（SSOT: 3DSL Site / Astro + Tailwind / Cloudflare Pages）
 
 このファイルは「**デプロイまでの正しい手順**」と「**事故りやすいポイントを機械で止めるルール**」のSSOTやで。  
@@ -20,10 +19,12 @@
   - 9. AdSense 申請前の最低ライン
 - Part II: Viewer 埋め込みと最小ホストの契約（/app/viewer / peek）
   - 10. Viewer Embed Contract（/app/viewer 安定表示の契約）
-  - 11. ホスト分類（固定）
-  - 12. Minimal Host（peekBoot）の位置づけ
-  - 13. 監視（手動チェック）
-  - 14. Peek viewer（Home埋め込み）: 最小ホスト契約
+  - 11. 正規の閲覧入口
+  - 12. 互換入口
+  - 13. 代表的な症状
+  - 14. 埋め込みレイアウトの契約
+  - 15. 監視（手動チェック）
+  - 16. 受入と切戻し
 - Appendix: Viewer 側の実施記録（参考）
   - A. check-forbidden-imports と peekBoot の扱い（メモ）
   - B. 3DSL Viewer: Codex反映分 実施記録（2026-01-11）
@@ -49,11 +50,11 @@ Cloudflare Pages のプロジェクト設定はこう固定。
 
 ## 2) Canonical ルート SSOT（絶対に壊すな）
 
-### /viewer（正統ルート）
-- `/viewer` は **`apps/site/src/pages/viewer/index.astro` だけ**で定義する（これが正統）
-- `apps/site/src/pages/viewer.astro` は **禁止**
-- `/viewer/dev` `/viewer/run` のようなデバッグ用ページは **本番からは削除**
-  - 置くなら「別ブランチ・別プロジェクト」でやる（prod に混ぜない）
+### Viewer の公開入口
+
+- 新規リンク・共有・QR は `/app/viewer/` を使う。Astro のホストは `apps/site/src/pages/app/viewer.astro`。
+- `/viewer`、`/viewer/`、`/viewer/index.html` は配布済みリンクの互換入口。同期が生成するため、`src/pages/viewer.astro` や `src/pages/viewer/index.astro` を置かない。
+- 再構築版の旧入口と図のみの埋め込みも、同じ閲覧実装を使う（§12）。開発用HTMLから本番で別のViewerを起動しない。
 
 ### 理由（事故の仕組み）
 - Astro は **Git管理かどうか関係なく** `src/pages/**` にファイルがあるだけでルートを生成する。
@@ -82,25 +83,7 @@ Cloudflare Pages は **Astro の `src/pages/404.*` ではなく**、
 Cloudflare Pages は `public/_redirects` と `public/_headers` を **そのまま配信設定として読み込む**。  
 だから **置き場所は `apps/site/public/` 固定**。
 
-### /viewer/dev と /viewer/run を潰す（本番でアクセスされても正統へ寄せる）
-
-`apps/site/public/_redirects` にこれを入れる：
-
-```txt
-/viewer/dev    /viewer  301
-/viewer/dev/   /viewer  301
-/viewer/dev/*  /viewer  301
-/viewer/run    /viewer  301
-/viewer/run/   /viewer  301
-/viewer/run/*  /viewer  301
-````
-
-確認（期待値: `301` で `/viewer` に飛ぶ）：
-
-```ps1
-curl.exe -I https://3dsl.pages.dev/viewer/dev
-curl.exe -I https://3dsl.pages.dev/viewer/run
-```
+末尾スラッシュのない `/viewer` だけは `/viewer/index.html` に内部書き換えし、アドレス欄のパスを保つ。それ以外の旧HTMLはPagesの静的配信に任せる。互換ページは元のURLを基準に相対作品URLを解決する。配布済みの作品指定や埋め込みを壊さないよう、`/viewer/*` を一括で `/app/viewer/` に転送しない。ビルド後の旧入口とブラウザーでの期待値は[Viewer配備時の注意点](/docs/ops/viewer_deploy_pitfalls/)を参照。
 
 ---
 
@@ -112,7 +95,7 @@ curl.exe -I https://3dsl.pages.dev/viewer/run
 ### ルール（固定）
 
 * `apps/site/public/__deploy_probe.txt` は **コミットしない**（ダミーが残ると混乱する）
-* `guard-prebuild.mjs` が build 前に **同じJSONを public と dist の両方へ書く**
+* `scripts/guard/prebuild.mjs` が build 前に **public にJSONを書く**。既存の dist がある場合はそこも更新し、ビルド時には Astro が public から dist にコピーする
 
   * これで「本番URLを見てもcommitが分かる」状態になる
 
@@ -143,7 +126,7 @@ curl.exe -s https://3dsl.pages.dev/__deploy_probe.txt
 
 ## 6) Guardrails（build前に機械で止める）
 
-`apps/site/scripts/guard-prebuild.mjs` が **Astro 実行前に止める**対象：
+`apps/site/scripts/guard/prebuild.mjs` が **Astro 実行前に止める**対象：
 
 * 禁止ルートの存在
 
@@ -194,39 +177,13 @@ Test-Path .\apps\site\dist\__deploy_probe.txt
 Get-Content .\apps\site\dist\__deploy_probe.txt
 ```
 
-### (B) 変更をコミットして push
+### (B) PRとProductionの確認
 
-```ps1
-git status
-git add -A
-git commit -m "chore(site): <変更内容>"
-git push origin main
-```
+1. 対象の変更を作業ブランチからPRでmainに統合し、配信対象のコミットSHAを控える。
+2. CloudflareのWorkers & Pages → `3dsl` → Deploymentsで、そのコミットのProductionが成功していることを確認する。
+3. デプロイ固有のURLと公開ドメイン（`https://3dsl.jp`）で `/__deploy_probe.txt` の `sha` を照合する。さらに公開ドメインの `/app/viewer/` と、クエリなしの `/viewer/index.html` を直接開き、同じViewerに着くことを確認する。
 
-### (C) Cloudflare Pages 側でデプロイ確認（最重要）
-
-1. Dashboard → Workers & Pages → `3dsl` → Deployments
-2. 一番上の Production が最新コミットになってるか見る
-3. **Probeで最終確認**（これが最重要）：
-
-```ps1
-curl.exe -s https://3dsl.pages.dev/__deploy_probe.txt
-```
-
-### (D) 反映が怪しい時（強制再デプロイ）
-
-* 空コミットで押し込む：
-
-```ps1
-git commit --allow-empty -m "chore: redeploy"
-git push origin main
-```
-
-* その後 Probe を見る：
-
-```ps1
-curl.exe -s https://3dsl.pages.dev/__deploy_probe.txt
-```
+デプロイ固有のURLは新しく公開ドメインの旧入口だけが古い場合、空コミットや再デプロイを重ねる前に、[旧入口のキャッシュを切り分ける](/docs/ops/viewer_deploy_pitfalls/)。
 
 ---
 
@@ -237,18 +194,17 @@ curl.exe -s https://3dsl.pages.dev/__deploy_probe.txt
 * `src/pages/404.html.astro` が残ってる
   → **消す**、`public/404.html` に寄せる
 
-### /viewer/dev や /viewer/run が 200 で返ってしまう
+### 旧URLだけ以前のViewerが表示される
 
-* `_redirects` が `public` に無い、または `dist` に出てない
-  → `apps/site/public/_redirects` を確認
-  → `npm --prefix apps/site run build` 後に `apps/site/dist/_redirects` を確認
+- 同じURLについてデプロイ固有のホストと公開ドメインの応答本文を比較する。クエリ付きだけが正しくても、配布済みのクエリなしURLの確認にはならない。
+- 旧入口が `200` の互換HTMLを返してからブラウザーで移動する場合もある。HTTPステータスだけで合否を判定しない。
 
 ### 本番の `__deploy_probe.txt` が古い／ダミーっぽい
 
 * `public/__deploy_probe.txt` をコミットしてしまってる（ダミー固定で上書きされない）
   → 追跡を外す（例：`git rm --cached apps/site/public/__deploy_probe.txt`）
   → `.gitignore` で無視
-  → buildで `guard-prebuild.mjs` が生成する形に統一
+  → buildで `scripts/guard/prebuild.mjs` が生成する形に統一
 
 ### PowerShellのパス事故（apps/site/apps/site を作るやつ）
 
@@ -294,7 +250,7 @@ iframe が「縮められない状態」になり、**左半分が空く**など
 
 ## 12) 互換入口
 
-`/viewer/`、`/viewer/index.html`、`/preview-reconstruction/contract_viewer/` と同配下の `index.html`、`/preview-reconstruction/viewer/` は同じ公開Viewerへ案内する。既存の相対作品URLは移動前の位置で解決する。埋込専用の `/viewer/peek.html` と `/viewer/peek/` は同じ実装の図のみの表示へ渡す。開発用HTMLは本番で別のViewerを起動しない。配布元は `apps/reconstruction/ssot/contract_viewer/`、サイトの変換は `apps/site/scripts/sync/reconstruction-preview.mjs` および `sync/viewer.mjs`。
+`/viewer`、`/viewer/`、`/viewer/index.html`、`/preview-reconstruction/contract_viewer/` と同配下の `index.html`、`/preview-reconstruction/viewer/` は同じ公開Viewerへ案内する。既存の相対作品URLは移動前の位置で解決する。埋込専用の `/viewer/peek.html` と `/viewer/peek/` は同じ実装の図のみの表示へ渡す。開発用HTMLは本番で別のViewerを起動しない。配布元は `apps/reconstruction/ssot/contract_viewer/`、サイトの変換は `apps/site/scripts/sync/reconstruction-preview.mjs` および `sync/viewer.mjs`。
 
 ## 13) 代表的な症状（致命）
 
@@ -340,6 +296,8 @@ const f = document.getElementById('app-viewer-iframe');
 同じ作品を正規入口・旧URL・埋込から読み、対象と明示接続、戻り先、パラメータを比較する。制作中の作品の受渡しはModelerと組にして検査する。小型ギズモ56 CSS px、展開152 CSS pxをAndroid実機で受け入れた。縦360・390 CSS pxのモデル直接操作面積と既配布経路を検査済み。受入記録と公開対象の確認を揃え、GitHubの作業ブランチをPRでmainへ統合し、Cloudflare PagesのProduction成功と配信コミットを確認する。配信を戻す場合は入口、生成物、リンク、説明を同じ直前リリースへ一括で戻す。
 
 # Appendix: Viewer 側の実施記録（参考）
+
+以下は旧ランタイムの実装履歴。現在の公開入口・埋め込みの判定には§11–12を使う。
 
 ## A) check-forbidden-imports と peekBoot の扱い（メモ）
 
@@ -586,6 +544,4 @@ push 前に整理が必要なもの。
 2. 文字化け untracked を削除
 3. `git status` が clean になったら
 4. `git push`（6 commits を publish）
-
-```
 
