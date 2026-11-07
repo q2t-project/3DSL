@@ -24,6 +24,10 @@ Normal, technically unavoidable transient copies created by standard web
 browsers for viewing (e.g., cache) are permitted, provided they are not used as a
 means to redistribute or provide the Content to others.
 
+To the extent that the site rights holder can license them, the designated
+practice samples carry the item-specific terms at:
+https://3dsl.jp/policy/content-usage/#practice-samples
+
 3. Prohibited uses (Prior written permission required)
 ------------------------------------------------------
 Without prior written permission from the rights holder(s), you may NOT:
@@ -53,4 +57,4 @@ extent permitted by law.
 6. Contact for permissions
 --------------------------
 For permissions beyond Section 2, contact:
-[CONTACT / URL / EMAIL]
+https://3dsl.jp/contact/
