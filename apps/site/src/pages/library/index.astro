@@ -32,14 +32,13 @@ const items = getLibraryItems().filter((item) => !item.hidden).map((item) => ({
   dateLabel: dateLabel(item),
 })).sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id));
 ---
-<Layout title="作品を読む・作る | Library | 3DSL" description="3DSLの作品を解説と図で読む入口。知識と問い、構造と分類、小作品の制作教材と、公開作品の一覧。">
+<Layout title="作品を読む・作る | Library | 3DSL" description="3DSLの作品を解説と図で読む入口。「知識と問い」の読解、小作品の制作教材と、公開作品の一覧。">
   <section class="library-page">
     <h1>作品を読む・作る</h1>
     <p class="library-intro">概念や対象の関係を、解説と図を行き来して確かめる作品を掲載しています。配置や線の意味は、各作品の解説で確認してください。</p>
     <nav class="learning-paths" aria-label="初めての方へ">
       <a href="/docs/works/knowledge-questions/"><strong>読む：知識と問い</strong><span>同じ回答の違いを、活動と根拠まで辿って確かめます。</span></a>
       <a href="/docs/usage/first-work/"><strong>作る：はじめての一作品</strong><span>光速度の例を7つの要素に絞り、保存して読み直します。</span></a>
-      <a href="/docs/works/structure-classification/"><strong>比べる：構造と分類</strong><span>線のない配置から読めることと、決められないことを分けます。</span></a>
     </nav>
     <p class="library-note">制作教材は「知識と問い」と同じ光速度の題材を使っています。以下はLibraryに登録された作品です。</p>
     <h2>公開作品</h2>
@@ -123,11 +122,10 @@ const items = getLibraryItems().filter((item) => !item.hidden).map((item) => ({
   h2 { font-size: 1.35rem; margin: 2rem 0 1rem; }
   .library-intro, .library-note { line-height: 1.85; max-width: 56rem; }
   .library-note { margin-top: 1rem; font-size: .9rem; }
-  .learning-paths, .reading-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-top: 1rem; }
+  .learning-paths, .reading-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 1rem; }
   .learning-paths a, .reading-card { border: 1px solid #525252; border-radius: .8rem; padding: 1.1rem; min-width: 0; overflow-wrap: anywhere; }
   .learning-paths strong, .learning-paths span { display: block; }
   .learning-paths span { margin-top: .6rem; line-height: 1.7; font-size: .9rem; }
-  .reading-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .reading-card { display: flex; flex-direction: column; gap: .8rem; }
   .reading-card h3 { font-size: 1.15rem; }
   .reading-summary { line-height: 1.8; }

@@ -54,7 +54,7 @@ function page(href, { framed = false, eligible = true, visible = true } = {}) {
 
 const cases = [
   ['concept allowed', '/concept', {}, true],
-  ['public work allowed', '/library/26012201/', {}, true],
+  ['public work allowed', '/library/26012301/', {}, true],
   ['home excluded', '/', {}, false],
   ['library index excluded', '/library/', {}, false],
   ['docs excluded', '/docs/ops/reconstruction_preview_release', {}, false],
