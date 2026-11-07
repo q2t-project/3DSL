@@ -23,14 +23,18 @@ const GOOGLE_ADS_TECH = "https://policies.google.com/technologies/ads";
       <h2>第三者サービス</h2>
       <ul>
         <li>
+          <strong>Cloudflare</strong> をページや作品の配信に利用しています。表示性能を計測するページでは、閲覧者のブラウザから読み込み時間などの情報が Cloudflare に送られます。
+          <a href="https://developers.cloudflare.com/web-analytics/data-metrics/data-origin-and-collection/">Cloudflare が収集する計測データ</a>
+        </li>
+        <li>
+          <strong>Google Fonts</strong> を使うページでは、書体を表示するためにブラウザが Google からスタイルシートやフォントファイルを読み込みます。
+        </li>
+        <li>
           <strong>Google AdSense</strong>：現在は広告配信を停止しています。再開前に審査・設定・必要な同意の扱いを確認します。
         </li>
         <li>
-          <strong>Formspree</strong>：お問い合わせフォームの送信受付（入力内容が Formspree に送信されます）
-          <div class="text-xs opacity-80">{FORMSPREE_PRIVACY}</div>
-        </li>
-        <li>
-          <strong>Google Fonts</strong>：Web フォント配信
+          お問い合わせフォームを送信すると、メールアドレス、本文、入力した場合は件名が、受付サービスの <strong>Formspree</strong> に送られます。
+          <a href={FORMSPREE_PRIVACY}>Formspree のプライバシーポリシー</a>
         </li>
       </ul>
 
@@ -112,10 +116,9 @@ const GOOGLE_ADS_TECH = "https://policies.google.com/technologies/ads";
         お問い合わせは <a href="/contact">Contact</a> からご連絡ください。
       </p>
 
-      <h2>第三者提供・保管期間</h2>
+      <h2>お問い合わせ内容の保管</h2>
       <p>
-        お問い合わせフォームの入力内容は Formspree を経由して送信され、返信・対応のために一定期間保持される場合があります。
-        それ以外の情報について、当方が個人を特定できる形で恒常的に保存・第三者提供することはありません。
+        お問い合わせの内容は、返信や対応のために保管する場合があります。送信した内容の照会や削除に関するご相談は、<a href="/contact">お問い合わせフォーム</a>で受け付けます。
       </p>
 
       <h2>運営者情報</h2>
@@ -125,10 +128,7 @@ const GOOGLE_ADS_TECH = "https://policies.google.com/technologies/ads";
       </ul>
 
       <h2>改定</h2>
-      <p>最終更新日：2026-10-10</p>
-      <p>
-        アクセス解析ツール（Google Analytics 等）は、現時点では導入していません。導入する場合は本ページを改定します。
-      </p>
+      <p><time datetime="2026-11-07">2026年11月7日</time>　表示性能の計測と、お問い合わせ時に送信される項目を明記しました。</p>
     </div>
   </section>
 </Layout>
