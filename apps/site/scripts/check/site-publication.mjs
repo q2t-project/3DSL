@@ -24,6 +24,14 @@ function hasWorkLink(links, model, returnTo) {
     url.searchParams.get('return') === returnTo);
 }
 const listLinks = readerLinks(listHtml);
+// Unlisted works can still have downloadable files. These two were retired entirely.
+for (const id of ['26010502', '26010801']) {
+  assert(!index.items.some(item => item.id === id), `${id}: retired work in index`);
+  for (const root of ['_data/library', '3dss/library', 'library']) {
+    await assert.rejects(stat(path.join(dist, root, id)), { code: 'ENOENT' },
+      `${root}/${id}: retired work in distribution`);
+  }
+}
 for (const item of index.items) {
   const detail = await read(`library/${item.slug}/index.html`);
   assert(await stat(path.join(dist, item.model_url.replace(/^\//, ''))), `${item.id}: model preserved`);
