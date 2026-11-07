@@ -20,7 +20,7 @@ console.log('[check:content-readability] STATIC_CARD_IDS ' + JSON.stringify(stat
 assert.deepEqual([...staticCardIds].sort(), publicItems.map((item) => item.id).sort(), 'initial HTML contains exactly one article per public work');
 assert.equal(new Set(staticCardIds).size, staticCardIds.length, 'static article IDs are unique');
 for (const item of index.items) assert.equal(html.includes(`data-library-id="${item.id}"`), !item.hidden, `${item.id}: public/hidden contract`);
-for (const p of ['docs/works/knowledge-questions', 'docs/usage/first-work', 'docs/works/structure-classification']) {
+for (const p of ['docs/works/knowledge-questions', 'docs/usage/first-work']) {
   assert(html.includes(`href="/${p}/"`), `learning entry: ${p}`);
   assert(await fs.stat(path.join(dist, p, 'index.html')), `learning destination: ${p}`);
 }

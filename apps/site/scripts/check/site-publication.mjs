@@ -24,13 +24,24 @@ function hasWorkLink(links, model, returnTo) {
     url.searchParams.get('return') === returnTo);
 }
 const listLinks = readerLinks(listHtml);
-// Unlisted works can still have downloadable files. These two were retired entirely.
-for (const id of ['26010502', '26010801']) {
+// A retired work must disappear from both catalog and direct data routes.
+const retiredIds = ['26010502', '26010801', '26012201'];
+for (const id of retiredIds) {
+  assert(!sitemap.includes(`/library/${id}/`), `${id}: retired work in sitemap`);
   assert(!index.items.some(item => item.id === id), `${id}: retired work in index`);
   for (const root of ['_data/library', '3dss/library', 'library']) {
     await assert.rejects(stat(path.join(dist, root, id)), { code: 'ENOENT' },
       `${root}/${id}: retired work in distribution`);
   }
+}
+const retiredGuide = '/docs/works/structure-classification';
+await assert.rejects(stat(path.join(dist, retiredGuide.slice(1))), { code: 'ENOENT' }, 'retired guide in distribution');
+assert(!sitemap.includes(retiredGuide), 'retired guide in sitemap');
+for (const file of ['index.html', 'concept/index.html', 'docs/index.html', 'library/index.html',
+  'docs/usage/read-a-work/index.html', 'faq/content-authorship/index.html']) {
+  const links = readerLinks(await read(file));
+  assert(!links.some(url => url.pathname.replace(/\/$/, '') === retiredGuide ||
+    retiredIds.some(id => url.href.includes(id))), `${file}: link to a retired work or guide`);
 }
 for (const item of index.items) {
   const detail = await read(`library/${item.slug}/index.html`);
@@ -65,7 +76,7 @@ const firstWorkRoute = '/docs/usage/first-work';
 const firstWork = await read(`${firstWorkRoute.slice(1)}/index.html`);
 for (const file of ['index.html', 'canonical/index.html', 'preview-reconstruction/index.html', 'preview-reconstruction/OPEN_MODELS.html',
   'docs/usage/create-save-read/index.html', 'docs/usage/first-work/index.html',
-  'docs/works/structure-classification/index.html', 'docs/works/knowledge-questions/index.html']) {
+  'docs/works/knowledge-questions/index.html']) {
   const page = await read(file);
   const links = readerLinks(page);
   assert(links.some(link => link.pathname === viewerPath), `${file}: canonical Viewer entry`);

@@ -22,28 +22,37 @@
     <loc>https://3dsl.jp/contact/</loc>
   </url>
   <url>
-    <loc>https://3dsl.jp/modeler/</loc>
+    <loc>https://3dsl.jp/docs/overview/what-is-3dsl/</loc>
   </url>
   <url>
-    <loc>https://3dsl.jp/canonical/</loc>
+    <loc>https://3dsl.jp/docs/overview/what-is-3dss/</loc>
   </url>
   <url>
-    <loc>https://3dsl.jp/viewer/</loc>
+    <loc>https://3dsl.jp/docs/usage/create-save-read/</loc>
   </url>
   <url>
-    <loc>https://3dsl.jp/app/viewer/</loc>
+    <loc>https://3dsl.jp/docs/usage/first-work/</loc>
   </url>
   <url>
-    <loc>https://3dsl.jp/library/26012801/</loc>
+    <loc>https://3dsl.jp/docs/usage/read-a-work/</loc>
+  </url>
+  <url>
+    <loc>https://3dsl.jp/docs/works/knowledge-questions/</loc>
+  </url>
+  <url>
+    <loc>https://3dsl.jp/docs/schema/latest/</loc>
+  </url>
+  <url>
+    <loc>https://3dsl.jp/docs/schema/v1.1.4/</loc>
+  </url>
+  <url>
+    <loc>https://3dsl.jp/docs/spec/latest/</loc>
+  </url>
+  <url>
+    <loc>https://3dsl.jp/docs/spec/v1.1.4/</loc>
   </url>
   <url>
     <loc>https://3dsl.jp/library/26012301/</loc>
-  </url>
-  <url>
-    <loc>https://3dsl.jp/library/26012201/</loc>
-  </url>
-  <url>
-    <loc>https://3dsl.jp/library/26012101/</loc>
   </url>
   <url>
     <loc>https://3dsl.jp/library/26012001/</loc>

@@ -133,7 +133,6 @@ function buildUrlEntries(baseUrl, libraryItems) {
     "/docs/usage/first-work/",
     "/docs/usage/read-a-work/",
     "/docs/works/knowledge-questions/",
-    "/docs/works/structure-classification/",
     "/docs/schema/latest/",
     "/docs/schema/v1.1.4/",
     "/docs/spec/latest/",
