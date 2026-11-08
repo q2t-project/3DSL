@@ -7,6 +7,13 @@
 /modeler_app/*
   Cache-Control: public, max-age=300, must-revalidate
 
+/modeler_app
+  Cache-Control: no-store
+/modeler_app/
+  Cache-Control: no-store
+/modeler_app/index.html
+  Cache-Control: no-store
+
 /modeler_tuning.css
   Cache-Control: public, max-age=300, must-revalidate
 

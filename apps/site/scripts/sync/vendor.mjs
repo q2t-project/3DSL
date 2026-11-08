@@ -134,12 +134,17 @@ const modeler = path.resolve(siteRoot, "public/modeler_app/index.html");
 if (existsSync(modeler)) {
   const entry = '<script type="module" src="./modelerHostBoot.js"></script>';
   const html = readFileSync(modeler, "utf8");
+  // A previously cached unversioned boot must not keep the old message policy.
+  const boot = readFileSync(path.join(path.dirname(modeler), 'modelerHostBoot.js'));
+  const bootHash = createHash('sha256').update(boot).digest('hex');
+  const bootName = `modelerHostBoot.${bootHash}.js`;
+  await writeFile(path.join(path.dirname(modeler), bootName), boot);
   const bootstrap = `<script type="module" data-versioned-ajv="${revision}">
     try {
       await import("/vendor/ajv/dist/ajv.js?v=${revision}");
       globalThis.Ajv = globalThis.__createAjv;
     } catch (error) { console.warn("Versioned validator preload failed", error); }
-    await import("./modelerHostBoot.js");
+    await import("./${bootName}");
   </script>`;
   // Idempotent when vendor sync is run without re-syncing Modeler first.
   const previous = /<script type="module" data-versioned-ajv="[a-f0-9]+">[\s\S]*?<\/script>/;

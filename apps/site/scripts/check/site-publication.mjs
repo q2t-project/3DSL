@@ -157,7 +157,13 @@ await import('./content-readability.mjs');
   const revision = html.match(/data-versioned-ajv="([a-f0-9]{64})"/)?.[1];
   assert(revision, 'legacy Modeler preloads a content-addressed validator');
   assert(html.includes(`await import("/vendor/ajv/dist/ajv.js?v=${revision}")`));
-  assert(html.indexOf(`await import("/vendor/ajv/dist/ajv.js?v=${revision}")`) < html.indexOf('await import("./modelerHostBoot.js")'));
+  const bootName = html.match(/await import\("\.\/(modelerHostBoot\.([a-f0-9]{64})\.js)"\)/);
+  assert(bootName, 'legacy Modeler boot has a content-addressed URL');
+  assert(html.indexOf(`await import("/vendor/ajv/dist/ajv.js?v=${revision}")`) < html.indexOf(bootName[0]));
+  const boot = await readFile(path.join(dist, 'modeler_app', bootName[1]));
+  assert.equal(createHash('sha256').update(boot).digest('hex'), bootName[2]);
+  assert(boot.equals(await readFile(path.join(site, '../modeler/ssot/modelerHostBoot.js'))));
+  assert(boot.includes('ev.origin !== window.location.origin || ev.source !== window.parent'));
   const shim = await read('vendor/ajv/dist/ajv.js');
   assert(shim.includes(`import "./ajv.${revision}.bundle.js"`));
   const bundle = await readFile(path.join(dist, 'vendor/ajv/dist', `ajv.${revision}.bundle.js`));
@@ -165,6 +171,9 @@ await import('./content-readability.mjs');
   const headers = await read('_headers');
   assert(headers.includes('/vendor/*\n  Cache-Control: public, max-age=0, must-revalidate'));
   assert(!headers.includes('immutable'), 'unversioned vendor files are revalidated');
+  for (const entry of ['/modeler_app', '/modeler_app/', '/modeler_app/index.html']) {
+    assert(headers.includes(`${entry}\n  Cache-Control: no-store`), 'Modeler entry is not retained in browser cache');
+  }
   const keys = ['Ajv', 'AjvAddFormats', '__createAjv'];
   const previous = keys.map(key => [key, globalThis[key]]);
   try {
