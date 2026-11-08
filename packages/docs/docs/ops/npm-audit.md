@@ -83,3 +83,7 @@ npm --prefix apps/site run ci:build
 ## 手動同梱ライブラリの点検（2026-11-08）
 
 three.js両配布、Troika、Notoフォント、Ajv関連の版と配布物を照合しました。追加ローダーのfflateは0.8.3に更新し、版付きURLと既存の公開APIを検査します。Ajv系の通常配布・formats用ESM、TTF、Troikaにライセンス全文を同梱します。各コンポーネントの範囲と個別版を未確認のコーデックは、[同梱物の点検記録](https://github.com/q2t-project/3DSL/blob/main/packages/docs/repo/site-vendor-inventory.md)に記載しています。
+
+## 追加コーデックの通知（2026-11-08）
+
+Dracoのデコーダー、Basis Universal、rhino3dmの配布元を追跡し、許諾文を追加しました。[配布物の第三者通知](/vendor/three/examples/jsm/libs/THIRD_PARTY_NOTICES.md)から各原文へ進めます。照合した版・バイト一致・未確認の範囲は[同梱物の点検記録](https://github.com/q2t-project/3DSL/blob/main/packages/docs/repo/site-vendor-inventory.md)に記録しています。

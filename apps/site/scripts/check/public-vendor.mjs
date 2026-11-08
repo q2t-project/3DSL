@@ -25,6 +25,17 @@ for (const pkg of ['ajv', 'ajv-formats']) {
     }
   }
 }
+// Keep the optional codec notices beside the copied upstream distributions.
+const codecNotices = [
+  'THIRD_PARTY_NOTICES.md', 'draco/LICENSE', 'basis/LICENSE',
+  'basis/LICENSES/Apache-2.0.txt', 'basis/LICENSES/BSD-3-clause.txt',
+  'basis/LICENSES/MIT.txt', 'basis/LICENSES/Zlib.txt',
+  'rhino3dm/LICENSE', 'rhino3dm/OpenNURBS-LICENSE', 'rhino3dm/Draco-LICENSE',
+];
+for (const file of codecNotices) {
+  const original = path.resolve(site, '../../packages/vendor/three/examples/jsm/libs', file);
+  assert((await read(`vendor/three/examples/jsm/libs/${file}`)).equals(await readFile(original)), file);
+}
 // Run the shipped ESM plugin itself with a real validator.
 const source = await read('vendor/ajv-formats/dist/ajv-formats.bundle.js');
 const { default: formats } = await import(`data:text/javascript;base64,${source.toString('base64')}`);
