@@ -1,3 +1,8 @@
+---
+title: 3DSSとは
+summary: 3DSSは点や線、補助要素、作品情報をJSONで記録する3DSLのデータ形式です。Viewerで表示する図の構成と、スキーマで形式を確かめる方法を紹介します。
+---
+
 # 3DSS とは
 
 3DSS（Three-Dimensional Structural Schema）は、3DSL が扱う **シーン（関係構造）のスナップショット**を JSON で表すためのデータ形式。

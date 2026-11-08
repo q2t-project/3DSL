@@ -103,6 +103,26 @@ for (const file of ['docs/index.html', 'preview-reconstruction/index.html', 'pre
 }
 const policy = await read('policy/content-usage/index.html');
 assert(policy.includes('id="practice-samples"'), 'sample terms anchor is generated');
+// The six reader guides are public search entries. Fail if frontmatter is
+// missing and the Docs template silently falls back to its internal label.
+const representative = '/docs/works/knowledge-questions/';
+const summaries = new Set();
+for (const route of [representative, '/docs/overview/what-is-3dsl/', '/docs/overview/what-is-3dss/',
+  '/docs/usage/create-save-read/', '/docs/usage/read-a-work/', '/docs/usage/first-work/']) {
+  const page = await read(route.slice(1) + 'index.html');
+  const summary = /<meta name="description" content="([^"]+)"/.exec(page)?.[1];
+  assert(summary && !summary.includes('SSOT: packages/docs') && !summaries.has(summary), route + ': unique reader summary');
+  assert(page.includes(`<meta property="og:description" content="${summary}"`), route + ': share summary');
+  assert(page.includes(`<link rel="canonical" href="${siteOrigin + route}"`), route + ': canonical');
+  if (sitemap) assert(sitemap.includes(`<loc>${siteOrigin + route}</loc>`), route + ': sitemap');
+  summaries.add(summary);
+}
+for (const file of ['index.html', 'docs/index.html', 'concept/index.html', 'library/index.html',
+  'docs/usage/read-a-work/index.html', 'docs/usage/first-work/index.html',
+  'preview-reconstruction/index.html', 'preview-reconstruction/OPEN_MODELS.html']) {
+  const entryLinks = readerLinks(await read(file)).filter(link => link.pathname.replace(/\/$/, '') === representative.slice(0,-1));
+  assert(entryLinks.length && entryLinks.every(link => link.pathname === representative), file + ': direct link to the representative guide');
+}
 const firstWorkRoute = '/docs/usage/first-work';
 const firstWork = await read(`${firstWorkRoute.slice(1)}/index.html`);
 for (const file of ['index.html', 'canonical/index.html', 'preview-reconstruction/index.html', 'preview-reconstruction/OPEN_MODELS.html',

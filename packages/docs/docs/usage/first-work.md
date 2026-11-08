@@ -5,7 +5,7 @@ summary: 光速度の二つの記録を題材に、7つの要素を選び、配�
 
 # はじめての一作品 — 問い・回答・根拠をつなぐ
 
-**「答えは同じ数値なのに、何が違うのか」を読める小さな図を作ります。** 題材は[「知識と問い」](/docs/works/knowledge-questions)の光速度例です。一つの問い、二つの活動、二つの回答、二つの根拠資料に絞り、7つの要素を配置します。
+**「答えは同じ数値なのに、何が違うのか」を読める小さな図を作ります。** 題材は[「知識と問い」](/docs/works/knowledge-questions/)の光速度例です。一つの問い、二つの活動、二つの回答、二つの根拠資料に絞り、7つの要素を配置します。
 
 これは3DSLのすべての機能を使う練習ではありません。要素を選ぶ、違いが分かるように置く、関係を記録する、保存して読み直す、という一巡を体験するための制作実例です。PCではこの解説とModelerを別タブで開くと進めやすくなります。
 
@@ -107,7 +107,7 @@ Q・L75などは、選択時に見つけやすくする短い目印です。ア�
 
 ## 出典と更新日
 
-- 元作品：[知識と問い — 回答から根拠へ辿る](/docs/works/knowledge-questions)。作者表記：q2t。本教材は光速度例を限定して再制作したものです。
+- 元作品：[知識と問い — 回答から根拠へ辿る](/docs/works/knowledge-questions/)。作者表記：q2t。本教材は光速度例を限定して再制作したものです。
 - BIPM：[1975年・第15回CGPM決議2](https://www.bipm.org/en/committees/cg/cgpm/15-1975/resolution-2)。真空中の光速度の勧告値と、その前提に関する記述を参照。
 - BIPM：[1983年・第17回CGPM決議1](https://www.bipm.org/en/committees/cg/cgpm/17-1983/resolution-1)。1975年の値への言及と、メートルの定義を参照。
 
@@ -115,4 +115,4 @@ BIPMの公開英語ページを2026年10月11日に確認しました。決議�
 
 制作・解説：q2t。更新日：2026年10月11日。
 
-<a href="/preview-reconstruction/models/first_work.3dsl-work.json" download="first_work.3dsl-work.json">完成データをダウンロードする</a> ／ [元の「知識と問い」を読む](/docs/works/knowledge-questions) ／ [制作・閲覧入口へ](/preview-reconstruction/)
+<a href="/preview-reconstruction/models/first_work.3dsl-work.json" download="first_work.3dsl-work.json">完成データをダウンロードする</a> ／ [元の「知識と問い」を読む](/docs/works/knowledge-questions/) ／ [制作・閲覧入口へ](/preview-reconstruction/)

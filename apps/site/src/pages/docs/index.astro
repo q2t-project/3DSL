@@ -112,7 +112,7 @@ const developmentGroups = [
             <p class="mt-3 text-sm text-neutral-300 leading-7">{group.text}</p>
             <ul class="mt-4 grid gap-3 sm:grid-cols-2">
               {entries.map((entry) => (
-                <li><a class="ui-card block p-4 text-sm" href={`/docs/${entry.id}`}>{titles[entry.id] ?? entry.data?.title ?? entry.id}</a></li>
+                <li><a class="ui-card block p-4 text-sm" href={`/docs/${entry.id}/`}>{titles[entry.id] ?? entry.data?.title ?? entry.id}</a></li>
               ))}
             </ul>
           </section>
@@ -134,7 +134,7 @@ const developmentGroups = [
               <summary class="cursor-pointer font-medium">{group.title}</summary>
               <ul class="mt-3 space-y-2 text-sm text-neutral-300">
                 {entries.map((entry) => (
-                  <li><a class="inline-block py-1 underline underline-offset-4 hover:text-neutral-100" href={`/docs/${entry.id}`}>{titles[entry.id] ?? entry.data?.title ?? entry.id}</a></li>
+                  <li><a class="inline-block py-1 underline underline-offset-4 hover:text-neutral-100" href={`/docs/${entry.id}/`}>{titles[entry.id] ?? entry.data?.title ?? entry.id}</a></li>
                 ))}
               </ul>
             </details>
