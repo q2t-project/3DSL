@@ -15,21 +15,21 @@ const hash = data => createHash('sha256').update(data).digest('hex');
 const results = [];
 try {
   await withBrowser(async ({cmd,evaluate,events,downloads}) => {
-    const blocked = new Set(), received = new Set(), errors = [];
-    events.addEventListener('Fetch.requestPaused', ({detail}) => {
+    const blocked = new Set(), received = new Set();
+    events.addEventListener('Network.requestWillBeSent', ({detail}) => {
       const url = new URL(detail.request.url);
-      const local = url.origin === server.origin;
-      if (!local) blocked.add(url.origin);
-      const action = local ? cmd('Fetch.continueRequest',{requestId:detail.requestId})
-        : cmd('Fetch.failRequest',{requestId:detail.requestId,errorReason:'BlockedByClient'});
-      action.catch(error => errors.push(error.message));
+      if (/^https?:$/.test(url.protocol) && url.origin !== server.origin) blocked.add(url.origin);
     });
     events.addEventListener('Network.responseReceived', ({detail}) => {
       const url = new URL(detail.response.url);
       if (/^https?:$/.test(url.protocol)) received.add(url.origin);
     });
     await cmd('Network.enable');
-    await cmd('Fetch.enable',{patterns:[{urlPattern:'https://*'},{urlPattern:'http://*'}]});
+    await cmd('Network.setBlockedURLs',{urlPatterns:[
+      {urlPattern:server.origin+'/*',block:false},
+      {urlPattern:'http://*:*/*',block:true},
+      {urlPattern:'https://*:*/*',block:true},
+    ]});
     async function go(url) {
       const nav = await cmd('Page.navigate',{url});
       assert(!nav.errorText, nav.errorText);
@@ -88,7 +88,6 @@ try {
       assert.equal((await fetch(server.origin+privatePath)).status,404,privatePath);
     }
     assert.deepEqual([...received],[server.origin]);
-    assert.deepEqual(errors,[]);
     console.log('[site-recovery] PASS '+JSON.stringify({results,blockedOrigins:[...blocked],externalHttpResponses:0}));
   });
 } finally {await server.close();}

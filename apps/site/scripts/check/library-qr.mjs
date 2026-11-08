@@ -10,16 +10,19 @@ try {
     const png=await readFile(new URL('../../dist/_data/library/26020401/assets/財産法.png',import.meta.url));
     events.addEventListener('Fetch.requestPaused',({detail})=>{
       const u=new URL(detail.request.url);
-      let action;
-      if(u.origin===server.origin) action=cmd('Fetch.continueRequest',{requestId:detail.requestId});
-      else if(u.hostname==='api.qrserver.com') {
-        requests.push({url:u.href,referrer:Object.entries(detail.request.headers).some(([k])=>k.toLowerCase()==='referer')});
-        action=requests.length===1 ? cmd('Fetch.failRequest',{requestId:detail.requestId,errorReason:'BlockedByClient'})
-          : cmd('Fetch.fulfillRequest',{requestId:detail.requestId,responseCode:200,responseHeaders:[{name:'Content-Type',value:'image/png'}],body:png.toString('base64')});
-      } else action=cmd('Fetch.failRequest',{requestId:detail.requestId,errorReason:'BlockedByClient'});
+      requests.push({url:u.href,referrer:Object.entries(detail.request.headers).some(([k])=>k.toLowerCase()==='referer')});
+      const action=requests.length===1 ? cmd('Fetch.failRequest',{requestId:detail.requestId,errorReason:'BlockedByClient'})
+        : cmd('Fetch.fulfillRequest',{requestId:detail.requestId,responseCode:200,responseHeaders:[{name:'Content-Type',value:'image/png'}],body:png.toString('base64')});
       action.catch(e=>errors.push(e.message));
     });
-    await cmd('Fetch.enable',{patterns:[{urlPattern:'https://*'},{urlPattern:'http://*'}]});
+    await cmd('Network.enable');
+    await cmd('Network.setBlockedURLs',{urlPatterns:[
+      {urlPattern:server.origin+'/*',block:false},
+      {urlPattern:'https://api.qrserver.com/*',block:false},
+      {urlPattern:'http://*:*/*',block:true},
+      {urlPattern:'https://*:*/*',block:true},
+    ]});
+    await cmd('Fetch.enable',{patterns:[{urlPattern:'https://api.qrserver.com/*'}]});
     const url=server.origin+'/library/26020401/';
     await cmd('Page.navigate',{url:url+'?test=local-only#section'});
     await waitFor(()=>evaluate("document.readyState==='complete' && document.querySelector('#lib-qr')?.hidden===false"),'QR control');
