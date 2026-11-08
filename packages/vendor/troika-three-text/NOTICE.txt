@@ -1,0 +1,14 @@
+The three files in dist match the npm release troika-three-text 0.52.4.
+Release: https://registry.npmjs.org/troika-three-text/-/troika-three-text-0.52.4.tgz
+The package's MIT license is in LICENSE. Its ESM build also identifies these embedded components:
+
+Typr.ts font parser (custom build): https://github.com/fredli74/Typr.ts
+See licenses/Typr-MIT.txt.
+
+WOFF conversion code from woff2otf.js: https://github.com/arty-name/woff2otf/blob/master/woff2otf.js
+Copyright 2012, Steffen Hanikel (https://github.com/hanikesn)
+Modified by Artemy Tregubenko, 2014 (https://github.com/arty-name/woff2otf)
+See licenses/Apache-2.0.txt. Troika's conversion bundle uses fflate; see licenses/fflate-MIT.txt.
+
+Embedded @unicode-font-resolver/client 1.0.2: https://github.com/lojjic/unicode-font-resolver
+See licenses/unicode-font-resolver-MIT.txt.

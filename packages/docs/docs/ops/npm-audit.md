@@ -22,7 +22,7 @@ title: npm audit と配布依存の点検
 | zod-to-ts | Astro 5の依存 | lockfileから解消 |
 | ブラウザの3DSS検証 | Ajv 8.20.0／fast-uri 3.1.9 | 同じ版と同じ同梱バンドルを使用 |
 
-Pages・CIで使うNode.jsは `apps/site/.node-version` の24.22.2です。CIはこのファイルを読み、`apps/site` のlockfileからインストールします。
+CIは `apps/site/.node-version` の24.22.2を読み、`apps/site` のlockfileからインストールします。PagesではPreview・Productionのビルド用環境変数 `NODE_VERSION` に同じ値を設定し、次のビルドで実際のNode.js版を確認します。2026-11-08の診断用Previewでは、版指定ファイルを置いても22.12.0で起動しました。
 Docs・FAQ・PolicyはMarkdownをContent Layerのローダーで読み込み、従来の公開URLを維持します。仕様やコマンド中の引用符・ハイフンは原文どおりに表示します。
 
 ## 残る指摘と次の更新
@@ -79,3 +79,7 @@ npm --prefix apps/site run ci:build
 その後で従来の起動モジュールを実行します。キャッシュされたコントローラーにも、format を登録する既存factoryを渡します。
 旧バンドルのURLは互換用として残し、通常の起動経路では新しいURLを使用します。
 配信ヘッダーの正本は `apps/site/config/pages-headers.txt`、`public/_headers` はビルド時の生成物です。
+
+## 手動同梱ライブラリの点検（2026-11-08）
+
+three.js両配布、Troika、Notoフォント、Ajv関連の版と配布物を照合しました。追加ローダーのfflateは0.8.3に更新し、版付きURLと既存の公開APIを検査します。Ajv系の通常配布・formats用ESM、TTF、Troikaにライセンス全文を同梱します。各コンポーネントの範囲と個別版を未確認のコーデックは、[同梱物の点検記録](https://github.com/q2t-project/3DSL/blob/main/packages/docs/repo/site-vendor-inventory.md)に記載しています。

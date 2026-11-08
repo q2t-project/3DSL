@@ -41,7 +41,7 @@ Cloudflare Pages のプロジェクト設定はこう固定。
 - Build command: `npm run build`
 - Build output directory: `dist`
 - Variables:
-  - `NODE_VERSION`（例: `20.3.0`）
+  - `NODE_VERSION=24.22.2`（Preview・Productionの両方。`apps/site/.node-version` と同じ値にする）
   - `PUBLIC_FORMSPREE_ENDPOINT`（問い合わせフォーム使う場合）
 
 ※ Cloudflare Pages は npm ci 相当で lock 厳密一致が要るため、apps/site/package.json の overrides（diff/fast-json-patch の監査対応）を使う場合は apps/site/package-lock.json も必ず更新・コミットする。
