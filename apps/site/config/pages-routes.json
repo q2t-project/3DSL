@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "include": [
+    "/docs/works/structure-classification",
+    "/docs/works/structure-classification/"
+  ],
+  "exclude": []
+}

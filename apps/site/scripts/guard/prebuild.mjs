@@ -196,3 +196,7 @@ runLibraryMetaCheck();
 if (failed) process.exit(1);
 
 writeDeployProbe();
+
+// Keep the invocation manifest in source and copy it into the static build.
+fs.copyFileSync(path.join(siteRoot, "config/pages-routes.json"),
+  path.join(siteRoot, "public/_routes.json"));
