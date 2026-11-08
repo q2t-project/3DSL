@@ -5,11 +5,16 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   site-ci:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -35,6 +40,12 @@ jobs:
       - name: Install deps (verbose)
         working-directory: apps/site
         run: npm ci --verbose
+
+      - name: Record dependency advisories and verify browser validator
+        working-directory: apps/site
+        run: |
+          npm run audit:report
+          npm run check:reconstruction-ajv
 
       - name: Install bundled Japanese fonts for browser checks
         run: |
