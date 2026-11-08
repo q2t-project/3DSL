@@ -24,10 +24,22 @@ title: 公開入力とメッセージの点検
 `npm run check:public-input` は、実際のMarkdown関数・配布元のメッセージリスナー・URL読込処理を動かす。大小混在・制御文字・属性引用符、不正プロトコル、異なるオリジン・別フレーム、32 MiBの境界・ヘッダーなし・過小申告、UTF-8の分割とBOM、取消・失敗・再読込を検査する。VMと標準Response/ReadableStreamを用いた検査で、外部に要求しない。WebGLやAndroid実機の検査とは区別する。
 既存の `check:local-file-size` とサイト全体のビルド・ブラウザ回帰検査も続ける。
 
-今回の範囲は全経路のセキュリティ監査ではない。添付SVG/HTMLの配信方式、圧縮ファイルの展開後容量・内部パス、全外部サービスへの通信、管理権限・バックアップ復元は継続項目。研究原稿の公開根拠と、追加ライブラリに残る版・許諾の未確認も別途扱う。
+## Libraryの添付・素材とアーカイブ
+
+外付け添付は `/_data/library/<id>/attachments/` からバイナリのダウンロードとして配信する。HTMLやSVGを直接指定した場合にも同じ扱いになる。`assets/` の画像やGLBには本来のMIME型を使い、素材を文書として開くときのスクリプト・外部読込みをCSPで制限する。作品内に置くファイル・ディレクトリのリンクはビルド時に拒否する。隔離した旧ビルドで作品外のテストファイルへのリンクが配布物に残る事象を再現した。
+
+2026年11月8日の6作品で、外付け添付は `26020401` の `README.txt` 1件。素材は640×360のPNG 1枚と左右の手のGLB 2本。GLBはそれぞれ4,944バイトの内部バッファを使い、外部バッファや画像の参照はなかった。サンプルの本文は実在する画像を表示する。JSONの作品一式に内包する資料は別経路で、相対パスの検査後にUTF-8の文字列として保持する。
+
+LibraryはZIPをそのままコピーする。作品を開くViewer・ModelerにもZIPの自動展開経路はない。隔離試験では、32 MiBを超える展開内容と `../` を含むZIPをコピーし、出力のバイト一致と展開ファイル0件を検査する。作品一式の絶対パス、親ディレクトリ、空の区間、ドライブ名・制御文字は既存のパス検査で拒否する。`check:local-file-size` はJSONの名前を付けたバイナリZIPで、Viewerと再構築Modelerのファイル選択から現在の作品が置き換わらないことも確かめる。Modelerの未適用編集の確認はファイル本文の解析より先に行われる。
+
+配布物にはthree.jsのフォント見本 `MPLUSRounded1c-Regular.typeface.json.zip` が1件あった。4,522,713バイトのZIPを点検用に上限32 MiBで読み、内部の相対パス2件と実データ合計13,817,976バイトを確認した。各メンバーはディスクへ展開していない。同梱の追加ローダーはそれぞれの形式を扱う。ZIP取込機能を追加する際は、その入口で実際の展開量・件数・書込み先を制限する。
+
+公開検査は生成された画像・添付リンクの実体を検査する。隔離したChromiumでは、同じHTML・SVGを制限なし／生成した配信ヘッダー付きで読み、スクリプトの実行・副資源の要求・SVG画像表示を照合する。任意の画像・3Dデータの復号後メモリ、外部サービス全体の通信、原稿の配布根拠は別の点検範囲として残る。
 
 ## 参照
 
 - [OWASP XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html)
 - [OWASP File Upload Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html)
 - [Window.postMessage](https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage)
+- [Cloudflare Pagesの配信ヘッダー](https://developers.cloudflare.com/pages/configuration/headers/)
+- [Content-Disposition](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Disposition)

@@ -1,6 +1,7 @@
 // HG2: verify generated HTML, real list logic, and optional local Chromium.
 import assert from 'node:assert/strict';
 import { chromiumPort } from './chromium-port.mjs';
+import { libraryFileBrowserFixture } from './library-file-browser.mjs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
@@ -73,9 +74,11 @@ if (!chrome) {
   console.log('[check:content-readability] BROWSER SKIP: Chromium not installed; static/VM checks are not browser checks.');
 } else {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), '3dsl-hg2-'));
+  const libraryFixture = await libraryFileBrowserFixture(dist);
   const server = http.createServer(async (req, res) => {
     try {
       const url = new URL(req.url, 'http://127.0.0.1');
+      if (libraryFixture.serve(decodeURIComponent(url.pathname), res)) return;
       let file = path.resolve(dist, '.' + decodeURIComponent(url.pathname));
       if (!file.startsWith(dist + path.sep) && file !== dist) { res.writeHead(403).end(); return; }
       if ((await fs.stat(file)).isDirectory()) file = path.join(file, 'index.html');
@@ -140,6 +143,7 @@ if (!chrome) {
     }
     console.log('[check:content-readability] BROWSER PASS ' + JSON.stringify(results));
     console.log('[check:content-readability] Browser scope: generated Library HTML only; not Android, WebGL, AdSense rendering, or production deployment.');
+    await libraryFixture.check({cmd, evaluate, origin});
   } finally {
     ws?.close(); proc.kill('SIGTERM'); server.closeAllConnections?.(); await new Promise((resolve) => server.close(resolve));
     await fs.rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });

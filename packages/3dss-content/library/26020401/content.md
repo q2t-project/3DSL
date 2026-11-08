@@ -9,7 +9,7 @@
 
 ## 画像
 
-![preview](./assets/preview.png)
+![サンプル26020401のファイル構成](./assets/財産法.png)
 
 ## 添付
 
