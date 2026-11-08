@@ -66,7 +66,7 @@ try {
     const base='/_data/library/26020401/';
     const imagePath=base+'assets/財産法.png';
     const dimensions=await waitFor(()=>evaluate(`(() => {
-      const img=[...document.images].find(i=>decodeURIComponent(new URL(i.src).pathname)===${JSON.stringify(imagePath)});
+      const img=[...document.querySelectorAll('img[src]')].find(i=>decodeURIComponent(new URL(i.src,document.baseURI).pathname)===${JSON.stringify(imagePath)});
       return img?.complete && img.naturalWidth && [img.naturalWidth,img.naturalHeight];
     })()`),'restored image');
     assert.deepEqual(dimensions,[640,360]);
