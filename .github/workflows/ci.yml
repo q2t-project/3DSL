@@ -72,6 +72,12 @@ jobs:
           node scripts/check/save-recovery.mjs
           node scripts/check/viewer-assets.mjs
 
+      - name: Check repeated Viewer loads and USB sampler
+        working-directory: apps/site
+        run: |
+          node scripts/check/viewer-load-page.mjs
+          node scripts/check/android-viewer-memory-test.mjs
+
       - name: Type-check the generated site
         working-directory: apps/site
         run: npm run check

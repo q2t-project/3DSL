@@ -1,4 +1,4 @@
-// A deterministic GLB with an embedded RGBA PNG. Served only by the local measurement.
+// A deterministic GLB with an embedded RGBA PNG. Shared by the isolated benchmark and the opt-in device check.
 import { crc32, deflateSync } from 'node:zlib';
 
 function png(width) {

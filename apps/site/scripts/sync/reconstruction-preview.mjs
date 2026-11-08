@@ -1,3 +1,4 @@
+import { syncViewerLoad } from './viewer-load.mjs';
 import { versionModules } from '../lib/revisioned-modules.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -86,4 +87,5 @@ const diagnostic = path.join(target, 'contract_viewer/diagnostics/check.js');
 await writeFile(diagnostic, (await readFile(diagnostic, 'utf8'))
   .replaceAll('/preview-reconstruction/contract_viewer/index.html', '/preview-reconstruction/contract_viewer/reader.html'));
 await cp(path.join(target, 'RECONSTRUCTION.html'), path.join(target, 'index.html'));
+await syncViewerLoad(siteRoot);
 console.log('[sync] reconstruction preview -> site/public/preview-reconstruction');
