@@ -94,3 +94,7 @@ npm --prefix apps/site run ci:build
 その後で従来の起動モジュールを実行します。キャッシュされたコントローラーにも、format を登録する既存factoryを渡します。
 旧バンドルのURLは互換用として残し、通常の起動経路では新しいURLを使用します。
 配信ヘッダーの正本は `apps/site/config/pages-headers.txt`、`public/_headers` はビルド時の生成物です。
+
+## 手動同梱ライブラリの点検（2026-11-08）
+
+three.js両配布、Troika、Notoフォント、Ajv関連の版と配布物を照合しました。追加ローダーのfflateは0.8.3に更新し、版付きURLと既存の公開APIを検査します。Ajv系の通常配布・formats用ESM、TTF、Troikaにライセンス全文を同梱します。各コンポーネントの範囲と個別版を未確認のコーデックは、[同梱物の点検記録](https://github.com/q2t-project/3DSL/blob/main/packages/docs/repo/site-vendor-inventory.md)に記載しています。

@@ -4,10 +4,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { build } from 'esbuild';
+import { bundleNotices } from '../lib/bundle-notices.mjs';
 
 const site = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const destination = path.resolve(site, '../reconstruction/ssot/vendor/ajv');
 const result = await build({
+  absWorkingDir: site,
   stdin: {
     contents: 'import Ajv2020 from "ajv/dist/2020.js";\nimport addFormats from "ajv-formats";\nexport default function createAjv(options = {}) { return addFormats(new Ajv2020(options)); }\n',
     resolveDir: site,
@@ -17,22 +19,14 @@ const result = await build({
   format: 'esm', write: false, metafile: true,
 });
 const bundle = result.outputFiles[0].contents;
-const names = [...new Set(Object.keys(result.metafile.inputs).flatMap(input => {
-  const match = input.match(/(?:^|\/)node_modules\/((?:@[^/]+\/)?[^/]+)/);
-  return match ? [match[1]] : [];
-}))].sort();
-const packages = {};
-for (const name of names) {
-  const metadata = JSON.parse(await fs.readFile(path.join(site, 'node_modules', name, 'package.json'), 'utf8'));
-  packages[name] = metadata.version;
-}
+const { packages, notices } = await bundleNotices(result.metafile, site);
 const manifest = JSON.stringify({
   generator: 'apps/site/scripts/tool/build-reconstruction-ajv.mjs',
   install: 'npm ci --prefix apps/site',
   packages,
   bundle_sha256: createHash('sha256').update(bundle).digest('hex'),
 }, null, 2) + '\n';
-const outputs = [['dist/ajv.js', bundle], ['versions.json', manifest]];
+const outputs = [['dist/ajv.js', bundle], ['versions.json', manifest], ...notices];
 for (const [name, contents] of outputs) {
   const file = path.join(destination, name);
   if (process.argv.includes('--check')) {

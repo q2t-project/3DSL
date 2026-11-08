@@ -3,6 +3,8 @@ import { fileURLToPath } from "node:url";
 import { mkdir, cp, rm, writeFile } from "node:fs/promises";
 import { existsSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
+import { bundleNotices } from "../lib/bundle-notices.mjs";
+import { syncThreeCompression } from "../lib/three-compression.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const siteRoot = path.resolve(__dirname, "..", "..");
@@ -43,6 +45,7 @@ const hasAjvFormats = existsSync(path.resolve(siteRoot, "node_modules", "ajv-for
 await rm(dst, { recursive: true, force: true });
 await mkdir(path.dirname(dst), { recursive: true });
 await cp(src, dst, { recursive: true, force: true });
+await syncThreeCompression(siteRoot, dst);
 
 // Bundle Ajv for browser runtime.
 const ajvDstDist = path.resolve(dst, "ajv", "dist");
@@ -64,7 +67,9 @@ const entry = [
   '};',
 ].filter(Boolean).join("\n");
 
-await build({
+const validatorBuild = await build({
+  absWorkingDir: siteRoot,
+  metafile: true,
   bundle: true,
   minify: true,
   sourcemap: false,
@@ -95,6 +100,32 @@ await writeFile(
   ].join("\n") + "\n",
   "utf8",
 );
+
+// The compatibility plugin has its own ESM bundle; publish it from the same lockfile.
+const formatsDir = path.join(dst, "ajv-formats");
+if (hasAjvFormats) {
+  const formatsFile = path.join(formatsDir, "dist/ajv-formats.bundle.js");
+  await mkdir(path.dirname(formatsFile), { recursive: true });
+  const formatsBuild = await build({
+    absWorkingDir: siteRoot, bundle: true, minify: true, metafile: true,
+    platform: "browser", target: ["es2019"], format: "esm", outfile: formatsFile,
+    stdin: { contents: 'export { default } from "ajv-formats";', resolveDir: siteRoot, sourcefile: "ajv-formats-entry.js" },
+  });
+  await publishMetadata(formatsDir, formatsBuild, formatsFile);
+}
+await publishMetadata(path.dirname(ajvDstDist), validatorBuild, path.join(ajvDstDist, versionedBundle));
+
+async function publishMetadata(directory, result, file) {
+  const { packages, notices } = await bundleNotices(result.metafile, siteRoot);
+  for (const [name, contents] of notices) await writeFile(path.join(directory, name), contents);
+  const record = {
+    bundle: path.relative(directory, file).split(path.sep).join('/'),
+    bundle_sha256: createHash('sha256').update(readFileSync(file)).digest('hex'),
+    packages,
+    notices: [...notices.keys()],
+  };
+  await writeFile(path.join(directory, 'versions.json'), JSON.stringify(record, null, 2) + '\n');
+}
 
 // The legacy Modeler entry is generated before vendor sync. Preload this exact
 // validator before its cached module graph evaluates globalThis.Ajv. The existing
