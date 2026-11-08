@@ -152,6 +152,18 @@ function uuidOf(node) {
   return node?.meta?.uuid || node?.uuid || null;
 }
 
+function normalizeEndpoint(value) {
+  return typeof value === "string" ? { ref: value } : value;
+}
+
+function sameEndpoint(a, b) {
+  if (a === b) return true;
+  if (!a || !b || typeof a !== "object" || typeof b !== "object") return false;
+  const keys = Object.keys(a).sort();
+  return JSON.stringify(keys) === JSON.stringify(Object.keys(b).sort()) &&
+    keys.every((key) => JSON.stringify(a[key]) === JSON.stringify(b[key]));
+}
+
 // Normalize older/loose docs into current schema expectations (best-effort).
 function normalizeDocInPlace(doc) {
   if (!doc || typeof doc !== "object") return;
@@ -160,10 +172,25 @@ function normalizeDocInPlace(doc) {
   if (Array.isArray(doc.lines)) {
     for (const l of doc.lines) {
       if (!l || typeof l !== "object") continue;
-
-      // endpoint: allow legacy string form (uuid)
-      if (typeof l.end_a === "string") l.end_a = { ref: l.end_a };
-      if (typeof l.end_b === "string") l.end_b = { ref: l.end_b };
+      // Canonical endpoints live in appearance and may be ref OR coord.
+      // Migrate only unambiguous legacy values. Conflicting values stay visible
+      // in the editing document and are rejected by the strict exit gate.
+      for (const key of ["end_a", "end_b"]) {
+        const hasLegacy = Object.prototype.hasOwnProperty.call(l, key);
+        const hasCanonical = l.appearance && Object.prototype.hasOwnProperty.call(l.appearance, key);
+        if (hasCanonical) l.appearance[key] = normalizeEndpoint(l.appearance[key]);
+        if (!hasLegacy) continue;
+        const legacy = normalizeEndpoint(l[key]);
+        if (!hasCanonical) {
+          l.appearance = l.appearance && typeof l.appearance === "object" ? l.appearance : {};
+          l.appearance[key] = legacy;
+          delete l[key];
+        } else if (sameEndpoint(l.appearance[key], legacy)) {
+          delete l[key];
+        } else {
+          l[key] = legacy;
+        }
+      }
 
       // signification: current schema uses signification.caption (localized_string)
       const sig = l.signification;
@@ -173,17 +200,12 @@ function normalizeDocInPlace(doc) {
           sig.caption = sig.name;
         }
 
-        // legacy: { caption: { default: "..." } }
+        // Legacy default text is migrated only when no canonical locale exists.
+        // Retain valid empty locale strings and invalid values for diagnostics.
         if (sig.caption && typeof sig.caption === "object") {
           const cap = sig.caption;
-          const ja = typeof cap.ja === "string" ? cap.ja : "";
-          const en = typeof cap.en === "string" ? cap.en : "";
-          if (ja || en) {
-            sig.caption = { ...(ja ? { ja } : {}), ...(en ? { en } : {}) };
-          } else if (typeof cap.default === "string") {
+          if (!("ja" in cap) && !("en" in cap) && typeof cap.default === "string") {
             sig.caption = cap.default;
-          } else {
-            sig.caption = "";
           }
         }
 
@@ -223,21 +245,52 @@ function normalizeDocInPlace(doc) {
       // legacy: appearance.module as string
       if (typeof ap.module === "string") ap.module = { [ap.module]: {} };
 
-      // keep only one known key if multiple were present
-      if (ap.module && typeof ap.module === "object") {
-        const keys = Object.keys(ap.module).filter((k) => ["grid", "axis", "plate", "shell", "hud", "extension"].includes(k));
-        const keep = keys[0] || legacyModuleKey;
-        if (!keep) {
-          delete ap.module;
-        } else {
-          ap.module = { [keep]: (ap.module[keep] && typeof ap.module[keep] === "object") ? ap.module[keep] : {} };
-        }
-      } else if (legacyModuleKey) {
-        ap.module = { [legacyModuleKey]: {} };
-      }
+      // Preserve declared module fields. The current schema permits several
+      // module keys; normalization must not silently choose one of them.
+      if (ap.module == null && legacyModuleKey) ap.module = { [legacyModuleKey]: {} };
     }
   }
 }
+// Tolerant import removes only keys unknown to every declared alternative.
+// This is deliberately NOT validation: ambiguous/invalid branch values survive
+// for strict diagnostics. Conditional subschemas are not closed owner schemas.
+function pruneUnknownFields(value, schemas, root) {
+  const expanded = [];
+  const seen = new Set();
+  function visit(schema) {
+    if (!schema || typeof schema !== "object" || seen.has(schema)) return;
+    seen.add(schema);
+    if (typeof schema.$ref === "string" && schema.$ref.startsWith("#/")) {
+      let target = root;
+      for (const part of schema.$ref.slice(2).split("/")) target = target?.[part.replace(/~1/g, "/").replace(/~0/g, "~")];
+      visit(target);
+    }
+    expanded.push(schema);
+    for (const keyword of ["allOf", "anyOf", "oneOf"]) for (const branch of schema[keyword] || []) visit(branch);
+    // then/else may declare fields but if only tests them; none are executed.
+    visit(schema.then); visit(schema.else);
+  }
+  schemas.forEach(visit);
+  if (Array.isArray(value)) {
+    const items = expanded.flatMap((schema) => schema.items && !Array.isArray(schema.items) ? [schema.items] : []);
+    if (items.length) for (const item of value) pruneUnknownFields(item, items, root);
+    return;
+  }
+  if (!value || typeof value !== "object") return;
+  const properties = new Map();
+  for (const schema of expanded) for (const [key, sub] of Object.entries(schema.properties || {})) {
+    if (!properties.has(key)) properties.set(key, []);
+    properties.get(key).push(sub);
+  }
+  const additional = expanded.map((schema) => schema.additionalProperties).filter((schema) => schema && typeof schema === "object");
+  const closed = expanded.some((schema) => schema.additionalProperties === false);
+  for (const key of Object.keys(value)) {
+    if (properties.has(key)) pruneUnknownFields(value[key], properties.get(key), root);
+    else if (additional.length) pruneUnknownFields(value[key], additional, root);
+    else if (closed) delete value[key];
+  }
+}
+
 // Import extras helpers (collect unknown fields stripped during prune)
 function jsonPtrEscape(s) {
   return String(s).replace(/~/g, "~0").replace(/\//g, "~1");
@@ -323,6 +376,7 @@ function resolveEndpoint(ep, pointIdx) {
 
 export function createCoreControllers(emitter) {
   let document3dss = null;
+  let documentEpoch = 0;
   let docLabel = "(no file)";
   // Save destination SSOT.
   // - null => no destination (Save behaves like Save As)
@@ -349,7 +403,6 @@ export function createCoreControllers(emitter) {
   let lastStrictErrors = null;
   let validatorInitPromise = null;
   let schemaJsonCache = null;
-  let validatePruneFn = null;
 
   // Import extras: unknown fields stripped during importNormalize()
   let importExtras = null;
@@ -377,7 +430,6 @@ export function createCoreControllers(emitter) {
             console.warn("Ajv is unavailable; skipping JSON Schema validation.");
             ajv = null;
             validateFn = null;
-            validatePruneFn = null;
             lastStrictErrors = null;
             return;
           }
@@ -400,28 +452,7 @@ export function createCoreControllers(emitter) {
           }
           validateFn = ajv.compile(schemaJson);
 
-          // A prune validator used for import: strips additional properties wherever schema disallows them.
-          try {
-            const ajvPrune = new Ajv({
-              allErrors: true,
-              strict: true,
-              strictSchema: false,
-              strictTypes: true,
-              strictRequired: false,
-              validateSchema: false,
-              removeAdditional: "all",
-              useDefaults: false,
-              coerceTypes: false,
-            });
-            if (typeof AjvAddFormats === "function") {
-              try { AjvAddFormats(ajvPrune); } catch {}
-            }
-            validatePruneFn = ajvPrune.compile(schemaJson);
-          } catch {
-            validatePruneFn = null;
-          }
-
-	        lastStrictErrors = null;
+          lastStrictErrors = null;
         });
     }
     return validatorInitPromise;
@@ -483,21 +514,19 @@ async function importNormalize(raw) {
   // NOTE: core is DOM-free; schema is loaded via fetch in ensureValidatorInitialized.
   try { await ensureValidatorInitialized(); } catch {}
 
-  const original = (raw && typeof raw === "object") ? cloneDoc(raw) : raw;
   let candidate = (raw && typeof raw === "object") ? cloneDoc(raw) : {};
 
-  // Prune unknown fields (best-effort)
-  try {
-    if (validatePruneFn && candidate && typeof candidate === "object") {
-      validatePruneFn(candidate); // mutates when removeAdditional applies
-    }
-  } catch {}
+  // Migrate legacy values before looking for unknown fields. Pruning uses
+  // property declarations, never a mutating AJV traversal of oneOf/allOf.
+  try { normalizeDocInPlace(candidate); } catch {}
+  const normalized = cloneDoc(candidate);
+  if (schemaJsonCache) pruneUnknownFields(candidate, [schemaJsonCache], schemaJsonCache);
 
   // Compute extras (unknown fields removed by pruning)
   let stats = { total: 0 };
   try {
-    if (original && typeof original === "object" && candidate && typeof candidate === "object") {
-      stats = collectRemovedExtras(original, candidate, "", removed, limit, stats);
+    if (normalized && typeof normalized === "object" && candidate && typeof candidate === "object") {
+      stats = collectRemovedExtras(normalized, candidate, "", removed, limit, stats);
     }
   } catch {}
 
@@ -749,6 +778,7 @@ async function importNormalize(raw) {
   }
 
   function setDocument(doc, meta = {}) {
+    documentEpoch++;
     const hadPrev = !!document3dss;
 
     // Import extras are UI-visible via QuickCheck only (not exported).
@@ -780,7 +810,7 @@ async function importNormalize(raw) {
     } else if (meta && (meta.intent === "open" || meta.intent === "load" || meta.source === "file" || meta.source === "url")) {
       const candidate = typeof meta.label === "string" ? meta.label.trim() : "";
       saveLabel = candidate || null;
-      // saveHandle is set only when provided by the opener.
+      saveHandle = null;
     } else if (meta && meta.intent === "new") {
       saveLabel = null;
       saveHandle = null;
@@ -1450,7 +1480,7 @@ function focusByIssue(issue) {
 
 
   return {
-    document: { get: getDocument, set: setDocument, update: updateDocument, getLabel: () => docLabel, setLabel },
+    document: { get: getDocument, getEpoch: () => documentEpoch, set: setDocument, update: updateDocument, getLabel: () => docLabel, setLabel },
     file: {
       getBaseLabel: baseLabel,
       getDisplayLabel: displayLabel,
@@ -1498,7 +1528,7 @@ function focusByIssue(issue) {
     uiSidecar: { get: getUiSidecar, apply: applyUiSidecar },
     quickcheck: { run: runQuickCheck, fixBrokenLineEndpoints },
     import: { normalize: importNormalize, getExtras: getImportExtras, clearExtras: clearImportExtras },
-    validator: { ensureInitialized: ensureValidatorInitialized, validate: validateStrict, getErrors: getStrictErrors, getSchemaInfo },
+    validator: { ensureInitialized: ensureValidatorInitialized, isReady: () => typeof validateFn === "function", validate: validateStrict, getErrors: getStrictErrors, getSchemaInfo },
     focusByIssue
   };
 }

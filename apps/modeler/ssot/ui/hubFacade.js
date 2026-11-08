@@ -12,6 +12,7 @@ export function createHubCoreControllers(hub) {
   return {
     // document
     getDocument: () => core?.document?.get?.() ?? null,
+    getDocumentEpoch: () => core?.document?.getEpoch?.(),
     setDocument: (doc, meta) => core?.document?.set?.(doc, meta),
     updateDocument: (mutator) => core?.edit?.updateDocument?.(mutator),
     beginHistoryGroup: () => core?.edit?.beginHistoryGroup?.(),
