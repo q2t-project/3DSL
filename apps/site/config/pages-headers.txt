@@ -2,7 +2,7 @@
   Content-Type: text/plain; charset=utf-8
 
 /vendor/*
-  Cache-Control: public, max-age=31536000, immutable
+  Cache-Control: public, max-age=0, must-revalidate
 
 /modeler_app/*
   Cache-Control: public, max-age=300, must-revalidate

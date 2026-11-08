@@ -1,7 +1,8 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { mkdir, cp, rm, writeFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const siteRoot = path.resolve(__dirname, "..", "..");
@@ -78,11 +79,16 @@ await build({
   },
 });
 
+// Content-address the executable so an earlier immutable URL cannot hide an update.
+const bundle = readFileSync(path.resolve(ajvDstDist, "ajv.bundle.js"));
+const revision = createHash("sha256").update(bundle).digest("hex");
+const versionedBundle = `ajv.${revision}.bundle.js`;
+await writeFile(path.resolve(ajvDstDist, versionedBundle), bundle);
 // ESM shim: allows `import("/vendor/ajv/dist/ajv.js")` to work in browser.
 await writeFile(
   path.resolve(ajvDstDist, "ajv.js"),
   [
-    'import "./ajv.bundle.js";',
+    `import "./${versionedBundle}";`,
     'export default globalThis.Ajv;',
     'export const Ajv = globalThis.Ajv;',
     'export const addFormats = globalThis.AjvAddFormats;',
@@ -90,4 +96,23 @@ await writeFile(
   "utf8",
 );
 
-console.log("[sync] vendor -> site/public OK");
+// The legacy Modeler entry is generated before vendor sync. Preload this exact
+// validator before its cached module graph evaluates globalThis.Ajv. The existing
+// factory adds formats as the normal dynamic-import initialization does.
+const modeler = path.resolve(siteRoot, "public/modeler_app/index.html");
+if (existsSync(modeler)) {
+  const entry = '<script type="module" src="./modelerHostBoot.js"></script>';
+  const html = readFileSync(modeler, "utf8");
+  const bootstrap = `<script type="module" data-versioned-ajv="${revision}">
+    try {
+      await import("/vendor/ajv/dist/ajv.js?v=${revision}");
+      globalThis.Ajv = globalThis.__createAjv;
+    } catch (error) { console.warn("Versioned validator preload failed", error); }
+    await import("./modelerHostBoot.js");
+  </script>`;
+  // Idempotent when vendor sync is run without re-syncing Modeler first.
+  const previous = /<script type="module" data-versioned-ajv="[a-f0-9]+">[\s\S]*?<\/script>/;
+  if (!html.includes(entry) && !previous.test(html)) throw new Error("Legacy Modeler module entry missing");
+  await writeFile(modeler, html.includes(entry) ? html.replace(entry, bootstrap) : html.replace(previous, bootstrap));
+}
+console.log("[sync] vendor -> site/public OK; Ajv " + revision);
