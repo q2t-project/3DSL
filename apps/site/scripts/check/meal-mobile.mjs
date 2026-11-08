@@ -1,6 +1,7 @@
 // Actual generated Viewer with software WebGL and trusted CDP touch input.
 // Emulated Chromium touch is not Android hardware or reader comprehension.
 import assert from 'node:assert/strict';
+import { chromiumPort } from './chromium-port.mjs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
@@ -122,21 +123,11 @@ if (!chrome) {
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const origin = `http://127.0.0.1:${server.address().port}`;
-  const proc = spawn(chrome, ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--remote-debugging-port=0', `--user-data-dir=${dir}`, 'about:blank'], { stdio: ['ignore', 'ignore', 'pipe'] });
-  let stderr = '', processError, ws;
-  proc.stderr.on('data', chunk => { stderr = (stderr + chunk).slice(-16000); });
-  proc.on('error', error => { processError = error; });
+  const proc = spawn(chrome, ['--headless=new', '--no-first-run', '--no-default-browser-check', '--no-sandbox', '--disable-dev-shm-usage', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--remote-debugging-port=0', `--user-data-dir=${dir}`, 'about:blank'], { stdio: ['ignore', 'ignore', 'pipe'] });
+  const diagnostics = { stderr: '' };
+  let ws;
   try {
-    let port;
-    const startupDeadline = Date.now() + 30000;
-    while (Date.now() < startupDeadline) {
-      const active = await fs.readFile(path.join(dir, 'DevToolsActivePort'), 'utf8').catch(() => '');
-      if (active) { port = active.split('\n')[0]; break; }
-      if (processError) throw processError;
-      if (proc.exitCode !== null) throw new Error(`Chromium exited ${proc.exitCode}: ${stderr}`);
-      await sleep(100);
-    }
-    assert(port, `Chromium debugger started within 30s. stderr: ${stderr}`);
+    const port = await chromiumPort(proc, dir, diagnostics);
     const targets = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
     ws = new WebSocket(targets.find(target => target.type === 'page').webSocketDebuggerUrl);
     await new Promise((resolve, reject) => {
@@ -518,7 +509,7 @@ if (!chrome) {
       const failure=await new Promise(resolve=>{const id=900000;const timer=setTimeout(()=>resolve(null),3000);ws.addEventListener('message',event=>{const message=JSON.parse(event.data);if(message.id===id){clearTimeout(timer);resolve(message.result);} });ws.send(JSON.stringify({id,method:'Page.captureScreenshot',params:{format:'png'}}));});
       if(failure?.data)await fs.writeFile(path.join(logs,'meal-mobile-failure.png'),Buffer.from(failure.data,'base64'));
     }
-    await fs.writeFile(path.join(logs, 'meal-mobile-chrome-stderr.log'), stderr);
+    await fs.writeFile(path.join(logs, 'meal-mobile-chrome-stderr.log'), diagnostics.stderr);
     throw error;
   } finally {
     ws?.close(); proc.kill('SIGTERM');

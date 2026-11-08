@@ -1,5 +1,6 @@
 // HG2: verify generated HTML, real list logic, and optional local Chromium.
 import assert from 'node:assert/strict';
+import { chromiumPort } from './chromium-port.mjs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
@@ -84,17 +85,10 @@ if (!chrome) {
   });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const origin = `http://127.0.0.1:${server.address().port}`;
-  const proc = spawn(chrome, ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--remote-debugging-port=0', `--user-data-dir=${dir}`, 'about:blank'], { stdio: 'ignore' });
+  const proc = spawn(chrome, ['--headless=new', '--no-first-run', '--no-default-browser-check', '--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--remote-debugging-port=0', `--user-data-dir=${dir}`, 'about:blank'], { stdio: ['ignore', 'ignore', 'pipe'] });
   let ws;
   try {
-    let port;
-    for (let i = 0; i < 100; i++) {
-      const text = await fs.readFile(path.join(dir, 'DevToolsActivePort'), 'utf8').catch(() => '');
-      if (text) { port = text.split('\n')[0]; break; }
-      if (proc.exitCode !== null) throw new Error(`Chromium exited: ${proc.exitCode}`);
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-    assert(port, 'Chromium debugger started');
+    const port = await chromiumPort(proc, dir);
     const targets = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
     ws = new WebSocket(targets.find((t) => t.type === 'page').webSocketDebuggerUrl);
     await new Promise((resolve, reject) => { ws.addEventListener('open', resolve, { once: true }); ws.addEventListener('error', reject, { once: true }); });
