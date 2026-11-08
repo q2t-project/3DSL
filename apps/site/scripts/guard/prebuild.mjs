@@ -137,6 +137,7 @@ function writeDeployProbe() {
     const payload = {
       sha: getGitSha(),
       builtAt: new Date().toISOString(),
+      node: process.versions.node,
     };
     const json = JSON.stringify(payload, null, 2) + "\n";
 
