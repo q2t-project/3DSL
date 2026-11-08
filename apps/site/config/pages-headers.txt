@@ -60,3 +60,6 @@
   Cache-Control: no-store
 /viewer/viewer_dev.html
   Cache-Control: no-store
+
+/diagnostics/viewer-load/*
+  X-Robots-Tag: noindex, nofollow

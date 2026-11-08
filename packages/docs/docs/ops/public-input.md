@@ -38,9 +38,27 @@ LibraryはZIPをそのままコピーする。作品を開くViewer・Modelerに
 
 ## Viewerの画像・3D素材の計測
 
-同じ3点・2線の作品に、格子形状とPNGをまとめたGLBを1件付ける。小型は512三角形と256角、大型は131,072三角形と2,048角。生成ファイルは試験用サーバーだけで配信する。作品切替時に共有ジオメトリ・テクスチャ・復号された画像を解放する。切替後に旧作品の画像が届く場合も検査する。
+同じ3点・2線の作品に、格子形状とPNGをまとめたGLBを1件付ける。小型は512三角形と256角、大型は131,072三角形と2,048角。同じ生成器をローカル試験と端末検査ページで使う。検査素材は通常の作品一覧に含めず、端末検査を始めたときに読み込む。作品切替時に共有ジオメトリ・テクスチャ・復号された画像を解放する。切替後に旧作品の画像が届く場合も検査する。
 
 `apps/site` でビルド後に `node scripts/check/viewer-assets.mjs` を実行する。新しいChromiumプロセス、390 × 844、DPR 1、ソフトウェアWebGL、ローカルHTTP・圧縮なしで各3回計測する。公開入口のナビゲーションから実際のタッチ回転が反映されるまでの時間、素材の描画、全体の転送バイト数、GC後のJSヒープと外部バッファ、取得可能なLinuxレンダラープロセスのメモリを記録する。RGBA換算は幅×高さ×4の計算値。Android実機のピークや最大受入寸法は、この計測だけでは決まらない。
+
+## Android実機での連続読込
+
+AndroidのChromeで[Viewerの連続読込検査](/diagnostics/viewer-load/)を開き「計測を始める」を押す。小型、大型3回、小型を同じViewerで順に開く。4回目に画面の案内が出たら、図を指で横になぞる。「結果をコピー」で環境、各回の素材描画時間、操作結果を取り出せる。計測結果は端末内に保存される。再読込みや背面への移動で中断した場合はその段階を表示する。
+
+**USBでプロセスメモリも測る場合**は、PCにAndroid SDK Platform-ToolsとNode.js（本リポジトリの指定版）を用意する。端末のUSBデバッグを有効にし、端末に出た確認で計測用PCを許可する。Chromeで検査ページを1タブ開いた状態で、`apps/site` から次を実行する。
+
+```powershell
+adb devices
+node scripts/check/android-viewer-memory.mjs
+```
+
+スクリプトはその検査タブを開き直し、5回の読込みとタッチ入力を自動実行する。PC上の `android-viewer-*.json` に、各標本の開始・終了時刻、段階、端末とChromeの版を記録する。複数台の中から選ぶときは `--serial`、保存先を指定するときは `--out` を使う。
+
+PSSはAndroidの `dumpsys meminfo PID` で取得し、全Chromeレンダラーの合計と、Chromeが列挙した全プロセスの合計をそれぞれKiBで記録する。他のChromeタブの使用分も含む。対象PIDが変わった標本や値を取得できなかった標本は、該当する合計から除く。各段階で完全な標本を取得できないときは途中結果を保存する。観測最大値は採取できた標本の最大で、GPUの専用メモリや標本間の瞬間最大値は未測定。
+
+- [AndroidのPSSとdumpsys meminfo](https://developer.android.com/tools/dumpsys#meminfo)
+- [Android端末とPCの接続](https://developer.chrome.com/docs/devtools/remote-debugging/)
 
 ## 参照
 

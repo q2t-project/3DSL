@@ -7,6 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
+import { connectDevTools } from '../lib/devtools.mjs';
 import { chromiumPort } from './chromium-port.mjs';
 
 const dist = fileURLToPath(new URL('../../dist/', import.meta.url));
@@ -53,41 +54,17 @@ export async function withBrowser(run) {
   const proc = spawn(executable, ['--headless=new', '--no-first-run', '--no-default-browser-check', '--no-sandbox',
     '--disable-dev-shm-usage', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
     '--remote-debugging-port=0', '--user-data-dir=' + profile, 'about:blank'], { stdio: ['ignore', 'ignore', 'pipe'] });
-  let ws;
+  let page;
   try {
     const port = await chromiumPort(proc, profile);
     const targets = await (await fetch('http://127.0.0.1:' + port + '/json/list')).json();
-    ws = new WebSocket(targets.find(t => t.type === 'page').webSocketDebuggerUrl);
-    await once(ws, 'open');
-    const pending = new Map();
-    const events = new EventTarget();
-    let sequence = 0;
-    ws.addEventListener('message', ({ data }) => {
-      const msg = JSON.parse(data);
-      if (msg.method) events.dispatchEvent(new CustomEvent(msg.method, { detail: msg.params }));
-      const item = pending.get(msg.id);
-      if (!item) return;
-      clearTimeout(item.timer);
-      pending.delete(msg.id);
-      if (msg.error) item.reject(new Error(item.method + ': ' + msg.error.message));
-      else item.resolve(msg.result);
-    });
-    const cmd = (method, params = {}) => new Promise((resolve, reject) => {
-      const id = ++sequence;
-      const timer = setTimeout(() => { pending.delete(id); reject(new Error('CDP timeout: ' + method)); }, 45000);
-      pending.set(id, { method, resolve, reject, timer });
-      ws.send(JSON.stringify({ id, method, params }));
-    });
-    const evaluate = async expression => {
-      const result = await cmd('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true, userGesture: true });
-      assert(!result.exceptionDetails, result.exceptionDetails?.exception?.description ?? result.exceptionDetails?.text);
-      return result.result.value;
-    };
+    page = await connectDevTools(targets.find(t => t.type === 'page').webSocketDebuggerUrl);
+    const {cmd,evaluate,events} = page;
     await cmd('Page.enable');
     await cmd('Browser.setDownloadBehavior', { behavior: 'allowAndName', downloadPath: downloads, eventsEnabled: true });
-    return await run({ cmd, evaluate, events, downloads, pid: proc.pid });
+    return await run({ cmd, evaluate, events, downloads, pid: proc.pid, port });
   } finally {
-    ws?.close();
+    page?.close();
     if (proc.exitCode === null && !proc.signalCode) {
       const closed = once(proc, 'close');
       proc.kill();
