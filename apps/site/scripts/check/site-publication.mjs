@@ -37,6 +37,19 @@ for (const id of retiredIds) {
 const retiredGuide = '/docs/works/structure-classification';
 await assert.rejects(stat(path.join(dist, retiredGuide.slice(1))), { code: 'ENOENT' }, 'retired guide in distribution');
 assert(!sitemap.includes(retiredGuide), 'retired guide in sitemap');
+const functionRoutes = JSON.parse(await read('_routes.json'));
+assert.deepEqual(functionRoutes, {
+  version: 1, include: [retiredGuide, retiredGuide + '/'], exclude: [],
+}, 'only the two retired guide URLs invoke Functions');
+const { onRequest: retiredGuideResponse } = await import('../../functions/docs/works/structure-classification.js');
+for (const method of ['GET', 'HEAD']) {
+  const response = retiredGuideResponse({ request: new Request(siteOrigin + retiredGuide + '/', { method }) });
+  assert.equal(response.status, 410, 'retired guide is gone');
+  assert.equal(response.headers.get('Cache-Control'), 'no-store', 'retired guide cannot be cached');
+  assert.equal(response.headers.get('X-Robots-Tag'), 'noindex');
+  assert.equal((await response.text()).includes('公開終了'), method === 'GET', 'HEAD has no response body');
+}
+
 for (const file of ['index.html', 'concept/index.html', 'docs/index.html', 'library/index.html',
   'docs/usage/read-a-work/index.html', 'faq/content-authorship/index.html']) {
   const links = readerLinks(await read(file));
