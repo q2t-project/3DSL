@@ -2,7 +2,7 @@
 import Layout from "../../layouts/Layout.astro";
 import { getCollection } from "astro:content";
 
-const docsEntries = (await getCollection("docs")).sort((a, b) => a.slug.localeCompare(b.slug, "ja"));
+const docsEntries = (await getCollection("docs")).sort((a, b) => a.id.localeCompare(b.id, "ja"));
 const firstSteps = [
   { label: "作品を読む", href: "/docs/usage/read-a-work", text: "どこから見始め、配置や接続をどう確かめるか。" },
   { label: "最初の小作品を作る", href: "/docs/usage/first-work", text: "一つの問い・二つの回答から、配置と接続を作り、保存して読むまで。" },
@@ -53,7 +53,7 @@ function groupFor(slug: string) {
   if (slug.startsWith("ops/")) return "ops";
   return "other";
 }
-const groupedEntries = (key: string) => docsEntries.filter((entry) => !primarySlugs.has(entry.slug) && groupFor(entry.slug) === key);
+const groupedEntries = (key: string) => docsEntries.filter((entry) => !primarySlugs.has(entry.id) && groupFor(entry.id) === key);
 const readingGroups = [
   { key: "works", title: "作品の解説", text: "実際の作品を、説明と図の両方から読みます。" },
   { key: "overview", title: "概要と用語", text: "3DSLと、図を記録する3DSSについて。" },
@@ -112,7 +112,7 @@ const developmentGroups = [
             <p class="mt-3 text-sm text-neutral-300 leading-7">{group.text}</p>
             <ul class="mt-4 grid gap-3 sm:grid-cols-2">
               {entries.map((entry) => (
-                <li><a class="ui-card block p-4 text-sm" href={`/docs/${entry.slug}`}>{titles[entry.slug] ?? entry.data?.title ?? entry.slug}</a></li>
+                <li><a class="ui-card block p-4 text-sm" href={`/docs/${entry.id}`}>{titles[entry.id] ?? entry.data?.title ?? entry.id}</a></li>
               ))}
             </ul>
           </section>
@@ -134,7 +134,7 @@ const developmentGroups = [
               <summary class="cursor-pointer font-medium">{group.title}</summary>
               <ul class="mt-3 space-y-2 text-sm text-neutral-300">
                 {entries.map((entry) => (
-                  <li><a class="inline-block py-1 underline underline-offset-4 hover:text-neutral-100" href={`/docs/${entry.slug}`}>{titles[entry.slug] ?? entry.data?.title ?? entry.slug}</a></li>
+                  <li><a class="inline-block py-1 underline underline-offset-4 hover:text-neutral-100" href={`/docs/${entry.id}`}>{titles[entry.id] ?? entry.data?.title ?? entry.id}</a></li>
                 ))}
               </ul>
             </details>

@@ -52,10 +52,11 @@
           "cccccccc-cccc-4ccc-8ccc-cccccccccccc"
         ];
 
-        const modelUrlEl = document.getElementById("modelUrl");
-        const viewerFrame = document.getElementById("viewerFrame");
-        const modelerFrame = document.getElementById("modelerFrame");
+        const modelUrlEl = document.querySelector<HTMLInputElement>("#modelUrl");
+        const viewerFrame = document.querySelector<HTMLIFrameElement>("#viewerFrame");
+        const modelerFrame = document.querySelector<HTMLIFrameElement>("#modelerFrame");
         const outEl = document.getElementById("out");
+        if (!modelUrlEl || !viewerFrame || !modelerFrame || !outEl) return;
 
         function getModelUrl() {
           const u = new URL(window.location.href);
@@ -63,7 +64,7 @@
           return (q && q.trim()) ? q.trim() : DEFAULT_MODEL;
         }
 
-        function setModelUrl(v) {
+        function setModelUrl(v: string) {
           try {
             const u = new URL(window.location.href);
             u.searchParams.set("model", v);
@@ -71,33 +72,34 @@
           } catch (_e) {}
         }
 
-        function buildViewerSrc(modelUrl) {
+        function buildViewerSrc(modelUrl: string) {
           const u = new URL(window.location.origin + "/viewer/peek.html");
           u.searchParams.set("model", modelUrl);
           u.searchParams.set("debugPose", "1");
           return u.pathname + u.search + u.hash;
         }
 
-        function buildModelerSrc(modelUrl) {
+        function buildModelerSrc(modelUrl: string) {
           const u = new URL(window.location.origin + "/modeler_app/index.html");
           u.searchParams.set("model", modelUrl);
           u.searchParams.set("debugPose", "1");
           return u.pathname + u.search + u.hash;
         }
 
-        function reloadFrames() {
+        const reloadFrames = () => {
           const modelUrl = modelUrlEl.value.trim() || DEFAULT_MODEL;
           setModelUrl(modelUrl);
           viewerFrame.src = buildViewerSrc(modelUrl);
           modelerFrame.src = buildModelerSrc(modelUrl);
           outEl.textContent = "";
-        }
+        };
 
-        function pretty(obj) {
+        function pretty(obj: unknown) {
           try { return JSON.stringify(obj, null, 2); } catch (_e) { return String(obj); }
         }
 
-        const pending = new Map();
+        type SnapshotReply = { snapshot: unknown };
+        const pending = new Map<string, { resolve: (reply: SnapshotReply) => void }>();
         window.addEventListener("message", (ev) => {
           const data = ev?.data;
           if (!data || typeof data !== "object") return;
@@ -109,12 +111,13 @@
           p.resolve({ snapshot: data.snapshot });
         });
 
-        function requestSnapshot(frameWin, uuids) {
+        function requestSnapshot(frameWin: Window | null, uuids: string[]): Promise<SnapshotReply> {
+          if (!frameWin) return Promise.resolve({ snapshot: null });
           const requestId = `req_${Math.random().toString(16).slice(2)}_${Date.now()}`;
           const payload = { type: "3DSL_GET_DEBUG_POSE", requestId, uuids };
           return new Promise((resolve) => {
             pending.set(requestId, { resolve });
-            try { frameWin.postMessage(payload, "*"); } catch (_e) { resolve({ snapshot: null }); }
+            try { frameWin.postMessage(payload, "*"); } catch (_e) { pending.delete(requestId); resolve({ snapshot: null }); }
             setTimeout(() => {
               if (!pending.has(requestId)) return;
               pending.delete(requestId);
@@ -123,7 +126,7 @@
           });
         }
 
-        async function snapshotBoth() {
+        const snapshotBoth = async () => {
           const vWin = viewerFrame.contentWindow;
           const mWin = modelerFrame.contentWindow;
           const uuids = GOLDEN_UUIDS;
@@ -139,14 +142,14 @@
             modeler: m.snapshot
           };
           outEl.textContent = pretty(res);
-        }
+        };
 
         // init
         modelUrlEl.value = getModelUrl();
         reloadFrames();
 
-        document.getElementById("reloadBtn").addEventListener("click", reloadFrames);
-        document.getElementById("snapBtn").addEventListener("click", snapshotBoth);
+        document.getElementById("reloadBtn")?.addEventListener("click", reloadFrames);
+        document.getElementById("snapBtn")?.addEventListener("click", snapshotBoth);
 
         modelUrlEl.addEventListener("keydown", (e) => {
           if (e.key === "Enter") reloadFrames();

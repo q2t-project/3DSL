@@ -19,7 +19,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version-file: apps/site/.node-version
           cache: "npm"
           cache-dependency-path: apps/site/package-lock.json
 
@@ -59,6 +59,10 @@ jobs:
         run: |
           mkdir -p ci-logs
           npm --loglevel verbose run ci:build 2>&1 | tee ci-logs/ci-build.log
+
+      - name: Type-check the generated site
+        working-directory: apps/site
+        run: npm run check
 
       - name: Check candidate visual grammar
         working-directory: apps/site

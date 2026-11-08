@@ -1,45 +1,28 @@
-import { defineCollection, z } from "astro:content";
+import { defineCollection } from "astro:content";
+import { glob } from "astro/loaders";
+import { z } from "astro/zod";
 
-/**
- * Explicit collections to avoid deprecated auto-generation.
- *
- * - fragments: small markdown snippets used by pages/layouts
- * - text: long-form markdown pages
- * - docs: mirrored docs SSOT (packages/docs/docs)
- * - faq: mirrored faq SSOT (packages/docs/faq)
- * - policy: mirrored policy SSOT (packages/docs/policy)
- *
- * Schema is intentionally permissive to avoid breaking existing content.
- */
-const permissive = z.object({}).passthrough();
+// Keep the existing Markdown collection directories and private-file exclusions.
+function markdownFiles(directory: string) {
+  return glob({
+    base: `./src/content/${directory}`,
+    pattern: ["**/*.{md,mdx}", "!**/_*/**", "!**/_*.{md,mdx}"],
+  });
+}
 
-const fragments = defineCollection({ type: "content", schema: permissive });
-const text = defineCollection({ type: "content", schema: permissive });
-const docs = defineCollection({ type: "content", schema: permissive });
-const faq = defineCollection({ type: "content", schema: permissive });
-const policy = defineCollection({ type: "content", schema: permissive });
-
-const docs_integrated = defineCollection({
-  type: "content",
-  schema: permissive,
-});
-
-const pages = defineCollection({
-  type: "content",
-  schema: z
-    .object({
-      title: z.string().optional(),
-      description: z.string().optional(),
-    })
-    .passthrough(),
-});
+function markdownCollection(directory: string) {
+  return defineCollection({ loader: markdownFiles(directory), schema: z.looseObject({}) });
+}
 
 export const collections = {
-  fragments,
-  text,
-  docs,
-  faq,
-  policy,
-  docs_integrated,
-  pages,
+  fragments: markdownCollection("fragments"),
+  text: markdownCollection("text"),
+  docs: markdownCollection("docs"),
+  faq: markdownCollection("faq"),
+  policy: markdownCollection("policy"),
+  docs_integrated: markdownCollection("docs_integrated"),
+  pages: defineCollection({
+    loader: markdownFiles("pages"),
+    schema: z.looseObject({ title: z.string().optional(), description: z.string().optional() }),
+  }),
 };

@@ -1,16 +1,16 @@
 ---
 import Layout from "../../layouts/Layout.astro";
-import { getCollection } from "astro:content";
+import { getCollection, render } from "astro:content";
 
 export async function getStaticPaths() {
   const entries = await getCollection("docs");
-  return entries.map((entry) => ({ params: { slug: entry.slug }, props: { entry } }));
+  return entries.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
 }
 
 const { entry } = Astro.props;
-const { Content } = await entry.render();
+const { Content } = await render(entry);
 
-const pageTitle = `${entry.data?.title ?? entry.slug} | Docs | 3DSL`;
+const pageTitle = `${entry.data?.title ?? entry.id} | Docs | 3DSL`;
 const pageDescription = typeof entry.data?.summary === "string" && entry.data.summary.trim()
   ? entry.data.summary.trim()
   : "3DSL Docs（SSOT: packages/docs）";
@@ -20,7 +20,7 @@ const pageDescription = typeof entry.data?.summary === "string" && entry.data.su
   <nav class="text-sm text-neutral-400">
     <a href="/docs" class="hover:underline">Docs</a>
     <span class="mx-2">/</span>
-    <span class="text-neutral-200">{entry.slug}</span>
+    <span class="text-neutral-200">{entry.id}</span>
   </nav>
 
   <article class="mt-6 prose prose-invert prose-neutral max-w-3xl">

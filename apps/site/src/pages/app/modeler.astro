@@ -64,7 +64,8 @@
 
     <script>
       (() => {
-        const iframe = document.getElementById("app-modeler-iframe");
+        const iframe = document.querySelector<HTMLIFrameElement>("#app-modeler-iframe");
+        if (!iframe) return;
         const progressEl = document.getElementById("app-modeler-progress");
 
         function showProgress() {
@@ -91,20 +92,20 @@
           }
         }
 
-        function postCmd(action, payload = null) {
+        function postCmd(action: string, payload: unknown = null) {
           try {
             const msg = { type: "3DSL_MODELER_CMD", action, payload };
             iframe?.contentWindow?.postMessage?.(msg, "*");
           } catch {}
         }
 
-        function openSample() {
+        const openSample = () => {
           const sampleUrl = "/3dss/fixtures/regression/valid_no_frames.3dss.json";
           const u = new URL("/modeler_app/index.html", window.location.origin);
           u.searchParams.set("url", sampleUrl);
           iframe.src = u.pathname + u.search;
           showProgress();
-        }
+        };
 
         function wireQuickActions() {
           if (!modal) return;

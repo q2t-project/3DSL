@@ -3,6 +3,7 @@ import Layout from "../../layouts/Layout.astro";
 import AdSlot from "../../components/AdSlot.astro";
 import { ADSENSE_SLOTS, shouldEnableAdsense } from "../../lib/adsense";
 import { getLibraryItemBySlug, getLibraryItems } from "../../lib/libraryIndex";
+import { publicDir } from "astro:config/server";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,8 +25,7 @@ if (!item) {
 // Canonical per-item meta page (used for share/copy/QR on this page)
 const pagePath = `/library/${slug}/`;
 
-// NOTE: do not rely on process.cwd(). Resolve from this file location.
-const PUBLIC_DIR = fileURLToPath(new URL("../../../public/", import.meta.url));
+const PUBLIC_DIR = fileURLToPath(publicDir);
 function filePathFromPublic(rel: string) {
   const clean = String(rel).replace(/^\/+/, "");
   return path.join(PUBLIC_DIR, clean);

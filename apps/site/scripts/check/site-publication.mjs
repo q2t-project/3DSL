@@ -37,6 +37,10 @@ for (const id of retiredIds) {
 const retiredGuide = '/docs/works/structure-classification';
 await assert.rejects(stat(path.join(dist, retiredGuide.slice(1))), { code: 'ENOENT' }, 'retired guide in distribution');
 assert(!sitemap.includes(retiredGuide), 'retired guide in sitemap');
+const notFound = await read('404.html');
+assert(notFound.includes('<meta name="robots" content="noindex"'), '404 is excluded from search');
+assert(notFound.includes('ページが見つからなかった') && notFound.includes('href="/library"') && notFound.includes('href="/"'),
+  '404 retains the public recovery links');
 const functionRoutes = JSON.parse(await read('_routes.json'));
 assert.deepEqual(functionRoutes, {
   version: 1, include: [retiredGuide, retiredGuide + '/'], exclude: [],
@@ -76,6 +80,13 @@ for (const slug of featured) {
   const item = index.items.find((entry) => entry.slug === slug);
   assert(item && !item.hidden && item.recommended === true, `${slug}: explicit featured choice`);
 }
+
+// Existing Markdown bookmarks and copyable CLI flags survive renderer changes.
+for (const route of ['docs/ops/devops_site', 'policy/ssot_policy', 'faq/content-authorship']) {
+  assert((await stat(path.join(dist, route, 'index.html'))).isFile(), `${route}: published Markdown route`);
+}
+assert((await read('docs/library/ops-cheatsheet/index.html')).includes('npm --prefix apps/site run check:library'),
+  'published shell commands retain literal flags');
 
 const guideRoute = '/docs/usage/create-save-read';
 const guide = await read(`${guideRoute.slice(1)}/index.html`);
