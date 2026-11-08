@@ -41,7 +41,7 @@ Cloudflare Pages のプロジェクト設定はこう固定。
 - Build command: `npm run build`
 - Build output directory: `dist`
 - Variables:
-  - `NODE_VERSION`（例: `20.3.0`）
+  - `NODE_VERSION=24.22.2`（Preview・Productionの両方。`apps/site/.node-version` と同じ値にする）
   - `PUBLIC_FORMSPREE_ENDPOINT`（問い合わせフォーム使う場合）
 
 ※ Cloudflare Pages は npm ci 相当で lock 厳密一致が要るため、apps/site/package.json の overrides（diff/fast-json-patch の監査対応）を使う場合は apps/site/package-lock.json も必ず更新・コミットする。
@@ -68,8 +68,7 @@ Cloudflare Pages は **Astro の `src/pages/404.*` ではなく**、
 **サイト直下の `404.html`（静的ファイル）** を要求する挙動がある（運用的にはこれに合わせる）。
 
 ### 正解（これだけ）
-- `apps/site/public/404.html` を置く  
-  → build後 `dist/404.html` として出る
+- 正本は `apps/site/config/404.html`。prebuildが `public/404.html` へコピーし、ビルドが `dist/404.html` を出力する。
 
 ### 禁止（guardで止める）
 - `apps/site/src/pages/404.html.astro`
@@ -192,7 +191,7 @@ Get-Content .\apps\site\dist\__deploy_probe.txt
 ### 404でguardに止められる
 
 * `src/pages/404.html.astro` が残ってる
-  → **消す**、`public/404.html` に寄せる
+  → 重複ルートを除き、`config/404.html` で本文を管理する
 
 ### 旧URLだけ以前のViewerが表示される
 

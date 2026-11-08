@@ -2,13 +2,10 @@
 //
 // Server-only helper (Astro frontmatter / SSR). Avoid importing from client code.
 
+import { publicDir } from 'astro:config/server';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-
-const here = path.dirname(fileURLToPath(import.meta.url));
-// src/lib/server -> src/lib -> src -> (site) -> public
-const publicDir = path.resolve(here, '..', '..', '..', 'public');
 
 const cache = new Map();
 
@@ -21,7 +18,7 @@ export async function readPublicJson(relPath, opts = {}) {
   if (cache.has(key)) return cache.get(key);
 
   const clean = String(relPath || '').replace(/^\/+/, '');
-  const abs = path.resolve(publicDir, clean);
+  const abs = path.resolve(fileURLToPath(publicDir), clean);
 
   let raw;
   try {

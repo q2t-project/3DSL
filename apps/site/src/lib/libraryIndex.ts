@@ -1,3 +1,4 @@
+import { publicDir } from "astro:config/server";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 
@@ -53,16 +54,8 @@ type LibraryIndex = {
   items: LibraryItem[];
 };
 
-// NOTE:
-// Do not rely on process.cwd() here.
-// Astro dev/build can run with different working directories depending on how
-// npm scripts are invoked. Resolve from this file location instead.
-//
-// This file lives at: apps/site/src/lib/libraryIndex.ts
-// We want to read:     apps/site/public/_data/library/library_index.json
-const INDEX_ABS = fileURLToPath(
-  new URL("../../public/_data/library/library_index.json", import.meta.url)
-);
+// publicDir stays anchored to the project in dev and in prerendered chunks.
+const INDEX_ABS = fileURLToPath(new URL("_data/library/library_index.json", publicDir));
 
 export function readLibraryIndex(): LibraryIndex {
   let raw: string;

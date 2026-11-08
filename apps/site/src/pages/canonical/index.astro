@@ -1,12 +1,12 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import { publicDir } from "astro:config/server";
+import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 
-const publicDir = path.join(process.cwd(), "public");
-
 function listJson(dirPublicPath: string) {
-  const absDir = path.join(publicDir, ...dirPublicPath.split("/").filter(Boolean));
+  const absDir = path.join(fileURLToPath(publicDir), ...dirPublicPath.split("/").filter(Boolean));
   if (!fs.existsSync(absDir)) return [];
   const ents = fs.readdirSync(absDir, { withFileTypes: true });
 

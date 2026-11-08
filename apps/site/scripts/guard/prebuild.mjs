@@ -27,8 +27,8 @@ const pagesDisabled = path.join(siteRoot, "src", "pages_disabled");
 
 // Cloudflare Pages expects a real top-level "404.html" file.
 // Astro default build.format="directory" would output "404.html/index.html" which Pages will NOT detect.
-// Therefore we require: public/404.html and forbid: src/pages/404.html.astro
-const astro404 = path.join(siteRoot, "src", "pages", "404.html.astro");
+// Build config/404.html into public, so Astro copies it to dist/404.html.
+const forbidden404Pages = ["404.astro", "404.html.astro"].map(name => path.join(siteRoot, "src/pages", name));
 const public404 = path.join(siteRoot, "public", "404.html");
 
 // Deploy probe (helps verify Cloudflare Pages picked up the latest build)
@@ -114,16 +114,11 @@ if (!exists(tuningCss)) {
 }
 
 
-// 5) require proper Cloudflare Pages 404.html
-if (exists(astro404)) {
-  fail(`[guard] Forbidden Astro 404 route exists: ${astro404}\n` +
-       `        Cloudflare Pages needs a real top-level "404.html" file.\n` +
-       `        Fix: delete src/pages/404.html.astro and create public/404.html instead.\n`);
+// Pages reads the top-level dist/404.html. Generate its public copy from one source.
+for (const file of forbidden404Pages) {
+  if (exists(file)) fail(`[guard] Conflicting 404 route: ${file}. Edit config/404.html.`);
 }
-if (!exists(public404)) {
-  fail(`[guard] Missing required file: ${public404}\n` +
-       `        Cloudflare Pages needs public/404.html to return proper 404 status.\n`);
-}
+fs.copyFileSync(path.join(siteRoot, "config/404.html"), public404);
 
 function getGitSha() {
   const envSha = process.env.CF_PAGES_COMMIT_SHA || process.env.GITHUB_SHA || process.env.COMMIT_SHA;
@@ -142,6 +137,7 @@ function writeDeployProbe() {
     const payload = {
       sha: getGitSha(),
       builtAt: new Date().toISOString(),
+      node: process.versions.node,
     };
     const json = JSON.stringify(payload, null, 2) + "\n";
 

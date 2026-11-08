@@ -52,12 +52,11 @@ for (const p of forbidden404Routes) {
   }
 }
 
-// ensure public/404.html exists (minimal) so Pages doesn't go into SPA fallback
+// Restore the same static 404 that the normal build serves.
 if (!fs.existsSync(public404)) {
   fs.mkdirSync(path.dirname(public404), { recursive: true });
-  const html = `<!doctype html>\n<html lang=\"ja\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>404 | 3DSL</title>\n  <meta name=\"robots\" content=\"noindex\" />\n</head>\n<body>\n  <main style=\"max-width: 52rem; margin: 4rem auto; padding: 0 1rem; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;\">\n    <h1 style=\"font-size: 1.5rem;\">404</h1>\n    <p>ページが見つからへんかった。</p>\n    <p><a href=\"/\">トップへ戻る</a></p>\n  </main>\n</body>\n</html>\n`;
-  fs.writeFileSync(public404, html, "utf-8");
-  console.log("[fix] created:", public404);
+  fs.copyFileSync(path.join(siteRoot, "config/404.html"), public404);
+  console.log("[fix] restored:", public404);
   changed = true;
 }
 
