@@ -1,3 +1,5 @@
+import { WORK_PACKAGE_MAX_BYTES } from '../modeler_app/runtime/workPackage.js';
+
 // Transport for the site host and legacy share/embed URLs. Validation, parsing
 // and model replacement always go through the ordinary read-only controller.
 export function modelFromSearch(params) {
@@ -27,6 +29,44 @@ export function returnDestination(params, location) {
     } catch { /* Try the older back parameter when return is malformed. */ }
   }
   return null;
+}
+
+// Count decoded response bytes as they arrive, including chunked/compressed
+// transfers. A Content-Length header is only an early rejection hint.
+async function readResponseText(response, signal) {
+  const tooLarge = () => new Error('作品が32 MiBを超えています。読込みを中止しました。現在の作品は保持されています。');
+  const length = Number(response.headers.get('Content-Length'));
+  if (Number.isFinite(length) && length > WORK_PACKAGE_MAX_BYTES) {
+    await response.body?.cancel();
+    throw tooLarge();
+  }
+  if (!response.body) return '';
+  const reader = response.body.getReader();
+  const abort = () => { void reader.cancel().catch(() => {}); };
+  signal.addEventListener('abort', abort, { once: true });
+  if (signal.aborted) abort();
+  const decoder = new TextDecoder();
+  const parts = [];
+  let bytes = 0;
+  try {
+    while (true) {
+      if (signal.aborted) throw new Error('読込みを取り消しました。');
+      const { done, value } = await reader.read();
+      if (signal.aborted) throw new Error('読込みを取り消しました。');
+      if (done) break;
+      bytes += value.byteLength;
+      if (bytes > WORK_PACKAGE_MAX_BYTES) {
+        await reader.cancel();
+        throw tooLarge();
+      }
+      parts.push(decoder.decode(value, { stream: true }));
+    }
+    parts.push(decoder.decode());
+    return parts.join('');
+  } finally {
+    signal.removeEventListener('abort', abort);
+    reader.releaseLock();
+  }
 }
 
 export function attachEntryInput({ openText, reportError, readDebugPose, win = window, fetchModel = fetch }) {
@@ -65,7 +105,7 @@ export function attachEntryInput({ openText, reportError, readDebugPose, win = w
       // Public URLs must allow CORS. Credentials are sent only to this origin.
       const response = await fetchModel(url.href, { cache: 'no-store', credentials: 'same-origin', signal: request.signal, referrerPolicy: 'no-referrer' });
       if (!response.ok) throw new Error(`作品を取得できませんでした (HTTP ${response.status})。`);
-      const text = await response.text();
+      const text = await readResponseText(response, request.signal);
       if (request.signal.aborted) return { ok: false, cancelled: true };
       const source = new URL(response.url || url.href);
       const label = params.get('title') || source.pathname.split('/').pop() || '作品';

@@ -99,14 +99,15 @@
         }
 
         type SnapshotReply = { snapshot: unknown };
-        const pending = new Map<string, { resolve: (reply: SnapshotReply) => void }>();
+        const pending = new Map<string, { frameWin: Window; resolve: (reply: SnapshotReply) => void }>();
         window.addEventListener("message", (ev) => {
+          if (ev.origin !== window.location.origin) return;
           const data = ev?.data;
           if (!data || typeof data !== "object") return;
           if (data.type !== "3DSL_DEBUG_POSE") return;
           const id = data.requestId;
           const p = pending.get(id);
-          if (!p) return;
+          if (!p || ev.source !== p.frameWin) return;
           pending.delete(id);
           p.resolve({ snapshot: data.snapshot });
         });
@@ -116,8 +117,8 @@
           const requestId = `req_${Math.random().toString(16).slice(2)}_${Date.now()}`;
           const payload = { type: "3DSL_GET_DEBUG_POSE", requestId, uuids };
           return new Promise((resolve) => {
-            pending.set(requestId, { resolve });
-            try { frameWin.postMessage(payload, "*"); } catch (_e) { pending.delete(requestId); resolve({ snapshot: null }); }
+            pending.set(requestId, { frameWin, resolve });
+            try { frameWin.postMessage(payload, window.location.origin); } catch (_e) { pending.delete(requestId); resolve({ snapshot: null }); }
             setTimeout(() => {
               if (!pending.has(requestId)) return;
               pending.delete(requestId);

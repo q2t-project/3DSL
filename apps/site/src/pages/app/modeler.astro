@@ -95,7 +95,7 @@
         function postCmd(action: string, payload: unknown = null) {
           try {
             const msg = { type: "3DSL_MODELER_CMD", action, payload };
-            iframe?.contentWindow?.postMessage?.(msg, "*");
+            iframe?.contentWindow?.postMessage?.(msg, window.location.origin);
           } catch {}
         }
 
