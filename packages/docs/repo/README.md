@@ -7,6 +7,8 @@
 
 ## 入口
 
+- [公開版の保管と復元](./site-recovery.md)
+
 - [MAP.md](./MAP.md): 全体像（フォルダ分類・層・主なデータフロー）
 - [INDEX.md](./INDEX.md): 用語/逆引き索引（検索で引ける辞書）
 - [NAV_POLICY.md](./NAV_POLICY.md): 運用規範（どこに何を書くか、更新ルール）

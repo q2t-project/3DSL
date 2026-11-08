@@ -395,9 +395,11 @@ const thirdParty = Array.isArray(rights?.third_party)
                 </button>
                 </div>
 
-                <div class="shrink-0 rounded-xl border border-neutral-800 bg-neutral-950/30 p-2">
-                  <img id="lib-qr-inline" class="h-[76px] w-[76px] rounded-lg border border-neutral-800 bg-neutral-950" alt="" loading="lazy" />
-                </div>
+                <details id="lib-qr" hidden class="rounded-xl border border-neutral-800 bg-neutral-950/30 p-2 text-xs text-neutral-300">
+                  <summary class="cursor-pointer py-2" title="この作品ページのURLをQR生成サービスに送ります">QRを表示（外部生成）</summary>
+                  <span id="lib-qr-status" role="status" class="block max-w-[24ch]"></span>
+                  <img id="lib-qr-inline" hidden class="h-[76px] w-[76px] rounded-lg border border-neutral-800" alt="この作品ページを開くQRコード" referrerpolicy="no-referrer" />
+                </details>
               </div>
             </div>
 
@@ -549,18 +551,31 @@ const thirdParty = Array.isArray(rights?.third_party)
       const qrInline = document.getElementById('lib-qr-inline');
 
       function getShareUrl() {
-        try {
-          return new URL(pagePath, window.location.origin).toString();
-        } catch {
-          return window.location.href;
-        }
+        const base = ['http:', 'https:'].includes(location.protocol) ? location.origin : 'https://3dsl.jp';
+        return new URL(pagePath, base).href;
       }
 
-      function setInlineQr() {
-        if (!qrInline) return;
-        const url = getShareUrl();
-        const src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(url)}`;
-        qrInline.setAttribute('src', src);
+      const qr = document.getElementById('lib-qr');
+      const qrStatus = document.getElementById('lib-qr-status');
+      if (qr && qrInline && qrStatus) {
+        qr.hidden = false;
+        qr.addEventListener('toggle', () => {
+          if (!qr.open || qrInline.hasAttribute('src')) return;
+          qrStatus.textContent = 'QRコードを取得しています。';
+          const src = new URL('https://api.qrserver.com/v1/create-qr-code/');
+          src.searchParams.set('size', '160x160');
+          src.searchParams.set('data', getShareUrl());
+          qrInline.src = src.href;
+        });
+        qrInline.addEventListener('load', () => {
+          qrInline.hidden = false;
+          qrStatus.textContent = '';
+        });
+        qrInline.addEventListener('error', () => {
+          qrInline.hidden = true;
+          qrInline.removeAttribute('src');
+          qrStatus.textContent = '取得できませんでした。開き直すと再試行できます。「コピー」で作品のリンクを取得できます。';
+        });
       }
 
       let toastTimer = 0;
@@ -614,7 +629,6 @@ const thirdParty = Array.isArray(rights?.third_party)
         showToast(ok ? 'リンクをコピーした' : 'コピーできんかった');
       }
 
-      setInlineQr();
       shareBtn?.addEventListener('click', () => { shareUrl(); });
       copyBtn?.addEventListener('click', () => { copyUrl(); });
     })();
