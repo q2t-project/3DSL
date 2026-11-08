@@ -66,6 +66,17 @@ const showAdMobileTop = eligiblePage && adAllow.has("mobile_top") && Boolean(ADS
 const showAdDesktopRail = eligiblePage && adAllow.has("desktop_rail") && Boolean(ADSENSE_SLOTS.slot_300x600);
 const showAdInline1 = eligiblePage && adAllow.has("inline_1") && Boolean(ADSENSE_SLOTS.slot_300x250);
 
+// Used by Markdown and metadata links. Let the URL parser normalize protocol
+// case/control whitespace before accepting web links; encode attributes below.
+function publicLink(raw: unknown): string {
+  if (typeof raw !== "string" || !raw.trim()) return "";
+  const value = raw.trim();
+  try {
+    const url = new URL(value, "https://3dsl.jp/");
+    return ["https:", "http:"].includes(url.protocol) && !url.username && !url.password ? value : "";
+  } catch { return ""; }
+}
+
 function listFilesPublicDir(urlDir: string): Attachment[] {
   const abs = filePathFromPublic(urlDir);
   if (!fs.existsSync(abs)) return [];
@@ -106,7 +117,9 @@ try {
       return x
         .replaceAll("&", "&amp;")
         .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;");
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
     }
 
     function escapeInline(t: string) {
@@ -126,7 +139,7 @@ try {
         if (idx > 0) pushText(rest.slice(0, idx));
         const label = escapeHtml(m[1]);
         const url = m[2].trim();
-        const safeUrl = url.startsWith("javascript:") ? "#" : url;
+        const safeUrl = publicLink(url) || "#";
         parts.push(`<a href="${escapeHtml(safeUrl)}" class="hover:underline">${label}</a>`);
         rest = rest.slice(idx + m[0].length);
       }
@@ -218,7 +231,7 @@ try {
     const html0 = mdToHtml(md);
     bodyHtml = html0.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_all, alt, url) => {
       const u = String(url).trim();
-      const safe = u.startsWith("javascript:") ? "" : u;
+      const safe = publicLink(u);
       return `<img src="${escapeHtml(safe)}" alt="${escapeHtml(String(alt ?? ""))}" loading="lazy" />`;
     });
   }
@@ -403,7 +416,7 @@ const thirdParty = Array.isArray(rights?.third_party)
                     {authors.map((a) => (
                       <li>
                         {a?.url ? (
-                          <a class="hover:underline" href={a.url} target="_blank" rel="noreferrer">{a?.name ?? a.url}</a>
+                          <a class="hover:underline" href={publicLink(a.url) || "#"} target="_blank" rel="noreferrer">{a?.name ?? a.url}</a>
                         ) : (
                           <span>{a?.name ?? ""}</span>
                         )}
@@ -457,7 +470,7 @@ const thirdParty = Array.isArray(rights?.third_party)
                   </div>
                   {hasNonEmptyString(r?.url) ? (
                     <div class="mt-2">
-                      <a class="text-xs text-neutral-300 hover:underline" href={r.url} target="_blank" rel="noreferrer">{r.url}</a>
+                      <a class="text-xs text-neutral-300 hover:underline" href={publicLink(r.url) || "#"} target="_blank" rel="noreferrer">{r.url}</a>
                     </div>
                   ) : null}
                   {hasNonEmptyString(r?.scope_note) ? (
@@ -488,7 +501,7 @@ const thirdParty = Array.isArray(rights?.third_party)
                         <span>{t.name}</span>
                         {hasNonEmptyString(t?.license) ? <span class="ml-2 text-neutral-400">{t.license}</span> : null}
                         {hasNonEmptyString(t?.url) ? (
-                          <a class="ml-2 hover:underline" href={t.url} target="_blank" rel="noreferrer">source</a>
+                          <a class="ml-2 hover:underline" href={publicLink(t.url) || "#"} target="_blank" rel="noreferrer">source</a>
                         ) : null}
                       </li>
                     ))}

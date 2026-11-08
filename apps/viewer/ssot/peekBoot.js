@@ -335,8 +335,8 @@ function installOrbitInput(canvas, cam) {
 
   // Debug pose snapshot bridge (for /app/compare)
   // - enabled only when ?debugPose=1
-  // - request: postMessage({ type: '3DSL_GET_DEBUG_POSE', requestId, uuids: [...] }, '*')
-  // - response: postMessage({ type: '3DSL_DEBUG_POSE', requestId, snapshot }, '*')
+  // - request: postMessage({ type: '3DSL_GET_DEBUG_POSE', requestId, uuids: [...] }, window.location.origin)
+  // - response: postMessage({ type: '3DSL_DEBUG_POSE', requestId, snapshot }, window.location.origin)
   const _enableDebugPose = (() => {
     try {
       const sp = new URLSearchParams(globalThis.location?.search ?? "");
@@ -360,15 +360,16 @@ function installOrbitInput(canvas, cam) {
     try { globalThis.__3dslDebugPose = () => getSnapshot({}); } catch (_e) {}
 
     window.addEventListener("message", (ev) => {
+      if (ev.origin !== window.location.origin || ev.source !== window.parent || window.parent === window) return;
       const data = ev?.data;
       if (!data || typeof data !== "object") return;
       if (data.type !== "3DSL_GET_DEBUG_POSE") return;
       const requestId = data.requestId;
       const snapshot = getSnapshot(data);
       try {
-        ev.source?.postMessage?.({ type: "3DSL_DEBUG_POSE", requestId, snapshot }, "*");
+        ev.source?.postMessage?.({ type: "3DSL_DEBUG_POSE", requestId, snapshot }, window.location.origin);
       } catch (_e) {
-        try { window.parent?.postMessage?.({ type: "3DSL_DEBUG_POSE", requestId, snapshot }, "*"); } catch (_e2) {}
+        /* The requesting parent may have closed or navigated away. */
       }
     });
   }
