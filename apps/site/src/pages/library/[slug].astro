@@ -77,6 +77,21 @@ function publicLink(raw: unknown): string {
   } catch { return ""; }
 }
 
+// Images load without a click. Only embed files from this work's assets;
+// keep other allowed destinations as ordinary links.
+function workImageUrl(href: string, dataDir: string): string {
+  if (!href) return "";
+  const origin = "https://3dsl.jp";
+  const url = new URL(href, origin);
+  const prefix = `${dataDir}/assets/`;
+  if (url.origin !== origin || !url.pathname.startsWith(prefix)) return "";
+  try {
+    const parts = url.pathname.slice(prefix.length).split("/").map(decodeURIComponent);
+    if (parts.some(p => !p || p === "." || p === ".." || /[\\/\u0000-\u001f\u007f]/u.test(p))) return "";
+  } catch { return ""; }
+  return url.pathname + url.search + url.hash;
+}
+
 function listFilesPublicDir(urlDir: string): Attachment[] {
   const abs = filePathFromPublic(urlDir);
   if (!fs.existsSync(abs)) return [];
@@ -130,17 +145,21 @@ try {
       const pushText = (x: string) => parts.push(escapeHtml(x));
 
       while (rest.length) {
-        const m = rest.match(/\[([^\]]+)\]\(([^)]+)\)/);
+        const m = rest.match(/(!?)\[([^\]]*)\]\(([^)]+)\)/);
         if (!m || m.index == null) {
           pushText(rest);
           break;
         }
         const idx = m.index;
         if (idx > 0) pushText(rest.slice(0, idx));
-        const label = escapeHtml(m[1]);
-        const url = m[2].trim();
-        const safeUrl = publicLink(url) || "#";
-        parts.push(`<a href="${escapeHtml(safeUrl)}" class="hover:underline">${label}</a>`);
+        const label = escapeHtml(m[2]);
+        const safeUrl = publicLink(m[3]);
+        const imageUrl = m[1] ? workImageUrl(safeUrl, dataDir) : "";
+        if (imageUrl) {
+          parts.push(`<img src="${escapeHtml(imageUrl)}" alt="${label}" loading="lazy" />`);
+        } else {
+          parts.push(`<a href="${escapeHtml(safeUrl || "#")}" class="hover:underline">${label || (m[1] ? "画像" : escapeHtml(safeUrl))}</a>`);
+        }
         rest = rest.slice(idx + m[0].length);
       }
 
@@ -228,12 +247,7 @@ try {
       return out.join("\n");
     }
 
-    const html0 = mdToHtml(md);
-    bodyHtml = html0.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_all, alt, url) => {
-      const u = String(url).trim();
-      const safe = publicLink(u);
-      return `<img src="${escapeHtml(safe)}" alt="${escapeHtml(String(alt ?? ""))}" loading="lazy" />`;
-    });
+    bodyHtml = mdToHtml(md);
   }
 } catch {
   bodyHtml = "";
@@ -450,7 +464,7 @@ const thirdParty = Array.isArray(rights?.third_party)
             <h2 class="text-base font-semibold text-neutral-100">添付ファイル</h2>
             <ul class="mt-3 list-disc space-y-1 pl-5 text-sm text-neutral-300">
               {attachments.map((f) => (
-                <li><a class="hover:underline" href={f.url} target="_blank" rel="noreferrer">{f.name}</a></li>
+                <li><a class="hover:underline" href={f.url} download={f.name}>{f.name} をダウンロード</a></li>
               ))}
             </ul>
           </section>

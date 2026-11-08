@@ -57,11 +57,10 @@ function writeJson(p, obj) {
 }
 
 function existsFile(p) {
-  try {
-    return fs.statSync(p).isFile();
-  } catch {
-    return false;
-  }
+  const entry = fs.lstatSync(p, { throwIfNoEntry: false });
+  if (!entry) return false;
+  if (!entry.isFile()) throw new Error(`[build:dist] Expected a regular file: ${p}`);
+  return true;
 }
 
 function cleanDist() {
@@ -146,10 +145,19 @@ function buildViewerUrl(modelUrl) {
 }
 
 function safeCpDir(srcDir, dstDir) {
-  if (!fs.existsSync(srcDir)) return false;
-  if (!fs.statSync(srcDir).isDirectory()) return false;
-  ensureDir(dstDir);
-  fs.cpSync(srcDir, dstDir, { recursive: true });
+  const entry = fs.lstatSync(srcDir, { throwIfNoEntry: false });
+  if (!entry) return false;
+  if (!entry.isDirectory()) throw new Error(`[build:dist] Expected a regular directory: ${srcDir}`);
+  fs.cpSync(srcDir, dstDir, { recursive: true, filter(source) {
+    const stat = fs.lstatSync(source);
+    if (!stat.isFile() && !stat.isDirectory()) {
+      throw new Error(`[build:dist] Cannot publish a link or special file: ${source}`);
+    }
+    if (/[\\\u0000-\u001f\u007f]/u.test(path.basename(source))) {
+      throw new Error(`[build:dist] Invalid Library filename: ${JSON.stringify(source)}`);
+    }
+    return true;
+  } });
   return true;
 }
 
@@ -209,8 +217,8 @@ function ensureMeta(metaPath, id) {
 
 
 function main() {
-  if (!fs.existsSync(LIBRARY_DIR)) {
-    throw new Error(`library dir not found: ${LIBRARY_DIR}`);
+  if (!fs.lstatSync(LIBRARY_DIR, { throwIfNoEntry: false })?.isDirectory()) {
+    throw new Error(`[build:dist] Expected a regular directory: ${LIBRARY_DIR}`);
   }
 
   cleanDist();
@@ -222,7 +230,12 @@ function main() {
 
   const ids = fs
     .readdirSync(LIBRARY_DIR, { withFileTypes: true })
-    .filter((d) => d.isDirectory())
+    .filter((d) => {
+      if (ID_RE.test(d.name) && d.isSymbolicLink()) {
+        throw new Error(`[build:dist] Linked Library work directory: ${d.name}`);
+      }
+      return d.isDirectory();
+    })
     .map((d) => d.name)
     .filter((name) => ID_RE.test(name))
     .sort()

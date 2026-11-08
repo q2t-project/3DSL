@@ -6,6 +6,7 @@ import { File } from 'node:buffer';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
+import { zipSync } from 'fflate';
 
 const ssot = new URL('../../../reconstruction/ssot/', import.meta.url);
 const MAX_BYTES = 32 * 1024 * 1024;
@@ -13,6 +14,8 @@ const scene = { document_meta: { title: 'incoming' }, points: [], lines: [], aux
 const json = JSON.stringify(scene);
 const exactFile = new File([json, ' '.repeat(MAX_BYTES - Buffer.byteLength(json))], 'boundary.json');
 const largeFile = new File([exactFile, ' '], 'oversize.json');
+// A binary archive presented with a JSON name must not replace the open work.
+const archiveFile = new File([zipSync({ '../escape.bin': Uint8Array.of(255,254) }, {level:0})], 'renamed.json');
 assert.equal(exactFile.size, MAX_BYTES);
 assert.equal(largeFile.size, MAX_BYTES + 1);
 
@@ -140,6 +143,14 @@ for (const fsa of [true, false]) {
   assert.deepEqual(canceled.state, canceledBefore, 'picker cancel/no selection preserves unapplied edits');
   assert(!canceled.events.includes('draft') && !canceled.events.includes('discard'));
 
+  const archived = modeler({ fsa, file:archiveFile });
+  const priorDocument = plain(archived.state.document);
+  await archived.open();
+  assert.deepEqual(archived.state.document, priorDocument);
+  assert(!archived.events.includes('setDocument') && !archived.events.includes('prepare'));
+  assert.equal(archived.state.saveHandle, 'existing-handle');
+  assert.match(archived.hud.at(-1), /Open failed/);
+
   const allowed = observedFile(exactFile, { textOnly: !fsa });
   const accepted = modeler({ fsa, file: allowed.file });
   await accepted.open();
@@ -206,6 +217,11 @@ assert.match(viewer.document.getElementById('contract-status').textContent, /32 
 assert.equal(input.value, '', 'Viewer resets input after refusal');
 input.files = []; input.dispatch('change'); await settle();
 assert.deepEqual(plain(viewer.window.viewerDiagnostics.snapshot()), beforeView, 'Viewer selection cancel preserves state');
+
+input.files = [archiveFile]; input.dispatch('change'); await settle();
+assert.deepEqual(plain(viewer.window.contractViewerSnapshot()), beforeModel, 'ZIP under a JSON name cannot replace the model');
+assert.deepEqual(plain(viewer.window.viewerDiagnostics.snapshot()), beforeView, 'invalid archive keeps the current view');
+assert.equal(input.value, '');
 
 const allowedViewer = observedFile(exactFile);
 input.files = [allowedViewer.file]; input.dispatch('change'); await settle();

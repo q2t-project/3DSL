@@ -47,6 +47,10 @@ jobs:
           npm run audit:report
           npm run check:reconstruction-ajv
 
+      - name: Check Library file publication in isolation
+        working-directory: apps/site
+        run: node scripts/check/library-files.mjs
+
       - name: Install bundled Japanese fonts for browser checks
         run: |
           mkdir -p "$HOME/.local/share/fonts/3dsl"

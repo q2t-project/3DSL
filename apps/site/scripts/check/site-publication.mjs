@@ -65,6 +65,13 @@ for (const item of index.items) {
   assert(await stat(path.join(dist, item.model_url.replace(/^\//, ''))), `${item.id}: model preserved`);
   assert.equal(new URL(item.viewer_url, siteOrigin).pathname, viewerPath, `${item.id}: canonical catalog URL`);
   assert(hasWorkLink(readerLinks(detail), item.model_url, `/library/${item.slug}/`), `${item.id}: detail opens its work and retains return path`);
+  // Resolve the actual generated links so a renamed image/attachment cannot
+  // silently ship a 404 in a work description.
+  for (const m of detail.matchAll(/(?:href|src)="(\/_data\/library\/[^"?#]+)"/g)) {
+    const pathname = path.posix.normalize(decodeURIComponent(new URL(m[1].replaceAll('&amp;', '&'), siteOrigin).pathname));
+    if (!pathname.startsWith(`${item.data_dir}/assets/`) && !pathname.startsWith(`${item.data_dir}/attachments/`)) continue;
+    assert((await stat(path.join(dist, pathname))).isFile(), `${item.id}: missing file ${pathname}`);
+  }
   if (item.hidden === true) {
     assert(!listHtml.includes(`data-library-id="${item.id}"`), `${item.id}: hidden from public list`);
     assert(!featured.includes(item.slug), `${item.id}: hidden from featured links`);

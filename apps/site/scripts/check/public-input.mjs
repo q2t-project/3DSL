@@ -10,8 +10,8 @@ const root = new URL('../../../../', import.meta.url);
 const read = file => fs.readFile(new URL(file, root), 'utf8');
 const page = await read('apps/site/src/pages/library/[slug].astro');
 const link = page.slice(page.indexOf('function publicLink('), page.indexOf('function listFilesPublicDir('));
-const markdown = page.slice(page.indexOf('    function escapeHtml('), page.indexOf('    const html0 ='));
-const ctx = vm.createContext({ URL });
+const markdown = page.slice(page.indexOf('    function escapeHtml('), page.indexOf('    bodyHtml = mdToHtml(md);'));
+const ctx = vm.createContext({ URL, dataDir:'/_data/library/00000001' });
 vm.runInContext((await transform(link + markdown + '\nglobalThis.render = mdToHtml; globalThis.link = publicLink;', { loader: 'ts' })).code, ctx);
 for (const bad of ['javascript:alert%281%29', 'JaVaScRiPt:alert%281%29', 'java\tscript:alert%281%29', 'data:text/html,hello', 'vbscript:msgbox', 'file:///tmp/x', 'https://user:pass@example.test/x']) {
   assert.equal(ctx.link(bad), '', bad);
@@ -26,6 +26,13 @@ for (const good of ['/library/26010501/', './attachments/example.pdf', '#scope',
 assert(ctx.render('[PDF](./attachments/example.pdf)').includes('href="./attachments/example.pdf"'));
 assert(ctx.render('## 見出し\n- 項目\n---\n```\n<a>\n```').includes('<pre><code>&lt;a&gt;</code></pre>'));
 for (const field of ['a', 'r', 't']) assert(page.includes(`href={publicLink(${field}.url) || "#"}`));
+const ownAsset = ctx.dataDir + '/assets/資料/図.svg';
+assert(ctx.render(`![図](${ownAsset})`).includes(`<img src="${encodeURI(ownAsset)}" alt="図"`));
+for (const url of ['https://external.test/a.svg', '/_data/library/00000002/assets/a.svg', ctx.dataDir+'/assets/../attachments/a.svg', ctx.dataDir+'/assets/x%2f..%2foutside.svg', 'javascript:bad']) {
+  assert(!ctx.render(`![](${url})`).includes('<img'), url);
+}
+const example = ctx.render('```\n![](' + ownAsset + ')\n```');
+assert(!example.includes('<img') && example.includes('![]('), 'image syntax in a code sample is inert');
 
 for (const file of ['apps/modeler/ssot/modelerHostBoot.js', 'apps/reconstruction/ssot/modeler_app/modelerHostBoot.js', 'apps/viewer/ssot/peekBoot.js']) {
   const source = await read(file);
