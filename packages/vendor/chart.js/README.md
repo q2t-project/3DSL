@@ -1,14 +1,4 @@
-# Chart.js Vendor README
+# Chart.js
 
-## Index
-- [Usage](#usage)
-- [License](#license)
-
-## Usage
-This directory vendors a static Chart.js distribution for the 3DSL toolchain.
-Import Chart.js directly from `code/vendor/chart.js` when building internal visualization utilities.
-Avoid manual edits; use the vendor refresh procedure for upgrades.
-
-## License
-Chart.js is available under the MIT License.
-Review the upstream terms at https://github.com/chartjs/Chart.js/blob/master/LICENSE.md.
+This directory contains this note. The 3DSL site copies it to `/vendor/chart.js/README.md`.
+If a Chart.js runtime is added here, record its exact version, source distribution, and license.

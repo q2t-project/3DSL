@@ -96,7 +96,8 @@
     "ajv": "^8.20.0",
     "ajv-cli": "^5.0.0",
     "ajv-formats": "^3.0.1",
-    "esbuild": "0.27.2"
+    "esbuild": "0.27.2",
+    "fflate": "0.8.3"
   },
   "overrides": {
     "remark-rehype": "11.1.2",

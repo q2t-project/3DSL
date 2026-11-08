@@ -168,3 +168,5 @@ await import('./content-readability.mjs');
   }
   console.log('[check:versioned-vendor] PASS current bundle/hash, preload order and date-time validation; no whole-Modeler UI claim.');
 }
+
+await import('./public-vendor.mjs');
