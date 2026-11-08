@@ -83,3 +83,14 @@ npm --prefix apps/site run ci:build
 - [Astro の JSX / MDX に関する報告](https://github.com/withastro/astro/security/advisories/GHSA-98hj-9722-w3j8)
 - [esbuild の Windows 開発サーバーに関する報告](https://github.com/advisories/GHSA-g7r4-m6w7-qqqr)
 - [CSS セレクタ解析に関する報告](https://github.com/advisories/GHSA-rj75-hqrm-r3gf)
+
+## 版番号のない vendor URL のキャッシュ（2026-11-08）
+
+本番の `/vendor/ajv/dist/ajv.bundle.js` は旧バンドルを返し、新固定デプロイとクエリ付きURLは更新版を返すことを確認しました。
+従来の `/vendor/*` に付いていた `max-age=31536000, immutable` を、版番号のないファイルには再検証する設定へ変更します。
+すでに保存された旧キャッシュに新しいヘッダーが遡って作用するとは扱いません。
+
+従来 Modeler の生成HTMLは、バンドルのSHA-256を付けた shim URL を先に読み、ハッシュをファイル名に含む新しいバンドルを取得します。
+その後で従来の起動モジュールを実行します。キャッシュされたコントローラーにも、format を登録する既存factoryを渡します。
+旧バンドルのURLは互換用として残し、通常の起動経路では新しいURLを使用します。
+配信ヘッダーの正本は `apps/site/config/pages-headers.txt`、`public/_headers` はビルド時の生成物です。

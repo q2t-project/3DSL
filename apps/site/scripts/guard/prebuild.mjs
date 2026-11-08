@@ -200,3 +200,7 @@ writeDeployProbe();
 // Keep the invocation manifest in source and copy it into the static build.
 fs.copyFileSync(path.join(siteRoot, "config/pages-routes.json"),
   path.join(siteRoot, "public/_routes.json"));
+
+// Deployment headers are source configuration; public is generated.
+fs.copyFileSync(path.join(siteRoot, "config/pages-headers.txt"),
+  path.join(siteRoot, "public/_headers"));

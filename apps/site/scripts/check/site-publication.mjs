@@ -136,3 +136,35 @@ for (const file of ['index.html', 'concept/index.html', 'docs/index.html', 'libr
 console.log(`[check:site-publication] PASS: ${index.items.length} detail/data URLs, hidden/list/featured/sitemap/ads policy, guide and its links; no browser or ad-serving claims`);
 
 await import('./content-readability.mjs');
+
+// Unversioned vendor URLs used to be immutable for a year. A warm legacy
+// Modeler must preload the exact current validator before its module graph runs.
+{
+  const { createHash } = await import('node:crypto');
+  const { pathToFileURL } = await import('node:url');
+  const html = await read('modeler_app/index.html');
+  const revision = html.match(/data-versioned-ajv="([a-f0-9]{64})"/)?.[1];
+  assert(revision, 'legacy Modeler preloads a content-addressed validator');
+  assert(html.includes(`await import("/vendor/ajv/dist/ajv.js?v=${revision}")`));
+  assert(html.indexOf(`await import("/vendor/ajv/dist/ajv.js?v=${revision}")`) < html.indexOf('await import("./modelerHostBoot.js")'));
+  const shim = await read('vendor/ajv/dist/ajv.js');
+  assert(shim.includes(`import "./ajv.${revision}.bundle.js"`));
+  const bundle = await readFile(path.join(dist, 'vendor/ajv/dist', `ajv.${revision}.bundle.js`));
+  assert.equal(createHash('sha256').update(bundle).digest('hex'), revision);
+  const headers = await read('_headers');
+  assert(headers.includes('/vendor/*\n  Cache-Control: public, max-age=0, must-revalidate'));
+  assert(!headers.includes('immutable'), 'unversioned vendor files are revalidated');
+  const keys = ['Ajv', 'AjvAddFormats', '__createAjv'];
+  const previous = keys.map(key => [key, globalThis[key]]);
+  try {
+    await import(pathToFileURL(path.join(dist, 'vendor/ajv/dist/ajv.js')).href);
+    // This is the API the generated preload exposes even to a cached controller.
+    const validator = new globalThis.__createAjv({ strict: true });
+    const dateTime = validator.compile({ type: 'string', format: 'date-time' });
+    assert.equal(dateTime('2026-11-08T00:00:00Z'), true);
+    assert.equal(dateTime('not-a-date'), false);
+  } finally {
+    for (const [key, value] of previous) if (value === undefined) delete globalThis[key]; else globalThis[key] = value;
+  }
+  console.log('[check:versioned-vendor] PASS current bundle/hash, preload order and date-time validation; no whole-Modeler UI claim.');
+}
