@@ -78,6 +78,16 @@ jobs:
           node scripts/check/viewer-load-page.mjs
           node scripts/check/android-viewer-memory-test.mjs
 
+      - name: Verify an independent site snapshot and Library QR requests
+        working-directory: apps/site
+        run: |
+          python3 ../../scripts/ops/test_site_snapshot.py
+          snapshot_dir="$RUNNER_TEMP/3dsl-recovery-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          python3 ../../scripts/ops/site_snapshot.py create --revision HEAD --dist dist --output "$snapshot_dir"
+          python3 "$snapshot_dir/site_snapshot.py" verify "$snapshot_dir"
+          node scripts/check/site-recovery.mjs "$snapshot_dir/site"
+          node scripts/check/library-qr.mjs
+
       - name: Type-check the generated site
         working-directory: apps/site
         run: npm run check

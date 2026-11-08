@@ -13,15 +13,16 @@ import { chromiumPort } from './chromium-port.mjs';
 const dist = fileURLToPath(new URL('../../dist/', import.meta.url));
 const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.glb': 'model/gltf-binary', '.png': 'image/png', '.wasm': 'application/wasm', '.svg': 'image/svg+xml' };
 
-export async function serveBuild(fixtures = new Map()) {
+export async function serveBuild(fixtures = new Map(), directory = dist) {
+  const root = path.resolve(directory);
   const server = http.createServer(async (req, res) => {
     try {
       const pathname = decodeURIComponent(new URL(req.url, 'http://127.0.0.1').pathname);
       let data = fixtures.get(pathname);
       let filename = pathname;
       if (!data) {
-        filename = path.resolve(dist, '.' + pathname);
-        if (!filename.startsWith(dist) && filename !== path.resolve(dist)) { res.writeHead(403).end(); return; }
+        filename = path.resolve(root, '.' + pathname);
+        if (filename !== root && !filename.startsWith(root + path.sep)) { res.writeHead(403).end(); return; }
         if ((await stat(filename)).isDirectory()) filename = path.join(filename, 'index.html');
         data = await readFile(filename);
       }
