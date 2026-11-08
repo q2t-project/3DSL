@@ -36,6 +36,12 @@ LibraryはZIPをそのままコピーする。作品を開くViewer・Modelerに
 
 公開検査は生成された画像・添付リンクの実体を検査する。隔離したChromiumでは、同じHTML・SVGを制限なし／生成した配信ヘッダー付きで読み、スクリプトの実行・副資源の要求・SVG画像表示を照合する。任意の画像・3Dデータの復号後メモリ、外部サービス全体の通信、原稿の配布根拠は別の点検範囲として残る。
 
+## Viewerの画像・3D素材の計測
+
+同じ3点・2線の作品に、格子形状とPNGをまとめたGLBを1件付ける。小型は512三角形と256角、大型は131,072三角形と2,048角。生成ファイルは試験用サーバーだけで配信する。作品切替時に共有ジオメトリ・テクスチャ・復号された画像を解放する。切替後に旧作品の画像が届く場合も検査する。
+
+`apps/site` でビルド後に `node scripts/check/viewer-assets.mjs` を実行する。新しいChromiumプロセス、390 × 844、DPR 1、ソフトウェアWebGL、ローカルHTTP・圧縮なしで各3回計測する。公開入口のナビゲーションから実際のタッチ回転が反映されるまでの時間、素材の描画、全体の転送バイト数、GC後のJSヒープと外部バッファ、取得可能なLinuxレンダラープロセスのメモリを記録する。RGBA換算は幅×高さ×4の計算値。Android実機のピークや最大受入寸法は、この計測だけでは決まらない。
+
 ## 参照
 
 - [OWASP XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html)

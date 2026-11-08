@@ -1,3 +1,4 @@
+import { versionModules } from '../lib/revisioned-modules.mjs';
 import { execFileSync } from 'node:child_process';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
@@ -60,6 +61,9 @@ await fs.mkdir(publicDir, { recursive: true });
 
 await fs.rm(primaryPublicRoot, { recursive: true, force: true });
 await fs.cp(ssotRoot, primaryPublicRoot, { recursive: true });
+await versionModules(publicDir, primaryPublicDirName + '/index.html', [
+  'ui/controllers/uiFileController.js', 'ui/hubFacade.js', 'runtime/core/coreControllers.js',
+].map(name => '/' + primaryPublicDirName + '/' + name));
 
 // If /modeler/ is owned by Astro pages, Modeler app is synced to /modeler_app/.
 // In that case, make sure legacy /public/modeler is removed so:

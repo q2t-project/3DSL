@@ -1,3 +1,4 @@
+import { versionModules } from '../lib/revisioned-modules.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
@@ -28,6 +29,13 @@ async function rewrite(directory) {
 }
 
 await rewrite(target);
+const hostedRoot = path.dirname(target);
+await versionModules(hostedRoot, 'preview-reconstruction/modeler_app/index.html', [
+  '/preview-reconstruction/modeler_app/ui/controllers/uiFileController.js',
+]);
+await versionModules(hostedRoot, 'preview-reconstruction/contract_viewer/index.html', [
+  '/preview-reconstruction/viewer/runtime/renderer/context.js',
+]);
 // Site documentation is available only in the hosted package. Preserve the
 // standalone ZIP's self-contained navigation and add these links while syncing.
 const siteGuidance = '<p><a href="/docs/usage/create-save-read">作る・保存する・開き直す — 形式と未適用入力の扱い</a></p>'

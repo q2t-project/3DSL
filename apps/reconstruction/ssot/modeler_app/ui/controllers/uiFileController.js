@@ -346,59 +346,29 @@ function ensureStrictOk(doc) {
   return false;
 }
 
-  async function writeToHandle(handle, jsonText) {
-    const text = String(jsonText ?? "");
-    if (!text) throw new Error("writeToHandle: empty jsonText");
-
-    // Prefer a Blob write. Some environments have shown silent 0-byte results with
-    // certain write forms; we therefore verify and retry with alternative forms.
+  async function writeToHandle(handle, text) {
+    if (!text) throw new Error("Cannot write an empty snapshot");
     const blob = new Blob([text], { type: "application/json" });
-    console.log("[file] write blob bytes=", blob.size, "name=", handle?.name || "(no name)");
-
-    async function writeOnce(mode) {
-      // keepExistingData:false is the safest for overwrites when supported.
-      // @ts-ignore
-      const writable = await handle.createWritable({ keepExistingData: false });
+    async function writeAndVerify(data) {
+      const stream = await handle.createWritable({ keepExistingData: false });
       try {
-        if (mode === "blob") {
-          await writable.write(blob);
-        } else {
-          await writable.write(text);
-        }
-        await writable.close();
+        await stream.write(data);
+        await stream.close();
       } catch (error) {
-        try { await writable.abort?.(); } catch {}
+        try { await stream.abort(); } catch {}
         throw error;
       }
-    }
-
-    async function readSize() {
-      try {
-        const f = await handle.getFile();
-        const size = f?.size ?? 0;
-        // Non-zero alone is not enough: a partial write must not mark the document clean.
-        const matches = size === blob.size && typeof f?.text === "function" && (await f.text()) === text;
-        return { size, matches, name: (f?.name || handle?.name || "(no name)") };
-      } catch {
-        return { size: 0, name: (handle?.name || "(no name)") };
+      // close() may already have committed. A read error must not initiate another write.
+      const file = await handle.getFile();
+      if (file.size === 0) return false;
+      if (file.size !== blob.size || await file.text() !== text) {
+        throw new Error("Saved contents differ from the requested snapshot");
       }
+      return true;
     }
-
-    // 1st attempt: blob
-    await writeOnce("blob");
-    let s1 = await readSize();
-    console.log("[file] wrote bytes=", s1.size, "name=", s1.name);
-    if (s1.matches) return;
-    if (s1.size > 0) throw new Error("writeToHandle: saved contents differ from the requested snapshot");
-
-    // 2nd attempt: string (some FS backends behave better with text)
-    console.warn("[file] wrote 0 bytes; retrying with string write");
-    await writeOnce("text");
-    let s2 = await readSize();
-    console.log("[file] wrote bytes=", s2.size, "name=", s2.name);
-    if (s2.matches) return;
-
-    throw new Error("writeToHandle: saved contents could not be verified (after retry)");
+    if (await writeAndVerify(blob)) return;
+    // Some backends produce an empty file for a Blob but accept a string.
+    if (!await writeAndVerify(text)) throw new Error("Saved file is empty after retry");
   }
 
   async function pickSaveHandle({ suggestedName }) {
@@ -496,7 +466,9 @@ function ensureStrictOk(doc) {
             reportFileState("図の書出しを取消。作品・入力・保存先はそのままやで。", "cancelled");
             return;
           }
-          throw e;
+          dl(suggestedName, jsonText);
+          reportFileState(`図の保存先を開けなかったで。代わりにダウンロードを開始したで。編集内容と従来の保存先は保持してる。 ${suggestedName}`, "failed");
+          return;
         }
       }
 
@@ -520,7 +492,7 @@ function ensureStrictOk(doc) {
         console.error("[file] export write failed; fallback to download", e);
         const fn = suggestedName;
         dl(fn, jsonText);
-        reportFileState(`図の書込みに失敗。代わりにダウンロードを開始: ${fn}。保存状態はそのまま、内容は残ってるで。`, "failed");
+        reportFileState(`図の保存先の内容を確認できへんかったで。代わりにダウンロードを開始: ${fn}。保存状態はそのまま、内容は残ってるで。`, "failed");
       }
       return;
     }
@@ -545,7 +517,9 @@ function ensureStrictOk(doc) {
               reportFileState("保存を取消。編集内容・入力・これまでの保存先はそのままやで。", "cancelled");
               return;
             }
-            throw e;
+            dl(suggestedName, jsonText);
+            reportFileState(`保存先を開けなかったで。代わりにダウンロードを開始したで。編集内容と従来の保存先は保持してる。 ${suggestedName}`, "failed");
+            return;
           }
         } else {
           // Fallback: download
@@ -571,7 +545,7 @@ function ensureStrictOk(doc) {
           const fn = suggestedName;
           dl(fn, jsonText);
           // Retain the original destination and dirty state after a failed write.
-          reportFileState(`書込みに失敗。代わりにダウンロードを開始: ${fn}。未保存のまま内容と従来の上書き先を保持してるで。`, "failed");
+          reportFileState(`保存先の内容を確認できへんかったで。代わりにダウンロードを開始: ${fn}。未保存のまま内容と従来の上書き先を保持してるで。`, "failed");
           return;
         }
       }

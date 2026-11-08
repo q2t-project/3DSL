@@ -449,12 +449,18 @@ function maybeForceContextLoss(renderer, enabled) {
     _microWasActive = false;
   }
 
+  // Instances share the template's geometry and textures. Only their cloned
+  // materials belong to the individual marker removed during a scene rebuild.
+  const gltfGeometries = new WeakSet();
+  const gltfMaterials = new WeakSet();
+
   function disposeMaterial(mat) {
     if (!mat) return;
     if (Array.isArray(mat)) {
       for (const m of mat) disposeMaterial(m);
       return;
     }
+    if (gltfMaterials.has(mat)) return;
     try { mat.dispose?.(); } catch (_e) {}
   }
 
@@ -462,12 +468,12 @@ function maybeForceContextLoss(renderer, enabled) {
     if (!root) return;
     try {
       root.traverse?.((o) => {
-        try { o.geometry?.dispose?.(); } catch (_e) {}
+        try { if (!gltfGeometries.has(o.geometry)) o.geometry?.dispose?.(); } catch (_e) {}
         try { disposeMaterial(o.material); } catch (_e) {}
       });
     } catch (_e) {
       // best-effort fallback
-      try { root.geometry?.dispose?.(); } catch (_e2) {}
+      try { if (!gltfGeometries.has(root.geometry)) root.geometry?.dispose?.(); } catch (_e2) {}
       try { disposeMaterial(root.material); } catch (_e2) {}
     }
   }
@@ -487,12 +493,27 @@ function maybeForceContextLoss(renderer, enabled) {
     if (_gltfSyncToken === 0) _gltfSyncToken = 1;
   }
 
-  function clearGltfTemplateCache() {
-    for (const entry of _gltfTemplateCache.values()) {
-      if (entry?.scene) {
-        try { disposeObjectTree(entry.scene); } catch (_e) {}
-      }
+  function releaseGltfTemplate(scene) {
+    const geometries = new Set(), materials = new Set(), textures = new Set(), images = new Set();
+    scene?.traverse(object => {
+      if (object.geometry) geometries.add(object.geometry);
+      for (const material of [].concat(object.material || [])) materials.add(material);
+    });
+    for (const material of materials) {
+      for (const value of Object.values(material)) if (value?.isTexture) textures.add(value);
+      material.dispose();
     }
+    for (const texture of textures) {
+      const image = texture.source?.data;
+      if (typeof image?.close === "function") images.add(image);
+      texture.dispose();
+    }
+    for (const geometry of geometries) geometry.dispose();
+    for (const image of images) image.close();
+  }
+
+  function clearGltfTemplateCache() {
+    for (const entry of _gltfTemplateCache.values()) releaseGltfTemplate(entry.scene);
     _gltfTemplateCache.clear();
   }
 
@@ -504,11 +525,19 @@ function maybeForceContextLoss(renderer, enabled) {
     const entry = { promise: null, scene: null };
     entry.promise = loadGltfScene(absUrl)
       .then((scene) => {
+        if (_gltfTemplateCache.get(absUrl) !== entry || ctx._disposed) {
+          releaseGltfTemplate(scene);
+          return null;
+        }
+        scene?.traverse(object => {
+          if (object.geometry) gltfGeometries.add(object.geometry);
+          for (const material of [].concat(object.material || [])) gltfMaterials.add(material);
+        });
         entry.scene = scene || null;
         return entry.scene;
       })
       .catch((_e) => {
-        _gltfTemplateCache.delete(absUrl);
+        if (_gltfTemplateCache.get(absUrl) === entry) _gltfTemplateCache.delete(absUrl);
         return null;
       });
     _gltfTemplateCache.set(absUrl, entry);
@@ -2727,6 +2756,7 @@ ctx.getDebugPoseSnapshot = (opts = {}) => {
     try { labelLayer.dispose(); } catch (_e) {}
     // cancel pending glTF marker loads and free cached templates
     try { bumpGltfSyncToken(); } catch (_e) {}
+    for (const kind of ["points", "lines", "aux"]) clearGroup(kind);
     try { clearGltfTemplateCache(); } catch (_e) {}
   };
 
