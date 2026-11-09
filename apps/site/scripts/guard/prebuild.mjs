@@ -9,6 +9,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execSync } from "node:child_process";
+import { documentSecurityHeaders } from "../../config/document-security.mjs";
 
 function exists(p) {
   try { fs.accessSync(p); return true; } catch { return false; }
@@ -197,6 +198,8 @@ writeDeployProbe();
 fs.copyFileSync(path.join(siteRoot, "config/pages-routes.json"),
   path.join(siteRoot, "public/_routes.json"));
 
-// Deployment headers are source configuration; public is generated.
-fs.copyFileSync(path.join(siteRoot, "config/pages-headers.txt"),
-  path.join(siteRoot, "public/_headers"));
+// Common document protection and path-specific rules share the same output.
+const commonHeaders = Object.entries(documentSecurityHeaders)
+  .map(([name, value]) => `  ${name}: ${value}`).join("\n");
+fs.writeFileSync(path.join(siteRoot, "public/_headers"),
+  `/*\n${commonHeaders}\n\n` + fs.readFileSync(path.join(siteRoot, "config/pages-headers.txt"), "utf8"));

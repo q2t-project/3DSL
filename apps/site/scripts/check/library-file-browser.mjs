@@ -10,11 +10,13 @@ export async function libraryFileBrowserFixture(dist) {
     const lines = headersText.split(/\r?\n/);
     const start = lines.indexOf(rule);
     assert.notEqual(start, -1, 'missing Pages rule ' + rule);
-    const result = {};
+    const result = rule === '/*' ? {} : headersFor('/*');
     for (const line of lines.slice(start + 1)) {
       if (!/^\s+\S/.test(line)) break;
       const split = line.indexOf(':');
-      result[line.slice(0, split).trim().toLowerCase()] = line.slice(split + 1).trim();
+      const name = line.slice(0, split).trim().toLowerCase();
+      const value = line.slice(split + 1).trim();
+      result[name] = result[name] ? result[name] + ', ' + value : value;
     }
     return result;
   }
@@ -28,7 +30,7 @@ export async function libraryFileBrowserFixture(dist) {
       const id = `${kind}-${format}`;
       // The extensionless HTML spelling models the URL Pages serves after normalization.
       const url = kind === 'control' ? `${root}/${format}` : `${work}/${kind}/資料/${format==='html'?'example':'example.svg'}`;
-      const headers = kind === 'control' ? {} : headersFor(`/_data/library/:id/${kind}/*`);
+      const headers = headersFor(kind === 'control' ? '/*' : `/_data/library/:id/${kind}/*`);
       if (kind !== 'control') {
         assert.equal(headers['x-content-type-options'], 'nosniff');
         assert.deepEqual(headersFor(`/_data/library/:id/${kind}`), headers, 'directory index alias has the same policy');

@@ -1,4 +1,5 @@
 // This retired URL must not fall back to a cached static guide.
+import { documentSecurityHeaders } from '../../../config/document-security.mjs';
 const page = `<!doctype html>
 <html lang="ja">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>公開終了 | 3DSL</title></head>
@@ -9,6 +10,7 @@ export function onRequest({ request }) {
   return new Response(request.method === 'HEAD' ? null : page, {
     status: 410,
     headers: {
+      ...documentSecurityHeaders,
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-store',
       'Cloudflare-CDN-Cache-Control': 'no-store',
