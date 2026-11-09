@@ -29,9 +29,24 @@
 
 <link rel="stylesheet" href="/contract_viewer/browsing.css" />
   <link rel="stylesheet" href="/contract_viewer/mobileGizmo.css" />
+  <noscript>
+    <style>
+      body > :not(noscript) { display: none !important; }
+      html, body.contract-viewer { height: auto !important; min-height: 100svh; overflow: auto !important; margin: 0; background: #0c121a; color: #e5edf6; font-family: system-ui, sans-serif; }
+      #reading-noscript { box-sizing: border-box; max-width: 48rem; margin: auto; padding: 24px; line-height: 1.7; }
+      #reading-noscript a { display: block; min-height: 44px; color: #a5d8ff; }
+    </style>
+  </noscript>
 </head>
 
 <body class="contract-viewer">
+  <noscript>
+    <main id="reading-noscript">
+      <h1>JavaScriptが無効になっています</h1>
+      <p>Viewerで図を表示するにはJavaScriptが必要です。内容や読み方は、次の入口から確認できます。</p>
+      <nav aria-label="図を表示せずに読む"><span data-reading-alternative><a href="/RECONSTRUCTION.html" target="_top">作品の入口へ</a></span></nav>
+    </main>
+  </noscript>
   <header id="reading-header">
     <strong>3DSL Viewer <small>読取専用</small></strong>
     <label class="open-button">開く…<input id="contract-open" type="file" accept=".json,application/json"></label>
@@ -256,9 +271,12 @@
     <button id="reading-tab-menu" type="button" aria-controls="reading-sheet" aria-expanded="false">メニュー</button>
     <button id="reading-mobile-notice" type="button" aria-controls="reading-sheet" aria-expanded="false" hidden></button>
   </nav>
-  <div id="reading-mobile-prompt" class="reading-compact-only">
+  <div id="reading-mobile-prompt" class="reading-compact-only" role="region" aria-labelledby="reading-prompt-title">
     <strong id="reading-prompt-title">3DSL Viewer</strong>
     <p id="reading-prompt-message" role="status"></p>
+    <p id="reading-prompt-help" hidden><span data-reading-alternative><a href="/RECONSTRUCTION.html" target="_top">作品の入口へ</a></span></p>
+    <a id="reading-prompt-return" hidden>元のページへ戻る</a>
+    <button type="button" id="reading-prompt-retry" hidden>このURLを再読み込み</button>
     <button type="button" id="reading-prompt-open">作品を開く</button>
     <button type="button" id="reading-prompt-dismiss" hidden>閉じる</button>
   </div>

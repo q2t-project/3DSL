@@ -1,5 +1,6 @@
 import { syncViewerLoad } from './viewer-load.mjs';
 import { versionModules } from '../lib/revisioned-modules.mjs';
+import { viewerFallbackLinks } from '../../config/viewer-fallback.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
@@ -30,6 +31,14 @@ async function rewrite(directory) {
 }
 
 await rewrite(target);
+// Keep the standalone reader's local entry, while the hosted copy can offer
+// text/table guides both after a read failure and with JavaScript disabled.
+const readerIndex = path.join(target, 'contract_viewer/index.html');
+const readerHtml = await readFile(readerIndex, 'utf8');
+const alternatives = /<span data-reading-alternative>[\s\S]*?<\/span>/g;
+if ([...readerHtml.matchAll(alternatives)].length !== 2) throw new Error('Reader fallback placeholders changed');
+const hostedAlternatives = viewerFallbackLinks.map(link => `<a href="${link.href}" target="_top">${link.label}</a>`).join(' ');
+await writeFile(readerIndex, readerHtml.replace(alternatives, `<span data-reading-alternative>${hostedAlternatives}</span>`));
 const hostedRoot = path.dirname(target);
 await versionModules(hostedRoot, 'preview-reconstruction/modeler_app/index.html', [
   '/preview-reconstruction/modeler_app/ui/controllers/uiFileController.js',

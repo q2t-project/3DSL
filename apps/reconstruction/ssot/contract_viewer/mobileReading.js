@@ -1,6 +1,6 @@
 // Existing controls keep their event handlers when moved between the desktop
 // layout and the phone's sheet. The canvas always stays in the same container.
-export function attachMobileReading({ getController }) {
+export function attachMobileReading({ getController, canRetryUrl = false }) {
   const byId = id => document.getElementById(id);
   const viewport = matchMedia('(max-width: 650px), (max-width: 960px) and (max-height: 550px) and (pointer: coarse)');
   const sheet = byId('reading-sheet');
@@ -91,6 +91,14 @@ export function attachMobileReading({ getController }) {
     byId('reading-prompt-open').textContent = displayError ? '開き直す' : '作品を開く';
     byId('reading-prompt-open').disabled = byId('contract-open').disabled;
     byId('reading-prompt-dismiss').hidden = !ready || !displayError;
+    const help = byId('reading-prompt-help');
+    if (help) help.hidden = !displayError;
+    const returnLink = byId('reading-prompt-return');
+    if (returnLink) returnLink.hidden = !displayError || !returnLink.getAttribute('href');
+    const retry = byId('reading-prompt-retry');
+    // A page reload can retry an initial URL, but must not replace a retained
+    // local work or a one-time Modeler handoff under the label of retrying.
+    if (retry) retry.hidden = !displayError || !canRetryUrl || Boolean(getController()?.getModel?.());
     byId('reading-tab-find').hidden = empty;
     document.body.classList.toggle('reading-error', displayError);
   }
@@ -134,6 +142,7 @@ export function attachMobileReading({ getController }) {
   });
   byId('reading-sheet-close').addEventListener('click', () => show('diagram'));
   byId('reading-prompt-open').addEventListener('click', () => byId('contract-open').click());
+  byId('reading-prompt-retry')?.addEventListener('click', () => location.reload());
   byId('reading-prompt-dismiss').addEventListener('click', () => { error = ''; renderPrompt(); });
   function onKey(e) {
     if (viewport.matches && active !== 'diagram' && e.key === 'Escape' && !e.isComposing) {

@@ -80,6 +80,7 @@
     "postbuild": "npm run check:site-publication",
     "check:local-file-size": "node scripts/check/local-file-size.mjs",
     "check:public-input": "node scripts/check/public-input.mjs",
+    "check:viewer-fallback": "node scripts/check/viewer-fallback.mjs",
     "check:first-work": "node ../reconstruction/scripts/build-first-work.mjs --check",
     "build:reconstruction-ajv": "node scripts/tool/build-reconstruction-ajv.mjs",
     "check:reconstruction-ajv": "node scripts/tool/build-reconstruction-ajv.mjs --check",

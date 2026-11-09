@@ -29,7 +29,9 @@ const peekMode=entryParams.get('viewerMode')==='peek';
 if(peekMode)document.body.classList.add('reading-peek','is-embed');
 const returnLink=byId('reading-return'),returnUrl=returnDestination(entryParams,location);
 if(returnLink&&returnUrl){returnLink.href=returnUrl;returnLink.target='_top';returnLink.hidden=false;}
-const mobile=attachMobileReading({getController:()=>controller});
+const failureReturn=byId('reading-prompt-return');
+if(failureReturn&&returnUrl){failureReturn.href=returnUrl;failureReturn.target='_top';}
+const mobile=attachMobileReading({getController:()=>controller,canRetryUrl:!entryParams.has('handoff')&&Boolean(modelFromSearch(entryParams))});
 const mobileGizmo=attachMobileGizmo();
 function showInformation(event) {
   if(!mobile.showInfo(event?.currentTarget))byId('contract-info').scrollIntoView({block:'start',behavior:'smooth'});

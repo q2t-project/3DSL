@@ -40,6 +40,16 @@ button,.open-button,summary,select{cursor:pointer}button:hover:not(:disabled),.o
 #reading-selection{flex-shrink:0;padding:6px 12px;background:#152231;border-top:1px solid #41566e}
 
 .reading-compact-only, #reading-sheet, #reading-mobile-nav { display: none; }
+.reading-error #reading-mobile-prompt:not([hidden]) {
+  display: block; position: absolute; z-index: 5; left: 50%; top: 50%; transform: translate(-50%,-50%);
+  box-sizing: border-box; width: min(32rem, calc(100% - 32px)); max-height: 80%; overflow: auto;
+  padding: 16px; border: 1px solid #476077; border-radius: 10px; background: #142231; text-align: center;
+}
+.reading-error #reading-prompt-title { display: block; font-size: 18px; }
+#reading-prompt-message, #reading-prompt-help { overflow-wrap: anywhere; }
+#reading-prompt-help { line-height: 1.6; }
+#reading-prompt-help a, #reading-prompt-return { display: block; box-sizing: border-box; min-height: 44px; padding: 8px 4px; }
+#reading-prompt-help[hidden], #reading-prompt-return[hidden], #reading-prompt-retry[hidden] { display: none !important; }
 body.is-compact {
   height: 100dvh !important;
   min-height: 0;
