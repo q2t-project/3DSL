@@ -5,7 +5,7 @@ import http from 'node:http';
 import { once } from 'node:events';
 import { withBrowser, waitFor } from './site-browser.mjs';
 
-const rules = await readFile(new URL('../../config/pages-headers.txt',import.meta.url),'utf8');
+const rules = await readFile(process.argv[2] || new URL('../../dist/_headers',import.meta.url),'utf8');
 function cacheFor(pathname) {
   let rule = ''; const values = [];
   for (const line of rules.split(/\r?\n/)) {
