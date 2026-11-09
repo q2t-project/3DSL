@@ -33,7 +33,7 @@ try {
           assert(await evaluate('(() => {const b=document.activeElement.getBoundingClientRect();return b.left>=0&&b.top>=0&&b.right<=innerWidth&&b.bottom<=innerHeight;})()'), label + ': focused link is visible');
           await key('Enter', 'Enter', 13);
           await waitFor(() => evaluate('document.activeElement?.id==="main-content"'), label + ': Enter moves focus to content');
-          const content = await evaluate('(() => {const h=document.querySelector("main h1").getBoundingClientRect(),n=document.querySelector("header").getBoundingClientRect();return {heading:h.top,header:n.bottom,width:innerWidth,scroll:document.documentElement.scrollWidth};})()');
+          const content = await evaluate('(() => {const h=document.querySelector("main h1").getBoundingClientRect(),n=document.querySelector("header").getBoundingClientRect();return {heading:h.top,header:n.bottom,width:innerWidth,scroll:document.documentElement.scrollWidth,overflow:[...document.querySelectorAll("main *")].filter(e=>e.getBoundingClientRect().right>innerWidth).slice(0,8).map(e=>({tag:e.tagName,text:e.textContent.slice(0,60)}))};})()');
           assert(content.heading >= content.header - 1, label + ': heading is below sticky header ' + JSON.stringify(content));
           assert(content.scroll <= content.width + 1, label + ': no page-wide horizontal overflow ' + JSON.stringify(content));
           await key('Tab', 'Tab', 9);
