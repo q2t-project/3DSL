@@ -41,6 +41,12 @@
   outline: 2px solid #82c8ff;
   outline-offset: 3px;
 }
+/* Wrapped navigation must not cover the reading area on narrow screens,
+   especially when the reader enlarges text. No script is needed. */
+@media (max-width: 40rem) {
+  .app-shell > header { position: static; }
+  #main-content { scroll-margin-top: 1rem; }
+}
 
 /* ==============================
    Ad containers
