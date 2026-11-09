@@ -13,7 +13,7 @@ import { chromiumPort } from './chromium-port.mjs';
 const dist = fileURLToPath(new URL('../../dist/', import.meta.url));
 const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.glb': 'model/gltf-binary', '.png': 'image/png', '.wasm': 'application/wasm', '.svg': 'image/svg+xml' };
 
-export async function serveBuild(fixtures = new Map(), directory = dist) {
+export async function serveBuild(fixtures = new Map(), directory = dist, headers = {}) {
   const root = path.resolve(directory);
   const server = http.createServer(async (req, res) => {
     try {
@@ -26,7 +26,7 @@ export async function serveBuild(fixtures = new Map(), directory = dist) {
         if ((await stat(filename)).isDirectory()) filename = path.join(filename, 'index.html');
         data = await readFile(filename);
       }
-      res.writeHead(200, { 'Content-Type': mime[path.extname(filename)] || 'application/octet-stream', 'Content-Length': data.length });
+      res.writeHead(200, { ...headers, 'Content-Type': mime[path.extname(filename)] || 'application/octet-stream', 'Content-Length': data.length });
       res.end(data);
     } catch { res.writeHead(404).end(); }
   });
