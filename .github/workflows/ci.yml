@@ -72,6 +72,10 @@ jobs:
         working-directory: apps/site
         run: node scripts/check/cache-delivery.mjs
 
+      - name: Check public-site failure detection
+        working-directory: apps/site
+        run: node scripts/check/deployed-site.mjs
+
       - name: Check Modeler recovery and Viewer texture lifetime
         working-directory: apps/site
         env:

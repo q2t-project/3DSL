@@ -1,0 +1,36 @@
+name: Public site health
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Production commit (7 or 40 hex characters; blank uses this main revision)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  delivery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: apps/site/.node-version
+      - name: Inspect the public production site
+        working-directory: apps/site
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha || github.sha }}
+        run: node scripts/ops/check-deployed.mjs --expect-sha "$EXPECTED_SHA" --output ci-logs/site-health.json
+      - name: Retain the result
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-site-health
+          path: apps/site/ci-logs/site-health.json
+          retention-days: 14
+          if-no-files-found: warn
