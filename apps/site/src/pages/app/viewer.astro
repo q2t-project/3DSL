@@ -80,11 +80,11 @@
           <div class="app-viewer-open-group">
             <div class="app-viewer-open-recent-head">
               <div class="app-viewer-open-label">最近開いた (ローカル)</div>
-              <button id="app-viewer-open-recent-clear" class="app-viewer-open-btn app-viewer-open-btn--ghost" type="button">消す</button>
+              <button id="app-viewer-open-recent-clear" class="app-viewer-open-btn app-viewer-open-btn--ghost" type="button">履歴を削除</button>
             </div>
             <div id="app-viewer-open-recent-list" class="app-viewer-open-recent-list"></div>
           </div>
-          <div class="app-viewer-open-note">※ ローカルファイルは URL 共有の対象外です。</div>
+          <p class="app-viewer-open-note">この画面で選んだファイルは、名前・読込日時・本文をこのブラウザに最大5件保存します。共用端末では利用後に「履歴を削除」を押してください。<a href="/policy/#local-files" target="_blank" rel="noopener">端末内に残る情報</a></p>
         </div>
       </div>
     </div>
@@ -1142,11 +1142,13 @@
       }
 
       async function loadLocalFile(file) {
-        armLoadToast();
-        showProgress();
-        startProgressFallback();
+        if (!file) return;
         try {
-          if (!file) return;
+          const { assertLocalFileSize } = await import('/preview-reconstruction/shared/localFile.js');
+          assertLocalFileSize(file);
+          armLoadToast();
+          showProgress();
+          startProgressFallback();
           const name = file.name || '(file)';
           if (openFileName) openFileName.textContent = name;
 
@@ -1172,7 +1174,7 @@
           stopProgressFallback();
           hideProgress();
           disarmLoadToast();
-          showToast('ファイルの読み込みに失敗しました');
+          showToast(e?.message || 'ファイルの読み込みに失敗しました');
         }
       }
 
@@ -1199,9 +1201,13 @@
       }
 
       if (openFileInput) {
-        openFileInput.addEventListener('change', () => {
-          const f = openFileInput.files && openFileInput.files[0];
-          if (f) void loadLocalFile(f);
+        openFileInput.addEventListener('change', async () => {
+          try {
+            const f = openFileInput.files && openFileInput.files[0];
+            if (f) await loadLocalFile(f);
+          } finally {
+            openFileInput.value = '';
+          }
         });
       }
 

@@ -3,10 +3,12 @@
 // Real File objects supply size/bytes; oversize reads must never be invoked.
 import assert from 'node:assert/strict';
 import { File } from 'node:buffer';
+import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { zipSync } from 'fflate';
+import { assertLocalFileSize } from '../../../reconstruction/ssot/shared/localFile.js';
 
 const ssot = new URL('../../../reconstruction/ssot/', import.meta.url);
 const MAX_BYTES = 32 * 1024 * 1024;
@@ -229,4 +231,52 @@ assert.deepEqual(plain(viewer.window.contractViewerSnapshot()), scene, 'Viewer e
 assert.deepEqual(allowedViewer.reads, { text: 1, arrayBuffer: 0 });
 assert.equal(input.value, '');
 
-console.log('[check:local-file-size] PASS: 32 MiB boundary; oversize reads=0; Modeler FSA/input and Viewer input; draft/dirty/history/save-target/current-view retention; cancel and existing resolution gates. DOM/renderer/schema boundaries simulated.');
+// The host's "URL・履歴" dialog is another file entry and persists recent data.
+// Exercise its shipped loader, with storage/iframe boundaries recorded locally.
+const hostSource = await readFile(new URL('../../src/pages/app/viewer.astro', import.meta.url), 'utf8');
+const hostStart = hostSource.indexOf('      async function loadLocalFile(file) {');
+const hostEnd = hostSource.indexOf('      if (openUrlBtn)', hostStart);
+assert(hostStart > 0 && hostEnd > hostStart);
+const hostLoader = hostSource.slice(hostStart, hostEnd).replace(
+  "await import('/preview-reconstruction/shared/localFile.js')", '{ assertLocalFileSize: guard }');
+const events = [], messages = [], recent = [];
+const label = { textContent: 'previous.json' };
+const createHost = new Function('guard', 'events', 'messages', 'recent', 'label', `
+  let localLoaded = false;
+  const openFileName = label;
+  const armLoadToast = () => events.push('arm');
+  const showProgress = () => events.push('progress');
+  const startProgressFallback = () => events.push('timer');
+  const stopProgressFallback = () => {};
+  const hideProgress = () => {};
+  const disarmLoadToast = () => {};
+  const showToast = message => messages.push(message);
+  const postToIframeWhenReady = async payload => { events.push(payload); return true; };
+  const addRecentLocal = (name, text) => recent.push({name, text});
+  const renderRecentLocal = () => {};
+  const closeOpenModal = () => {};
+  const console = { error() {} };
+  ${hostLoader}
+  return { open: loadLocalFile, isLocal: () => localLoaded };
+`);
+const host = createHost(assertLocalFileSize, events, messages, recent, label);
+const rejected = observedFile(largeFile, { rejectReads: true });
+await host.open(rejected.file);
+assert.deepEqual(rejected.reads, { text: 0, arrayBuffer: 0 }, 'host rejects oversize before materializing bytes');
+assert.equal(label.textContent, 'previous.json');
+assert.equal(host.isLocal(), false);
+assert.deepEqual(events, []);
+assert.deepEqual(recent, []);
+assert.match(messages.at(-1), /32 MiB/);
+await host.open(null);
+assert.deepEqual(events, [], 'cancel leaves the existing work and loading state intact');
+const allowedHost = observedFile(exactFile);
+await host.open(allowedHost.file);
+assert.deepEqual(allowedHost.reads, {text:1, arrayBuffer:0});
+assert.deepEqual(events.at(-1).document3dss, scene);
+assert.equal(recent.length, 1);
+assert.equal(recent[0].text, await exactFile.text(), 'history retains the full allowed file');
+assert.equal(label.textContent, exactFile.name);
+assert(host.isLocal());
+
+console.log('[check:local-file-size] PASS: 32 MiB boundary; oversize reads=0; Modeler FSA/input, Viewer input and host history; draft/dirty/history/save-target/current-view retention; cancel and existing resolution gates. DOM/renderer/schema/storage boundaries simulated.');
