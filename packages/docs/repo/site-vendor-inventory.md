@@ -27,7 +27,7 @@ npmレジストリのBulk Advisory APIへ名前と版を指定しました。thr
 
 | 配布物 | 確認できた版・一致 | 公開する通知 |
 | --- | --- | --- |
-| Dracoデコーダー | 1.5.6。通常版・glTF版のWASMとラッパー4本は対応するnpmリリースにバイト一致。asm.js版2本もthree.jsの1.5.6更新コミットとバイト一致。既存エンコーダー2本の個別版は未特定。 | 上流1.5.6のLICENSE全文と著作権表示。 |
+| Dracoデコーダー | 1.5.6。通常版・glTF版のWASMとラッパー4本は対応するnpmリリースにバイト一致。asm.js版2本もthree.jsの1.5.6更新コミットとバイト一致。エンコーダーの追跡は下記11/9の記録。 | 上流1.5.6のLICENSE全文と著作権表示。 |
 | Basis Universal | v1_50_0。JS・WASMの2本が上流タグとバイト一致。Git blob SHAも一致。 | 上流のLICENSE全文とLICENSES内の4ファイル。 |
 | rhino3dm | 8.4.0。通常JS・ESM・WASMの3本が同版npmリリースとバイト一致。 | 同版のMIT全文、同版が固定したOpenNURBSとDracoのLICENSE全文。OpenNURBSの文書に付属zlibの表示も含まれる。 |
 
@@ -37,7 +37,15 @@ npmレジストリのBulk Advisory APIへ名前と版を指定しました。thr
 
 TroikaのWOFF変換器内のfflateの版は未同定です。変換器はWOFFの圧縮されたフォントテーブルを展開するコードで、公開する関数は `convert_streams`。Troikaの解析入口は `wOFF` の署名で変換器を呼び、`wOF2` は拒否します。今回更新したfflateのZIP64パーサーはこの変換器に含まれません。現行の通常ラベル設定は同梱のTTFを指定しています。
 
-Dracoのエンコーダー2本、および上表以外の追加部品には版や条件を個別に未確認のものが残ります。npm照合の範囲に入らないネイティブコードの脆弱性点検も継続します。
+## 追加8ファイルの出所と通知（2026-11-09）
+
+Dracoエンコーダー2本と、Chevrotain・ecsy・lil-gui・opentype.js・Tween.js・WebXR motion-controllersの6本を、SHA-512を検算した `three@0.181.0` のnpmアーカイブと照合し、8本ともバイト一致しました。
+
+通常のDracoエンコーダーは、上流1.3.5の `javascript/draco_encoder.js` とGit blobが一致します。glTF用として置かれたファイルは、上流1.3.0と1.3.1の同名ファイルに同一のblobがあります。取得元リリースは一意に決まらないため、両タグ・固定コミットとblob SHAを記録しました。3タグで同じLICENSE原文をエンコーダー用に追加しています。デコーダー1.5.6とは別の記録です。
+
+lil-gui 0.17.0とTween.js 23.1.1は各npmリリースの配布ファイルにもバイト一致します。他4本は配布ファイル内の版表示を照合しました。各版のLICENSEと、Chevrotainが含むregexp-to-ast、opentype.jsが含むtiny-inflateとcodepointatのMIT全文も同梱しました。Chevrotainのtypes・utilsのLICENSEは主パッケージと同じApache-2.0本文です。補助コードの実際の小版の特定は引き続き対象とします。
+
+配布する [provenance.json](../../vendor/three/examples/jsm/libs/provenance.json) に8本と許諾文10本のハッシュ・出所・照合方法を記録しました。既存の `check:public-vendor` が生成先のハッシュ、正本からのコピー、許諾文参照を検査します。上記以外の追加部品と、npm照合の範囲に入らないネイティブコードの脆弱性点検は継続します。
 
 ## 出典
 

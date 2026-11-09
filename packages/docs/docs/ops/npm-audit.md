@@ -87,3 +87,7 @@ three.js両配布、Troika、Notoフォント、Ajv関連の版と配布物を�
 ## 追加コーデックの通知（2026-11-08）
 
 Dracoのデコーダー、Basis Universal、rhino3dmの配布元を追跡し、許諾文を追加しました。[配布物の第三者通知](/vendor/three/examples/jsm/libs/THIRD_PARTY_NOTICES.md)から各原文へ進めます。照合した版・バイト一致・未確認の範囲は[同梱物の点検記録](https://github.com/q2t-project/3DSL/blob/main/packages/docs/repo/site-vendor-inventory.md)に記録しています。
+
+## 追加エンコーダーと付属部品の通知（2026-11-09）
+
+Dracoエンコーダー2本の上流を追跡し、対応するLICENSEを追加しました。通常版は1.3.5と一致し、glTF用ファイルは1.3.0・1.3.1の両タグと一致します。Chevrotain・ecsy・lil-gui・opentype.js・Tween.js・WebXR motion-controllersについても許諾文を同梱しました。[照合記録](/vendor/three/examples/jsm/libs/provenance.json)に8本の配布ファイルと許諾文10本のハッシュ・出所を記録し、生成後の検査で照合します。補助コードの小版や、その他の追加部品・ネイティブコードの脆弱性には未確認が残っています。

@@ -36,6 +36,22 @@ for (const file of codecNotices) {
   const original = path.resolve(site, '../../packages/vendor/three/examples/jsm/libs', file);
   assert((await read(`vendor/three/examples/jsm/libs/${file}`)).equals(await readFile(original)), file);
 }
+// Pin the reviewed bundles and their upstream license texts to the same record.
+const provenancePath = 'vendor/three/examples/jsm/libs/provenance.json';
+const provenanceBytes = await read(provenancePath);
+assert(provenanceBytes.equals(await readFile(path.resolve(site, '../../packages/vendor/three/examples/jsm/libs/provenance.json'))));
+const provenance = JSON.parse(provenanceBytes);
+const reviewedNotices = new Set(provenance.notices.map(notice => notice.path));
+for (const artifact of provenance.files) {
+  assert(artifact.notices.length > 0, `license references: ${artifact.path}`);
+  for (const notice of artifact.notices) assert(reviewedNotices.has(notice), `known license: ${notice}`);
+}
+for (const file of [...provenance.files, ...provenance.notices]) {
+  const published = await read(`vendor/three/examples/jsm/libs/${file.path}`);
+  assert.equal(digest(published), file.sha256, `reviewed bytes: ${file.path}`);
+  const original = path.resolve(site, '../../packages/vendor/three/examples/jsm/libs', file.path);
+  assert(published.equals(await readFile(original)), `source copy: ${file.path}`);
+}
 // Run the shipped ESM plugin itself with a real validator.
 const source = await read('vendor/ajv-formats/dist/ajv-formats.bundle.js');
 const { default: formats } = await import(`data:text/javascript;base64,${source.toString('base64')}`);
@@ -84,4 +100,4 @@ try {
   });
   assert.equal(result, 13, 'malformed ZIP64 is rejected');
 } finally { await worker.terminate(); }
-console.log(`[check:public-vendor] PASS shipped notices, Ajv format validation, fflate ${compression.version} normal ZIP and malformed ZIP64, ${compression.consumers.length} consumers.`);
+console.log(`[check:public-vendor] PASS shipped notices, ${provenance.files.length} reviewed bundles and ${provenance.notices.length} pinned license texts, Ajv format validation, fflate ${compression.version} normal ZIP and malformed ZIP64, ${compression.consumers.length} consumers.`);

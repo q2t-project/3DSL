@@ -1,0 +1,313 @@
+{
+  "recordedOn": "2026-11-09",
+  "scope": "Eight existing files distributed by three.js r181. Other optional libraries and native-code security remain separate checks.",
+  "threeRelease": {
+    "package": "three",
+    "version": "0.181.0",
+    "registry": "https://registry.npmjs.org/three/0.181.0",
+    "tarball": "https://registry.npmjs.org/three/-/three-0.181.0.tgz",
+    "integrity": "sha512-KGf6EOCOQGshXeleKxpxhbowQwAXR2dLlD93egHtZ9Qmk07Saf8sXDR+7wJb53Z1ORZiatZ4WGST9UsVxhHEbg=="
+  },
+  "files": [
+    {
+      "path": "chevrotain.module.min.js",
+      "archivePath": "package/examples/jsm/libs/chevrotain.module.min.js",
+      "sha256": "026047366a9bdd0961eb79857fd5d84db204589942193012aabe7e3bee381045",
+      "bytes": 157440,
+      "component": "chevrotain",
+      "version": "9.0.1",
+      "versionEvidence": "version declared in the three.js bundle",
+      "npmMatchingFiles": [],
+      "notices": [
+        "LICENSES/chevrotain-LICENSE.txt",
+        "LICENSES/regexp-to-ast-LICENSE"
+      ]
+    },
+    {
+      "path": "ecsy.module.js",
+      "archivePath": "package/examples/jsm/libs/ecsy.module.js",
+      "sha256": "f3ad24a3c35afaa75b0d84898ab8f25e86ddc3f48a7adb05432a3e506518cb32",
+      "bytes": 45516,
+      "component": "ecsy",
+      "version": "0.3.1",
+      "versionEvidence": "version declared in the three.js bundle",
+      "npmMatchingFiles": [],
+      "notices": [
+        "LICENSES/ecsy-LICENSE"
+      ]
+    },
+    {
+      "path": "lil-gui.module.min.js",
+      "archivePath": "package/examples/jsm/libs/lil-gui.module.min.js",
+      "sha256": "5e31e7fc4d3a1268550b948463eabe06c7a6c03c158ccb99c78616d2c9682518",
+      "bytes": 29526,
+      "component": "lil-gui",
+      "version": "0.17.0",
+      "versionEvidence": "exact npm release file",
+      "npmMatchingFiles": [
+        "package/dist/lil-gui.esm.min.js"
+      ],
+      "notices": [
+        "LICENSES/lil-gui-LICENSE.md"
+      ]
+    },
+    {
+      "path": "opentype.module.js",
+      "archivePath": "package/examples/jsm/libs/opentype.module.js",
+      "sha256": "6897287898532ec3b9e33e1db73bdd9fd3c6131101ea0c0f62da000a0584b2fb",
+      "bytes": 467478,
+      "component": "opentype.js",
+      "version": "1.3.4",
+      "versionEvidence": "version declared in the three.js bundle",
+      "npmMatchingFiles": [],
+      "notices": [
+        "LICENSES/opentype.js-LICENSE",
+        "LICENSES/tiny-inflate-LICENSE",
+        "LICENSES/string.prototype.codepointat-LICENSE-MIT.txt"
+      ]
+    },
+    {
+      "path": "tween.module.js",
+      "archivePath": "package/examples/jsm/libs/tween.module.js",
+      "sha256": "b61c18c59bff9810f43d5750849fde620b225ff4e9013dc51bcece4b027d69a9",
+      "bytes": 32316,
+      "component": "@tweenjs/tween.js",
+      "version": "23.1.1",
+      "versionEvidence": "exact npm release file",
+      "npmMatchingFiles": [
+        "package/dist/tween.esm.js"
+      ],
+      "notices": [
+        "LICENSES/tweenjs-tween.js-LICENSE"
+      ]
+    },
+    {
+      "path": "motion-controllers.module.js",
+      "archivePath": "package/examples/jsm/libs/motion-controllers.module.js",
+      "sha256": "4bf534b98dbb0f3e90b1332ac4d49c7d7747253768970abc7e4133b7700b75b1",
+      "bytes": 13492,
+      "component": "@webxr-input-profiles/motion-controllers",
+      "version": "1.0.0",
+      "versionEvidence": "version declared in the three.js bundle",
+      "npmMatchingFiles": [],
+      "notices": [
+        "LICENSES/webxr-input-profiles-motion-controllers-LICENSE.md"
+      ]
+    },
+    {
+      "path": "draco/draco_encoder.js",
+      "archivePath": "package/examples/jsm/libs/draco/draco_encoder.js",
+      "sha256": "d5c653caf242556ddff9370e86979b8b5c6131bc196be388698a85dc2e1bb59b",
+      "bytes": 928718,
+      "component": "Draco encoder",
+      "versionEvidence": "exact upstream Git blob",
+      "matchingSources": [
+        {
+          "repository": "https://github.com/google/draco",
+          "tag": "1.3.5",
+          "commit": "8833cf878e6fd43c5a3fd6e4231212e25e25e632",
+          "path": "javascript/draco_encoder.js",
+          "gitBlob": "2ace437282e9beeb7712143820fffa1937b2a41a"
+        }
+      ],
+      "notices": [
+        "draco/encoder-LICENSE"
+      ]
+    },
+    {
+      "path": "draco/gltf/draco_encoder.js",
+      "archivePath": "package/examples/jsm/libs/draco/gltf/draco_encoder.js",
+      "sha256": "6d4132d7b68d26d20a43a1ed59ff4b4a694fbaad41b339158db050dbd0e68f56",
+      "bytes": 954360,
+      "component": "Draco encoder",
+      "versionEvidence": "exact upstream Git blob",
+      "matchingSources": [
+        {
+          "repository": "https://github.com/google/draco",
+          "tag": "1.3.1",
+          "commit": "56c2e6b46c65c97bbc82b19b3a22aece4a8dbb23",
+          "path": "javascript/draco_encoder.js",
+          "gitBlob": "a67cdf20607147c05c53de9d009653efa43ff7c0"
+        },
+        {
+          "repository": "https://github.com/google/draco",
+          "tag": "1.3.0",
+          "commit": "02272a65c72673432a67815d7ba499e6954066ef",
+          "path": "javascript/draco_encoder.js",
+          "gitBlob": "a67cdf20607147c05c53de9d009653efa43ff7c0"
+        }
+      ],
+      "notices": [
+        "draco/encoder-LICENSE"
+      ]
+    }
+  ],
+  "notices": [
+    {
+      "path": "LICENSES/chevrotain-LICENSE.txt",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "sources": [
+        {
+          "package": "chevrotain",
+          "version": "9.0.1",
+          "registry": "https://registry.npmjs.org/chevrotain/9.0.1",
+          "tarball": "https://registry.npmjs.org/chevrotain/-/chevrotain-9.0.1.tgz",
+          "integrity": "sha512-7rFWS+G8yavnYK5AcqSL9mSXPRfz+atuwM4Hq5Ph/CNM7n7zl3woPXMGWS+cdxSD01nic4PozN12zaw1Fu8cug==",
+          "archivePath": "package/LICENSE.txt"
+        },
+        {
+          "package": "@chevrotain/utils",
+          "version": "9.0.0",
+          "registry": "https://registry.npmjs.org/@chevrotain/utils/9.0.0",
+          "tarball": "https://registry.npmjs.org/@chevrotain/utils/-/utils-9.0.0.tgz",
+          "integrity": "sha512-J0uI+VxqCMiTFmVD95dfZr1QxJcw1RMQc7X3umMAfEcG5f2uWrZeyX0h3hURvXgzUcK6vXH5r+SNv+4bPxWpdg==",
+          "archivePath": "package/LICENSE.txt"
+        },
+        {
+          "package": "@chevrotain/types",
+          "version": "9.0.1",
+          "registry": "https://registry.npmjs.org/@chevrotain/types/9.0.1",
+          "tarball": "https://registry.npmjs.org/@chevrotain/types/-/types-9.0.1.tgz",
+          "integrity": "sha512-jyIgbvb0Vz3OhLdImiufolBxRNAPFhpZmWuNWQ9ffU+nsxLJ0a0yObRCkdT2MKGXolwLZow3r8zhVr/7f5yNSA==",
+          "archivePath": "package/LICENSE.txt"
+        }
+      ]
+    },
+    {
+      "path": "LICENSES/ecsy-LICENSE",
+      "sha256": "5af31f79ee76af3ce3d8367b5d57b5624d206ebabea2f91f3f473571ce4f3621",
+      "sources": [
+        {
+          "package": "ecsy",
+          "version": "0.3.1",
+          "registry": "https://registry.npmjs.org/ecsy/0.3.1",
+          "tarball": "https://registry.npmjs.org/ecsy/-/ecsy-0.3.1.tgz",
+          "integrity": "sha512-KbNKb7Oxml4M/bCM8dkMedi8+LBdJuljNS7duaZWElg4k5qsubuLfAo9n9rXjBHpZTjie+KkKVm2Uw8v5Li/Qg==",
+          "archivePath": "package/LICENSE"
+        }
+      ]
+    },
+    {
+      "path": "LICENSES/lil-gui-LICENSE.md",
+      "sha256": "8cf4a9691239b14c715613ed8e41580d18ee433c862e263058393b35be6c8e53",
+      "sources": [
+        {
+          "package": "lil-gui",
+          "version": "0.17.0",
+          "registry": "https://registry.npmjs.org/lil-gui/0.17.0",
+          "tarball": "https://registry.npmjs.org/lil-gui/-/lil-gui-0.17.0.tgz",
+          "integrity": "sha512-MVBHmgY+uEbmJNApAaPbtvNh1RCAeMnKym82SBjtp5rODTYKWtM+MXHCifLe2H2Ti1HuBGBtK/5SyG4ShQ3pUQ==",
+          "archivePath": "package/LICENSE.md"
+        }
+      ]
+    },
+    {
+      "path": "LICENSES/opentype.js-LICENSE",
+      "sha256": "a5b87c9bc191e7f9c06b07bd7cbbed3ed846dfdb50e859484b2c245aa1ab2e61",
+      "sources": [
+        {
+          "package": "opentype.js",
+          "version": "1.3.4",
+          "registry": "https://registry.npmjs.org/opentype.js/1.3.4",
+          "tarball": "https://registry.npmjs.org/opentype.js/-/opentype.js-1.3.4.tgz",
+          "integrity": "sha512-d2JE9RP/6uagpQAVtJoF0pJJA/fgai89Cc50Yp0EJHk+eLp6QQ7gBoblsnubRULNY132I0J1QKMJ+JTbMqz4sw==",
+          "archivePath": "package/LICENSE"
+        }
+      ]
+    },
+    {
+      "path": "LICENSES/tweenjs-tween.js-LICENSE",
+      "sha256": "c95fecd88f2709bfc34e4d1f1ccc36d17048990e6ba26c283cfecdef0432936b",
+      "sources": [
+        {
+          "package": "@tweenjs/tween.js",
+          "version": "23.1.1",
+          "registry": "https://registry.npmjs.org/@tweenjs/tween.js/23.1.1",
+          "tarball": "https://registry.npmjs.org/@tweenjs/tween.js/-/tween.js-23.1.1.tgz",
+          "integrity": "sha512-ZpboH7pCPPeyBWKf8c7TJswtCEQObFo3bOBYalm99NzZarATALYCo5OhbCa/n4RQyJyHfhkdx+hNrdL5ByFYDw==",
+          "archivePath": "package/LICENSE"
+        }
+      ]
+    },
+    {
+      "path": "LICENSES/webxr-input-profiles-motion-controllers-LICENSE.md",
+      "sha256": "0ef0c87e8ffdd0681f332dc3b39f284dee2166d1f853fabc3853884fe81a6f30",
+      "sources": [
+        {
+          "package": "@webxr-input-profiles/motion-controllers",
+          "version": "1.0.0",
+          "registry": "https://registry.npmjs.org/@webxr-input-profiles/motion-controllers/1.0.0",
+          "tarball": "https://registry.npmjs.org/@webxr-input-profiles/motion-controllers/-/motion-controllers-1.0.0.tgz",
+          "integrity": "sha512-Ppxde+G1/QZbU8ShCQg+eq5VtlcL/FPkerF1dkDOLlIml0LJD1tFqnCZYR0SrHzYleIQ2siRnOx7xbFLaCpExQ==",
+          "archivePath": "package/LICENSE.md"
+        }
+      ]
+    },
+    {
+      "path": "LICENSES/regexp-to-ast-LICENSE",
+      "sha256": "ffdfd706a54ae16965504e916e4e236bc76bcd1573c6f88045daec6c1fed64c5",
+      "sources": [
+        {
+          "package": "regexp-to-ast",
+          "version": "0.5.0",
+          "registry": "https://registry.npmjs.org/regexp-to-ast/0.5.0",
+          "tarball": "https://registry.npmjs.org/regexp-to-ast/-/regexp-to-ast-0.5.0.tgz",
+          "integrity": "sha512-tlbJqcMHnPKI9zSrystikWKwHkBqu2a/Sgw01h3zFjvYrMxEDYHzzoMZnUrbIfpTFEsoRnnviOXNCzFiSc54Qw==",
+          "archivePath": "package/LICENSE"
+        }
+      ]
+    },
+    {
+      "path": "LICENSES/tiny-inflate-LICENSE",
+      "sha256": "c0df7f551401f8f80197ff31bf69b8cd23727d127423403282514d242a3ab132",
+      "sources": [
+        {
+          "package": "tiny-inflate",
+          "version": "1.0.3",
+          "registry": "https://registry.npmjs.org/tiny-inflate/1.0.3",
+          "tarball": "https://registry.npmjs.org/tiny-inflate/-/tiny-inflate-1.0.3.tgz",
+          "integrity": "sha512-pkY1fj1cKHb2seWDy0B16HeWyczlJA9/WW3u3c4z/NiWDsO3DOU5D7nhTLE9CF0yXv/QZFY7sEJmj24dK+Rrqw==",
+          "archivePath": "package/LICENSE"
+        }
+      ]
+    },
+    {
+      "path": "LICENSES/string.prototype.codepointat-LICENSE-MIT.txt",
+      "sha256": "1e234f86ba3f213fbab143e195f172a40c5f943fb268c45d619ede8510b20d06",
+      "sources": [
+        {
+          "package": "string.prototype.codepointat",
+          "version": "0.2.0",
+          "registry": "https://registry.npmjs.org/string.prototype.codepointat/0.2.0",
+          "tarball": "https://registry.npmjs.org/string.prototype.codepointat/-/string.prototype.codepointat-0.2.0.tgz",
+          "integrity": "sha512-dFQFHWDpvnEnl6tcGoiZq0ahpxlIhiW7gJr5JSWzExdLJVC73DYp48aklOBXjidKEegZ01De5bcPUbGDGpfj5w==",
+          "archivePath": "package/LICENSE-MIT.txt"
+        }
+      ]
+    },
+    {
+      "path": "draco/encoder-LICENSE",
+      "sha256": "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd",
+      "sources": [
+        {
+          "repository": "https://github.com/google/draco",
+          "tag": "1.3.5",
+          "commit": "8833cf878e6fd43c5a3fd6e4231212e25e25e632",
+          "path": "LICENSE"
+        },
+        {
+          "repository": "https://github.com/google/draco",
+          "tag": "1.3.1",
+          "commit": "56c2e6b46c65c97bbc82b19b3a22aece4a8dbb23",
+          "path": "LICENSE"
+        },
+        {
+          "repository": "https://github.com/google/draco",
+          "tag": "1.3.0",
+          "commit": "02272a65c72673432a67815d7ba499e6954066ef",
+          "path": "LICENSE"
+        }
+      ]
+    }
+  ]
+}
