@@ -20,7 +20,7 @@ export function returnDestination(params, location) {
     if (!raw) continue;
     try {
       const url = new URL(raw, location.origin);
-      if (url.origin !== location.origin || !['http:', 'https:'].includes(url.protocol)) continue;
+      if (url.origin !== location.origin || !['http:', 'https:'].includes(url.protocol) || url.username || url.password) continue;
       const scroll = params.get('scroll');
       if (key === 'return' && scroll && Number.isFinite(Number(scroll)) && Number(scroll) >= 0) {
         url.searchParams.set('scroll', String(Math.floor(Number(scroll))));

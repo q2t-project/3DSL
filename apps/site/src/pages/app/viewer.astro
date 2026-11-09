@@ -1,4 +1,5 @@
 ---
+import { viewerFallbackLinks } from '../../../config/viewer-fallback.mjs';
 ---
 
 <!doctype html>
@@ -7,9 +8,26 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
     <title>3DSL Viewer</title>
+    <noscript>
+      <style is:inline>
+        body > :not(noscript) { display: none !important; }
+        html, body { height: auto !important; min-height: 100%; overflow: auto !important; margin: 0; background: #0c121a; color: #e5edf6; font-family: system-ui, sans-serif; }
+        #viewer-noscript { box-sizing: border-box; max-width: 48rem; margin: auto; padding: 24px; line-height: 1.7; }
+        #viewer-noscript a { display: block; min-height: 44px; color: #a5d8ff; }
+      </style>
+    </noscript>
   </head>
 
   <body>
+    <noscript>
+      <main id="viewer-noscript">
+        <h1>JavaScriptが無効になっています</h1>
+        <p>Viewerで図を表示するにはJavaScriptが必要です。作品の解説や、文章と表で読む例は次のページで確認できます。</p>
+        <nav aria-label="図を表示せずに読む">
+          {viewerFallbackLinks.map(link => <a href={link.href}>{link.label}</a>)}
+        </nav>
+      </main>
+    </noscript>
   <div id="app-viewer-progress" class="app-viewer-progress" aria-hidden="true" data-on="1"><div class="app-viewer-progress-bar"></div></div>
     <iframe
       id="app-viewer-iframe"
@@ -190,10 +208,8 @@
           if (v) inner.set("model", v);
         }
 
-        // host-only params (do not pass into iframe)
-        inner.delete("back");
-        inner.delete("return");
-        inner.delete("scroll");
+        // Keep navigation intent for the reader's failure links. The reader's
+        // returnDestination validates it before exposing a same-origin link.
         // added by the site swipe preview iframe
         inner.delete("noads");
         inner.delete("swipe");
@@ -227,6 +243,9 @@
           // Move the host actions into the reader's menu without intercepting the canvas.
           const slot = iframe.contentDocument?.getElementById('reading-host-actions');
           if (slot) {
+            // The host already supplies a back action in the reader's menu.
+            const readerReturn = iframe.contentDocument.getElementById('reading-return');
+            if (readerReturn) readerReturn.hidden = true;
             slot.replaceChildren();
             for (const [id, label] of [['app-viewer-back', '元のページへ戻る'], ['app-viewer-open', 'URL・履歴から開く'], ['app-viewer-snap', '画像として保存']]) {
               const action = document.getElementById(id);

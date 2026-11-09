@@ -136,7 +136,7 @@ assert.equal((await input.openUrl('/failed.json')).ok, false); assert.equal(open
 responseFactory = () => new Response('recovered');
 assert.equal((await input.openUrl('/recovered.json')).ok, true);
 input.dispose();
-for (const raw of ['https://foreign.test/x', '//foreign.test/x', 'javascript:bad', 'data:text/plain,x']) assert.equal(returnDestination(new URLSearchParams({ return: raw }), win.location), null);
+for (const raw of ['https://foreign.test/x', '//foreign.test/x', 'javascript:bad', 'data:text/plain,x', 'https://u:p@site.test/private']) assert.equal(returnDestination(new URLSearchParams({ return: raw }), win.location), null);
 assert.equal(returnDestination(new URLSearchParams({ return: '/library/', scroll: '12.8' }), win.location), 'https://site.test/library/?scroll=12');
 for (const key of ['model', 'open', 'work', 'scene', 'src']) assert.equal(modelFromSearch(new URLSearchParams({ [key]: '/model.json' })), '/model.json');
 assert.equal(modelFromSearch(new URLSearchParams({ src: 'library' })), null);
