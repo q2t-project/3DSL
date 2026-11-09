@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { readFile, stat } from 'node:fs/promises';
+import { readFile, readdir, stat } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const site = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -15,6 +16,59 @@ const featured = [...topHtml.matchAll(/href="\/library\/([^"/?#]+)"/g)].map((mat
 // Check generated reader links, not just whether a compatibility URL responds.
 const viewerPath = '/app/viewer/';
 const siteOrigin = 'https://3dsl.jp';
+
+// Inspect the delivered HTML and PNG, including Preview builds without a sitemap.
+// This proves metadata availability, not how a social platform caches/renders it.
+{
+  const image = JSON.parse(await read('assets/social/image.json'));
+  assert.match(image.path, /^\/assets\/social\/3dsl\.[a-f0-9]{16}\.png$/);
+  assert.equal(image.url, siteOrigin + image.path);
+  const png = await readFile(path.join(dist, image.path.slice(1)));
+  const digest = createHash('sha256').update(png).digest('hex');
+  assert.equal(digest, image.sha256, 'social image bytes match manifest');
+  assert(image.path.includes(digest.slice(0, 16)), 'social image URL changes with its content');
+  assert.equal(png.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+  assert.equal(png.toString('ascii', 12, 16), 'IHDR');
+  assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [1200, 630]);
+  assert.equal(image.width, 1200);
+  assert.equal(image.height, 630);
+  assert.equal(image.type, 'image/png');
+  assert(image.alt?.trim(), 'social image has descriptive alternative text');
+  assert.equal(image.sourceLogoSha256, createHash('sha256')
+    .update(await readFile(path.join(site, '../viewer/ssot/assets/logo/3DSL.svg'))).digest('hex'));
+  const checked = new Set();
+  for (const file of (await readdir(dist, { recursive: true })).filter(name => name.endsWith('.html'))) {
+    const html = await read(file);
+    if (!html.includes('property="og:title"')) continue;
+    const meta = name => new RegExp(`<meta (?:property|name)="${name}" content="([^"]*)"`).exec(html)?.[1];
+    const canonical = /<link rel="canonical" href="([^"]+)"/.exec(html)?.[1];
+    assert(canonical?.startsWith(siteOrigin + '/'), file + ': production canonical');
+    const identity = new URL(canonical);
+    assert(!identity.search && !identity.hash, file + ': canonical excludes query/fragment');
+    assert.equal(meta('og:url'), canonical, file + ': shared URL matches canonical');
+    assert.equal(meta('og:title'), /<title>([\s\S]*?)<\/title>/.exec(html)?.[1], file + ': shared title');
+    assert.equal(meta('og:description'), meta('description'), file + ': shared description');
+    const pageImage = meta('og:image');
+    assert.equal(new URL(pageImage).protocol, 'https:', file + ': absolute HTTPS image');
+    assert.equal(meta('twitter:image'), pageImage, file + ': shared image');
+    assert(meta('og:image:alt')?.trim(), file + ': descriptive image alt');
+    assert.equal(meta('twitter:image:alt'), meta('og:image:alt'), file + ': shared image alt');
+    if (pageImage === image.url) {
+      assert.equal(meta('og:image:alt'), image.alt, file + ': default image alt');
+      assert.equal(meta('og:image:type'), image.type, file + ': image type');
+      assert.equal(meta('og:image:width'), String(image.width), file + ': image width');
+      assert.equal(meta('og:image:height'), String(image.height), file + ': image height');
+    }
+    assert(['summary_large_image', 'summary'].includes(meta('twitter:card')), file + ': image card');
+    checked.add(canonical);
+  }
+  for (const route of ['/', '/docs/works/knowledge-questions/', '/docs/usage/first-work/']) {
+    assert(checked.has(siteOrigin + route), route + ': share metadata exists');
+  }
+  for (const [, loc] of sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)) assert(checked.has(loc), loc + ': sitemap page has share metadata');
+  console.log(`[check:social-metadata] PASS ${checked.size} pages: canonical/title/description, absolute image and alt; PNG 1200x630, source and content hashes. No platform preview claim.`);
+}
+
 function readerLinks(html) {
   return [...html.matchAll(/<a\b[^>]*\bhref="(\/[^"]*)"/gi)]
     .map(match => new URL(match[1].replace(/&(?:amp|#0*38|#x0*26);/gi, '&'), siteOrigin));
