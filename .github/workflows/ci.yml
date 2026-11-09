@@ -68,6 +68,10 @@ jobs:
         working-directory: apps/site
         run: npm run check:viewer-fallback
 
+      - name: Check keyboard reading with and without JavaScript
+        working-directory: apps/site
+        run: node scripts/check/keyboard-reading.mjs
+
       - name: Check document protection and public embedding
         working-directory: apps/site
         run: node scripts/check/web-defense.mjs

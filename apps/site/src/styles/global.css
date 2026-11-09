@@ -17,6 +17,37 @@
   --font-content: "Noto Serif JP", "Noto Serif", ui-serif, Georgia, serif;
 }
 
+/* Reach page content without traversing the repeated header links. */
+.ui-skip-link {
+  position: fixed;
+  z-index: 10000;
+  top: 1rem;
+  left: 1rem;
+  max-width: calc(100% - 2rem);
+  padding: .75rem 1rem;
+  border: 2px solid #82c8ff;
+  border-radius: .4rem;
+  background: #0b0f14;
+  color: #fff;
+  transform: translateY(calc(-100% - 2rem));
+}
+.ui-skip-link:focus {
+  transform: none;
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+#main-content { scroll-margin-top: 10rem; }
+.app-shell :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid #82c8ff;
+  outline-offset: 3px;
+}
+/* Wrapped navigation must not cover the reading area on narrow screens,
+   especially when the reader enlarges text. No script is needed. */
+@media (max-width: 40rem) {
+  .app-shell > header { position: static; }
+  #main-content { scroll-margin-top: 1rem; }
+}
+
 /* ==============================
    Ad containers
    ============================== */

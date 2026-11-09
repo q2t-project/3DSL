@@ -27,3 +27,10 @@ const pageDescription = typeof entry.data?.summary === "string" && entry.data.su
     <Content />
   </article>
 </Layout>
+
+<style>
+  nav, article { min-width: 0; overflow-wrap: anywhere; }
+  @media (max-width: 40rem) {
+    article :global(table) { table-layout: fixed; width: 100%; }
+  }
+</style>
