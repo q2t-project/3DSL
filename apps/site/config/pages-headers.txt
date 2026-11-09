@@ -18,6 +18,13 @@
 /_data/library/:id/assets
   Content-Security-Policy: sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'
 
+# Executable URLs can retain their names across deployments. Require validation
+# even when a zone Browser Cache TTL raises a numeric max-age.
+/*.js
+  Cache-Control: no-cache
+/*.css
+  Cache-Control: no-cache
+
 /vendor/*
   Cache-Control: public, max-age=0, must-revalidate
 
