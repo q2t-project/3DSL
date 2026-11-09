@@ -68,6 +68,10 @@ jobs:
         working-directory: apps/site
         run: node scripts/check/web-defense.mjs
 
+      - name: Check cached module updates
+        working-directory: apps/site
+        run: node scripts/check/cache-delivery.mjs
+
       - name: Check Modeler recovery and Viewer texture lifetime
         working-directory: apps/site
         env:
