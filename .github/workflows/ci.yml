@@ -72,6 +72,10 @@ jobs:
         working-directory: apps/site
         run: node scripts/check/keyboard-reading.mjs
 
+      - name: Follow reading links and return to the source page
+        working-directory: apps/site
+        run: node scripts/check/reading-journey.mjs
+
       - name: Check document protection and public embedding
         working-directory: apps/site
         run: node scripts/check/web-defense.mjs

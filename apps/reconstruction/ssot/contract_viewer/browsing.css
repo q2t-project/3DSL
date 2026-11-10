@@ -1,4 +1,5 @@
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#e5edf6;background:#0c121a}
+#reading-return:not([hidden]){display:inline-flex;align-items:center;min-height:44px}
 #reading-snapshot-notice{margin:0;padding:5px 12px;background:#19342f;border-bottom:1px solid #3e786d;color:#c8eee6;font-size:12px;line-height:1.4}#reading-snapshot-notice[hidden]{display:none}
 body{display:flex;flex-direction:column;height:100dvh;min-height:420px;overflow:hidden;background:#0c121a;color:#e5edf6;font-size:14px}
 button,input,select,summary,.open-button{font:inherit}button,select,input[type=search],.open-button{border:1px solid #41566e;border-radius:6px;color:inherit;background:#1a293b;padding:7px 10px;min-height:36px}
