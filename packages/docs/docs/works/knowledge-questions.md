@@ -7,9 +7,9 @@ summary: 光速度の同じ数値が、1975年の勧告と1983年のメートル
 
 **同じ答えでも、何のための答えかが変わることがあります。** この作品は、問い・活動・回答・規準・資料のつながりを、全体図と二つの具体例で表しています。回答だけを取り出さず、それを支える活動と資料へ戻って読むための図です。
 
-<a href="/app/viewer/?model=/preview-reconstruction/models/knowledge_questions.3dsl-work.json" target="_blank" rel="noopener">作品を3DSL Viewerで開く（別タブ）</a> ／ [作る・開く](/preview-reconstruction/)
+<a href="/app/viewer/?model=/preview-reconstruction/models/knowledge_questions.3dsl-work.json&amp;return=%2Fdocs%2Fworks%2Fknowledge-questions%2F" target="_blank" rel="noopener">作品を3DSL Viewerで開く（別タブ）</a> ／ [作る・開く](/preview-reconstruction/)
 
-図は新しいタブで開きます。この解説を残し、タブを切り替えながら読めます。
+図は新しいタブで開きます。この解説を残し、タブを切り替えながら読めます。Viewerの「元のページへ戻る」からもこの解説へ戻れます。スマホでは「メニュー」にあります。
 
 ## 最初の問い
 

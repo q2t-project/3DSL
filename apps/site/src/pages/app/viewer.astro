@@ -243,11 +243,10 @@ import { viewerFallbackLinks } from '../../../config/viewer-fallback.mjs';
           // Move the host actions into the reader's menu without intercepting the canvas.
           const slot = iframe.contentDocument?.getElementById('reading-host-actions');
           if (slot) {
-            // The host already supplies a back action in the reader's menu.
-            const readerReturn = iframe.contentDocument.getElementById('reading-return');
-            if (readerReturn) readerReturn.hidden = true;
+            // Keep the reader's validated native return link. It also works
+            // from its mobile menu and targets the host rather than the iframe.
             slot.replaceChildren();
-            for (const [id, label] of [['app-viewer-back', '元のページへ戻る'], ['app-viewer-open', 'URL・履歴から開く'], ['app-viewer-snap', '画像として保存']]) {
+            for (const [id, label] of [['app-viewer-open', 'URL・履歴から開く'], ['app-viewer-snap', '画像として保存']]) {
               const action = document.getElementById(id);
               if (!action || action.style.display === 'none') continue;
               const button = iframe.contentDocument.createElement('button');
