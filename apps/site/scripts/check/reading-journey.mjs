@@ -37,6 +37,7 @@ try {
       }
       async function ready(p, model) {
         await waitFor(() => inReader(p, '!!w.viewerDiagnostics?.snapshot().renderAvailable && !d.getElementById("reading-search-button").disabled'), 'render ' + model, 45000);
+        assert.equal((await inReader(p, 'w.viewerBootReady')).ok, true, 'initial opening completes before another action');
         assert.deepEqual(await inReader(p, 'w.viewerDiagnostics.rawSnapshot()'), JSON.parse(await readFile(new URL('../../dist' + model, import.meta.url), 'utf8')));
       }
       async function inspectAndReturn(p, model, route) {
@@ -45,7 +46,10 @@ try {
         else await click(p, '#reading-result-summary', true);
         await click(p, '#reading-result-list .result-button', true);
         await waitFor(() => inReader(p, 'w.viewerDiagnostics.snapshot().selectedId'), 'native selection');
-        if (width === 360) await click(p, '#reading-tab-menu', true);
+        if (width === 360) {
+          await waitFor(() => inReader(p, 'd.body.dataset.readingPanel==="diagram"'), 'selection returns to the diagram');
+          await click(p, '#reading-tab-menu', true);
+        }
         const back = await inReader(p, '(() => {const a=d.getElementById("reading-return");return {hidden:a.hidden,href:a.href,target:a.target,height:a.getBoundingClientRect().height};})()');
         assert(!back.hidden && back.height >= 44, 'visible native return link');
         assert.equal(back.href, server.origin + route);
