@@ -1,4 +1,4 @@
-// Follow the published links with native clicks, including real new tabs.
+// Follow the published links with native Enter, including real new tabs.
 // This checks navigation and loaded data, not a first-time reader's understanding.
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -25,15 +25,12 @@ try {
         await waitFor(() => p.evaluate('location.pathname===' + JSON.stringify(route) + ' && document.readyState==="complete"'), route);
       }
       async function click(p, selector, reader = false) {
-        // The shared layout restores page position 50ms after load. Let that
-        // finish before measuring coordinates for a native press/release.
-        await new Promise(resolve => setTimeout(resolve, 100));
-        // Wrapped inline links have several rectangles; their union's center
-        // can be empty space between lines rather than part of the link.
-        const expression = '(() => {const doc=' + (reader ? 'd' : 'document') + ',el=doc.querySelector(' + JSON.stringify(selector) + ');if(!el)throw new Error("Missing navigation control");el.scrollIntoView({block:"center"});const b=[...el.getClientRects()].find(r=>r.width>0&&r.height>0),f=' + (reader ? 'document.getElementById("app-viewer-iframe").getBoundingClientRect()' : '{left:0,top:0}') + ';if(!b)throw new Error("Hidden navigation control");const x=b.left+b.width/2,y=b.top+b.height/2,hit=doc.elementFromPoint(x,y);if(hit!==el&&!el.contains(hit))throw new Error("Navigation target covered: "+el.tagName+" by "+hit?.tagName);return {x:f.left+x,y:f.top+y};})()';
-        const point = await (reader ? inReader(p, expression) : p.evaluate(expression));
-        await p.cmd('Input.dispatchMouseEvent', { type: 'mousePressed', ...point, button: 'left', clickCount: 1 });
-        await p.cmd('Input.dispatchMouseEvent', { type: 'mouseReleased', ...point, button: 'left', clickCount: 1 });
+        // Native Enter activates the actual published anchor/button, without
+        // replacing its target or racing load-time scroll restoration.
+        const expression = '(() => {const doc=' + (reader ? 'd' : 'document') + ',el=doc.querySelector(' + JSON.stringify(selector) + ');if(!el?.getClientRects().length)throw new Error("Missing or hidden control: " + ' + JSON.stringify(selector) + ');el.scrollIntoView({block:"center"});el.focus();return doc.activeElement===el;})()';
+        assert(await (reader ? inReader(p, expression) : p.evaluate(expression)), 'focus ' + selector);
+        await p.cmd('Input.dispatchKeyEvent', { type:'keyDown', key:'Enter', code:'Enter', windowsVirtualKeyCode:13 });
+        await p.cmd('Input.dispatchKeyEvent', { type:'keyUp', key:'Enter', code:'Enter', windowsVirtualKeyCode:13 });
       }
       async function ready(p, model) {
         await waitFor(() => inReader(p, '!!w.viewerDiagnostics?.snapshot().renderAvailable && !d.getElementById("reading-search-button").disabled'), 'render ' + model, 45000);
@@ -59,6 +56,8 @@ try {
         assert.equal(await p.evaluate('!!document.getElementById("app-viewer-iframe")'), false, 'return leaves the Viewer host');
       }
       await configure(page);
+      const opened = [];
+      page.events.addEventListener('Page.windowOpen', ({detail}) => opened.push({url:detail.url,userGesture:detail.userGesture}));
       const targets = async () => (await (await fetch('http://127.0.0.1:' + page.port + '/json/list')).json()).filter(t => t.type === 'page');
       for (const [article, model] of [
         ['/docs/works/knowledge-questions/', '/preview-reconstruction/models/knowledge_questions.3dsl-work.json'],
@@ -72,9 +71,10 @@ try {
         assert.equal(new URL(link.href).searchParams.get('return'), article, 'article declares its own return route');
         assert.equal(link.target, '_blank');
         const before = new Set((await targets()).map(t => t.id));
+        opened.length = 0;
         await click(page, selector);
         const target = await waitFor(async () => (await targets()).find(t => !before.has(t.id) && new URL(t.url).pathname === '/app/viewer/'), 'new Viewer tab').catch(async error => {
-          console.log('[reading-journey] popup failure ' + JSON.stringify({width, article, targets: (await targets()).map(t => ({id:t.id,url:t.url})), source:await page.evaluate('({url:location.href,focus:document.activeElement?.outerHTML,scrollY})')}));
+          console.log('[reading-journey] popup failure ' + JSON.stringify({width, article,opened, targets: (await targets()).map(t => ({id:t.id,url:t.url})), source:await page.evaluate('({url:location.href,focus:document.activeElement?.outerHTML,scrollY})')}));
           throw error;
         });
         const child = await connectDevTools(target.webSocketDebuggerUrl);
