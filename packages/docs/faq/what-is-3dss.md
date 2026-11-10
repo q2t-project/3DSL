@@ -1,12 +1,12 @@
 ---
-title: "3DSS とは"
-summary: "3DSS は 3DSL が扱うシーンデータ（スキーマ）で、点・線・テキストなどを構造化して保存します。"
+title: "3DSSとは"
+summary: "3DSSは点・線・文字などの図をJSONで記録する形式です。作品一式の原資料や草稿とは保存範囲が異なります。"
 ---
 
-3DSS は 3DSL の中核データ形式や。ざっくり言うと「点（points）」「線（lines）」「表示（labels 等）」を JSON で扱えるようにしたもん。
+3DSS（Three-Dimensional Structural Schema）は、点（`points`）、線（`lines`）、補助要素（`aux`）、図の情報（`document_meta`）をJSONで記録する形式や。図だけのファイルには `.3dss.json` を使う。
 
-- Viewer は 3DSS を読み込んで表示する
-- Schema（`3DSS.schema.json`）で整合性をチェックできる
-- Library / fixtures / canonical によって壊れたら検知できる
+Viewerで開いて図を読めるけど、作品一式 `.3dsl-work.json` の原資料や草稿などは、図だけの書出しには含まれへん。制作の続きはModelerで作品一式を保存してな。
 
-詳細は Docs（Schema / Contracts）側の説明も参照してな。
+JSON Schemaは型や必須項目などの形式を検査するものや。図の分類や主張に根拠があるかは、出典や作品の解説を別に確かめる必要がある。
+
+[3DSSの概要](/docs/overview/what-is-3dss/) ／ [仕様とスキーマ](/docs/) ／ [保存形式の違い](/docs/usage/create-save-read/)
