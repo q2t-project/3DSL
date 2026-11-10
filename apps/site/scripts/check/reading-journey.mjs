@@ -25,6 +25,9 @@ try {
         await waitFor(() => p.evaluate('location.pathname===' + JSON.stringify(route) + ' && document.readyState==="complete"'), route);
       }
       async function click(p, selector, reader = false) {
+        // The shared layout restores page position 50ms after load. Let that
+        // finish before measuring coordinates for a native press/release.
+        await new Promise(resolve => setTimeout(resolve, 100));
         // Wrapped inline links have several rectangles; their union's center
         // can be empty space between lines rather than part of the link.
         const expression = '(() => {const doc=' + (reader ? 'd' : 'document') + ',el=doc.querySelector(' + JSON.stringify(selector) + ');if(!el)throw new Error("Missing navigation control");el.scrollIntoView({block:"center"});const b=[...el.getClientRects()].find(r=>r.width>0&&r.height>0),f=' + (reader ? 'document.getElementById("app-viewer-iframe").getBoundingClientRect()' : '{left:0,top:0}') + ';if(!b)throw new Error("Hidden navigation control");const x=b.left+b.width/2,y=b.top+b.height/2,hit=doc.elementFromPoint(x,y);if(hit!==el&&!el.contains(hit))throw new Error("Navigation target covered: "+el.tagName+" by "+hit?.tagName);return {x:f.left+x,y:f.top+y};})()';
@@ -66,7 +69,10 @@ try {
         assert.equal(link.target, '_blank');
         const before = new Set((await targets()).map(t => t.id));
         await click(page, selector);
-        const target = await waitFor(async () => (await targets()).find(t => !before.has(t.id) && new URL(t.url).pathname === '/app/viewer/'), 'new Viewer tab');
+        const target = await waitFor(async () => (await targets()).find(t => !before.has(t.id) && new URL(t.url).pathname === '/app/viewer/'), 'new Viewer tab').catch(async error => {
+          console.log('[reading-journey] popup failure ' + JSON.stringify({width, article, targets: (await targets()).map(t => ({id:t.id,url:t.url})), source:await page.evaluate('({url:location.href,focus:document.activeElement?.outerHTML,scrollY})')}));
+          throw error;
+        });
         const child = await connectDevTools(target.webSocketDebuggerUrl);
         try {
           await configure(child);
