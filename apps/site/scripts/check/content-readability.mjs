@@ -22,6 +22,7 @@ console.log('[check:content-readability] STATIC_CARD_IDS ' + JSON.stringify(stat
 assert.deepEqual([...staticCardIds].sort(), publicItems.map((item) => item.id).sort(), 'initial HTML contains exactly one article per public work');
 assert.equal(new Set(staticCardIds).size, staticCardIds.length, 'static article IDs are unique');
 for (const item of index.items) assert.equal(html.includes(`data-library-id="${item.id}"`), !item.hidden, `${item.id}: public/hidden contract`);
+for (const item of publicItems) assert.match(html, new RegExp(`data-library-id="${item.id}"[^>]*data-search="${item.id} `), `${item.id}: visible ID is searchable`);
 for (const p of ['docs/works/knowledge-questions', 'docs/usage/first-work']) {
   assert(html.includes(`href="/${p}/"`), `learning entry: ${p}`);
   assert(await fs.stat(path.join(dist, p, 'index.html')), `learning destination: ${p}`);
@@ -38,10 +39,11 @@ new vm.Script(generated[0]);
 
 // Run the actual inline script with 45 fixture cards, not a second implementation.
 const cards = Array.from({ length: 45 }, (_, i) => ({
-  dataset: { libraryId: String(i).padStart(3, '0'), title: `作品${String(i).padStart(3, '0')}`, date: `2026-01-${String(i % 28 + 1).padStart(2, '0')}`, search: `作品${String(i).padStart(3, '0')} ${i % 2 ? 'odd' : 'even'}` }, hidden: false,
+  dataset: { libraryId: String(i).padStart(3, '0'), title: `作品${String(i).padStart(3, '0')}`, date: `2026-01-${String(i % 28 + 1).padStart(2, '0')}`, search: `${String(i).padStart(3, '0')} 作品${String(i).padStart(3, '0')} ${i % 2 ? 'odd' : 'even'}${i === 0 ? ' ＡＢＣ ｶﾀｶﾅ' : ''}` }, hidden: false,
 }));
-const elements = Object.fromEntries(['library-controls', 'library-pager', 'search', 'sort', 'prev', 'next', 'page-info', 'library-empty'].map((id) => [id, {
+const elements = Object.fromEntries(['library-controls', 'library-pager', 'search', 'sort', 'prev', 'next', 'page-info', 'library-empty', 'clear-search'].map((id) => [id, {
   value: id === 'sort' ? 'new' : '', hidden: true, listeners: {}, addEventListener(type, fn) { this.listeners[type] = fn; },
+  focus() { this.focused = true; },
 }]));
 const grid = { children: [...cards], querySelectorAll(selector) { return selector === '[data-library-id]' ? cards : []; }, appendChild(card) { this.children.splice(this.children.indexOf(card), 1); this.children.push(card); } };
 elements.cards = grid;
@@ -57,8 +59,17 @@ elements.search.value = ''; elements.search.listeners.input(); assert.equal(visi
 elements.sort.value = 'title'; elements.sort.listeners.change(); assert.equal(visible()[0].dataset.title, '作品000');
 elements.sort.value = 'old'; elements.sort.listeners.change(); assert.equal(visible()[0].dataset.date, '2026-01-01');
 elements.sort.value = 'new'; elements.sort.listeners.change(); assert.equal(visible()[0].dataset.date, '2026-01-28');
+for (const query of ['abc', 'カタカナ', 'ＡＢＣ　カタカナ']) {
+  elements.search.value = query; elements.search.listeners.input();
+  assert.equal(visible().length, 1); assert.equal(visible()[0].dataset.libraryId, '000');
+}
+elements.search.value = '００７'; elements.search.listeners.input(); assert.equal(visible()[0].dataset.libraryId, '007');
+elements.search.value = ' even　作品 '; elements.search.listeners.input(); assert.equal(visible().length, 20); assert(visible().every(c=>Number(c.dataset.libraryId)%2===0));
+elements.search.value = 'no-such-work'; elements.search.listeners.input(); assert.equal(elements['page-info'].textContent, '0作品'); assert.equal(elements.prev.hidden, true); assert.equal(elements.next.hidden, true);
+assert.equal(elements['clear-search'].hidden, false);
+elements['clear-search'].listeners.click(); assert.equal(elements.search.value, ''); assert.equal(visible().length, 20); assert.equal(elements.search.focused, true); assert.equal(elements['clear-search'].hidden, true); assert.equal(elements.next.hidden, false); assert.equal(elements.sort.value, 'new');
 assert.equal(new Set(grid.children).size, 45, 'no card loss or duplicate nodes');
-console.log('[check:content-readability] PASS static cards/hidden/learning links/FAQ; list logic: 45-card fixture, search/sort/paging/no-results/reset');
+console.log('[check:content-readability] PASS static cards/hidden/learning links/FAQ; 45-card search/sort/paging, ID/width/case/kana/AND matching, no-results and focused clear');
 
 const brainRaw = await fs.readFile(path.join(repo, 'packages/3dss-content/library/26012001/model.3dss.json'), 'utf8');
 const blob = createHash('sha1').update(`blob ${Buffer.byteLength(brainRaw)}\0`).update(brainRaw).digest('hex');
@@ -134,14 +145,34 @@ if (!chrome) {
         assert.equal(actual.width, width); assert(actual.scroll <= width + 1, `no horizontal overflow: ${JSON.stringify(actual)}`);
         assert.equal(actual.total, publicItems.length); assert.equal(actual.visible, javascript ? Math.min(20, publicItems.length) : publicItems.length); assert.equal(actual.controls, javascript, 'enhancement controls match JS availability');
         if (javascript) {
-          await evaluate(`document.getElementById('search').value='__no_such_work__'; document.getElementById('search').dispatchEvent(new Event('input'));`);
+          const clear = async () => {
+            await evaluate(`document.getElementById('clear-search').focus()`);
+            await cmd('Input.dispatchKeyEvent', {type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r',unmodifiedText:'\r'});
+            await cmd('Input.dispatchKeyEvent', {type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+            assert.equal(await evaluate(`document.getElementById('search').value`), '');
+            assert.equal(await evaluate(`document.activeElement.id`), 'search');
+            assert.equal(await evaluate(`document.getElementById('clear-search').hidden`), true);
+          };
+          await evaluate(`document.getElementById('search').focus()`);
+          await cmd('Input.insertText', {text:'__no_such_work__'});
           assert.equal(await evaluate(`document.querySelectorAll('[data-library-id]:not([hidden])').length`), 0);
-          await evaluate(`document.getElementById('search').value=''; document.getElementById('search').dispatchEvent(new Event('input'));`);
+          assert.equal(await evaluate(`document.getElementById('page-info').textContent`), '0作品');
+          assert.equal(await evaluate(`document.getElementById('prev').hidden && document.getElementById('next').hidden`), true);
+          await clear();
+          assert.equal(await evaluate(`document.querySelectorAll('[data-library-id]:not([hidden])').length`), Math.min(20,publicItems.length));
+          const first = publicItems[0];
+          const wideId = first.id.replace(/[0-9]/g, d=>String.fromCharCode(d.charCodeAt(0)+0xfee0));
+          for (const query of [wideId, wideId + '　' + first.title]) {
+            await cmd('Input.insertText', {text:query});
+            assert.deepEqual(await evaluate(`[...document.querySelectorAll('[data-library-id]:not([hidden])')].map(e=>e.dataset.libraryId)`), [first.id]);
+            await clear();
+          }
         }
         results.push({ javascript, ...actual });
       }
     }
     console.log('[check:content-readability] BROWSER PASS ' + JSON.stringify(results));
+    console.log('[check:library-search] PASS 360/390/1280px: native text input, no-results count, full-width ID and multi-word matching, native clear and focus return; original static cards with JavaScript disabled.');
     console.log('[check:content-readability] Browser scope: generated Library HTML only; not Android, WebGL, AdSense rendering, or production deployment.');
     await libraryFixture.check({cmd, evaluate, origin});
   } finally {

@@ -43,12 +43,14 @@ const items = getLibraryItems().filter((item) => !item.hidden).map((item) => ({
     <p class="library-note">制作教材は「知識と問い」と同じ光速度の題材を使っています。以下はLibraryに登録された作品です。</p>
     <h2>公開作品</h2>
     <div id="library-controls" class="library-controls" hidden>
-      <label>作品を探す<input id="search" type="search" placeholder="作品名・説明・タグ" aria-controls="cards" /></label>
+      <label>作品を探す<input id="search" type="search" placeholder="作品名・説明・タグ・作品ID" aria-controls="cards" aria-describedby="library-search-help" /></label>
       <label>並べ替え<select id="sort" aria-controls="cards"><option value="new">新しい順</option><option value="old">古い順</option><option value="title">名前順</option></select></label>
+      <button id="clear-search" type="button" hidden>検索を解除</button>
+      <p id="library-search-help" class="library-search-help">空白で区切ると、すべての語を含む作品に絞れます。全角・半角や英字の大小は区別しません。</p>
     </div>
     <section id="cards" class="reading-grid" aria-label="作品一覧">
       {items.map((item) => (
-        <article class="reading-card" data-library-id={item.id} data-title={item.title} data-date={item.date} data-search={[item.title, item.summary ?? "", ...item.displayTags].join(" ").toLowerCase()}>
+        <article class="reading-card" data-library-id={item.id} data-title={item.title} data-date={item.date} data-search={[item.id, item.title, item.summary ?? "", ...item.displayTags].join(" ")}>
           <div class="reading-meta"><span>作品ID：{item.id}</span>{item.date && <span>{item.dateLabel}：{item.date}</span>}</div>
           <h3><a href={typeof item.page === "string" ? item.page : `/library/${item.slug}/`}>{item.title}</a></h3>
           {item.summary && <p class="reading-summary">{item.summary}</p>}
@@ -78,13 +80,18 @@ const items = getLibraryItems().filter((item) => !item.hidden).map((item) => ({
       const next = document.getElementById("next");
       const info = document.getElementById("page-info");
       const empty = document.getElementById("library-empty");
-      if (!grid || !controls || !pager || !search || !sort || !previous || !next || !info || !empty) return;
+      const clearSearch = document.getElementById("clear-search");
+      if (!grid || !controls || !pager || !search || !sort || !previous || !next || !info || !empty || !clearSearch) return;
       const cards = Array.from(grid.querySelectorAll("[data-library-id]"));
       const pageSize = 20;
       let page = 1;
+      const fold = value => String(value ?? "").normalize("NFKC").toLowerCase();
       function apply() {
-        const query = search.value.trim().toLowerCase();
-        const selected = cards.filter((card) => card.dataset.search.includes(query));
+        const words = fold(search.value).trim().split(/\s+/u).filter(Boolean);
+        const selected = cards.filter((card) => {
+          const text = fold(card.dataset.search);
+          return words.every(word => text.includes(word));
+        });
         selected.sort((a, b) => {
           if (sort.value === "title") return a.dataset.title.localeCompare(b.dataset.title, "ja");
           const byDate = a.dataset.date.localeCompare(b.dataset.date);
@@ -95,12 +102,15 @@ const items = getLibraryItems().filter((item) => !item.hidden).map((item) => ({
         for (const card of cards) card.hidden = true;
         for (const card of selected) grid.appendChild(card);
         for (const card of selected.slice((page - 1) * pageSize, page * pageSize)) card.hidden = false;
-        info.textContent = `${selected.length}作品・${page} / ${pages}ページ`;
+        info.textContent = pages === 1 ? `${selected.length}作品` : `${selected.length}作品・${page} / ${pages}ページ`;
         empty.hidden = selected.length !== 0;
+        clearSearch.hidden = search.value.length === 0;
+        previous.hidden = next.hidden = pages === 1;
         previous.disabled = page <= 1;
         next.disabled = page >= pages;
       }
       search.addEventListener("input", () => { page = 1; apply(); });
+      clearSearch.addEventListener("click", () => { search.value = ""; page = 1; apply(); search.focus(); });
       sort.addEventListener("change", () => { page = 1; apply(); });
       previous.addEventListener("click", () => { page--; apply(); });
       next.addEventListener("click", () => { page++; apply(); });
@@ -134,7 +144,8 @@ const items = getLibraryItems().filter((item) => !item.hidden).map((item) => ({
   .reading-links { margin-top: auto; }
   .library-page a { text-underline-offset: .2em; }
   .reading-card a, .library-note a { text-decoration: underline; }
-  .library-controls { display: grid; grid-template-columns: minmax(0, 24rem) minmax(0, 12rem); gap: 1rem; align-items: end; margin: 1rem 0; }
+  .library-controls { display: grid; grid-template-columns: minmax(0, 24rem) minmax(0, 12rem) max-content; gap: 1rem; align-items: end; margin: 1rem 0; }
+  .library-search-help { grid-column: 1 / -1; font-size: .85rem; line-height: 1.7; }
   .library-controls label { display: grid; grid-template-columns: minmax(0, 1fr); gap: .4rem; min-width: 0; }
   input, select, button { box-sizing: border-box; font: inherit; border: 1px solid #737373; border-radius: .4rem; padding: .55rem .8rem; background: #171717; color: #f5f5f5; max-width: 100%; }
   input, select { width: 100%; min-width: 0; }
