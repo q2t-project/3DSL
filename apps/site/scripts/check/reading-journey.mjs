@@ -25,7 +25,9 @@ try {
         await waitFor(() => p.evaluate('location.pathname===' + JSON.stringify(route) + ' && document.readyState==="complete"'), route);
       }
       async function click(p, selector, reader = false) {
-        const expression = '(() => {const el=' + (reader ? 'd' : 'document') + '.querySelector(' + JSON.stringify(selector) + ');if(!el)throw new Error("Missing navigation control");el.scrollIntoView({block:"center"});const b=el.getBoundingClientRect(),f=' + (reader ? 'document.getElementById("app-viewer-iframe").getBoundingClientRect()' : '{left:0,top:0}') + ';return {x:f.left+b.left+b.width/2,y:f.top+b.top+b.height/2};})()';
+        // Wrapped inline links have several rectangles; their union's center
+        // can be empty space between lines rather than part of the link.
+        const expression = '(() => {const doc=' + (reader ? 'd' : 'document') + ',el=doc.querySelector(' + JSON.stringify(selector) + ');if(!el)throw new Error("Missing navigation control");el.scrollIntoView({block:"center"});const b=[...el.getClientRects()].find(r=>r.width>0&&r.height>0),f=' + (reader ? 'document.getElementById("app-viewer-iframe").getBoundingClientRect()' : '{left:0,top:0}') + ';if(!b)throw new Error("Hidden navigation control");const x=b.left+b.width/2,y=b.top+b.height/2,hit=doc.elementFromPoint(x,y);if(hit!==el&&!el.contains(hit))throw new Error("Navigation target covered: "+el.tagName+" by "+hit?.tagName);return {x:f.left+x,y:f.top+y};})()';
         const point = await (reader ? inReader(p, expression) : p.evaluate(expression));
         await p.cmd('Input.dispatchMouseEvent', { type: 'mousePressed', ...point, button: 'left', clickCount: 1 });
         await p.cmd('Input.dispatchMouseEvent', { type: 'mouseReleased', ...point, button: 'left', clickCount: 1 });
