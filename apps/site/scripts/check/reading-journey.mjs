@@ -29,7 +29,7 @@ try {
         // replacing its target or racing load-time scroll restoration.
         const expression = '(() => {const doc=' + (reader ? 'd' : 'document') + ',el=doc.querySelector(' + JSON.stringify(selector) + ');if(!el?.getClientRects().length)throw new Error("Missing or hidden control: " + ' + JSON.stringify(selector) + ');el.scrollIntoView({block:"center"});el.focus();return doc.activeElement===el;})()';
         assert(await (reader ? inReader(p, expression) : p.evaluate(expression)), 'focus ' + selector);
-        await p.cmd('Input.dispatchKeyEvent', { type:'keyDown', key:'Enter', code:'Enter', windowsVirtualKeyCode:13 });
+        await p.cmd('Input.dispatchKeyEvent', { type:'keyDown', key:'Enter', code:'Enter', windowsVirtualKeyCode:13, text:'\r', unmodifiedText:'\r' });
         await p.cmd('Input.dispatchKeyEvent', { type:'keyUp', key:'Enter', code:'Enter', windowsVirtualKeyCode:13 });
       }
       async function ready(p, model) {
@@ -39,7 +39,10 @@ try {
       }
       async function inspectAndReturn(p, model, route) {
         await ready(p, model);
-        if (width === 360) await click(p, '#reading-tab-find', true);
+        if (width === 360) {
+          await click(p, '#reading-tab-find', true);
+          await waitFor(() => inReader(p, 'd.body.dataset.readingPanel==="find" && d.getElementById("reading-results").open'), 'find panel opens');
+        }
         else await click(p, '#reading-result-summary', true);
         await click(p, '#reading-result-list .result-button', true);
         await waitFor(() => inReader(p, 'w.viewerDiagnostics.snapshot().selectedId'), 'native selection');
