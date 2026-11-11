@@ -219,3 +219,4 @@ try {
   console.error(`[reconstruction-preview] FAIL: ${error.message}`);
   process.exitCode = 1;
 }
+import './knowledge-public-scope.mjs';
