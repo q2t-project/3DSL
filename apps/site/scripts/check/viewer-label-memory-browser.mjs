@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
 import {serveBuild,withBrowser,waitFor} from './site-browser.mjs';
 
-const specimen=JSON.parse(await readFile(new URL('../../../reconstruction/ssot/legend_lab/model.3dss.json',import.meta.url),'utf8'));
+const specimen=JSON.parse(await readFile(new URL('../../../reconstruction/ssot/models/meal_prototype.3dss.json',import.meta.url),'utf8'));
 const scene={document_meta:structuredClone(specimen.document_meta),points:[],lines:[],aux:[]};
 for(let i=0;i<252;i++) {
  const point=structuredClone(specimen.points[0]);
- point.meta.uuid='00000000-0000-4000-8000-'+String(i+1).padStart(12,'0');
+ point.meta={uuid:'00000000-0000-4000-8000-'+String(i+1).padStart(12,'0')};
  point.signification={name:'会社の組織と取引の関係 '+i};
  point.appearance={
   position:[(i%6)*70,Math.floor(i%18/6)*50,0],frames:[1+Math.floor(i/18)],visible:true,
@@ -16,6 +16,18 @@ for(let i=0;i<252;i++) {
  scene.points.push(point);
 }
 const content=JSON.stringify(scene),moduleRoot='/preview-reconstruction/viewer/runtime/renderer/labels/';
+// Reject malformed test data before starting a browser or waiting for a draw.
+const schema=JSON.parse(await readFile(new URL('../../../reconstruction/ssot/schemas/3DSS.schema.json',import.meta.url),'utf8'));
+const {default:createAjv}=await import('../../../reconstruction/ssot/vendor/ajv/dist/ajv.js');
+const previousAjv=globalThis.Ajv,previousFetch=globalThis.fetch;
+try {
+ globalThis.Ajv=createAjv;globalThis.fetch=async()=>({ok:true,status:200,json:async()=>structuredClone(schema)});
+ const {createCoreControllers}=await import('../../../reconstruction/ssot/modeler_app/runtime/core/coreControllers.js');
+ const validator=createCoreControllers({emit(){}}).validator;
+ await validator.ensureInitialized();
+ assert(validator.validate(scene),JSON.stringify(validator.getErrors()));
+}finally{if(previousAjv===undefined)delete globalThis.Ajv;else globalThis.Ajv=previousAjv;globalThis.fetch=previousFetch;}
+if(process.argv.includes('--static')) {console.log('[viewer-label-memory-browser] STATIC PASS strict fixture validation.');process.exit(0);}
 const fixtures=new Map([['/label-memory.json',Buffer.from(content)]]);
 const server=await serveBuild(fixtures);
 const reports=[];
@@ -26,7 +38,8 @@ try {
   await cmd('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:3,mobile:true});
   await cmd('Emulation.setTouchEmulationEnabled',{enabled:true});
   await cmd('Page.navigate',{url:server.origin+'/preview-reconstruction/contract_viewer/reader.html?model=/label-memory.json&dbgHub=1'});
-  await waitFor(()=>evaluate("window.viewerDiagnostics?.snapshot().renderAvailable && !viewerDiagnostics.snapshot().loading"),'loaded reader',45000);
+  await waitFor(()=>evaluate("window.viewerDiagnostics && !viewerDiagnostics.snapshot().loading && (viewerDiagnostics.snapshot().renderAvailable || document.body.classList.contains('reading-error'))"),'reader result',45000);
+  assert.equal(await evaluate('viewerDiagnostics.snapshot().renderAvailable'),true,await evaluate('document.getElementById("contract-status").textContent'));
   const stats=()=>evaluate("import("+JSON.stringify(moduleRoot+'textSprite.js')+").then(m=>m.getTextTextureStats())");
   const observe=async stage=>{
    const s=await stats();assert(s.count>0 && s.count<=18,'only the active frame has textures: '+JSON.stringify(s));
