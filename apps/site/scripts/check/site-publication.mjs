@@ -77,6 +77,11 @@ function hasWorkLink(links, model, returnTo) {
   return links.some(url => url.pathname === viewerPath && url.searchParams.get('model') === model &&
     url.searchParams.get('return') === returnTo);
 }
+const homeFrame = /<iframe[^>]+src="(\/viewer\/peek\.html\?[^"]+)"/.exec(topHtml);
+assert(homeFrame, 'home embeds the interactive model');
+const homeModel = new URL(homeFrame[1], siteOrigin).searchParams.get('model');
+assert(homeModel && (await stat(path.join(dist, homeModel))).isFile(), 'embedded home model exists');
+assert(hasWorkLink(readerLinks(topHtml), homeModel, '/'), 'full viewer opens the same model and returns home');
 const listLinks = readerLinks(listHtml);
 // A retired work must disappear from both catalog and direct data routes.
 const retiredIds = ['26010502', '26010801', '26012201'];

@@ -1,5 +1,6 @@
 ---
 import { getLibraryItems } from "../../lib/libraryIndex";
+import WorkPreview from "../../components/WorkPreview.astro";
 import Layout from "../../layouts/Layout.astro";
 
 const reservedTags = new Set(["m:top", "m:default", "m:__"]);
@@ -16,9 +17,6 @@ function dateText(value: unknown) {
 function publishedDate(item: any) {
   return dateText(item.republished_at) || dateText(item.published_at) || dateText(item.created_at);
 }
-function dateLabel(item: any) {
-  return dateText(item.republished_at) ? "改訂" : dateText(item.published_at) ? "公開" : "作成";
-}
 function viewerHref(value: string) {
   const url = new URL(value, "https://3dsl.jp");
   url.searchParams.set("return", "/library/");
@@ -29,19 +27,11 @@ const items = getLibraryItems().filter((item) => !item.hidden).map((item) => ({
   ...item,
   displayTags: (item.tags ?? []).map(displayTag).filter(Boolean),
   date: publishedDate(item),
-  dateLabel: dateLabel(item),
 })).sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id));
 ---
 <Layout title="作品を読む・作る | Library | 3DSL" description="3DSLの作品を解説と図で読む入口。「知識と問い」の読解、小作品の制作教材と、公開作品の一覧。">
   <section class="library-page">
-    <h1>作品を読む・作る</h1>
-    <p class="library-intro">概念や対象の関係を、解説と図を行き来して確かめる作品を掲載しています。配置や線の意味は、各作品の解説で確認してください。</p>
-    <nav class="learning-paths" aria-label="初めての方へ">
-      <a href="/docs/works/knowledge-questions/"><strong>読む：知識と問い</strong><span>同じ回答の違いを、活動と根拠まで辿って確かめます。</span></a>
-      <a href="/docs/usage/first-work/"><strong>作る：はじめての一作品</strong><span>光速度の例を7つの要素に絞り、保存して読み直します。</span></a>
-    </nav>
-    <p class="library-note">制作教材は「知識と問い」と同じ光速度の題材を使っています。以下はLibraryに登録された作品です。</p>
-    <h2>公開作品</h2>
+    <h1>作品一覧</h1>
     <div id="library-controls" class="library-controls" hidden>
       <label>作品を探す<input id="search" type="search" placeholder="作品名・説明・タグ・作品ID" aria-controls="cards" aria-describedby="library-search-help" /></label>
       <label>並べ替え<select id="sort" aria-controls="cards"><option value="new">新しい順</option><option value="old">古い順</option><option value="title">名前順</option></select></label>
@@ -51,22 +41,22 @@ const items = getLibraryItems().filter((item) => !item.hidden).map((item) => ({
     <section id="cards" class="reading-grid" aria-label="作品一覧">
       {items.map((item) => (
         <article class="reading-card" data-library-id={item.id} data-title={item.title} data-date={item.date} data-search={[item.id, item.title, item.summary ?? "", ...item.displayTags].join(" ")}>
-          <div class="reading-meta"><span>作品ID：{item.id}</span>{item.date && <span>{item.dateLabel}：{item.date}</span>}</div>
-          <h3><a href={typeof item.page === "string" ? item.page : `/library/${item.slug}/`}>{item.title}</a></h3>
-          {item.summary && <p class="reading-summary">{item.summary}</p>}
-          {item.displayTags.length > 0 && <p class="reading-tags">{item.displayTags.slice(0, 8).join(" ／ ")}{item.displayTags.length > 8 ? " …" : ""}</p>}
-          <div class="reading-links">
-            <a href={typeof item.page === "string" ? item.page : `/library/${item.slug}/`}>作品の説明を読む</a>
-            {item.viewer_url && <a class="reading-viewer" href={viewerHref(item.viewer_url)}>3DSL Viewerで開く</a>}
-          </div>
+          <a class="reading-viewer" href={viewerHref(item.viewer_url)}>
+            {item.model_url && <WorkPreview model={item.model_url} />}
+            <h2 class="mt-2">{item.title}</h2>
+          </a>
+          <a class="work-detail" href={typeof item.page === "string" ? item.page : `/library/${item.slug}/`}>作品の解説</a>
         </article>
       ))}
     </section>
-    {items.length === 0 && <p>現在、一覧に掲載する作品はありません。上の読解・制作教材から始められます。</p>}
+    {items.length === 0 && <p>現在、一覧に掲載する作品はありません。下の読解・制作教材から始められます。</p>}
     <p id="library-empty" role="status" hidden>一致する作品がありません。検索語を変えてください。</p>
     <nav id="library-pager" class="library-pager" aria-label="作品一覧のページ" hidden>
       <button id="prev" type="button">前へ</button><span id="page-info" role="status" aria-live="polite"></span><button id="next" type="button">次へ</button>
     </nav>
+    <details class="work-guides mt-6"><summary>読解・制作の案内</summary>
+      <p><a href="/docs/works/knowledge-questions/">知識と問いを読む</a> ／ <a href="/docs/usage/first-work/">はじめての一作品を作る</a></p>
+    </details>
     <noscript><p>作品一覧はJavaScriptなしでも読めます。検索・並べ替え・ページ送りはJavaScriptを有効にすると利用できます。</p></noscript>
   </section>
   <script is:inline>
@@ -130,20 +120,12 @@ const items = getLibraryItems().filter((item) => !item.hidden).map((item) => ({
   .library-page [hidden] { display: none !important; }
   h1 { font-size: 1.8rem; margin-bottom: 1rem; }
   h2 { font-size: 1.35rem; margin: 2rem 0 1rem; }
-  .library-intro, .library-note { line-height: 1.85; max-width: 56rem; }
-  .library-note { margin-top: 1rem; font-size: .9rem; }
-  .learning-paths, .reading-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 1rem; }
-  .learning-paths a, .reading-card { border: 1px solid #525252; border-radius: .8rem; padding: 1.1rem; min-width: 0; overflow-wrap: anywhere; }
-  .learning-paths strong, .learning-paths span { display: block; }
-  .learning-paths span { margin-top: .6rem; line-height: 1.7; font-size: .9rem; }
+  .reading-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr)); gap: 1rem; }
+  .reading-card { border: 1px solid #525252; border-radius: .8rem; padding: 1rem; min-width: 0; overflow-wrap: anywhere; }
   .reading-card { display: flex; flex-direction: column; gap: .8rem; }
-  .reading-card h3 { font-size: 1.15rem; }
-  .reading-summary { line-height: 1.8; }
-  .reading-meta, .reading-tags { font-size: .8rem; }
-  .reading-meta, .reading-links { display: flex; flex-wrap: wrap; gap: .6rem 1rem; }
-  .reading-links { margin-top: auto; }
-  .library-page a { text-underline-offset: .2em; }
-  .reading-card a, .library-note a { text-decoration: underline; }
+  .reading-card h2 { margin: .5rem 0 0; font-size: 1.15rem; }
+  .work-detail, .work-guides a { text-decoration: underline; text-underline-offset: .2em; }
+  .work-detail { align-self: start; font-size: .9rem; }
   .library-controls { display: grid; grid-template-columns: minmax(0, 24rem) minmax(0, 12rem) max-content; gap: 1rem; align-items: end; margin: 1rem 0; }
   .library-search-help { grid-column: 1 / -1; font-size: .85rem; line-height: 1.7; }
   .library-controls label { display: grid; grid-template-columns: minmax(0, 1fr); gap: .4rem; min-width: 0; }
@@ -152,5 +134,5 @@ const items = getLibraryItems().filter((item) => !item.hidden).map((item) => ({
   button:disabled { opacity: .45; }
   .library-pager { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin: 1rem 0; }
   :is(a, input, select, button):focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
-  @media (max-width: 48rem) { .learning-paths, .reading-grid, .library-controls { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 48rem) { .library-controls { grid-template-columns: minmax(0, 1fr); } }
 </style>

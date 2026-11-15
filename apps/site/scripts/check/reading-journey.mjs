@@ -67,7 +67,8 @@ try {
         ['/docs/usage/first-work/', '/preview-reconstruction/models/first_work.3dsl-work.json'],
       ]) {
         await go(page, '/library/');
-        await click(page, '.learning-paths a[href="' + article + '"]');
+        await click(page, '.work-guides summary');
+        await click(page, '.work-guides a[href="' + article + '"]');
         await waitFor(() => page.evaluate('location.pathname===' + JSON.stringify(article) + ' && document.readyState==="complete"'), 'Library to article');
         const selector = 'main a[href^="/app/viewer/?model=' + model + '"]';
         const link = await page.evaluate('(() => {const a=document.querySelector(' + JSON.stringify(selector) + ');return {href:a.href,target:a.target};})()');
@@ -95,7 +96,7 @@ try {
         await go(page, '/library/');
         const route = detail ? '/library/26010501/' : '/library/';
         if (detail) {
-          await click(page, '[data-library-id="26010501"] h3 a');
+          await click(page, '[data-library-id="26010501"] .work-detail');
           await waitFor(() => page.evaluate('location.pathname===' + JSON.stringify(route) + ' && document.readyState==="complete"'), 'Library to work details');
         }
         const selector = detail ? 'main a[href^="/app/viewer/?"]' : '[data-library-id="26010501"] .reading-viewer';
