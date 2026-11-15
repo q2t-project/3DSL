@@ -41,6 +41,10 @@ export const labelConfig = {
     // フォント px の下限／上限
     minFontPx: 24,
     maxFontPx: 256,
+    // Physical canvas pixels, after devicePixelRatio. World text size is separate.
+    maxTextureSize: 2048,
+    maxTexturePixels: 65536,
+    maxCacheBytes: 32 * 1024 * 1024,
     // 文字周りの padding(px)
     padding: 4,
     // フォントファミリ

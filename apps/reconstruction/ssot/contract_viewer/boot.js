@@ -46,6 +46,8 @@ let successfulLocalOpen=0;
 const snapshotNotice=byId('reading-snapshot-notice');
 const el=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=String(text);return n;};
 const reportError=error=>{status.textContent=`操作を止めました: ${error?.message||error}`;mobile.reportFailure(status.textContent);};
+const renderError=event=>reportError(new Error(event.detail?.message || '3D描画が停止しました。作品を開き直してください。'));
+byId('viewer-canvas').addEventListener('viewer-render-error',renderError);
 const act=action=>Promise.resolve().then(action).catch(reportError);
 function renderResults(state,index) {
   if(state.query!==lastQuery){resultOffset=0;lastQuery=state.query;}
@@ -171,4 +173,4 @@ window.viewerBootReady=(async()=>{
   const modelUrl=modelFromSearch(params)||(peekMode?'/3dss/scenes/top/top.3dss.json':null);
   return modelUrl?entryInput.openUrl(modelUrl):{ok:true,empty:true};
 })();
-window.addEventListener('pagehide',()=>{entryInput.dispose();mobile.dispose();mobileGizmo.dispose();readingTools.removeEventListener('toggle',resizeAfterToolsToggle);handoffReceiver?.dispose();controlsUI.dispose();controller.dispose();},{once:true});
+window.addEventListener('pagehide',()=>{byId('viewer-canvas').removeEventListener('viewer-render-error',renderError);entryInput.dispose();mobile.dispose();mobileGizmo.dispose();readingTools.removeEventListener('toggle',resizeAfterToolsToggle);handoffReceiver?.dispose();controlsUI.dispose();controller.dispose();},{once:true});

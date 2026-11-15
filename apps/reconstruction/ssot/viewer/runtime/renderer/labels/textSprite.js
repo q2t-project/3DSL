@@ -65,15 +65,13 @@ function buildRasterSpecFromLabel(label, cfg = labelConfig) {
   };
 }
 
-function rasterizeTextToCanvas(text, rasterSpec) {
-  const canvas = createHtmlCanvas();
-  if (!canvas) return { canvas: null, w: 0, h: 0, aspect: 1 };
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return { canvas: null, w: 0, h: 0, aspect: 1 };
+let measurementCanvas = null;
 
+function measureTextLayout(text, rasterSpec, cfg) {
+  measurementCanvas ||= createHtmlCanvas();
+  const ctx = measurementCanvas?.getContext("2d");
+  if (!ctx) throw new Error("文字の描画を開始できませんでした。");
   const t = text == null ? "" : String(text);
-
-  // measure
   ctx.font = buildCanvasFont(rasterSpec.fontSpec, rasterSpec.fontPx);
   const metrics = ctx.measureText(t);
   const textWidth = Number(metrics.width) || 0;
@@ -85,10 +83,40 @@ function rasterizeTextToCanvas(text, rasterSpec) {
 
   const cw = Math.ceil(textWidth + rasterSpec.pad * 2);
   const ch = Math.ceil(textHeight + rasterSpec.pad * 2);
-  canvas.width = Math.max(1, cw);
-  canvas.height = Math.max(1, ch);
+  if (!Number.isFinite(cw) || !Number.isFinite(ch) || cw <= 0 || ch <= 0) {
+    throw new Error("文字の描画寸法を計算できませんでした。");
+  }
+  const raster = cfg?.raster || labelConfig.raster;
+  const maxSide = Math.max(1, Math.min(2048, Number(raster.maxTextureSize) || 2048));
+  const maxPixels = Math.max(1, Math.min(65536, Number(raster.maxTexturePixels) || 65536));
+  const scale = Math.min(1, maxSide / cw, maxSide / ch, Math.sqrt(maxPixels / cw / ch));
+  return {
+    cw, ch, ascent, hasABBox,
+    w: Math.max(1, Math.floor(cw * scale)),
+    h: Math.max(1, Math.floor(ch * scale)),
+    // Fit/picking keep the authored proportions, independently of raster limits.
+    aspect: cw / ch,
+  };
+}
+
+export function measureTextLabel(text, label, cfg = labelConfig) {
+  return measureTextLayout(text, buildRasterSpecFromLabel(label, cfg), cfg);
+}
+
+function rasterizeTextToCanvas(text, rasterSpec, layout) {
+  const canvas = createHtmlCanvas();
+  if (!canvas) throw new Error("文字の描画を開始できませんでした。");
+  const { cw, ch, w, h, ascent, hasABBox, aspect } = layout;
+  // Avoid an intermediate wide canvas at the browser's default height (150px).
+  canvas.height = 1;
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("文字の描画を開始できませんでした。");
+  const t = text == null ? "" : String(text);
 
   // reset after resize
+  ctx.scale(w / cw, h / ch);
   ctx.font = buildCanvasFont(rasterSpec.fontSpec, rasterSpec.fontPx);
   // draw using alphabetic baseline so ascent/descent math is meaningful
   ctx.textBaseline = "alphabetic";
@@ -96,13 +124,13 @@ function rasterizeTextToCanvas(text, rasterSpec) {
 
   if (rasterSpec.bgEnabled) {
     ctx.fillStyle = rasterSpec.bgFillStyle;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, cw, ch);
   }
 
-  const cx = canvas.width / 2;
+  const cx = cw / 2;
   const cy = hasABBox
     ? (rasterSpec.pad + ascent) // baseline position
-    : (canvas.height / 2);
+    : (ch / 2);
 
   if (rasterSpec.outlineEnabled && rasterSpec.outlineWidthPx > 0) {
     ctx.lineJoin = rasterSpec.outlineLineJoin;
@@ -114,8 +142,7 @@ function rasterizeTextToCanvas(text, rasterSpec) {
   ctx.fillStyle = rasterSpec.fillStyle;
   ctx.fillText(t, cx, cy);
 
-  const aspect = (canvas.width / canvas.height) || 1;
-  return { canvas, w: canvas.width, h: canvas.height, aspect };
+  return { canvas, w, h, aspect };
 }
 
 function canvasToTexture(canvas) {
@@ -158,8 +185,13 @@ function canvasToTexture(canvas) {
 // under renderer ctx (e.g. ctx._textSpriteCache) and the ctx dispose path must
 // explicitly evict remaining entries.
 
-/** @type {Map<string, {texture:THREE.Texture, w:number, h:number, aspect:number, refs:number}>} */
+/** @type {Map<string, {texture:THREE.Texture, w:number, h:number, aspect:number, bytes:number, refs:number}>} */
 const _textTexCache = new Map();
+let textureBytes = 0;
+
+export function getTextTextureStats() {
+  return { count: _textTexCache.size, bytes: textureBytes, maxBytes: labelConfig.raster.maxCacheBytes };
+}
 
 export function makeTextTextureKey(text, label, cfg = labelConfig) {
   const rasterSpec = buildRasterSpecFromLabel(label, cfg);
@@ -180,6 +212,7 @@ export function makeTextTextureKey(text, label, cfg = labelConfig) {
     "fw", rasterSpec.fontSpec?.weight ?? "",
     "fs", rasterSpec.fontSpec?.style ?? "",
     "fp", fp,
+    "limits", cfg?.raster?.maxTextureSize, cfg?.raster?.maxTexturePixels,
     "pad", pad,
     "fill", rasterSpec.fillStyle,
     "bg", rasterSpec.bgEnabled ? "1" : "0",
@@ -198,11 +231,16 @@ export function acquireTextTexture(text, label, cfg = labelConfig) {
   }
 
   const rasterSpec = buildRasterSpecFromLabel(label, cfg);
-  const { canvas, w, h, aspect } = rasterizeTextToCanvas(text, rasterSpec);
-  if (!canvas) return null;
+  const layout = measureTextLayout(text, rasterSpec, cfg);
+  const bytes = layout.w * layout.h * 4;
+  if (textureBytes + bytes > labelConfig.raster.maxCacheBytes) {
+    throw new Error("文字の描画メモリの上限に達しました。表示する範囲を狭めるか、別の作品を開いてください。");
+  }
+  const { canvas, w, h, aspect } = rasterizeTextToCanvas(text, rasterSpec, layout);
 
   const texture = canvasToTexture(canvas);
-  _textTexCache.set(key, { texture, w, h, aspect, refs: 1 });
+  _textTexCache.set(key, { texture, w, h, aspect, bytes, refs: 1 });
+  textureBytes += bytes;
   return { key, texture, w, h, aspect };
 }
 
@@ -215,6 +253,10 @@ export function releaseTextTexture(key) {
   if (hit.refs <= 0) {
     try { hit.texture.dispose(); } catch (_e) {}
     _textTexCache.delete(key);
+    textureBytes -= hit.bytes;
+    // dispose() releases WebGL resources; drop the backing canvas pixels too.
+    const canvas = hit.texture.image;
+    if (canvas) { canvas.width = 0; canvas.height = 0; }
   }
 }
 
@@ -278,7 +320,7 @@ function applyPoseOrientation(obj, pose) {
 }
 
 export function createTextLabelObjectFromTexture(texture, label, meta = {}) {
-  if (!texture) return null;
+  if (!texture && !meta.placeholder) return null;
 
   const pose = label?.pose;
   const isBillboard = !pose || pose.mode !== "fixed";
@@ -328,6 +370,28 @@ export function createTextLabelObjectFromTexture(texture, label, meta = {}) {
   return obj;
 }
 
+export function createTextLabelPlaceholder(text, label, cfg = labelConfig) {
+  return createTextLabelObjectFromTexture(null, label, { ...measureTextLabel(text, label, cfg), placeholder: true });
+}
+
+export function ensureTextLabelTexture(obj, text, label, cfg = labelConfig) {
+  if (obj.userData.__labelTexKey) return false;
+  const acquired = acquireTextTexture(text, label, cfg);
+  obj.material.map = acquired.texture;
+  obj.material.needsUpdate = true;
+  obj.userData.__labelTexKey = acquired.key;
+  return true;
+}
+
+export function releaseTextLabelTexture(obj) {
+  const key = obj?.userData?.__labelTexKey;
+  if (!key) return;
+  obj.material.map = null;
+  obj.material.needsUpdate = true;
+  delete obj.userData.__labelTexKey;
+  releaseTextTexture(key);
+}
+
 export function createTextLabelObject(text, label, cfg = labelConfig) {
   const acquired = acquireTextTexture(text, label, cfg);
   if (!acquired) return null;
@@ -346,8 +410,7 @@ export function createTextLabelObject(text, label, cfg = labelConfig) {
 export function disposeTextLabelObject(obj) {
   if (!obj) return;
 
-  const key = obj.userData?.__labelTexKey;
-  if (key) releaseTextTexture(key);
+  releaseTextLabelTexture(obj);
 
   // material は各ラベル専用
   const mat = obj.material;

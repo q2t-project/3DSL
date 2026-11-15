@@ -29,3 +29,10 @@ export function getViewportHeightPxFallback() {
 export function nowMs() {
   return (globalThis.performance?.now?.() ?? Date.now());
 }
+
+export function reportRenderError(canvas, error) {
+  if (typeof globalThis.CustomEvent !== "function") return;
+  canvas?.dispatchEvent?.(new CustomEvent("viewer-render-error", {
+    detail: { message: String(error?.message || error) },
+  }));
+}

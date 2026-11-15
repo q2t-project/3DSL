@@ -45,6 +45,13 @@ await versionModules(hostedRoot, 'preview-reconstruction/modeler_app/index.html'
 ]);
 await versionModules(hostedRoot, 'preview-reconstruction/contract_viewer/index.html', [
   '/preview-reconstruction/viewer/runtime/renderer/context.js',
+  '/preview-reconstruction/viewer/runtime/renderer/env.js',
+  '/preview-reconstruction/viewer/runtime/renderer/labels/labelConfig.js',
+  '/preview-reconstruction/viewer/runtime/renderer/labels/textSprite.js',
+  '/preview-reconstruction/viewer/runtime/renderer/labels/labelRuntime.js',
+  '/preview-reconstruction/viewer/runtime/viewerHub.js',
+  '/preview-reconstruction/viewer/runtime/bootstrapViewer.js',
+  '/preview-reconstruction/contract_viewer/boot.js',
 ]);
 // Site documentation is available only in the hosted package. Preserve the
 // standalone ZIP's self-contained navigation and add these links while syncing.

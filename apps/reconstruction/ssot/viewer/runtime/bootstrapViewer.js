@@ -1114,7 +1114,8 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
 
   // 5) renderer.syncDocument
   if (typeof renderer.syncDocument === "function") {
-    renderer.syncDocument(struct, structIndex);
+    try { renderer.syncDocument(struct, structIndex); }
+    catch (error) { renderer.dispose(); throw error; }
   }
 
   // 6) metrics → initial camera（syncDocument 後の renderer 由来が取れるなら優先）
