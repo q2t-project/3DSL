@@ -1,113 +1,42 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import TopText from "../content/pages/top.md";
+import WorkPreview from "../components/WorkPreview.astro";
+import { getLibraryItems } from "../lib/libraryIndex";
 
-import { getLibraryItems, type LibraryItem } from "../lib/libraryIndex";
-
-let featuredItems: LibraryItem[] = [];
-try {
-  const items = getLibraryItems();
-  // Editorial choices live in _meta.json. Do not fill vacant slots with fixtures.
-  featuredItems = items
-    .filter((item) => !item.hidden && item.recommended === true)
-    .sort((a, b) =>
-      Number(b.tags?.includes("m:top") ?? false) - Number(a.tags?.includes("m:top") ?? false) || a.id.localeCompare(b.id)
-    )
-    .slice(0, 3);
-} catch {
-  featuredItems = [];
-}
-
-const entrances = [
-  { title: "3DSLの狙い", href: "/concept", text: "配置と接続によって、何を表し、何を確かめようとしているのか。" },
-  { title: "作品を見る", href: "/library", text: "作品の解説を読み、Viewerで視点を動かして構造を見る。" },
-  { title: "作る・開く", href: "/preview-reconstruction/", text: "Modelerで作る・続きを開く。保存した作品をViewerで読む。" },
-  { title: "使い方", href: "/docs", text: "読み方、制作、保存と再開、ファイル形式を調べる。" },
-];
+const works = getLibraryItems().filter(item => !item.hidden && item.model_url);
+const featured = works.filter(item => item.recommended).sort((a,b) =>
+  Number(b.tags?.includes("m:top") ?? false) - Number(a.tags?.includes("m:top") ?? false) || a.id.localeCompare(b.id)
+)[0] ?? works[0];
+const knowledge = { title: "知識と問い", model: "/preview-reconstruction/models/knowledge_questions.3dsl-work.json", detail: "/docs/works/knowledge-questions/" };
+const lead = featured ? { title: featured.title, model: featured.model_url!, detail: `/library/${featured.slug}/` } : knowledge;
+const others = [knowledge, ...works.map(item => ({title:item.title, model:item.model_url!, detail:`/library/${item.slug}/`}))].filter(work => work.model !== lead.model);
+const viewer = (model:string) => "/app/viewer/?" + new URLSearchParams({model, return:"/"});
 ---
-
-<Layout
-  title="3DSL — 関係を配置し、構造を見渡す"
-  description="3DSLは、概念や対象を三次元空間に配置し、関係を表し、考えるための試みです。作品を読み、Modelerで作り、Viewerで見渡せます。"
->
-  <section class="grid gap-6 lg:grid-cols-3">
-    <div class="ui-surface p-6 sm:p-8 lg:col-span-2">
-      <div class="prose prose-invert prose-neutral max-w-none font-content hero-copy">
-        <TopText />
-      </div>
+<Layout title="3DSL — モデルを見る" description="概念と関係を三次元で見渡せる作品集。モデルを回し、気になる部分に近づいて、そのつながりをたどれます。">
+  <section aria-labelledby="feature">
+    <div class="flex flex-wrap items-baseline justify-between gap-2 mb-3">
+      <h1 id="feature" class="text-2xl font-semibold">{lead.title}</h1>
+      <a class="underline" href={viewer(lead.model)}>Viewerで大きく開く ↗</a>
     </div>
-    <aside class="ui-surface p-6 sm:p-8 flex flex-col justify-center">
-      <p class="text-xs tracking-widest text-neutral-400">はじめての方へ</p>
-      <h2 class="mt-3 text-xl font-semibold">一つの問いから、図を読む</h2>
-      <p class="mt-3 text-sm text-neutral-300 leading-7">
-        「知識と問い」の解説から始めます。説明を手がかりに図を開き、気になる項目とそのつながりを確かめてください。
-      </p>
-      <a class="ui-btn mt-5 inline-flex justify-center" href="/docs/works/knowledge-questions/">「知識と問い」を読む</a>
-    </aside>
-  </section>
-
-  <section class="mt-10" aria-labelledby="home-entrances">
-    <h2 id="home-entrances" class="text-lg font-semibold">目的から選ぶ</h2>
-    <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {entrances.map((entry) => (
-        <a href={entry.href} class="ui-card block p-6">
-          <h3 class="text-lg font-semibold">{entry.title}</h3>
-          <p class="mt-3 text-sm text-neutral-300 leading-7">{entry.text}</p>
-        </a>
-      ))}
+    <iframe class="stage" src={`/viewer/peek.html?model=${encodeURIComponent(lead.model)}`} title={`${lead.title}の操作画面`} allow="fullscreen"></iframe>
+    <div class="mt-2 flex flex-wrap items-baseline justify-between gap-2 text-sm">
+      <span>ドラッグで回転 · ピンチまたはホイールで拡大</span>
+      <a class="underline" href={lead.detail}>この作品の解説</a>
     </div>
   </section>
-
-  <section class="ui-surface mt-10 p-6 sm:p-8" aria-labelledby="home-reading">
-    <h2 id="home-reading" class="text-xl font-semibold">解説と図を行き来する</h2>
-    <p class="mt-3 text-sm text-neutral-300 leading-7 max-w-3xl">
-      何を整理した図かを確かめ、配置や接続を辿り、説明へ戻る。作品ごとの読み方を用意しています。
-    </p>
-    <div class="mt-5">
-      <a class="ui-card block p-5" href="/docs/works/knowledge-questions/">
-        <h3 class="font-semibold">知識と問い</h3>
-        <p class="mt-2 text-sm text-neutral-300 leading-7">問いと、それに関わる知識や回答を、図と情報欄から辿ります。</p>
-      </a>
-    </div>
-    <p class="mt-5 text-sm text-neutral-400">
-      操作や読み方に迷ったら、<a class="underline underline-offset-4 hover:text-neutral-200" href="/docs/usage/read-a-work">作品を読むための案内</a>へ。
-    </p>
-  </section>
-
-  <section class="ui-surface mt-10 p-6 sm:p-8" aria-labelledby="home-works">
-    <h2 id="home-works" class="text-xl font-semibold">公開作品から</h2>
-    <p class="mt-3 text-sm text-neutral-300 leading-7 max-w-3xl">
-      制作時点の考え方を表した作品です。各ページの解説と図をあわせてご覧ください。
-    </p>
-    <div class:list={["mt-5 grid gap-4", featuredItems.length > 1 && "md:grid-cols-2", featuredItems.length >= 3 && "lg:grid-cols-3"]}>
-      {featuredItems.map((item) => (
-        <a href={`/library/${item.id}`} class="ui-card block p-5">
-          <h3 class="font-semibold">{item.title}</h3>
-          {item.summary && <p class="mt-2 text-sm text-neutral-300 leading-7">{item.summary}</p>}
-          <p class="mt-4 text-sm text-neutral-400">作品のページへ →</p>
-        </a>
-      ))}
-    </div>
-    <div class="mt-6">
-      <a class="ui-btn inline-flex" href="/library">作品一覧を見る</a>
+  <section class="mt-8" aria-labelledby="works">
+    <div class="flex items-baseline justify-between mb-3"><h2 id="works" class="text-xl font-semibold">ほかの作品</h2><a class="underline" href="/library">作品一覧へ</a></div>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {others.slice(0,3).map(work => <article>
+        <a class="block" href={viewer(work.model)}><WorkPreview model={work.model}/><h3 class="mt-2 font-semibold">{work.title}</h3></a>
+        <a class="text-sm underline" href={work.detail}>解説</a>
+      </article>)}
     </div>
   </section>
-
-  <section class="mt-10 grid gap-4 lg:grid-cols-2" aria-label="3DSLの現在地">
-    <div class="ui-surface p-6 sm:p-8">
-      <h2 class="text-xl font-semibold">研究していること</h2>
-      <p class="mt-3 text-sm text-neutral-300 leading-7">
-        対象の捉え方、関係、軸と配置の意味を、異なる事例で検討しています。公開作品には制作時点の試案も含まれ、読み直しや更新を続けています。
-      </p>
-      <a class="mt-4 inline-block text-sm underline underline-offset-4 hover:text-neutral-200" href="/concept">3DSLの狙いを読む</a>
-    </div>
-    <div class="ui-surface p-6 sm:p-8">
-      <h2 class="text-xl font-semibold">アプリでできること</h2>
-      <p class="mt-3 text-sm text-neutral-300 leading-7">
-        対応する作品を閲覧し、点や関係を編集し、作品一式を端末へ保存して再開できます。読み込める形式と保存される内容は、使い方で確認できます。
-      </p>
-      <a class="mt-4 inline-block text-sm underline underline-offset-4 hover:text-neutral-200" href="/docs/usage/create-save-read">制作と保存の案内を読む</a>
-      <p class="mt-3 text-sm"><a class="underline underline-offset-4 hover:text-neutral-200" href="/docs/usage/first-work">一つの問いから、最初の小作品を作る</a></p>
-    </div>
-  </section>
+  <details class="mt-8 border-t border-neutral-700 py-4"><summary class="cursor-pointer">3DSLについて・使い方</summary>
+    <nav class="mt-3 flex flex-wrap gap-4 underline"><a href="/concept">3DSLの狙い</a><a href="/docs/works/knowledge-questions/">知識と問いの読み方</a><a href="/docs/usage/first-work">はじめての制作</a><a href="/preview-reconstruction/">作る・開く</a><a href="/docs">使い方</a></nav>
+  </details>
 </Layout>
+<style>
+.stage { display:block; width:100%; height:clamp(16rem,55svh,38rem); background:#10151c; border:1px solid #454b53; border-radius:.75rem; }
+</style>
