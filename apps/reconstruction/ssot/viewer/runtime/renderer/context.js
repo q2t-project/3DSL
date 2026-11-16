@@ -7,6 +7,7 @@ import { microFXConfig } from "./microFX/config.js";
 // NOTE: microFXConfig は profile 切替の“状態置き場”としても使える（存在すれば）
 import { buildLabelIndex } from "./labels/labelIndex.js";
 import { LabelLayer } from "./labels/LabelLayer.js";
+import { reportRenderError } from "./env.js";
 import { createWorldAxesLayer } from "./worldAxes.js";
 import { createLineEffectsRuntime } from "./effects/lineEffects.js";
 // (removed) shared.js dependency
@@ -94,6 +95,7 @@ function attachContextEvents(canvas, ctx, label = "viewer") {
     // preventDefault しないと復帰できない
     try { e.preventDefault(); } catch (_e) {}
     warnRenderer(`[${label}] webglcontextlost`, e);
+    reportRenderError(canvas, new Error("3D描画が停止しました。別の作品を開くか、このページを再読み込みしてください。"));
   };
   const onRestored = (e) => {
     warnRenderer(`[${label}] webglcontextrestored`, e);
@@ -2110,11 +2112,9 @@ for (const aux of axs) {
 }
 
     // labels: points.marker.text + lines.signification.caption + aux.module.extension
-    try {
-      const labelIndex = buildLabelIndex(struct, {readingPresentation:opts.readingPresentation===true});
-      labelLayer.sync(labelIndex, { points: maps.points, lines: lineCaptionAnchors, aux: auxExtensionAnchors });
-      refreshLabelObjects();
-    } catch (_e) {}
+    const labelIndex = buildLabelIndex(struct, {readingPresentation:opts.readingPresentation===true});
+    labelLayer.sync(labelIndex, { points: maps.points, lines: lineCaptionAnchors, aux: auxExtensionAnchors });
+    refreshLabelObjects();
 
 
     debugRenderer("[renderer] syncDocument built", {
@@ -2308,13 +2308,19 @@ for (const aux of axs) {
 
     try { updateAuxExtensionAnchors(); } catch (_e) {}
 
-    try { labelLayer.update(); } catch (_e) {}
-    // world axes FULL_VIEW: カメラフラスタムに追随（毎フレーム更新）
-    if (ctx._worldAxesLayer && Number(ctx._worldAxesMode) === 2) {
-      try { ctx._worldAxesLayer.updateView?.({ camera }); } catch (_e) {}
-    }
+    try {
+      if (ctx.gl?.isContextLost?.()) throw new Error("3D描画が停止しました。別の作品を開くか、このページを再読み込みしてください。");
+      labelLayer.update();
+      // world axes FULL_VIEW: カメラフラスタムに追随（毎フレーム更新）
+      if (ctx._worldAxesLayer && Number(ctx._worldAxesMode) === 2) {
+        try { ctx._worldAxesLayer.updateView?.({ camera }); } catch (_e) {}
+      }
 
-    renderer.render(scene, camera);
+      renderer.render(scene, camera);
+    } catch (error) {
+      reportRenderError(canvas, error);
+      throw error;
+    }
 
     const now = (globalThis.performance?.now?.() ?? Date.now());
     if (_lastFrameAt > 0) {

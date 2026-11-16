@@ -12,7 +12,7 @@
 
 import * as THREE from "/vendor/three/build/three.module.js";
 import { labelConfig } from "./labelConfig.js";
-import { createTextLabelObject, disposeTextLabelObject } from "./textSprite.js";
+import { createTextLabelPlaceholder, ensureTextLabelTexture, releaseTextLabelTexture, disposeTextLabelObject } from "./textSprite.js";
 
 function isTroikaText(obj) {
   // troika-three-text の Text は Mesh 派生。こちら側では userData の印で判定する。
@@ -325,10 +325,8 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null, re
       }
 
       const cfg = deriveLabelConfig(labelConfig, entry);
-      const obj = createTextLabelObject(entry.text, entry, cfg);
+      const obj = createTextLabelPlaceholder(entry.text, entry, cfg);
       if (!obj) continue;
-
-      stats.textRebuilds += 1;
 
       obj.name = `label:${uuid}`;
       obj.userData.uuid = uuid;
@@ -336,7 +334,7 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null, re
       obj.visible = false;
 
       group.add(obj);
-      labels.set(uuid, { obj, entry, entryKey });
+      labels.set(uuid, { obj, entry, entryKey, cfg });
     }
 
     stats.labelCount = labels.size;
@@ -394,7 +392,7 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null, re
   function update(cameraState, visibleSet) {
     // objectMaps / cameraState が無いとき、前回の visible が残るのを防ぐ
     if (!objectMaps || !cameraState) {
-      for (const { obj } of labels.values()) obj.visible = false;
+      for (const { obj } of labels.values()) { obj.visible = false; releaseTextLabelTexture(obj); }
       stats.labelVisible = 0;
       return;
     }
@@ -613,7 +611,7 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null, re
       // scale / fontSize
       // textSprite.js は Sprite だけでなく Mesh(Plane) を返すことがある。
       // Mesh の場合でもテクスチャ比率(__labelAspect)を維持しないと縦長/横長に歪む。
-      const isTextSpriteMesh = !!obj.userData?.__labelTexKey;
+      const isTextSpriteMesh = !!obj.userData?.__labelRasterPx;
       if (isTroikaText(obj)) {
         // troika-three-text: world 単位は fontSize で管理する（scale は 1 を維持）
         const fs = Math.max(0.0001, h * scaleMul);
@@ -661,6 +659,15 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null, re
 
       obj.visible = true;
       stats.labelVisible += 1;
+    }
+
+    // Release the previous frame/scope before allocating its replacement.
+    // Layout and picking keep lightweight objects even without a raster image.
+    for (const { obj } of labels.values()) {
+      if (!obj.visible) releaseTextLabelTexture(obj);
+    }
+    for (const { obj, entry, cfg } of labels.values()) {
+      if (obj.visible && ensureTextLabelTexture(obj, entry.text, entry, cfg)) stats.textRebuilds++;
     }
   }
 

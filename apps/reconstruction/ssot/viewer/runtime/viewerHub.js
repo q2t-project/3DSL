@@ -453,6 +453,7 @@ export function createViewerHub({ core, renderer, readOnlyBrowsing = false }) {
   const afterRenderListeners = new Set();
   const paintWaiters = new Set();
   let paintSequence = 0;
+  let renderFailure = null;
   let pendingReadingCamera = null;
 
   const modeController = core.modeController || core.mode;
@@ -1774,7 +1775,16 @@ function flushCommandQueue() {
     } else {
       renderer?.applySelectionHighlight?.(selectionForHighlight, camState, visibleSet);
     }
-    renderer?.render?.(core);
+    try {
+      renderer?.render?.(core);
+    } catch (error) {
+      renderFailure = error;
+      running = false;
+      animationId = null;
+      for (const waiter of paintWaiters) { clearTimeout(waiter.timer); waiter.reject(error); }
+      paintWaiters.clear();
+      return;
+    }
     notifyPaint(true);
 
     if (!disposed && running && raf) animationId = raf(renderFrame);
@@ -1795,6 +1805,7 @@ function flushCommandQueue() {
     },
     whenPainted({ timeoutMs = 15000 } = {}) {
       if (disposed) return Promise.reject(new Error("Viewer has been disposed"));
+      if (renderFailure) return Promise.reject(renderFailure);
       if (!raf) return Promise.resolve({ rendered: false, sequence: paintSequence });
       return new Promise((resolve, reject) => {
         const waiter = { resolve, reject, timer: null };
