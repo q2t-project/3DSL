@@ -1,5 +1,14 @@
 # Modeler 実装状況レポート（Spec/Manifest 差分 + From-now プラン）
 
+## 2026-11-17: GLB部品の表示
+
+従来版と再構築版のModelerが `point.appearance.marker.gltf` を読み、点の位置にGLBを表示する。Viewerと同じyaw/pitch/roll（ラジアン）で向き・拡縮・オフセットを適用する。向きは固定。GLB内部メッシュの選択は元の点UUIDへ戻し、移動・表示切替も点に追従する。primitiveがnoneの場合だけ基礎球を隠す。
+
+モデル再読込み・Undo/Redo等によるsetDocument後は古い非同期読み込みを捨てる。読込み済み部品と、後から到着した破棄済み結果の形状・マテリアル・テクスチャを解放する。GLBの失敗はModeler全体を止めず、再構築版は描画診断にも記録する。保存・Dirty・Undo/Redoの責務は変えない。
+
+`node apps/modeler/ssot/scripts/check-gltf-markers.mjs` で両配布元の向き・拡縮・移動・UUID・切替競合・資源解放・読込み失敗を検査する。7点の実GLBと、両Coreのimport→JSON保存でも内容保持を検査済み。`check:modeler:ssot`、`check:reconstruction-preview`、Astro単体ビルドは通過。全体のnpm buildは既存のcontent-readability検査がChromiumのsocket権限制限で止まるため未完了。クラウドブラウザーも確認ファイル接続を拒否したため、画面上の最終受入は残る。
+
+
 ## 2026-11-09　保存の取消・権限拒否・再試行
 
 再構築版と従来版で、書込み後は選択したファイルを読み返し、バイト数と本文を照合する。読み返す権限を失った場合は再書込みを止める。実際に0バイトだった場合だけ文字列で一度再試行する。取消はダウンロードを開始しない。保存先を検証できなかった場合は別のコピーをダウンロードし、現在の作品、未保存の編集、従来の保存先を保持する。

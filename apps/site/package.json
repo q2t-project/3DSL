@@ -21,7 +21,7 @@
     "check:modeler:generated-clean": "node ../modeler/ssot/scripts/check-generated-clean.mjs",
     "check:modeler:ports-conformance": "node ../modeler/ssot/scripts/check-ports-conformance.mjs",
     "check:modeler:single-writer": "node ../modeler/ssot/scripts/check-single-writer.mjs",
-    "check:modeler:ssot": "npm run check:modeler:forbidden-imports && npm run check:modeler:single-writer && npm run check:modeler:ports-conformance && npm run check:modeler:generated-clean",
+    "check:modeler:ssot": "npm run check:modeler:forbidden-imports && npm run check:modeler:single-writer && npm run check:modeler:ports-conformance && npm run check:modeler:generated-clean && npm run check:modeler:gltf",
     "check:pages:no-raw-html": "node scripts/check/pages-no-raw-html.mjs",
     "check:release": "npm run check:ssot && npm run check:viewer:regression && npm run validate:3dss:canonical",
     "check:route-collisions": "node scripts/check/route-collisions.mjs",
@@ -84,7 +84,8 @@
     "check:first-work": "node ../reconstruction/scripts/build-first-work.mjs --check",
     "build:reconstruction-ajv": "node scripts/tool/build-reconstruction-ajv.mjs",
     "check:reconstruction-ajv": "node scripts/tool/build-reconstruction-ajv.mjs --check",
-    "audit:report": "node scripts/tool/dependency-audit.mjs"
+    "audit:report": "node scripts/tool/dependency-audit.mjs",
+    "check:modeler:gltf": "node ../modeler/ssot/scripts/check-gltf-markers.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.12",

@@ -1,0 +1,308 @@
+{
+  "version": "1.0.0",
+  "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
+  "reference_size": 8,
+  "size_multipliers": {
+    "4": 0.5,
+    "8": 1,
+    "16": 2
+  },
+  "units": "3DSL display design units; not physical dimensions",
+  "fixed_orientation": true,
+  "parts": [
+    {
+      "id": "person_circle-head_halfellipse-body75_point-contact_u8_v1",
+      "label_ja": "人：円頭・横長半楕円の胴75%・点接触",
+      "filename": "person_circle-head_halfellipse-body75_point-contact_u8_v1.glb",
+      "gltf_filename": "person_circle-head_halfellipse-body75_point-contact_u8_v1.gltf",
+      "reference_size": 8,
+      "actual_bounds_3dsl": {
+        "min": [
+          -4.286334991455078,
+          -0.07999999821186066,
+          -0.0005347858532331884
+        ],
+        "max": [
+          4.286334991455078,
+          0.07999999821186066,
+          7.141663074493408
+        ]
+      },
+      "stroke_diameter": 0.16,
+      "pivot_3dsl": [
+        0,
+        0,
+        0
+      ],
+      "up_3dsl": [
+        0,
+        0,
+        1
+      ],
+      "front_3dsl": [
+        0,
+        1,
+        0
+      ],
+      "billboard": false,
+      "gltf_rotation_yaw_pitch_roll_radians": [
+        0,
+        1.5707963267948966,
+        0
+      ],
+      "sha256": "f28064a64c3d9f6c79bbb01a19626ec6f5cbf38e3fabe4b9e88cd4935341ecb4"
+    },
+    {
+      "id": "person_circle-head_halfellipse-body75_overlap-body-trim_u8_v1",
+      "label_ja": "人：円頭・横長半楕円の胴75%・重なり部分の胴線トリム",
+      "filename": "person_circle-head_halfellipse-body75_overlap-body-trim_u8_v1.glb",
+      "gltf_filename": "person_circle-head_halfellipse-body75_overlap-body-trim_u8_v1.gltf",
+      "reference_size": 8,
+      "actual_bounds_3dsl": {
+        "min": [
+          -4.887564182281494,
+          -0.07999999821186066,
+          -0.002360762795433402
+        ],
+        "max": [
+          4.887564182281494,
+          0.07999999821186066,
+          7.019024848937988
+        ]
+      },
+      "stroke_diameter": 0.16,
+      "pivot_3dsl": [
+        0,
+        0,
+        0
+      ],
+      "up_3dsl": [
+        0,
+        0,
+        1
+      ],
+      "front_3dsl": [
+        0,
+        1,
+        0
+      ],
+      "billboard": false,
+      "gltf_rotation_yaw_pitch_roll_radians": [
+        0,
+        1.5707963267948966,
+        0
+      ],
+      "sha256": "d1e8ab3ccd971a7cb11e202f0ed81a4822b88563d386d61fb560dd68b203688e"
+    },
+    {
+      "id": "document_sheet_folded-corner_outline_u8_v1",
+      "label_ja": "文書：折れた角の紙・輪郭",
+      "filename": "document_sheet_folded-corner_outline_u8_v1.glb",
+      "gltf_filename": "document_sheet_folded-corner_outline_u8_v1.gltf",
+      "reference_size": 8,
+      "actual_bounds_3dsl": {
+        "min": [
+          -2.6141629219055176,
+          -0.07999999821186066,
+          7.799297319088794e-11
+        ],
+        "max": [
+          2.631504774093628,
+          0.07999999821186066,
+          8.0
+        ]
+      },
+      "stroke_diameter": 0.16,
+      "pivot_3dsl": [
+        0,
+        0,
+        0
+      ],
+      "up_3dsl": [
+        0,
+        0,
+        1
+      ],
+      "front_3dsl": [
+        0,
+        1,
+        0
+      ],
+      "billboard": false,
+      "gltf_rotation_yaw_pitch_roll_radians": [
+        0,
+        1.5707963267948966,
+        0
+      ],
+      "sha256": "1254bed54e882a29721b30a0a666ab40d9deede898a40d07c43b8abee2db04ce"
+    },
+    {
+      "id": "terminal_monitor_with-stand_outline_u8_v1",
+      "label_ja": "端末：画面と台・輪郭",
+      "filename": "terminal_monitor_with-stand_outline_u8_v1.glb",
+      "gltf_filename": "terminal_monitor_with-stand_outline_u8_v1.gltf",
+      "reference_size": 8,
+      "actual_bounds_3dsl": {
+        "min": [
+          -3.988284111022949,
+          -0.07999999821186066,
+          8.909262216860725e-13
+        ],
+        "max": [
+          3.988284111022949,
+          0.07999999821186066,
+          8.0
+        ]
+      },
+      "stroke_diameter": 0.16,
+      "pivot_3dsl": [
+        0,
+        0,
+        0
+      ],
+      "up_3dsl": [
+        0,
+        0,
+        1
+      ],
+      "front_3dsl": [
+        0,
+        1,
+        0
+      ],
+      "billboard": false,
+      "gltf_rotation_yaw_pitch_roll_radians": [
+        0,
+        1.5707963267948966,
+        0
+      ],
+      "sha256": "345bb5b410c9102ccb5b7642e4b8fcfb20d48a74270f4a04848c07ed793d99c2"
+    },
+    {
+      "id": "equipment_enclosure_top-module_round-gauge_outline_u8_v1",
+      "label_ja": "設備：筐体・上部モジュール・丸い計器・輪郭",
+      "filename": "equipment_enclosure_top-module_round-gauge_outline_u8_v1.glb",
+      "gltf_filename": "equipment_enclosure_top-module_round-gauge_outline_u8_v1.gltf",
+      "reference_size": 8,
+      "actual_bounds_3dsl": {
+        "min": [
+          -3.1324448585510254,
+          -0.07999999821186066,
+          3.0607197332166436e-10
+        ],
+        "max": [
+          3.1324448585510254,
+          0.07999999821186066,
+          7.999999523162842
+        ]
+      },
+      "stroke_diameter": 0.16,
+      "pivot_3dsl": [
+        0,
+        0,
+        0
+      ],
+      "up_3dsl": [
+        0,
+        0,
+        1
+      ],
+      "front_3dsl": [
+        0,
+        1,
+        0
+      ],
+      "billboard": false,
+      "gltf_rotation_yaw_pitch_roll_radians": [
+        0,
+        1.5707963267948966,
+        0
+      ],
+      "sha256": "358389b14059973bb72e54cc3f3eb83d901c5926be6144d49ee09ccd7956b1ff"
+    },
+    {
+      "id": "object_package_box_with-seal_outline_u8_v1",
+      "label_ja": "物品：封のある箱・輪郭",
+      "filename": "object_package_box_with-seal_outline_u8_v1.glb",
+      "gltf_filename": "object_package_box_with-seal_outline_u8_v1.gltf",
+      "reference_size": 8,
+      "actual_bounds_3dsl": {
+        "min": [
+          -3.408485174179077,
+          -0.07999999821186066,
+          3.0607197332166436e-10
+        ],
+        "max": [
+          3.408485174179077,
+          0.07999999821186066,
+          7.999999523162842
+        ]
+      },
+      "stroke_diameter": 0.16,
+      "pivot_3dsl": [
+        0,
+        0,
+        0
+      ],
+      "up_3dsl": [
+        0,
+        0,
+        1
+      ],
+      "front_3dsl": [
+        0,
+        1,
+        0
+      ],
+      "billboard": false,
+      "gltf_rotation_yaw_pitch_roll_radians": [
+        0,
+        1.5707963267948966,
+        0
+      ],
+      "sha256": "6e7ec255451506d4c8df9a1a7c9ccda1e6f4343cb4da009fa6d13eac26640bac"
+    },
+    {
+      "id": "building_facade_four-windows_door_outline_u8_v1",
+      "label_ja": "建物：四つの窓と入口・輪郭",
+      "filename": "building_facade_four-windows_door_outline_u8_v1.glb",
+      "gltf_filename": "building_facade_four-windows_door_outline_u8_v1.gltf",
+      "reference_size": 8,
+      "actual_bounds_3dsl": {
+        "min": [
+          -3.290182113647461,
+          -0.07999999821186066,
+          3.0607197332166436e-10
+        ],
+        "max": [
+          3.290182113647461,
+          0.07999999821186066,
+          7.999999523162842
+        ]
+      },
+      "stroke_diameter": 0.16,
+      "pivot_3dsl": [
+        0,
+        0,
+        0
+      ],
+      "up_3dsl": [
+        0,
+        0,
+        1
+      ],
+      "front_3dsl": [
+        0,
+        1,
+        0
+      ],
+      "billboard": false,
+      "gltf_rotation_yaw_pitch_roll_radians": [
+        0,
+        1.5707963267948966,
+        0
+      ],
+      "sha256": "873aa09e7aff5c040918845c874ea2b377febaaf3727486b951ddc86854e7087"
+    }
+  ]
+}

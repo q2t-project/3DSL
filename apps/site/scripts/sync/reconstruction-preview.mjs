@@ -42,6 +42,8 @@ await writeFile(readerIndex, readerHtml.replace(alternatives, `<span data-readin
 const hostedRoot = path.dirname(target);
 await versionModules(hostedRoot, 'preview-reconstruction/modeler_app/index.html', [
   '/preview-reconstruction/modeler_app/ui/controllers/uiFileController.js',
+  '/preview-reconstruction/modeler_app/runtime/renderer/modelerRenderer.js',
+  '/preview-reconstruction/modeler_app/runtime/renderer/gltfMarkers.js',
 ]);
 await versionModules(hostedRoot, 'preview-reconstruction/contract_viewer/index.html', [
   '/preview-reconstruction/viewer/runtime/renderer/context.js',

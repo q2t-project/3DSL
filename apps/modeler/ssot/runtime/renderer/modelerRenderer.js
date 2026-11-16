@@ -5,6 +5,7 @@
 // - Do not query DOM here. Canvas element is provided by hub.
 
 import * as THREE from "three";
+import { createGltfMarkers } from './gltfMarkers.js';
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 // ------------------------------------------------------------
@@ -519,7 +520,12 @@ export function createRenderer(canvas) {
     recomputeVisibility();
   }
 
+  const gltfMarkers = createGltfMarkers({
+    onError: (uuid, error) => console.warn('[Modeler] GLB load failed', uuid, error),
+  });
+
   function clearGroup() {
+    gltfMarkers.reset();
     objByUuid.clear();
     labelByUuid.clear();
     baseColorByUuid.clear();
@@ -620,6 +626,15 @@ export function createRenderer(canvas) {
         m.userData.__docVisible = (p?.appearance?.visible !== false);
         m.userData.__docFrames = p?.appearance?.frames ?? null;
         modelGroup.add(m);
+        if (p?.appearance?.marker?.gltf?.url) {
+          if (p.appearance.marker.primitive === "none") {
+            m.material.transparent = true;
+            m.material.opacity = 0;
+            m.material.depthWrite = false;
+            m.userData.__noPrimitive = true;
+          }
+          void gltfMarkers.attach(m, p.appearance.marker.gltf, u, p.appearance.marker.common);
+        }
         if (u) {
           objByUuid.set(u, m);
           baseColorByUuid.set(u, baseColor);
@@ -738,6 +753,7 @@ if (Array.isArray(doc.aux)) {
     for (const [uuid, obj] of objByUuid.entries()) {
       const base = baseColorByUuid.get(uuid);
       const isSel = sel.has(uuid);
+      if (obj.userData?.__noPrimitive) obj.material.opacity = isSel ? 0.6 : 0;
       const mat = obj?.material;
       if (!mat) continue;
 
