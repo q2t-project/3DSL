@@ -63,6 +63,7 @@ await fs.rm(primaryPublicRoot, { recursive: true, force: true });
 await fs.cp(ssotRoot, primaryPublicRoot, { recursive: true });
 await versionModules(publicDir, primaryPublicDirName + '/index.html', [
   'ui/controllers/uiFileController.js', 'ui/hubFacade.js', 'runtime/core/coreControllers.js',
+  'runtime/renderer/modelerRenderer.js', 'runtime/renderer/gltfMarkers.js',
 ].map(name => '/' + primaryPublicDirName + '/' + name));
 
 // If /modeler/ is owned by Astro pages, Modeler app is synced to /modeler_app/.

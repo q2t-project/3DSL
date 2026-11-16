@@ -5,6 +5,7 @@
 // - Do not query DOM here. Canvas element is provided by hub.
 
 import * as THREE from "three";
+import { createGltfMarkers } from './gltfMarkers.js';
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { lineCaptionStyle, plateRenderSpec, arrowPlacement } from "../../../shared/renderConventions.js";
 
@@ -575,7 +576,16 @@ export function createRenderer(canvas) {
     recomputeVisibility();
   }
 
+  const gltfMarkers = createGltfMarkers({
+    invalidate,
+    onError: (uuid, error) => {
+      renderWarnings.push({ uuid, feature: 'marker.gltf', message: String(error?.message || error) });
+      console.warn('[Modeler] GLB load failed', uuid, error);
+    },
+  });
+
   function clearGroup() {
+    gltfMarkers.reset();
     invalidate();
     const disposedGeometries = new Set();
     objByUuid.clear();
@@ -811,6 +821,15 @@ export function createRenderer(canvas) {
         m.userData.__docVisible = (p?.appearance?.visible !== false);
         m.userData.__docFrames = p?.appearance?.frames ?? null;
         modelGroup.add(m);
+        if (p?.appearance?.marker?.gltf?.url) {
+          if (p.appearance.marker.primitive === "none") {
+            m.material.transparent = true;
+            m.material.opacity = 0;
+            m.material.depthWrite = false;
+            m.userData.__noPrimitive = true;
+          }
+          void gltfMarkers.attach(m, p.appearance.marker.gltf, u, p.appearance.marker.common);
+        }
         if (u) {
           objByUuid.set(u, m);
           baseColorByUuid.set(u, baseColor);
