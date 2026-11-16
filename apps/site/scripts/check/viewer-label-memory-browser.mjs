@@ -125,7 +125,6 @@ try {
    await evaluate('viewerDiagnostics.cameraZoom(-.3)');
    await evaluate('viewerDiagnostics.cameraOrbit(.1,.05)');
    await evaluate('viewerDiagnostics.fitAll()');
-   await evaluate('viewerDiagnostics.waitForPaint()');
    assert.equal(await evaluate('viewerDiagnostics.snapshot().renderAvailable'),true);
    assert.deepEqual(await evaluate('viewerDiagnostics.rawSnapshot()'),singleFrame);
    const navigated=await stats();assert(navigated.bytes<=navigated.maxBytes);
