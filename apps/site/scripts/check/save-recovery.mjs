@@ -3,6 +3,12 @@ import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { serveBuild, waitFor, withBrowser } from './site-browser.mjs';
 
+const partsRoot = new URL('../../../../packages/3dss-content/parts/outline/v1/', import.meta.url);
+const { parts } = JSON.parse(await readFile(new URL('parts-index.json', partsRoot)));
+const markers = await Promise.all(parts.map(async part => ({primitive:'none',gltf:{
+  url:'data:model/gltf-binary;base64,'+(await readFile(new URL(part.filename,partsRoot))).toString('base64'),
+  rotation:[0,Math.PI/2,0],scale:[1,1,1],offset:[0,0,0]
+}})));
 const server = await serveBuild();
 try {
   for (const legacy of [false, true]) await withBrowser(async ({ cmd, evaluate, downloads, events }) => {
@@ -18,6 +24,12 @@ try {
       await core.ensureValidatorInitialized();
       if (!core.isValidatorReady()) throw Error('validator unavailable');
       if (!core.getDocument()?.points?.length) core.setDocument(await (await fetch('${model}')).json(), { intent:'open', label:'test.json' });
+      const withParts=structuredClone(core.getDocument());
+      withParts.points.push(...${JSON.stringify(markers)}.map((marker,i)=>({
+        meta:{uuid:crypto.randomUUID()},signification:{name:'GLB '+i},
+        appearance:{position:[i*12,20,0],marker}
+      })));
+      core.setDocument(withParts,{intent:'open',label:'parts.json'});
       window.form = () => document.querySelector('[data-role=hud]').textContent;
       window.opfs = await navigator.storage.getDirectory();
       window.old = await opfs.getFileHandle('previous.json',{create:true});
