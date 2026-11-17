@@ -1752,7 +1752,7 @@ for (const aux of axs) {
   const mod = (app.module && typeof app.module === "object") ? app.module : null;
 
   // backward-compat: tags (aux:grid / aux:axis / aux:plane / aux:shell)
-  const tags = readTags(aux?.meta?.tags);
+  const tags = Array.isArray(aux?.meta?.tags) ? aux.meta.tags : [];
   const hasTag = (t) => tags.includes(t);
 
   const gridCfg = (mod?.grid && typeof mod.grid === "object") ? mod.grid : (hasTag("aux:grid") ? {} : null);
