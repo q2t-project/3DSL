@@ -50,6 +50,18 @@ for(const [index,plane,size] of [[1,'zx',[4.2,20]],[2,'xy',[6.4,32]],[3,'yz',[8,
   appearance:{position:[index*8,0,10],frames:[1],visible:true,module:{plate:{plane,size}}},
  });
 }
+// Cover omitted, empty and semantic tag arrays on the same eight yz facets
+// in both multi-frame and single-frame documents.
+for (const fixture of [scene, singleFrame]) {
+ for (let i=0;i<8;i++) {
+  const meta={uuid:'31000000-0000-4000-8000-'+String(i+1).padStart(12,'0')};
+  if(i%3===0)meta.tags=[];
+  if(i%3===1)meta.tags=['m:主対象面'];
+  fixture.aux.push({meta,appearance:{visible:true,position:[0,0,0],
+   module:{plate:{plane:'yz',position:[16+i*16,12,12],size:[24,24],opacity:.34}},
+  }});
+ }
+}
 const content=JSON.stringify(scene),singleContent=JSON.stringify(singleFrame);
 const moduleRoot='/preview-reconstruction/viewer/runtime/renderer/labels/';
 // Reject malformed test data before starting a browser or waiting for a draw.
