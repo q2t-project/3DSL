@@ -357,6 +357,31 @@ if (!chrome) {
     }
     await click('#reset-view'); await painted();
 
+    await click('#view-cooking');
+    await click('#zoom-in');
+    const centered = await state();
+    await click('#bottom-anchor');
+    const raised = await state();
+    assert.deepEqual(raised.camera, centered.camera, 'switch preserves the zoomed cooking view');
+    assert(raised.modelUnchanged, 'anchor comparison preserves the author document');
+    const changed = [];
+    for (const [i, label] of raised.labels.entries()) {
+      const original = centered.labels[i];
+      assert.deepEqual(label.quaternion, original.quaternion);
+      assert.equal(label.size, original.size);
+      if (label.position.some((n, axis) => n !== original.position[axis])) {
+        changed.push(label.id);
+        assert.deepEqual(label.position.slice(0, 2), original.position.slice(0, 2));
+        assert(Math.abs(label.worldBounds.min[2] - original.position[2] - label.size / 8) < 1e-6,
+          'lower edge clears the axis by one eighth of the font size');
+      }
+    }
+    assert.deepEqual(changed.sort(), ['571f1466-2695-5f35-a327-1252976272ca','ad17bb62-8ce5-5705-a6c9-38e68d0c3652']);
+    await screenshot('caption-bottom');
+    await click('#bottom-anchor');
+    assert.deepEqual((await state()).labels.map(l => l.position), centered.labels.map(l => l.position));
+    await click('#reset-view'); await painted();
+
     // Use real screen hit testing rather than calling the specimen's selection API.
     const pick = await evaluate(`(() => {
       const stage=document.getElementById('model-stage').getBoundingClientRect();

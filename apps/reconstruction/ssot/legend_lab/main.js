@@ -31,6 +31,12 @@ let singleFont = false;
 let ready = false;
 let lastFitInsets = null;
 const allFitPoints = [];
+// Only the two collinear incoming edges at the cooking node participate.
+const anchorTrialIds = new Set([
+  'ad17bb62-8ce5-5705-a6c9-38e68d0c3652', // 調理役 → 炊飯
+  '571f1466-2695-5f35-a327-1252976272ca', // 電気 → 炊飯
+]);
+const anchorTrialLabels = [];
 const labelFitPoints = new Map();
 // These two reading scopes belong to this authored specimen. They are not
 // inferred from names, colors, poses, or a universal process classification.
@@ -189,7 +195,8 @@ for (const line of source.lines) {
   const config = line.appearance.caption_text ?? {};
   const labelPosition = new THREE.Vector3().addVectors(a, b).multiplyScalar(0.5);
   if (config.offset) labelPosition.add(vector(config.offset));
-  addLabel(line, 'line', nameOf(line), labelPosition, config);
+  const entry = addLabel(line, 'line', nameOf(line), labelPosition, config);
+  if (anchorTrialIds.has(entry.id)) anchorTrialLabels.push({ entry, midpoint: labelPosition });
 }
 
 function append(tag, parent, text, className) {
@@ -198,6 +205,16 @@ function append(tag, parent, text, className) {
   if (className) element.className = className;
   parent.append(element);
   return element;
+}
+
+function setCaptionAnchors(bottom) {
+  for (const { entry, midpoint } of anchorTrialLabels) {
+    entry.object.position.copy(midpoint);
+    if (bottom) {
+      const halfHeight = entry.button.offsetHeight * entry.object.scale.y / 2;
+      entry.object.translateY(halfHeight + entry.size / 8);
+    }
+  }
 }
 
 function currentColor(color) {
@@ -222,6 +239,7 @@ function applyComparison() {
     button.dataset.size = String(entry.size);
   }
   for (const record of coloredObjects) record.object.material.color.set(currentColor(record.color));
+  setCaptionAnchors($('bottom-anchor').checked);
   renderPanel();
   render();
 }
@@ -421,7 +439,7 @@ function renderPanel() {
     }
   } else {
     append('h2', support, '米の状態・保管・炊飯を比べる');
-    append('p', support, '文字をタップすると、図を残したままここに説明が出ます。');
+    append('p', support, '「炊飯を見る」で「担当」と「エネルギー」に寄り、上の「中央下＋余白」で文字の位置を切り替えます。');
     appendReadingViews(support);
     append('p', support, '「比較」で表現を順に加えて、保管と炊飯の違い、調理役との関係が読み取りやすくなるか確かめてください。');
     append('p', support, local(source.document_meta.document_summary), 'quiet');
@@ -455,6 +473,10 @@ textRenderer.domElement.addEventListener('pointercancel', (event) => {
   gestureMoved = true;
 }, true);
 
+$('bottom-anchor').addEventListener('change', () => {
+  setCaptionAnchors($('bottom-anchor').checked);
+  render();
+});
 for (const id of ['comparison-step', 'no-color', 'single-font']) $(id).addEventListener('change', applyComparison);
 $('tab-info').addEventListener('click', () => { activeTab = 'info'; renderPanel(); support.scrollTop = 0; });
 $('tab-legend').addEventListener('click', () => { activeTab = 'legend'; renderPanel(); support.scrollTop = 0; });
@@ -529,6 +551,7 @@ try {
   for (const value of ['0', '1', '2', '3']) {
     $('comparison-step').value = value;
     applyComparison();
+    setCaptionAnchors(false);
     for (const entry of labels) {
       const corners = getWorldCorners(entry);
       allFitPoints.push(...corners);
@@ -536,11 +559,18 @@ try {
       previous.push(...corners);
       labelFitPoints.set(entry.id, previous);
     }
+    setCaptionAnchors(true);
+    for (const { entry } of anchorTrialLabels) {
+      const corners = getWorldCorners(entry);
+      allFitPoints.push(...corners);
+      labelFitPoints.get(entry.id).push(...corners);
+    }
   }
   $('comparison-step').value = intendedStep;
   applyComparison();
   ready = true;
-  fit(allFitPoints, true);
+  if (new URLSearchParams(location.search).get('view') === 'cooking') fitReadingGroup('cooking');
+  else fit(allFitPoints, true);
   status.hidden = true;
 } catch (error) {
   status.textContent = '書体を読み込めませんでした。再読み込みして確認してください。';
