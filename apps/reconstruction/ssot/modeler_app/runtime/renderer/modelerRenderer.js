@@ -38,6 +38,12 @@ function createCanvas(w, h) {
   }
 }
 
+function canvasTextFont(fontSize, opts) {
+  const font = opts.font;
+  const family = font?.family || "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+  return `${font?.style || "normal"} ${font?.weight || "normal"} ${fontSize}px ${family}`;
+}
+
 function makeTextSprite(text, opts = {}) {
   const t = text == null ? "" : String(text);
   if (!t) return null;
@@ -51,7 +57,7 @@ function makeTextSprite(text, opts = {}) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
 
-  ctx.font = `${Math.round(fontSize * dpr)}px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+  ctx.font = canvasTextFont(Math.round(fontSize * dpr), opts);
   const metrics = ctx.measureText(t);
   const textW = Math.ceil((Number(metrics.width) || 0) + padding * 2 * dpr);
   const ascent = Number(metrics.actualBoundingBoxAscent);
@@ -62,7 +68,7 @@ function makeTextSprite(text, opts = {}) {
   canvas.height = Math.max(1, textH);
 
   // draw
-  ctx.font = `${Math.round(fontSize * dpr)}px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+  ctx.font = canvasTextFont(Math.round(fontSize * dpr), opts);
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "center";
 
@@ -76,7 +82,7 @@ function makeTextSprite(text, opts = {}) {
   ctx.strokeStyle = "rgba(0,0,0,0.9)";
 
   // text
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = opts.color || "#ffffff";
   const cx = canvas.width / 2;
   const baselineY = (Number.isFinite(ascent) ? (padding * dpr + ascent) : (canvas.height / 2));
   ctx.strokeText(t, cx, baselineY);
@@ -206,7 +212,7 @@ function makeTextPlane(text, opts = {}) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
 
-  ctx.font = `${Math.round(fontSize * dpr)}px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+  ctx.font = canvasTextFont(Math.round(fontSize * dpr), opts);
   const metrics = ctx.measureText(t);
   const textW = Math.ceil((Number(metrics.width) || 0) + padding * 2 * dpr);
   const ascent = Number(metrics.actualBoundingBoxAscent);
@@ -217,7 +223,7 @@ function makeTextPlane(text, opts = {}) {
   canvas.height = Math.max(1, textH);
 
   // draw
-  ctx.font = `${Math.round(fontSize * dpr)}px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+  ctx.font = canvasTextFont(Math.round(fontSize * dpr), opts);
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "center";
 
@@ -228,7 +234,7 @@ function makeTextPlane(text, opts = {}) {
   ctx.lineWidth = Math.max(1, Math.round(2 * dpr));
   ctx.strokeStyle = "rgba(0,0,0,0.9)";
 
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = opts.color || "#ffffff";
   const cx = canvas.width / 2;
   const baselineY = (Number.isFinite(ascent) ? (padding * dpr + ascent) : (canvas.height / 2));
   ctx.strokeText(t, cx, baselineY);
@@ -953,8 +959,8 @@ if (Array.isArray(doc.aux)) {
             const wantPose = !!poseNorm;
 
             const label = wantPose
-              ? makeTextPlane(txt, { fontSize, worldSize, align: alignKey, geometryFactory: labelPlaneGeometry })
-              : makeTextSprite(txt, { fontSize, worldSize });
+              ? makeTextPlane(txt, { fontSize, worldSize, font: style.font, color: style.color, align: alignKey, geometryFactory: labelPlaneGeometry })
+              : makeTextSprite(txt, { fontSize, worldSize, font: style.font, color: style.color });
             if (label) {
               label.userData.__labelText = txt;
               label.userData.__labelFontSize = fontSize;
@@ -1512,8 +1518,8 @@ function previewSetCaptionText(uuid, captionText, fallbackText) {
   // Create label: when pose is present, use a plane mesh (so orientation applies).
   // Otherwise keep sprite (billboard) but apply align via sprite.center.
   const label = wantPose
-    ? makeTextPlane(want, { fontSize, worldSize, align: alignKey })
-    : makeTextSprite(want, { fontSize, worldSize });
+    ? makeTextPlane(want, { fontSize, worldSize, font: style.font, color: style.color, align: alignKey })
+    : makeTextSprite(want, { fontSize, worldSize, font: style.font, color: style.color });
   if (!label) return;
 
   label.userData.__labelText = want;
