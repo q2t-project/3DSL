@@ -25,6 +25,9 @@ function runNodeIfExists(scriptPath, extraArgs = [], cwd = siteRoot) {
 
 let okAll = true;
 
+// Execute auxiliary modules through renderer sync/frame/reopen paths.
+okAll = runNodeIfExists(path.join(siteRoot, "scripts", "check", "viewer-aux-runtime.mjs")) && okAll;
+
 // 1) fixtures validate (schema + optional ref-integrity)
 {
   const hasDir = passthruArgs.includes("--dir");
