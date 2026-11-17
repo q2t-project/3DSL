@@ -42,6 +42,18 @@ for(let i=0;i<163;i++) {
  edge.appearance.caption_text={font_size:i%8===0?1.4:.4,pose:{front:[1,0,0],up:[0,0,1]}};
  singleFrame.lines.push(edge);
 }
+// Exercise the aux renderer too. Empty tag arrays, missing tags and semantic
+// tags are valid with appearance.module.plate and must all load successfully.
+for (const fixture of [scene, singleFrame]) {
+ for (let i=0;i<8;i++) {
+  const meta={uuid:'30000000-0000-4000-8000-'+String(i+1).padStart(12,'0')};
+  if(i%3===0)meta.tags=[];
+  if(i%3===1)meta.tags=['m:主対象面'];
+  fixture.aux.push({meta,appearance:{visible:true,position:[0,0,0],
+   module:{plate:{plane:'yz',position:[16+i*16,12,12],size:[24,24],opacity:.34}},
+  }});
+ }
+}
 const content=JSON.stringify(scene),singleContent=JSON.stringify(singleFrame);
 const moduleRoot='/preview-reconstruction/viewer/runtime/renderer/labels/';
 // Reject malformed test data before starting a browser or waiting for a draw.
