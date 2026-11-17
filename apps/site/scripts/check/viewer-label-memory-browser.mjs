@@ -42,11 +42,19 @@ for(let i=0;i<163;i++) {
  edge.appearance.caption_text={font_size:i%8===0?1.4:.4,pose:{front:[1,0,0],up:[0,0,1]}};
  singleFrame.lines.push(edge);
 }
-// Exercise the aux renderer too. Empty tag arrays, missing tags and semantic
-// tags are valid with appearance.module.plate and must all load successfully.
+// Exercise auxiliary planes through the public WebGL loading/reopening path.
+// The zx plane models a momentary balance and the xy plane a time interval.
+for(const [index,plane,size] of [[1,'zx',[4.2,20]],[2,'xy',[6.4,32]],[3,'yz',[8,16]]]) {
+ singleFrame.aux.push({
+  meta:{uuid:'30000000-0000-4000-8000-'+String(index).padStart(12,'0'),tags:['x:aux_regression']},
+  appearance:{position:[index*8,0,10],frames:[1],visible:true,module:{plate:{plane,size}}},
+ });
+}
+// Cover omitted, empty and semantic tag arrays on the same eight yz facets
+// in both multi-frame and single-frame documents.
 for (const fixture of [scene, singleFrame]) {
  for (let i=0;i<8;i++) {
-  const meta={uuid:'30000000-0000-4000-8000-'+String(i+1).padStart(12,'0')};
+  const meta={uuid:'31000000-0000-4000-8000-'+String(i+1).padStart(12,'0')};
   if(i%3===0)meta.tags=[];
   if(i%3===1)meta.tags=['m:主対象面'];
   fixture.aux.push({meta,appearance:{visible:true,position:[0,0,0],
