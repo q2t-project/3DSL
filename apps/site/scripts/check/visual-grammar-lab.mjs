@@ -253,6 +253,7 @@ if (!chrome) {
     await command('Page.navigate', { url: origin + route + '?test=1' });
     await until('window.legendLab?.ready === true', 'specimen ready');
     await evaluate('document.fonts.ready'); await painted();
+    assert(await evaluate("document.getElementById('bottom-anchor').checked"), 'bottom-center with clearance is selected by default');
     const initial = await state(), initialDom = await domSnapshot();
     assert.deepEqual(initial.model, model, 'browser model equals authored JSON');
     assert.equal(initial.modelUnchanged, true, 'live source is unchanged after rendering');
@@ -359,9 +360,10 @@ if (!chrome) {
 
     await click('#view-cooking');
     await click('#zoom-in');
-    const centered = await state();
-    await click('#bottom-anchor');
     const raised = await state();
+    await screenshot('caption-bottom');
+    await click('#bottom-anchor');
+    const centered = await state();
     assert.deepEqual(raised.camera, centered.camera, 'switch preserves the zoomed cooking view');
     assert(raised.modelUnchanged, 'anchor comparison preserves the author document');
     const changed = [];
@@ -377,9 +379,8 @@ if (!chrome) {
       }
     }
     assert.deepEqual(changed.sort(), ['571f1466-2695-5f35-a327-1252976272ca','ad17bb62-8ce5-5705-a6c9-38e68d0c3652']);
-    await screenshot('caption-bottom');
     await click('#bottom-anchor');
-    assert.deepEqual((await state()).labels.map(l => l.position), centered.labels.map(l => l.position));
+    assert.deepEqual((await state()).labels.map(l => l.position), raised.labels.map(l => l.position));
     await click('#reset-view'); await painted();
 
     // Use real screen hit testing rather than calling the specimen's selection API.
