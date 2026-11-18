@@ -46,6 +46,12 @@ await versionModules(hostedRoot, 'preview-reconstruction/modeler_app/index.html'
   '/preview-reconstruction/modeler_app/runtime/renderer/gltfMarkers.js',
 ]);
 await versionModules(hostedRoot, 'preview-reconstruction/contract_viewer/index.html', [
+  '/preview-reconstruction/viewer/runtime/core/cameraEngine.js',
+  '/preview-reconstruction/viewer/runtime/core/cameraFraming.js',
+  '/preview-reconstruction/viewer/runtime/initialView.js',
+  '/preview-reconstruction/contract_viewer/viewerBridge.js',
+  '/preview-reconstruction/contract_viewer/atlasView.js',
+  '/preview-reconstruction/contract_viewer/browsingController.js',
   '/preview-reconstruction/viewer/runtime/renderer/context.js',
   '/preview-reconstruction/viewer/runtime/renderer/env.js',
   '/preview-reconstruction/viewer/runtime/renderer/labels/labelConfig.js',

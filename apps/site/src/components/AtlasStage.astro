@@ -1,0 +1,32 @@
+---
+interface Props { model: string; title: string }
+const { model, title } = Astro.props;
+const src = "/viewer/peek.html?" + new URLSearchParams({ model, controls: "atlas" });
+---
+<iframe class="atlas-stage" data-atlas-model={model} src={src} title={`${title}の操作画面`} allow="fullscreen" data-swipe-ignore></iframe>
+<script>
+  type AtlasReader = Window & { getAtlasViewFragment?: () => string };
+  for (const stage of document.querySelectorAll<HTMLIFrameElement>('iframe[data-atlas-model]')) {
+    for (const link of document.querySelectorAll<HTMLAnchorElement>('a[data-atlas-expand]')) {
+      if (link.dataset.atlasExpand !== stage.dataset.atlasModel) continue;
+      function updatePosition() {
+        // Keep the native link (keyboard, new tab, copy link) and its return URL.
+        const reader = stage.contentWindow as AtlasReader | null;
+        link.hash = reader?.getAtlasViewFragment?.() ?? '';
+      }
+      for (const event of ['pointerdown', 'contextmenu', 'click', 'auxclick']) {
+        link.addEventListener(event, updatePosition);
+      }
+    }
+  }
+</script>
+<style>
+  .atlas-stage {
+    display: block;
+    width: 100%;
+    height: clamp(16rem, 55svh, 38rem);
+    border: 1px solid #454b53;
+    border-radius: .75rem;
+    background: #10151c;
+  }
+</style>

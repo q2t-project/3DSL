@@ -27,6 +27,8 @@ const entryParams=new URLSearchParams(location.search);
 if(entryParams.get('embed')==='1')document.body.classList.add('is-embed');
 const peekMode=entryParams.get('viewerMode')==='peek';
 if(peekMode)document.body.classList.add('reading-peek','is-embed');
+const atlasEmbed = peekMode && entryParams.get('controls') === 'atlas';
+const atlasOverview = byId('atlas-overview'), atlasFocus = byId('atlas-focus');
 const returnLink=byId('reading-return'),returnUrl=returnDestination(entryParams,location);
 if(returnLink&&returnUrl){returnLink.href=returnUrl;returnLink.target='_top';returnLink.hidden=false;}
 const failureReturn=byId('reading-prompt-return');
@@ -91,6 +93,13 @@ function render(state) {
   for(const id of ['reading-show','reading-explore'])byId(id).disabled=busy||!ready||!entry;
   byId('reading-selection-label').title=entry?.label||'';
   for(const id of ['reading-selection-info','reading-selection-show'])byId(id).disabled=busy||!ready||!entry;
+  if (atlasEmbed) {
+    byId('atlas-actions').hidden = !ready;
+    atlasOverview.disabled = busy;
+    atlasFocus.hidden = !state.bridgeState?.selection?.visible;
+    atlasFocus.disabled = busy;
+    atlasFocus.textContent = entry?.label ? `「${entry.label}」に寄る` : '選択に寄る';
+  }
   scope.disabled=searchInput.disabled=busy||!ready;
   for(const key of ['points','lines','aux']){const node=byId(`reading-${key}`);node.checked=state.filters[key];node.disabled=busy||!ready;}
   input.disabled=busy||handoffPending;
@@ -100,16 +109,22 @@ function render(state) {
 }
 controller=createBrowsingController({buildReadModel,createReadingIndex,validateReadModel:model=>validateReadModel(model,validator),
   async mount(model) {
-    const host=await mountViewerHost({document3dss:model.scene,modelLabel:model.sourceUrl||model.label,profile:'prod_full',readOnlyBrowsing:true});
+    const host=await mountViewerHost({document3dss:model.scene,modelLabel:model.sourceUrl||model.label,profile:'prod_full',readOnlyBrowsing:true,readingPresentation:atlasEmbed || undefined});
     try {const bridge=createViewerBridge(host,{scene:model.scene});await bridge.waitForPaint();activeHost=host;return {host,bridge};}catch(error){host.dispose();throw error;}
   },onChange:render,onControlsChange:renderControls,onStatus:(message,kind)=>{status.textContent=message;if(kind==='error')mobile.reportFailure(message);else mobile.refresh();},onBusy:value=>{busy=value;input.disabled=value||handoffPending;if(controller)render(controller.snapshot());}
 });
+// A position from the work page applies only to the first URL open. Opening a
+// different file later, even the same model, starts a fresh reading session.
+let initialAtlasFragment = peekMode ? '' : location.hash;
+if (atlasEmbed) window.getAtlasViewFragment = () => controller.atlasViewFragment();
 async function openFileText(text,label,sourceUrl) {
   // A deliberate local open supersedes a pending transfer. The receiver cannot
   // later replace the user's newly opened file or relabel it as a snapshot.
   handoffReceiver?.dispose();handoffReceiver=null;handoffPending=false;
   mobile.clearFailure();
-  const result=await controller.openText(text,label,sourceUrl);
+  const atlasFragment = initialAtlasFragment;
+  initialAtlasFragment = '';
+  const result=await controller.openText(text,label,sourceUrl,atlasFragment);
   if(result?.ok===true){successfulLocalOpen++;snapshotNotice.hidden=true;mobile.show('diagram',{returnFocus:false});}
   return result;
 }
@@ -118,6 +133,8 @@ controlsUI=attachReadingControls({getController:()=>controller,getBusy:()=>busy,
 byId('reading-notice').addEventListener('click',()=>{showInformation();byId('reading-capabilities')?.scrollIntoView({block:'start',behavior:mobile.compact?'instant':'smooth'});});
 byId('reading-back').addEventListener('click',()=>act(()=>controller.back()));
 byId('reading-show').addEventListener('click',()=>act(showSelected));
+atlasOverview.addEventListener('click',()=>act(()=>controller.fitAll({keepScope:true})));
+atlasFocus.addEventListener('click',()=>act(()=>controller.fitSelection({keepScope:true})));
 byId('reading-all').addEventListener('click',()=>act(()=>controller.fitAll()));
 byId('reading-explore').addEventListener('click',()=>act(()=>controller.explore()));
 byId('reading-info-toggle').addEventListener('click',()=>{if(mobile.compact){showInformation();}else controller.setInfoOpen(!controller.snapshot().infoOpen);});
@@ -173,4 +190,17 @@ window.viewerBootReady=(async()=>{
   const modelUrl=modelFromSearch(params)||(peekMode?'/3dss/scenes/top/top.3dss.json':null);
   return modelUrl?entryInput.openUrl(modelUrl):{ok:true,empty:true};
 })();
-window.addEventListener('pagehide',()=>{byId('viewer-canvas').removeEventListener('viewer-render-error',renderError);entryInput.dispose();mobile.dispose();mobileGizmo.dispose();readingTools.removeEventListener('toggle',resizeAfterToolsToggle);handoffReceiver?.dispose();controlsUI.dispose();controller.dispose();},{once:true});
+function leaveReader(event) {
+  // Back/forward cache freezes this document, including the running Viewer.
+  if (event.persisted) return;
+  window.removeEventListener('pagehide', leaveReader);
+  byId('viewer-canvas').removeEventListener('viewer-render-error', renderError);
+  readingTools.removeEventListener('toggle', resizeAfterToolsToggle);
+  entryInput.dispose();
+  mobile.dispose();
+  mobileGizmo.dispose();
+  handoffReceiver?.dispose();
+  controlsUI.dispose();
+  controller.dispose();
+}
+window.addEventListener('pagehide', leaveReader);

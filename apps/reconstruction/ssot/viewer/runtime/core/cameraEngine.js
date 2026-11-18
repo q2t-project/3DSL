@@ -7,11 +7,11 @@ import {
   CAMERA_VIEW_PRESET_COUNT,
 } from "./cameraViewDefs.js";
 
+import { MIN_DISTANCE, MAX_DISTANCE } from "./cameraFraming.js";
+
 const EPSILON = 1e-4;
 const MIN_FOV = 1;
-const MIN_DISTANCE = 0.01;
-const MAX_DISTANCE = 1000;
-const MAX_COORD = 1e4;
+const MAX_COORD = Number.MAX_SAFE_INTEGER;
 
 // AutoOrbit 用の速度テーブル（段階：1〜N）
 const AUTO_ORBIT_SPEED_TABLE = [

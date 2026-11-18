@@ -34,7 +34,7 @@ const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xnjnpgjp';
           autocomplete="email"
           aria-describedby="email-help"
           required
-          class="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
+          class="ui-input mt-1"
           placeholder="you@example.com"
         />
         <p id="email-help" class="mt-2 text-xs text-neutral-400">問い合わせへの返信先として使用します。</p>
@@ -46,7 +46,7 @@ const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xnjnpgjp';
           id="subject"
           name="subject"
           type="text"
-          class="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
+          class="ui-input mt-1"
           placeholder="例：作品の表示について"
         />
       </div>
@@ -58,7 +58,7 @@ const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xnjnpgjp';
           name="message"
           required
           rows={8}
-          class="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
+          class="ui-input mt-1"
           placeholder="お問い合わせ内容を入力してください。"
         ></textarea>
       </div>
@@ -75,7 +75,7 @@ const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xnjnpgjp';
         id="contact-submit"
         type="submit"
         aria-describedby="contact-send-help"
-        class="inline-flex items-center justify-center rounded-xl bg-white text-neutral-900 px-5 py-2 text-sm font-medium hover:bg-white/90 disabled:opacity-50"
+        class="ui-btn ui-btn-primary"
       >
         受付サービスの画面で送信
       </button>
@@ -83,7 +83,7 @@ const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xnjnpgjp';
     </form>
 
     <p id="contact-status" class="mt-4 text-sm leading-7" role="status" aria-live="polite" aria-atomic="true" tabindex="-1" data-state="idle"></p>
-    <button id="contact-new" type="button" class="mt-4 rounded-xl border border-white/20 px-4 py-2 text-sm hover:bg-white/5" hidden>別タブの結果を確認して入力に戻る</button>
+    <button id="contact-new" type="button" class="ui-btn mt-4" hidden>別タブの結果を確認して入力に戻る</button>
     <noscript><p class="mt-4 text-sm text-white/70">JavaScript が無効でも送信できます。送信ボタンは一度だけ押し、別タブの受付結果を確認してください。</p></noscript>
   </section>
 
@@ -135,6 +135,7 @@ const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xnjnpgjp';
     })();
   </script>
   <style>
-    #contact-status { color: #fde68a; }
+    #contact-status { color: var(--ui-muted); }
+    #contact-status[data-state="external"] { color: #fde68a; }
   </style>
 </Layout>

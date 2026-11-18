@@ -2202,6 +2202,14 @@ for (const aux of axs) {
     }
     if (pos) camera.position.set(pos[0], pos[1], pos[2]);
     camera.lookAt(tgt[0], tgt[1], tgt[2]);
+    const distance = Math.hypot(camera.position.x - tgt[0], camera.position.y - tgt[1], camera.position.z - tgt[2]);
+    if (Number.isFinite(distance) && distance > 0) {
+      // Keep depth precision near the orbit target, even for sub-millimetre details.
+      camera.near = distance * 0.0001;
+      const center = sceneMetricsCache?.center ?? tgt;
+      const offset = Math.hypot(tgt[0] - center[0], tgt[1] - center[1], tgt[2] - center[2]);
+      camera.far = Math.max(100000, 2 * (distance + offset + (sceneMetricsCache?.radius ?? 0)));
+    }
     camera.updateProjectionMatrix();
     try {
       Object.assign(labelCameraState, st, {

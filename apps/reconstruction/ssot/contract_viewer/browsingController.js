@@ -1,3 +1,5 @@
+import { captureAtlasView, readAtlasView } from './atlasView.js';
+
 // Read-only browsing state. All operations use the same path as UI and diagnostics.
 const clone = value => value == null ? value : structuredClone(value);
 const framesFor = entry => Array.isArray(entry?.frames) ? entry.frames : [];
@@ -43,7 +45,7 @@ export function createBrowsingController({buildReadModel, validateReadModel, cre
     });
     unsubscribe=()=>{stopSelection?.();stopControls?.();};
   }
-  async function openText(text,label='作品.json',sourceUrl=null) {
+  async function openText(text,label='作品.json',sourceUrl=null,atlasFragment='') {
     return serial(async()=>{
       if(loading)return {ok:false,error:'読込中です。'};
       loading=true;onBusy(true);onStatus('作品の形式と接続を確認しています。');
@@ -53,9 +55,18 @@ export function createBrowsingController({buildReadModel, validateReadModel, cre
         unsubscribe?.();unsubscribe=null;bridge?.dispose?.();host?.dispose?.();bridge=null;host=null;oldDisposed=true;
         const mounted=await mount(next);host=mounted.host;bridge=mounted.bridge;await painted();
         model=next;index=nextIndex;history=[];
-        const initialFrame=bridge.snapshot?.()?.frame;
+        const initialState=bridge.snapshot?.();
+        const initialFrame=initialState?.frame;
+        const atlasView=readAtlasView(atlasFragment,next,nextIndex,initialState?.controls?.frameRange);
         state={label,format:next.format,selectedId:null,query:'',frame:Number.isInteger(initialFrame)?initialFrame:(nextIndex.allFrames.includes(0)?0:(nextIndex.allFrames[0]??0)),scope:'all',scopeRootId:null,filters:{points:true,lines:true,aux:true},infoOpen:true};
-        await run(()=>applyState());subscribe();onStatus(`${label} — ${next.typeLabel}を読取専用で開きました。`);
+        await run(() => {
+          if (atlasView) {
+            state.frame = atlasView.frame;
+            state.selectedId = atlasView.selectedId;
+          }
+          return applyState({ camera: atlasView?.camera });
+        });
+        subscribe();onStatus(`${label} — ${next.typeLabel}を読取専用で開きました。`);
         return {ok:true,format:next.format};
       } catch(error) {
         let restored=!oldDisposed;
@@ -85,8 +96,36 @@ export function createBrowsingController({buildReadModel, validateReadModel, cre
     await applyState();if(geometry(entry).length)await bridge.fitSelection(geometry(entry));return clone(entry);
   }));}
   async function back() {return serial(()=>run(async()=>{requireReady();const previous=history.pop();if(!previous)return false;state=previous.state;await bridge.restore(previous.bridgeState);return true;}));}
-  async function fitSelection() {return serial(()=>run(async()=>{requireReady();const entry=current();if(!entry||!geometry(entry).length){onStatus('この記録には表示できる図形がありません。');return false;}pushHistory();const frames=framesFor(entry);if(frames.length&&!frames.includes(state.frame))state.frame=frames[0];state.scope='all';state.scopeRootId=null;state.filters={points:true,lines:true,aux:true};await applyState();await bridge.fitSelection(geometry(entry));return true;}));}
-  async function fitAll() {return serial(()=>run(async()=>{requireReady();pushHistory();state.scope='all';state.scopeRootId=null;await bridge.setScope(null);await bridge.fitAll();}));}
+  function fitSelection({keepScope = false} = {}) {
+    return serial(() => run(async () => {
+      requireReady();
+      const entry = current(), ids = entry && geometry(entry);
+      if (!ids?.length) { onStatus('この記録には表示できる図形がありません。'); return false; }
+      pushHistory();
+      if (!keepScope) {
+        const frames = framesFor(entry);
+        if (frames.length && !frames.includes(state.frame)) state.frame = frames[0];
+        state.scope = 'all';
+        state.scopeRootId = null;
+        state.filters = {points:true, lines:true, aux:true};
+        await applyState();
+      }
+      await bridge.fitSelection(ids, { keepScope });
+      return true;
+    }));
+  }
+  function fitAll({keepScope = false} = {}) {
+    return serial(() => run(async () => {
+      requireReady();
+      pushHistory();
+      if (!keepScope) {
+        state.scope = 'all';
+        state.scopeRootId = null;
+        await bridge.setScope(null);
+      }
+      await bridge.fitAll({ keepScope });
+    }));
+  }
   // Buttons and keys use these same serialized commands. They affect viewing state only.
   const command=(method,...args)=>serial(()=>run(async()=>{requireReady();if(typeof bridge[method]!=='function')throw new Error('この閲覧操作は利用できません。');return bridge[method](...args);}));
   const frameFirst=()=>command('frameFirst'),frameLast=()=>command('frameLast'),frameStep=delta=>command('frameStep',delta);
@@ -102,7 +141,16 @@ export function createBrowsingController({buildReadModel, validateReadModel, cre
   }));}
   function setInfoOpen(open) {state.infoOpen=!!open;notify();}
   function cancelOpen() {onStatus(model?'ファイル選択を取り消しました。前の閲覧状態を保持しています。':'ファイル選択を取り消しました。');return {ok:false,canceled:true};}
+  function atlasViewFragment() {
+    if (!bridge || loading) return '';
+    const view = bridge.snapshot();
+    // A native canvas pick can precede the next rendered selection notification.
+    // Keep the semantic reading ID if it already refers to that same geometry.
+    const picked = view.selection?.uuid ?? null;
+    const id = picked === (current()?.uuid ?? null) ? state.selectedId : (index.get(picked)?.id ?? null);
+    return captureAtlasView(model, view, id);
+  }
   function rawSnapshot() {return clone(model?.rawSnapshot??null);}
   function dispose() {disposed=true;unsubscribe?.();bridge?.dispose?.();host?.dispose?.();}
-  return {openText,cancelOpen,select,search,setFrame,setScope,setFilters,explore,back,fitSelection,fitAll,frameFirst,frameLast,frameStep,setPlaying,cameraReset,cameraPreset,cameraZoom,cameraOrbit,setAutoOrbit,setViewerSettings,enterMicro,exitMicro,setInfoOpen,snapshot,rawSnapshot,dispose,getModel:()=>model,getIndex:()=>index,getEntry:()=>current(),whenIdle:()=>queue,waitForPaint:painted};
+  return {openText,cancelOpen,select,search,setFrame,setScope,setFilters,explore,back,fitSelection,fitAll,frameFirst,frameLast,frameStep,setPlaying,cameraReset,cameraPreset,cameraZoom,cameraOrbit,setAutoOrbit,setViewerSettings,enterMicro,exitMicro,setInfoOpen,snapshot,atlasViewFragment,rawSnapshot,dispose,getModel:()=>model,getIndex:()=>index,getEntry:()=>current(),whenIdle:()=>queue,waitForPaint:painted};
 }

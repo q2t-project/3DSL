@@ -1,25 +1,7 @@
 /* apps/site/src/styles/ui.css */
 /* Tailwindの @apply に依存しない “業務UI” 基本部品 */
 
-:root{
-  --ui-bg: #0b0f14;
-  --ui-surface: rgba(255,255,255,0.04);
-  --ui-surface-2: rgba(255,255,255,0.06);
-  --ui-border: rgba(255,255,255,0.10);
-  --ui-border-2: rgba(255,255,255,0.16);
-  --ui-text: rgba(255,255,255,0.92);
-  --ui-muted: rgba(255,255,255,0.62);
-  --ui-dim: rgba(255,255,255,0.45);
-
-  /* cyan accent */
-  --ui-accent: rgba(56,189,248,1);          /* sky-400 */
-  --ui-accent-soft: rgba(56,189,248,0.14);
-  --ui-accent-border: rgba(56,189,248,0.28);
-
-  --ui-radius-lg: 1rem;   /* ≒ rounded-2xl */
-  --ui-radius-md: 0.75rem;
-  --ui-shadow: 0 10px 30px rgba(0,0,0,0.35);
-}
+@import "../../../reconstruction/ssot/shared/site-tokens.css";
 
 /* surfaces */
 .ui-surface{
@@ -45,7 +27,6 @@
 .ui-card:hover{
   background: var(--ui-surface-2);
   border-color: var(--ui-border-2);
-  transform: translateY(-1px);
 }
 
 /* chips */
@@ -83,6 +64,7 @@
 
 /* buttons */
 .ui-btn{
+  min-height: 2.75rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -98,7 +80,9 @@
   cursor: pointer;
   transition: background .15s ease, border-color .15s ease;
 }
-.ui-btn:hover{
+.ui-btn[hidden]{ display: none; }
+.ui-btn:disabled{ opacity: .5; cursor: default; }
+.ui-btn:hover:not(:disabled){
   background: rgba(255,255,255,0.06);
   border-color: var(--ui-border-2);
 }
@@ -107,7 +91,7 @@
   color: rgba(0,0,0,0.92);
   border-color: rgba(255,255,255,0.90);
 }
-.ui-btn-primary:hover{
+.ui-btn-primary:hover:not(:disabled){
   background: rgba(255,255,255,1);
 }
 
@@ -158,6 +142,8 @@
   background: rgba(255,255,255,0.06);
 }
 .ui-navbar--mecha .ui-navlink--active{
+  text-decoration: underline;
+  text-underline-offset: .2em;
   background: rgba(255,255,255,0.085);
   border-color: rgba(56,189,248,0.38);
   color: rgba(240,252,255,0.98);
@@ -183,6 +169,11 @@
 /* Home only: make the title/logo larger without affecting other pages */
 .is-home .ui-brand-logo{
   height: 84px; /* ~1.55x */
+}
+
+@media (max-width: 40rem) {
+  .is-home .ui-brand-logo { height: clamp(2.75rem, 14vw, 4rem); }
+  .ui-navbar .ui-navlink { min-height: 2rem; }
 }
 
 @media (min-width: 768px){
@@ -213,18 +204,19 @@
 /* inputs */
 .ui-input{
   width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
   padding: .65rem .85rem;
   border-radius: var(--ui-radius-md);
-  border: 1px solid var(--ui-border);
-  background: rgba(0,0,0,0.25);
+  border: 1px solid var(--ui-control-border);
+  background: var(--ui-control-surface);
   color: var(--ui-text);
-  font-size: 14px;
-  outline: none;
+  font: inherit;
+  font-size: 1rem;
 }
-.ui-input::placeholder{ color: var(--ui-dim); }
+.ui-input::placeholder{ color: var(--ui-muted); }
 .ui-input:focus{
-  border-color: var(--ui-accent-border);
-  box-shadow: 0 0 0 3px rgba(56,189,248,0.12);
+  border-color: var(--ui-focus);
 }
 
 /* text helpers */

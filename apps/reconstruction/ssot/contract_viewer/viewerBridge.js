@@ -1,3 +1,4 @@
+import { fitReadingBounds, readingBounds } from '../viewer/runtime/core/cameraFraming.js';
 import { plateRenderSpec } from '../shared/renderConventions.js';
 
 // Read-only browsing state bridge. No document, renderer or semantic mutator is exposed.
@@ -190,22 +191,14 @@ export function createViewerBridge(mountedViewer, { scene = null, timeoutMs = 15
     for (const p of appearance.geometry?.polyline_points ?? appearance.vertices ?? appearance.path?.points ?? []) points.push(xyz(p));
     return points.filter(Boolean);
   }
-  function fit(uuids) {
-    const ids = Array.from(uuids), bounds = hub.browsing?.getBounds?.(ids);
-    const points = bounds ? [bounds.min, bounds.max] : ids.flatMap(coordinates);
-    if (!points.length) return Promise.resolve(false);
-    const min = [0,1,2].map(i => Math.min(...points.map(p=>p[i])));
-    const max = [0,1,2].map(i => Math.max(...points.map(p=>p[i])));
-    const center = min.map((value,i) => (value+max[i])/2);
-    const radius = Math.max(0.7, Math.hypot(...max.map((value,i)=>(value-min[i])/2)));
-    const camera = copy(core.camera.getState());
-    // Keep viewing direction. A sphere fit covers portrait canvases as well as landscape ones.
+  function fit(uuids, { keepScope = false } = {}) {
+    const ids = Array.from(uuids);
+    const bounds = hub.browsing.getBounds?.(ids) ?? readingBounds({ geometry: ids.flatMap(coordinates) });
+    const viewport = hub.getReadingViewport?.();
     const canvas = globalThis.document?.getElementById?.('viewer-canvas');
-    const aspect = canvas?.clientWidth > 0 && canvas?.clientHeight > 0 ? canvas.clientWidth/canvas.clientHeight : 1;
-    const halfFov = Math.atan(Math.tan((camera.fov ?? 50)*Math.PI/360)*Math.min(1,aspect));
-    camera.target = { x:center[0], y:center[1], z:center[2] };
-    camera.distance = Math.min(1000, Math.max(2, radius/Math.sin(halfFov)*1.2));
-    return apply({ camera }, true);
+    const next = fitReadingBounds(bounds, core.camera.getState(),
+      viewport?.width || canvas?.clientWidth || 1, viewport?.height || canvas?.clientHeight || 1);
+    return next ? apply({ camera: next }, !keepScope) : Promise.resolve(false);
   }
   return Object.freeze({
     getSelection, snapshot, restore, select, setFrame, setFilters, setScope, waitForPaint,
@@ -218,8 +211,8 @@ export function createViewerBridge(mountedViewer, { scene = null, timeoutMs = 15
     cameraPreset, cameraZoom, cameraOrbit, setAutoOrbit, enterMicro,
     exitMicro() { return control('exitMicro'); },
     setViewerSettings,
-    fitSelection(uuids) { requireAlive(); const id=getSelection()?.uuid; return fit(uuids ?? (id?[id]:[])); },
-    fitAll() { requireAlive(); return fit(KINDS.flatMap(kind=>Array.from(core.uiState?.visibleSet?.[kind] ?? []))); },
+    fitSelection(uuids, options) { requireAlive(); const id=getSelection()?.uuid; return fit(uuids ?? (id?[id]:[]), options); },
+    fitAll(options) { requireAlive(); return fit(KINDS.flatMap(kind=>Array.from(core.uiState?.visibleSet?.[kind] ?? [])), options); },
     isVisible,
     dispose() { if (disposed) return; disposed=true; unsubscribe(); listeners.clear(); stateListeners.clear(); },
   });

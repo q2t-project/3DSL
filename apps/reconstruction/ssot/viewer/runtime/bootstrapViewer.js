@@ -77,6 +77,7 @@
 
 import { createRendererContext } from "./renderer/context.js";
 import { createViewerHub } from "./viewerHub.js";
+import { fitReadingBounds, readingBounds } from "./core/cameraFraming.js";
 import { computeInitialReadingView } from "./initialView.js";
 import { createModeController } from "./core/modeController.js";
 import { createCameraEngine } from "./core/cameraEngine.js";
@@ -1168,11 +1169,12 @@ export async function bootstrapViewer(canvasOrId, document3dss, options = {}) {
     const rect=canvasEl.getBoundingClientRect?.();
     const configuredCamera=options.cameraState ?? options.initialCamera ?? options.viewerSettings?.camera;
     const explicitCamera=!!configuredCamera && Object.keys(configuredCamera).length>0;
-    const next=computeInitialReadingView({
-      layout:renderer.getInitialReadingLayout?.(uiState.visibleSet),camera:cameraEngine.getState(),
-      width:canvasEl.clientWidth || rect?.width,height:canvasEl.clientHeight || rect?.height,
-      explicitCamera,
-    });
+    const layout = renderer.getInitialReadingLayout?.(uiState.visibleSet);
+    const camera = cameraEngine.getState();
+    const width = canvasEl.clientWidth || rect?.width;
+    const height = canvasEl.clientHeight || rect?.height;
+    const next = !explicitCamera && (computeInitialReadingView({ layout, camera, width, height })
+      ?? fitReadingBounds(readingBounds(layout), camera, width, height));
     if(next) {
       cameraEngine.setState(next);
       uiState.cameraState=structuredClone(cameraEngine.getState());
