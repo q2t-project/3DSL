@@ -36,6 +36,8 @@ try {
       }
       async function ready(p, model) {
         await waitFor(() => inReader(p, '!!w.viewerDiagnostics?.snapshot().renderAvailable && !d.getElementById("reading-search-button").disabled'), 'render ' + model, 45000);
+        const sharedType = await inReader(p, 'w.getComputedStyle(d.getElementById("reading-search-button")).fontFamily === w.getComputedStyle(d.documentElement).fontFamily');
+        assert(sharedType, 'Viewer controls inherit the shared interface font');
         assert.equal((await inReader(p, 'w.viewerBootReady')).ok, true, 'initial opening completes before another action');
         assert.deepEqual(await inReader(p, 'w.viewerDiagnostics.rawSnapshot()'), JSON.parse(await readFile(new URL('../../dist' + model, import.meta.url), 'utf8')));
       }
