@@ -50,6 +50,7 @@ await versionModules(hostedRoot, 'preview-reconstruction/contract_viewer/index.h
   '/preview-reconstruction/viewer/runtime/core/cameraFraming.js',
   '/preview-reconstruction/viewer/runtime/initialView.js',
   '/preview-reconstruction/contract_viewer/viewerBridge.js',
+  '/preview-reconstruction/contract_viewer/atlasView.js',
   '/preview-reconstruction/contract_viewer/browsingController.js',
   '/preview-reconstruction/viewer/runtime/renderer/context.js',
   '/preview-reconstruction/viewer/runtime/renderer/env.js',

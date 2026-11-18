@@ -74,7 +74,11 @@ const items = getLibraryItems().filter((item) => !item.hidden).map((item) => ({
       if (!grid || !controls || !pager || !search || !sort || !previous || !next || !info || !empty || !clearSearch) return;
       const cards = Array.from(grid.querySelectorAll("[data-library-id]"));
       const pageSize = 20;
-      let page = 1;
+      const initial = new URL(window.location.href).searchParams;
+      search.value = initial.get("q") ?? "";
+      sort.value = ["old", "title"].includes(initial.get("sort")) ? initial.get("sort") : "new";
+      const requestedPage = Number(initial.get("page"));
+      let page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
       const fold = value => String(value ?? "").normalize("NFKC").toLowerCase();
       function apply() {
         const words = fold(search.value).trim().split(/\s+/u).filter(Boolean);
@@ -99,19 +103,59 @@ const items = getLibraryItems().filter((item) => !item.hidden).map((item) => ({
         previous.disabled = page <= 1;
         next.disabled = page >= pages;
       }
-      search.addEventListener("input", () => { page = 1; apply(); });
-      clearSearch.addEventListener("click", () => { search.value = ""; page = 1; apply(); search.focus(); });
-      sort.addEventListener("change", () => { page = 1; apply(); });
-      previous.addEventListener("click", () => { page--; apply(); });
-      next.addEventListener("click", () => { page++; apply(); });
-      for (const link of grid.querySelectorAll(".reading-viewer")) {
-        const url = new URL(link.href, window.location.href);
-        url.searchParams.set("return", window.location.pathname + window.location.search);
-        link.href = url.href;
+      function listAddress(scroll) {
+        const url = new URL(window.location.pathname, window.location.href);
+        for (const [key, value] of [
+          ["q", search.value], ["sort", sort.value === "new" ? "" : sort.value],
+          ["page", page > 1 ? String(page) : ""], ["scroll", scroll > 0 ? String(Math.round(scroll)) : ""],
+        ]) {
+          if (value) url.searchParams.set(key, value);
+        }
+        return url;
+      }
+      function remember(list) {
+        const url = new URL(window.location.href);
+        for (const key of ["q", "sort", "page", "scroll"]) {
+          if (list.searchParams.has(key)) url.searchParams.set(key, list.searchParams.get(key));
+          else url.searchParams.delete(key);
+        }
+        if (url.href !== window.location.href) window.history.replaceState(window.history.state, "", url);
+      }
+      function update() {
+        apply();
+        remember(listAddress(0));
+      }
+      search.addEventListener("input", () => { page = 1; update(); });
+      clearSearch.addEventListener("click", () => { search.value = ""; page = 1; update(); search.focus(); });
+      sort.addEventListener("change", () => { page = 1; update(); });
+      previous.addEventListener("click", () => { page--; update(); });
+      next.addEventListener("click", () => { page++; update(); });
+
+      function setReturnAddress(event) {
+        const link = event.target.closest("a.work-detail, a.reading-viewer");
+        if (!link) return;
+        const from = listAddress(window.scrollY);
+        remember(from);
+        const destination = new URL(link.href);
+        if (link.classList.contains("reading-viewer")) {
+          destination.searchParams.set("return", from.pathname + from.search);
+        } else if (destination.origin === from.origin) {
+          if (from.search) destination.searchParams.set("list", from.search.slice(1));
+          else destination.searchParams.delete("list");
+        }
+        link.href = destination.href;
+      }
+      for (const event of ["click", "auxclick", "contextmenu"]) {
+        grid.addEventListener(event, setReturnAddress);
       }
       apply();
       controls.hidden = false;
       pager.hidden = false;
+      window.addEventListener("pageshow", () => {
+        const address = new URL(window.location.href);
+        const scroll = Number(address.searchParams.get("scroll"));
+        if (!address.hash && Number.isFinite(scroll) && scroll > 0) window.scrollTo(0, scroll);
+      });
     })();
   </script>
 </Layout>

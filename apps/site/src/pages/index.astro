@@ -21,12 +21,13 @@ const others = [
 ---
 <Layout title="3DSLアトラス" description="概念と関係を三次元で見渡せる作品集。モデルを回し、気になる部分に近づいて、そのつながりをたどれます。">
   <section aria-labelledby="feature">
+    <header class="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <h1 class="text-base font-semibold">3DSLアトラス</h1>
+      <p class="text-sm">寄って、引いて、つながりが見える。</p>
+    </header>
     <div class="flex flex-wrap items-baseline justify-between gap-2 mb-3">
-      <div>
-        <h1 class="text-base font-semibold">3DSLアトラス</h1>
-        <h2 id="feature" class="text-2xl font-semibold">{lead.title}</h2>
-      </div>
-      <a class="underline" href={viewer(lead.model)}>Viewerで大きく開く ↗</a>
+      <h2 id="feature" class="text-2xl font-semibold">{lead.title}</h2>
+      <a class="underline" data-atlas-expand={lead.model} href={viewer(lead.model)}>Viewerで大きく開く ↗</a>
     </div>
     <AtlasStage model={lead.model} title={lead.title} />
     <div class="mt-2 flex flex-wrap items-baseline justify-between gap-2 text-sm">

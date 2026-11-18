@@ -113,12 +113,18 @@ controller=createBrowsingController({buildReadModel,createReadingIndex,validateR
     try {const bridge=createViewerBridge(host,{scene:model.scene});await bridge.waitForPaint();activeHost=host;return {host,bridge};}catch(error){host.dispose();throw error;}
   },onChange:render,onControlsChange:renderControls,onStatus:(message,kind)=>{status.textContent=message;if(kind==='error')mobile.reportFailure(message);else mobile.refresh();},onBusy:value=>{busy=value;input.disabled=value||handoffPending;if(controller)render(controller.snapshot());}
 });
+// A position from the work page applies only to the first URL open. Opening a
+// different file later, even the same model, starts a fresh reading session.
+let initialAtlasFragment = peekMode ? '' : location.hash;
+if (atlasEmbed) window.getAtlasViewFragment = () => controller.atlasViewFragment();
 async function openFileText(text,label,sourceUrl) {
   // A deliberate local open supersedes a pending transfer. The receiver cannot
   // later replace the user's newly opened file or relabel it as a snapshot.
   handoffReceiver?.dispose();handoffReceiver=null;handoffPending=false;
   mobile.clearFailure();
-  const result=await controller.openText(text,label,sourceUrl);
+  const atlasFragment = initialAtlasFragment;
+  initialAtlasFragment = '';
+  const result=await controller.openText(text,label,sourceUrl,atlasFragment);
   if(result?.ok===true){successfulLocalOpen++;snapshotNotice.hidden=true;mobile.show('diagram',{returnFocus:false});}
   return result;
 }
@@ -184,4 +190,17 @@ window.viewerBootReady=(async()=>{
   const modelUrl=modelFromSearch(params)||(peekMode?'/3dss/scenes/top/top.3dss.json':null);
   return modelUrl?entryInput.openUrl(modelUrl):{ok:true,empty:true};
 })();
-window.addEventListener('pagehide',()=>{byId('viewer-canvas').removeEventListener('viewer-render-error',renderError);entryInput.dispose();mobile.dispose();mobileGizmo.dispose();readingTools.removeEventListener('toggle',resizeAfterToolsToggle);handoffReceiver?.dispose();controlsUI.dispose();controller.dispose();},{once:true});
+function leaveReader(event) {
+  // Back/forward cache freezes this document, including the running Viewer.
+  if (event.persisted) return;
+  window.removeEventListener('pagehide', leaveReader);
+  byId('viewer-canvas').removeEventListener('viewer-render-error', renderError);
+  readingTools.removeEventListener('toggle', resizeAfterToolsToggle);
+  entryInput.dispose();
+  mobile.dispose();
+  mobileGizmo.dispose();
+  handoffReceiver?.dispose();
+  controlsUI.dispose();
+  controller.dispose();
+}
+window.addEventListener('pagehide', leaveReader);

@@ -29,15 +29,17 @@ try {
         // replacing its target or racing load-time scroll restoration.
         const expression = '(() => {const doc=' + (reader ? 'd' : 'document') + ',el=doc.querySelector(' + JSON.stringify(selector) + ');if(!el?.getClientRects().length)throw new Error("Missing or hidden control: " + ' + JSON.stringify(selector) + ');el.scrollIntoView({block:"center"});el.focus();return doc.activeElement===el;})()';
         assert(await (reader ? inReader(p, expression) : p.evaluate(expression)), 'focus ' + selector);
+        const y = await p.evaluate('Math.round(scrollY)');
         await p.cmd('Input.dispatchKeyEvent', { type:'keyDown', key:'Enter', code:'Enter', windowsVirtualKeyCode:13, text:'\r', unmodifiedText:'\r' });
         await p.cmd('Input.dispatchKeyEvent', { type:'keyUp', key:'Enter', code:'Enter', windowsVirtualKeyCode:13 });
+        return y;
       }
       async function ready(p, model) {
         await waitFor(() => inReader(p, '!!w.viewerDiagnostics?.snapshot().renderAvailable && !d.getElementById("reading-search-button").disabled'), 'render ' + model, 45000);
         assert.equal((await inReader(p, 'w.viewerBootReady')).ok, true, 'initial opening completes before another action');
         assert.deepEqual(await inReader(p, 'w.viewerDiagnostics.rawSnapshot()'), JSON.parse(await readFile(new URL('../../dist' + model, import.meta.url), 'utf8')));
       }
-      async function inspectAndReturn(p, model, route) {
+      async function inspectAndReturn(p, model, route, fromList) {
         await ready(p, model);
         if (width === 360) {
           await click(p, '#reading-tab-find', true);
@@ -52,7 +54,13 @@ try {
         }
         const back = await inReader(p, '(() => {const a=d.getElementById("reading-return");return {hidden:a.hidden,href:a.href,target:a.target,height:a.getBoundingClientRect().height};})()');
         assert(!back.hidden && back.height >= 44, 'visible native return link');
-        assert.equal(back.href, server.origin + route);
+        const destination = new URL(back.href);
+        assert.equal(destination.origin + destination.pathname, server.origin + route);
+        if (fromList) {
+          const list = route === '/library/' ? destination.searchParams : new URLSearchParams(destination.searchParams.get('list'));
+          assert.equal(list.get('q'), '26'); assert.equal(list.get('sort'), 'title');
+          assert.equal(Number(list.get('scroll')), fromList.scroll, 'list scroll at ' + width + 'px via ' + destination.href);
+        } else assert.equal(back.href, server.origin + route);
         assert.equal(back.target, '_top');
         await click(p, '#reading-return', true);
         await waitFor(() => p.evaluate('location.pathname===' + JSON.stringify(route) + ' && document.readyState==="complete" && !!document.querySelector("main h1")'), 'return to ' + route);
@@ -92,16 +100,33 @@ try {
         await page.cmd('Page.bringToFront');
       }
       const model = '/_data/library/26010501/model.3dss.json';
+      // A shorter viewport gives even the three-card public list room to scroll on desktop.
+      await page.cmd('Emulation.setDeviceMetricsOverride', { width, height: 480, deviceScaleFactor: 1, mobile: width === 360 });
       for (const detail of [false, true]) {
         await go(page, '/library/');
+        await page.evaluate(`(() => {const q=document.getElementById('search'), s=document.getElementById('sort');
+          q.value='26'; q.dispatchEvent(new Event('input')); s.value='title'; s.dispatchEvent(new Event('change'));})()`);
+        let listScroll;
         const route = detail ? '/library/26010501/' : '/library/';
         if (detail) {
-          await click(page, '[data-library-id="26010501"] .work-detail');
+          listScroll = await click(page, '[data-library-id="26010501"] .work-detail');
           await waitFor(() => page.evaluate('location.pathname===' + JSON.stringify(route) + ' && document.readyState==="complete"'), 'Library to work details');
         }
         const selector = detail ? 'main a[href^="/app/viewer/?"]' : '[data-library-id="26010501"] .reading-viewer';
-        await click(page, selector);
-        await inspectAndReturn(page, model, route);
+        const y = await click(page, selector);
+        if (!detail) listScroll = y;
+        await inspectAndReturn(page, model, route, { scroll: listScroll });
+        if (detail) await click(page, 'main a[href^="/library/?"]');
+
+        const listRestored = () => page.evaluate(`location.pathname==='/library/' && document.readyState==='complete' &&
+          document.getElementById('search')?.value==='26' && document.getElementById('sort')?.value==='title' &&
+          Math.abs(scrollY-${listScroll}) <= 1`);
+        await waitFor(listRestored, 'explicit return restores list filters and position');
+        assert(listScroll > 0, 'fixture scrolls before leaving the list');
+        listScroll = await click(page, '[data-library-id="26010501"] ' + (detail ? '.work-detail' : '.reading-viewer'));
+        await waitFor(() => page.evaluate('location.pathname!=="/library/" && document.readyState==="complete"'), 'leave list again');
+        await page.evaluate('history.back()');
+        await waitFor(listRestored, 'browser Back restores list filters and position');
         results.push({ width, source: route, newTab: false, returnTo: route });
       }
       // A healthy Viewer must not offer the removed host button as a bypass
@@ -114,8 +139,9 @@ try {
       }
     });
   }
-  console.log('[check:reading-journey] PASS ' + JSON.stringify({ journeys: results, unsafeReturnCases: 6, scope: 'Chromium viewport checks; not Android hardware, scroll-position restoration or reader comprehension' }));
+  console.log('[check:reading-journey] PASS ' + JSON.stringify({ journeys: results, unsafeReturnCases: 6, scope: 'Chromium viewport checks, including explicit return and browser Back to the filtered list' }));
 } finally { await server.close(); }
 
 // Follow the work page and full Viewer through a whole-to-detail round trip.
 await import('./atlas-zoom.mjs');
+await import('./atlas-handoff.mjs');

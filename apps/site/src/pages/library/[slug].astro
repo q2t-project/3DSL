@@ -318,7 +318,7 @@ const thirdParty = Array.isArray(rights?.third_party)
     <div class="mt-3">
       <div class="flex flex-wrap items-baseline justify-between gap-2">
         <h1 class="text-3xl font-semibold tracking-tight text-neutral-100">{item.title}</h1>
-        <a class="underline" href={appViewerUrl}>Viewerで大きく開く ↗</a>
+        <a class="underline" data-full-viewer data-atlas-expand={modelUrl} href={appViewerUrl}>Viewerで大きく開く ↗</a>
       </div>
       {item.summary ? (
         <p class="mt-2 max-w-[75ch] text-base leading-relaxed text-neutral-300">{item.summary}</p>
@@ -519,6 +519,30 @@ const thirdParty = Array.isArray(rights?.third_party)
 
   <!-- Toast (library share UI lives on this meta page) -->
   <div id="lib-toast" class="fixed left-1/2 top-4 z-[60] hidden -translate-x-1/2 rounded-xl border border-neutral-800 bg-neutral-950/90 px-4 py-2 text-sm text-neutral-100 shadow-lg"></div>
+  <script is:inline>
+    (() => {
+      const address = new URL(window.location.href);
+      const list = address.searchParams.get("list");
+      if (!list) return;
+      const filters = new URLSearchParams(list);
+      const library = new URL("/library/", address);
+      for (const key of ["q", "sort", "page", "scroll"]) {
+        if (filters.has(key)) library.searchParams.set(key, filters.get(key));
+      }
+      if (!library.search) return;
+      for (const link of document.querySelectorAll('a[href="/library"], a[href="/library/"]')) {
+        link.href = library.pathname + library.search;
+      }
+      const fullViewer = document.querySelector("[data-full-viewer]");
+      if (fullViewer) {
+        const viewer = new URL(fullViewer.href);
+        const detail = new URL(address.pathname, address);
+        detail.searchParams.set("list", library.search.slice(1));
+        viewer.searchParams.set("return", detail.pathname + detail.search);
+        fullViewer.setAttribute("href", viewer.pathname + viewer.search);
+      }
+    })();
+  </script>
   <script is:inline define:vars={{ pagePath }}>
     (() => {
       const shareBtn = document.getElementById('lib-share');

@@ -203,6 +203,8 @@ function isActive(href: string) {
       // Scroll position control (important when using ViewTransitions / client-side navigation).
       // Otherwise, the next page can inherit the previous page's scrollY.
       (() => {
+        // The library restores its position after filtering and owns scroll on this page.
+        if (document.querySelector(".library-page")) return;
         const shouldKeepScroll = () => {
           // hash navigation should keep the browser's default behavior
           if (location.hash && location.hash !== "#") return true;

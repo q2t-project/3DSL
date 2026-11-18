@@ -45,9 +45,19 @@ const elements = Object.fromEntries(['library-controls', 'library-pager', 'searc
   value: id === 'sort' ? 'new' : '', hidden: true, listeners: {}, addEventListener(type, fn) { this.listeners[type] = fn; },
   focus() { this.focused = true; },
 }]));
-const grid = { children: [...cards], querySelectorAll(selector) { return selector === '[data-library-id]' ? cards : []; }, appendChild(card) { this.children.splice(this.children.indexOf(card), 1); this.children.push(card); } };
+const grid = { children: [...cards], listeners: {}, addEventListener(type, fn) { this.listeners[type] = fn; }, querySelectorAll(selector) { return selector === '[data-library-id]' ? cards : []; }, appendChild(card) { this.children.splice(this.children.indexOf(card), 1); this.children.push(card); } };
 elements.cards = grid;
-vm.runInNewContext(script, { document: { getElementById: (id) => elements[id] }, window: { location: new URL('https://3dsl.jp/library/?test=1') }, URL });
+const browser = {
+  location: new URL('https://3dsl.jp/library/?test=1'), scrollY: 0, listeners: {},
+  history: { state: null, replaceState(_state, _title, url) { browser.location = new URL(url); } },
+  addEventListener(type, fn) { this.listeners[type] = fn; },
+  scrollTo(_x, y) { this.scrollY = y; },
+};
+function loadList() {
+  vm.runInNewContext(script, { document: { getElementById: (id) => elements[id] }, window: browser, URL });
+  browser.listeners.pageshow();
+}
+loadList();
 const visible = () => grid.children.filter((card) => !card.hidden);
 assert.equal(visible().length, 20); assert.equal(elements['library-controls'].hidden, false); assert.equal(elements.prev.disabled, true);
 elements.next.listeners.click(); assert.equal(visible().length, 20);
@@ -69,6 +79,27 @@ elements.search.value = 'no-such-work'; elements.search.listeners.input(); asser
 assert.equal(elements['clear-search'].hidden, false);
 elements['clear-search'].listeners.click(); assert.equal(elements.search.value, ''); assert.equal(visible().length, 20); assert.equal(elements.search.focused, true); assert.equal(elements['clear-search'].hidden, true); assert.equal(elements.next.hidden, false); assert.equal(elements.sort.value, 'new');
 assert.equal(new Set(grid.children).size, 45, 'no card loss or duplicate nodes');
+elements.search.value = 'even'; elements.search.listeners.input();
+elements.sort.value = 'old'; elements.sort.listeners.change();
+elements.next.listeners.click(); browser.scrollY = 320;
+const pageTwo = visible().map(c => c.dataset.libraryId);
+assert.equal(pageTwo.length, 3);
+const viewer = { href: 'https://3dsl.jp/app/viewer/?model=fixture', classList: { contains: name => name === 'reading-viewer' } };
+grid.listeners.click({ target: { closest: () => viewer } });
+const back = new URL(viewer.href).searchParams.get('return');
+const viewerReturn = new URL(back, browser.location);
+for (const key of ['q', 'sort', 'page', 'scroll']) {
+  assert.equal(viewerReturn.searchParams.get(key), browser.location.searchParams.get(key), 'links retain ' + key);
+}
+assert(!viewerReturn.searchParams.has('test'), 'unrelated entry parameters stay on the list');
+browser.scrollY = 0;
+loadList();
+assert.equal(elements.search.value, 'even'); assert.equal(elements.sort.value, 'old');
+assert.deepEqual(visible().map(c => c.dataset.libraryId), pageTwo);
+assert.equal(browser.scrollY, 320); assert.equal(browser.location.searchParams.get('test'), '1');
+browser.location = new URL('https://3dsl.jp/library/?page=Infinity&sort=unknown&scroll=-1');
+browser.scrollY = 0; loadList();
+assert.equal(elements.sort.value, 'new'); assert.equal(elements.prev.disabled, true); assert.equal(browser.scrollY, 0);
 console.log('[check:content-readability] PASS static cards/hidden/learning links/FAQ; 45-card search/sort/paging, ID/width/case/kana/AND matching, no-results and focused clear');
 
 const brainRaw = await fs.readFile(path.join(repo, 'packages/3dss-content/library/26012001/model.3dss.json'), 'utf8');
