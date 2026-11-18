@@ -7,11 +7,9 @@ import path from 'node:path';
 import os from 'node:os';
 import http from 'node:http';
 import vm from 'node:vm';
-import { createHash } from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 const site = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const repo = path.resolve(site, '../..');
 const dist = path.join(site, 'dist');
 const read = (p) => fs.readFile(path.join(dist, p), 'utf8');
 const html = await read('library/index.html');
@@ -101,15 +99,6 @@ browser.location = new URL('https://3dsl.jp/library/?page=Infinity&sort=unknown&
 browser.scrollY = 0; loadList();
 assert.equal(elements.sort.value, 'new'); assert.equal(elements.prev.disabled, true); assert.equal(browser.scrollY, 0);
 console.log('[check:content-readability] PASS static cards/hidden/learning links/FAQ; 45-card search/sort/paging, ID/width/case/kana/AND matching, no-results and focused clear');
-
-const brainRaw = await fs.readFile(path.join(repo, 'packages/3dss-content/library/26012001/model.3dss.json'), 'utf8');
-const blob = createHash('sha1').update(`blob ${Buffer.byteLength(brainRaw)}\0`).update(brainRaw).digest('hex');
-assert.equal(blob, 'accc58dca3afebef482edab76fcbecc40726915a', 'brain model unchanged');
-const brain = JSON.parse(brainRaw);
-const ids = new Set(brain.points.map((p) => p.meta.uuid));
-const missing = brain.lines.flatMap((line) => ['end_a', 'end_b'].filter((end) => line.appearance[end]?.ref && !ids.has(line.appearance[end].ref)).map((end) => ({ line: line.meta.uuid, end, ref: line.appearance[end].ref })));
-console.log('[check:content-readability] BRAIN_REVIEW ' + JSON.stringify({ points: brain.points.length, lines: brain.lines.length, documentReference: brain.document_meta.reference, missing, labels: brain.points.map((p) => p.signification?.name) }));
-if (missing.length) console.log('[check:content-readability] WARN: inherited dangling brain endpoints require author decision; NOT a whole-site pass.');
 
 const chrome = ['google-chrome', 'chromium', 'chromium-browser'].find((name) => spawnSync(name, ['--version'], { encoding: 'utf8' }).status === 0);
 if (!chrome) {

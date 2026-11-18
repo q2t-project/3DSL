@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
+import { existsSync } from 'node:fs';
 import { readFile, readdir, stat } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
@@ -88,14 +89,16 @@ if (leadItem) assert(featured.includes(leadItem.slug), 'featured model links to 
 assert(homeModel && (await stat(path.join(dist, homeModel))).isFile(), 'embedded home model exists');
 assert(hasWorkLink(readerLinks(topHtml), homeModel, '/'), 'full viewer opens the same model and returns home');
 const listLinks = readerLinks(listHtml);
-// A retired work must disappear from both catalog and direct data routes.
-const retiredIds = ['26010502', '26010801', '26012201'];
-for (const id of retiredIds) {
-  assert(!sitemap.includes(`/library/${id}/`), `${id}: retired work in sitemap`);
-  assert(!index.items.some(item => item.id === id), `${id}: retired work in index`);
+// Kept sources may return to library/ when the author resumes publication.
+const heldDir = path.resolve(site, '../../packages/3dss-content/on-hold');
+const heldIds = existsSync(heldDir) ? await readdir(heldDir) : [];
+const offSiteIds = ['26010502', '26010801', '26012201', ...heldIds.filter(id => /^\d{8}$/.test(id))];
+for (const id of offSiteIds) {
+  assert(!sitemap.includes(`/library/${id}/`), `${id}: off-site work in sitemap`);
+  assert(!index.items.some(item => item.id === id), `${id}: off-site work in index`);
   for (const root of ['_data/library', '3dss/library', 'library']) {
     await assert.rejects(stat(path.join(dist, root, id)), { code: 'ENOENT' },
-      `${root}/${id}: retired work in distribution`);
+      `${root}/${id}: off-site work in distribution`);
   }
 }
 const retiredGuide = '/docs/works/structure-classification';
@@ -122,7 +125,7 @@ for (const file of ['index.html', 'concept/index.html', 'docs/index.html', 'libr
   'docs/usage/read-a-work/index.html', 'faq/content-authorship/index.html']) {
   const links = readerLinks(await read(file));
   assert(!links.some(url => url.pathname.replace(/\/$/, '') === retiredGuide ||
-    retiredIds.some(id => url.href.includes(id))), `${file}: link to a retired work or guide`);
+    offSiteIds.some(id => url.href.includes(id))), `${file}: link to an off-site work or guide`);
 }
 for (const item of index.items) {
   const detail = await read(`library/${item.slug}/index.html`);
