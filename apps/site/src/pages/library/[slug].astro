@@ -1,5 +1,6 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import AtlasStage from "../../components/AtlasStage.astro";
 import AdSlot from "../../components/AdSlot.astro";
 import { ADSENSE_SLOTS, shouldEnableAdsense } from "../../lib/adsense";
 import { getLibraryItemBySlug, getLibraryItems } from "../../lib/libraryIndex";
@@ -54,7 +55,6 @@ const appViewerUrl = `/app/viewer/?${new URLSearchParams({
   return: pagePath,
   title: seoTitle,
 }).toString()}`;
-const peekUrl = `/viewer/peek.html?model=${encodeURIComponent(modelUrl)}`;
 
 // Per-item page config (optional)
 const pageConf = meta?.page ?? {};
@@ -310,56 +310,41 @@ const thirdParty = Array.isArray(rights?.third_party)
   </Fragment>
   <div class="mx-auto max-w-[1200px] px-4 py-6">
     <div class="text-sm text-neutral-500">
-      <a href="/library" class="hover:underline">Library</a>
+      <a href="/library" class="hover:underline">作品一覧</a>
       <span class="mx-2">/</span>
       <span class="text-neutral-400">{item.title}</span>
     </div>
 
     <div class="mt-3">
-      <h1 class="text-3xl font-semibold tracking-tight text-neutral-100">{item.title}</h1>
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <h1 class="text-3xl font-semibold tracking-tight text-neutral-100">{item.title}</h1>
+        <a class="underline" href={appViewerUrl}>Viewerで大きく開く ↗</a>
+      </div>
       {item.summary ? (
         <p class="mt-2 max-w-[75ch] text-base leading-relaxed text-neutral-300">{item.summary}</p>
       ) : null}
     </div>
 
-    {showAdMobileTop ? (
-      <div class="mt-4 lg:hidden">
-        <AdSlot slot={ADSENSE_SLOTS.slot_300x250} class="w-full" />
-      </div>
-    ) : null}
+    <div class="mt-4">
+      <AtlasStage model={modelUrl} title={item.title} />
+    </div>
 
-    <div class:list={["mt-6 grid grid-cols-1 gap-6", { "lg:grid-cols-[minmax(0,1fr)_300px]": showAdDesktopRail }]}>
-      <main class="min-w-0">
-        <section class="rounded-2xl border border-neutral-800 bg-neutral-950/40 p-4">
-          <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+    <div class:list={["mt-4 grid grid-cols-1 gap-6", { "lg:grid-cols-[minmax(0,1fr)_300px]": showAdDesktopRail }]}>
+      <div class="min-w-0">
+        {bodyHtml ? (
+          <details id="work-notes" class="mb-3 rounded-2xl border border-neutral-800 bg-neutral-950/40 p-5">
+            <summary class="cursor-pointer text-base font-semibold text-neutral-100">作品の解説を読む</summary>
+            <div class="library-md prose prose-invert mt-4 max-w-none">
+              <div set:html={bodyHtml} />
+            </div>
+          </details>
+        ) : null}
+
+        <details class="rounded-2xl border border-neutral-800 bg-neutral-950/40 p-4">
+          <summary class="cursor-pointer font-semibold">作品情報・共有・データ</summary>
+          <div class="mt-4 grid grid-cols-1 gap-5 lg:grid-cols-2">
             <div class="min-w-0">
-              <div class="group relative w-full overflow-hidden rounded-xl border border-neutral-800 bg-black h-[min(46vw,220px)] sm:h-[min(56.25vw,280px)]">
-                <iframe
-                  class="absolute inset-0 block h-full w-full pointer-events-none"
-                  src={peekUrl}
-                  title={`Preview: ${item.title}`}
-                  loading="lazy"
-                  allow="fullscreen"
-                />
-
-                <!-- clickable preview: keep the mini viewer non-interactive but use it as a clear navigation affordance -->
-                <a
-                  href={appViewerUrl}
-                  class="absolute inset-0 block"
-                  aria-label="3DSL Viewerで開く"
-                >
-                </a>
-              </div>
-
-              <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <a
-                  href={appViewerUrl}
-                  class="inline-flex items-center justify-center gap-2 rounded-xl bg-neutral-100/10 px-4 py-3 text-sm font-semibold text-neutral-50 ring-1 ring-inset ring-neutral-200/15 transition hover:bg-neutral-100/15 active:scale-[0.99]"
-                >
-                  <svg viewBox="0 0 24 24" width="16" height="16" class="h-4 w-4 shrink-0" aria-hidden="true"><path fill="currentColor" d="M7 3h4v2H7v4H5V5a2 2 0 0 1 2-2Zm12 0a2 2 0 0 1 2 2v4h-2V5h-4V3h4ZM5 15h2v4h4v2H7a2 2 0 0 1-2-2v-4Zm14 0h2v4a2 2 0 0 1-2 2h-4v-2h4v-4Z"/></svg>
-                  3DSL Viewerで開く
-                </a>
-
+              <div>
                 <a
                   href={modelUrl}
                   class="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-800 bg-neutral-950/30 px-4 py-3 text-sm font-medium text-neutral-200 transition hover:bg-neutral-900/60 active:scale-[0.99]"
@@ -367,7 +352,7 @@ const thirdParty = Array.isArray(rights?.third_party)
                   rel="noreferrer"
                 >
                   <svg viewBox="0 0 24 24" width="16" height="16" class="h-4 w-4 shrink-0" aria-hidden="true"><path fill="currentColor" d="M6 2h9l5 5v15a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm8 1.5V8h4.5L14 3.5ZM7 12h10v2H7v-2Zm0 4h10v2H7v-2Z"/></svg>
-                  JSON
+                  モデルデータ（JSON）
                 </a>
               </div>
 
@@ -418,16 +403,16 @@ const thirdParty = Array.isArray(rights?.third_party)
 
               <div class="mt-5 grid grid-cols-1 gap-2 rounded-xl border border-neutral-800 bg-neutral-950/30 p-3 text-xs text-neutral-400">
                 {hasNonEmptyString(createdAt) ? (
-                  <div><span class="text-neutral-500">created:</span> {createdAt}</div>
+                  <div><span class="text-neutral-500">作成日</span> {createdAt}</div>
                 ) : null}
                 {hasNonEmptyString(updatedAt) ? (
-                  <div><span class="text-neutral-500">updated:</span> {updatedAt}</div>
+                  <div><span class="text-neutral-500">更新日</span> {updatedAt}</div>
                 ) : null}
               </div>
 
               {Array.isArray(authors) && authors.length ? (
                 <div class="mt-4">
-                  <div class="text-xs font-semibold text-neutral-400">authors</div>
+                  <div class="text-xs font-semibold text-neutral-400">作者</div>
                   <ul class="mt-2 space-y-1 text-xs text-neutral-300">
                     {authors.map((a) => (
                       <li>
@@ -444,19 +429,10 @@ const thirdParty = Array.isArray(rights?.third_party)
               ) : null}
             </div>
           </div>
-        </section>
+        </details>
 
-        {bodyHtml ? (
-          <section class="mt-8 rounded-2xl border border-neutral-800 bg-neutral-950/40 p-5">
-            <h2 class="text-base font-semibold text-neutral-100">テキスト</h2>
-            <div class="library-md prose prose-invert mt-4 max-w-none">
-              <div set:html={bodyHtml} />
-            </div>
-          </section>
-        ) : null}
-
-        {showAdInline1 ? (
-          <div class="mt-8">
+        {(showAdInline1 || showAdMobileTop) ? (
+          <div class:list={["mt-8", { "lg:hidden": !showAdInline1 }]}>
             <AdSlot slot={ADSENSE_SLOTS.slot_300x250} class="w-full" />
           </div>
         ) : null}
@@ -527,7 +503,7 @@ const thirdParty = Array.isArray(rights?.third_party)
             </div>
           </section>
         ) : null}
-      </main>
+      </div>
 
       {showAdDesktopRail && <aside class="hidden lg:block">
         <div class="sticky top-6 space-y-6">

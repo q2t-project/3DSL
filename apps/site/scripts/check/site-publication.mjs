@@ -11,7 +11,8 @@ const index = JSON.parse(await read('_data/library/library_index.json'));
 const listHtml = await read('library/index.html');
 const topHtml = await read('index.html');
 const sitemap = await read('sitemap.xml').catch(() => ''); // Preview may omit it.
-const featured = [...topHtml.matchAll(/href="\/library\/([^"/?#]+)"/g)].map((match) => match[1]);
+const leadSection = topHtml.match(/<section\b[^>]*aria-labelledby="feature"[\s\S]*?<\/section>/)?.[0] ?? '';
+const featured = [...leadSection.matchAll(/href="\/library\/([^"/?#]+)\/?"/g)].map(match => match[1]);
 
 // Check generated reader links, not just whether a compatibility URL responds.
 const viewerPath = '/app/viewer/';
@@ -79,7 +80,11 @@ function hasWorkLink(links, model, returnTo) {
 }
 const homeFrame = /<iframe[^>]+src="(\/viewer\/peek\.html\?[^"]+)"/.exec(topHtml);
 assert(homeFrame, 'home embeds the interactive model');
-const homeModel = new URL(homeFrame[1], siteOrigin).searchParams.get('model');
+const homeParams = new URL(homeFrame[1].replaceAll('&amp;', '&'), siteOrigin).searchParams;
+assert.equal(homeParams.get('controls'), 'atlas', 'home exposes focus and overview controls');
+const homeModel = homeParams.get('model');
+const leadItem = index.items.find(item => item.model_url === homeModel);
+if (leadItem) assert(featured.includes(leadItem.slug), 'featured model links to the same permanent work page');
 assert(homeModel && (await stat(path.join(dist, homeModel))).isFile(), 'embedded home model exists');
 assert(hasWorkLink(readerLinks(topHtml), homeModel, '/'), 'full viewer opens the same model and returns home');
 const listLinks = readerLinks(listHtml);
@@ -121,6 +126,11 @@ for (const file of ['index.html', 'concept/index.html', 'docs/index.html', 'libr
 }
 for (const item of index.items) {
   const detail = await read(`library/${item.slug}/index.html`);
+  const frame = /<iframe[^>]+src="(\/viewer\/peek\.html\?[^"]+)"/.exec(detail);
+  assert(frame, item.id + ': interactive work page');
+  const params = new URL(frame[1].replaceAll('&amp;', '&'), siteOrigin).searchParams;
+  assert.equal(params.get('model'), item.model_url);
+  assert.equal(params.get('controls'), 'atlas');
   assert(await stat(path.join(dist, item.model_url.replace(/^\//, ''))), `${item.id}: model preserved`);
   assert.equal(new URL(item.viewer_url, siteOrigin).pathname, viewerPath, `${item.id}: canonical catalog URL`);
   assert(hasWorkLink(readerLinks(detail), item.model_url, `/library/${item.slug}/`), `${item.id}: detail opens its work and retains return path`);

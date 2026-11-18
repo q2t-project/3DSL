@@ -1,10 +1,19 @@
 // Conservative initial reading view. A camera choice is presentation state only;
 // authored coordinates, labels, orientation and document data are never changed.
+import { MIN_DISTANCE, MAX_DISTANCE } from "./core/cameraFraming.js";
+
 const finite3 = a => Array.isArray(a) && a.length === 3 && a.every(Number.isFinite);
 const dot = (a,b) => a.reduce((s,v,i)=>s+v*b[i],0);
 const cross = (a,b) => [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
 function unit(a) { if(!finite3(a))return null;const n=Math.hypot(...a);return n>1e-8?a.map(v=>v/n):null; }
-const range=(points,i)=>[Math.min(...points.map(p=>p[i])),Math.max(...points.map(p=>p[i]))];
+function range(points, axis) {
+  let min = Infinity, max = -Infinity;
+  for (const point of points) {
+    min = Math.min(min, point[axis]);
+    max = Math.max(max, point[axis]);
+  }
+  return [min, max];
+}
 const same=(a,b)=>a && b && dot(a,b)>.999999;
 
 // A fixed +Z-up orbit can show several unrolled cardinal faces from one octant.
@@ -64,13 +73,13 @@ export function computeInitialReadingView({ layout, camera, width, height, expli
   const fov=Number(camera?.fov) || 50;
   if(!(fov>1 && fov<179))return null;
   const tan=Math.tan(fov*Math.PI/360), aspect=width/height, margin=1.12;
-  let distance=2;
-  for(const p of all) distance=Math.max(distance,p[2]-c[2]+Math.max(planar?0:1,margin*Math.max(Math.abs(p[0]-c[0])/(tan*aspect),Math.abs(p[1]-c[1])/tan)));
+  let distance=MIN_DISTANCE;
+  for(const p of all) distance=Math.max(distance,p[2]-c[2]+Math.max(planar?0:lateral*.01,margin*Math.max(Math.abs(p[0]-c[0])/(tan*aspect),Math.abs(p[1]-c[1])/tan)));
   // Match cameraEngine's existing numerical limits without pretending a clamped
   // fit can contain a larger model.
-  if(distance>1000 || !Number.isFinite(distance))return null;
+  if(distance>MAX_DISTANCE || !Number.isFinite(distance))return null;
   const target=[0,1,2].map(i=>right[i]*c[0]+up[i]*c[1]+normal[i]*c[2]);
-  if(target.some(v=>Math.abs(v)>10000))return null;
+  if(target.some(v=>Math.abs(v)>Number.MAX_SAFE_INTEGER))return null;
   return {theta:Math.atan2(normal[1],normal[0]),phi:planar?Math.PI/2:Math.acos(normal[2]),distance,
     target:{x:target[0],y:target[1],z:target[2]},fov};
 }

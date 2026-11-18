@@ -116,3 +116,6 @@ try {
   }
   console.log('[check:reading-journey] PASS ' + JSON.stringify({ journeys: results, unsafeReturnCases: 6, scope: 'Chromium viewport checks; not Android hardware, scroll-position restoration or reader comprehension' }));
 } finally { await server.close(); }
+
+// Follow the work page and full Viewer through a whole-to-detail round trip.
+await import('./atlas-zoom.mjs');

@@ -2,6 +2,8 @@
 // geometry/label corner by perspective projection, including phone aspect ratios.
 import assert from 'node:assert/strict';
 import { computeInitialReadingView } from '../../../reconstruction/ssot/viewer/runtime/initialView.js';
+import { createCameraEngine } from '../../../reconstruction/ssot/viewer/runtime/core/cameraEngine.js';
+import { fitReadingBounds, readingBounds } from '../../../reconstruction/ssot/viewer/runtime/core/cameraFraming.js';
 const dot=(a,b)=>a.reduce((s,v,i)=>s+v*b[i],0);
 const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
 const norm=a=>{const n=Math.hypot(...a);return a.map(v=>v/n);};
@@ -96,7 +98,34 @@ const malformed=structuredClone(mixed);malformed.labels[0].corners.pop();
 assert.equal(fit(malformed),null,'incomplete label bounds refused');
 const invalidCorner=structuredClone(mixed);invalidCorner.labels[0].corners[0][2]=Infinity;
 assert.equal(fit(invalidCorner),null,'nonfinite label bound refused');
-assert.equal(fit({...mixed,geometry:cube(5000)}),null,'distance limit is not hidden by clamping');
+const large = {...mixed, geometry:cube(5000)};
+assert(fit(large).distance > 1000);
+assertContained(large, fit(large), 360, 900);
 const far={geometry:cube(30,[20000,0,0]),labels:mixed.labels.map(l=>({...l,corners:l.corners.map(p=>plus(p,[20000,0,0]))}))};
-assert.equal(fit(far),null,'target coordinate limit is not hidden by clamping');
-console.log(`[check:initial-reading-view] PASS vertical-planar compatibility; ${cases} signed mixed-face perspective fits; equal face weighting; authored-pose/data retention; conservative refusal and bounds.`);
+assertContained(far, fit(far), 360, 900);
+const tiny = { geometry:cube(0.0001, [20000, 0, 0]), labels:[] };
+const entire = { geometry:[...tiny.geometry, ...cube(80)], labels:[] };
+for (const [width, height] of [[360,800], [1280,800]]) {
+  const engine = createCameraEngine({ theta:.7, phi:1.1, fov:50 });
+  const frame = layout => fitReadingBounds(readingBounds(layout), engine.getState(), width, height);
+  const overview = frame(entire);
+  engine.setState(overview);
+  assertContained(entire, engine.getState(), width, height);
+  assert(engine.getState().distance > 1000);
+  const closeup = frame(tiny);
+  engine.setState(closeup);
+  assertContained(tiny, engine.getState(), width, height);
+  assert.equal(engine.getState().target.x, 20000);
+  assert(closeup.distance < .01);
+  engine.zoom(-.25);
+  assert(engine.getState().distance < closeup.distance);
+  engine.zoom(1);
+  assert(engine.getState().distance > closeup.distance);
+  engine.setState(frame(entire));
+  assert.deepEqual(engine.getState().target, overview.target);
+  assert.equal(engine.getState().distance, overview.distance);
+  assert.equal(frame({geometry:[[0,0,0]]}).distance, overview.distance, 'zero extent preserves magnification');
+  assert.equal(frame({}), null, 'no visible elements');
+}
+assert.equal(fitReadingBounds(readingBounds(tiny), fit(far), Infinity, 800), null);
+console.log(`[check:initial-reading-view] PASS vertical-planar compatibility; ${cases} signed mixed-face perspective fits; equal face weighting; authored-pose/data retention; whole-to-micro round trip at portrait and desktop sizes.`);

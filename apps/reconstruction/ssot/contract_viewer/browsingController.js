@@ -85,8 +85,36 @@ export function createBrowsingController({buildReadModel, validateReadModel, cre
     await applyState();if(geometry(entry).length)await bridge.fitSelection(geometry(entry));return clone(entry);
   }));}
   async function back() {return serial(()=>run(async()=>{requireReady();const previous=history.pop();if(!previous)return false;state=previous.state;await bridge.restore(previous.bridgeState);return true;}));}
-  async function fitSelection() {return serial(()=>run(async()=>{requireReady();const entry=current();if(!entry||!geometry(entry).length){onStatus('この記録には表示できる図形がありません。');return false;}pushHistory();const frames=framesFor(entry);if(frames.length&&!frames.includes(state.frame))state.frame=frames[0];state.scope='all';state.scopeRootId=null;state.filters={points:true,lines:true,aux:true};await applyState();await bridge.fitSelection(geometry(entry));return true;}));}
-  async function fitAll() {return serial(()=>run(async()=>{requireReady();pushHistory();state.scope='all';state.scopeRootId=null;await bridge.setScope(null);await bridge.fitAll();}));}
+  function fitSelection({keepScope = false} = {}) {
+    return serial(() => run(async () => {
+      requireReady();
+      const entry = current(), ids = entry && geometry(entry);
+      if (!ids?.length) { onStatus('この記録には表示できる図形がありません。'); return false; }
+      pushHistory();
+      if (!keepScope) {
+        const frames = framesFor(entry);
+        if (frames.length && !frames.includes(state.frame)) state.frame = frames[0];
+        state.scope = 'all';
+        state.scopeRootId = null;
+        state.filters = {points:true, lines:true, aux:true};
+        await applyState();
+      }
+      await bridge.fitSelection(ids, { keepScope });
+      return true;
+    }));
+  }
+  function fitAll({keepScope = false} = {}) {
+    return serial(() => run(async () => {
+      requireReady();
+      pushHistory();
+      if (!keepScope) {
+        state.scope = 'all';
+        state.scopeRootId = null;
+        await bridge.setScope(null);
+      }
+      await bridge.fitAll({ keepScope });
+    }));
+  }
   // Buttons and keys use these same serialized commands. They affect viewing state only.
   const command=(method,...args)=>serial(()=>run(async()=>{requireReady();if(typeof bridge[method]!=='function')throw new Error('この閲覧操作は利用できません。');return bridge[method](...args);}));
   const frameFirst=()=>command('frameFirst'),frameLast=()=>command('frameLast'),frameStep=delta=>command('frameStep',delta);

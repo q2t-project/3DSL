@@ -1,3 +1,4 @@
+import { readingBounds } from "./core/cameraFraming.js";
 import { computeInitialReadingView } from './initialView.js';
 // viewer/runtime/viewerHub.js
 // ADD: minimal public UI bridge (i18n + error overlay) with no external deps.
@@ -1066,7 +1067,7 @@ function enqueueCommand(cmd) {
   } else {
     // ジャンプ系 camera コマンドが来たら、同フレームに溜まった delta は捨てる
     // （残すなら flush ルールが必要だが、UI 体験上は破棄が安定）
-    if (_isCameraJumpCommand(cmd.type)) {
+    if (_isCameraJumpCommand(cmd.type) || (cmd.type === "reading.apply" && cmd.state?.camera)) {
       _discardCameraDeltas();
     }
     commandQueue.push(cmd);
@@ -1414,8 +1415,8 @@ function opReadingApply(state, restore = false) {
   if (restore) {
     fcStopPlayback();
     core?.camera?.stopAutoOrbit?.();
-    cameraTransition?.cancel?.();
   }
+  if (restore || state.camera) cameraTransition?.cancel?.();
   if ("frame" in state) fcSetActive(state.frame);
   if (state.filters) for (const kind of ["points", "lines", "aux"]) {
     const value = state.filters.types?.[kind] ?? state.filters[kind];
@@ -1834,12 +1835,7 @@ function flushCommandQueue() {
         const wanted = new Set(uuids), visible = core.uiState?.visibleSet;
         const subset = Object.fromEntries(["points", "lines", "aux"].map(kind => [kind, new Set(Array.from(visible?.[kind] ?? []).filter(id => wanted.has(id)))]));
         const layout = renderer?.getInitialReadingLayout?.(subset);
-        const points = [...(layout?.geometry ?? []), ...(layout?.labels ?? []).flatMap(label => label.corners)];
-        if (!points.length) return null;
-        return {
-          min: [0,1,2].map(i => Math.min(...points.map(point => point[i]))),
-          max: [0,1,2].map(i => Math.max(...points.map(point => point[i]))),
-        };
+        return readingBounds(layout);
       },
       isCameraTransitioning() { return !!cameraTransition?.isActive?.(); },
       control(action, value) {

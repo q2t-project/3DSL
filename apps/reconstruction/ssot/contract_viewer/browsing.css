@@ -150,3 +150,11 @@ body.reading-peek #reading-prompt-open, body.reading-peek #reading-prompt-dismis
 .is-compact:not([data-reading-panel=diagram]) #reading-snapshot-notice { display: none; }
 
 .is-compact:not([data-reading-panel=diagram]) #reading-mobile-prompt { display: none; }
+
+#atlas-actions:not([hidden]) {
+  position: absolute; z-index: 3; bottom: 8px; right: 8px;
+  display: flex; gap: 4px; max-width: calc(100% - 16px);
+}
+#atlas-actions button { min-width: 0; min-height: 44px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+#atlas-overview { flex: none; }

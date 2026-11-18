@@ -1,0 +1,16 @@
+---
+interface Props { model: string; title: string }
+const { model, title } = Astro.props;
+const src = "/viewer/peek.html?" + new URLSearchParams({ model, controls: "atlas" });
+---
+<iframe class="atlas-stage" src={src} title={`${title}の操作画面`} allow="fullscreen" data-swipe-ignore></iframe>
+<style>
+  .atlas-stage {
+    display: block;
+    width: 100%;
+    height: clamp(16rem, 55svh, 38rem);
+    border: 1px solid #454b53;
+    border-radius: .75rem;
+    background: #10151c;
+  }
+</style>

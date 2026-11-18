@@ -41,11 +41,11 @@ const items = getLibraryItems().filter((item) => !item.hidden).map((item) => ({
     <section id="cards" class="reading-grid" aria-label="作品一覧">
       {items.map((item) => (
         <article class="reading-card" data-library-id={item.id} data-title={item.title} data-date={item.date} data-search={[item.id, item.title, item.summary ?? "", ...item.displayTags].join(" ")}>
-          <a class="reading-viewer" href={viewerHref(item.viewer_url)}>
+          <a class="work-detail" href={typeof item.page === "string" ? item.page : `/library/${item.slug}/`}>
             {item.model_url && <WorkPreview model={item.model_url} />}
             <h2 class="mt-2">{item.title}</h2>
           </a>
-          <a class="work-detail" href={typeof item.page === "string" ? item.page : `/library/${item.slug}/`}>作品の解説</a>
+          <a class="reading-viewer" href={viewerHref(item.viewer_url)}>Viewerで大きく開く</a>
         </article>
       ))}
     </section>
@@ -124,8 +124,8 @@ const items = getLibraryItems().filter((item) => !item.hidden).map((item) => ({
   .reading-card { border: 1px solid #525252; border-radius: .8rem; padding: 1rem; min-width: 0; overflow-wrap: anywhere; }
   .reading-card { display: flex; flex-direction: column; gap: .8rem; }
   .reading-card h2 { margin: .5rem 0 0; font-size: 1.15rem; }
-  .work-detail, .work-guides a { text-decoration: underline; text-underline-offset: .2em; }
-  .work-detail { align-self: start; font-size: .9rem; }
+  .reading-viewer, .work-guides a { text-decoration: underline; text-underline-offset: .2em; }
+  .reading-viewer { align-self: start; font-size: .9rem; }
   .library-controls { display: grid; grid-template-columns: minmax(0, 24rem) minmax(0, 12rem) max-content; gap: 1rem; align-items: end; margin: 1rem 0; }
   .library-search-help { grid-column: 1 / -1; font-size: .85rem; line-height: 1.7; }
   .library-controls label { display: grid; grid-template-columns: minmax(0, 1fr); gap: .4rem; min-width: 0; }
