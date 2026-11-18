@@ -104,6 +104,11 @@ body {
   letter-spacing: normal;
 }
 #main-content .prose :is(h2, h3) { font-family: var(--font-ui); font-weight: 600; }
+/* Compiled technical documents can retain a top-level heading for each chapter. */
+#main-content .prose h1 ~ h1 {
+  font: 600 1.25rem/1.45 var(--font-ui);
+  letter-spacing: normal;
+}
 #main-content .prose p { line-height: 1.85; }
 #main-content .prose a { overflow-wrap: anywhere; }
 #main-content :is(a.underline, .site-link, .prose a) {
