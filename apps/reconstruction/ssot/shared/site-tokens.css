@@ -1,0 +1,28 @@
+/* Shared by site pages, offline entry pages and application chrome. */
+:root {
+  --font-ui: "Inter", "Hiragino Sans", "Yu Gothic", Meiryo, "Noto Sans JP", "Noto Sans CJK JP", system-ui, sans-serif;
+  --font-title: "Noto Serif JP", "Hiragino Mincho ProN", "Yu Mincho", YuMincho, "Noto Serif CJK JP", serif;
+
+  --ui-bg: #0b0f14;
+  --ui-surface: rgba(255,255,255,0.04);
+  --ui-surface-2: rgba(255,255,255,0.06);
+  --ui-border: rgba(255,255,255,0.10);
+  --ui-border-2: rgba(255,255,255,0.16);
+  --ui-text: rgba(255,255,255,0.92);
+  --ui-muted: rgba(255,255,255,0.62);
+  --ui-dim: rgba(255,255,255,0.45);
+
+  /* cyan accent */
+  --ui-accent: rgba(56,189,248,1);          /* sky-400 */
+  --ui-accent-soft: rgba(56,189,248,0.14);
+  --ui-accent-border: rgba(56,189,248,0.28);
+
+  --ui-link: #a5d8ff;
+  --ui-focus: #82c8ff;
+  --ui-control-surface: #151c24;
+  --ui-control-border: #687886;
+
+  --ui-radius-lg: 1rem;   /* ≒ rounded-2xl */
+  --ui-radius-md: 0.75rem;
+  --ui-shadow: 0 10px 30px rgba(0,0,0,0.35);
+}

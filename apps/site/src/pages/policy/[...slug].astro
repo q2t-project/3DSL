@@ -10,7 +10,7 @@ export async function getStaticPaths() {
 }
 
 const { entry } = Astro.props;
-const { Content } = await render(entry);
+const { Content, headings } = await render(entry);
 
 const pageTitle = `${entry.data?.title ?? entry.id} | Policy | 3DSL`;
 const pageDescription = "Policy（SSOT: packages/docs/policy）";
@@ -23,7 +23,8 @@ const pageDescription = "Policy（SSOT: packages/docs/policy）";
     <span class="text-neutral-200">{entry.id}</span>
   </nav>
 
-  <article class="mt-6 prose prose-invert prose-neutral max-w-3xl font-content">
+  <article class="mt-6 prose prose-invert prose-neutral max-w-3xl">
+    {!headings.some((heading) => heading.depth === 1) && <h1>{entry.data?.title ?? entry.id}</h1>}
     <Content />
   </article>
 </Layout>

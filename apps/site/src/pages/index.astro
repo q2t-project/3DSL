@@ -22,11 +22,11 @@ const others = [
 <Layout title="3DSLアトラス" description="概念と関係を三次元で見渡せる作品集。モデルを回し、気になる部分に近づいて、そのつながりをたどれます。">
   <section aria-labelledby="feature">
     <header class="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-      <h1 class="text-base font-semibold">3DSLアトラス</h1>
+      <h1 class="site-atlas-name">3DSLアトラス</h1>
       <p class="text-sm leading-relaxed"><span class="inline-block">知識のつながりを描いた立体地図です。</span><span class="inline-block">全体を見渡し、気になる点からたどれます。</span></p>
     </header>
     <div class="flex flex-wrap items-baseline justify-between gap-2 mb-3">
-      <h2 id="feature" class="text-2xl font-semibold">{lead.title}</h2>
+      <h2 id="feature" class="site-feature-title">{lead.title}</h2>
       <a class="underline" data-atlas-expand={lead.model} href={viewer(lead.model)}>Viewerで大きく開く ↗</a>
     </div>
     <AtlasStage model={lead.model} title={lead.title} />
@@ -39,12 +39,12 @@ const others = [
     <div class="flex items-baseline justify-between mb-3"><h2 id="works" class="text-xl font-semibold">ほかの作品</h2><a class="underline" href="/library">作品一覧へ</a></div>
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {others.slice(0,3).map(work => <article>
-        <a class="block" href={work.primary}><WorkPreview model={work.model}/><h3 class="mt-2 font-semibold">{work.title}</h3></a>
+        <a class="block" href={work.primary}><WorkPreview model={work.model}/><h3 class="site-work-title mt-2">{work.title}</h3></a>
         <a class="text-sm underline" href={work.secondary}>{work.secondaryLabel}</a>
       </article>)}
     </div>
   </section>
   <details class="mt-8 border-t border-neutral-700 py-4"><summary class="cursor-pointer">3DSLについて・使い方</summary>
-    <nav class="mt-3 flex flex-wrap gap-4 underline"><a href="/concept">3DSLの狙い</a><a href="/docs/works/knowledge-questions/">知識と問いの読み方</a><a href="/docs/usage/first-work">はじめての制作</a><a href="/preview-reconstruction/">作る・開く</a><a href="/docs">使い方</a></nav>
+    <nav class="mt-3 flex flex-wrap gap-4"><a class="site-link" href="/concept">3DSLの狙い</a><a class="site-link" href="/docs/works/knowledge-questions/">知識と問いの読み方</a><a class="site-link" href="/docs/usage/first-work">はじめての制作</a><a class="site-link" href="/preview-reconstruction/">作る・開く</a><a class="site-link" href="/docs">使い方</a></nav>
   </details>
 </Layout>

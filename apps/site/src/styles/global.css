@@ -11,10 +11,6 @@
 
 :root {
   color-scheme: dark;
-
-  /* typography */
-  --font-ui: "Inter", "Noto Sans JP", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-content: "Noto Serif JP", "Noto Serif", ui-serif, Georgia, serif;
 }
 
 /* Reach page content without traversing the repeated header links. */
@@ -25,7 +21,7 @@
   left: 1rem;
   max-width: calc(100% - 2rem);
   padding: .75rem 1rem;
-  border: 2px solid #82c8ff;
+  border: 2px solid var(--ui-focus);
   border-radius: .4rem;
   background: #0b0f14;
   color: #fff;
@@ -38,7 +34,7 @@
 }
 #main-content { scroll-margin-top: 10rem; }
 .app-shell :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline: 2px solid #82c8ff;
+  outline: 2px solid var(--ui-focus);
   outline-offset: 3px;
 }
 /* Wrapped navigation must not cover the reading area on narrow screens,
@@ -92,13 +88,34 @@ body {
 
 /* Typography helpers */
 .font-ui{ font-family: var(--font-ui); }
-.font-content{
-  font-family: var(--font-content);
-  letter-spacing: 0.01em;
-  text-rendering: geometricPrecision;
+/* Page and work titles name what is being viewed. Editorial text and controls use --font-ui. */
+#main-content :is(h1, .site-feature-title, .site-work-title) {
+  font-family: var(--font-title);
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: .015em;
+  overflow-wrap: anywhere;
 }
-.font-content p{ line-height: 1.95; }
-.font-content :is(h1,h2,h3,strong){ font-weight: 400; }
+#main-content h1 { font-size: clamp(1.5rem, 1.3rem + 1vw, 2rem); }
+#main-content .site-feature-title { font-size: clamp(1.5rem, 1.4rem + .5vw, 1.75rem); }
+#main-content .site-work-title { font-size: 1.125rem; }
+#main-content .site-atlas-name {
+  font: 600 1rem/1.5 var(--font-ui);
+  letter-spacing: normal;
+}
+#main-content .prose :is(h2, h3) { font-family: var(--font-ui); font-weight: 600; }
+#main-content .prose p { line-height: 1.85; }
+#main-content .prose a { overflow-wrap: anywhere; }
+#main-content :is(a.underline, .site-link, .prose a) {
+  color: var(--ui-link);
+  text-decoration: underline;
+  text-underline-offset: .2em;
+}
+#main-content :is(a.underline, .site-link, .prose a):hover { color: var(--ui-text); }
+#main-content a:is(:hover, :focus-visible) .site-work-title {
+  text-decoration: underline;
+  text-underline-offset: .18em;
+}
 
 /* Swipe nav: prevent rubber-band on X */
 html, body {

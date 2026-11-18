@@ -33,9 +33,9 @@ const items = getLibraryItems().filter((item) => !item.hidden).map((item) => ({
   <section class="library-page">
     <h1>作品一覧</h1>
     <div id="library-controls" class="library-controls" hidden>
-      <label>作品を探す<input id="search" type="search" placeholder="作品名・説明・タグ・作品ID" aria-controls="cards" aria-describedby="library-search-help" /></label>
-      <label>並べ替え<select id="sort" aria-controls="cards"><option value="new">新しい順</option><option value="old">古い順</option><option value="title">名前順</option></select></label>
-      <button id="clear-search" type="button" hidden>検索を解除</button>
+      <label>作品を探す<input class="ui-input" id="search" type="search" placeholder="作品名・説明・タグ・作品ID" aria-controls="cards" aria-describedby="library-search-help" /></label>
+      <label>並べ替え<select class="ui-input" id="sort" aria-controls="cards"><option value="new">新しい順</option><option value="old">古い順</option><option value="title">名前順</option></select></label>
+      <button class="ui-btn" id="clear-search" type="button" hidden>検索を解除</button>
       <p id="library-search-help" class="library-search-help">空白で区切ると、すべての語を含む作品に絞れます。全角・半角や英字の大小は区別しません。</p>
     </div>
     <section id="cards" class="reading-grid" aria-label="作品一覧">
@@ -43,19 +43,19 @@ const items = getLibraryItems().filter((item) => !item.hidden).map((item) => ({
         <article class="reading-card" data-library-id={item.id} data-title={item.title} data-date={item.date} data-search={[item.id, item.title, item.summary ?? "", ...item.displayTags].join(" ")}>
           <a class="work-detail" href={typeof item.page === "string" ? item.page : `/library/${item.slug}/`}>
             {item.model_url && <WorkPreview model={item.model_url} />}
-            <h2 class="mt-2">{item.title}</h2>
+            <h2 class="site-work-title mt-2">{item.title}</h2>
           </a>
-          <a class="reading-viewer" href={viewerHref(item.viewer_url)}>Viewerで大きく開く</a>
+          <a class="site-link reading-viewer" href={viewerHref(item.viewer_url)}>Viewerで大きく開く</a>
         </article>
       ))}
     </section>
     {items.length === 0 && <p>現在、一覧に掲載する作品はありません。下の読解・制作教材から始められます。</p>}
     <p id="library-empty" role="status" hidden>一致する作品がありません。検索語を変えてください。</p>
     <nav id="library-pager" class="library-pager" aria-label="作品一覧のページ" hidden>
-      <button id="prev" type="button">前へ</button><span id="page-info" role="status" aria-live="polite"></span><button id="next" type="button">次へ</button>
+      <button class="ui-btn" id="prev" type="button">前へ</button><span id="page-info" role="status" aria-live="polite"></span><button class="ui-btn" id="next" type="button">次へ</button>
     </nav>
     <details class="work-guides mt-6"><summary>読解・制作の案内</summary>
-      <p><a href="/docs/works/knowledge-questions/">知識と問いを読む</a> ／ <a href="/docs/usage/first-work/">はじめての一作品を作る</a></p>
+      <p><a class="site-link" href="/docs/works/knowledge-questions/">知識と問いを読む</a> ／ <a class="site-link" href="/docs/usage/first-work/">はじめての一作品を作る</a></p>
     </details>
     <noscript><p>作品一覧はJavaScriptなしでも読めます。検索・並べ替え・ページ送りはJavaScriptを有効にすると利用できます。</p></noscript>
   </section>
@@ -162,21 +162,13 @@ const items = getLibraryItems().filter((item) => !item.hidden).map((item) => ({
 <style>
   .library-page { max-width: 72rem; margin-inline: auto; min-width: 0; }
   .library-page [hidden] { display: none !important; }
-  h1 { font-size: 1.8rem; margin-bottom: 1rem; }
-  h2 { font-size: 1.35rem; margin: 2rem 0 1rem; }
+  h1 { margin-bottom: 1rem; }
   .reading-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr)); gap: 1rem; }
-  .reading-card { border: 1px solid #525252; border-radius: .8rem; padding: 1rem; min-width: 0; overflow-wrap: anywhere; }
-  .reading-card { display: flex; flex-direction: column; gap: .8rem; }
-  .reading-card h2 { margin: .5rem 0 0; font-size: 1.15rem; }
-  .reading-viewer, .work-guides a { text-decoration: underline; text-underline-offset: .2em; }
+  .reading-card { display: flex; flex-direction: column; gap: .8rem; padding: 1rem; min-width: 0; overflow-wrap: anywhere; background: var(--ui-surface); border: 1px solid var(--ui-border-2); border-radius: var(--ui-radius-lg); }
   .reading-viewer { align-self: start; font-size: .9rem; }
   .library-controls { display: grid; grid-template-columns: minmax(0, 24rem) minmax(0, 12rem) max-content; gap: 1rem; align-items: end; margin: 1rem 0; }
   .library-search-help { grid-column: 1 / -1; font-size: .85rem; line-height: 1.7; }
   .library-controls label { display: grid; grid-template-columns: minmax(0, 1fr); gap: .4rem; min-width: 0; }
-  input, select, button { box-sizing: border-box; font: inherit; border: 1px solid #737373; border-radius: .4rem; padding: .55rem .8rem; background: #171717; color: #f5f5f5; max-width: 100%; }
-  input, select { width: 100%; min-width: 0; }
-  button:disabled { opacity: .45; }
   .library-pager { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin: 1rem 0; }
-  :is(a, input, select, button):focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
   @media (max-width: 48rem) { .library-controls { grid-template-columns: minmax(0, 1fr); } }
 </style>
