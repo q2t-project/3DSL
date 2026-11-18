@@ -65,9 +65,19 @@ try {
     await go(server.origin+'/library/26020401/');
     const base='/_data/library/26020401/';
     const imagePath=base+'assets/財産法.png';
+    const findImage = `[...document.images].find(img =>
+      decodeURIComponent(new URL(img.src, document.baseURI).pathname) === ${JSON.stringify(imagePath)})`;
+    // Open the published notes as a reader would. Older snapshots show them inline.
+    await evaluate(`(() => {
+      const img = ${findImage};
+      if (!img) throw new Error('The restored work is missing its illustration');
+      const notes = img.closest('details');
+      if (notes && !notes.open) notes.querySelector('summary').click();
+      img.scrollIntoView({block:'center'});
+    })()`);
     const dimensions=await waitFor(()=>evaluate(`(() => {
-      const img=[...document.querySelectorAll('img[src]')].find(i=>decodeURIComponent(new URL(i.src,document.baseURI).pathname)===${JSON.stringify(imagePath)});
-      return img?.complete && img.naturalWidth && [img.naturalWidth,img.naturalHeight];
+      const img = ${findImage};
+      return img.complete && img.naturalWidth && [img.naturalWidth,img.naturalHeight];
     })()`),'restored image');
     assert.deepEqual(dimensions,[640,360]);
     const png=await readFile(path.join(root,imagePath));
