@@ -21,6 +21,12 @@ assert.deepEqual([...staticCardIds].sort(), publicItems.map((item) => item.id).s
 assert.equal(new Set(staticCardIds).size, staticCardIds.length, 'static article IDs are unique');
 for (const item of index.items) assert.equal(html.includes(`data-library-id="${item.id}"`), !item.hidden, `${item.id}: public/hidden contract`);
 for (const item of publicItems) assert.match(html, new RegExp(`data-library-id="${item.id}"[^>]*data-search="${item.id} `), `${item.id}: visible ID is searchable`);
+if (publicItems.some(item => item.id === '26111901')) {
+  const card = html.match(/<article\b[^>]*\bdata-library-id="26111901"[^>]*>([\s\S]*?)<\/article>/)?.[1] ?? '';
+  const thumbnail = card.match(/<svg\b[^>]*>([\s\S]*?)<\/svg>/)?.[1] ?? '';
+  assert.match(thumbnail, /<line\b/, 'causality atlas thumbnail renders frame-one relationships');
+  assert.match(thumbnail, /<circle\b/, 'causality atlas thumbnail renders frame-one points');
+}
 for (const p of ['docs/works/knowledge-questions', 'docs/usage/first-work']) {
   assert(html.includes(`href="/${p}/"`), `learning entry: ${p}`);
   assert(await fs.stat(path.join(dist, p, 'index.html')), `learning destination: ${p}`);

@@ -1,14 +1,20 @@
 ---
 import { readFileSync } from "node:fs";
 import { publicDir } from "astro:config/server";
+import { detectFrameRange } from "../../../reconstruction/ssot/viewer/runtime/core/structIndex.js";
 
 // A lightweight projection of the opening frame. Cards never start WebGL.
 interface Props { model: string }
-interface Point { meta: { uuid: string }; appearance: { position?: number[]; frames?: number[]; marker?: { common?: { color?: string }; text?: { content?: string; size?: number } } } }
-interface Line { appearance: { end_a?: { ref?: string }; end_b?: { ref?: string }; color?: string; frames?: number[] } }
+type FrameMembership = { appearance: { frames?: number | number[] } };
+interface Point extends FrameMembership { meta: { uuid: string }; appearance: FrameMembership["appearance"] & { position?: number[]; marker?: { common?: { color?: string }; text?: { content?: string; size?: number } } } }
+interface Line extends FrameMembership { appearance: FrameMembership["appearance"] & { end_a?: { ref?: string }; end_b?: { ref?: string }; color?: string } }
 const input = JSON.parse(readFileSync(new URL(Astro.props.model.slice(1), publicDir), "utf8"));
 const scene = input.scene ?? input;
-const visible = (item: { appearance: { frames?: number[] } }) => !item.appearance.frames?.length || item.appearance.frames.includes(0);
+const { min, max } = detectFrameRange(scene);
+const openingFrame = min <= 0 && max >= 0 ? 0 : min;
+const visible = ({ appearance: { frames } }: FrameMembership) => Array.isArray(frames)
+  ? frames.length === 0 || frames.includes(openingFrame)
+  : frames == null || frames === openingFrame;
 const points = (scene.points as Point[] ?? []).filter(visible).flatMap(({ appearance, meta }) => {
   if (!appearance.position) return [];
   const [x,y,z] = appearance.position;
