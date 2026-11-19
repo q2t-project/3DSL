@@ -1,0 +1,4940 @@
+{
+  "document_meta": {
+    "document_title": "因果アトラス",
+    "document_summary": "スイッチを入れたら、ランプが灯った。スイッチが点灯を引き起こしたのか、それとも別の指令がスイッチとランプの両方を動かしたのか。同じ場面から、何が結果を生んだのか、証拠から何が分かるのか、人は何を選べたのかをたどります。",
+    "document_uuid": "94b674b0-4336-46ef-8942-ec8c730f92f7",
+    "version": "1.7.0",
+    "created_at": "2026-11-16T09:43:31Z",
+    "revised_at": "2026-11-19T07:52:17Z",
+    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
+    "coordinate_system": "Z+up/freeXY",
+    "units": "non_si:px",
+    "i18n": "ja",
+    "author": "GPT",
+    "reference": "https://3dsl.jp/library/26111901/",
+    "creator_memo": "一つの点灯から、確率と自由意志へ\n公開版 v1.0.0\n\n図上または検索で入口の点を選び、点の情報と接続先をたどる。\n1　同じ点灯の仕組み・効果・証拠\n1.1　何がランプを灯したか（入口「結果」）\n1.2　同じ記録を生むもう一つの配線（入口「共通原因」）\n1.3　入れた時と切った時の差（入口「介入」）\n1.4　どこまで証拠で言えるか（入口「観察」）\n1.5　確率の二つの読み方（入口「確率」）\n1.6　この一回で切っていたら（入口「結果」）\n2　同じ操作の目的・効力・統制・不可避性\n2.1　何を目指して入れたか（入口「行為」）\n2.2　その操作は点灯に効いたか（入口「行為」）\n2.3　誰が操作を選べたか（入口「選択」）\n2.4　その結末は避けられたか（入口「将来」）\n3　時間・条件・説明の違い\n3.1　時間が進む（入口「行為」）\n3.2　時点を保って条件を替える（入口「結果」）\n3.3　行為を保って説明を替える（入口「行為」）\n\nX　＋側に装置・行為・結果、−側に観察・推論・説明する立場を置く。点の名前は対象、線の言葉は対象間の関係を示す。\nY　出来事は＋Yに進む。結果の評価時点は一つ。認識側では手順や問いの順でたどる。将来→今→過去の破線は未来の言明を遡って吟味する向き。過去・今・将来の列では存在側と時点をそろえる。\nZ　装置側では出来事の記述から状態値・結果の分布・点灯率の差へ移る。高さは実測値の大小を表さない。認識側では対象についての判断や仮定の層を示す。行為・介入・観察の文字は＋Xを正面、＋Yを上にそろえる。\n点の選択で具体例・条件を参照できる。矢印の意味は各線の関係名で示す。\n\n参考文献\nジューディア・パール、ダナ・マッケンジー著、松尾豊監修・解説、夏目大訳『因果推論の科学 「なぜ？」の問いにどう答えるか』文藝春秋、2022年。ISBN 978-4-16-391596-8。観察・介入・反事実の区別を、同じ点灯をめぐる三つの問いに反映。とくに第7章・第8章の介入と反事実を参照。 https://books.bunshun.jp/ud/book/num/9784163915968\nダグラス・クタッチ著、相松慎也訳、一ノ瀬正樹解説『因果性』（現代哲学のキーコンセプト）岩波書店、2019年。ISBN 978-4-00-061380-4。産出的因果と差異形成的因果の区別を、点灯の仕組みを追う問いと、操作が結果に差をもたらすかを調べる問いに反映。確率上昇説も参照。 https://www.hanmoto.com/bd/isbn/9784000613804\nイアン・ハッキング著、広田すみれ・森元良太訳『確率の出現』慶應義塾大学出版会、2013年。ISBN 978-4-7664-2103-3。事象の起こりやすさと、証拠に照らした判断の確からしさを、図の存在側と認識側に対応させました。二つの意味が歴史的に結びついた経緯も参照。 https://www.keio-up.co.jp/book/b10163918.html ／ https://www.cambridge.org/core/books/abs/emergence-of-probability/duality/B840DF3AF051ED5EF26B285A80C252C7 ／ https://www.cambridge.org/core/books/abs/emergence-of-probability/art-of-thinking-1662/691DA5443B294269A647BAB562B7347C\nJin Tian and Judea Pearl, “A General Identification Condition for Causal Effects,” AAAI, 2002. データと仮定から介入効果が定まるかを問う「識別」の説明を照合。 https://cdn.aaai.org/AAAI/2002/AAAI02-085.pdf\nHugh Rice, “Fatalism,” Stanford Encyclopedia of Philosophy, Summer 2024 Edition, §§1–3. 将来の言明の真偽と結末の必然性をめぐる論理的運命論を参照。 https://plato.stanford.edu/archives/sum2024/entries/fatalism/\nDavid Hunt and Linda Zagzebski, “Foreknowledge and Free Will,” Stanford Encyclopedia of Philosophy, Spring 2026 Edition, §4. 海戦の例と、将来についての言明が真だということから不可避性を導けるかという論点を参照。 https://plato.stanford.edu/archives/spr2026/entries/free-will-foreknowledge/\nCarl Hoefer, “Causal Determinism,” Stanford Encyclopedia of Philosophy, Summer 2026 Edition. 世界の状態と法則から後続が一意に定まるという決定論の定義と、予測可能性との区別を照合。 https://plato.stanford.edu/archives/sum2026/entries/determinism-causal/\nMichael McKenna and D. Justin Coates, “Compatibilism,” Stanford Encyclopedia of Philosophy, Summer 2024 Edition. 決定論と自由意志の両立可能性、および本人の理由に応じた行為の統制を参照。 https://plato.stanford.edu/archives/sum2024/entries/compatibilism/\nAndrea Falcon, “Aristotle on Causality,” Stanford Encyclopedia of Philosophy, Spring 2023 Edition, §§2–5. 「何のためか」という説明の位置づけと、目的による説明が人の意図を越えて論じられてきた範囲を照合。 https://plato.stanford.edu/archives/spr2023/entries/aristotle-causality/\n\n本作品の3DSS原本は、個人で閲覧・学習するため、ご自身の端末へのダウンロード、編集および編集結果の保存ができます。原本や編集した作品の再配布・転載・他サイトでの公開をご希望の場合は、事前にお問い合わせください。\nhttps://3dsl.jp/policy/content-usage/",
+    "tags": [
+      "m:因果推論",
+      "m:確率",
+      "m:自由意志",
+      "m:決定論",
+      "m:運命論",
+      "m:目的論"
+    ]
+  },
+  "points": [
+    {
+      "meta": {
+        "uuid": "11456dbb-22b4-51be-a29f-f65336763353",
+        "creator_memo": "存在と認識が向かい合う共通原点。左右の局所原点までの間隔は配置の基準。\n図上または検索で入口の点を選び、点の情報と接続先をたどる。\n1　同じ点灯の仕組み・効果・証拠\n1.1　何がランプを灯したか（入口「結果」）\n1.2　同じ記録を生むもう一つの配線（入口「共通原因」）\n1.3　入れた時と切った時の差（入口「介入」）\n1.4　どこまで証拠で言えるか（入口「観察」）\n1.5　確率の二つの読み方（入口「確率」）\n1.6　この一回で切っていたら（入口「結果」）\n2　同じ操作の目的・効力・統制・不可避性\n2.1　何を目指して入れたか（入口「行為」）\n2.2　その操作は点灯に効いたか（入口「行為」）\n2.3　誰が操作を選べたか（入口「選択」）\n2.4　その結末は避けられたか（入口「将来」）\n3　時間・条件・説明の違い\n3.1　時間が進む（入口「行為」）\n3.2　時点を保って条件を替える（入口「結果」）\n3.3　行為を保って説明を替える（入口「行為」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "原点"
+      },
+      "appearance": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.0,
+          "common": {
+            "color": "#AAB8C5",
+            "opacity": 1
+          },
+          "text": {
+            "content": "原点",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "223170d5-7eb8-53c3-b986-e27c493d88d2",
+        "creator_memo": "出来事が起きる側の局所原点。種類や対象をX、進行をY、状態や結果を量として扱う段階をZから読む。",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "存在"
+      },
+      "appearance": {
+        "position": [
+          180,
+          0,
+          0
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.0,
+          "common": {
+            "color": "#AAB8C5",
+            "opacity": 1
+          },
+          "text": {
+            "content": "存在",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "b253104e-6413-56ba-8411-415794a3e899",
+        "creator_memo": "観測者・行為者から読む局所原点。形式φは原点方向、機能ψは＋Y、意味μは＋Z。",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "認識"
+      },
+      "appearance": {
+        "position": [
+          -180,
+          0,
+          0
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "box",
+          "size": [
+            2.0,
+            2.0,
+            2.0
+          ],
+          "common": {
+            "color": "#AAB8C5",
+            "opacity": 1
+          },
+          "text": {
+            "content": "認識",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "2fd8be9b-cf30-5e92-ad37-4cd2a7e5e7ff",
+        "creator_memo": "ランプの電路を閉じる条件。Aではスイッチ位置X、Bでは制御指令Uで決まる。因果モデルによって同じ観察への説明が分かれる。\n1.1　何がランプを灯したか（入口「結果」）\n1.2　同じ記録を生むもう一つの配線（入口「共通原因」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "作動条件"
+      },
+      "appearance": {
+        "position": [
+          180,
+          0,
+          48
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.0,
+          "common": {
+            "color": "#FFC18A",
+            "opacity": 1
+          },
+          "text": {
+            "content": "作動条件",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "02492eee-ed97-5d8b-a29b-3a2e5ed15771",
+        "creator_memo": "原因は結果との関係で決まる役割。モデルAでは、スイッチを入れることがランプを点灯させる。モデルBではスイッチ位置と点灯が観察上一致していても、スイッチを動かすことは点灯の原因にならない。\n1.1　何がランプを灯したか（入口「結果」）\n1.3　入れた時と切った時の差（入口「介入」）\n2.2　その操作は点灯に効いたか（入口「行為」）\n3.1　時間が進む（入口「行為」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "原因"
+      },
+      "appearance": {
+        "position": [
+          108,
+          0,
+          48
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "sphere",
+          "radius": 2.0,
+          "common": {
+            "color": "#FFC18A",
+            "opacity": 1
+          },
+          "text": {
+            "content": "原因",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 32,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "cd689c22-2f79-5615-a3d4-14ddea9e920c",
+        "creator_memo": "点灯を生む仕組み。Aはスイッチの接点がランプの電路を開閉する。Bは制御指令がランプの電路を直接開閉し、スイッチは別回路で同じ指令に追従する。どちらでも通常運転の記録は一致する。\n1.1　何がランプを灯したか（入口「結果」）\n1.2　同じ記録を生むもう一つの配線（入口「共通原因」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "機構"
+      },
+      "appearance": {
+        "position": [
+          180,
+          96,
+          48
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.0,
+          "common": {
+            "color": "#FFC18A",
+            "opacity": 1
+          },
+          "text": {
+            "content": "機構",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "7c3e2b54-c5c6-5d79-8093-d936be48836c",
+        "creator_memo": "評価対象は「操作から一定時間後に、このランプが灯っているか（Y）」で統一する。観察・介入・この一例の反事実で点を共有する。誰の、どの条件の値かは各経路で読み分ける。\n1.1　何がランプを灯したか　操作から一定時間後の点灯を「結果」と決める。配線Aではスイッチが接点を閉じて点灯する。「因果」の一本を、作動条件と機構を通る経路に沿って説明できる。　次は 1.2「共通原因」。\n1.2　同じ記録を生むもう一つの配線（入口「共通原因」）\n1.3　入れた時と切った時の差（入口「介入」）\n1.6　この一回で切っていたら　指令がオンと記録された時に、人がスイッチを入れ、ランプが灯ったこの一回に戻る。指令を保ち、スイッチだけ切っていたら、同じ時刻のランプはAなら消え、Bなら灯る。両方とも同じ「結果」の点を読む。　次は 2.1「行為」。\n2.2　その操作は点灯に効いたか（入口「行為」）\n3.1　時間が進む（入口「行為」）\n3.2　時点を保って条件を替える　同じランプと同じ評価時点を保ち、スイッチをオン／オフにした場合を比べる。一回については反事実の経路、集団の点灯率の差には因果効果の経路を使う。　次は 3.3「行為」。",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "結果"
+      },
+      "appearance": {
+        "position": [
+          108,
+          208,
+          48
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "sphere",
+          "radius": 2.0,
+          "common": {
+            "color": "#FFC18A",
+            "opacity": 1
+          },
+          "text": {
+            "content": "結果",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 32,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "16984f75-8f3d-5d90-9026-a50a1480377e",
+        "creator_memo": "スイッチ位置Xと一定時間後の点灯Yを、通常運転のまま観察する。AでもBでもX=1で観察された事例のYはすべて1。この一致はXを外部から動かした場合の答えまで保証しない。 個別の手動操作では、実際の指令・操作・点灯を記録し、この一回についての反事実の条件とする。\n1.4　どこまで証拠で言えるか　通常運転の記録だけではAもBも成り立つ。適切に割り付けた強制操作の記録があれば、回路の全配線を突き止める前でも、オンとオフの点灯率の差を調べられる。　次は 1.5「確率」。\n1.6　この一回で切っていたら（入口「結果」）\n3.2　時点を保って条件を替える（入口「結果」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "観察"
+      },
+      "appearance": {
+        "position": [
+          -60,
+          208,
+          48
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "box",
+          "size": [
+            2.0,
+            2.0,
+            2.0
+          ],
+          "common": {
+            "color": "#9DD8EF",
+            "opacity": 1
+          },
+          "text": {
+            "content": "観\n察",
+            "pose": {
+              "front": [
+                1,
+                0,
+                0
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "bb9e6024-7eb3-5580-8f2d-ef02e3f0c81f",
+        "creator_memo": "同じ装置について、観察したスイッチ位置、定めた時間後の点灯、操作の有無、測定条件を対にして残す。通常運転の記録と強制操作の記録は区別する。\n1.4　どこまで証拠で言えるか（入口「観察」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "記録"
+      },
+      "appearance": {
+        "position": [
+          -180,
+          208,
+          48
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "box",
+          "size": [
+            2.0,
+            2.0,
+            2.0
+          ],
+          "common": {
+            "color": "#9DD8EF",
+            "opacity": 1
+          },
+          "text": {
+            "content": "記録",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "ef082a40-322e-595a-9444-5812c2c5ba84",
+        "creator_memo": "どの命題を支える証拠かを明示する。通常の同時記録は「XとYが一致した」ことを支える。強制操作したときにも一致するという主張には別の根拠が要る。\n1.4　どこまで証拠で言えるか（入口「観察」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "証拠"
+      },
+      "appearance": {
+        "position": [
+          -180,
+          208,
+          132
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "box",
+          "size": [
+            2.0,
+            2.0,
+            2.0
+          ],
+          "common": {
+            "color": "#9DD8EF",
+            "opacity": 1
+          },
+          "text": {
+            "content": "証拠",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "23cf9e34-9d15-5b8c-a93b-3a63c93c6a0f",
+        "creator_memo": "スイッチ位置ごとの対象数と、評価時点で点灯した件数から頻度を出す。誰を分母にしたか、通常運転か強制操作か、次の集団にも当てはまるかを区別する。",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "頻度"
+      },
+      "appearance": {
+        "position": [
+          -180,
+          304,
+          48
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "box",
+          "size": [
+            2.0,
+            2.0,
+            2.0
+          ],
+          "common": {
+            "color": "#BFE8A2",
+            "opacity": 1
+          },
+          "text": {
+            "content": "頻度",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "7e21fef3-7813-56b5-bbed-00f05c2436d9",
+        "creator_memo": "指定した集団での点灯率と、その見積もりの不確かさを観察や実験の資料から評価する。",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "推定"
+      },
+      "appearance": {
+        "position": [
+          -180,
+          304,
+          132
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "box",
+          "size": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "common": {
+            "color": "#9DD8EF",
+            "opacity": 1
+          },
+          "text": {
+            "content": "推定",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 8,
+            "font": "noto_sans_jp_regular",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "95be1c6a-ec88-5483-9b9e-07fb695e7821",
+        "creator_memo": "同じランプでも、同じ条件を繰り返したとき灯りやすいかと、証拠からいま灯っているとどれほど確信できるかを分けて問える。\n1.5　確率の二つの読み方　配線Bで指令のオンとオフが半々なら、点灯の起こりやすさは50％。指令を知らない人がランプを見て、今回の点灯を確かめると、その一回についての確信は変わる。同じ条件で繰り返したときの点灯率は50％のまま。　次は 1.6「結果」。",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "確率"
+      },
+      "appearance": {
+        "position": [
+          0,
+          96,
+          132
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "sphere",
+          "radius": 2.0,
+          "common": {
+            "color": "#BFE8A2",
+            "opacity": 1
+          },
+          "text": {
+            "content": "確率",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 32,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "02241670-c8fd-5b8f-8ca1-9edbdc71c2e3",
+        "creator_memo": "偶然的確率。指定した条件・背景分布のもとで点灯がどれほど起きやすいか。例の通常運転では指令Uのオンとオフを同数とする。\n1.5　確率の二つの読み方（入口「確率」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "起こりやすさ"
+      },
+      "appearance": {
+        "position": [
+          108,
+          96,
+          132
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.0,
+          "common": {
+            "color": "#BFE8A2",
+            "opacity": 1
+          },
+          "text": {
+            "content": "起こりやすさ",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "4ffc59e7-91fd-58f2-ab85-18a5213ff636",
+        "creator_memo": "認識的確率。手元の証拠が「ランプが灯っている」という判断をどの程度裏づけるか。点灯を確かめれば、同じ一回についての確信を更新できる。\n1.5　確率の二つの読み方（入口「確率」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "確からしさ"
+      },
+      "appearance": {
+        "position": [
+          -180,
+          96,
+          132
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "box",
+          "size": [
+            2.0,
+            2.0,
+            2.0
+          ],
+          "common": {
+            "color": "#BFE8A2",
+            "opacity": 1
+          },
+          "text": {
+            "content": "確からしさ",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "fd09c0f3-a01c-5b72-91b7-d896133b2695",
+        "creator_memo": "同じランプについて、通常運転での一致、スイッチを操作した場合、実際と別の操作をした場合を区別する。\n1.4　どこまで証拠で言えるか（入口「観察」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "因果推論"
+      },
+      "appearance": {
+        "position": [
+          -180,
+          0,
+          48
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "box",
+          "size": [
+            4.0,
+            4.0,
+            4.0
+          ],
+          "common": {
+            "color": "#9DD8EF",
+            "opacity": 1
+          },
+          "text": {
+            "content": "因果推論",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 32,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "8381710d-8571-507c-9fbf-9421a7357ab6",
+        "creator_memo": "どんな背景・機構を保ち、何を変更するか。AはY=X、BはY=U。観察資料だけで両方が可能なら効果は定まらない。スイッチへの無作為な割付などは、介入効果を識別する別の根拠になりうる。\n1.4　どこまで証拠で言えるか（入口「観察」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "仮定"
+      },
+      "appearance": {
+        "position": [
+          -180,
+          0,
+          132
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "box",
+          "size": [
+            2.0,
+            2.0,
+            2.0
+          ],
+          "common": {
+            "color": "#9DD8EF",
+            "opacity": 1
+          },
+          "text": {
+            "content": "仮定",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "864168e8-93b0-5d40-bb72-4769730dfb50",
+        "creator_memo": "他の背景を保ち、通常なら指令Uに従うスイッチ位置Xを、外部から指定値に固定する。Xが原因候補である段階でも介入は定義できる。\n1.3　入れた時と切った時の差　人がスイッチ位置だけを固定する。Aの点灯率はオンで100%、オフで0%。Bは指令が半々ならどちらも50%。同じ集団・同じ時点で比べた因果効果はAで100ポイント、Bで0ポイントや。　次は 1.4「観察」。",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "介入"
+      },
+      "appearance": {
+        "position": [
+          -60,
+          0,
+          132
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "box",
+          "size": [
+            2.0,
+            2.0,
+            2.0
+          ],
+          "common": {
+            "color": "#9DD8EF",
+            "opacity": 1
+          },
+          "text": {
+            "content": "介\n入",
+            "pose": {
+              "front": [
+                1,
+                0,
+                0
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "9fb885cf-bb9e-5d9e-b42c-f1915b06f226",
+        "creator_memo": "実際に指令オン（U=1）を記録し、人が操作して点灯した一回（X=Y=1）で、スイッチを切っていたら、同じ評価時点に灯ったか。U=1を保つとAは消灯、Bは点灯。反事実の結果も同じ「結果」点で読む。\n1.6　この一回で切っていたら（入口「結果」）\n3.2　時点を保って条件を替える（入口「結果」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "反事実"
+      },
+      "appearance": {
+        "position": [
+          -60,
+          208,
+          132
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "box",
+          "size": [
+            2.0,
+            2.0,
+            2.0
+          ],
+          "common": {
+            "color": "#9DD8EF",
+            "opacity": 1
+          },
+          "text": {
+            "content": "反事実",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "3ae28ca4-4110-5c39-b197-59df319559ba",
+        "creator_memo": "行為者が実現を目指す状態。この人は部屋を明るくしようとしていた。点灯に失敗しても目的はあったし、予見した電力消費まで目的になるわけではない。\n2.1　何を目指して入れたか（入口「行為」）\n2.4　その結末は避けられたか（入口「将来」）\n3.3　行為を保って説明を替える（入口「行為」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "目的"
+      },
+      "appearance": {
+        "position": [
+          -180,
+          -100,
+          48
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "box",
+          "size": [
+            2.0,
+            2.0,
+            2.0
+          ],
+          "common": {
+            "color": "#DCC2FF",
+            "opacity": 1
+          },
+          "text": {
+            "content": "目的",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "661569c8-9de3-5e51-9e43-61d249054c6b",
+        "creator_memo": "一人が部屋を明るくするため、操作盤のスイッチを入れた。同じ行為について、目指した状態、身体の動き、点灯への寄与、行為者の統制、点灯を避けられたかを問える。\n2.1　何を目指して入れたか　部屋を明るくしたいという目的は、スイッチを入れる今すでにある。ランプが故障して灯らなかった場合にも、この人がその目的で動いたという説明は成り立つ。　次は 2.2「行為」。\n2.2　その操作は点灯に効いたか　同じスイッチを入れる行為でも、配線Aでは点灯を左右し、配線Bでは指令が結果を決める。目的を達したことと、操作が点灯に効いたことは別々に確かめられる。　次は 2.3「選択」。\n2.3　誰が操作を選べたか（入口「選択」）\n2.4　その結末は避けられたか（入口「将来」）\n3.1　時間が進む　実際の操作から、一定時間後の点灯までを＋Yへ進む。「行為」の縦書きは文字上方が＋Y、正面が＋X。ここで動いたのは出来事の時点や。　次は 3.2「結果」。\n3.3　行為を保って説明を替える　同じ「行為」に二方向から戻る。目的論は部屋を明るくしたいという理由から、機械論は手指がスイッチを押す仕組みから説明する。行為の時点も対象も共通や。　三つの経路はここまで。",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "行為"
+      },
+      "appearance": {
+        "position": [
+          108,
+          -100,
+          48
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "sphere",
+          "radius": 2.0,
+          "common": {
+            "color": "#DCC2FF",
+            "opacity": 1
+          },
+          "text": {
+            "content": "行\n為",
+            "pose": {
+              "front": [
+                1,
+                0,
+                0
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ]
+            },
+            "size": 32,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "ab0dcf10-fb9a-53e8-8412-a35ce8cf7b11",
+        "creator_memo": "どうすれば選択と行為をその人に帰属できるか。本人が理由に応じて制御できたか、別様に選べたか、これらが自由に必須かを問う。偶然に選択が変わるだけでは本人の統制は示せない。\n2.3　誰が操作を選べたか（入口「選択」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "自由意志"
+      },
+      "appearance": {
+        "position": [
+          -210,
+          -280,
+          48
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "box",
+          "size": [
+            4.0,
+            4.0,
+            4.0
+          ],
+          "common": {
+            "color": "#DCC2FF",
+            "opacity": 1
+          },
+          "text": {
+            "content": "自由意志",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 32,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "bc713eb1-2e0e-5e47-9b14-8fb8ca693d7d",
+        "creator_memo": "同じ完全な先行状態と法則を固定すると後続は一意に定まる、という立場。観測者が行為を予見できるか、スイッチの操作が点灯に寄与するかはそれぞれ別の問い。\n2.3　誰が操作を選べたか（入口「選択」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "決定論"
+      },
+      "appearance": {
+        "position": [
+          -210,
+          -100,
+          132
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "box",
+          "size": [
+            4.0,
+            4.0,
+            4.0
+          ],
+          "common": {
+            "color": "#9DD8EF",
+            "opacity": 1
+          },
+          "text": {
+            "content": "決定論",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 32,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "9de4a48f-2f95-53ba-96b4-cf86eca904bf",
+        "creator_memo": "決定論と自由意志は両立しうる。本人自身の理由に応じて制御された選択に自由を認める考え方などがある。\n2.3　誰が操作を選べたか（入口「選択」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "両立論"
+      },
+      "appearance": {
+        "position": [
+          -316,
+          -280,
+          132
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "box",
+          "size": [
+            2.0,
+            2.0,
+            2.0
+          ],
+          "common": {
+            "color": "#DCC2FF",
+            "opacity": 1
+          },
+          "text": {
+            "content": "両立論",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "91b35fcc-d524-5176-9489-857e39905089",
+        "creator_memo": "決定論と自由意志の両立を否定する。この立場には決定論を退けて自由を認める考え方も含まれる。\n2.3　誰が操作を選べたか（入口「選択」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "非両立論"
+      },
+      "appearance": {
+        "position": [
+          -104,
+          -280,
+          132
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "box",
+          "size": [
+            2.0,
+            2.0,
+            2.0
+          ],
+          "common": {
+            "color": "#DCC2FF",
+            "opacity": 1
+          },
+          "text": {
+            "content": "非両立論",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "c498c6eb-3cca-5b43-9b5e-1ca5d9c555ec",
+        "creator_memo": "対象とする行為や結末を別様にする余地がないという立場。ここでは特定の点灯は避けられたかを取り上げる。将来→今→過去は、未来言明を使う論理的運命論の問い方。\n2.4　その結末は避けられたか（入口「将来」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "運命論"
+      },
+      "appearance": {
+        "position": [
+          -350,
+          -100,
+          132
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "box",
+          "size": [
+            2.0,
+            2.0,
+            2.0
+          ],
+          "common": {
+            "color": "#9DD8EF",
+            "opacity": 1
+          },
+          "text": {
+            "content": "運命論",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "ee848a21-b24f-5bbb-8bea-20914f96d5cf",
+        "creator_memo": "行為・過程を構成部分の働きから説明する立場。この行為については神経から筋への信号と手指の運動が、スイッチをどう動かしたかを説明する。\n3.3　行為を保って説明を替える（入口「行為」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "機械論"
+      },
+      "appearance": {
+        "position": [
+          -180,
+          -200,
+          48
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "box",
+          "size": [
+            2.0,
+            2.0,
+            2.0
+          ],
+          "common": {
+            "color": "#9DD8EF",
+            "opacity": 1
+          },
+          "text": {
+            "content": "機械論",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "bb92dc6f-3f2d-5701-9d26-ea5abfa418be",
+        "creator_memo": "何のための行為・過程だったかを目的から説明する立場。この局所ではスイッチを入れた行為の目的を扱う。生物の形や機能への目的論には意識的な意図を前提としない議論もある。\n2.1　何を目指して入れたか（入口「行為」）\n3.3　行為を保って説明を替える（入口「行為」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "目的論"
+      },
+      "appearance": {
+        "position": [
+          -180,
+          -100,
+          132
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "box",
+          "size": [
+            2.0,
+            2.0,
+            2.0
+          ],
+          "common": {
+            "color": "#9DD8EF",
+            "opacity": 1
+          },
+          "text": {
+            "content": "目的論",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "89dc3c92-20fd-5bb9-8de5-bb8ada357401",
+        "creator_memo": "ハッキングがたどる17世紀の成立史。反復して現れる傾向を扱う伝統と、徴候・証言から判断する伝統が確率という一語に集まる。",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "確率概念の成立"
+      },
+      "appearance": {
+        "position": [
+          0,
+          96,
+          216
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.5,
+          "common": {
+            "color": "#BFE8A2",
+            "opacity": 1
+          },
+          "text": {
+            "content": "確率概念の成立",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 8,
+            "font": "noto_sans_jp_regular",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "b1814df3-01ba-5409-a145-1f1542ca52de",
+        "creator_memo": "定めた条件の下で結果Yに与える分布。この一回の背景が確定し、機構が決定的なら、反事実の結果は一つの値に集中する。集団では背景Uの分布を保ったまま各介入時の分布を求める。\n1.3　入れた時と切った時の差（入口「介入」）\n1.6　この一回で切っていたら（入口「結果」）\n2.2　その操作は点灯に効いたか（入口「行為」）\n3.2　時点を保って条件を替える（入口「結果」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "結果の分布"
+      },
+      "appearance": {
+        "position": [
+          108,
+          208,
+          132
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.0,
+          "common": {
+            "color": "#BFE8A2",
+            "opacity": 1
+          },
+          "text": {
+            "content": "結果の分布",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "5caa64d8-709f-5f16-ab21-dc67c399f274",
+        "creator_memo": "通常運転で指令Uは0と1が半々、スイッチ位置X=U。ランプはモデルAではY=X、モデルBではY=U。通常運転ではどちらでもXとYが常に一致し、同じ観察資料が得られる。\n1.4　どこまで証拠で言えるか（入口「観察」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "資料"
+      },
+      "appearance": {
+        "position": [
+          -180,
+          96,
+          48
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "box",
+          "size": [
+            2.0,
+            2.0,
+            2.0
+          ],
+          "common": {
+            "color": "#9DD8EF",
+            "opacity": 1
+          },
+          "text": {
+            "content": "資料",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "fe222a4a-d349-5844-856c-1a99af7b3b63",
+        "creator_memo": "将来の指定時刻にこのランプが点いている、という結末を仮定する。存在側の「結果」と評価時刻をそろえてある。起きたことから、それが不可避だったかを問う。\n2.4　その結末は避けられたか　将来の点灯を置き、今の選択で回避できたかを考える。さらに論理的運命論では、それを述べた過去の言明がすでに真だったとすれば結末まで必然かを問う。破線は問いをたどる向きや。　次は 3.1「行為」。",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "将来"
+      },
+      "appearance": {
+        "position": [
+          -350,
+          208,
+          48
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "box",
+          "size": [
+            2.0,
+            2.0,
+            2.0
+          ],
+          "common": {
+            "color": "#DCC2FF",
+            "opacity": 1
+          },
+          "text": {
+            "content": "将来",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "7e0af829-fbec-5313-8698-57f5413b2a66",
+        "creator_memo": "スイッチを入れたのと同じ「今」。本人がいま何を目指すかと、この時点で将来の点灯を避ける余地があるかを区別する。\n2.4　その結末は避けられたか（入口「将来」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "今"
+      },
+      "appearance": {
+        "position": [
+          -350,
+          -100,
+          48
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "box",
+          "size": [
+            2.0,
+            2.0,
+            2.0
+          ],
+          "common": {
+            "color": "#DCC2FF",
+            "opacity": 1
+          },
+          "text": {
+            "content": "今",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "c0e8c075-0424-53d1-8a5d-bef9f86863ad",
+        "creator_memo": "過去になされた未来言明がすでに真だったとしたら、その内容まで必然だったといえるか。真理と必然性の関係が論証の争点。\n2.4　その結末は避けられたか（入口「将来」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "過去"
+      },
+      "appearance": {
+        "position": [
+          -350,
+          -390,
+          48
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "box",
+          "size": [
+            2.0,
+            2.0,
+            2.0
+          ],
+          "common": {
+            "color": "#DCC2FF",
+            "opacity": 1
+          },
+          "text": {
+            "content": "過去",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "6c907ac2-9972-59e6-88e6-bf0b0eddfec0",
+        "creator_memo": "作動条件を与えたときの応答の値。点灯の有無なら1または0。条件ごとの応答を集約すれば、集団での点灯の起こりやすさを表せる。",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "応答"
+      },
+      "appearance": {
+        "position": [
+          180,
+          96,
+          132
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "sphere",
+          "radius": 0.5,
+          "common": {
+            "color": "#BFE8A2",
+            "opacity": 1
+          },
+          "text": {
+            "content": "応答",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 8,
+            "font": "noto_sans_jp_regular",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "77c11ea2-4c43-57e5-9cbe-169d41ee7be0",
+        "creator_memo": "Xは実際にオン／オフを強制できるスイッチ位置。観察時は自動指令Uに追従する。Xの変更がYに効くかはモデルに依存する。\n1.2　同じ記録を生むもう一つの配線（入口「共通原因」）\n1.3　入れた時と切った時の差（入口「介入」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "原因候補"
+      },
+      "appearance": {
+        "position": [
+          108,
+          0,
+          132
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.0,
+          "common": {
+            "color": "#FFC18A",
+            "opacity": 1
+          },
+          "text": {
+            "content": "原因候補",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "ceadb559-4963-567d-997a-84a3f8b8da19",
+        "creator_memo": "モデルBの制御指令Uはスイッチ位置Xとランプの作動条件の両方を決める。通常の観察ではXと点灯Yが一致する。Xだけを設定するとUからXへの決まり方が外れる。\n1.2　同じ記録を生むもう一つの配線　通常運転では制御指令にスイッチが追従する。配線Bでは同じ指令がランプも直接制御するので、スイッチ位置と点灯が一致する。この二股が共通原因や。　次は 1.3「介入」。",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "共通原因"
+      },
+      "appearance": {
+        "position": [
+          180,
+          0,
+          132
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.0,
+          "common": {
+            "color": "#FFC18A",
+            "opacity": 1
+          },
+          "text": {
+            "content": "共通原因",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "6be60454-471f-56cc-9f03-98bfa9355bf5",
+        "creator_memo": "モデルAではスイッチの接点が電路を閉じる。モデルBでは指令がランプの電路を直接閉じる。いずれも同じランプの同じ時点の点灯を調べる。\n1.1　何がランプを灯したか（入口「結果」）\n1.2　同じ記録を生むもう一つの配線（入口「共通原因」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "作動"
+      },
+      "appearance": {
+        "position": [
+          180,
+          208,
+          48
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.0,
+          "common": {
+            "color": "#FFC18A",
+            "opacity": 1
+          },
+          "text": {
+            "content": "作動",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "2cbecda4-2c31-54b4-8cbd-3c7e86dc482e",
+        "creator_memo": "同じ対象集団の同じ時点で、Xを1に固定したときの点灯率から0に固定したときの点灯率を引く。モデルAは1−0=1、Bは1/2−1/2=0。一人の観察結果や介入後だけの点灯率とは区別する。\n1.3　入れた時と切った時の差（入口「介入」）\n1.4　どこまで証拠で言えるか（入口「観察」）\n2.2　その操作は点灯に効いたか（入口「行為」）\n3.2　時点を保って条件を替える（入口「結果」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "因果効果"
+      },
+      "appearance": {
+        "position": [
+          108,
+          208,
+          216
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.0,
+          "common": {
+            "color": "#FFC18A",
+            "opacity": 1
+          },
+          "text": {
+            "content": "因果効果",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "60345e49-e685-51c0-8f89-f0faf791b71a",
+        "creator_memo": "資料と仮定に合うモデルのすべてで、求めたい効果が同じ値になるか。通常運転の記録だけでは、Aの効果1とBの効果0を選べない。適切な無作為割付などにより、機構を完全には決めずに効果が求まる場合がある。\n1.4　どこまで証拠で言えるか（入口「観察」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "識別"
+      },
+      "appearance": {
+        "position": [
+          -180,
+          208,
+          216
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "box",
+          "size": [
+            2.0,
+            2.0,
+            2.0
+          ],
+          "common": {
+            "color": "#9DD8EF",
+            "opacity": 1
+          },
+          "text": {
+            "content": "識別",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "430a3750-2082-59a6-8acd-ffbd8cc2fc6c",
+        "creator_memo": "この事例では、信号を受けた指の筋が収縮し、指がスイッチを押し込んだ。意図した同一の行為を身体の働きから説明する。\n2.3　誰が操作を選べたか（入口「選択」）\n3.3　行為を保って説明を替える（入口「行為」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "手指の運動"
+      },
+      "appearance": {
+        "position": [
+          108,
+          -200,
+          48
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.0,
+          "common": {
+            "color": "#DCC2FF",
+            "opacity": 1
+          },
+          "text": {
+            "content": "手指の運動",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "38a4a62b-47ea-5a32-aa31-0827707b8766",
+        "creator_memo": "スイッチを入れるか、そのままにするか。行為前の選択が本人の理由に応じたものだったかと、操作でランプが点くかは別に調べる。\n2.3　誰が操作を選べたか　指がスイッチを押すまでを戻って、その選択が本人の理由と統制に基づくかを問う。過去と法則のもとで一意に決まることと自由な選択が両立するかに、二つの立場が答える。　次は 2.4「将来」。",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "選択"
+      },
+      "appearance": {
+        "position": [
+          108,
+          -280,
+          48
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1.0,
+          "common": {
+            "color": "#DCC2FF",
+            "opacity": 1
+          },
+          "text": {
+            "content": "選択",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "52eecdf8-94f1-541a-babb-3a4696b9f881",
+        "creator_memo": "同じ完全な先行状態と法則で行為が定まっても、その選択を自由と呼べるか。一つの問いに対する二つの答えをX方向に並べた。\n2.3　誰が操作を選べたか（入口「選択」）",
+        "tags": [
+          "x:concept"
+        ]
+      },
+      "signification": {
+        "name": "両立可能性"
+      },
+      "appearance": {
+        "position": [
+          -210,
+          -280,
+          132
+        ],
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "marker": {
+          "primitive": "box",
+          "size": [
+            2.0,
+            2.0,
+            2.0
+          ],
+          "common": {
+            "color": "#DCC2FF",
+            "opacity": 1
+          },
+          "text": {
+            "content": "両立可能性",
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            },
+            "size": 16,
+            "font": "noto_sans_jp_bold",
+            "align": "center&baseline"
+          }
+        }
+      }
+    }
+  ],
+  "lines": [
+    {
+      "meta": {
+        "uuid": "50a8c32b-1648-5e8e-883e-8014a9a3190e",
+        "creator_memo": "対象をたどる"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "対象をたどる"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "11456dbb-22b4-51be-a29f-f65336763353"
+        },
+        "end_b": {
+          "ref": "223170d5-7eb8-53c3-b986-e27c493d88d2"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "4c4e52c8-97db-5e7f-8560-076cbbda4e1e",
+        "creator_memo": "知る側をたどる"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "知る側をたどる"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "11456dbb-22b4-51be-a29f-f65336763353"
+        },
+        "end_b": {
+          "ref": "b253104e-6413-56ba-8411-415794a3e899"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "caaac550-a7e8-501d-8e73-09519f96d5c8",
+        "creator_memo": "範囲を決める"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "範囲を決める"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "223170d5-7eb8-53c3-b986-e27c493d88d2"
+        },
+        "end_b": {
+          "ref": "2fd8be9b-cf30-5e92-ad37-4cd2a7e5e7ff"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              0,
+              1
+            ],
+            "up": [
+              0,
+              1,
+              0
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "d83cb05d-9fae-5764-b777-183344896037",
+        "creator_memo": "原因を問う"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "原因を問う"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "b253104e-6413-56ba-8411-415794a3e899"
+        },
+        "end_b": {
+          "ref": "fd09c0f3-a01c-5b72-91b7-d896133b2695"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              0,
+              1
+            ],
+            "up": [
+              0,
+              1,
+              0
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "9707e60e-0040-5b7c-a4f3-a3501756c37d",
+        "creator_memo": "観測する\n1.6　この一回で切っていたら（入口「結果」）\n3.2　時点を保って条件を替える（入口「結果」）"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "観測する"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "7c3e2b54-c5c6-5d79-8093-d936be48836c"
+        },
+        "end_b": {
+          "ref": "16984f75-8f3d-5d90-9026-a50a1480377e"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "f12f6a23-3dbd-56df-af48-917e72b916b1",
+        "creator_memo": "記録する\n1.4　どこまで証拠で言えるか（入口「観察」）"
+      },
+      "signification": {
+        "relation": {
+          "dynamic": "derivation"
+        },
+        "sense": "a_to_b",
+        "caption": "記録する"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "16984f75-8f3d-5d90-9026-a50a1480377e"
+        },
+        "end_b": {
+          "ref": "bb9e6024-7eb3-5580-8f2d-ef02e3f0c81f"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A8D6E5",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "50e2ec2c-d36d-5aed-a9c7-031c34747f36",
+        "creator_memo": "裏づけに使う\n1.4　どこまで証拠で言えるか（入口「観察」）"
+      },
+      "signification": {
+        "relation": {
+          "logical": "support"
+        },
+        "sense": "a_to_b",
+        "caption": "裏づけに使う"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "bb9e6024-7eb3-5580-8f2d-ef02e3f0c81f"
+        },
+        "end_b": {
+          "ref": "ef082a40-322e-595a-9444-5812c2c5ba84"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#B6D994",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              0,
+              1
+            ],
+            "up": [
+              0,
+              1,
+              0
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "b2a1b6ca-d9de-5a8b-90a6-0f1d52f6b75e",
+        "creator_memo": "数えて割る"
+      },
+      "signification": {
+        "relation": {
+          "dynamic": "derivation"
+        },
+        "sense": "a_to_b",
+        "caption": "数えて割る"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "bb9e6024-7eb3-5580-8f2d-ef02e3f0c81f"
+        },
+        "end_b": {
+          "ref": "23cf9e34-9d15-5b8c-a93b-3a63c93c6a0f"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A8D6E5",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "730daabf-1182-54b7-9230-8cf0065baeed",
+        "creator_memo": "見積もる"
+      },
+      "signification": {
+        "relation": {
+          "dynamic": "derivation"
+        },
+        "sense": "a_to_b",
+        "caption": "見積もる"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "23cf9e34-9d15-5b8c-a93b-3a63c93c6a0f"
+        },
+        "end_b": {
+          "ref": "7e21fef3-7813-56b5-bbed-00f05c2436d9"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A8D6E5",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2.5,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 2.0,
+          "pose": {
+            "front": [
+              0,
+              0,
+              1
+            ],
+            "up": [
+              0,
+              1,
+              0
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "bbd5f198-f3f1-50e3-8be3-10ac8a07cd16",
+        "creator_memo": "根拠を与える"
+      },
+      "signification": {
+        "relation": {
+          "logical": "support"
+        },
+        "sense": "a_to_b",
+        "caption": "根拠を与える"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "7e21fef3-7813-56b5-bbed-00f05c2436d9"
+        },
+        "end_b": {
+          "ref": "ef082a40-322e-595a-9444-5812c2c5ba84"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#B6D994",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2.5,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 2.0,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "5434e9e5-b743-5eef-bc75-18b953871ba9",
+        "creator_memo": "事象に帰属\n1.5　確率の二つの読み方（入口「確率」）"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "事象に帰属"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "95be1c6a-ec88-5483-9b9e-07fb695e7821"
+        },
+        "end_b": {
+          "ref": "02241670-c8fd-5b8f-8ca1-9edbdc71c2e3"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "0173611c-2a31-5fb1-8a9d-9df16b3b9259",
+        "creator_memo": "判断に帰属\n1.5　確率の二つの読み方（入口「確率」）"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "判断に帰属"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "95be1c6a-ec88-5483-9b9e-07fb695e7821"
+        },
+        "end_b": {
+          "ref": "4ffc59e7-91fd-58f2-ab85-18a5213ff636"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "51cd4436-d500-5e56-8665-e79e0656b2b5",
+        "creator_memo": "確信を更新"
+      },
+      "signification": {
+        "relation": {
+          "logical": "support"
+        },
+        "sense": "a_to_b",
+        "caption": "確信を更新"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "ef082a40-322e-595a-9444-5812c2c5ba84"
+        },
+        "end_b": {
+          "ref": "4ffc59e7-91fd-58f2-ab85-18a5213ff636"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#B6D994",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "cf90f5ad-0593-5e14-9480-078c9804ff8f",
+        "creator_memo": "判断を条件づける"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "判断を条件づける"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "8381710d-8571-507c-9fbf-9421a7357ab6"
+        },
+        "end_b": {
+          "ref": "4ffc59e7-91fd-58f2-ab85-18a5213ff636"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "0da3183c-9025-51f9-91d3-29d5332cccac",
+        "creator_memo": "各結果に配分"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "各結果に配分"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "02241670-c8fd-5b8f-8ca1-9edbdc71c2e3"
+        },
+        "end_b": {
+          "ref": "b1814df3-01ba-5409-a145-1f1542ca52de"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "01e2380f-d956-55d0-b86a-8092a423f1ed",
+        "creator_memo": "分布は決まっても、次の個別結果は一般に決まらない。「決まる」と「予見できる」も異なる。\n1.3　入れた時と切った時の差（入口「介入」）\n1.6　この一回で切っていたら（入口「結果」）\n2.2　その操作は点灯に効いたか（入口「行為」）\n3.2　時点を保って条件を替える（入口「結果」）"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "特定できるか"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "b1814df3-01ba-5409-a145-1f1542ca52de"
+        },
+        "end_b": {
+          "ref": "7c3e2b54-c5c6-5d79-8093-d936be48836c"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 1,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 3.2,
+          "height": 10.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              0,
+              1
+            ],
+            "up": [
+              0,
+              1,
+              0
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "0239f8f2-6f97-5662-b239-7d205185a674",
+        "creator_memo": "二義が結びつく"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "二義が結びつく"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "89dc3c92-20fd-5bb9-8de5-bb8ada357401"
+        },
+        "end_b": {
+          "ref": "95be1c6a-ec88-5483-9b9e-07fb695e7821"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2.5,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 2.0,
+          "pose": {
+            "front": [
+              0,
+              0,
+              1
+            ],
+            "up": [
+              0,
+              1,
+              0
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "cd7b76ba-7311-56ef-9bd6-45c9a4f43a3a",
+        "creator_memo": "識別を支える\n1.4　どこまで証拠で言えるか（入口「観察」）"
+      },
+      "signification": {
+        "relation": {
+          "logical": "support"
+        },
+        "sense": "a_to_b",
+        "caption": "識別を支える"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "8381710d-8571-507c-9fbf-9421a7357ab6"
+        },
+        "end_b": {
+          "ref": "fd09c0f3-a01c-5b72-91b7-d896133b2695"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#B6D994",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              0,
+              1
+            ],
+            "up": [
+              0,
+              1,
+              0
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "d0c590dd-6d4b-589f-adeb-fb115805ebc6",
+        "creator_memo": "行為者がスイッチを入れ、比較の対象となる要因の値を変える。点灯に効くかは回路の構造に依存する。\n2.2　その操作は点灯に効いたか（入口「行為」）\n3.1　時間が進む（入口「行為」）"
+      },
+      "signification": {
+        "relation": {
+          "dynamic": "influence"
+        },
+        "sense": "a_to_b",
+        "caption": "働きかける"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "661569c8-9de3-5e51-9e43-61d249054c6b"
+        },
+        "end_b": {
+          "ref": "02492eee-ed97-5d8b-a29b-3a2e5ed15771"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#EDC995",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "c3ee2621-19af-5f7d-88fe-d44c829d4ce0",
+        "creator_memo": "利用する\n1.4　どこまで証拠で言えるか（入口「観察」）"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "利用する"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "bb9e6024-7eb3-5580-8f2d-ef02e3f0c81f"
+        },
+        "end_b": {
+          "ref": "5caa64d8-709f-5f16-ab21-dc67c399f274"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "a9f8165a-3057-5812-b3fd-5ea17bcfaf86",
+        "creator_memo": "仮説を検討\n1.4　どこまで証拠で言えるか（入口「観察」）"
+      },
+      "signification": {
+        "relation": {
+          "logical": "support"
+        },
+        "sense": "a_to_b",
+        "caption": "仮説を検討"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "5caa64d8-709f-5f16-ab21-dc67c399f274"
+        },
+        "end_b": {
+          "ref": "fd09c0f3-a01c-5b72-91b7-d896133b2695"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#B6D994",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "ffd9887d-672d-5321-a8c3-d4a56c341b32",
+        "creator_memo": "モデルAのスイッチから同じ評価時点の点灯へ至る関係。因果の線を機構で説明する問いと、設定を変えた結果の差を求める問いから読む。モデルBでは観察上の一致だけが残る。\n1.1　何がランプを灯したか（入口「結果」）\n1.3　入れた時と切った時の差（入口「介入」）\n2.2　その操作は点灯に効いたか（入口「行為」）\n3.1　時間が進む（入口「行為」）"
+      },
+      "signification": {
+        "relation": {
+          "dynamic": "causal"
+        },
+        "sense": "a_to_b",
+        "caption": "因果"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "02492eee-ed97-5d8b-a29b-3a2e5ed15771"
+        },
+        "end_b": {
+          "ref": "7c3e2b54-c5c6-5d79-8093-d936be48836c"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#F5B783",
+        "opacity": 1,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 3.2,
+          "height": 10.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 8,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "9d4fb190-1972-507f-8492-c78fcc2240c0",
+        "creator_memo": "条件が機構の作動にどう関わるかを示す。\n1.1　何がランプを灯したか（入口「結果」）\n1.2　同じ記録を生むもう一つの配線（入口「共通原因」）"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "作動条件"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "2fd8be9b-cf30-5e92-ad37-4cd2a7e5e7ff"
+        },
+        "end_b": {
+          "ref": "cd689c22-2f79-5615-a3d4-14ddea9e920c"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "f88042b2-817e-524a-b729-654875e131e7",
+        "creator_memo": "入力に応じた機構の応答を値で記述する。Z方向の移動は数値による記述への移行。"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "応答値で表す"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "cd689c22-2f79-5615-a3d4-14ddea9e920c"
+        },
+        "end_b": {
+          "ref": "6c907ac2-9972-59e6-88e6-bf0b0eddfec0"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2.5,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 2.0,
+          "pose": {
+            "front": [
+              0,
+              0,
+              1
+            ],
+            "up": [
+              0,
+              1,
+              0
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "c7bc2eb3-a46b-51e6-a1d3-911209421081",
+        "creator_memo": "同じ条件で生じうる応答の違いを結果の起こりやすさとして読む。"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "傾向を示す"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "6c907ac2-9972-59e6-88e6-bf0b0eddfec0"
+        },
+        "end_b": {
+          "ref": "02241670-c8fd-5b8f-8ca1-9edbdc71c2e3"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 0.8,
+          "height": 2.5,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 2.0,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "9a2707ab-6468-5c7b-ae4d-a628513577e0",
+        "creator_memo": "同じスイッチ位置Xを、直結するモデルAで原因の役割に置く。BではXは原因候補のままで点灯に効かない。\n1.3　入れた時と切った時の差（入口「介入」）"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "Aで原因となる"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "77c11ea2-4c43-57e5-9cbe-169d41ee7be0"
+        },
+        "end_b": {
+          "ref": "02492eee-ed97-5d8b-a29b-3a2e5ed15771"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              0,
+              1
+            ],
+            "up": [
+              0,
+              1,
+              0
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "d44eb013-58db-55e7-a0c4-c556bf3b652e",
+        "creator_memo": "通常は制御指令がスイッチ位置を決める。位置を外から強制する場合にはこの働きを切り離す。\n1.2　同じ記録を生むもう一つの配線（入口「共通原因」）"
+      },
+      "signification": {
+        "relation": {
+          "dynamic": "causal"
+        },
+        "sense": "a_to_b",
+        "caption": "位置を決める"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "ceadb559-4963-567d-997a-84a3f8b8da19"
+        },
+        "end_b": {
+          "ref": "77c11ea2-4c43-57e5-9cbe-169d41ee7be0"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#F5B783",
+        "opacity": 1,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "b0ef0272-0572-5b15-ba59-267a74bdd188",
+        "creator_memo": "モデルBの二本目の枝。同じ指令がスイッチとは別の回路でランプの作動を決める。\n1.2　同じ記録を生むもう一つの配線（入口「共通原因」）"
+      },
+      "signification": {
+        "relation": {
+          "dynamic": "causal"
+        },
+        "sense": "a_to_b",
+        "caption": "Bで直接制御"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "ceadb559-4963-567d-997a-84a3f8b8da19"
+        },
+        "end_b": {
+          "ref": "2fd8be9b-cf30-5e92-ad37-4cd2a7e5e7ff"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#F5B783",
+        "opacity": 1,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              0,
+              1
+            ],
+            "up": [
+              0,
+              1,
+              0
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "ab648d30-58f4-5c55-bf5b-eb75e825aa15",
+        "creator_memo": "モデルAでは、スイッチの接点が電路の作動条件を変える。AとBは機構の代替案。二つの配線が同時に働くという意味ではない。\n1.1　何がランプを灯したか（入口「結果」）"
+      },
+      "signification": {
+        "relation": {
+          "dynamic": "causal"
+        },
+        "sense": "a_to_b",
+        "caption": "Aで電路を切替"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "02492eee-ed97-5d8b-a29b-3a2e5ed15771"
+        },
+        "end_b": {
+          "ref": "2fd8be9b-cf30-5e92-ad37-4cd2a7e5e7ff"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#F5B783",
+        "opacity": 1,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "01d87a54-6475-5c8d-b7ad-baf52e9825ee",
+        "creator_memo": "回路の接点や指令が電路を開閉し、その後のランプの作動に至る過程をたどる。\n1.1　何がランプを灯したか（入口「結果」）\n1.2　同じ記録を生むもう一つの配線（入口「共通原因」）"
+      },
+      "signification": {
+        "relation": {
+          "dynamic": "causal"
+        },
+        "sense": "a_to_b",
+        "caption": "作動する"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "cd689c22-2f79-5615-a3d4-14ddea9e920c"
+        },
+        "end_b": {
+          "ref": "6be60454-471f-56cc-9f03-98bfa9355bf5"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#F5B783",
+        "opacity": 1,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "18766bdc-a40c-524f-a1db-c0ef73461f63",
+        "creator_memo": "同じ評価時点での作動と、それについて定めた結果Yを対応づける。\n1.1　何がランプを灯したか（入口「結果」）\n1.2　同じ記録を生むもう一つの配線（入口「共通原因」）"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "点灯として現れる"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "6be60454-471f-56cc-9f03-98bfa9355bf5"
+        },
+        "end_b": {
+          "ref": "7c3e2b54-c5c6-5d79-8093-d936be48836c"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "32e7dcce-ba01-577d-8690-8a9b0dae4563",
+        "creator_memo": "Xの決まり方だけを変更し、ランプの機構と背景Uの分布を保つ。"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "固定する関係を指定"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "8381710d-8571-507c-9fbf-9421a7357ab6"
+        },
+        "end_b": {
+          "ref": "864168e8-93b0-5d40-bb72-4769730dfb50"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "465da70e-3aa2-59bd-a1d2-ca9e4b6ee7a8",
+        "creator_memo": "Xを1または0に固定して、同じ集団・評価時点の結果を比べる。\n1.3　入れた時と切った時の差（入口「介入」）"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "候補を設定"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "864168e8-93b0-5d40-bb72-4769730dfb50"
+        },
+        "end_b": {
+          "ref": "77c11ea2-4c43-57e5-9cbe-169d41ee7be0"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "bf141cfe-c6a3-5c79-a59a-8e62d5bc6c52",
+        "creator_memo": "人が操作して点灯した一回の、記録された指令U=1と実測値X=Y=1を指定する。\n1.6　この一回で切っていたら（入口「結果」）\n3.2　時点を保って条件を替える（入口「結果」）"
+      },
+      "signification": {
+        "relation": {
+          "logical": "support"
+        },
+        "sense": "a_to_b",
+        "caption": "実際の一例を指定"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "16984f75-8f3d-5d90-9026-a50a1480377e"
+        },
+        "end_b": {
+          "ref": "9fb885cf-bb9e-5d9e-b42c-f1915b06f226"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#B6D994",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              0,
+              1
+            ],
+            "up": [
+              0,
+              1,
+              0
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "be0ae595-8d2d-514f-b20d-317cdefedd2c",
+        "creator_memo": "この一回でU=1のままXを0に変える。同じ評価時点でAは消灯、Bは点灯となる。\n1.6　この一回で切っていたら（入口「結果」）\n3.2　時点を保って条件を替える（入口「結果」）"
+      },
+      "signification": {
+        "relation": {
+          "dynamic": "derivation"
+        },
+        "sense": "a_to_b",
+        "caption": "別条件で再計算"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "9fb885cf-bb9e-5d9e-b42c-f1915b06f226"
+        },
+        "end_b": {
+          "ref": "b1814df3-01ba-5409-a145-1f1542ca52de"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A8D6E5",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "2f63d1bc-9a43-5883-9ec5-22bb4a4e364a",
+        "creator_memo": "同じ集団・評価時点について、X=1とX=0に設定した二つの結果分布から、点灯率の差を比較する。\n1.3　入れた時と切った時の差（入口「介入」）\n2.2　その操作は点灯に効いたか（入口「行為」）\n3.2　時点を保って条件を替える（入口「結果」）"
+      },
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "a_to_b",
+        "caption": "二条件の差"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "b1814df3-01ba-5409-a145-1f1542ca52de"
+        },
+        "end_b": {
+          "ref": "2cbecda4-2c31-54b4-8cbd-3c7e86dc482e"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#DAC5EC",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              0,
+              1
+            ],
+            "up": [
+              0,
+              1,
+              0
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "97ed2dae-615f-5b1d-a07e-8a448a0cd588",
+        "creator_memo": "観察資料や実験資料が支持する範囲と、どの仮定を合わせたかで、効果を定められるかを検討する。\n1.4　どこまで証拠で言えるか（入口「観察」）"
+      },
+      "signification": {
+        "relation": {
+          "logical": "support"
+        },
+        "sense": "a_to_b",
+        "caption": "資料を照合"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "ef082a40-322e-595a-9444-5812c2c5ba84"
+        },
+        "end_b": {
+          "ref": "60345e49-e685-51c0-8f89-f0faf791b71a"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#B6D994",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              0,
+              1
+            ],
+            "up": [
+              0,
+              1,
+              0
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "5c87690d-dfce-5e50-889b-094dd978e370",
+        "creator_memo": "通常運転の同じ資料には、正の効果と効果ゼロの両方が整合する。識別は問いごとに決まる。\n1.4　どこまで証拠で言えるか（入口「観察」）"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "効果を識別できるか"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "60345e49-e685-51c0-8f89-f0faf791b71a"
+        },
+        "end_b": {
+          "ref": "2cbecda4-2c31-54b4-8cbd-3c7e86dc482e"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 1,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 3.2,
+          "height": 10.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 8,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "01761b53-2b5d-509f-9b56-b08a0e85e431",
+        "creator_memo": "なぜ入れたのかを、部屋を明るくしようとした目的から説明する。\n2.1　何を目指して入れたか（入口「行為」）\n3.3　行為を保って説明を替える（入口「行為」）"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "目的から説明"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "bb92dc6f-3f2d-5701-9d26-ea5abfa418be"
+        },
+        "end_b": {
+          "ref": "3ae28ca4-4110-5c39-b197-59df319559ba"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              0,
+              1
+            ],
+            "up": [
+              0,
+              1,
+              0
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "e5249315-03c0-511d-b3a1-62874ab17b94",
+        "creator_memo": "行為者は部屋を明るくするためにスイッチを入れた。\n2.1　何を目指して入れたか（入口「行為」）\n2.4　その結末は避けられたか（入口「将来」）\n3.3　行為を保って説明を替える（入口「行為」）"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "目指して行う"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "3ae28ca4-4110-5c39-b197-59df319559ba"
+        },
+        "end_b": {
+          "ref": "661569c8-9de3-5e51-9e43-61d249054c6b"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "ee773bf9-55b0-5c7c-872b-49ecae65feeb",
+        "creator_memo": "筋肉が手指をどう動かしたかを構成部分の働きから説明する。\n3.3　行為を保って説明を替える（入口「行為」）"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "機構から説明"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "ee848a21-b24f-5bbb-8bea-20914f96d5cf"
+        },
+        "end_b": {
+          "ref": "430a3750-2082-59a6-8acd-ffbd8cc2fc6c"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "33bb7ffd-bcb2-542d-8764-009b91c9c189",
+        "creator_memo": "手指の運動がスイッチを押し込む。\n2.3　誰が操作を選べたか（入口「選択」）\n3.3　行為を保って説明を替える（入口「行為」）"
+      },
+      "signification": {
+        "relation": {
+          "dynamic": "causal"
+        },
+        "sense": "a_to_b",
+        "caption": "押し込む"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "430a3750-2082-59a6-8acd-ffbd8cc2fc6c"
+        },
+        "end_b": {
+          "ref": "661569c8-9de3-5e51-9e43-61d249054c6b"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#F5B783",
+        "opacity": 1,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "d0a9aea1-63e3-532e-9ef8-1337bab3f0cc",
+        "creator_memo": "スイッチを入れるという選択を身体の運動へ移す。\n2.3　誰が操作を選べたか（入口「選択」）"
+      },
+      "signification": {
+        "relation": {
+          "dynamic": "influence"
+        },
+        "sense": "a_to_b",
+        "caption": "実行に移す"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "38a4a62b-47ea-5a32-aa31-0827707b8766"
+        },
+        "end_b": {
+          "ref": "430a3750-2082-59a6-8acd-ffbd8cc2fc6c"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "solid",
+        "color": "#EDC995",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "b6ee819d-a585-52e7-8f7e-7c561269c451",
+        "creator_memo": "この選択を本人が理由に応じて変え、制御できたかを問う。\n2.3　誰が操作を選べたか（入口「選択」）"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "誰が制御したか"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "ab0dcf10-fb9a-53e8-8412-a35ce8cf7b11"
+        },
+        "end_b": {
+          "ref": "38a4a62b-47ea-5a32-aa31-0827707b8766"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "d1830877-dc23-5cb8-abe2-da421d37efb6",
+        "creator_memo": "自由に何を必要とするかで、この問いへの回答が変わる。\n2.3　誰が操作を選べたか（入口「選択」）"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "自由の条件"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "ab0dcf10-fb9a-53e8-8412-a35ce8cf7b11"
+        },
+        "end_b": {
+          "ref": "52eecdf8-94f1-541a-babb-3a4696b9f881"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              0,
+              1
+            ],
+            "up": [
+              0,
+              1,
+              0
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "8c6c721a-9591-587f-abf2-c2d24f1c9c0d",
+        "creator_memo": "完全な先行状態と法則から行為が一意に定まるとしたとき、自由な選択は成立しうるか。\n2.3　誰が操作を選べたか（入口「選択」）"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "一意でも自由か"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "bc713eb1-2e0e-5e47-9b14-8fb8ca693d7d"
+        },
+        "end_b": {
+          "ref": "52eecdf8-94f1-541a-babb-3a4696b9f881"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 1,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 3.2,
+          "height": 10.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 8,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "72a1797b-f040-51ae-bfde-d2f2827ba2b0",
+        "creator_memo": "両立可能性に対する肯定の立場。\n2.3　誰が操作を選べたか（入口「選択」）"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "両立しうる"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "52eecdf8-94f1-541a-babb-3a4696b9f881"
+        },
+        "end_b": {
+          "ref": "9de4a48f-2f95-53ba-96b4-cf86eca904bf"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "7896425c-da45-552c-96b3-a990095d734c",
+        "creator_memo": "同じ両立可能性に対する否定の立場。\n2.3　誰が操作を選べたか（入口「選択」）"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "両立しえない"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "52eecdf8-94f1-541a-babb-3a4696b9f881"
+        },
+        "end_b": {
+          "ref": "91b35fcc-d524-5176-9489-857e39905089"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "ff51c24c-f347-5ed0-9924-c1ae894820a1",
+        "creator_memo": "同じ過去・法則で未来が一意かと、ある結末を避ける余地があるかを区別する。行為が点灯に寄与するかはまた別の問い。"
+      },
+      "signification": {
+        "relation": {
+          "structural": "association"
+        },
+        "sense": "bidirectional",
+        "caption": "一意性と不可避性"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "bc713eb1-2e0e-5e47-9b14-8fb8ca693d7d"
+        },
+        "end_b": {
+          "ref": "c498c6eb-3cca-5b43-9b5e-1ca5d9c555ec"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#DAC5EC",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "both",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "cef7ff57-2d75-5c4f-892b-b99012969d48",
+        "creator_memo": "運命論の立場から、指定した結末を今から避けられるかを問う。\n2.4　その結末は避けられたか（入口「将来」）"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "回避の余地を問う"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "c498c6eb-3cca-5b43-9b5e-1ca5d9c555ec"
+        },
+        "end_b": {
+          "ref": "7e0af829-fbec-5313-8698-57f5413b2a66"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              0,
+              1
+            ],
+            "up": [
+              0,
+              1,
+              0
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "093c5aaf-6f63-553b-b91d-e67bc337f13d",
+        "creator_memo": "行為者が部屋を明るくしようとする時点。将来の達成に先立ち、今すでに目的を抱いている。\n2.4　その結末は避けられたか（入口「将来」）"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "今抱く"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "7e0af829-fbec-5313-8698-57f5413b2a66"
+        },
+        "end_b": {
+          "ref": "3ae28ca4-4110-5c39-b197-59df319559ba"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#A7B8C8",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 1.6,
+          "height": 5.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 4,
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "4d350a46-6295-5529-adf2-7b27463cf511",
+        "creator_memo": "将来の点灯を仮定し、今の選択で結末を避ける余地があるかを問う。\n2.4　その結末は避けられたか（入口「将来」）"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "今、回避できるか"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "fe222a4a-d349-5844-856c-1a99af7b3b63"
+        },
+        "end_b": {
+          "ref": "7e0af829-fbec-5313-8698-57f5413b2a66"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#D7AFE9",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 3.2,
+          "height": 10.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 8,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "68d32bb1-b0ca-59ce-8305-cb98afe15db7",
+        "creator_memo": "過去の未来言明がすでに真だと仮定したとき、今の選択まで必然だといえるか。\n2.4　その結末は避けられたか（入口「将来」）"
+      },
+      "signification": {
+        "relation": {
+          "meta": "reference"
+        },
+        "sense": "a_to_b",
+        "caption": "過去に真だったか"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "7e0af829-fbec-5313-8698-57f5413b2a66"
+        },
+        "end_b": {
+          "ref": "c0e8c075-0424-53d1-8a5d-bef9f86863ad"
+        },
+        "frames": [
+          1
+        ],
+        "visible": true,
+        "line_type": "straight",
+        "line_style": "dashed",
+        "color": "#D7AFE9",
+        "opacity": 0.78,
+        "arrow": {
+          "primitive": "cone",
+          "radius": 3.2,
+          "height": 10.0,
+          "placement": "end_b",
+          "auto_orient": true
+        },
+        "caption_text": {
+          "font_size": 8,
+          "pose": {
+            "front": [
+              1,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "aux": []
+}

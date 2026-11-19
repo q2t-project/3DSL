@@ -18,6 +18,12 @@
 /_data/library/:id/assets
   Content-Security-Policy: sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'
 
+# This reviewed reader is shipped with the site. The library data sandbox above
+# continues to apply to all files supplied as work assets and attachments.
+/library/26111901/read/*
+  Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; frame-ancestors 'self'; base-uri 'none'; form-action 'none'
+  X-Robots-Tag: noindex
+
 # Executable URLs can retain their names across deployments. Require validation
 # even when a zone Browser Cache TTL raises a numeric max-age.
 /*.js
