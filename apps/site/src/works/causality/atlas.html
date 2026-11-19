@@ -151,7 +151,14 @@ function draw(){if(!W||!H)return;scale=homeScale*mag;refreshAxes();ctx.setTransf
 function zoom(f,x=W/2,y=H/2){const old=mag;mag=Math.max(.25,Math.min(80,mag*f));const r=mag/old;cx=(cx-(x-W/2))*r+x-W/2;cy=(cy-(y-H/2))*r+y-H/2;draw();}
 const pointers=new Map;let drag=null;
 const loc=e=>{const b=canvas.getBoundingClientRect();return [e.clientX-b.left,e.clientY-b.top];};const centroid=()=>{const ps=[...pointers.values()];return ps.length===2?[(ps[0][0]+ps[1][0])/2,(ps[0][1]+ps[1][1])/2,Math.hypot(ps[0][0]-ps[1][0],ps[0][1]-ps[1][1])]:null;};
-function rotate(dx,dy){az-=dx*.008;el=Math.max(-1.45,Math.min(1.45,el+dy*.008));draw();}
+const minElevation = 5 * Math.PI / 180;
+const maxElevation = 1.45;
+function rotate(dx,dy){
+ // Keep the guide above XY so the positive X/Y axes retain their top-side order.
+ az -= dx * .008;
+ el = Math.max(minElevation, Math.min(maxElevation, el + dy * .008));
+ draw();
+}
 function pickAt(x,y){const inside=ps=>{let ok=false;for(let i=0,j=ps.length-1;i<ps.length;j=i++){const a=ps[i],b=ps[j];if((a[1]>y)!==(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])ok=!ok;}return ok;};
  for(const h of [...hit].reverse())if(h.poly?inside(h.poly):Math.hypot(h.x-x,h.y-y)<10){
   if(activeStep){selected=h.id;panel();draw();}else pick(h.id);return;
