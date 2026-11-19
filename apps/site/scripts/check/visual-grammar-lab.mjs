@@ -253,6 +253,7 @@ if (!chrome) {
     await command('Page.navigate', { url: origin + route + '?test=1' });
     await until('window.legendLab?.ready === true', 'specimen ready');
     await evaluate('document.fonts.ready'); await painted();
+    assert(await evaluate("document.getElementById('bottom-anchor').checked"), 'bottom-center with clearance is selected by default');
     const initial = await state(), initialDom = await domSnapshot();
     assert.deepEqual(initial.model, model, 'browser model equals authored JSON');
     assert.equal(initial.modelUnchanged, true, 'live source is unchanged after rendering');
@@ -355,6 +356,31 @@ if (!chrome) {
         projectedFit, completeFit, screenMetrics: screenMetrics(dom, current) });
       await screenshot('view-' + key);
     }
+    await click('#reset-view'); await painted();
+
+    await click('#view-cooking');
+    await click('#zoom-in');
+    const raised = await state();
+    await screenshot('caption-bottom');
+    await click('#bottom-anchor');
+    const centered = await state();
+    assert.deepEqual(raised.camera, centered.camera, 'switch preserves the zoomed cooking view');
+    assert(raised.modelUnchanged, 'anchor comparison preserves the author document');
+    const changed = [];
+    for (const [i, label] of raised.labels.entries()) {
+      const original = centered.labels[i];
+      assert.deepEqual(label.quaternion, original.quaternion);
+      assert.equal(label.size, original.size);
+      if (label.position.some((n, axis) => n !== original.position[axis])) {
+        changed.push(label.id);
+        assert.deepEqual(label.position.slice(0, 2), original.position.slice(0, 2));
+        assert(Math.abs(label.worldBounds.min[2] - original.position[2] - label.size / 8) < 1e-6,
+          'lower edge clears the axis by one eighth of the font size');
+      }
+    }
+    assert.deepEqual(changed.sort(), ['571f1466-2695-5f35-a327-1252976272ca','ad17bb62-8ce5-5705-a6c9-38e68d0c3652']);
+    await click('#bottom-anchor');
+    assert.deepEqual((await state()).labels.map(l => l.position), raised.labels.map(l => l.position));
     await click('#reset-view'); await painted();
 
     // Use real screen hit testing rather than calling the specimen's selection API.

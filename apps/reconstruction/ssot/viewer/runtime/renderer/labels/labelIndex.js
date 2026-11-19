@@ -218,7 +218,7 @@ export function buildPointLabelFromPoint(point, lang = "ja") {
  * - size: appearance.caption_text.font_size（default 8）
  * - pose: appearance.caption_text.pose（default: schema 既定の fixed front/up）
  * - align: schema に無いので center&middle
- * - font: schema に無いので viewer default
+ * - font/color: shared line-caption presentation defaults
  */
 export function buildLineLabelFromLine(line, lang = "ja") {
   if (!line || typeof line !== "object") return null;
@@ -237,7 +237,7 @@ export function buildLineLabelFromLine(line, lang = "ja") {
 
   const renderStyle = lineCaptionStyle(capText);
   const size = renderStyle.worldSize;
-  const font = normalizeTextFont(null);
+  const font = normalizeTextFont(renderStyle.font);
   const align = normalizeTextAlign(null);
 
   // schema default (fixed): front:[0,1,0], up:[0,0,1]
@@ -250,6 +250,7 @@ export function buildLineLabelFromLine(line, lang = "ja") {
     text: caption,
     size,
     font,
+    style: { color: renderStyle.color },
     align,
     pose,
     // lines は midpoint に置く前提やから、デフォの "上に持ち上げ" はせん

@@ -6,6 +6,14 @@ export function lineCaptionStyle(captionText) {
   const worldSize = Number.isFinite(size) && size > 0 ? size : 8;
   return {
     worldSize,
+    // Relation names use a distinct reading style. These are presentation
+    // defaults, not inferred semantics or new serialized document fields.
+    font: {
+      family: '"Noto Serif JP", "Noto Serif CJK JP", "Yu Mincho", "Hiragino Mincho ProN", "MS Mincho", serif',
+      style: 'normal',
+      weight: '400',
+    },
+    color: '#AED6E0',
     // Small authored text still needs enough raster pixels to remain legible.
     fontSize: Math.max(24, Math.min(64, worldSize * 8)),
     pose: c.pose ?? { front: [0, 1, 0], up: [0, 0, 1] },
