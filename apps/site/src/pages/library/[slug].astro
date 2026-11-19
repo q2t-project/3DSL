@@ -58,6 +58,7 @@ const appViewerUrl = `/app/viewer/?${new URLSearchParams({
 
 // Per-item page config (optional)
 const pageConf = meta?.page ?? {};
+const guidedUrl = pageConf.guided === true ? pagePath + "read/" : "";
 const adAllow = new Set<string>(
   Array.isArray(pageConf?.ads) ? pageConf.ads : ["mobile_top", "desktop_rail"]
 );
@@ -318,26 +319,43 @@ const thirdParty = Array.isArray(rights?.third_party)
     <div class="mt-3">
       <div class="flex flex-wrap items-baseline justify-between gap-2">
         <h1 class="text-3xl font-semibold tracking-tight text-neutral-100">{item.title}</h1>
-        <a class="underline" data-full-viewer data-atlas-expand={modelUrl} href={appViewerUrl}>Viewerで大きく開く ↗</a>
+        {guidedUrl ? (
+          <a class="underline" href={guidedUrl}>ガイドを大きく開く ↗</a>
+        ) : (
+          <a class="underline" data-full-viewer data-atlas-expand={modelUrl} href={appViewerUrl}>Viewerで大きく開く ↗</a>
+        )}
       </div>
+      {hasNonEmptyString(pageConf.subtitle) && <p class="mt-1 text-lg text-neutral-200">{pageConf.subtitle}</p>}
       {item.summary ? (
         <p class="mt-2 max-w-[75ch] text-base leading-relaxed text-neutral-300">{item.summary}</p>
       ) : null}
     </div>
 
     <div class="mt-4">
-      <AtlasStage model={modelUrl} title={item.title} />
+      {guidedUrl ? (
+        <iframe src={guidedUrl} title={item.title + " 読解ガイド"} sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" data-swipe-ignore
+          class="block h-[78svh] min-h-[26rem] max-h-[53rem] w-full rounded-xl border border-neutral-700" />
+      ) : (
+        <AtlasStage model={modelUrl} title={item.title} />
+      )}
     </div>
 
     <div class:list={["mt-4 grid grid-cols-1 gap-6", { "lg:grid-cols-[minmax(0,1fr)_300px]": showAdDesktopRail }]}>
       <div class="min-w-0">
         {bodyHtml ? (
           <details id="work-notes" class="mb-3 rounded-2xl border border-neutral-800 bg-neutral-950/40 p-5">
-            <summary class="cursor-pointer text-base font-semibold text-neutral-100">作品の解説を読む</summary>
+            <summary class="cursor-pointer text-base font-semibold text-neutral-100">{guidedUrl ? "読み方・参考文献" : "作品の解説を読む"}</summary>
             <div class="library-md prose prose-invert mt-4 max-w-none">
               <div set:html={bodyHtml} />
             </div>
           </details>
+        ) : null}
+
+        {guidedUrl && rights?.notice_short && publicLink(rights?.policy) ? (
+          <section aria-label="3DSS原本" class="mb-3 rounded-2xl border border-neutral-800 bg-neutral-950/40 p-5">
+            <a href={modelUrl} download={slug + ".3dss.json"} class="inline-block font-semibold underline">3DSS原本をダウンロード</a>
+            <p class="mt-2 max-w-[75ch] text-sm leading-relaxed text-neutral-300">{rights.notice_short} <a class="underline" href={rights.policy}>原本の利用条件</a></p>
+          </section>
         ) : null}
 
         <details class="rounded-2xl border border-neutral-800 bg-neutral-950/40 p-4">
@@ -345,7 +363,9 @@ const thirdParty = Array.isArray(rights?.third_party)
           <div class="mt-4 grid grid-cols-1 gap-5 lg:grid-cols-2">
             <div class="min-w-0">
               <div>
-                <a
+                {guidedUrl ? (
+                  <a class="underline" data-full-viewer data-atlas-expand={modelUrl} href={appViewerUrl}>3DSS Viewerで開く ↗</a>
+                ) : (<a
                   href={modelUrl}
                   class="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-800 bg-neutral-950/30 px-4 py-3 text-sm font-medium text-neutral-200 transition hover:bg-neutral-900/60 active:scale-[0.99]"
                   target="_blank"
@@ -353,7 +373,7 @@ const thirdParty = Array.isArray(rights?.third_party)
                 >
                   <svg viewBox="0 0 24 24" width="16" height="16" class="h-4 w-4 shrink-0" aria-hidden="true"><path fill="currentColor" d="M6 2h9l5 5v15a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm8 1.5V8h4.5L14 3.5ZM7 12h10v2H7v-2Zm0 4h10v2H7v-2Z"/></svg>
                   モデルデータ（JSON）
-                </a>
+                </a>)}
               </div>
 
               <!-- share / copy / QR -->

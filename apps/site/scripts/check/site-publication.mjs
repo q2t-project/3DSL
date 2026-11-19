@@ -129,11 +129,20 @@ for (const file of ['index.html', 'concept/index.html', 'docs/index.html', 'libr
 }
 for (const item of index.items) {
   const detail = await read(`library/${item.slug}/index.html`);
-  const frame = /<iframe[^>]+src="(\/viewer\/peek\.html\?[^"]+)"/.exec(detail);
-  assert(frame, item.id + ': interactive work page');
-  const params = new URL(frame[1].replaceAll('&amp;', '&'), siteOrigin).searchParams;
-  assert.equal(params.get('model'), item.model_url);
-  assert.equal(params.get('controls'), 'atlas');
+  if (item.page?.guided === true) {
+    const route = '/library/' + item.slug + '/read/';
+    assert(detail.includes('<iframe src="' + route + '"'), item.id + ': guided work embeds reviewed reader');
+    assert(detail.includes('href="' + route + '"'), item.id + ': reader opens at full size');
+    assert(detail.includes('href="' + item.model_url + '" download='), item.id + ': native download');
+    const reader = await read(route.slice(1) + 'index.html');
+    assert(reader.includes('<script') && reader.includes(item.title), item.id + ': standalone reader is built');
+  } else {
+    const frame = /<iframe[^>]+src="(\/viewer\/peek\.html\?[^"]+)"/.exec(detail);
+    assert(frame, item.id + ': interactive work page');
+    const params = new URL(frame[1].replaceAll('&amp;', '&'), siteOrigin).searchParams;
+    assert.equal(params.get('model'), item.model_url);
+    assert.equal(params.get('controls'), 'atlas');
+  }
   assert(await stat(path.join(dist, item.model_url.replace(/^\//, ''))), `${item.id}: model preserved`);
   assert.equal(new URL(item.viewer_url, siteOrigin).pathname, viewerPath, `${item.id}: canonical catalog URL`);
   assert(hasWorkLink(readerLinks(detail), item.model_url, `/library/${item.slug}/`), `${item.id}: detail opens its work and retains return path`);
@@ -174,6 +183,7 @@ for (const file of ['docs/index.html', 'preview-reconstruction/index.html', 'pre
   assert((await read(file)).includes(`href="${guideRoute}"`), `${file}: guide entry`);
 }
 const policy = await read('policy/content-usage/index.html');
+assert(policy.includes('id="causality-atlas"'), 'individual atlas terms anchor is generated');
 assert(policy.includes('id="practice-samples"'), 'sample terms anchor is generated');
 // The six reader guides are public search entries. Fail if frontmatter is
 // missing and the Docs template silently falls back to its internal label.
