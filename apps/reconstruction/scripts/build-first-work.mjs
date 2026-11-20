@@ -78,6 +78,7 @@ https://3dsl.jp/policy/content-usage#practice-samples
 work.attachments['tutorial/README.md'] = note;
 for (const scene of [work.scene, work.baselineScene]) {
   scene.document_meta.document_title = title;
+  scene.document_meta.version = '1.1.4';
   scene.document_meta.created_at = date;
   scene.document_meta.revised_at = date;
 }

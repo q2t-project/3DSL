@@ -112,64 +112,10 @@ function warnOnce(key, message) {
 }
 
 // ------------------------------------------------------------
-// schema / version 情報
+// Schema URI for document compatibility diagnostics.
 // ------------------------------------------------------------
+let expectedSchemaUri = null;
 
-// スキーマ側から取得した情報を保持しておく（1.0.2 以降も共通）
-// 例：
-//   $id: "https://.../3DSS.schema.json#v1.0.2"
-//   → { id: $id, version: "1.0.2", major: 1 }
-let schemaInfo = null; // { id, version, major }
-
-function extractSchemaInfo(schemaJson) {
-  if (!schemaJson || typeof schemaJson !== "object") return null;
-
-  const id =
-    typeof schemaJson.$id === "string" && schemaJson.$id.length > 0
-      ? schemaJson.$id
-      : null;
-
-  const anchor =
-    typeof schemaJson.$anchor === "string" && schemaJson.$anchor.length > 0
-      ? schemaJson.$anchor
-      : null;
-
-  let version = null;
-  let major = null;
-
-  // 優先: $anchor = "v1.1.3"
-  if (anchor) {
-    const m = anchor.match(/^v(\d+\.\d+\.\d+)$/);
-    if (m) version = m[1];
-  }
-
-  // 次: $id に "/v1.1.3/" が含まれるケース（現在の release パス想定）
-  if (!version && id) {
-    const m = id.match(/\/v(\d+\.\d+\.\d+)\//);
-    if (m) version = m[1];
-  }
-
-  // 旧: $id の末尾 "#v1.0.2"
-  if (!version && id) {
-    const m = id.match(/#v(\d+\.\d+\.\d+)$/);
-    if (m) version = m[1];
-  }
-
-  if (version) {
-    const m2 = version.match(/^(\d+)\./);
-    if (m2) {
-      major = Number(m2[1]) || null;
-    }
-  }
-
-  return { id, version, major };
-}
-
-function parseMajorFromSemver(v) {
-  if (typeof v !== "string") return null;
-  const m = v.trim().match(/^(\d+)\./);
-  return m ? Number(m[1]) || null : null;
-}
 // ------------------------------------------------------------
 // 多言語テキスト helper（これはそのまま残す）
 // ------------------------------------------------------------
@@ -347,9 +293,9 @@ validatorInitPromise = fetch(schemaUrl)
       })
       .then((schemaJson) => {
         initValidator(schemaJson);
-        schemaInfo = extractSchemaInfo(schemaJson);
+        expectedSchemaUri = schemaJson.$defs?.validator?.schema_uri?.const ?? schemaJson.$id ?? null;
         if (DEBUG_BOOTSTRAP) {
-          debugBoot("[bootstrap] schema loaded:", schemaInfo);
+          debugBoot("[bootstrap] schema loaded:", expectedSchemaUri);
         }
         validatorInitialized = true;
       });
@@ -612,60 +558,15 @@ function canonicalizeLegacyDoc(doc, options = {}) {
 }
 
 // ------------------------------------------------------------
-// document_meta / version 整合チェック
-//   - schema_uri === schema.$id
-//   - document_meta.version.major === schemaVersion.major
+// Confirm the declared schema after validating the document.
 // ------------------------------------------------------------
 function assertDocumentMetaCompatibility(doc) {
-  const meta = doc && doc.document_meta;
-
-  if (!meta || typeof meta !== "object") {
-    throw new Error("3DSS document is missing required document_meta");
-  }
-
-  const schemaUri = meta.schema_uri;
+  const schemaUri = doc?.document_meta?.schema_uri;
   if (typeof schemaUri !== "string" || !schemaUri) {
     throw new Error("document_meta.schema_uri must be a non-empty string");
   }
-
-  const version = meta.version;
-  if (typeof version !== "string" || !version) {
-    throw new Error("document_meta.version must be a non-empty string (SemVer)");
-  }
-
-  const info = schemaInfo || {};
-  const schemaId = info.id || null;
-  const schemaMajor = info.major;
-
-  // viewer 側では schema_uri の「ベース URL」だけ見る。
-  // - schema 側: $id = "…/3DSS.schema.json"
-  // - ドキュメント側: "…/3DSS.schema.json#v1.0.3" などを許容
-  function normalizeSchemaBase(u) {
-    if (typeof u !== "string") return null;
-    let s = u.trim();
-    if (!s) return null;
-    const hashIndex = s.indexOf("#");
-    if (hashIndex >= 0) s = s.slice(0, hashIndex);
-    if (s.endsWith("/")) s = s.slice(0, -1);
-    return s;
-  }
-
-  if (schemaId) {
-    const expectedBase = normalizeSchemaBase(schemaId);
-    const actualBase   = normalizeSchemaBase(schemaUri);
-    if (expectedBase && actualBase && expectedBase !== actualBase) {
-      throw new Error(
-        `Unsupported schema_uri: expected base "${expectedBase}" but got "${schemaUri}"`
-      );
-    }
-  }
-
-  // viewer 仕様：schema $id と document_meta.version の major 一致（6.3）
-  const docMajor = parseMajorFromSemver(version);
-  if (schemaMajor != null && docMajor != null && docMajor !== schemaMajor) {
-    throw new Error(
-      `document_meta.version major (${docMajor}) does not match schema major (${schemaMajor})`
-    );
+  if (expectedSchemaUri && schemaUri !== expectedSchemaUri) {
+    throw new Error(`Unsupported schema_uri: expected "${expectedSchemaUri}" but got "${schemaUri}"`);
   }
 }
 

@@ -1,7 +1,7 @@
 {
   "document_meta": {
     "document_title": "3DSS Default Scene",
-    "document_summary": "Viewer fallback default sample (v1.1.3). Minimal primitives + text + lines.",
+    "document_summary": "Viewer fallback default sample. Minimal primitives + text + lines.",
     "document_uuid": "7f3b2d2a-7a1c-4c84-9b3a-7e3c42f0f9c1",
     "version": "1.0.0",
     "tags": [
@@ -9,7 +9,7 @@
       "s:sample",
       "m:default"
     ],
-    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
+    "schema_uri": "https://3dsl.jp/schemas/release/v2.0.0/3DSS.schema.json#v2.0.0",
     "generator": "https://3dsl.jp/",
     "reference": "default scene",
     "coordinate_system": "Z+up/freeXY",

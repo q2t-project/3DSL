@@ -122,9 +122,9 @@ function createEmptyDoc() {
       created_at: now,
       revised_at: now,
       // Keep aligned with current release fixtures. This is a reasonable default for authoring.
-      schema_uri: "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
+      schema_uri: "https://3dsl.jp/schemas/release/v2.0.0/3DSS.schema.json#v2.0.0",
       author: "anonymous",
-      version: "1.1.4",
+      version: "1.0.0",
       coordinate_system: "Z+up/freeXY",
       units: "non_si:px",
     },

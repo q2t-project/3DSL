@@ -1,6 +1,9 @@
 // Read-only navigation index. The graph is made from declared participation or
 // explicit point references. Coordinates, labels and baseline maps never add
 // graph edges. Typed IDs keep equal target/occurrence/slot names distinct.
+import { surfacePoint } from "../shared/renderConventions.js";
+import { normalizeLocalizedString } from "../viewer/runtime/renderer/labels/labelIndex.js";
+
 const copy = value => structuredClone(value);
 const unique = values => [...new Set(values)];
 const frameValues = element => {
@@ -15,8 +18,10 @@ const point3 = value => Array.isArray(value) && value.length === 3 && value.ever
 
 export function createReadingIndex(model) {
   const scene = model.work?.scene ?? model.rawSnapshot ?? model.scene;
+  const lang = scene.document_meta?.i18n ?? 'ja';
+  const local = value => normalizeLocalizedString(value, lang) ?? '—';
   const elements = new Map(), elementKinds = new Map();
-  for (const [key,kind] of [['points','point'],['lines','line'],['aux','aux']]) for (const e of scene[key] || []) {
+  for (const [key,kind] of [['points','point'],['lines','line'],['aux','aux'],['surfaces','surface']]) for (const e of scene[key] || []) {
     elements.set(e.meta.uuid,e); elementKinds.set(e.meta.uuid,kind);
   }
   const entries = new Map(), aliases = new Map(), ambiguousAliases = new Set(), graph = new Map();
@@ -26,8 +31,9 @@ export function createReadingIndex(model) {
     const e = elements.get(id); if (!e) return [];
     const app = e.appearance || {};
     if (elementKinds.get(id) === 'line') {
-      return ['end_a','end_b'].flatMap(side => { const end=app[side]; const point=end?.ref ? elements.get(end.ref)?.appearance?.position : end?.coord; return point3(point)?[point]:[]; });
+      return ['end_a','end_b'].flatMap(side => { const end=app[side]; const point=end?.surface_ref ? surfacePoint(elements.get(end.surface_ref)?.appearance, end.uv) : end?.ref ? elements.get(end.ref)?.appearance?.position : end?.coord; return point3(point)?[point]:[]; });
     }
+    if (elementKinds.get(id) === 'surface') return [[0, 0], [1, 1]].map(uv=>surfacePoint(app,uv)).filter(point3);
     const plate = app.module?.plate;
     if (plate?.plane === 'xy' && point3(plate.position) && Array.isArray(plate.size)) {
       const [x,y,z]=plate.position,[w,h]=plate.size;
@@ -134,16 +140,33 @@ export function createReadingIndex(model) {
     if(aliases.has(uuid))continue;
     const kind=elementKinds.get(uuid),warnings=[];
     if(kind==='line')for(const side of ['end_a','end_b'])if(element.appearance?.[side]?.coord)warnings.push(`${side} は座標端点です。同じ位置の点を接続先と推測しません。`);
-    add({id:uuid,uuid,kind,label:labelOf(element,kind),sceneIds:[uuid],warnings,details:{element:copy(element)}},{aliasIds:[uuid]});
+    add({id:uuid,uuid,kind,label:local(labelOf(element,kind)),sceneIds:[uuid],warnings,details:{element:copy(element)}},{aliasIds:[uuid]});
   }
-  if(!contract)for(const line of scene.lines||[]) {
+  for(const line of scene.lines||[]) {
     const lid=line.meta.uuid;
     for(const side of ['end_a','end_b']) {
       const end=line.appearance?.[side];
-      if(typeof end?.ref!=='string')continue;
+      const target = end?.surface_ref ?? (!contract ? end?.ref : null);
+      if(typeof target!=='string')continue;
+      const sourceId=aliases.get(lid)??lid,targetId=aliases.get(target)??target;
       const data={kind:'scene-reference',role:side,side,lineUuid:lid,direction:line.signification?.sense??null};
-      link(lid,end.ref,data);link(end.ref,lid,data);
+      link(sourceId,targetId,data);link(targetId,sourceId,data);
     }
+  }
+  for (const entry of entries.values()) {
+    const ids = new Set(entry.sceneIds);
+    entry.details.coordinateContexts = (scene.coordinate_contexts ?? [])
+      .filter(context => context.element_refs.some(id => ids.has(id))).map(context => ({
+        label: local(context.label), origin: context.origin,
+        axes: context.axes.map(axis => ({...axis,label:local(axis.label)})),
+      }));
+    entry.details.quantities = (scene.quantities ?? []).filter(q => ids.has(q.element_ref))
+      .map(q => ({...q,label:local(q.label),subject:local(q.subject)}));
+    entry.details.comparisons = (scene.comparisons ?? [])
+      .filter(c => c.cases.some(item => item.element_refs.some(id => ids.has(id))))
+      .map(c => ({...c,label:local(c.label),subject:local(c.subject),held_constant:local(c.held_constant),
+        cases:c.cases.map(item => ({...item,label:local(item.label),condition:local(item.condition)})),
+      }));
   }
   const legacy=model.legacyInfo;
   if(legacy?.display) {

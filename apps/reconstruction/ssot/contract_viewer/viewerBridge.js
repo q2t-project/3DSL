@@ -1,5 +1,5 @@
 import { fitReadingBounds, readingBounds } from '../viewer/runtime/core/cameraFraming.js';
-import { plateRenderSpec } from '../shared/renderConventions.js';
+import { plateRenderSpec, surfacePoint } from '../shared/renderConventions.js';
 
 // Read-only browsing state bridge. No document, renderer or semantic mutator is exposed.
 const KINDS = ['points', 'lines', 'aux'];
@@ -18,6 +18,7 @@ export function createViewerBridge(mountedViewer, { scene = null, timeoutMs = 15
     const uuid = item.meta?.uuid;
     if (uuid) records.set(uuid, { kind, item });
   }
+  for (const item of scene?.surfaces ?? []) records.set(item.meta.uuid, { kind: 'aux', item });
   const lookup = uuid => records.get(uuid) ?? core.structIndex?.uuidToItem?.get?.(uuid) ?? null;
   const isVisible = uuid => KINDS.some(kind => core.uiState?.visibleSet?.[kind]?.has?.(uuid));
   function getSelection() {
@@ -175,6 +176,9 @@ export function createViewerBridge(mountedViewer, { scene = null, timeoutMs = 15
     const record = lookup(uuid), item = record?.item, appearance = item?.appearance ?? {};
     if (!item) return [];
     if (record.kind !== 'lines') {
+      if (appearance.plane && records.get(uuid)?.item === item) {
+        return [[0, 0], [1, 1]].map(uv=>surfacePoint(appearance,uv)).filter(Boolean);
+      }
       const plate = appearance.module?.plate;
       const spec = plate ? plateRenderSpec(plate) : null;
       const center = xyz(spec?.position ?? appearance.position);
@@ -186,7 +190,9 @@ export function createViewerBridge(mountedViewer, { scene = null, timeoutMs = 15
       }
       return center ? [center] : [];
     }
-    const endpoint = value => xyz(value?.coord) ?? xyz(lookup(value?.ref)?.item?.appearance?.position);
+    const endpoint = value => value?.surface_ref
+      ? surfacePoint(lookup(value.surface_ref)?.item?.appearance, value.uv)
+      : xyz(value?.coord) ?? xyz(lookup(value?.ref)?.item?.appearance?.position);
     const points = [endpoint(appearance.end_a), endpoint(appearance.end_b)];
     for (const p of appearance.geometry?.polyline_points ?? appearance.vertices ?? appearance.path?.points ?? []) points.push(xyz(p));
     return points.filter(Boolean);

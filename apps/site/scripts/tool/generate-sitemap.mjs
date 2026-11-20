@@ -134,8 +134,10 @@ function buildUrlEntries(baseUrl, libraryItems) {
     "/docs/usage/read-a-work/",
     "/docs/works/knowledge-questions/",
     "/docs/schema/latest/",
+    "/docs/schema/v2.0.0/",
     "/docs/schema/v1.1.4/",
     "/docs/spec/latest/",
+    "/docs/spec/v2.0.0/",
     "/docs/spec/v1.1.4/",
   ];
 

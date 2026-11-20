@@ -6,6 +6,8 @@
 // Renderer 側はここで作った index を見て、どう表示するかだけを決めればよい。
 
 import { lineCaptionStyle } from "../../../../shared/renderConventions.js";
+import { normalizeWritingMode } from "../../../../shared/verticalText.js";
+import { resolveTextFont } from "../../../../shared/textFonts.js";
 
 import {
   normalizeTextAlign,
@@ -196,7 +198,7 @@ export function buildPointLabelFromPoint(point, lang = "ja") {
 
   // 3) size / align / pose / font の決定
   const size = normalizeTextSize(textCfg.size);
-  const font = normalizeTextFont(textCfg.font);
+  const font = resolveTextFont(textCfg);
   const align = normalizeTextAlign(textCfg.align);
   const pose = normalizeTextPose(textCfg.pose);
 
@@ -206,6 +208,8 @@ export function buildPointLabelFromPoint(point, lang = "ja") {
     text: content,
     size,
     font,
+    writingMode: normalizeWritingMode(textCfg.writing_mode),
+    color: textCfg.color,
     align,
     pose,
   };
@@ -218,7 +222,7 @@ export function buildPointLabelFromPoint(point, lang = "ja") {
  * - size: appearance.caption_text.font_size（default 8）
  * - pose: appearance.caption_text.pose（default: schema 既定の fixed front/up）
  * - align: schema に無いので center&middle
- * - font: schema に無いので viewer default
+ * - font / font_weight / color / writing_mode: appearance.caption_text
  */
 export function buildLineLabelFromLine(line, lang = "ja") {
   if (!line || typeof line !== "object") return null;
@@ -237,7 +241,7 @@ export function buildLineLabelFromLine(line, lang = "ja") {
 
   const renderStyle = lineCaptionStyle(capText);
   const size = renderStyle.worldSize;
-  const font = normalizeTextFont(null);
+  const font = resolveTextFont(capText);
   const align = normalizeTextAlign(null);
 
   // schema default (fixed): front:[0,1,0], up:[0,0,1]
@@ -250,6 +254,8 @@ export function buildLineLabelFromLine(line, lang = "ja") {
     text: caption,
     size,
     font,
+    writingMode: normalizeWritingMode(capText.writing_mode),
+    color: capText.color,
     align,
     pose,
     // lines は midpoint に置く前提やから、デフォの "上に持ち上げ" はせん
@@ -393,7 +399,7 @@ function buildAuxExtensionLabelIndex(document3dss) {
         const rendered = isMath ? latexMathToPlainText(raw) : raw;
         text = (rendered && rendered.trim().length > 0) ? rendered.trim() : raw;
 
-        size = normalizeTextSize(latex.font_size ?? 10);
+        size = normalizeTextSize(latex.font_size);
         pose = normalizeTextPose(latex.pose);
         // schema has no align/font here; keep defaults.
         if (typeof latex.color === "string" && latex.color.trim().length > 0) {

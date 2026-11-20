@@ -107,14 +107,17 @@ function newUuid() {
 }
 
 function createEmptyDoc() {
+  const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
   return {
     document_meta: {
       document_title: "Untitled",
       document_summary: "",
       document_uuid: newUuid(),
       // Keep aligned with current release fixtures. This is a reasonable default for authoring.
-      schema_uri: "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
-      author: "",
+      schema_uri: "https://3dsl.jp/schemas/release/v2.0.0/3DSS.schema.json#v2.0.0",
+      author: "anonymous",
+      created_at: now,
+      revised_at: now,
       version: "1.0.0",
       coordinate_system: "Z+up/freeXY",
       units: "non_si:px",

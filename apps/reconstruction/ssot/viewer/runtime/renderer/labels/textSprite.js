@@ -9,6 +9,7 @@ import * as THREE from "/vendor/three/build/three.module.js";
 import { labelConfig } from "./labelConfig.js";
 import { buildCanvasFont, normalizeTextFont } from "./labelSpec.js";
 import { createHtmlCanvas, getDevicePixelRatio } from "../env.js";
+import { measureVerticalText, paintVerticalText } from "../../../../shared/verticalText.js";
 
 function clamp(v, min, max) {
   const n = Number(v);
@@ -54,6 +55,7 @@ function buildRasterSpecFromLabel(label, cfg = labelConfig) {
     dpr,
     fontSpec,
     fontPx,
+    writingMode: label?.writingMode ?? "horizontal-tb",
     pad,
     fillStyle,
     bgEnabled,
@@ -73,6 +75,8 @@ function measureTextLayout(text, rasterSpec, cfg) {
   if (!ctx) throw new Error("文字の描画を開始できませんでした。");
   const t = text == null ? "" : String(text);
   ctx.font = buildCanvasFont(rasterSpec.fontSpec, rasterSpec.fontPx);
+  const vertical = rasterSpec.writingMode === "vertical-rl"
+    ? measureVerticalText(ctx, t, rasterSpec.fontPx, rasterSpec.pad) : null;
   const metrics = ctx.measureText(t);
   const textWidth = Number(metrics.width) || 0;
   // better height: avoid clipping for italic/descenders/etc.
@@ -81,8 +85,8 @@ function measureTextLayout(text, rasterSpec, cfg) {
   const hasABBox = Number.isFinite(ascent) && Number.isFinite(descent);
   const textHeight = hasABBox ? (ascent + descent) : (rasterSpec.fontPx * 1.2);
 
-  const cw = Math.ceil(textWidth + rasterSpec.pad * 2);
-  const ch = Math.ceil(textHeight + rasterSpec.pad * 2);
+  const cw = vertical?.cw ?? Math.ceil(textWidth + rasterSpec.pad * 2);
+  const ch = vertical?.ch ?? Math.ceil(textHeight + rasterSpec.pad * 2);
   if (!Number.isFinite(cw) || !Number.isFinite(ch) || cw <= 0 || ch <= 0) {
     throw new Error("文字の描画寸法を計算できませんでした。");
   }
@@ -92,6 +96,7 @@ function measureTextLayout(text, rasterSpec, cfg) {
   const scale = Math.min(1, maxSide / cw, maxSide / ch, Math.sqrt(maxPixels / cw / ch));
   return {
     cw, ch, ascent, hasABBox,
+    vertical, heightFactor: vertical?.heightFactor ?? 1,
     w: Math.max(1, Math.floor(cw * scale)),
     h: Math.max(1, Math.floor(ch * scale)),
     // Fit/picking keep the authored proportions, independently of raster limits.
@@ -125,6 +130,17 @@ function rasterizeTextToCanvas(text, rasterSpec, layout) {
   if (rasterSpec.bgEnabled) {
     ctx.fillStyle = rasterSpec.bgFillStyle;
     ctx.fillRect(0, 0, cw, ch);
+  }
+
+  if (layout.vertical) {
+    ctx.fillStyle = rasterSpec.fillStyle;
+    ctx.lineJoin = rasterSpec.outlineLineJoin;
+    ctx.lineWidth = rasterSpec.outlineWidthPx;
+    ctx.strokeStyle = rasterSpec.outlineColor;
+    paintVerticalText(ctx, layout.vertical, {
+      outline: rasterSpec.outlineEnabled && rasterSpec.outlineWidthPx > 0,
+    });
+    return { canvas, w, h, aspect };
   }
 
   const cx = cw / 2;
@@ -212,6 +228,7 @@ export function makeTextTextureKey(text, label, cfg = labelConfig) {
     "fw", rasterSpec.fontSpec?.weight ?? "",
     "fs", rasterSpec.fontSpec?.style ?? "",
     "fp", fp,
+    "wm", rasterSpec.writingMode,
     "limits", cfg?.raster?.maxTextureSize, cfg?.raster?.maxTexturePixels,
     "pad", pad,
     "fill", rasterSpec.fillStyle,
@@ -227,7 +244,7 @@ export function acquireTextTexture(text, label, cfg = labelConfig) {
   const hit = _textTexCache.get(key);
   if (hit) {
     hit.refs++;
-    return { key, texture: hit.texture, w: hit.w, h: hit.h, aspect: hit.aspect };
+    return { key, texture: hit.texture, w: hit.w, h: hit.h, aspect: hit.aspect, heightFactor: hit.heightFactor };
   }
 
   const rasterSpec = buildRasterSpecFromLabel(label, cfg);
@@ -239,9 +256,10 @@ export function acquireTextTexture(text, label, cfg = labelConfig) {
   const { canvas, w, h, aspect } = rasterizeTextToCanvas(text, rasterSpec, layout);
 
   const texture = canvasToTexture(canvas);
-  _textTexCache.set(key, { texture, w, h, aspect, bytes, refs: 1 });
+  const { heightFactor } = layout;
+  _textTexCache.set(key, { texture, w, h, aspect, heightFactor, bytes, refs: 1 });
   textureBytes += bytes;
-  return { key, texture, w, h, aspect };
+  return { key, texture, w, h, aspect, heightFactor };
 }
 
 export function releaseTextTexture(key) {
@@ -361,6 +379,7 @@ export function createTextLabelObjectFromTexture(texture, label, meta = {}) {
   }
 
   obj.userData.__labelAspect = aspect;
+  obj.userData.__labelHeightFactor = Number(meta.heightFactor) || 1;
   obj.userData.__labelRasterPx = { w: Number(meta.w) || 0, h: Number(meta.h) || 0 };
   obj.userData.__labelPose = pose || null;
 

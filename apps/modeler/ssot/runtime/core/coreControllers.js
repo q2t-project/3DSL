@@ -65,7 +65,11 @@ function extractSchemaInfo(schemaJson) {
   if (!version) version = extractVersionFromAnchor(schemaJson?.$anchor);
 
   const major = parseSemverMajor(version);
-  return { $id: $id || null, baseUri, version: version || null, major };
+  const declaredUri = schemaJson?.$defs?.validator?.schema_uri?.const;
+  const documentUri = declaredUri || (version ? `${baseUri}#v${version}` : $id) || null;
+  const versionPattern = schemaJson?.$defs?.validator?.semver?.pattern;
+  const documentVersionPattern = versionPattern ? new RegExp(versionPattern) : null;
+  return { $id: $id || null, baseUri, version: version || null, major, documentUri, documentVersionPattern };
 }
 
 function checkVersionAndSchemaUri(doc, schemaInfo) {
@@ -80,63 +84,21 @@ function checkVersionAndSchemaUri(doc, schemaInfo) {
     return { ok: false, errors };
   }
 
-  if (schemaInfo?.baseUri) {
-    const gotBase = normalizeSchemaBase(dm.schema_uri || "");
-    const uriV = extractVersionFromFragment(dm.schema_uri || "");
-
-    if (gotBase && gotBase !== schemaInfo.baseUri) {
-      errors.push({
-        instancePath: "/document_meta/schema_uri",
-        keyword: "schema_uri",
-        message: `schema_uri base mismatch: expected '${schemaInfo.baseUri}', got '${gotBase}'`
-      });
-    }
-    if (schemaInfo.major != null) {
-      if (!uriV.version) {
-        errors.push({
-          instancePath: "/document_meta/schema_uri",
-          keyword: "schema_uri",
-          message: "schema_uri must include '#v<major.minor.patch>' (e.g. ...#v1.0.2)"
-        });
-      } else if (uriV.major == null) {
-        errors.push({
-          instancePath: "/document_meta/schema_uri",
-          keyword: "schema_uri",
-          message: `invalid schema_uri version '${uriV.version}'`
-        });
-      } else if (uriV.major !== schemaInfo.major) {
-        errors.push({
-          instancePath: "/document_meta/schema_uri",
-          keyword: "schema_uri",
-          message: `schema_uri major mismatch: expected ${schemaInfo.major}, got ${uriV.major}`
-        });
-      }
-    }
+  if (schemaInfo?.documentUri && dm.schema_uri !== schemaInfo.documentUri) {
+    errors.push({
+      instancePath: "/document_meta/schema_uri",
+      keyword: "schema_uri",
+      message: `schema_uri mismatch: expected '${schemaInfo.documentUri}', got '${dm.schema_uri ?? ""}'`
+    });
   }
-
-  if (schemaInfo?.major != null) {
-    if (typeof dm.version !== "string") {
-      errors.push({
-        instancePath: "/document_meta/version",
-        keyword: "type",
-        message: "document_meta.version must be a string"
-      });
-    } else {
-      const docMajor = parseSemverMajor(dm.version);
-      if (docMajor == null) {
-        errors.push({
-          instancePath: "/document_meta/version",
-          keyword: "format",
-          message: `invalid semver version '${dm.version}'`
-        });
-      } else if (docMajor !== schemaInfo.major) {
-        errors.push({
-          instancePath: "/document_meta/version",
-          keyword: "version",
-          message: `major version mismatch: expected ${schemaInfo.major}, got ${docMajor}`
-        });
-      }
-    }
+  if (schemaInfo?.documentVersionPattern && (
+    typeof dm.version !== "string" || !schemaInfo.documentVersionPattern.test(dm.version)
+  )) {
+    errors.push({
+      instancePath: "/document_meta/version",
+      keyword: "format",
+      message: "document_meta.version must follow the document version format"
+    });
   }
 
   return { ok: errors.length === 0, errors };
@@ -482,7 +444,8 @@ export function createCoreControllers(emitter) {
   }
 
   function getSchemaInfo() {
-    return { ...schemaInfo };
+    const { $id, baseUri, version, major } = schemaInfo;
+    return { $id, baseUri, version, major };
   }
 
 

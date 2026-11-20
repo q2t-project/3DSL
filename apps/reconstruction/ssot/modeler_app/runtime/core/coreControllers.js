@@ -5,6 +5,8 @@
 // - Do not touch DOM here (no window/document).
 // - UI must not mutate this directly; via hub facade only.
 import { createJournalEntry } from './workJournal.js';
+import { sceneElementKinds, sceneRootKeys, validateSceneReferences } from '../../../shared/sceneReferences.js';
+import { surfacePoint } from '../../../shared/renderConventions.js';
 
 // NOTE: Ajv browser import compatibility
 //
@@ -66,7 +68,11 @@ function extractSchemaInfo(schemaJson) {
   if (!version) version = extractVersionFromAnchor(schemaJson?.$anchor);
 
   const major = parseSemverMajor(version);
-  return { $id: $id || null, baseUri, version: version || null, major };
+  const declaredUri = schemaJson?.$defs?.validator?.schema_uri?.const;
+  const documentUri = declaredUri || (version ? `${baseUri}#v${version}` : $id) || null;
+  const versionPattern = schemaJson?.$defs?.validator?.semver?.pattern;
+  const documentVersionPattern = versionPattern ? new RegExp(versionPattern) : null;
+  return { $id: $id || null, baseUri, version: version || null, major, documentUri, documentVersionPattern };
 }
 
 function checkVersionAndSchemaUri(doc, schemaInfo) {
@@ -81,63 +87,21 @@ function checkVersionAndSchemaUri(doc, schemaInfo) {
     return { ok: false, errors };
   }
 
-  if (schemaInfo?.baseUri) {
-    const gotBase = normalizeSchemaBase(dm.schema_uri || "");
-    const uriV = extractVersionFromFragment(dm.schema_uri || "");
-
-    if (gotBase && gotBase !== schemaInfo.baseUri) {
-      errors.push({
-        instancePath: "/document_meta/schema_uri",
-        keyword: "schema_uri",
-        message: `schema_uri base mismatch: expected '${schemaInfo.baseUri}', got '${gotBase}'`
-      });
-    }
-    if (schemaInfo.major != null) {
-      if (!uriV.version) {
-        errors.push({
-          instancePath: "/document_meta/schema_uri",
-          keyword: "schema_uri",
-          message: "schema_uri must include '#v<major.minor.patch>' (e.g. ...#v1.0.2)"
-        });
-      } else if (uriV.major == null) {
-        errors.push({
-          instancePath: "/document_meta/schema_uri",
-          keyword: "schema_uri",
-          message: `invalid schema_uri version '${uriV.version}'`
-        });
-      } else if (uriV.major !== schemaInfo.major) {
-        errors.push({
-          instancePath: "/document_meta/schema_uri",
-          keyword: "schema_uri",
-          message: `schema_uri major mismatch: expected ${schemaInfo.major}, got ${uriV.major}`
-        });
-      }
-    }
+  if (schemaInfo?.documentUri && dm.schema_uri !== schemaInfo.documentUri) {
+    errors.push({
+      instancePath: "/document_meta/schema_uri",
+      keyword: "schema_uri",
+      message: `schema_uri mismatch: expected '${schemaInfo.documentUri}', got '${dm.schema_uri ?? ""}'`
+    });
   }
-
-  if (schemaInfo?.major != null) {
-    if (typeof dm.version !== "string") {
-      errors.push({
-        instancePath: "/document_meta/version",
-        keyword: "type",
-        message: "document_meta.version must be a string"
-      });
-    } else {
-      const docMajor = parseSemverMajor(dm.version);
-      if (docMajor == null) {
-        errors.push({
-          instancePath: "/document_meta/version",
-          keyword: "format",
-          message: `invalid semver version '${dm.version}'`
-        });
-      } else if (docMajor !== schemaInfo.major) {
-        errors.push({
-          instancePath: "/document_meta/version",
-          keyword: "version",
-          message: `major version mismatch: expected ${schemaInfo.major}, got ${docMajor}`
-        });
-      }
-    }
+  if (schemaInfo?.documentVersionPattern && (
+    typeof dm.version !== "string" || !schemaInfo.documentVersionPattern.test(dm.version)
+  )) {
+    errors.push({
+      instancePath: "/document_meta/version",
+      keyword: "format",
+      message: "document_meta.version must follow the document version format"
+    });
   }
 
   return { ok: errors.length === 0, errors };
@@ -181,28 +145,6 @@ function endpointConflicts(doc) {
     }
   }
   return issues;
-}
-
-// Identity and reference integrity are strict output requirements beyond JSON Schema.
-function structuralErrors(doc) {
-  const errors = [];
-  const seen = new Set();
-  const pointIds = new Set((Array.isArray(doc?.points) ? doc.points : []).map(uuidOf).filter(Boolean));
-  for (const kind of ["points", "lines", "aux"]) {
-    const nodes = Array.isArray(doc?.[kind]) ? doc[kind] : [];
-    for (let index = 0; index < nodes.length; index += 1) {
-      const node = nodes[index];
-      const uuid = uuidOf(node);
-      if (uuid && seen.has(uuid)) errors.push({ instancePath: `/${kind}/${index}/meta/uuid`, keyword: "duplicate_uuid", uuid, expected: "unique uuid", actual: uuid, message: "Duplicate uuid; assign a distinct ID before saving" });
-      if (uuid) seen.add(uuid);
-      if (kind !== "lines") continue;
-      for (const end of ["end_a", "end_b"]) {
-        const endpoint = node?.appearance?.[end] ?? node?.[end];
-        if (typeof endpoint?.ref === "string" && !pointIds.has(endpoint.ref)) errors.push({ instancePath: `/lines/${index}/appearance/${end}/ref`, keyword: "unresolved_ref", uuid, expected: "existing point uuid", actual: endpoint.ref, message: "Endpoint ref does not resolve to a point" });
-      }
-    }
-  }
-  return errors;
 }
 
 // Normalize older/loose docs into current schema expectations (best-effort).
@@ -553,7 +495,7 @@ export function createCoreControllers(emitter) {
       return false;
     }
 
-    const conflicts = [...endpointConflicts(doc), ...structuralErrors(doc)];
+    const conflicts = [...endpointConflicts(doc), ...validateSceneReferences(doc)];
     const ok = validateFn(doc);
     const ajvErrors = validateFn.errors || [];
     if (!ok || !ver.ok || conflicts.length) {
@@ -568,7 +510,8 @@ export function createCoreControllers(emitter) {
   }
 
   function getSchemaInfo() {
-    return { ...schemaInfo };
+    const { $id, baseUri, version, major } = schemaInfo;
+    return { $id, baseUri, version, major };
   }
 
 
@@ -1003,7 +946,7 @@ async function importNormalize(raw) {
     const lockedContent = (state, uuid) => {
       const scene = state.scene;
       const contract = state.workContext?.contract;
-      const element = [...scene.points, ...scene.lines, ...scene.aux].find(e => e.meta?.uuid === uuid);
+      const element = sceneElementKinds.flatMap(kind => scene[kind] ?? []).find(e => uuidOf(e) === uuid);
       const occurrence = contract?.occurrences?.find(o => [o.anchor,o.label,o.port].includes(uuid));
       const target = occurrence ? contract.targets.find(t => t.id === occurrence.target) : null;
       const relation = contract?.relations?.find(r => r.hub === uuid || [...r.participants,...r.refs].some(p => p.line === uuid));
@@ -1014,6 +957,10 @@ async function importNormalize(raw) {
         ? ['end_a', 'end_b'].map(key => {
           const endpoint = element.appearance?.[key];
           if (endpoint?.coord) return endpoint.coord;
+          if (endpoint?.surface_ref) {
+            const surface = scene.surfaces?.find(node => uuidOf(node) === endpoint.surface_ref);
+            return surfacePoint(surface?.appearance, endpoint.uv);
+          }
           return scene.points.find(point => uuidOf(point) === endpoint?.ref)?.appearance?.position ?? null;
         }) : null;
       return JSON.stringify({element,occurrence,target,relation,boundary,effectiveEndpoints});
@@ -1310,9 +1257,8 @@ async function importNormalize(raw) {
     }
 
     // Root unknown fields (warn)
-    const allowedRoot = new Set(["document_meta", "points", "lines", "aux"]);
     for (const k of Object.keys(doc)) {
-      if (!allowedRoot.has(k)) {
+      if (!sceneRootKeys.includes(k)) {
         push({
           severity: "warn",
           uuid: null,
@@ -1415,7 +1361,7 @@ if (importExtras && typeof importExtras === "object") {
     }
 
     // Arrays type check (warn)
-    for (const k of ["points", "lines", "aux"]) {
+    for (const k of sceneElementKinds) {
       if (doc[k] != null && !Array.isArray(doc[k])) {
         push({
           severity: "warn",
@@ -1468,9 +1414,15 @@ if (importExtras && typeof importExtras === "object") {
     collectUuids(doc.points, "points");
     collectUuids(doc.lines, "lines");
     collectUuids(doc.aux, "aux");
+    collectUuids(doc.surfaces, "surfaces");
 
     for (const conflict of endpointConflicts(doc)) {
       push({ ...conflict, severity: "error", kind: "line", path: conflict.instancePath });
+    }
+    for (const issue of validateSceneReferences(doc)) {
+      // Preserve the existing QuickCheck diagnostics for legacy element IDs and point refs.
+      if (/^\/(points|lines|aux)(\/\d+\/meta\/uuid)?$|^\/lines\/\d+\/appearance\/end_[ab]\/ref$/.test(issue.instancePath)) continue;
+      push({ ...issue, severity: "error", path: issue.instancePath });
     }
 
     // line endpoints ref integrity (canonical appearance first)
@@ -1587,7 +1539,8 @@ function _findPathByUuidInDoc(doc, uuid, kindHint) {
   if (kind === "point") return tryList(doc.points, "/points");
   if (kind === "line") return tryList(doc.lines, "/lines");
   if (kind === "aux") return tryList(doc.aux, "/aux");
-  return tryList(doc.points, "/points") || tryList(doc.lines, "/lines") || tryList(doc.aux, "/aux") || null;
+  if (kind === "surface") return tryList(doc.surfaces, "/surfaces");
+  return tryList(doc.points, "/points") || tryList(doc.lines, "/lines") || tryList(doc.aux, "/aux") || tryList(doc.surfaces, "/surfaces") || null;
 }
 
 function _resolveIssueLike(issue) {
@@ -1630,13 +1583,14 @@ function _resolveIssueLike(issue) {
   }
 
   // Infer kind from uuid by scanning doc.
-  if (uuid && hasDoc && (!kind || (kind !== "point" && kind !== "line" && kind !== "aux"))) {
+  if (uuid && hasDoc && (!kind || !["point", "line", "aux", "surface"].includes(kind))) {
     try {
       const u = String(uuid);
       const hitPoint = Array.isArray(doc.points) && doc.points.some((n) => String(n?.meta?.uuid || n?.uuid || "") === u);
       const hitLine = Array.isArray(doc.lines) && doc.lines.some((n) => String(n?.meta?.uuid || n?.uuid || "") === u);
       const hitAux = Array.isArray(doc.aux) && doc.aux.some((n) => String(n?.meta?.uuid || n?.uuid || "") === u);
-      kind = hitPoint ? "point" : hitLine ? "line" : hitAux ? "aux" : "";
+      const hitSurface = Array.isArray(doc.surfaces) && doc.surfaces.some((n) => uuidOf(n) === u);
+      kind = hitPoint ? "point" : hitLine ? "line" : hitAux ? "aux" : hitSurface ? "surface" : "";
     } catch {}
   }
 

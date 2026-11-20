@@ -24,6 +24,7 @@ const SRC_ROOT = path.join(REPO_ROOT, "packages", "docs");
 const SRC_DOCS = path.join(SRC_ROOT, "docs");
 const SRC_FAQ = path.join(SRC_ROOT, "faq");
 const SRC_POLICY = path.join(SRC_ROOT, "policy");
+const SRC_SCHEMAS = path.join(REPO_ROOT, "packages", "schemas");
 
 const OUT_ROOT = path.join(SITE_ROOT, "src", "content");
 const OUT_DOCS = path.join(OUT_ROOT, "docs");
@@ -137,6 +138,21 @@ function main() {
 
   // Flatten /docs/docs/* -> /docs/* (ALWAYS if present)
   flattenDocsIfNested(OUT_DOCS);
+
+  // The dedicated latest-spec route renders the schema SSOT.
+  const specDir = path.join(OUT_DOCS, "_generated");
+  ensureDir(specDir);
+  fs.copyFileSync(path.join(SRC_SCHEMAS, "3DSS_spec.md"), path.join(specDir, "3DSS_spec.md"));
+  for (const version of fs.readdirSync(path.join(SRC_SCHEMAS, "release"), { withFileTypes: true })) {
+    if (!version.isDirectory()) continue;
+    const release = path.join(SRC_SCHEMAS, "release", version.name);
+    for (const file of ["3DSS_spec.md", "3DSS.schema.json"]) {
+      if (!existsFile(path.join(release, file))) continue;
+      const output = path.join(specDir, version.name);
+      ensureDir(output);
+      fs.copyFileSync(path.join(release, file), path.join(output, file));
+    }
+  }
 
   // faq
   if (!existsDir(SRC_FAQ)) {

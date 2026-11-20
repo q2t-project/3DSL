@@ -1,5 +1,7 @@
 // Local authoring envelope. This does not adopt edits into source semantics.
 // Attachments and the baseline stay verbatim; only the current geometry changes.
+import { sceneElementKinds, sceneRootKeys } from '../../shared/sceneReferences.js';
+
 export const WORK_PACKAGE_FORMAT = '3dsl-modeler-work/0.1';
 export const WORK_PACKAGE_MAX_BYTES = 32 * 1024 * 1024;
 const SOURCE_FORMAT = 'proj4-single-work-source-map/0.1';
@@ -64,12 +66,12 @@ function elementId(element) {
 function sceneIndex(scene) {
   if (!plain(scene) || !plain(scene.document_meta)) fail('対応する3DSSの図がありません。');
   for (const key of Object.keys(scene)) {
-    if (!['document_meta', 'points', 'lines', 'aux'].includes(key)) fail(`図の未対応項目「${key}」を含みます。`);
+    if (!sceneRootKeys.includes(key)) fail(`図の未対応項目「${key}」を含みます。`);
   }
   const id = scene.document_meta.document_uuid;
   if (typeof id !== 'string' || !id.trim()) fail('図のdocument_uuidがありません。');
   const index = new Map();
-  for (const kind of ['points', 'lines', 'aux']) {
+  for (const kind of sceneElementKinds) {
     if (!own(scene, kind)) continue;
     if (!Array.isArray(scene[kind])) fail(`図の${kind}が配列ではありません。`);
     for (const element of scene[kind]) {

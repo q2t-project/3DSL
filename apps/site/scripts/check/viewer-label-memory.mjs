@@ -13,6 +13,7 @@ class Canvas {
   getContext() {
     return {
       font: '', scale() {}, fillRect() {}, strokeText() {}, fillText() {},
+      save() {}, restore() {}, translate() {}, rotate() {},
       measureText(text) {
         const px = Number(this.font.match(/([\d.]+)px/)?.[1]) || 12;
         return {width:[...text].length*px*.8,actualBoundingBoxAscent:px*.8,actualBoundingBoxDescent:px*.2};
@@ -78,6 +79,37 @@ assert.deepEqual(runtime.getReadingLayout({points:first}),before,'rasterization 
 runtime.syncIndex(new Map());
 assert.equal(text.getTextTextureStats().count,0);
 runtime.dispose();
+
+const uprightPose = {front:[0,1,0],up:[0,0,1]};
+const invertedPose = {front:[0,1,0],up:[0,0,-1]};
+const caption = (uuid, pose) => ({
+  meta:{uuid},
+  signification:{caption:'結果ABC'},
+  appearance:{caption_text:{writing_mode:'vertical-rl',pose,font:'noto-sans-jp',font_weight:700,color:'#ff0000'}},
+});
+const verticalEntries = buildLabelIndex({lines:[caption('forward',uprightPose),caption('reverse',invertedPose)]});
+const verticalEntry = verticalEntries.get('forward');
+assert.equal(verticalEntry.writingMode,'vertical-rl');
+assert.equal(verticalEntry.font.weight,'700');
+assert.equal(verticalEntry.color,'#ff0000');
+const verticalLayout=text.measureTextLabel('結果ABC\n次の列',verticalEntry);
+assert.deepEqual(verticalLayout.vertical.columns.map(column=>column.runs.map(run=>run.text)),[['結','果','ABC'],['次','の','列']]);
+assert.equal(verticalLayout.vertical.columns[0].runs[2].orientation,'sideways');
+assert(verticalLayout.heightFactor>1,'vertical text extends the label without shrinking a glyph');
+assert.notEqual(text.makeTextTextureKey(verticalEntry.text,verticalEntry),
+  text.makeTextTextureKey(verticalEntry.text,{...verticalEntry,writingMode:'horizontal-tb'}),'different writing modes cannot share pixels');
+const verticalRuntime=createLabelRuntime(new THREE.Scene(),{readingPresentation:true});
+verticalRuntime.setObjects({lines:new Map([['forward',new THREE.Object3D()],['reverse',new THREE.Object3D()]])});
+verticalRuntime.syncIndex(verticalEntries);
+const visibleCaptions={lines:new Set(verticalEntries.keys())};
+const byId=new Map(verticalRuntime.getReadingLayout(visibleCaptions).map(label=>[label.uuid,label]));
+const downZ=label=>label.corners[0][2]-label.corners[1][2];
+assert(downZ(byId.get('forward'))<0 && downZ(byId.get('reverse'))>0,
+  'reversing pose.up reverses world reading order of the complete label');
+verticalRuntime.update(camera,visibleCaptions);
+assert.equal(text.getTextTextureStats().count,1,'the two poses share the same vertical raster');
+verticalRuntime.dispose();
+assert.equal(text.getTextTextureStats().count,0);
 
 // A failed animation draw rejects current and future paint waits and ends the
 // loop. It must never be acknowledged as a successful paint or time out silently.

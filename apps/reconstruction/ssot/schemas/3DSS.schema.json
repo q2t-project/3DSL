@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json",
-  "$anchor": "v1.1.4",
+  "$id": "https://3dsl.jp/schemas/release/v2.0.0/3DSS.schema.json",
+  "$anchor": "v2.0.0",
   "type": "object",
   "properties": {
     "lines": {
@@ -24,6 +24,37 @@
     },
     "document_meta": {
       "$ref": "#/$defs/meta/document"
+    },
+    "visual_legend": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/visual_legend/entry"
+      },
+      "description": "Work-specific declarations, not universal domain categories. Entry ID uniqueness, reference existence, and applicable element kind need a structural check after JSON Schema validation."
+    },
+    "surfaces": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/surface"
+      }
+    },
+    "coordinate_contexts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/coordinate_context"
+      }
+    },
+    "comparisons": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/comparison"
+      }
+    },
+    "quantities": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/quantity"
+      }
     }
   },
   "required": [
@@ -34,7 +65,7 @@
     "validator": {
       "schema_uri": {
         "type": "string",
-        "const": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4"
+        "const": "https://3dsl.jp/schemas/release/v2.0.0/3DSS.schema.json#v2.0.0"
       },
       "uuid": {
         "type": "string",
@@ -81,7 +112,7 @@
       },
       "timestamp_utc": {
         "type": "string",
-        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z$"
       },
       "author": {
         "type": "string",
@@ -294,7 +325,8 @@
             ]
           },
           "font_size": {
-            "type": "number"
+            "$ref": "#/$defs/labels/scope_size",
+            "description": "Outer math text size. Candidate default is 8; legacy renderer default 10 is not changed. Internal math layout such as subscripts is outside this constraint."
           },
           "color": {
             "$ref": "#/$defs/validator/color_hex"
@@ -349,10 +381,7 @@
         "type": "object",
         "properties": {
           "font_size": {
-            "type": "number",
-            "minimum": 0.125,
-            "maximum": 256,
-            "default": 8
+            "$ref": "#/$defs/labels/scope_size"
           },
           "pose": {
             "$ref": "#/$defs/text_pose",
@@ -368,9 +397,62 @@
                 1
               ]
             }
+          },
+          "writing_mode": {
+            "$ref": "#/$defs/labels/writing_mode"
+          },
+          "font": {
+            "type": "string",
+            "minLength": 1,
+            "default": "helvetiker_regular",
+            "description": "Preserved author font token or existing font string. Candidate does not infer semantic roles from this name."
+          },
+          "font_weight": {
+            "$ref": "#/$defs/labels/font_weight"
+          },
+          "color": {
+            "$ref": "#/$defs/validator/color_hex",
+            "default": "#ffffff",
+            "description": "Text color only; independent of marker or line geometry color."
           }
         },
         "additionalProperties": false
+      },
+      "scope_size": {
+        "type": "number",
+        "enum": [
+          0.125,
+          0.25,
+          0.5,
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          64,
+          128,
+          256
+        ],
+        "default": 8,
+        "description": "Authored relative text scope size. A shared 2^n step from 0.125 through 256. Not CSS pixels, quantity, or absolute importance."
+      },
+      "writing_mode": {
+        "type": "string",
+        "enum": [
+          "horizontal-tb",
+          "vertical-rl"
+        ],
+        "default": "horizontal-tb",
+        "description": "Local text layout, separate from fixed front/up pose. Horizontal glyph progression is +right; vertical is -up and successive columns progress -right, where right=up cross front. This does not infer time or causal direction."
+      },
+      "font_weight": {
+        "type": "integer",
+        "enum": [
+          400,
+          700
+        ],
+        "description": "When present, overrides a weight encoded in a legacy font string. When absent, preserve supported legacy font weight semantics; otherwise normal 400. Validation never rewrites the original font string."
       }
     },
     "line": {
@@ -472,6 +554,29 @@
             },
             "required": [
               "coord"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "surface_ref": {
+                "$ref": "#/$defs/validator/uuid"
+              },
+              "uv": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "minItems": 2,
+                "maxItems": 2
+              }
+            },
+            "required": [
+              "surface_ref",
+              "uv"
             ],
             "additionalProperties": false
           }
@@ -751,17 +856,7 @@
             "$ref": "#/$defs/line/appearance"
           },
           "meta": {
-            "$ref": "#/$defs/meta/core"
-          },
-          "end_a": {
-            "$ref": "#/$defs/line/endpoint",
-            "deprecated": true,
-            "description": "(legacy) Prefer appearance.end_a"
-          },
-          "end_b": {
-            "$ref": "#/$defs/line/endpoint",
-            "deprecated": true,
-            "description": "(legacy) Prefer appearance.end_b"
+            "$ref": "#/$defs/meta/visual_element"
           }
         },
         "required": [
@@ -872,11 +967,12 @@
           },
           "font": {
             "type": "string",
-            "default": "helvetiker_regular"
+            "minLength": 1,
+            "default": "helvetiker_regular",
+            "description": "Preserved author font token or existing font string. Candidate does not infer semantic roles from this name."
           },
           "size": {
-            "type": "number",
-            "default": 8
+            "$ref": "#/$defs/labels/scope_size"
           },
           "align": {
             "type": "string",
@@ -907,6 +1003,17 @@
                 1
               ]
             }
+          },
+          "writing_mode": {
+            "$ref": "#/$defs/labels/writing_mode"
+          },
+          "font_weight": {
+            "$ref": "#/$defs/labels/font_weight"
+          },
+          "color": {
+            "$ref": "#/$defs/validator/color_hex",
+            "default": "#ffffff",
+            "description": "Text color only; independent of marker or line geometry color."
           }
         },
         "additionalProperties": false,
@@ -1117,7 +1224,7 @@
             "$ref": "#/$defs/point/appearance"
           },
           "meta": {
-            "$ref": "#/$defs/meta/core"
+            "$ref": "#/$defs/meta/visual_element"
           }
         },
         "required": [
@@ -1530,12 +1637,8 @@
             "$ref": "#/$defs/validator/uuid"
           },
           "version": {
-            "allOf": [
-              {
-                "$ref": "#/$defs/validator/semver"
-              }
-            ],
-            "default": "1.0.0"
+            "$ref": "#/$defs/validator/semver",
+            "description": "Revision of the authored document, independent of schema_uri."
           },
           "created_at": {
             "$ref": "#/$defs/validator/timestamp_utc"
@@ -1594,6 +1697,30 @@
           "version"
         ],
         "additionalProperties": false
+      },
+      "visual_element": {
+        "type": "object",
+        "properties": {
+          "uuid": {
+            "$ref": "#/$defs/validator/uuid"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/validator/tag"
+            }
+          },
+          "creator_memo": {
+            "type": "string"
+          },
+          "legend_refs": {
+            "$ref": "#/$defs/visual_legend/refs"
+          }
+        },
+        "required": [
+          "uuid"
+        ],
+        "additionalProperties": false
       }
     },
     "text_pose": {
@@ -1612,6 +1739,498 @@
         "up"
       ],
       "description": "Text orientation in 3D space. 'front' is the text's facing direction (normal), 'up' is the direction of the top of the text. Stored form is always vec3."
+    },
+    "visual_legend": {
+      "id": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+      },
+      "entry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/visual_legend/id"
+          },
+          "label": {
+            "$ref": "#/$defs/labels/localized_string"
+          },
+          "description": {
+            "$ref": "#/$defs/labels/localized_string"
+          },
+          "applies_to": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "enum": [
+                "point_text",
+                "line_caption",
+                "line",
+                "point_marker",
+                "surface"
+              ]
+            }
+          },
+          "sample": {
+            "type": "object",
+            "minProperties": 1,
+            "properties": {
+              "size": {
+                "$ref": "#/$defs/labels/scope_size"
+              },
+              "writing_mode": {
+                "$ref": "#/$defs/labels/writing_mode"
+              },
+              "font": {
+                "type": "string",
+                "minLength": 1
+              },
+              "font_weight": {
+                "$ref": "#/$defs/labels/font_weight"
+              },
+              "color": {
+                "$ref": "#/$defs/validator/color_hex"
+              },
+              "pose": {
+                "$ref": "#/$defs/text_pose"
+              },
+              "pattern": {
+                "const": "hatch"
+              }
+            },
+            "additionalProperties": false,
+            "description": "Legend specimen only, never a style cascade. Actual element appearance is authoritative. Multiple references denote participation, not automatic visual property merging."
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "description",
+          "applies_to"
+        ],
+        "additionalProperties": false
+      },
+      "refs": {
+        "type": "array",
+        "uniqueItems": true,
+        "items": {
+          "$ref": "#/$defs/visual_legend/id"
+        }
+      }
+    },
+    "surface": {
+      "type": "object",
+      "properties": {
+        "meta": {
+          "$ref": "#/$defs/meta/visual_element"
+        },
+        "signification": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "$ref": "#/$defs/labels/localized_string"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "additionalProperties": false
+        },
+        "appearance": {
+          "type": "object",
+          "properties": {
+            "plane": {
+              "type": "string",
+              "enum": [
+                "xy",
+                "xz",
+                "yz"
+              ]
+            },
+            "position": {
+              "$ref": "#/$defs/spatial/position"
+            },
+            "size": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "color": {
+              "$ref": "#/$defs/validator/color_hex"
+            },
+            "opacity": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "visible": {
+              "type": "boolean"
+            },
+            "frames": {
+              "$ref": "#/$defs/validator/frames"
+            },
+            "pattern": {
+              "const": "hatch"
+            }
+          },
+          "required": [
+            "plane",
+            "position",
+            "size"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "meta",
+        "signification",
+        "appearance"
+      ],
+      "additionalProperties": false
+    },
+    "coordinate_axis": {
+      "type": "object",
+      "properties": {
+        "direction": {
+          "$ref": "#/$defs/spatial/axis_signed"
+        },
+        "label": {
+          "$ref": "#/$defs/labels/localized_string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "category",
+            "order",
+            "measure"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coordinate_units_per_unit": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "value_at_origin": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "direction",
+        "label",
+        "kind"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "measure"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "unit",
+              "coordinate_units_per_unit",
+              "value_at_origin"
+            ]
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "unit"
+                  ]
+                },
+                {
+                  "required": [
+                    "coordinate_units_per_unit"
+                  ]
+                },
+                {
+                  "required": [
+                    "value_at_origin"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "coordinate_context": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/validator/uuid"
+        },
+        "label": {
+          "$ref": "#/$defs/labels/localized_string"
+        },
+        "origin": {
+          "$ref": "#/$defs/spatial/position"
+        },
+        "axes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/coordinate_axis"
+          },
+          "minItems": 1,
+          "maxItems": 3
+        },
+        "element_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/validator/uuid"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "origin",
+        "axes",
+        "element_refs"
+      ],
+      "additionalProperties": false
+    },
+    "comparison": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/validator/uuid"
+        },
+        "label": {
+          "$ref": "#/$defs/labels/localized_string"
+        },
+        "subject": {
+          "$ref": "#/$defs/labels/localized_string"
+        },
+        "held_constant": {
+          "$ref": "#/$defs/labels/localized_string"
+        },
+        "cases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "$ref": "#/$defs/labels/localized_string"
+              },
+              "condition": {
+                "$ref": "#/$defs/labels/localized_string"
+              },
+              "element_refs": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/validator/uuid"
+                },
+                "minItems": 1,
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "label",
+              "condition",
+              "element_refs"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 2
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "subject",
+        "held_constant",
+        "cases"
+      ],
+      "additionalProperties": false
+    },
+    "quantity_basis": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "atemporal"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "instant"
+            },
+            "axis": {
+              "$ref": "#/$defs/spatial/axis_signed"
+            },
+            "at": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "kind",
+            "axis",
+            "at"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "event"
+            },
+            "axis": {
+              "$ref": "#/$defs/spatial/axis_signed"
+            },
+            "at": {
+              "type": "number"
+            },
+            "event_ref": {
+              "$ref": "#/$defs/validator/uuid"
+            }
+          },
+          "required": [
+            "kind",
+            "axis",
+            "at",
+            "event_ref"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "interval"
+            },
+            "axis": {
+              "$ref": "#/$defs/spatial/axis_signed"
+            },
+            "start": {
+              "type": "number"
+            },
+            "end": {
+              "type": "number"
+            },
+            "aggregation": {
+              "type": "string",
+              "enum": [
+                "sum",
+                "integral",
+                "average"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "axis",
+            "start",
+            "end",
+            "aggregation"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "quantity": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/validator/uuid"
+        },
+        "label": {
+          "$ref": "#/$defs/labels/localized_string"
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject": {
+          "$ref": "#/$defs/labels/localized_string"
+        },
+        "basis": {
+          "$ref": "#/$defs/quantity_basis"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "recorded",
+            "missing",
+            "not_applicable"
+          ]
+        },
+        "value": {
+          "type": "number"
+        },
+        "element_ref": {
+          "$ref": "#/$defs/validator/uuid"
+        },
+        "context_ref": {
+          "$ref": "#/$defs/validator/uuid"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "unit",
+        "subject",
+        "basis",
+        "status",
+        "element_ref"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "recorded"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "value"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "value"
+              ]
+            }
+          }
+        }
+      ]
     }
-  }
+  },
+  "title": "3DSS v2.0.0",
+  "$comment": "3DSS release v2.0.0"
 }

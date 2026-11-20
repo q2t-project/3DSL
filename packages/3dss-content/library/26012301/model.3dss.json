@@ -7,7 +7,7 @@
     "tags": [
       "m:存在論","m:認識論"
     ],
-    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
+    "schema_uri": "https://3dsl.jp/schemas/release/v2.0.0/3DSS.schema.json#v2.0.0",
     "generator": "https://3dsl.jp/",
     "coordinate_system": "Z+up/freeXY",
     "units": "non_si:px",

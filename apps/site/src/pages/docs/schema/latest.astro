@@ -3,21 +3,22 @@ import Layout from "../../../layouts/Layout.astro";
 ---
 
 <Layout
-  title="latest schema | Docs | 3DSL"
-  description="3DSS.schema.json (latest) の参照ページ。公開中の最新版は /schemas/3DSS.schema.json を参照。"
+  title="3DSSのJSON Schema | Docs | 3DSL"
+  description="3DSS v2.0.0のJSON Schemaと、旧版を版を指定して読むための案内です。"
 >
   <section class="ui-surface p-6 sm:p-10 space-y-6">
-    <h1>latest schema</h1>
+    <h1>3DSSのJSON Schema</h1>
 
     <p class="text-sm text-neutral-200 leading-7">
-      現在公開している最新版は 3DSS v1.1.4 です。図の点・線などを検査する JSON Schema は以下を参照：
+      最新版は3DSS v2.0.0です。図の点・線・面などを検査する定義をJSONで参照できます。
     </p>
 
     <p>
       <a href="/schemas/3DSS.schema.json">/schemas/3DSS.schema.json</a>
     </p>
     <p>
-      版を固定して参照する場合は <a href="/docs/schema/v1.1.4">v1.1.4 schema</a> を使います。
+      版を固定するには <a href="/docs/schema/v2.0.0/">v2.0.0のJSON Schema</a>を使います。
+      旧版には <a href="/docs/schema/v1.1.4/">v1.1.4のJSON Schema</a>があります。
       制作時の作品一式 <code>.3dsl-work.json</code> 全体の仕様とは異なります。
       ファイルの違いは <a href="/docs/usage/create-save-read">保存形式の案内</a> を参照してください。
     </p>

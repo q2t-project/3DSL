@@ -82,7 +82,7 @@ try {
   const sample = { document_meta: {
     document_title: 'GLB import roundtrip', document_uuid: randomUUID(), version: '1.0.0',
     created_at: '2026-11-17T00:00:00Z', revised_at: '2026-11-17T00:00:00Z',
-    schema_uri: schema.$id + '#v1.1.4', author: '3DSL', coordinate_system: 'Z+up/freeXY',
+    schema_uri: schema.$defs.validator.schema_uri.const, author: '3DSL', coordinate_system: 'Z+up/freeXY',
   }, points: [{ meta: { uuid: randomUUID() }, appearance: { position: [4, 8, 16], marker: {
     primitive: 'none', gltf: { url: 'data:model/gltf-binary;base64,' + bytes.toString('base64'),
       rotation: [0, Math.PI / 2, 0], scale: [1, 1, 1], offset: [0, 0, 0] },

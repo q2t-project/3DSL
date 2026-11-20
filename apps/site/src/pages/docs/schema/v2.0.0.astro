@@ -1,0 +1,20 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import schema from "../../../content/docs/_generated/v2.0.0/3DSS.schema.json?raw";
+---
+
+<Layout
+  title="3DSS v2.0.0のJSON Schema | Docs | 3DSL"
+  description="3DSS v2.0.0の固定版のJSON Schemaです。"
+>
+  <div class="prose prose-invert prose-neutral max-w-4xl">
+    <h1>3DSS v2.0.0のJSON Schema</h1>
+    <p>
+      <a href="/schemas/release/v2.0.0/3DSS.schema.json">JSONファイル</a>と
+      <a href="/docs/spec/v2.0.0/">同じ版の仕様</a>を参照できます。
+    </p>
+  </div>
+  <div class="mt-6 max-w-4xl rounded-2xl border border-white/10 bg-black/30 p-4">
+    <pre class="overflow-auto text-xs leading-relaxed"><code>{schema}</code></pre>
+  </div>
+</Layout>

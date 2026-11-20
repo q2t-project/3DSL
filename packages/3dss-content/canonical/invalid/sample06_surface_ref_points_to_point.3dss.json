@@ -1,0 +1,294 @@
+{
+  "document_meta": {
+    "document_title": "同時点の保有量比較",
+    "document_uuid": "787d5de7-074c-4ed3-8e95-000000000001",
+    "created_at": "2026-11-21T00:00:00Z",
+    "revised_at": "2026-11-21T00:00:00Z",
+    "schema_uri": "https://3dsl.jp/schemas/release/v2.0.0/3DSS.schema.json#v2.0.0",
+    "author": "3DSL",
+    "version": "0.4.0"
+  },
+  "points": [
+    {
+      "meta": {
+        "uuid": "787d5de7-074c-4ed3-8e95-000000000002"
+      },
+      "signification": {
+        "name": "二条件を比較"
+      },
+      "appearance": {
+        "position": [
+          0,
+          0,
+          10
+        ],
+        "marker": {
+          "primitive": "sphere",
+          "radius": 1,
+          "text": {
+            "content": "二条件を比較",
+            "size": 2,
+            "pose": {
+              "front": [
+                0,
+                1,
+                0
+              ],
+              "up": [
+                0,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "surfaces": [
+    {
+      "meta": {
+        "uuid": "787d5de7-074c-4ed3-8e95-000000000003"
+      },
+      "signification": {
+        "name": "条件A"
+      },
+      "appearance": {
+        "plane": "xz",
+        "position": [
+          -18,
+          0,
+          10.0
+        ],
+        "size": [
+          6,
+          20
+        ],
+        "color": "#45809C"
+      }
+    },
+    {
+      "meta": {
+        "uuid": "787d5de7-074c-4ed3-8e95-000000000004",
+        "legend_refs": [
+          "condition-b"
+        ]
+      },
+      "signification": {
+        "name": "条件B"
+      },
+      "appearance": {
+        "plane": "xz",
+        "position": [
+          18,
+          0,
+          6.0
+        ],
+        "size": [
+          6,
+          12
+        ],
+        "color": "#E7BB74",
+        "pattern": "hatch"
+      }
+    }
+  ],
+  "lines": [
+    {
+      "meta": {
+        "uuid": "787d5de7-074c-4ed3-8e95-000000000005"
+      },
+      "signification": {
+        "caption": "条件Aを参照",
+        "sense": "a_to_b"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "787d5de7-074c-4ed3-8e95-000000000002"
+        },
+        "end_b": {
+          "surface_ref": "787d5de7-074c-4ed3-8e95-000000000002",
+          "uv": [
+            0.5,
+            0.5
+          ]
+        },
+        "line_type": "straight",
+        "arrow": {
+          "primitive": "line",
+          "length": 1,
+          "thickness": 0.2
+        },
+        "caption_text": {
+          "font_size": 1,
+          "writing_mode": "vertical-rl",
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              1,
+              0,
+              0
+            ]
+          }
+        }
+      }
+    },
+    {
+      "meta": {
+        "uuid": "787d5de7-074c-4ed3-8e95-000000000006"
+      },
+      "signification": {
+        "caption": "条件Bを参照",
+        "sense": "a_to_b"
+      },
+      "appearance": {
+        "end_a": {
+          "ref": "787d5de7-074c-4ed3-8e95-000000000002"
+        },
+        "end_b": {
+          "surface_ref": "787d5de7-074c-4ed3-8e95-000000000004",
+          "uv": [
+            0.5,
+            0.8333333333333334
+          ]
+        },
+        "line_type": "straight",
+        "arrow": {
+          "primitive": "line",
+          "length": 1,
+          "thickness": 0.2
+        },
+        "caption_text": {
+          "font_size": 1,
+          "writing_mode": "vertical-rl",
+          "pose": {
+            "front": [
+              0,
+              1,
+              0
+            ],
+            "up": [
+              -1,
+              0,
+              0
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "quantities": [
+    {
+      "id": "787d5de7-074c-4ed3-8e95-000000000007",
+      "label": "保有水量",
+      "unit": "kg",
+      "subject": "容器の内容物",
+      "basis": {
+        "kind": "instant",
+        "axis": "+y",
+        "at": 0
+      },
+      "status": "recorded",
+      "value": 20,
+      "element_ref": "787d5de7-074c-4ed3-8e95-000000000003",
+      "context_ref": "787d5de7-074c-4ed3-8e95-000000000009"
+    },
+    {
+      "id": "787d5de7-074c-4ed3-8e95-000000000008",
+      "label": "保有水量",
+      "unit": "kg",
+      "subject": "容器の内容物",
+      "basis": {
+        "kind": "instant",
+        "axis": "+y",
+        "at": 0
+      },
+      "status": "recorded",
+      "value": 12,
+      "element_ref": "787d5de7-074c-4ed3-8e95-000000000004",
+      "context_ref": "787d5de7-074c-4ed3-8e95-000000000009"
+    }
+  ],
+  "coordinate_contexts": [
+    {
+      "id": "787d5de7-074c-4ed3-8e95-000000000009",
+      "label": "容器の比較",
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "axes": [
+        {
+          "direction": "+x",
+          "label": "条件",
+          "kind": "category"
+        },
+        {
+          "direction": "+y",
+          "label": "経過時間",
+          "kind": "measure",
+          "unit": "h",
+          "coordinate_units_per_unit": 1,
+          "value_at_origin": 0
+        },
+        {
+          "direction": "+z",
+          "label": "保有水量",
+          "kind": "measure",
+          "unit": "kg",
+          "coordinate_units_per_unit": 1,
+          "value_at_origin": 0
+        }
+      ],
+      "element_refs": [
+        "787d5de7-074c-4ed3-8e95-000000000002",
+        "787d5de7-074c-4ed3-8e95-000000000003",
+        "787d5de7-074c-4ed3-8e95-000000000004",
+        "787d5de7-074c-4ed3-8e95-000000000005",
+        "787d5de7-074c-4ed3-8e95-000000000006"
+      ]
+    }
+  ],
+  "comparisons": [
+    {
+      "id": "787d5de7-074c-4ed3-8e95-000000000010",
+      "label": "水量の二条件",
+      "subject": "容器の保有水量",
+      "held_constant": "容器と観測時点",
+      "cases": [
+        {
+          "label": "条件A",
+          "condition": "水を20 kg入れた例",
+          "element_refs": [
+            "787d5de7-074c-4ed3-8e95-000000000003"
+          ]
+        },
+        {
+          "label": "条件B",
+          "condition": "水を12 kg入れた例",
+          "element_refs": [
+            "787d5de7-074c-4ed3-8e95-000000000004"
+          ]
+        }
+      ]
+    }
+  ],
+  "visual_legend": [
+    {
+      "id": "condition-b",
+      "label": "条件B",
+      "description": "条件Bの面を斜線で示す",
+      "applies_to": [
+        "surface"
+      ],
+      "sample": {
+        "pattern": "hatch"
+      }
+    }
+  ]
+}

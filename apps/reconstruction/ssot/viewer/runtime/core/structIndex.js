@@ -1,5 +1,7 @@
 // runtime/core/structIndex.js
 
+import { surfacePoint } from "../../../shared/renderConventions.js";
+
 // 3DSS ドキュメントから「よく使う索引」をまとめて構築する。
 // buildUUIDIndex(doc) の返り値（structIndex）の構造：
 //
@@ -341,8 +343,9 @@ export function buildUUIDIndex(doc) {
     }
 
     // ---- aux ----
-    if (Array.isArray(doc.aux)) {
-      for (const node of doc.aux) {
+    {
+      const surfaces = new Set(doc.surfaces ?? []);
+      for (const node of [...(doc.aux ?? []), ...surfaces]) {
         if (!node || typeof node !== "object") continue;
 
         const uuid = node?.meta?.uuid;
@@ -356,6 +359,10 @@ export function buildUUIDIndex(doc) {
         if (pos) {
           auxPosition.set(uuid, pos);
           expandBounds(pos);
+          if (surfaces.has(node)) {
+            expandBounds(surfacePoint(node.appearance, [0, 0]));
+            expandBounds(surfacePoint(node.appearance, [1, 1]));
+          }
         }
 
         const framesSet = normalizeFrames(node?.appearance?.frames);
@@ -395,8 +402,8 @@ export function buildUUIDIndex(doc) {
         }
 
         // adjacency: points ↔ lines
-        const refA = endA && typeof endA.ref === "string" ? endA.ref : null;
-        const refB = endB && typeof endB.ref === "string" ? endB.ref : null;
+        const refA = endA?.ref ?? endA?.surface_ref ?? null;
+        const refB = endB?.ref ?? endB?.surface_ref ?? null;
 
         if (refA) addToMultiMap(adjacency.pointToLines, refA, uuid);
         if (refB && refB !== refA) {
@@ -528,6 +535,7 @@ export function detectFrameRange(doc) {
   scanArray(doc.points);
   scanArray(doc.lines);
   scanArray(doc.aux);
+  scanArray(doc.surfaces);
 
   if (!Number.isFinite(min) || !Number.isFinite(max)) {
     return { min: 0, max: 0 };

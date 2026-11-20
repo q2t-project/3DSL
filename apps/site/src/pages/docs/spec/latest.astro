@@ -1,22 +1,21 @@
 ---
 import Layout from "../../../layouts/Layout.astro";
-import Spec from "../../../content/docs_integrated/3DSS_spec.v1.1.4.md";
+import Spec from "../../../content/docs/_generated/3DSS_spec.md";
 ---
 
 <Layout
-  title="Latest spec | Docs | 3DSL"
-  description="3DSS_spec.md (latest) を /docs 配下で表示します。"
+  title="3DSSの仕様 | Docs | 3DSL"
+  description="公開されている最新版の3DSS仕様を参照できます。"
 >
   <div class="prose prose-invert prose-neutral max-w-4xl">
-    <h1>Latest spec</h1>
     <p>
-      現在の公開仕様は 3DSS v1.1.4 です。下の本文もこの版を表示しています。
       <a href="/schemas/3DSS_spec.md">仕様書のMarkdown</a>、
-      <a href="/docs/schema/latest">対応するJSON Schema</a>を参照できます。
+      <a href="/docs/schema/latest/">対応するJSON Schema</a>、
+      <a href="/docs/usage/author-3dss/">図の制作ガイド</a>を参照できます。
     </p>
     <p>
       この仕様は図のデータ形式を扱います。制作途中の情報を含む
-      <code>.3dsl-work.json</code> の扱いは <a href="/docs/usage/create-save-read">保存形式の案内</a> を参照してください。
+      <code>.3dsl-work.json</code> の扱いは <a href="/docs/usage/create-save-read/">保存形式の案内</a> を参照してください。
     </p>
     <Spec />
   </div>

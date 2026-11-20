@@ -63,10 +63,12 @@ function findPathByUuid(doc, uuid, kindHint) {
   if (kind === 'point') return tryList(doc.points, '/points');
   if (kind === 'line') return tryList(doc.lines, '/lines');
   if (kind === 'aux') return tryList(doc.aux, '/aux');
+  if (kind === 'surface') return tryList(doc.surfaces, '/surfaces');
   return (
     tryList(doc.points, '/points') ||
     tryList(doc.lines, '/lines') ||
     tryList(doc.aux, '/aux') ||
+    tryList(doc.surfaces, '/surfaces') ||
     null
   );
 }
@@ -377,7 +379,7 @@ let disposed = false;
       if (!hit || !hit.uuid) return null;
       const doc = core.document.get();
       const path = findPathByUuid(doc, hit.uuid, hit.kind) || null;
-      return { uuid: hit.uuid, kind: hit.kind, path };
+      return { uuid: hit.uuid, kind: hit.kind, path, point: hit.point };
     }
   };
 

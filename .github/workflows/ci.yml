@@ -122,7 +122,7 @@ jobs:
         working-directory: apps/site
         run: npm run check
 
-      - name: Check candidate visual grammar
+      - name: Check current and candidate visual grammar
         working-directory: apps/site
         run: |
           node scripts/check/visual-grammar-schema.mjs ../../apps/reconstruction/ssot/legend_lab/model.3dss.json

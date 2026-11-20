@@ -1,5 +1,11 @@
 # Modeler 実装状況レポート（Spec/Manifest 差分 + From-now プラン）
 
+## 2026-11-21　3DSS v2.0.0
+
+両Modelerの形式判定に `document_meta.schema_uri` を使う。作品自身の改訂番号 `document_meta.version` は独立したSemVer。再構築版は面の選択・位置の編集と、図から面内の取付位置を指定する端点参照を扱う。面への参照は面のUUIDと正規化したUVを保存し、面の移動後に再計算する。
+
+再構築版は横組み・縦組みを図内の文字面に固定する。局所座標、量、条件比較、凡例をファイルから保持し、保存時に適用範囲の参照を確認する。形や関係を作るときの規範は[制作ガイド](/docs/usage/author-3dss/)に記載した。配布資産の進捗は[移行記録](/docs/ops/3dss_v2_migration/)を参照。
+
 ## 2026-11-17: GLB部品の表示
 
 従来版と再構築版のModelerが `point.appearance.marker.gltf` を読み、点の位置にGLBを表示する。Viewerと同じyaw/pitch/roll（ラジアン）で向き・拡縮・オフセットを適用する。向きは固定。GLB内部メッシュの選択は元の点UUIDへ戻し、移動・表示切替も点に追従する。primitiveがnoneの場合だけ基礎球を隠す。

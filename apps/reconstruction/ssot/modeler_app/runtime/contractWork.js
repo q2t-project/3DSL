@@ -20,7 +20,7 @@ const index = (items, key, label) => {
   return result;
 };
 const frameValid = value => Array.isArray(value) && value.length > 0 && value.every(x => Number.isInteger(x) && x >= -64 && x <= 63);
-const elementMap = scene => new Map([...scene.points, ...scene.lines, ...scene.aux].map(e => [e.meta.uuid, e]));
+const elementMap = scene => new Map([...scene.points, ...scene.lines, ...scene.aux, ...(scene.surfaces ?? [])].map(e => [e.meta.uuid, e]));
 const textOf = point => point?.appearance?.marker?.text?.content;
 function validateContract(c, scene) {
   check(c?.format === CONTRACT_FORMAT, 'この契約版には未対応です');
@@ -141,7 +141,7 @@ const makeUuid = () => crypto.randomUUID();
 const makePoint = (id, position, name = '', primitive = 'sphere') => ({meta:{uuid:id},signification:{name},appearance:{position,frames:[0],marker:{primitive,...(primitive==='sphere'?{radius:0.3}:{}),text:{content:name,size:1,pose:{front:[0,0,1],up:[0,1,0]}}}}});
 export function createEmptyContractWork() {
   const now = new Date().toISOString().replace(/\.\d{3}Z$/,'Z');
-  const scene = {lines:[],points:[],aux:[],document_meta:{document_title:'新しい作品',document_uuid:makeUuid(),schema_uri:'https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4',version:'1.1.4',author:'q2t',created_at:now,revised_at:now,units:'non_si:px',coordinate_system:'Z+up/freeXY'}};
+  const scene = {lines:[],points:[],aux:[],document_meta:{document_title:'新しい作品',document_uuid:makeUuid(),schema_uri:'https://3dsl.jp/schemas/release/v2.0.0/3DSS.schema.json#v2.0.0',version:'1.0.0',author:'q2t',created_at:now,revised_at:now,units:'non_si:px',coordinate_system:'Z+up/freeXY'}};
   const contract = {format:CONTRACT_FORMAT,authority:'scene-anchor-and-boundary;contract-shared-values-and-offsets',fixture:'authored',targets:[],occurrences:[],relations:[],axis:null,boundary:null,draft:{inputs:[],pendingRelations:[]},sources:[]};
   return parseContractWork({format:CONTRACT_WORK_FORMAT,status:'draft',scene,baselineScene:clone(scene),contract,baselineContract:clone(contract),attachments:{}});
 }
@@ -261,6 +261,21 @@ export function operateContractWork(raw, op) {
   } else if (op.type === 'move') {
     check(vector(op.position), '位置は有限の3数値が必要です'); const o = occurrence();
     es.get(o.anchor).appearance.position = clone(op.position); syncOccurrence(o);
+  } else if (op.type === 'surface-appearance') {
+    const surface = work.scene.surfaces?.find(element => element.meta.uuid === op.surface);
+    check(surface, '面がありません');
+    if (Object.hasOwn(op, 'position')) {
+      check(vector(op.position), '面の位置は有限の3数値が必要です');
+      surface.appearance.position = clone(op.position);
+    }
+    if (Object.hasOwn(op, 'size')) {
+      check(Array.isArray(op.size) && op.size.length === 2 && op.size.every(value => Number.isFinite(value) && value > 0), '面内寸法は正の2数値が必要です');
+      surface.appearance.size = clone(op.size);
+    }
+    if (Object.hasOwn(op, 'plane')) {
+      check(['xy', 'xz', 'yz'].includes(op.plane), '座標面を選んでください');
+      surface.appearance.plane = op.plane;
+    }
   } else if (op.type === 'label-offset') {
     check(vector(op.offset), 'ラベル位置差は有限の3数値が必要です'); const o = occurrence();
     o.labelOffset = clone(op.offset); syncOccurrence(o);
@@ -318,6 +333,8 @@ export function inspectContractWork(raw, uuid) {
   const r = c.relations.find(r=>[r.id,r.hub,...r.participants.map(p=>p.line),...r.refs.map(p=>p.line)].includes(uuid));
   if (r) return { kind:'relation',relation:clone(r) };
   if (c.boundary?.aux === uuid) return { kind:'boundary',boundary:clone(c.boundary),bounds:readContractMeaning(w).bounds };
+  const surface = w.scene.surfaces?.find(element => element.meta.uuid === uuid);
+  if (surface) return { kind: 'surface', surface: clone(surface) };
   return null;
 }
 export function compareContractWork(raw) {

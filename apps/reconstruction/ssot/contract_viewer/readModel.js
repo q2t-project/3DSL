@@ -1,6 +1,8 @@
 import { isContractWork, parseContractWork, readContractMeaning } from '../modeler_app/runtime/contractWork.js';
 import { isWorkPackage, parseWorkPackage, assertLosslessWorkJSON, WORK_PACKAGE_MAX_BYTES, getWorkComparison, getUnplacedSourceRecords } from '../modeler_app/runtime/workPackage.js';
 
+import { validateSceneReferences } from "../shared/sceneReferences.js";
+
 const copy = value => structuredClone(value);
 const fail = message => { throw new Error(`Viewer読込: ${message}`); };
 
@@ -8,20 +10,9 @@ const fail = message => { throw new Error(`Viewer読込: ${message}`); };
 // allowed here: the input snapshot and the renderer copy are separate objects.
 function inspectScene(scene) {
   if (!scene || typeof scene !== 'object' || Array.isArray(scene) || !scene.document_meta) fail('対応する3DSSの図がありません。');
-  const entries = new Map(), points = new Set();
-  for (const kind of ['points', 'lines', 'aux']) {
-    if (scene[kind] != null && !Array.isArray(scene[kind])) fail(`${kind}が配列ではありません。`);
-    for (const element of scene[kind] || []) {
-      const id = element?.meta?.uuid;
-      if (typeof id !== 'string' || !id || entries.has(id)) fail(`図形UUIDが欠落または重複しています: ${id ?? ''}`);
-      entries.set(id, element);
-      if (kind === 'points') points.add(id);
-    }
-  }
-  for (const line of scene.lines || []) for (const side of ['end_a', 'end_b']) {
-    const end = line.appearance?.[side];
-    if (end?.ref != null && !points.has(end.ref)) fail(`線 ${line.meta.uuid} の ${side} の参照先が図の点にありません: ${end.ref}`);
-  }
+  const issues = validateSceneReferences(scene);
+  if (issues.length) fail(issues.map(issue => `${issue.instancePath} ${issue.message}`).join('\n'));
+
 }
 
 function legacyInformation(work) {

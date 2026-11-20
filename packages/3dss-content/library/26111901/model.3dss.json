@@ -3,16 +3,16 @@
     "document_title": "因果アトラス",
     "document_summary": "スイッチを入れたら、ランプが灯った。スイッチが点灯を引き起こしたのか、それとも別の指令がスイッチとランプの両方を動かしたのか。同じ場面から、何が結果を生んだのか、証拠から何が分かるのか、人は何を選べたのかをたどります。",
     "document_uuid": "94b674b0-4336-46ef-8942-ec8c730f92f7",
-    "version": "1.7.0",
+    "version": "1.7.1",
     "created_at": "2026-11-16T09:43:31Z",
-    "revised_at": "2026-11-19T07:52:17Z",
-    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
+    "revised_at": "2026-11-20T22:41:17Z",
+    "schema_uri": "https://3dsl.jp/schemas/release/v2.0.0/3DSS.schema.json#v2.0.0",
     "coordinate_system": "Z+up/freeXY",
     "units": "non_si:px",
     "i18n": "ja",
     "author": "GPT",
     "reference": "https://3dsl.jp/library/26111901/",
-    "creator_memo": "一つの点灯から、確率と自由意志へ\n公開版 v1.0.0\n\n図上または検索で入口の点を選び、点の情報と接続先をたどる。\n1　同じ点灯の仕組み・効果・証拠\n1.1　何がランプを灯したか（入口「結果」）\n1.2　同じ記録を生むもう一つの配線（入口「共通原因」）\n1.3　入れた時と切った時の差（入口「介入」）\n1.4　どこまで証拠で言えるか（入口「観察」）\n1.5　確率の二つの読み方（入口「確率」）\n1.6　この一回で切っていたら（入口「結果」）\n2　同じ操作の目的・効力・統制・不可避性\n2.1　何を目指して入れたか（入口「行為」）\n2.2　その操作は点灯に効いたか（入口「行為」）\n2.3　誰が操作を選べたか（入口「選択」）\n2.4　その結末は避けられたか（入口「将来」）\n3　時間・条件・説明の違い\n3.1　時間が進む（入口「行為」）\n3.2　時点を保って条件を替える（入口「結果」）\n3.3　行為を保って説明を替える（入口「行為」）\n\nX　＋側に装置・行為・結果、−側に観察・推論・説明する立場を置く。点の名前は対象、線の言葉は対象間の関係を示す。\nY　出来事は＋Yに進む。結果の評価時点は一つ。認識側では手順や問いの順でたどる。将来→今→過去の破線は未来の言明を遡って吟味する向き。過去・今・将来の列では存在側と時点をそろえる。\nZ　装置側では出来事の記述から状態値・結果の分布・点灯率の差へ移る。高さは実測値の大小を表さない。認識側では対象についての判断や仮定の層を示す。行為・介入・観察の文字は＋Xを正面、＋Yを上にそろえる。\n点の選択で具体例・条件を参照できる。矢印の意味は各線の関係名で示す。\n\n参考文献\nジューディア・パール、ダナ・マッケンジー著、松尾豊監修・解説、夏目大訳『因果推論の科学 「なぜ？」の問いにどう答えるか』文藝春秋、2022年。ISBN 978-4-16-391596-8。観察・介入・反事実の区別を、同じ点灯をめぐる三つの問いに反映。とくに第7章・第8章の介入と反事実を参照。 https://books.bunshun.jp/ud/book/num/9784163915968\nダグラス・クタッチ著、相松慎也訳、一ノ瀬正樹解説『因果性』（現代哲学のキーコンセプト）岩波書店、2019年。ISBN 978-4-00-061380-4。産出的因果と差異形成的因果の区別を、点灯の仕組みを追う問いと、操作が結果に差をもたらすかを調べる問いに反映。確率上昇説も参照。 https://www.hanmoto.com/bd/isbn/9784000613804\nイアン・ハッキング著、広田すみれ・森元良太訳『確率の出現』慶應義塾大学出版会、2013年。ISBN 978-4-7664-2103-3。事象の起こりやすさと、証拠に照らした判断の確からしさを、図の存在側と認識側に対応させました。二つの意味が歴史的に結びついた経緯も参照。 https://www.keio-up.co.jp/book/b10163918.html ／ https://www.cambridge.org/core/books/abs/emergence-of-probability/duality/B840DF3AF051ED5EF26B285A80C252C7 ／ https://www.cambridge.org/core/books/abs/emergence-of-probability/art-of-thinking-1662/691DA5443B294269A647BAB562B7347C\nJin Tian and Judea Pearl, “A General Identification Condition for Causal Effects,” AAAI, 2002. データと仮定から介入効果が定まるかを問う「識別」の説明を照合。 https://cdn.aaai.org/AAAI/2002/AAAI02-085.pdf\nHugh Rice, “Fatalism,” Stanford Encyclopedia of Philosophy, Summer 2024 Edition, §§1–3. 将来の言明の真偽と結末の必然性をめぐる論理的運命論を参照。 https://plato.stanford.edu/archives/sum2024/entries/fatalism/\nDavid Hunt and Linda Zagzebski, “Foreknowledge and Free Will,” Stanford Encyclopedia of Philosophy, Spring 2026 Edition, §4. 海戦の例と、将来についての言明が真だということから不可避性を導けるかという論点を参照。 https://plato.stanford.edu/archives/spr2026/entries/free-will-foreknowledge/\nCarl Hoefer, “Causal Determinism,” Stanford Encyclopedia of Philosophy, Summer 2026 Edition. 世界の状態と法則から後続が一意に定まるという決定論の定義と、予測可能性との区別を照合。 https://plato.stanford.edu/archives/sum2026/entries/determinism-causal/\nMichael McKenna and D. Justin Coates, “Compatibilism,” Stanford Encyclopedia of Philosophy, Summer 2024 Edition. 決定論と自由意志の両立可能性、および本人の理由に応じた行為の統制を参照。 https://plato.stanford.edu/archives/sum2024/entries/compatibilism/\nAndrea Falcon, “Aristotle on Causality,” Stanford Encyclopedia of Philosophy, Spring 2023 Edition, §§2–5. 「何のためか」という説明の位置づけと、目的による説明が人の意図を越えて論じられてきた範囲を照合。 https://plato.stanford.edu/archives/spr2023/entries/aristotle-causality/\n\n本作品の3DSS原本は、個人で閲覧・学習するため、ご自身の端末へのダウンロード、編集および編集結果の保存ができます。原本や編集した作品の再配布・転載・他サイトでの公開をご希望の場合は、事前にお問い合わせください。\nhttps://3dsl.jp/policy/content-usage/",
+    "creator_memo": "一つの点灯から、確率と自由意志へ\n公開版 v1.0.1\n\n図上または検索で入口の点を選び、点の情報と接続先をたどる。\n1　同じ点灯の仕組み・効果・証拠\n1.1　何がランプを灯したか（入口「結果」）\n1.2　同じ記録を生むもう一つの配線（入口「共通原因」）\n1.3　入れた時と切った時の差（入口「介入」）\n1.4　どこまで証拠で言えるか（入口「観察」）\n1.5　確率の二つの読み方（入口「確率」）\n1.6　この一回で切っていたら（入口「結果」）\n2　同じ操作の目的・効力・統制・不可避性\n2.1　何を目指して入れたか（入口「行為」）\n2.2　その操作は点灯に効いたか（入口「行為」）\n2.3　誰が操作を選べたか（入口「選択」）\n2.4　その結末は避けられたか（入口「将来」）\n3　時間・条件・説明の違い\n3.1　時間が進む（入口「行為」）\n3.2　時点を保って条件を替える（入口「結果」）\n3.3　行為を保って説明を替える（入口「行為」）\n\nX　＋側に装置・行為・結果、−側に観察・推論・説明する立場を置く。点の名前は対象、線の言葉は対象間の関係を示す。\nY　出来事は＋Yに進む。結果の評価時点は一つ。認識側では手順や問いの順でたどる。将来→今→過去の破線は未来の言明を遡って吟味する向き。過去・今・将来の列では存在側と時点をそろえる。\nZ　装置側では出来事の記述から状態値・結果の分布・点灯率の差へ移る。高さは実測値の大小を表さない。認識側では対象についての判断や仮定の層を示す。行為・介入・観察の文字は＋Xを正面、＋Yを上にそろえる。\n点の選択で具体例・条件を参照できる。矢印の意味は各線の関係名で示す。\n\n参考文献\nジューディア・パール、ダナ・マッケンジー著、松尾豊監修・解説、夏目大訳『因果推論の科学 「なぜ？」の問いにどう答えるか』文藝春秋、2022年。ISBN 978-4-16-391596-8。観察・介入・反事実の区別を、同じ点灯をめぐる三つの問いに反映。とくに第7章・第8章の介入と反事実を参照。 https://books.bunshun.jp/ud/book/num/9784163915968\nダグラス・クタッチ著、相松慎也訳、一ノ瀬正樹解説『因果性』（現代哲学のキーコンセプト）岩波書店、2019年。ISBN 978-4-00-061380-4。産出的因果と差異形成的因果の区別を、点灯の仕組みを追う問いと、操作が結果に差をもたらすかを調べる問いに反映。確率上昇説も参照。 https://www.hanmoto.com/bd/isbn/9784000613804\nイアン・ハッキング著、広田すみれ・森元良太訳『確率の出現』慶應義塾大学出版会、2013年。ISBN 978-4-7664-2103-3。事象の起こりやすさと、証拠に照らした判断の確からしさを、図の存在側と認識側に対応させました。二つの意味が歴史的に結びついた経緯も参照。 https://www.keio-up.co.jp/book/b10163918.html ／ https://www.cambridge.org/core/books/abs/emergence-of-probability/duality/B840DF3AF051ED5EF26B285A80C252C7 ／ https://www.cambridge.org/core/books/abs/emergence-of-probability/art-of-thinking-1662/691DA5443B294269A647BAB562B7347C\nJin Tian and Judea Pearl, “A General Identification Condition for Causal Effects,” AAAI, 2002. データと仮定から介入効果が定まるかを問う「識別」の説明を照合。 https://cdn.aaai.org/AAAI/2002/AAAI02-085.pdf\nHugh Rice, “Fatalism,” Stanford Encyclopedia of Philosophy, Summer 2024 Edition, §§1–3. 将来の言明の真偽と結末の必然性をめぐる論理的運命論を参照。 https://plato.stanford.edu/archives/sum2024/entries/fatalism/\nDavid Hunt and Linda Zagzebski, “Foreknowledge and Free Will,” Stanford Encyclopedia of Philosophy, Spring 2026 Edition, §4. 海戦の例と、将来についての言明が真だということから不可避性を導けるかという論点を参照。 https://plato.stanford.edu/archives/spr2026/entries/free-will-foreknowledge/\nCarl Hoefer, “Causal Determinism,” Stanford Encyclopedia of Philosophy, Summer 2026 Edition. 世界の状態と法則から後続が一意に定まるという決定論の定義と、予測可能性との区別を照合。 https://plato.stanford.edu/archives/sum2026/entries/determinism-causal/\nMichael McKenna and D. Justin Coates, “Compatibilism,” Stanford Encyclopedia of Philosophy, Summer 2024 Edition. 決定論と自由意志の両立可能性、および本人の理由に応じた行為の統制を参照。 https://plato.stanford.edu/archives/sum2024/entries/compatibilism/\nAndrea Falcon, “Aristotle on Causality,” Stanford Encyclopedia of Philosophy, Spring 2023 Edition, §§2–5. 「何のためか」という説明の位置づけと、目的による説明が人の意図を越えて論じられてきた範囲を照合。 https://plato.stanford.edu/archives/spr2023/entries/aristotle-causality/\n\n本作品の3DSS原本は、個人で閲覧・学習するため、ご自身の端末へのダウンロード、編集および編集結果の保存ができます。原本や編集した作品の再配布・転載・他サイトでの公開をご希望の場合は、事前にお問い合わせください。\nhttps://3dsl.jp/policy/content-usage/",
     "tags": [
       "m:因果推論",
       "m:確率",
@@ -4936,5 +4936,33 @@
       }
     }
   ],
-  "aux": []
+  "aux": [],
+  "comparisons": [
+    {
+      "id": "39879a73-c864-4e37-ab3c-20632601ef2c",
+      "label": "この一回で切っていたら",
+      "subject": "人が操作して点灯した一回のランプ",
+      "held_constant": "元の一回、指令U=1、スイッチ位置X=0の指定、結果を評価する時点",
+      "cases": [
+        {
+          "label": "配線A",
+          "condition": "スイッチが電路を切り替える。X=0では消灯する。",
+          "element_refs": [
+            "ab648d30-58f4-5c55-bf5b-eb75e825aa15",
+            "9fb885cf-bb9e-5d9e-b42c-f1915b06f226",
+            "be0ae595-8d2d-514f-b20d-317cdefedd2c"
+          ]
+        },
+        {
+          "label": "配線B",
+          "condition": "指令U=1が別の回路で電路を閉じる。X=0でも点灯する。",
+          "element_refs": [
+            "b0ef0272-0572-5b15-ba59-267a74bdd188",
+            "9fb885cf-bb9e-5d9e-b42c-f1915b06f226",
+            "be0ae595-8d2d-514f-b20d-317cdefedd2c"
+          ]
+        }
+      ]
+    }
+  ]
 }
