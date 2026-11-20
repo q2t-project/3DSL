@@ -309,6 +309,7 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null, re
         `f=${entry.font?.key ?? entry.font ?? ""}`,
         `a=${entry.align?.key ?? entry.align ?? ""}`,
         `p=${entry.pose?.key ?? ""}`,
+        entry.writingMode,
         styleKeyFromEntry(entry),
       ].join("|");
 
@@ -378,6 +379,7 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null, re
       if (Number.isFinite(max)) h = Math.min(h,max);
       const lift = h * (Number.isFinite(Number(entry.liftFactor)) ? Number(entry.liftFactor) : Number(labelConfig.world?.offsetYFactor) || 0.6);
       position[labelConfig.world?.upAxis === "y" ? "y" : "z"] += lift;
+      h *= Number(obj.userData?.__labelHeightFactor) || 1;
       const width = h * (Number(obj.userData?.__labelAspect) || 1);
       const ax = Number.isFinite(entry.align?.x) ? entry.align.x : .5;
       const ay = Number.isFinite(entry.align?.y) ? entry.align.y : .5;
@@ -620,7 +622,8 @@ export function createLabelRuntime(scene, { renderOrder = 900, camera = null, re
         if (typeof obj.sync === "function") obj.sync();
         obj.scale.set(1, 1, 1);
       } else if (obj.isSprite || isTextSpriteMesh) {
-        obj.scale.set(h * aspect * scaleMul, h * scaleMul, 1);
+        const labelHeight = h * (Number(obj.userData?.__labelHeightFactor) || 1);
+        obj.scale.set(labelHeight * aspect * scaleMul, labelHeight * scaleMul, 1);
       } else {
         // mesh: uniform
         const u = h * scaleMul;

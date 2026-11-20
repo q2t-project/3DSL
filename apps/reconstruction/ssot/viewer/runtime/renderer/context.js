@@ -1,7 +1,7 @@
 // viewer/runtime/renderer/context.js
 
 import * as THREE from "/vendor/three/build/three.module.js";
-import { plateRenderSpec, arrowPlacement } from "../../../shared/renderConventions.js";
+import { plateRenderSpec, arrowPlacement, surfacePoint, surfaceHatchSegments } from "../../../shared/renderConventions.js";
 import { applyMicroFX as applyMicroFXImpl, clearMicroFX as clearMicroFXImpl } from "./microFX/index.js";
 import { microFXConfig } from "./microFX/config.js";
 // NOTE: microFXConfig は profile 切替の“状態置き場”としても使える（存在すれば）
@@ -589,6 +589,10 @@ function maybeForceContextLoss(renderer, enabled) {
   }
 
   function resolveEndpoint(structIndex, ep, resolvePointPos) {
+  if (typeof ep?.surface_ref === "string") {
+    const surface = structIndex?.uuidToItem?.get(ep.surface_ref)?.item;
+    return surfacePoint(surface?.appearance, ep.uv);
+  }
   if (typeof ep === "string") {
     const u = ep.trim();
     if (!u) return null;
@@ -712,6 +716,7 @@ function maybeForceContextLoss(renderer, enabled) {
     const pts = collect("points");
     const lns = collect("lines");
     const axs = collect("aux");
+    const surfaces = collect("surfaces");
 
     const pointPosByUuid = new Map();
     for (const p of pts) {
@@ -1460,6 +1465,43 @@ if (effectType && effect) {
       lineEffectsRuntime = null;
     }
 
+
+// Native surfaces share the existing auxiliary visibility control. The
+    // authoring object and its UUID remain independent of helper plates.
+    for (const surface of surfaces) {
+      const app = surface.appearance;
+      if (!app || app.visible === false) continue;
+      const corners = [[0, 0], [1, 0], [1, 1], [0, 1]].map(uv => surfacePoint(app, uv));
+      if (corners.some(corner => !corner)) continue;
+      const uuid = surface.meta.uuid;
+      const color = readColor(app.color, 0xcad8e4);
+      const opacity = readOpacity(app.opacity, 0.65);
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.Float32BufferAttribute(corners.flat(), 3));
+      geometry.setIndex([0, 1, 2, 0, 2, 3]);
+      const material = new THREE.MeshBasicMaterial({
+        color, opacity, transparent: opacity < 1, depthWrite: opacity >= 1,
+        side: THREE.DoubleSide, polygonOffset: app.pattern === "hatch",
+        polygonOffsetFactor: 1, polygonOffsetUnits: 1,
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.userData = { uuid, kind: "aux" };
+      if (app.pattern === "hatch") {
+        const hatch = new THREE.BufferGeometry();
+        hatch.setAttribute("position", new THREE.Float32BufferAttribute(surfaceHatchSegments(app).flat(2), 3));
+        const ink = new THREE.Color(color);
+        const hatchMaterial = new THREE.LineBasicMaterial({
+          color: ink.r * 0.2126 + ink.g * 0.7152 + ink.b * 0.0722 > 0.18 ? 0x17212b : 0xf2f5f7,
+          opacity, transparent: opacity < 1, depthWrite: false,
+        });
+        const strokes = new THREE.LineSegments(hatch, hatchMaterial);
+        strokes.renderOrder = 1;
+        mesh.add(strokes);
+      }
+      groups.aux.add(mesh);
+      maps.aux.set(uuid, mesh);
+      addPickTarget(mesh);
+    }
 
 // aux: struct.aux
 // schema: aux[].appearance.module (grid / axis / plate / shell / hud / extension)

@@ -7,9 +7,8 @@ import { fileURLToPath } from "node:url";
 
 // Draft 2020-12 対応 Ajv
 import Ajv2020 from "ajv/dist/2020.js";
-// format 検証が要るなら（今は必須ちゃう）
-// import addFormats from "ajv-formats";
 import addFormats from "ajv-formats";
+import { validateSceneReferences } from "../../../reconstruction/ssot/shared/sceneReferences.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -85,44 +84,6 @@ function isExpectedInvalid(filepath) {
   const parts = filepath.split(path.sep).map((s) => s.toLowerCase());
   if (parts.includes("invalid")) return true;
   return false;
-}
-
-function collectUuids(doc) {
-  const set = new Set();
-  for (const arrName of ["points", "lines", "aux"]) {
-    const arr = Array.isArray(doc?.[arrName]) ? doc[arrName] : [];
-    for (const item of arr) {
-      const u = item?.meta?.uuid;
-      if (typeof u === "string" && u) set.add(u);
-    }
-  }
-  return set;
-}
-
-function checkEndpointRefs(doc) {
-  const uuids = collectUuids(doc);
-  const errs = [];
-
-  const lines = Array.isArray(doc?.lines) ? doc.lines : [];
-  for (const ln of lines) {
-    const lnUuid = ln?.meta?.uuid || "(no-uuid)";
-    const a = ln?.appearance?.end_a;
-    const b = ln?.appearance?.end_b;
-    for (const [which, ep] of [["end_a", a], ["end_b", b]]) {
-      const ref = ep?.ref;
-      if (typeof ref === "string") {
-        if (!uuids.has(ref)) {
-          errs.push({
-            kind: "line.endpoint.ref_missing",
-            line: lnUuid,
-            endpoint: which,
-            ref
-          });
-        }
-      }
-    }
-  }
-  return errs;
 }
 
 function existsDir(p) {
@@ -226,7 +187,7 @@ for (const fp of files) {
   }
 
   const schemaOk = validate(doc);
-  const refErrs = wantRefCheck ? checkEndpointRefs(doc) : [];
+  const refErrs = wantRefCheck && schemaOk ? validateSceneReferences(doc) : [];
   const hasErrors = !schemaOk || refErrs.length > 0;
 
   const expectInvalid = isExpectedInvalid(fp);
@@ -244,7 +205,7 @@ for (const fp of files) {
         }
       }
       for (const r of refErrs) {
-        console.log(`  - ref: ${r.kind} line=${r.line} ${r.endpoint}.ref=${r.ref}`);
+        console.log(`  - ref: ${r.instancePath}: ${r.message}`);
       }
       ngCount++;
     }

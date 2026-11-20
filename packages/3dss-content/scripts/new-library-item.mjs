@@ -8,6 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, '..');
 const LIBRARY_DIR = path.join(ROOT, 'library');
+const SCHEMA_PATH = path.resolve(ROOT, '../schemas/3DSS.schema.json');
 
 function pad2(n) {
   return String(n).padStart(2, '0');
@@ -81,6 +82,11 @@ function main() {
   if (fs.existsSync(dir)) {
     throw new Error(`already exists: ${dir}`);
   }
+  const schema = JSON.parse(fs.readFileSync(SCHEMA_PATH, 'utf8'));
+  const schemaUri = schema.$defs?.validator?.schema_uri?.const;
+  if (typeof schemaUri !== 'string' || !schemaUri) {
+    throw new Error(`missing schema URI: ${SCHEMA_PATH}`);
+  }
   fs.mkdirSync(dir, { recursive: true });
 
   const now = new Date().toISOString();
@@ -115,7 +121,7 @@ function main() {
       created_at: now,
       revised_at: now,
       document_uuid: crypto.randomUUID(),
-      schema_uri: 'https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4',
+      schema_uri: schemaUri,
       author: process.env.USERNAME || process.env.USER || 'unknown',
       version: '1.0.0',
     },

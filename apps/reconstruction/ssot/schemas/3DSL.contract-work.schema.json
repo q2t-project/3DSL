@@ -21,10 +21,10 @@
       "const": "draft"
     },
     "scene": {
-      "$ref": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json"
+      "$ref": "https://3dsl.jp/schemas/release/v2.0.0/3DSS.schema.json"
     },
     "baselineScene": {
-      "$ref": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json"
+      "$ref": "https://3dsl.jp/schemas/release/v2.0.0/3DSS.schema.json"
     },
     "contract": {
       "$ref": "#/$defs/contract"
@@ -62,7 +62,7 @@
       "minLength": 1
     },
     "uuid": {
-      "$ref": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#/$defs/validator/uuid"
+      "$ref": "https://3dsl.jp/schemas/release/v2.0.0/3DSS.schema.json#/$defs/validator/uuid"
     },
     "vec3": {
       "type": "array",
@@ -647,13 +647,13 @@
                 "points": {
                   "type": "array",
                   "items": {
-                    "$ref": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#/$defs/point/node"
+                    "$ref": "https://3dsl.jp/schemas/release/v2.0.0/3DSS.schema.json#/$defs/point/node"
                   }
                 },
                 "lines": {
                   "type": "array",
                   "items": {
-                    "$ref": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#/$defs/line/node"
+                    "$ref": "https://3dsl.jp/schemas/release/v2.0.0/3DSS.schema.json#/$defs/line/node"
                   }
                 }
               }

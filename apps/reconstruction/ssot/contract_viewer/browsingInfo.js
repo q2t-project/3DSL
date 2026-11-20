@@ -3,7 +3,7 @@ const el=(tag,text,cls)=>{const node=document.createElement(tag);if(text!==undef
 const lazy=(parent,title,render)=>{const d=el('details');d.append(el('summary',title));let done=false;d.addEventListener('toggle',()=>{if(d.open&&!done){done=true;render(d);}});parent.append(d);return d;};
 const record=(parent,title,value)=>{if(value!==undefined&&value!==null)lazy(parent,title,d=>d.append(el('pre',typeof value==='string'?value:JSON.stringify(value,null,2))));};
 const row=(parent,label,value)=>{const p=el('p');p.append(el('strong',`${label}: `),document.createTextNode(String(value??'記録なし')));parent.append(p);};
-const kindLabels={occurrence:'出現',target:'対象',relation:'関係',participant:'参与枠',participation:'参与枠',point:'点',line:'線',aux:'補助要素',boundary:'境界'};
+const kindLabels={occurrence:'出現',target:'対象',relation:'関係',participant:'参与枠',participation:'参与枠',point:'点',line:'線',aux:'補助要素',surface:'面',boundary:'境界'};
 const localized=value=>typeof value==='string'?value:value?.ja||value?.en||'';
 export function renderBrowsingInfo(container,{model,index,state,select,explore,fitSelection}) {
   container.replaceChildren();
@@ -13,7 +13,7 @@ export function renderBrowsingInfo(container,{model,index,state,select,explore,f
   if(!entry){
     const summary=localized(model.scene?.document_meta?.document_summary);
     if(summary)header.append(el('p',summary));
-    header.append(el('p','図上の点・線・文字をタップすると、対応する情報と接続先を読めます。検索から名前で直接選べます。'));
+    header.append(el('p','図上の点・線・面・文字をタップすると、対応する情報と接続先を読めます。検索から名前で直接選べます。'));
     const memo=model.scene?.document_meta?.creator_memo;
     if(typeof memo==='string'&&memo.trim())lazy(header,'作者メモ',d=>d.append(el('p',memo)));
   }
@@ -46,6 +46,38 @@ export function renderBrowsingInfo(container,{model,index,state,select,explore,f
     for(const warning of entry.warnings||[])header.append(el('p',warning,'notice'));
     if(details.slot){row(header,'参与役割',details.slot.role);row(header,'接続対象',details.slot.target??details.slot.relation);}
     if(details.relation){row(header,'関係名',details.relation.name||details.relation.id);row(header,'方向',details.relation.direction);row(header,'条件',details.relation.condition||'指定なし');}
+    for (const q of details.quantities ?? []) {
+      const value = q.status === 'recorded' ? `${q.value} ${q.unit}` : {missing:'欠測',not_applicable:'適用外'}[q.status];
+      row(header, q.label, `${value}（${q.subject}）`);
+    }
+    if (details.coordinateContexts?.length) lazy(container, '局所座標', panel=>{
+      const names = {category:'カテゴリ',order:'順序',measure:'測定'};
+      for (const context of details.coordinateContexts) {
+        row(panel, context.label, `原点 ${context.origin.join(', ')}`);
+        for (const axis of context.axes) {
+          const scale = axis.kind === 'measure'
+            ? ` / 原点値 ${axis.value_at_origin} ${axis.unit} / 1 ${axis.unit} = ${axis.coordinate_units_per_unit} 座標単位`
+            : '';
+          row(panel, axis.direction.toUpperCase(), `${axis.label}（${names[axis.kind]}）${scale}`);
+        }
+      }
+    });
+    if (details.comparisons?.length) lazy(container, '条件違いの比較', panel=>{
+      for (const comparison of details.comparisons) {
+        row(panel, comparison.label, `${comparison.subject}（固定条件 ${comparison.held_constant}）`);
+        for (const item of comparison.cases) {
+          row(panel,item.label,item.condition);
+          for (const id of item.element_refs) {
+            const target=index.get(id);
+            if (!target) continue;
+            const button=el('button',target.label,'part-link');
+            button.type='button';
+            button.addEventListener('click',()=>explore(target.id));
+            panel.append(button);
+          }
+        }
+      }
+    });
     const show=el('button','選択を表示','reading-fit-selection');show.type='button';show.disabled=!entry.sceneIds?.length;show.addEventListener('click',()=>fitSelection());header.append(show);
     if(details.target){const copies=index.neighbors(`target:${encodeURIComponent(details.target.id)}`).map(edge=>index.get(edge.toId)).filter(other=>other&&other.id!==entry.id);if(copies.length)lazy(container,'同じ対象の別出現',d=>{for(const other of copies){const button=el('button',`${other.label} · ${other.occurrenceId} / 表示 ${other.frames.length?other.frames.join(', '):'すべて'}`,'part-link');button.type='button';button.addEventListener('click',()=>select(other.id));d.append(button);}});}
     const connections=el('section');connections.id='reading-connections';connections.append(el('h3','記録された接続先'));

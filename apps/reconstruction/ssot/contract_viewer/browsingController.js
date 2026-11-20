@@ -28,9 +28,9 @@ export function createBrowsingController({buildReadModel, validateReadModel, cre
   }
   async function applyState({camera=null}={}) {
     const entry=current(),uuid=entry?.uuid;
-    const kind=uuid?['points','lines','aux'].find(k=>(model.scene[k]||[]).some(e=>e.meta.uuid===uuid)):null;
+    const kind=uuid?['points','lines','aux','surfaces'].find(k=>(model.scene[k]||[]).some(e=>e.meta.uuid===uuid)):null;
     const previous=bridge.snapshot();
-    await bridge.restore({...previous,frame:state.frame,filters:state.filters,scope:scopeIds(),selection:uuid?{uuid,kind}:null,controls:previous.controls?{...previous.controls,mode:'macro',focusUuid:null}:undefined,...(camera?{camera}:{})});
+    await bridge.restore({...previous,frame:state.frame,filters:state.filters,scope:scopeIds(),selection:uuid?{uuid,kind:kind==='surfaces'?'aux':kind}:null,controls:previous.controls?{...previous.controls,mode:'macro',focusUuid:null}:undefined,...(camera?{camera}:{})});
   }
   function subscribe() {
     const stopSelection=bridge.subscribe(selection=>{

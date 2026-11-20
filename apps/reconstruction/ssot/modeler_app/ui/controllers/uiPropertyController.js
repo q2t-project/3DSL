@@ -4,6 +4,8 @@
 // - Separates "unapplied property edits" (buffer dirty) from document dirty
 // - Apply is the commit point (one history step)
 
+import { surfaceUV } from '../../../shared/renderConventions.js';
+
 function getRoleEl(root, role) {
   const el = root.querySelector(`[data-role="${role}"]`);
   return el || null;
@@ -72,6 +74,13 @@ function uuidOf(node) {
 function parseEndpointInput(raw) {
   const s = String(raw ?? "").trim();
   if (!s) return null;
+  if (s.startsWith("surface:")) {
+    const [id, ...coordinates] = s.slice("surface:".length).split(",").map(value => value.trim());
+    const uv = coordinates.map(Number);
+    return id && coordinates.length === 2 && coordinates.every(Boolean)
+      && uv.every(value => Number.isFinite(value) && value >= 0 && value <= 1)
+      ? { surface_ref: id, uv } : null;
+  }
 
   // If it doesn't look like a coord list, treat it as a point uuid ref.
   if (!/[\s,]/.test(s)) {
@@ -86,6 +95,14 @@ function parseEndpointInput(raw) {
   const z = Number(parts[2]);
   if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) return null;
   return { coord: [x, y, z] };
+}
+
+function formatEndpointInput(endpoint) {
+  if (typeof endpoint === "string") return endpoint;
+  if (endpoint?.surface_ref && Array.isArray(endpoint.uv)) {
+    return `surface:${endpoint.surface_ref},${endpoint.uv.join(",")}`;
+  }
+  return endpoint?.ref ?? endpoint?.coord?.join(",") ?? "";
 }
 
 function parseFramesInput(raw) {
@@ -117,6 +134,8 @@ function findByUuid(doc, uuid) {
     const n = doc.aux.find((p) => uuidOf(p) === uuid);
     if (n) return { kind: "aux", node: n };
   }
+  const surface = doc.surfaces?.find(item => uuidOf(item) === uuid);
+  if (surface) return { kind: "surface", node: surface };
   return { kind: null, node: null };
 }
 
@@ -177,7 +196,7 @@ function getMarkerTextContent(node) {
 
 function getMarkerTextSize(node) {
   const t = getMarkerText(node);
-  return Number.isFinite(Number(t?.size)) ? Number(t.size) : 10;
+  return Number.isFinite(Number(t?.size)) ? Number(t.size) : 8;
 }
 
 function getMarkerTextAlign(node) {
@@ -208,6 +227,11 @@ function getCaptionTextSize(node) {
   const ct = getCaptionText(node);
   const s = ct?.font_size;
   return Number.isFinite(Number(s)) ? Number(s) : 8;
+}
+function checkTextScopeSize(size) {
+  if (size < 0.125 || size > 256 || 2 ** Math.round(Math.log2(size)) !== size) {
+    throw new Error("文字サイズは 0.125 から 256 までの2の整数乗を指定してください。");
+  }
 }
 function getCaptionTextAlign(node) {
   const ct = getCaptionText(node);
@@ -271,6 +295,7 @@ export function createUiPropertyController(deps) {
   const textField = getRoleEl(root, "prop-text-field");
   const inpTextContent = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-text-content"));
   const inpTextSize = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-text-size"));
+  const selTextWritingMode = /** @type {HTMLSelectElement|null} */ (getRoleEl(root, "prop-text-writing-mode"));
   const selTextAlign = /** @type {HTMLSelectElement|null} */ (getRoleEl(root, "prop-text-align"));
   const inpTextFrontX = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-text-front-x"));
   const inpTextFrontY = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-text-front-y"));
@@ -306,6 +331,7 @@ export function createUiPropertyController(deps) {
   const captionTextField = getRoleEl(root, "prop-caption-text-field");
   const inpCaptionTextContent = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-caption-text-content"));
   const inpCaptionTextSize = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-caption-text-size"));
+  const selCaptionWritingMode = /** @type {HTMLSelectElement|null} */ (getRoleEl(root, "prop-caption-text-writing-mode"));
   const selCaptionTextAlign = /** @type {HTMLSelectElement|null} */ (getRoleEl(root, "prop-caption-text-align"));
   const inpCaptionTextFrontX = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-caption-text-front-x"));
   const inpCaptionTextFrontY = /** @type {HTMLInputElement|null} */ (getRoleEl(root, "prop-caption-text-front-y"));
@@ -445,26 +471,17 @@ function previewCaptureBase(uuid, kind) {
     /** @type {any} */
     const base = { uuid: u, kind: k };
 
-    if (k === "point" || k === "aux") {
+    if (k === "point" || k === "aux" || k === "surface") {
       base.pos = getPos(found.node);
     }
 
     if (k === "line") {
       const aObj = found.node?.appearance?.end_a ?? found.node?.end_a;
       const bObj = found.node?.appearance?.end_b ?? found.node?.end_b;
-      const a = (aObj && typeof aObj === "object") ? (typeof aObj.ref === "string" ? aObj.ref : (Array.isArray(aObj.coord) ? aObj.coord.join(",") : "")) : String(aObj || "");
-      const b = (bObj && typeof bObj === "object") ? (typeof bObj.ref === "string" ? bObj.ref : (Array.isArray(bObj.coord) ? bObj.coord.join(",") : "")) : String(bObj || "");
-      base.endA = parseEndpointInput(a);
-      base.endB = parseEndpointInput(b);
+      base.endA = parseEndpointInput(formatEndpointInput(aObj));
+      base.endB = parseEndpointInput(formatEndpointInput(bObj));
 
-      const beforeCTPose = getCaptionTextPose(found.node);
-      const ct = getCaptionText(found.node) ? {
-        content: getCaptionTextContent(found.node),
-        size: getCaptionTextSize(found.node),
-        ...(getCaptionTextAlign(found.node) ? { align: getCaptionTextAlign(found.node) } : {}),
-        ...(beforeCTPose ? { pose: beforeCTPose } : {}),
-      } : null;
-      base.captionText = ct;
+      base.captionText = structuredClone(getCaptionText(found.node));
       base.captionFallback = getLineCaption(found.node) || "";
     }
 
@@ -536,6 +553,7 @@ function previewRevertToBase() {
     if (inpEndB) inpEndB.disabled = !en;
     if (inpTextContent) inpTextContent.disabled = !en;
     if (inpTextSize) inpTextSize.disabled = !en;
+    if (selTextWritingMode) selTextWritingMode.disabled = !en;
     if (selTextAlign) selTextAlign.disabled = !en;
     if (inpTextFrontX) inpTextFrontX.disabled = !en;
     if (inpTextFrontY) inpTextFrontY.disabled = !en;
@@ -545,6 +563,7 @@ function previewRevertToBase() {
     if (inpTextUpZ) inpTextUpZ.disabled = !en;
     if (inpCaptionTextContent) inpCaptionTextContent.disabled = !en;
     if (inpCaptionTextSize) inpCaptionTextSize.disabled = !en;
+    if (selCaptionWritingMode) selCaptionWritingMode.disabled = !en;
     if (selCaptionTextAlign) selCaptionTextAlign.disabled = !en;
     if (inpCaptionTextFrontX) inpCaptionTextFrontX.disabled = !en;
     if (inpCaptionTextFrontY) inpCaptionTextFrontY.disabled = !en;
@@ -564,8 +583,8 @@ function previewRevertToBase() {
     if (btnClearEndB) btnClearEndB.disabled = !!lockedActive;
 
     try {
-      if (endpointPick === "a") setHud?.("Pick end_a: click a point in preview (ESC to cancel)");
-      else if (endpointPick === "b") setHud?.("Pick end_b: click a point in preview (ESC to cancel)");
+      if (endpointPick === "a") setHud?.("Pick end_a: click a point or surface in preview (ESC to cancel)");
+      else if (endpointPick === "b") setHud?.("Pick end_b: click a point or surface in preview (ESC to cancel)");
     } catch {}
   }
 
@@ -732,6 +751,12 @@ function draftDiscard({ reason = "" } = {}) {
   function formatEndpointRef(doc, ref) {
     const v = String(ref || "");
     if (!v) return "";
+    const endpoint = parseEndpointInput(v);
+    if (endpoint?.surface_ref) {
+      const surface = doc?.surfaces?.find(item => uuidOf(item) === endpoint.surface_ref);
+      return surface ? `${localizedStringText(surface.signification?.name)} (u=${endpoint.uv[0]}, v=${endpoint.uv[1]})`
+        : `unknown surface (${endpoint.surface_ref.slice(0, 8)}…)`;
+    }
     // UUID reference to an existing point
     const pts = Array.isArray(doc?.points) ? doc.points : [];
     for (const p of pts) {
@@ -750,14 +775,16 @@ function draftDiscard({ reason = "" } = {}) {
     const doc = core.getDocument?.();
     const found = findByUuid(doc, uuid);
 
-    const name = (found.kind === "line") ? getLineCaption(found.node) : getPointName(found.node);
+    const name = found.kind === "line" ? getLineCaption(found.node)
+      : found.kind === "surface" ? localizedStringText(found.node.signification?.name) : getPointName(found.node);
     if (inpName) inpName.value = name;
 
     const isPoint = found.kind === "point";
     const isAux = found.kind === "aux";
     const isLine = found.kind === "line";
+    const isSurface = found.kind === "surface";
 
-    if (framesField) framesField.hidden = !(isPoint || isLine || isAux);
+    if (framesField) framesField.hidden = !(isPoint || isLine || isAux || isSurface);
     if (inpFrames) {
       const frames = found.node?.appearance?.frames ?? found.node?.frames;
       inpFrames.value = Array.isArray(frames) ? frames.join(",") : (frames == null ? "" : String(frames));
@@ -771,6 +798,7 @@ function draftDiscard({ reason = "" } = {}) {
     if (isPoint) {
       if (inpTextContent) inpTextContent.value = getMarkerTextContent(found.node);
       if (inpTextSize) inpTextSize.value = String(getMarkerTextSize(found.node));
+      if (selTextWritingMode) selTextWritingMode.value = getMarkerText(found.node)?.writing_mode ?? "";
       if (selTextAlign) selTextAlign.value = getMarkerTextAlign(found.node);
       const pose = getMarkerTextPose(found.node);
       if (inpTextFrontX) inpTextFrontX.value = pose ? String(pose.front[0]) : "";
@@ -782,6 +810,7 @@ function draftDiscard({ reason = "" } = {}) {
     } else {
       if (inpTextContent) inpTextContent.value = "";
       if (inpTextSize) inpTextSize.value = "";
+      if (selTextWritingMode) selTextWritingMode.value = "";
       if (selTextAlign) selTextAlign.value = "";
       if (inpTextFrontX) inpTextFrontX.value = "";
       if (inpTextFrontY) inpTextFrontY.value = "";
@@ -791,7 +820,7 @@ function draftDiscard({ reason = "" } = {}) {
       if (inpTextUpZ) inpTextUpZ.value = "";
     }
     if (nameLabel) nameLabel.textContent = isLine ? "関係の名称" : "名称";
-    if (posField) posField.hidden = !(isPoint || isAux);
+    if (posField) posField.hidden = !(isPoint || isAux || isSurface);
     if (lineEndsField) lineEndsField.hidden = !isLine;
     if (captionTextField) { captionTextField.hidden = !isLine; captionTextField.style.display = isLine ? "" : "none"; }
 
@@ -809,7 +838,7 @@ function draftDiscard({ reason = "" } = {}) {
         field.style.display = isAux ? 'none' : '';
       }
     }
-    if (isPoint || isAux) {
+    if (isPoint || isAux || isSurface) {
       const [x, y, z] = getPos(found.node);
       if (inpX) inpX.value = String(x);
       if (inpY) inpY.value = String(y);
@@ -831,8 +860,8 @@ function draftDiscard({ reason = "" } = {}) {
       // Keep read-side tolerant for legacy docs that may still have end_a/end_b at root.
       const aObj = found.node?.appearance?.end_a ?? found.node?.end_a;
       const bObj = found.node?.appearance?.end_b ?? found.node?.end_b;
-      const a = (aObj && typeof aObj === "object") ? (typeof aObj.ref === "string" ? aObj.ref : (Array.isArray(aObj.coord) ? aObj.coord.join(",") : "")) : String(aObj || "");
-      const b = (bObj && typeof bObj === "object") ? (typeof bObj.ref === "string" ? bObj.ref : (Array.isArray(bObj.coord) ? bObj.coord.join(",") : "")) : String(bObj || "");
+      const a = formatEndpointInput(aObj);
+      const b = formatEndpointInput(bObj);
       if (inpEndA) inpEndA.value = a;
       if (inpEndB) inpEndB.value = b;
 
@@ -841,6 +870,7 @@ function draftDiscard({ reason = "" } = {}) {
 
       // caption_text (appearance.caption_text)
       if (inpCaptionTextContent) inpCaptionTextContent.value = getCaptionTextContent(found.node);
+      if (selCaptionWritingMode) selCaptionWritingMode.value = getCaptionText(found.node)?.writing_mode ?? "";
       if (inpCaptionTextSize) {
         const v = getCaptionTextSize(found.node);
         inpCaptionTextSize.value = v ? String(v) : "";
@@ -878,6 +908,7 @@ function draftDiscard({ reason = "" } = {}) {
       if (endBResolvedEl) endBResolvedEl.textContent = "";
       if (inpCaptionTextContent) inpCaptionTextContent.value = "";
       if (inpCaptionTextSize) inpCaptionTextSize.value = "";
+      if (selCaptionWritingMode) selCaptionWritingMode.value = "";
       if (selCaptionTextAlign) selCaptionTextAlign.value = "";
       if (inpCaptionTextFrontX) inpCaptionTextFrontX.value = "";
       if (inpCaptionTextFrontY) inpCaptionTextFrontY.value = "";
@@ -980,14 +1011,18 @@ function draftDiscard({ reason = "" } = {}) {
       const beforePose = getMarkerTextPose(found.node);
       const content = inpTextContent ? String(inpTextContent.value ?? "") : beforeContent;
       const size = finiteInput(inpTextSize, beforeSize, "Text size");
+      if (content && size !== beforeSize) checkTextScopeSize(size);
+      const beforeWritingMode = beforeText?.writing_mode ?? "";
+      const writingMode = selTextWritingMode?.value ?? beforeWritingMode;
       const align = selTextAlign ? String(selTextAlign.value ?? "") : beforeAlign;
       const pose = readPose([inpTextFrontX, inpTextFrontY, inpTextFrontZ], [inpTextUpX, inpTextUpY, inpTextUpZ], beforePose, !!content);
-      const changed = content !== beforeContent || size !== beforeSize || align !== beforeAlign || JSON.stringify(pose) !== JSON.stringify(beforePose);
+      const changed = content !== beforeContent || size !== beforeSize || writingMode !== beforeWritingMode || align !== beforeAlign || JSON.stringify(pose) !== JSON.stringify(beforePose);
       if (changed) {
         if (!content) add("/appearance/marker/text", beforeText, null);
         else {
           const next = { ...(beforeText || {}), content };
           if (!beforeText || size !== beforeSize) next.size = size;
+          if (writingMode) next.writing_mode = writingMode; else delete next.writing_mode;
           if (align !== beforeAlign) { if (align) next.align = align; else delete next.align; }
           if (pose) next.pose = pose;
           // New label follows the schema's default fixed plane.
@@ -1002,27 +1037,36 @@ function draftDiscard({ reason = "" } = {}) {
       const beforeCT = getCaptionText(found.node);
       const beforeSize = getCaptionTextSize(found.node);
       const size = finiteInput(inpCaptionTextSize, beforeSize, "Caption font_size");
-      if (size < 0.125 || size > 256) throw new Error("Caption font_size must be 0.125..256");
+      if (size !== beforeSize) checkTextScopeSize(size);
+      const beforeWritingMode = beforeCT?.writing_mode ?? "";
+      const writingMode = selCaptionWritingMode?.value ?? beforeWritingMode;
       const beforePose = getCaptionTextPose(found.node);
       const pose = readPose([inpCaptionTextFrontX, inpCaptionTextFrontY, inpCaptionTextFrontZ], [inpCaptionTextUpX, inpCaptionTextUpY, inpCaptionTextUpZ], beforePose);
-      if (size !== beforeSize || JSON.stringify(pose) !== JSON.stringify(beforePose)) {
+      if (size !== beforeSize || writingMode !== beforeWritingMode || JSON.stringify(pose) !== JSON.stringify(beforePose)) {
         const next = { ...(beforeCT || {}) };
         if (size !== beforeSize) next.font_size = size;
+        if (writingMode) next.writing_mode = writingMode; else delete next.writing_mode;
         if (pose) next.pose = pose; else delete next.pose;
         add("/appearance/caption_text", beforeCT, next);
       }
       const pointUuids = new Set((doc.points || []).map(uuidOf));
+      const surfaceUuids = new Set((doc.surfaces || []).map(uuidOf));
       for (const [side, input] of [["a", inpEndA], ["b", inpEndB]]) {
         const key = `end_${side}`;
         const before = found.node?.appearance?.[key] ?? found.node?.[key] ?? null;
         if (!input) continue;
         const endpoint = parseEndpointInput(input.value);
-        if (!endpoint) throw new Error(`${key}: point UUID or exactly three coordinates required`);
+        if (!endpoint) throw new Error(`${key}: point UUID, three coordinates, or surface:UUID,u,v required`);
         if (endpoint.ref && !pointUuids.has(endpoint.ref)) throw new Error(`${key}: point UUID not found: ${endpoint.ref}`);
+        if (endpoint.surface_ref && !surfaceUuids.has(endpoint.surface_ref)) throw new Error(`${key}: surface UUID not found: ${endpoint.surface_ref}`);
         add(`/appearance/${key}`, before, endpoint);
       }
     }
-    if (found.kind === "point" || found.kind === "aux") {
+    if (found.kind === "surface") {
+      const beforeName = localizedStringText(found.node.signification?.name);
+      add("/signification/name", beforeName, inpName ? String(inpName.value ?? "").trim() : beforeName);
+    }
+    if (["point", "aux", "surface"].includes(found.kind)) {
       const before = getPos(found.node);
       const next = [inpX, inpY, inpZ].map((input, i) => finiteInput(input, before[i], `Position ${"XYZ"[i]}`));
       add("/appearance/position", before, next);
@@ -1045,13 +1089,13 @@ function draftDiscard({ reason = "" } = {}) {
     if (!found.node) return clone;
 
     for (const op of patch.ops || []) {
-      if (op.path === "/signification/name" && found.kind === "point") {
+      if (op.path === "/signification/name" && (found.kind === "point" || found.kind === "surface")) {
         setPointName(found.node, String(op.after ?? ""));
       }
       else if (op.path === "/signification/caption" && found.kind === "line") {
         setLineCaption(found.node, String(op.after ?? ""));
       }
-      else if (op.path === "/appearance/position" && (found.kind === "point" || found.kind === "aux")) {
+      else if (op.path === "/appearance/position" && ["point", "aux", "surface"].includes(found.kind)) {
         setPos(found.node, op.after);
       }
       else if (op.path === "/appearance/marker/text" && found.kind === "point") {
@@ -1178,7 +1222,7 @@ function draftDiscard({ reason = "" } = {}) {
     try {
       const doc = core.getDocument?.();
 
-      if (previewSetPosition && (active.kind === "point" || active.kind === "aux")) {
+      if (previewSetPosition && ["point", "aux", "surface"].includes(active.kind)) {
         const found = findByUuid(doc, active.uuid);
         const beforePos = found?.node ? getPos(found.node) : [0, 0, 0];
         pendingPreviewUuid = String(active.uuid);
@@ -1222,7 +1266,9 @@ function draftDiscard({ reason = "" } = {}) {
           const beforeSize = found?.node ? getCaptionTextSize(found.node) : 8;
           const size = inpCaptionTextSize ? num(inpCaptionTextSize.value, beforeSize) : beforeSize;
           const align = selCaptionTextAlign ? String(selCaptionTextAlign.value || "") : (found?.node ? getCaptionTextAlign(found.node) : "");
-          pendingPreviewCaptionText = content ? { content, size, ...(align ? { align } : {}), ...(pose ? { pose } : {}) } : null;
+          const style = found?.node ? getCaptionText(found.node) : null;
+          const writingMode = selCaptionWritingMode?.value ?? style?.writing_mode ?? "";
+          pendingPreviewCaptionText = content ? { ...style, content, font_size: size, align, pose, writing_mode: writingMode } : null;
         }
       }
 
@@ -1352,6 +1398,8 @@ function draftDiscard({ reason = "" } = {}) {
   if (inpName) inpName.addEventListener("input", onAnyInput, { signal });
   if (inpTextContent) inpTextContent.addEventListener("input", onAnyInput, { signal });
   if (inpTextSize) inpTextSize.addEventListener("input", onAnyInput, { signal });
+  selTextWritingMode?.addEventListener("change", onAnyInput, { signal });
+  selCaptionWritingMode?.addEventListener("change", onAnyInput, { signal });
   if (selTextAlign) selTextAlign.addEventListener("change", onAnyInput, { signal });
   if (selAuxModule) selAuxModule.addEventListener("change", onAnyInput, { signal });
   if (inpX) inpX.addEventListener("input", onAnyInput, { signal });
@@ -1411,8 +1459,8 @@ function draftDiscard({ reason = "" } = {}) {
     // During endpoint pick, we intercept preview clicks to set end_a/end_b.
     const uuid = issueLike?.uuid ? String(issueLike.uuid) : "";
     const kind = String(issueLike?.kind || "").toLowerCase();
-    if (!uuid || kind !== "point") {
-      try { setHud("Pick a point for endpoint"); } catch {}
+    if (!uuid || (kind !== "point" && kind !== "surface")) {
+      try { setHud("Pick a point or surface for endpoint"); } catch {}
       return true;
     }
     if (!active || active.kind !== "line") {
@@ -1424,13 +1472,15 @@ function draftDiscard({ reason = "" } = {}) {
       cancelEndpointPick();
       return true;
     }
-    if (endpointPick === "a") {
-      if (inpEndA) inpEndA.value = uuid;
-    } else {
-      if (inpEndB) inpEndB.value = uuid;
+    let endpoint = uuid;
+    if (kind === "surface") {
+      const surface = core.getDocument?.()?.surfaces?.find(item => uuidOf(item) === uuid);
+      const uv = surfaceUV(surface?.appearance, issueLike.point);
+      if (!uv) return true;
+      endpoint = formatEndpointInput({ surface_ref: uuid, uv });
     }
-    onAnyInput();
     const which = endpointPick;
+    setEndpointValue(which, endpoint);
     setEndpointPick(null);
     try { setHud(`Set end_${which} = ${uuid.slice(0, 8)}…`); } catch {}
     return true;
@@ -1620,6 +1670,7 @@ function draftDiscard({ reason = "" } = {}) {
       }
       else if (path.startsWith("/appearance/marker/text/content")) target = inpTextContent;
       else if (path.startsWith("/appearance/marker/text/size")) target = inpTextSize;
+      else if (path.startsWith("/appearance/marker/text/writing_mode")) target = selTextWritingMode;
       else if (path.startsWith("/appearance/marker/text/align")) target = selTextAlign;
       else if (path.startsWith("/appearance/marker/text/pose/front")) {
         const m = path.match(/^\/appearance\/marker\/text\/pose\/front\/(\d+)/);
@@ -1636,6 +1687,7 @@ function draftDiscard({ reason = "" } = {}) {
       else if (path.startsWith("/end_b")) target = inpEndB;
       else if (path.startsWith("/appearance/caption_text/content")) target = inpCaptionTextContent;
       else if (path.startsWith("/appearance/caption_text/font_size") || path.startsWith("/appearance/caption_text/size")) target = inpCaptionTextSize;
+      else if (path.startsWith("/appearance/caption_text/writing_mode")) target = selCaptionWritingMode;
       else if (path.startsWith("/appearance/caption_text/align")) target = selCaptionTextAlign;
       else if (path.startsWith("/appearance/caption_text/pose/front")) {
         const m = path.match(/^\/appearance\/caption_text\/pose\/front\/(\d+)/);

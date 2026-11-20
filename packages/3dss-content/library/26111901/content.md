@@ -27,4 +27,6 @@
 - Michael McKenna and D. Justin Coates, “Compatibilism,” Stanford Encyclopedia of Philosophy, Summer 2024 Edition. 決定論と自由意志の両立可能性、および本人の理由に応じた行為の統制を参照。 [両立論の記事](https://plato.stanford.edu/archives/sum2024/entries/compatibilism/)
 - Andrea Falcon, “Aristotle on Causality,” Stanford Encyclopedia of Philosophy, Spring 2023 Edition, §§2–5. 「何のためか」という説明の位置づけと、目的による説明が人の意図を越えて論じられてきた範囲を照合。 [アリストテレスの因果論の記事](https://plato.stanford.edu/archives/spr2023/entries/aristotle-causality/)
 
-公開版 v1.0.0 ／ 3DSS スキーマ v1.1.4
+Viewerで「反事実」を選ぶと、「条件違いの比較」から二つの配線を読み比べられます。
+
+公開版 v1.0.1 ／ 3DSS スキーマ v2.0.0

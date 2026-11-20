@@ -734,7 +734,7 @@
     "document_meta": {
       "document_title": "R1 F2",
       "document_uuid": "bd12b2a4-f4b2-467a-8244-227ca78c5492",
-      "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
+      "schema_uri": "https://3dsl.jp/schemas/release/v2.0.0/3DSS.schema.json#v2.0.0",
       "version": "1.1.4",
       "author": "q2t",
       "created_at": "2026-10-09T07:43:39Z",
@@ -1476,7 +1476,7 @@
     "document_meta": {
       "document_title": "R1 F2",
       "document_uuid": "bd12b2a4-f4b2-467a-8244-227ca78c5492",
-      "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
+      "schema_uri": "https://3dsl.jp/schemas/release/v2.0.0/3DSS.schema.json#v2.0.0",
       "version": "1.1.4",
       "author": "q2t",
       "created_at": "2026-10-09T07:43:39Z",

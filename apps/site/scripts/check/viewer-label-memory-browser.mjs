@@ -18,8 +18,7 @@ for(let i=0;i<252;i++) {
 // Keep this fixture synthetic. It exercises a different loading pattern from
 // the multi-frame example: a dense single frame with points AND edge captions.
 const singleFrame={document_meta:structuredClone(specimen.document_meta),points:[],lines:[],aux:[]};
-const sizes=[16,...Array(8).fill(9),...Array(36).fill(2.2),...Array(32).fill(1.5),
- ...Array(27).fill(1.6),...Array(38).fill(1)];
+const sizes=[16,...Array(8).fill(8),...Array(95).fill(2),...Array(38).fill(1)];
 for(let i=0;i<142;i++) {
  const point=structuredClone(specimen.points[0]);
  point.meta={uuid:'10000000-0000-4000-8000-'+String(i+1).padStart(12,'0')};
@@ -39,7 +38,7 @@ for(let i=0;i<163;i++) {
  edge.appearance.end_a={ref:singleFrame.points[i%142].meta.uuid};
  edge.appearance.end_b={ref:singleFrame.points[(i+13)%142].meta.uuid};
  edge.appearance.frames=[1];
- edge.appearance.caption_text={font_size:i%8===0?1.4:.4,pose:{front:[1,0,0],up:[0,0,1]}};
+ edge.appearance.caption_text={font_size:i%8===0?1:0.5,pose:{front:[1,0,0],up:[0,0,1]}};
  singleFrame.lines.push(edge);
 }
 // Exercise auxiliary planes through the public WebGL loading/reopening path.

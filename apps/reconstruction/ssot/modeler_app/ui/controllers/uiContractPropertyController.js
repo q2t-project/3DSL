@@ -174,6 +174,23 @@ export function createUiContractPropertyController({ root, hub, core, legacy, si
     }});
     el('p',`現在の内側・辺上：${(hub.getContractMeaning?.()?.members || []).join(', ') || 'なし'}`,'contract-help');
   }
+  function renderSurface(info) {
+    const { meta, appearance, signification } = info.surface;
+    const name = signification.name;
+    el('h3', typeof name === 'string' ? name : (name.ja || name.en || '面'), 'contract-title');
+    field({ owner: meta.uuid, name: 'position', label: '面の中心 x, y, z', value: appearance.position.join(', '),
+      operation: value => ({ type: 'surface-appearance', surface: meta.uuid, position: vector(value) }) });
+    field({ owner: meta.uuid, name: 'plane', label: '座標面', value: appearance.plane,
+      choices: ['xy', 'xz', 'yz'].map(value => ({ value, label: value.toUpperCase() })),
+      operation: plane => ({ type: 'surface-appearance', surface: meta.uuid, plane }) });
+    field({ owner: meta.uuid, name: 'size', label: '面内寸法 u, v', value: appearance.size.join(', '), operation: value => {
+      const size = value.split(',').map(Number);
+      if (size.length !== 2 || size.some(dimension => !Number.isFinite(dimension) || dimension <= 0)) {
+        throw new Error('面内寸法は正の数値をカンマで2つ指定してな。');
+      }
+      return { type: 'surface-appearance', surface: meta.uuid, size };
+    } });
+  }
   function renderPending(c) {
     const list=c.draft?.pendingRelations || [];
     if(!list.length)return;
@@ -256,6 +273,7 @@ export function createUiContractPropertyController({ root, hub, core, legacy, si
     if(info?.kind==='occurrence')renderOccurrence(info,c,appearanceOpen);
     else if(info?.kind==='relation')renderRelation(info,c);
     else if(info?.kind==='boundary')renderBoundary(info);
+    else if(info?.kind==='surface')renderSurface(info);
     else {
       el('p',ids.length>1?'複数選択中。この版の契約編集は一出現・一関係ずつ。':'図の点・関係・境界を選ぶと、変更範囲と入力欄がここに出る。','contract-help');
       const nav=el('details',null,'contract-details');el('summary','対象・関係を選ぶ','',nav);

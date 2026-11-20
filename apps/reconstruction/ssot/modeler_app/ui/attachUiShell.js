@@ -234,6 +234,7 @@ export function attachUiShell({ root, hub, modelUrl }) {
     const p = has(doc.points); if (p) return { kind: 'point', node: p };
     const l = has(doc.lines);  if (l) return { kind: 'line', node: l };
     const a = has(doc.aux);    if (a) return { kind: 'aux', node: a };
+    const s = has(doc.surfaces); if (s) return { kind: 'surface', node: s };
     return { kind: null, node: null };
   };
 
@@ -241,7 +242,8 @@ export function attachUiShell({ root, hub, modelUrl }) {
   const updateInspectorTarget = (kind, label) => {
     if (!modelFirst) return;
     const target = root.querySelector('[data-ui-role="prop-target-label"]');
-    if (target) target.textContent = label ? `${kind === "point" ? "点" : kind === "line" ? "線" : "補助"}：${label}` : "モデル上の要素を選択";
+    const kindLabel = { point: "点", line: "線", surface: "面", aux: "補助" }[kind];
+    if (target) target.textContent = label && kindLabel ? `${kindLabel}：${label}` : "モデル上の要素を選択";
     const details = root.querySelector('[data-ui-role="prop-name-details"]');
     if (details && kind !== inspectorKind) details.open = kind === "line";
     const nameLabel = getRoleEl(root, "prop-name-label");
@@ -281,6 +283,7 @@ export function attachUiShell({ root, hub, modelUrl }) {
       const v = key || nm;
       label = v ? `aux: ${v}` : '';
     }
+    else if (kind === 'surface') label = pickText(node?.signification?.name);
 
     if (!label) label = uuid ? uuid.slice(0, 8) : '';
 

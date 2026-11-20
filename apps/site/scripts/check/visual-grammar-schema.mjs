@@ -1,4 +1,4 @@
-// HG-V1 candidate contract checks. Does not switch any shipped validator/schema.
+// Verify the visual grammar candidate, current release and frozen legacy schemas.
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -13,6 +13,7 @@ const schema = await readJson('packages/schemas/candidates/v2.0.0/3DSS.schema.js
 const oldSchema = await readJson('packages/schemas/release/v1.1.4/3DSS.schema.json');
 const previousReleaseSchema = await readJson('packages/schemas/release/v1.1.3/3DSS.schema.json');
 const currentSchema = await readJson('packages/schemas/3DSS.schema.json');
+const releaseSchema = await readJson('packages/schemas/release/v2.0.0/3DSS.schema.json');
 const compile = value => new Ajv2020({ allErrors: true, strict: false, coerceTypes: false, useDefaults: false, removeAdditional: false }).compile(value);
 const validateSchema = compile(schema);
 const validateOld = compile(oldSchema);
@@ -31,12 +32,17 @@ const candidateErrors = document => {
 const base = await fixture('valid_styles_and_membership.3dss.json');
 ok(candidateValid(base), `valid candidate: ${JSON.stringify(candidateErrors(base))}`);
 ok(schema.$id.includes('/candidates/'), 'candidate cannot masquerade as a release');
-eq(currentSchema, oldSchema, 'public latest still equals its frozen v1.1.4 release');
+eq(currentSchema, releaseSchema, 'the canonical schema matches the frozen v2.0.0 release');
 const frozenBase = JSON.stringify(base);
 ok(candidateValid(base), 'candidate validates without a normalization pass');
 eq(JSON.stringify(base), frozenBase, 'validation does not insert defaults, coerce, delete, or alter appearance');
 eq(JSON.parse(JSON.stringify(base)), base, 'new fields survive plain JSON serialization; not a Modeler round-trip claim');
 ok(!validateOld(base), 'old schema explicitly rejects the new contract');
+const releaseBase = clone(base);
+releaseBase.document_meta.schema_uri = currentSchema.$defs.validator.schema_uri.const;
+releaseBase.document_meta.version = '1.0.0';
+ok(validateCurrent(releaseBase), 'release accepts an independently versioned work');
+ok(!validateCurrent(base), 'release rejects the candidate URI');
 
 const paths = [
   ['point', document => document.points[0].appearance.marker.text, 'size', '/points/0/appearance/marker/text/size'],
@@ -111,7 +117,7 @@ eq(noCascade.lines[0].appearance.color, originalLineColor, 'multiple declaration
 const legacy = await fixture('legacy_permitted_sizes.3dss.json');
 const legacyBefore = JSON.stringify(legacy);
 ok(validateOld(legacy), `old non-power sizes remain legal: ${JSON.stringify(validateOld.errors)}`);
-ok(validateCurrent(legacy), 'public current schema still accepts the legacy fixture');
+ok(!validateCurrent(legacy), 'legacy fixture declares its frozen schema');
 eq(JSON.stringify(legacy), legacyBefore, 'legacy 13 / 6 / 10 are not rounded');
 const previousReleaseDocument = clone(legacy);
 previousReleaseDocument.document_meta.schema_uri = previousReleaseSchema.$id + '#v1.1.3';
@@ -127,12 +133,11 @@ ok(!validateSchema(uriOnly), 'changing only a version declaration is not a migra
 const legacyMathOmitted = clone(legacy); delete legacyMathOmitted.aux[0].appearance.module.extension.latex.font_size;
 ok(validateOld(legacyMathOmitted), 'old omitted math size remains valid and untouched');
 
-// Exercise the actual unchanged legacy Modeler validator, including reference
-// checks that pure JSON Schema cannot perform. No production module is edited.
+// Exercise the shipped Modeler validator, including structural references.
 const { default: createBundledAjv } = await import('../../../reconstruction/ssot/vendor/ajv/dist/ajv.js');
 const reconstructionSchema = await readJson('apps/reconstruction/ssot/schemas/3DSS.schema.json');
 const previousAjv = globalThis.Ajv, previousFetch = globalThis.fetch;
-let legacyValid = 0, legacyInvalid = 0;
+let runtimeValid = 0, runtimeInvalid = 0;
 try {
   globalThis.Ajv = createBundledAjv;
   globalThis.fetch = async url => {
@@ -142,8 +147,8 @@ try {
   const { createCoreControllers } = await import('../../../reconstruction/ssot/modeler_app/runtime/core/coreControllers.js');
   const validator = createCoreControllers({ emit() {} }).validator;
   await validator.ensureInitialized();
-  ok(validator.isReady(), 'shipped legacy validator initializes');
-  ok(validator.validate(clone(legacy)), 'shipped legacy validator accepts preserved 13 / 6 / 10');
+  ok(validator.isReady(), 'shipped validator initializes');
+  ok(validator.validate(clone(releaseBase)), 'shipped validator accepts the v2.0.0 visual grammar');
   for (const [relative, classification] of [
     ['packages/3dss-content/canonical/valid', 'valid'],
     ['packages/3dss-content/canonical/invalid', 'invalid'],
@@ -153,9 +158,9 @@ try {
       const document = await readJson(`${relative}/${filename}`);
       const expected = classification === 'filename' ? filename.startsWith('valid_') : classification === 'valid';
       const before = JSON.stringify(document);
-      eq(validator.validate(document), expected, `legacy baseline ${relative}/${filename}`);
-      eq(JSON.stringify(document), before, `legacy validation nonmutation ${filename}`);
-      if (expected) legacyValid++; else legacyInvalid++;
+      eq(validator.validate(document), expected, `runtime baseline ${relative}/${filename}`);
+      eq(JSON.stringify(document), before, `non-mutating validation of ${filename}`);
+      if (expected) runtimeValid++; else runtimeInvalid++;
     }
   }
 } finally {
@@ -166,6 +171,11 @@ try {
 const optionalModel = process.argv[2];
 if (optionalModel) {
   const document = JSON.parse(await fs.readFile(path.resolve(optionalModel), 'utf8'));
-  ok(candidateValid(document), `requested model: ${JSON.stringify(candidateErrors(document))}`);
+  if (document.document_meta?.schema_uri === currentSchema.$defs.validator.schema_uri.const) {
+    ok(validateCurrent(document), `requested release model: ${JSON.stringify(validateCurrent.errors)}`);
+    eq(checkLegendReferences(document), [], 'requested release model legend references');
+  } else {
+    ok(candidateValid(document), `requested candidate model: ${JSON.stringify(candidateErrors(document))}`);
+  }
 }
-console.log(`[check:visual-grammar-schema] PASS ${assertions} checks; legacy valid=${legacyValid}, invalid=${legacyInvalid}; candidate only, no runtime switch or Modeler persistence claim.`);
+console.log(`[check:visual-grammar-schema] PASS ${assertions} checks; runtime valid=${runtimeValid}, invalid=${runtimeInvalid}; candidate, release and frozen-schema contracts checked.`);

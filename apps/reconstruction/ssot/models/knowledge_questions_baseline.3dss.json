@@ -6,7 +6,7 @@
     "version": "1.1.4",
     "created_at": "2026-10-04T05:00:00Z",
     "revised_at": "2026-10-09T05:25:19Z",
-    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
+    "schema_uri": "https://3dsl.jp/schemas/release/v2.0.0/3DSS.schema.json#v2.0.0",
     "author": "q2t",
     "coordinate_system": "Z+up/freeXY",
     "units": "non_si:px",
@@ -40,7 +40,7 @@
           "text": {
             "content": "知識と問いの配置",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 9,
+            "size": 8,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -89,7 +89,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -135,7 +135,7 @@
           "text": {
             "content": "問い系列",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.611999999999999,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -184,7 +184,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -230,7 +230,7 @@
           "text": {
             "content": "論点版",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.611999999999999,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -279,7 +279,7 @@
           "text": {
             "content": "範囲・活動を限定",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.611999999999999,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -328,7 +328,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -374,7 +374,7 @@
           "text": {
             "content": "回答・主張",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.611999999999999,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -423,7 +423,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -469,7 +469,7 @@
           "text": {
             "content": "資料の部分",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.611999999999999,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -518,7 +518,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -564,7 +564,7 @@
           "text": {
             "content": "資料版",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.611999999999999,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -613,7 +613,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -659,7 +659,7 @@
           "text": {
             "content": "対象・方法・成果・規準",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.611999999999999,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -708,7 +708,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -754,7 +754,7 @@
           "text": {
             "content": "資料への分類付与",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.002,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -803,7 +803,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -849,7 +849,7 @@
           "text": {
             "content": "分類表の項目・版",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.002,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -898,7 +898,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -944,7 +944,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -990,7 +990,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -1036,7 +1036,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -1082,7 +1082,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -1128,7 +1128,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -1174,7 +1174,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -1220,7 +1220,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -1266,7 +1266,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -1312,7 +1312,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -1358,7 +1358,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -1404,7 +1404,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -1450,7 +1450,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -1496,7 +1496,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -1542,7 +1542,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -1588,7 +1588,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -1634,7 +1634,7 @@
           "text": {
             "content": "上段は一般構成。下段の個別記録すべてに分類が確認済み、という意味ではない。",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 3.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -1681,7 +1681,7 @@
           "text": {
             "content": "表示 0 ｜ 全体から二つの読解経路へ",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.6,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -1728,7 +1728,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -1772,7 +1772,7 @@
           "text": {
             "content": "Q-L 光速度の値",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.49,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -1819,7 +1819,7 @@
           "text": {
             "content": "SIにおける真空中の光速度",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.49,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -1866,7 +1866,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -1910,7 +1910,7 @@
           "text": {
             "content": "L75 1975年",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.368,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -1957,7 +1957,7 @@
           "text": {
             "content": "値を勧告する",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.368,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -2004,7 +2004,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -2048,7 +2048,7 @@
           "text": {
             "content": "L83 1983年",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.002,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -2095,7 +2095,7 @@
           "text": {
             "content": "メートルの定義",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.002,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -2142,7 +2142,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -2186,7 +2186,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -2230,7 +2230,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -2274,7 +2274,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -2318,7 +2318,7 @@
           "text": {
             "content": "299792458 m/s",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.368,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -2365,7 +2365,7 @@
           "text": {
             "content": "勧告値",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.368,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -2412,7 +2412,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -2456,7 +2456,7 @@
           "text": {
             "content": "299792458 m/s",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.368,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -2503,7 +2503,7 @@
           "text": {
             "content": "定義への入力",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.368,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -2550,7 +2550,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -2594,7 +2594,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -2638,7 +2638,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -2682,7 +2682,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -2726,7 +2726,7 @@
           "text": {
             "content": "S75 / S83 の根拠と同系列の理由 → 表示 1",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 3.9,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -2773,7 +2773,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -2817,7 +2817,7 @@
           "text": {
             "content": "D02 整列（手続き）",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.856,
+            "size": 8,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -2864,7 +2864,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -2908,7 +2908,7 @@
           "text": {
             "content": "B02 第6〜8章",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.611999999999999,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -2955,7 +2955,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -2999,7 +2999,7 @@
           "text": {
             "content": "B02 第4版総合版2024年",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.2459999999999996,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -3046,7 +3046,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -3090,7 +3090,7 @@
           "text": {
             "content": "資料全体への付与を介す",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.368,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -3137,7 +3137,7 @@
           "text": {
             "content": "NDC10 007.64",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.368,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -3184,7 +3184,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -3228,7 +3228,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -3272,7 +3272,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -3316,7 +3316,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -3360,7 +3360,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -3404,7 +3404,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -3448,7 +3448,7 @@
           "text": {
             "content": "資料・機関・分類を順に辿る → 表示 2",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 3.9,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -3497,7 +3497,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -3541,7 +3541,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -3585,7 +3585,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -3629,7 +3629,7 @@
           "text": {
             "content": "表示 1 ｜ 同じ数値でも、活動と回答の性格は異なる",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.6,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -3676,7 +3676,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -3720,7 +3720,7 @@
           "text": {
             "content": "Q-L  SIにおける真空中の光速度の値",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 6.2219999999999995,
+            "size": 8,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -3767,7 +3767,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -3811,7 +3811,7 @@
           "text": {
             "content": "L75  1975年",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.611999999999999,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -3858,7 +3858,7 @@
           "text": {
             "content": "値を勧告する",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.611999999999999,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -3905,7 +3905,7 @@
           "text": {
             "content": "U支・E?・J主",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.611999999999999,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -3952,7 +3952,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -3996,7 +3996,7 @@
           "text": {
             "content": "A75  299792458 m/s",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.856,
+            "size": 8,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -4043,7 +4043,7 @@
           "text": {
             "content": "不確かさを伴う勧告値",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.856,
+            "size": 8,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -4090,7 +4090,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -4134,7 +4134,7 @@
           "text": {
             "content": "S75  1975年CGPM決議2",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.611999999999999,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -4181,7 +4181,7 @@
           "text": {
             "content": "勧告部分",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.611999999999999,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -4228,7 +4228,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -4272,7 +4272,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -4316,7 +4316,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -4360,7 +4360,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -4404,7 +4404,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -4448,7 +4448,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -4492,7 +4492,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -4536,7 +4536,7 @@
           "text": {
             "content": "L83  1983年",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.611999999999999,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -4583,7 +4583,7 @@
           "text": {
             "content": "メートルの定義を決める",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.611999999999999,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -4630,7 +4630,7 @@
           "text": {
             "content": "U支・E支・J主",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.611999999999999,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -4677,7 +4677,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -4721,7 +4721,7 @@
           "text": {
             "content": "A83  299792458 m/s",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.856,
+            "size": 8,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -4768,7 +4768,7 @@
           "text": {
             "content": "同じ数値を定義へ用いる",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.856,
+            "size": 8,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -4815,7 +4815,7 @@
           "text": {
             "content": "単位を定める入力",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.856,
+            "size": 8,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -4862,7 +4862,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -4906,7 +4906,7 @@
           "text": {
             "content": "S83  1983年CGPM決議1",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.611999999999999,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -4953,7 +4953,7 @@
           "text": {
             "content": "定義と1975年値への言及",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.611999999999999,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -5000,7 +5000,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -5044,7 +5044,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -5088,7 +5088,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -5132,7 +5132,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -5176,7 +5176,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -5220,7 +5220,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -5264,7 +5264,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -5308,7 +5308,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -5352,7 +5352,7 @@
           "text": {
             "content": "同系列の根拠は資料の継承。値の一致だけから、同一活動・物理的変化は導かない。",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 3.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -5399,7 +5399,7 @@
           "text": {
             "content": "表示 2 ｜ 整列から、資料全体に付いた分類へ",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.6,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -5446,7 +5446,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -5490,7 +5490,7 @@
           "text": {
             "content": "D02 整列（手続き）",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.856,
+            "size": 8,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -5537,7 +5537,7 @@
           "text": {
             "content": "U支・E主・J外",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.856,
+            "size": 8,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -5584,7 +5584,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -5628,7 +5628,7 @@
           "text": {
             "content": "B02 第6〜8章",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.856,
+            "size": 8,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -5675,7 +5675,7 @@
           "text": {
             "content": "整列の関連部分",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.856,
+            "size": 8,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -5722,7 +5722,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -5766,7 +5766,7 @@
           "text": {
             "content": "B02 第4版総合版2024年",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.611999999999999,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -5813,7 +5813,7 @@
           "text": {
             "content": "付与対象：この資料全体",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.611999999999999,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -5860,7 +5860,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -5904,7 +5904,7 @@
           "text": {
             "content": "東京都立図書館の付与記録",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.368,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -5951,7 +5951,7 @@
           "text": {
             "content": "書誌1154693774",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.368,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -5998,7 +5998,7 @@
           "text": {
             "content": "旧記録の確認日 2026-10-03",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 5.368,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -6045,7 +6045,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -6089,7 +6089,7 @@
           "text": {
             "content": "NDC10 007.64",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 6.465999999999999,
+            "size": 8,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -6136,7 +6136,7 @@
           "text": {
             "content": "分類表の項目と版",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 6.465999999999999,
+            "size": 8,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -6183,7 +6183,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -6227,7 +6227,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -6271,7 +6271,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -6315,7 +6315,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -6359,7 +6359,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -6403,7 +6403,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -6447,7 +6447,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -6491,7 +6491,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -6535,7 +6535,7 @@
           "text": {
             "content": "",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -6579,7 +6579,7 @@
           "text": {
             "content": "目次に基づく内容対応",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.7,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -6626,7 +6626,7 @@
           "text": {
             "content": "章全文の同一性は未確認",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.3,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -6673,7 +6673,7 @@
           "text": {
             "content": "分類はD02へ直接付与していない。同じ接続を逆に辿って論点へ戻れる。",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 4.2,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -6720,7 +6720,7 @@
           "text": {
             "content": "書名の補完・付与の再調査はしていない。光速度S75/S83の分類付与は未確認。",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 3.9,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -6769,7 +6769,7 @@
           "text": {
             "content": "frame 0 / 1 / 2 は表示範囲。時間の進行ではない。距離・角度・奥行きは量を表さない。",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 3.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -6818,7 +6818,7 @@
           "text": {
             "content": "破線「この例」＝一般構成との対応 ／ ?＝未判定（外・0・否定とは別）。非表示は削除ではない。",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 3.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -6867,7 +6867,7 @@
           "text": {
             "content": "U 理解・知識 ／ E 実現・維持・改善 ／ J 規準・採用根拠 ： 主・支・外・? はカテゴリ。",
             "font": "Noto Sans CJK JP, Noto Sans JP, system-ui, sans-serif",
-            "size": 3.8,
+            "size": 4,
             "align": "center&middle",
             "pose": {
               "front": [
@@ -6921,7 +6921,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -6975,7 +6975,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -7029,7 +7029,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -7083,7 +7083,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -7137,7 +7137,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -7191,7 +7191,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -7260,7 +7260,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -7329,7 +7329,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -7381,7 +7381,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -7426,7 +7426,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -7471,7 +7471,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -7523,7 +7523,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -7575,7 +7575,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -7627,7 +7627,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -7679,7 +7679,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -7731,7 +7731,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -7798,7 +7798,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -7875,7 +7875,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -7920,7 +7920,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -7972,7 +7972,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -8024,7 +8024,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -8069,7 +8069,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -8121,7 +8121,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -8173,7 +8173,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -8240,7 +8240,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -8307,7 +8307,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -8359,7 +8359,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -8411,7 +8411,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -8463,7 +8463,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,
@@ -8515,7 +8515,7 @@
           "height": 3.2
         },
         "caption_text": {
-          "font_size": 4.2,
+          "font_size": 4,
           "pose": {
             "front": [
               0,

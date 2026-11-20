@@ -7,7 +7,9 @@
 import * as THREE from "three";
 import { createGltfMarkers } from './gltfMarkers.js';
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { lineCaptionStyle, plateRenderSpec, arrowPlacement } from "../../../shared/renderConventions.js";
+import { lineCaptionStyle, plateRenderSpec, arrowPlacement, surfacePoint, surfaceHatchSegments } from "../../../shared/renderConventions.js";
+import { measureVerticalText, normalizeWritingMode, paintVerticalText } from "../../../shared/verticalText.js";
+import { buildCanvasFont, resolveTextFont } from "../../../shared/textFonts.js";
 
 // ------------------------------------------------------------
 // Minimal text labels (Modeler)
@@ -38,7 +40,7 @@ function createCanvas(w, h) {
   }
 }
 
-function makeTextSprite(text, opts = {}) {
+function rasterizeLabel(text, opts) {
   const t = text == null ? "" : String(text);
   if (!t) return null;
 
@@ -51,24 +53,32 @@ function makeTextSprite(text, opts = {}) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
 
-  ctx.font = `${Math.round(fontSize * dpr)}px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+  const fontPx = Math.round(fontSize * dpr);
+  const cssFont = buildCanvasFont(resolveTextFont(opts), fontPx);
+  ctx.font = cssFont;
+  const vertical = normalizeWritingMode(opts.writing_mode) === "vertical-rl"
+    ? measureVerticalText(ctx, t, fontPx, padding * dpr) : null;
   const metrics = ctx.measureText(t);
   const textW = Math.ceil((Number(metrics.width) || 0) + padding * 2 * dpr);
   const ascent = Number(metrics.actualBoundingBoxAscent);
   const descent = Number(metrics.actualBoundingBoxDescent);
   const textH = Math.ceil(((Number.isFinite(ascent) && Number.isFinite(descent)) ? (ascent + descent) : (fontSize * 1.2 * dpr)) + padding * 2 * dpr);
 
-  canvas.width = Math.max(1, textW);
-  canvas.height = Math.max(1, textH);
+  const width = vertical?.cw ?? textW;
+  const height = vertical?.ch ?? textH;
+  const scale = Math.min(1, 2048 / width, 2048 / height, Math.sqrt(65536 / width / height));
+  canvas.width = Math.max(1, Math.floor(width * scale));
+  canvas.height = Math.max(1, Math.floor(height * scale));
+  ctx.scale(canvas.width / width, canvas.height / height);
 
   // draw
-  ctx.font = `${Math.round(fontSize * dpr)}px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+  ctx.font = cssFont;
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "center";
 
   // background (subtle)
   ctx.fillStyle = "rgba(0,0,0,0.55)";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, width, height);
 
   // outline
   ctx.lineJoin = "round";
@@ -76,11 +86,15 @@ function makeTextSprite(text, opts = {}) {
   ctx.strokeStyle = "rgba(0,0,0,0.9)";
 
   // text
-  ctx.fillStyle = "#ffffff";
-  const cx = canvas.width / 2;
-  const baselineY = (Number.isFinite(ascent) ? (padding * dpr + ascent) : (canvas.height / 2));
-  ctx.strokeText(t, cx, baselineY);
-  ctx.fillText(t, cx, baselineY);
+  ctx.fillStyle = opts.color ?? "#ffffff";
+  if (vertical) {
+    paintVerticalText(ctx, vertical, { outline: true });
+  } else {
+    const cx = width / 2;
+    const baselineY = Number.isFinite(ascent) ? padding * dpr + ascent : height / 2;
+    ctx.strokeText(t, cx, baselineY);
+    ctx.fillText(t, cx, baselineY);
+  }
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.minFilter = THREE.LinearFilter;
@@ -91,14 +105,21 @@ function makeTextSprite(text, opts = {}) {
     if ("colorSpace" in texture && THREE.SRGBColorSpace) texture.colorSpace = THREE.SRGBColorSpace;
   } catch {}
 
+  const baseHeight = Number(opts.worldSize) > 0 ? Number(opts.worldSize) : Math.max(2, fontSize * 0.25);
+  const hWorld = baseHeight * (vertical?.heightFactor ?? 1);
+  const wWorld = hWorld * width / height;
+  return { texture, hWorld, wWorld };
+}
+
+function makeTextSprite(text, opts = {}) {
+  const raster = rasterizeLabel(text, opts);
+  if (!raster) return null;
+  const { texture, hWorld, wWorld } = raster;
+
   const mat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false });
   const sprite = new THREE.Sprite(mat);
   sprite.renderOrder = 10_000;
 
-  // scale in world units: keep roughly consistent with font size
-  const aspect = (canvas.width / canvas.height) || 1;
-  const hWorld = Number(opts.worldSize) > 0 ? Number(opts.worldSize) : Math.max(2, fontSize * 0.25);
-  const wWorld = hWorld * aspect;
   sprite.scale.set(wWorld, hWorld, 1);
   sprite.userData.__labelTexture = texture;
   return sprite;
@@ -194,65 +215,15 @@ function applyAlignToSprite(sprite, align) {
 }
 
 function makeTextPlane(text, opts = {}) {
-  const t = text == null ? "" : String(text);
-  if (!t) return null;
-
-  const fontSize = Math.max(8, Math.min(64, Number(opts.fontSize) || 12));
-  const padding = Math.max(2, Math.min(16, Number(opts.padding) || 4));
-  const dpr = getDpr();
-
-  const canvas = createCanvas(2, 2);
-  if (!canvas) return null;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return null;
-
-  ctx.font = `${Math.round(fontSize * dpr)}px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
-  const metrics = ctx.measureText(t);
-  const textW = Math.ceil((Number(metrics.width) || 0) + padding * 2 * dpr);
-  const ascent = Number(metrics.actualBoundingBoxAscent);
-  const descent = Number(metrics.actualBoundingBoxDescent);
-  const textH = Math.ceil(((Number.isFinite(ascent) && Number.isFinite(descent)) ? (ascent + descent) : (fontSize * 1.2 * dpr)) + padding * 2 * dpr);
-
-  canvas.width = Math.max(1, textW);
-  canvas.height = Math.max(1, textH);
-
-  // draw
-  ctx.font = `${Math.round(fontSize * dpr)}px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
-  ctx.textBaseline = "alphabetic";
-  ctx.textAlign = "center";
-
-  ctx.fillStyle = "rgba(0,0,0,0.55)";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  ctx.lineJoin = "round";
-  ctx.lineWidth = Math.max(1, Math.round(2 * dpr));
-  ctx.strokeStyle = "rgba(0,0,0,0.9)";
-
-  ctx.fillStyle = "#ffffff";
-  const cx = canvas.width / 2;
-  const baselineY = (Number.isFinite(ascent) ? (padding * dpr + ascent) : (canvas.height / 2));
-  ctx.strokeText(t, cx, baselineY);
-  ctx.fillText(t, cx, baselineY);
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.minFilter = THREE.LinearFilter;
-  texture.magFilter = THREE.LinearFilter;
-  texture.generateMipmaps = false;
-  texture.needsUpdate = true;
-  try {
-    if ("colorSpace" in texture && THREE.SRGBColorSpace) texture.colorSpace = THREE.SRGBColorSpace;
-  } catch {}
+  const raster = rasterizeLabel(text, opts);
+  if (!raster) return null;
+  const { texture, hWorld, wWorld } = raster;
 
   const mat = new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false, side: THREE.DoubleSide });
   // A label is one zero-thickness plane. With culling disabled, one pass draws
   // either face; separate back/front passes add no surface or blend result.
   // Keep DoubleSide so authored fixed text remains visible from either side.
   mat.forceSinglePass = true;
-
-  // scale in world units: keep roughly consistent with font size
-  const aspect = (canvas.width / canvas.height) || 1;
-  const hWorld = Number(opts.worldSize) > 0 ? Number(opts.worldSize) : Math.max(2, fontSize * 0.25);
-  const wWorld = hWorld * aspect;
 
   const { h, v } = parseAlign(opts.align);
   let ox = 0;
@@ -347,8 +318,9 @@ function buildIndexByUuid(doc) {
   return idx;
 }
 
-function resolveEndpoint(ep, pointIdx) {
+function resolveEndpoint(ep, pointIdx, surfaceIdx) {
   if (!ep || typeof ep !== "object") return null;
+  if (ep.surface_ref) return surfacePoint(surfaceIdx.get(ep.surface_ref)?.appearance, ep.uv);
   if (Array.isArray(ep.coord) && ep.coord.length >= 3) return [Number(ep.coord[0])||0, Number(ep.coord[1])||0, Number(ep.coord[2])||0];
   const ref = ep.ref;
   if (typeof ref === "string" && pointIdx && pointIdx.has(ref)) return safePos(pointIdx.get(ref));
@@ -478,6 +450,7 @@ export function createRenderer(canvas) {
 
   // list of line objects (for fast endpoint updates during transforms)
   const lineObjects = [];
+  let surfacesByUuid = new Map();
 
   // Primitive vertices are immutable; only object transforms/materials change.
   // Share identical constructor inputs within this document, then release once.
@@ -796,6 +769,7 @@ export function createRenderer(canvas) {
     if (!doc || typeof doc !== "object") return;
 
     const pointIdx = buildIndexByUuid(doc);
+    surfacesByUuid = new Map((doc.surfaces ?? []).map(surface => [uuidOf(surface), surface]));
 
     // points
     if (Array.isArray(doc.points)) {
@@ -839,7 +813,7 @@ export function createRenderer(canvas) {
           if (txt) {
             const textStyle = marker.text || {};
             const worldSize = Number(textStyle.size) > 0 ? Number(textStyle.size) : 8;
-            const opts = { fontSize: Math.max(8, Math.min(64, worldSize * 8)), worldSize, align: textStyle.align || "", geometryFactory: labelPlaneGeometry };
+            const opts = { ...textStyle, fontSize: Math.max(8, Math.min(64, worldSize * 8)), worldSize, align: textStyle.align || "", geometryFactory: labelPlaneGeometry };
             const pose = normalizePoseFrontUpForPreview(textStyle.pose);
             const s = pose ? makeTextPlane(txt, opts) : makeTextSprite(txt, opts);
             if (s) {
@@ -895,12 +869,42 @@ if (Array.isArray(doc.aux)) {
   }
 }
 
+    for (const [uuid, surface] of surfacesByUuid) {
+      const appearance = surface.appearance;
+      const corners = [[0, 0], [1, 0], [1, 1], [0, 1]].map(uv => surfacePoint(appearance, uv));
+      if (corners.some(corner => !corner)) continue;
+      const position = map3dssToThree(appearance.position);
+      const local = point => map3dssToThree(point).sub(position);
+      const geometry = new THREE.BufferGeometry().setFromPoints(corners.map(local));
+      geometry.setIndex([0, 1, 2, 0, 2, 3]);
+      const color = new THREE.Color(appearance.color ?? '#6daac8').getHex();
+      const material = new THREE.MeshBasicMaterial({
+        color, side: THREE.DoubleSide, transparent: true, opacity: appearance.opacity ?? 0.3, depthWrite: false,
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.position.copy(position);
+      mesh.userData = { uuid, kind: "surface", __docVisible: appearance.visible !== false, __docFrames: appearance.frames ?? null };
+      const decoration = new THREE.BufferGeometry().setFromPoints([
+        ...corners.flatMap((corner, i) => [corner, corners[(i + 1) % corners.length]]),
+        ...surfaceHatchSegments(appearance).flat(),
+      ].map(local));
+      const strokes = new THREE.LineSegments(decoration, new THREE.LineBasicMaterial({ color, depthWrite: false }));
+      strokes.userData = { uuid, kind: "surface" };
+      mesh.add(strokes);
+      modelGroup.add(mesh);
+      objByUuid.set(uuid, mesh);
+      baseColorByUuid.set(uuid, color);
+      pos3dssByUuid.set(uuid, [...appearance.position]);
+    }
+
     // lines
     if (Array.isArray(doc.lines)) {
       for (const ln of doc.lines) {
         const u = uuidOf(ln);
-        const a = resolveEndpoint(ln?.appearance?.end_a ?? ln?.end_a, pointIdx);
-        const b = resolveEndpoint(ln?.appearance?.end_b ?? ln?.end_b, pointIdx);
+        const endA = ln?.appearance?.end_a ?? ln?.end_a;
+        const endB = ln?.appearance?.end_b ?? ln?.end_b;
+        const a = resolveEndpoint(endA, pointIdx, surfacesByUuid);
+        const b = resolveEndpoint(endB, pointIdx, surfacesByUuid);
         if (!a || !b) continue;
         const aV = map3dssToThree(a);
         const bV = map3dssToThree(b);
@@ -919,10 +923,10 @@ if (Array.isArray(doc.aux)) {
         line.userData.kind = "line";
         line.userData.__docVisible = (ln?.appearance?.visible !== false);
         line.userData.__docFrames = ln?.appearance?.frames ?? null;
-        const endA = ln?.appearance?.end_a ?? ln?.end_a;
-        const endB = ln?.appearance?.end_b ?? ln?.end_b;
-        line.userData.endARef = typeof endA?.ref === "string" ? endA.ref : null;
-        line.userData.endBRef = typeof endB?.ref === "string" ? endB.ref : null;
+        line.userData.endARef = endA?.surface_ref ?? endA?.ref ?? null;
+        line.userData.endBRef = endB?.surface_ref ?? endB?.ref ?? null;
+        line.userData.endASurfaceUv = endA?.uv ?? null;
+        line.userData.endBSurfaceUv = endB?.uv ?? null;
         line.userData.a3dss = Array.isArray(a) ? [...a] : null;
         line.userData.b3dss = Array.isArray(b) ? [...b] : null;
         line.userData.arrow = ln?.appearance?.arrow || null;
@@ -952,14 +956,14 @@ if (Array.isArray(doc.aux)) {
             const poseNorm = normalizePoseFrontUpForPreview(poseRaw);
             const wantPose = !!poseNorm;
 
-            const label = wantPose
-              ? makeTextPlane(txt, { fontSize, worldSize, align: alignKey, geometryFactory: labelPlaneGeometry })
-              : makeTextSprite(txt, { fontSize, worldSize });
+            const opts = { ...ct, fontSize, worldSize, align: alignKey, geometryFactory: labelPlaneGeometry };
+            const label = wantPose ? makeTextPlane(txt, opts) : makeTextSprite(txt, opts);
             if (label) {
               label.userData.__labelText = txt;
               label.userData.__labelFontSize = fontSize;
               label.userData.__labelWorldSize = worldSize;
               label.userData.__labelAlign = alignKey;
+              label.userData.__labelStyleKey = captionRasterStyleKey(ct);
               label.userData.__labelPoseKey = wantPose ? String(poseNorm.key || "") : "";
               if (wantPose) {
                 applyPoseToLabelObject(label, poseNorm);
@@ -1244,8 +1248,14 @@ function updateLineGeometry(lineObj) {
   const endARef = lineObj.userData?.endARef || null;
   const endBRef = lineObj.userData?.endBRef || null;
 
-  const a3 = endARef && pos3dssByUuid.has(endARef) ? pos3dssByUuid.get(endARef) : (lineObj.userData?.a3dss || null);
-  const b3 = endBRef && pos3dssByUuid.has(endBRef) ? pos3dssByUuid.get(endBRef) : (lineObj.userData?.b3dss || null);
+  const positionFor = (ref, uv, fallback) => {
+    const position = pos3dssByUuid.get(ref);
+    if (!position) return fallback;
+    if (!uv) return position;
+    return surfacePoint({ ...surfacesByUuid.get(ref)?.appearance, position }, uv);
+  };
+  const a3 = positionFor(endARef, lineObj.userData.endASurfaceUv, lineObj.userData.a3dss);
+  const b3 = positionFor(endBRef, lineObj.userData.endBSurfaceUv, lineObj.userData.b3dss);
   if (!a3 || !b3) return;
 
   const aV = map3dssToThree(a3);
@@ -1327,9 +1337,9 @@ function previewSetPosition(uuid, pos) {
   obj.position.copy(map3dssToThree(next3));
   updatePointLabelPosition(u);
 
-  // Update cached pos for points/aux.
+  // Update cached positions for elements used by line endpoints.
   const kind = obj.userData?.kind || "";
-  if (kind === "point" || kind === "aux") {
+  if (["point", "aux", "surface"].includes(kind)) {
     pos3dssByUuid.set(u, next3);
     // Update dependent line endpoints.
     for (const ln of lineObjects) {
@@ -1390,8 +1400,8 @@ function getRenderDiagnostics() {
 /**
  * Preview-only line endpoint update (draft edits) without mutating document.
  * @param {string} uuid line uuid
- * @param {{ref?:string, coord?:[number,number,number]}|null} endA
- * @param {{ref?:string, coord?:[number,number,number]}|null} endB
+ * @param {{ref?:string, coord?:[number,number,number], surface_ref?:string, uv?:[number,number]}|null} endA
+ * @param {{ref?:string, coord?:[number,number,number], surface_ref?:string, uv?:[number,number]}|null} endB
  */
 function previewSetLineEnds(uuid, endA, endB) {
   const u = String(uuid || "");
@@ -1401,34 +1411,11 @@ function previewSetLineEnds(uuid, endA, endB) {
   if (!obj || obj.userData?.kind !== "line") return;
 
   invalidate();
-  // Apply A
-  if (endA && typeof endA === "object") {
-    if (typeof endA.ref === "string" && endA.ref) {
-      obj.userData.endARef = String(endA.ref);
-      obj.userData.a3dss = null;
-    } else if (Array.isArray(endA.coord) && endA.coord.length >= 3) {
-      const c = [Number(endA.coord[0]) || 0, Number(endA.coord[1]) || 0, Number(endA.coord[2]) || 0];
-      obj.userData.endARef = null;
-      obj.userData.a3dss = c;
-    }
-  } else if (endA === null) {
-    obj.userData.endARef = null;
-    obj.userData.a3dss = null;
-  }
-
-  // Apply B
-  if (endB && typeof endB === "object") {
-    if (typeof endB.ref === "string" && endB.ref) {
-      obj.userData.endBRef = String(endB.ref);
-      obj.userData.b3dss = null;
-    } else if (Array.isArray(endB.coord) && endB.coord.length >= 3) {
-      const c = [Number(endB.coord[0]) || 0, Number(endB.coord[1]) || 0, Number(endB.coord[2]) || 0];
-      obj.userData.endBRef = null;
-      obj.userData.b3dss = c;
-    }
-  } else if (endB === null) {
-    obj.userData.endBRef = null;
-    obj.userData.b3dss = null;
+  for (const [side, endpoint] of [["A", endA], ["B", endB]]) {
+    if (endpoint === undefined) continue;
+    obj.userData[`end${side}Ref`] = endpoint?.surface_ref ?? endpoint?.ref ?? null;
+    obj.userData[`end${side}SurfaceUv`] = endpoint?.uv ?? null;
+    obj.userData[`${side.toLowerCase()}3dss`] = endpoint?.coord ?? null;
   }
 
   updateLineGeometry(obj);
@@ -1470,6 +1457,10 @@ function replaceLabelForUuid(uuid, sprite) {
  * @param {{content?:string, size?:number, align?:string, pose?:any}|null} captionText
  * @param {string} fallbackText used when captionText is null/empty
  */
+function captionRasterStyleKey(style) {
+  return JSON.stringify([normalizeWritingMode(style?.writing_mode), resolveTextFont(style).key, style?.color ?? ""]);
+}
+
 function previewSetCaptionText(uuid, captionText, fallbackText) {
   const u = String(uuid || "");
   if (!u) return;
@@ -1502,8 +1493,10 @@ function previewSetCaptionText(uuid, captionText, fallbackText) {
   const poseKey = wantPose ? String(poseNorm.key || "") : "";
   const prevAlign = String(prevObj?.userData?.__labelAlign || "");
   const alignKey = typeof align === "string" ? align : "";
+  const styleKey = captionRasterStyleKey(captionText);
 
-  if (prevText == want && prevSize == fontSize && prevObj?.userData?.__labelWorldSize === worldSize && prevPoseKey == poseKey && prevAlign == alignKey) {
+  if (prevText === want && prevSize === fontSize && prevObj?.userData?.__labelWorldSize === worldSize
+    && prevPoseKey === poseKey && prevAlign === alignKey && prevObj?.userData?.__labelStyleKey === styleKey) {
     updateLineLabelPosition(obj);
     invalidate();
     return;
@@ -1511,15 +1504,15 @@ function previewSetCaptionText(uuid, captionText, fallbackText) {
 
   // Create label: when pose is present, use a plane mesh (so orientation applies).
   // Otherwise keep sprite (billboard) but apply align via sprite.center.
-  const label = wantPose
-    ? makeTextPlane(want, { fontSize, worldSize, align: alignKey })
-    : makeTextSprite(want, { fontSize, worldSize });
+  const opts = { ...captionText, fontSize, worldSize, align: alignKey };
+  const label = wantPose ? makeTextPlane(want, opts) : makeTextSprite(want, opts);
   if (!label) return;
 
   label.userData.__labelText = want;
   label.userData.__labelFontSize = fontSize;
   label.userData.__labelWorldSize = worldSize;
   label.userData.__labelAlign = alignKey;
+  label.userData.__labelStyleKey = styleKey;
   label.userData.__labelPoseKey = poseKey;
 
   if (wantPose) {

@@ -1,1494 +1,202 @@
-# 3DSS (Three-Dimensional Structural Schema) 仕様書 v1.1.4
+# 3DSS 仕様書 v2.0.0
 
----
+3DSS（Three-Dimensional Structural Schema）は、3DSLの図をJSONで交換する形式です。ファイルの拡張子は `.3dss.json` です。
 
-## 第1章　概要（Overview）
+| 項目 | 値 |
+|---|---|
+| JSON Schemaの方言 | Draft 2020-12 |
+| スキーマ識別子 `$id` | `https://3dsl.jp/schemas/release/v2.0.0/3DSS.schema.json` |
+| スキーマアンカー `$anchor` | `v2.0.0` |
+| 文書の `document_meta.schema_uri` | `https://3dsl.jp/schemas/release/v2.0.0/3DSS.schema.json#v2.0.0` |
 
-| 項目 | 内容 |
-|------|------|
-| 正式名 | 3DSS（Three-Dimensional Structural Schema） |
-| スキーマURI | https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4 |
-| 準拠仕様 | JSON Schema Draft 2020-12 |
-| 対象スキーマのステータス | stable |
-| スキーマ発行日 | 2026-01-11 |
-| 本文改訂 | 2026-10-04 思想と解釈範囲の説明改訂 v0.2 |
-| 本文の状態 | ローカル改訂版。公開リリースへの反映は別工程 |
-| 対象読者 | 3DSL モデル設計者／モデラ／ビューア開発者／構造コンテンツ制作者 |
-| 関連スキーマ | 3DSS-prep（作業入力用ミニマルスキーマ） |
-| ファイル拡張子 | .3dss.json |
+[固定版のJSON Schema](/schemas/release/v2.0.0/3DSS.schema.json) · [固定版の仕様書](/schemas/release/v2.0.0/3DSS_spec.md) · [旧版 v1.1.4](/docs/spec/v1.1.4/) · [図の制作ガイド](/docs/usage/author-3dss/)
 
-本改訂は、3DSLの思想と3DSSの解釈範囲を整理する文書改訂である。対象のJSON Schemaはv1.1.4のままで、型・必須項目・enum・スキーマ識別子を変更しない。凍結済みの`release/v1.1.4/`とは区別する。思想と表現の目的は[Concept](/concept)、本書はその形式と解釈上の境界を扱う。
+## 1. 文書構造
 
-3DSS は、3DSL（Three-Dimensional Structural Language）における
-三次元構造記述のための標準スキーマであり、
-`lines`（関係等を表す線）・`points`（対象等を指し示す表示点）・`aux`（補助表示）・`document_meta`（管理情報）を中核として設計されている。
-
-これらはファイル上の表現分類であり、対象世界の存在論的な最小単位や完全な分類を定めない。
-出現の識別と対象の同定、意味関係と描画線の対応は、採用する問いと読解規約に従って定める。
-本書でprofileとは、用途ごとの語彙・解釈・必要な保持範囲・対応形式を定める適用規約をいう。v1.1.4の必須プロパティや、新しい標準形式の名称ではない。本schemaで直接定めない記録を併用する場合は、必要な識別・版・交換範囲をその規約に明示する。
-
-以下の区別・根拠・履歴・対応の保持は、採用する問い、比較、操作に必要な範囲に適用する。規約や参照先から回復できる情報の重複記載、全対象の全履歴、全ての主張への外部原文は要求しない。
-
-本仕様書が対象とするのは構造層のスキーマ `3DSS.schema.json` である。
-スキーマの `$id` は `https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json` とし、バージョンは `$anchor`（例：`v1.1.4`）で表す。構造ドキュメント側は `document_meta.schema_uri` に `...json#vX.Y.Z` を格納して、準拠バージョンを明示する。
-構造ドキュメントのバージョン管理は `document_meta.version`（SemVer）で行い、
-対象スキーマの版数（v1.1.4）および本書の本文改訂日とは区別する。
-
-これとは別に、Authoring 層から modeler へ JSON 形式で疎データを受け渡すための
-最小スキーマ `3DSS-prep.schema.json` を定義する（詳細は 2.3節）。
-
----
-
-## 座標系およびキラリティ指針
-
-3DSSの幾何座標では **Z+ 軸を上方向** とする三軸直交座標系を採用する。
-X・Y は Z+ に直交する限り任意方向を許容する。
-
-| 軸 | 対応する指 | 主体からの方向 |
-| -- | -- | -- |
-| X+ | 左第三指 | 右 |
-| Y+ | 左第二指 | 前 |
-| Z+ | 左第一指 | 上 |
-
-Z+ は幾何表現の上方向基準とする。幾何軸・距離・向きに、対象領域の意味は自動付与されない。
-意味を持つ軸や領域を用いる場合は、対象属性と配置の対応、適用範囲、必要な尺度・単位・読み方を明示する。カテゴリの配置に数量の単位を一律に要求しない。量・質・時間を普遍的な三本の直交軸とみなさない。
-表示座標の単位と対象領域の量の単位を区別する。カメラ投影は対象の構造を変更しない。
-本仕様における `document_meta.coordinate_system` は `"Z+up/freeXY"` に固定されており、
-JSON Schema 上でも `const` によりこの値以外は許可されない（単一選択制）。
-
----
-
-## 第2章　3DSL 全体アーキテクチャ（制作・共有・表示と再編集）
-
-本書では制作と共有の責務を次の二領域に分ける。この区分は、一方向の制作手順や、保存ファイル・システムの物理的な階層数を指定するものではない。
-
-- **Authoring Layer（制作層）**：作業中の素材・候補・生成条件やUIの編集状態等を扱う領域。内部形式は規定せず、3DSSスキーマの適用対象外である。共有に必要な仮説・条件・根拠・履歴は、対応profileに従って共有記録へ移せる。共有記録を再び比較・改訂する制作も含む。
-- **Structural Layer（構造層）**：宣言した形式と参照規約に従って解釈できる記録を共有する領域。本仕様は、そのうち3DSS.schema.jsonで定める表示記録と意味の範囲を扱う。意味の未判定、候補、競合、適用外は、対応するprofileが状態と読出しを定める場合、有効な共有記録として保持できる。破損した参照や入力途中の値とは区別する。既存Viewer／Validatorが解釈できるのは各実装で対応した形式・profileのみである。
-
----
-
-### 2.1 レイヤ境界
-
-| 観点 | Authoring | Structural |
+| ルートの項目 | スキーマ上の条件 | 役割 |
 |---|---|---|
-| 役割 | 構造化の試行・生成 | 宣言された構造記録の共有・表示・改訂 |
-| 含有 | OCR／LLM仮説、拘束／依存、UI／履歴 | 本仕様の対象は`lines`／`points`／`aux`／`document_meta`。併用profileの構造記録は別契約 |
-| 曖昧さ | 許容（信頼度／未確定） | 形式・参照規約への適合を要求。意味の未判定等は対応profileに従って明示可能 |
-| 形式 | 自由 | 本仕様の対象は3DSS.schema.json。併用profileは識別・版と対応する形式を別途宣言 |
+| `document_meta` | 必須 | タイトル、文書UUID、対応形式と版、作者、日時。 |
+| `points` | 任意の配列 | 概念や観測位置などの点。 |
+| `lines` | 任意の配列 | 関係の意味、両端、経路、矢印、キャプション。 |
+| `surfaces` | 任意の配列 | 名前とUUIDを持ち、線から参照できる厚みゼロの面。 |
+| `aux` | 任意の配列 | 軸やグリッドなどの描画補助。 |
+| `visual_legend` | 任意の配列 | 見分けるべき意味と、作品内で使う表示の凡例。 |
+| `coordinate_contexts` | 任意の配列 | 要素の位置を読むための局所原点、軸、単位と尺度。 |
+| `comparisons` | 任意の配列 | 比較する対象、共通の条件、各ケースの条件と要素参照。 |
+| `quantities` | 任意の配列 | 表示要素に対応する量、単位、値の状態、時点・事象・区間。 |
 
-Authoring 層の内部表現そのものは形式自由だが、  
-JSON で modeler へ受け渡すケースに対しては、推奨インターフェースとして  
-`3DSS-prep.schema.json`（拡張子 `.3dss-prep.json`）を用意する。
+構造要素では `signification` が意味、`appearance` が幾何と表示、`meta` が識別情報を受け持ちます。`aux` は `appearance` と `meta` で構成されます。主要オブジェクトのフィールドは対応するJSON Schemaで規定します。
 
-prep は **Authoring 層の一部** であり、構造層（3DSS.schema.json）とは別スキーマである。  
-現行の通常Viewerが描画入力として扱うのは`.3dss.json`であり、prepを直接解釈しない。併用する構造記録や未判定の状態を解釈できるかは、対応する実装の契約で別に定める。
+制作中の原資料・草稿・拘束や編集状態は、制作側で管理します。疎な点名を渡す作業入力には `.3dss-prep.json` があり、図を含む制作単位の保存には `.3dsl-work.json` があります。各形式の保持範囲は[制作と保存の案内](/docs/usage/create-save-read/)を参照してください。
 
----
+### 文書メタデータ
 
-### 2.2 Export 共通契約（要約）
+| 項目 | 条件 | 意味 |
+|---|---|---|
+| `document_title` | 必須、文字列または日英表記 | 図のタイトル。 |
+| `document_uuid` | 必須、UUID | 図の識別子。編集による同じ図の更新で使い続ける。 |
+| `created_at`、`revised_at` | 必須、UTC、`YYYY-MM-DDThh:mm:ssZ`。秒は小数可 | 図の作成・更新日時。 |
+| `schema_uri` | 必須、上表の固定値 | データ形式を識別する。 |
+| `author` | 必須、ASCIIの英数字と `._-` に対応する名前または作者ID | 作者を識別する。スキーマの形式では `@ドメイン` も付加できる。 |
+| `version` | 必須、SemVer形式 | 作品の改訂版。形式の版は `schema_uri` で決まる。 |
+| `document_summary`、`reference` | 任意 | 作品の概要、資料参照。 |
+| `coordinate_system`、`units`、`i18n` | 任意 | 座標系、座標の単位、基本言語。 |
+| `generator`、`tags`、`creator_memo` | 任意 | 生成元URI、分類タグ、制作者メモ。 |
 
-① **Resolve**：出力形式が要求する参照・拘束を宣言した規約で解決する。意味の未判定は対応する規約に従って識別し、候補を根拠なく一つに選ばない。形式上必須の参照破損や型不正を、有効な未判定へ読み替えない。  
-② **Flatten**：出力に必要な展開を行い、採用した問い・操作に必要な元の対応を保持する。  
-③ **Prune**：出力契約で不要とした作業情報を除去する。未判定、競合、根拠、必要な履歴を、未確定という理由だけで除去しない。  
-④ **Normalize**：宣言した型・単位・語彙の範囲で表記を揃え、読出しの意味を変えない。  
+座標系は `Z+up/freeXY` です。指定を省略したときもこの座標系を使います。座標の単位 `units` は `m`、`cm`、`mm`、`non_si:px` から選べます。既定は `non_si:px` です。基本言語 `i18n` は `ja` または `en`、既定は `ja` です。日英表記のフィールドには文字列、または `ja`、`en` の値を持つオブジェクトを記述できます。
 
-これらは共有可能な記録への変換であり、意味内容を無条件に確定させる工程ではない。
-3DSS単体の図の出力と、構造記録・対応規約を含む一式の交換を区別する。
-後者から図だけを出力した場合、それを一式の保存・往還完了とは扱わない。
-本原則は、現3DSSに未定義プロパティを追加することや、既存製品の保存責務を自動変更することを意味しない。  
-Normalize 段階では `$defs.validator` 配下に定義された型・書式
-（`uuid`、`uri`、`tag`、`language_code`、`units`、`semver`、`timestamp_utc`、`color_hex`、`frames` など）
-に基づき正規化する。
+### 要素の識別と表示範囲
 
-`document_meta` には必須項目として  
-`document_title`、`document_uuid`、`created_at`、`revised_at`、`schema_uri`、`author`、`version`  
-の7項目を記載する。
-任意項目はスキーマ定義に従って追加できる。代表的なものとして
-`generator`、`tags`、`reference`、`coordinate_system`、`units`、
-`i18n`、`creator_memo` などを想定する。
+各点・線・面・補助要素の `meta.uuid` は文書内で一意の識別子です。任意の `tags` は `s:`、`m:`、`x:` に空白やコロンを含まない値を続けます。制作者メモは `creator_memo` に記録します。点・線・面の `meta.legend_refs` は作品内の凡例IDを参照します。
 
-- `schema_uri` には、原則として本スキーマの `$id` に `$anchor`（SemVer）を付けた値（例：`https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4`）を格納する。  
-- `units` は `"m"`／`"cm"`／`"mm"`／`"non_si:px"` のいずれかをとる列挙値であり、  
-  デフォルトは `"non_si:px"` とする。  
-- `i18n` は `"ja"`／`"en"` をとる言語コードであり、デフォルトは `"ja"` とする。
+`appearance.visible` は表示可否、`frames` は表示フレームを指定します。フレーム番号は−9999から9999の整数で、配列の場合は1〜256個の異なる番号を指定します。フレームは表示を切り替える番号です。対象の時間は、作品がその対応を明示したときに読めます。
 
-Viewer 固有のレンダ設定（カメラパラメータ、ライト構成、シャドウアルゴリズム等）は本仕様の対象外とする。
-ただし、aux モジュールを通じて定義されるグリッド／シェル／HUD 等については、
-その構造的挙動を表す最小限の効果パラメータ
-（`color`、`opacity`、`edge_intensity`、`rimlight`、`glow_color`、`follow_camera` など）を
-3DSS 側で保持する。
+## 2. 座標と表示
 
-3DSS（構造層）のルートオブジェクトおよび主要モジュールは、原則として
-`additionalProperties: false` により未定義プロパティを禁止し、
-宣言した形式の外にあるプロパティが混入しないように設計する。これは、そのデータに構造的意味がないという判定ではない。
+位置と方向のベクトルは `[x,y,z]` の数値三つです。世界座標の+Zを上とします。幾何軸に割り当てる題材上の意味、基準、単位と、比較できる範囲は作品で定義します。回転の数値はラジアンです。
 
----
+### 点
 
-### 2.3 3DSS-prep スキーマ（作業入力用ミニマルスキーマ）
+`points[]` には `appearance` と `meta` が必須です。`signification.name` は点の名前で、`appearance.position` は必須の位置です。`appearance.marker` は任意で、記述すると `primitive` と種類に応じた寸法が必要です。
 
-3DSS-prep（`3DSS-prep.schema.json`）は、Authoring 層から modeler への
-**作業入力（prep）** を JSON で受け渡すためのミニマルスキーマである。
+| `primitive` | 条件付き必須項目 |
+|---|---|
+| `sphere` | `radius` |
+| `box` | `size`（3軸の寸法） |
+| `cone` | `radius`、`height` |
+| `pyramid` | `base`（底面2辺）、`height` |
+| `corona` | `inner_radius`、`outer_radius` |
+| `none` | 追加寸法なし。文字やGLBと組み合わせられる。 |
 
-- ファイル拡張子：`.3dss-prep.json`
-- スキーマ `$id`：  
-  `https://3dsl.jp/schemas/3DSS-prep.schema.json`
-- 役割：  
-  - LLM / OCR / 外部DB 等が生成した「名称リスト」等の疎データを  
-    modeler に渡すための基本フォーマット
-  - 構造層の 3DSS.schema.json とは別系統のスキーマ
-  - viewer は直接解釈しない（modeler だけが対象）
+寸法値の下限は0.0001です。`marker.common` には `orientation`、`scale`、`color`、`opacity`、`emissive`、`wireframe` を指定できます。既定は順に `[0,0,0]`、`[1,1,1]`、白、0.4、偽、偽です。
 
-#### 2.3.1 ルート構造（概要）
+`marker.gltf` はGLB/glTFの参照 `url` と `scale`、`rotation`、`offset` を受け取ります。`marker.text` への文字の指定は後述します。
 
-3DSS-prep のルートオブジェクトは、次の 2 要素だけを規定する：
+### 線
 
-| プロパティ | 型 | 必須 | 説明 |
-|-----------|----|------|------|
-| `points` | array(object) | ✅ | 疎な点情報のリスト。`name` だけ必須。 |
-| `document_meta` | object | 任意 | 入力元のメタ情報（スキーマURI等）。 |
+`lines[]` には `appearance` と `meta` が必須です。`signification.relation` を記述するときは次表から一つのキーと値を選びます。
 
-その他のルートプロパティは `additionalProperties: true` により許容される。  
-prep は将来の拡張やツール固有の情報を邪魔しない **ゆるいインターフェース** として設計する。
+| キー | 値 |
+|---|---|
+| `structural` | `association`、`containment`、`hierarchy` |
+| `dynamic` | `causal`、`flow`、`influence`、`derivation`、`transformation`、`feedback`、`recursion`、`reflection` |
+| `logical` | `equivalence`、`negation`、`implication`、`support`、`conflict` |
+| `temporal` | `precedence`、`succession` |
+| `meta` | `reference` |
 
-#### 2.3.2 points の構造（概要）
+`signification.sense` は `a_to_b`、`b_to_a`、`bidirectional`、`neutral` で向きを指定します。既定は `a_to_b` です。`signification.caption` には関係語を記します。描画する線の二端は `appearance.end_a` と `appearance.end_b` で指定します。それぞれ下表から一つの形式を選びます。
 
-`points` 配下では、各要素に対して **`name` だけ** を必須とする：
+| 端点の形式 | 位置の決め方 |
+|---|---|
+| `{"ref": "点UUID"}` | 同じ図の `points[].appearance.position` を参照する。 |
+| `{"surface_ref": "面UUID", "uv": [u, v]}` | 同じ図の面と面内取付位置を参照する。 |
+| `{"coord": [x, y, z]}` | 世界座標を直接指定する。 |
 
-| プロパティ | 型 | 必須 | 説明 |
-|-----------|----|------|------|
-| `name` | string | ✅ | 点の名称。prep ではこれだけが必須。 |
+端点のどちらを意味の始点として読むかは `sense` で決まります。参照先の種類、存在、UUIDの一意性は構造検査で確認します。
 
-その他のプロパティ（座標・タグ・補足情報など）は  
-`additionalProperties: true` により任意に付与できるが、  
-**prep スキーマとしては意味を規定しない**。  
+| `appearance` | 値と条件 |
+|---|---|
+| `line_type` | `straight`（既定）、`polyline`、`catmullrom`、`bezier`、`arc`。直線以外を指定すると `geometry` が必須。 |
+| `geometry` | `dimension` は2か3。折線は `polyline_points`、ベジェは `bezier_controls`（制御点1〜2）、Catmull–Romは `catmullrom_points` と `catmullrom_tension`（0〜1）。円弧は `arc_center`、`arc_radius`、`arc_angle_start`、`arc_angle_end`、`arc_clockwise`。 |
+| `line_style` | `solid`（既定）、`dashed`、`dotted`、`double`、`none`。 |
+| `color`、`opacity`、`render_order` | 色、不透明度、描画順。既定はそれぞれ白、0.4、0。 |
+| `arrow`、`effect`、`caption_text` | 矢印、動的な描画効果、キャプションの文字表示。 |
 
-modeler の Importer は、`name` だけを見て temp_point を生成し、  
-Direct Spatial Editing や数値入力を通じて `position` や `meta` を付与していく。
+`arrow.primitive` は必須です。`line` は `length` と `thickness`、`cone` は `radius` と `height`、`pyramid` は `base` と `height` を併記します。`none` は形状なしです。`placement` で `end_a`、`end_b`（既定）、`both`、`none` を選べます。`auto_orient` の既定は真です。
 
-#### 2.3.3 document_meta の構造（概要）
+`effect.effect_type` には `none`、`pulse`、`flow`、`glow` を指定できます。効果の強さ、速度、継続時間、繰り返し、位相、補間と幅は順に `amplitude`、`speed`、`duration`、`loop`、`phase`、`easing`、`width` です。描画の動き自体から対象の流量や経過時刻は決まりません。
 
-`document_meta` には、スキーマ識別用の `schema_uri` だけを必須とする：
+### 面
 
-| プロパティ | 型 | 必須 | 説明 |
-|-----------|----|------|------|
-| `schema_uri` | string(uri) | ✅ | このファイルが準拠するスキーマURI（prep）。 |
-| `generator` | string | 任意 | 生成ツール名やバージョン。 |
-| `source` | string | 任意 | 元データの出典やパス。 |
+`surfaces[]` の要素には `meta.uuid`、`signification.name`、`appearance` が必要です。`appearance.plane` は `xy`、`xz`、`yz`、`position` は面の中心、`size` は面内二辺の正の長さです。面の法線方向の厚みはゼロです。任意の `color`、`opacity`、`visible`、`frames`、`pattern: "hatch"` は面の表示を定めます。
 
-ここでも `additionalProperties: true` とし、  
-ツール固有のフィールド（例：`task_id`、`prompt`、`confidence` など）を自由に付与できる。
+| `plane` | U軸 | V軸 |
+|---|---|---|
+| `xy` | +X | +Y |
+| `xz` | +X | +Z |
+| `yz` | +Y | +Z |
 
-3DSS（構造層）の `document_meta` と異なり、  
-prep の `document_meta` では座標系・単位・言語コード・タグ等は規定しない。  
-これらは既存prepでは規定せず、対応するprofileと交換先の契約に従って保持・解釈する。上流で値が与えられている場合、その根拠と対応を既存Importerが保持できるとは限らない。
+端点の `uv` は各成分が0〜1の正規化座標です。`[0.5,0.5]` は面の中心、`[0.5,0]` はVが最小になる辺の中央です。面の中心に `(u−0.5) × size[0]` をU方向へ、`(v−0.5) × size[1]` をV方向へ加えると端点を得ます。面を移動・拡縮したときは、この取付位置から端点を再計算します。零の値も選択・参照できるよう、値の符号化と有限の選択領域を区別します。
 
-#### 2.3.4 既存prepの対象範囲
+### 補助要素
 
-`3DSS-prep.schema.json`は名称を中心とする疎な入力を受け渡す最小インターフェースであり、
-`lines` / `aux`の意味を規定しない。この限定は、3DSL全体の制作手順や上流で構造的関係を作れるかを定めない。
+`aux[]` は `meta` が必須です。`appearance` に `position`、`orientation`、`opacity`、`visible`、`frames` と、次の `module` を指定できます。補助平面 `plate` はグリッドなどと同様に描画を支えます。意味と参照先を持つ面には `surfaces` を使います。
 
-上流で参与、条件、根拠などを作成・生成して渡す場合は、その保持と読出しを定めたprofileを用いる。
-既存prepの`additionalProperties: true`は追加データを許容するが、Importerでの保持・解釈・往還を保証しない。
-現Importerが`name`から点を生成する既存経路と、新しい構造記録の入力経路は、対応版を区別する。
+| `module` | 属性 |
+|---|---|
+| `grid` | `grid_type`（`cartesian`、`polar`）、`subdivisions`、`major_step`、`minor_step`、`color_major`、`color_minor`。 |
+| `axis` | `length`、`labels`、`arrow`。形ごとの矢印寸法は線と同じ条件で指定。 |
+| `plate` | `plane`（`xy`、`yz`、`zx`）、`position`、`size`、`reflectivity`、`opacity`。 |
+| `shell` | `shell_type`（`sphere`、`box`、`hemisphere`、`quarter_sphere`、`eighth_sphere`）、`opacity`、`reflectivity`、`effect` の `edge_intensity`、`rimlight`、`glow_color`。 |
+| `hud` | `follow_camera`、`scale_with_distance`。 |
+| `extension` | `type`、`latex`、`parametric`。 |
 
-#### 2.3.5 3DSS（構造層）との関係
+`extension.latex` には `content` と `pose` が必須で、`render_mode`（`math`、`inline`、`block`）、`font_size`、`color`、`position` が任意です。`extension.parametric` には `type` が必須で、`version`、`params`、`bindings`（各項目に `target`、`expression`）、`seed` が任意です。式の具体的な解釈は利用する制作・表示の処理に委ねます。
 
-3DSS-prep と 3DSS 構造層の関係は、次のように整理できる：
+### 図内の文字
 
-- prep：  
-  - Authoring 層に属する  
-  - 疎な `name` リスト＋ごく簡単なメタ情報  
-  - Validator は「形式が prep かどうか」だけを見る
-- 3DSS（構造層）：  
-  - viewer / modeler 共通の正規構造データ  
-  - `lines` / `points` / `aux` / `document_meta` を完全定義  
-  - strict validation（AJV等）で本schemaが定義する形式を検証。参照整合、併用profileへの適合、領域上の真偽は別の検査
+点の文字は `appearance.marker.text` に置き、`content` と `pose` を指定します。点文字の `align` は `left`・`center`・`right` と `top`・`middle`・`baseline` を `&` で結んだ値で、既定は `center&middle` です。線の文言は `signification.caption`、表示は `appearance.caption_text` に記します。
 
-既存の疎なprep入力について、modelerのI/O経路は次のように整理できる。これは制作全体に唯一の順序を課すものではない：
+| 設定 | 値と意味 |
+|---|---|
+| `pose.front`、`pose.up` | 文字面の表を向く方向と、字の上の方向を世界座標のベクトルで指定。既定の姿勢は+Yを表、+Zを上とする。 |
+| `writing_mode` | `horizontal-tb`（既定）は `right = up × front` に沿って読む。`vertical-rl` は `−up` に沿って読み、次の列は `−right` 側に置く。 |
+| 点の `size`、線と数式の `font_size` | `0.125, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256` から選ぶ相対段階。既定は8。 |
+| `font`、`font_weight` | 点と線の書体名、任意の太さ400または700。指定した太さを優先する。 |
+| `color` | 文字の色。点マーカー、線や面の色はそれぞれ独立した表示属性。 |
 
-```text
-prep (.3dss-prep.json)
-  → Importer（name → temp_point）
-  → Direct Spatial Editing / 数値入力
-  → Confirm（temp → structure）
-  → 3DSS (.3dss.json) へ export
-```
+数式の組版内部にある添字サイズは本文サイズの列挙値と別に扱います。カメラ操作後も図内の文字面は保存されたモデル上の姿勢を保ちます。
 
-prep は Authoring 層に属し、基本的に `additionalProperties: true` の緩いスキーマであるのに対し、
-3DSS（構造層）はルートを含め原則 `additionalProperties: false` の strict スキーマとして定義される。
+## 3. 局所の座標、比較、量
 
-## 第3章　設計理念（Design Philosophy）
+各レコードの `id` は同じ図の要素UUIDと重複しないUUIDです。用途に応じて次の配列を加えます。
 
-3DSSは、3DSLで構成した図を交換するために、表示要素と本版が扱う意味・管理情報を定める。3DSLが取り出す関係・対立・共通性・まとまりは、階層構造だけに限らない。本章は、主要な構造を空間表現へ担わせ、その表現と解釈の条件を明示するための原則を示す。
+### 局所の座標
 
----
+`coordinate_contexts[]` の各項目に、`id`、`label`、`origin`（世界座標上の局所原点）、`axes`（1〜3本）、`element_refs`（1個以上の要素UUID）を指定します。`axes[]` は各軸の `direction`（`+x`、`-x`、`+y`、`-y`、`+z`、`-z`）、`label`、`kind` を持ちます。同じX・Y・Zの成分は一つの文脈で一度だけ使用します。
 
-### 3.1 基本原理
+| `kind` | 軸から読めること |
+|---|---|
+| `category` | 対象や区分の違い。 |
+| `order` | 向きに沿う順序。 |
+| `measure` | 単位付きの値。`unit`、0より大きい `coordinate_units_per_unit`、`value_at_origin` を指定する。 |
 
-- 3DSSのデータ要素は、関係を描く線・対象を表示する点・補助表示・文書管理という領域に分け、それぞれ `lines`・`points`・`aux`・`document_meta` が対応する。これはファイル上の表現分類であり、対象世界の存在論的な最小単位を定めるものではない。  
-- `lines`と`points`には、次の三つのプロパティ群を定義する。利用できる群と、必須プロパティは区別する。  
-  - signification：意味的情報（関係・概念・方向性など）  
-  - appearance：形態的情報（位置・色・形状・描画特性など）  
-  - meta：管理情報（UUID・タグ・制作者メモなど）  
-- `lines`と`points`では`appearance`と`meta`が必須、`signification`は任意である。  
-- `aux`は本版では`signification`を持たず、`appearance`と`meta`を定義する（必須は`meta`）。意味ある軸・境界・範囲をaux等で示す場合は、問いに必要な意味・所属・判定規則と表示の対応を、規約や併用記録から回復できるようにする。補助表示の幾何だけから意味を確定しない。  
-- `document_meta` は全体情報を統括する独立メタ要素として、三層構造の外側に位置づけられる（`$defs.meta.document` により定義）。  
-- `signification`は本版の名称・関係種別・方向等、`appearance`は幾何・描画特性、`meta`はUUID・タグ・制作者メモを担う。判断履歴や対象の同一性、根拠との対応を`meta`だけで保持できるとは扱わない。  
+計量軸の値は、原点から軸の正方向へ進んだ座標差を `coordinate_units_per_unit` で割り、`value_at_origin` に加えます。分類軸や順序軸は単位と換算値を省きます。
 
-3DSS は、この三層構造を通じて「概念構造」と「幾何表現」と「管理メタ」を明示的に分離しつつ、三者の連結を保つことを目的とする。
+### 比較
 
----
+`comparisons[]` の各項目に `id`、`label`、`subject`（比較対象）、`held_constant`（保持する観察条件や尺度）、`cases`（二つ以上）を指定します。`cases[]` は `label`、`condition`、`element_refs`（1個以上）を持ちます。読者は、どの条件を変えた比較なのかをケースとその対象要素から読みます。
 
-### 3.2 構造的思考の指針
+### 量
 
-- `points` は対象や役割を配置する表現の足場、`lines` は関係などを描く線、`aux` は補助表示、`document_meta` は文書管理を表す。pointのUUIDが同じ意味対象のIDであるとは、描画形式だけから判定しない。  
-- `lines` は力学・流動・因果・論理などを前景化する表現に使えるが、一本の描画線と一つの意味関係が常に一対一になるとは限らない。幾何座標やappearance.framesにも、対象時間や量・質の意味が自動で備わるわけではない。
-- **制作上の役割分担（2026-10-09明記）**：`lines` は対象どうしの関係を表すために使い、概念を囲むフローチャート風の四角枠、区切り罫線、文字装飾の代わりに追加しない。関係のない装飾をlineに入れると、線の一覧・選択・件数と関係の理解に混入する。対象自体の見た目はpointのmarker・text、補助表示は対応するauxまたは表示UIの責務とする。現行機能で必要な装飾が表せない場合も、関係線への流用で補わない。この原則は制作規約であり、既存JSON Schemaの型を変更したり、読み込んだ旧作品から線を自動削除したりするものではない。枠が意味ある範囲やまとまりを担う場合には、その意味と表現方法を別途明示し、装飾として暗黙に混ぜない。
-- 同一対象の複数表示、関係への反復参与、判断主体・規準、未判定などは、問いに必要な場合に区別する。点や線を増やす方式に限定せず、規約から回復できる対応も用いる。
-- 各図で主題とする関係・対立・まとまりは、配置・接続・境界等とラベル・凡例を対応づけ、図上で辿り比較できるようにする。主要関係を別の記録に保持するだけで、図に示したとは扱わない。詳細参照を含む場合は、図からの参照経路を示し、その参照を含む読解として扱う。
-- 必要な区別を記録できることと、図で読み取れることを分ける。図から答えられるとする問いについては、答えを分ける手掛かりが図・ラベル・凡例に必要である。補助表示の有無が保存された対象・関係を変えなくても、読解条件と読める範囲は変わり得る。
-- 図式の価値には、既知の内容の整理、比較、説明、再検討も含まれる。新しい発見を毎回の合格条件としない。
+`quantities[]` の各項目には `id`、`label`（何の量か）、`unit`、`subject`（対象または境界）、`basis`（時点・事象・区間など）、`status`、`element_ref`（対応する要素のUUID）が必要です。`status: "recorded"` のときだけ `value` を数値で指定します。記録済み0は `value: 0`、欠測は `missing`、適用外は `not_applicable` です。個別の量の単位 `unit` と文書の座標単位 `units` は、それぞれ量と表示空間の尺度を表します。
 
-`lines.signification.relation` は、本版の関係語彙として次の5カテゴリのうち一つを保持する。
-この語彙が全領域の関係を網羅し、相互排他的に分類することは主張しない。
-関係の参与位置・役割・関係自体への参照が必要な用途では、適用profileでそれらの識別と対応を保持する。
+| `basis.kind` | 併記する属性 |
+|---|---|
+| `atemporal` | 対象の仕様寸法など、時間を置かない量。 |
+| `instant` | 時間軸 `axis` と位置 `at`。 |
+| `event` | `axis`、位置 `at`、事象点のUUID `event_ref`。 |
+| `interval` | `axis` と区間の両端 `start`、`end`。集計方法 `aggregation` は `sum`、`integral`、`average`。 |
 
-| キー           | 意味           | enum 値の例                                  |
-| ------------- | -------------- | -------------------------------------------- |
-| `structural`  | 構造関係       | `association`, `containment`, `hierarchy`   |
-| `dynamic`     | 力学・流動・因果 | `causal`, `flow`, `influence`, `derivation`, `transformation`, `feedback`, `recursion`, `reflection` |
-| `logical`     | 論理関係       | `equivalence`, `negation`, `implication`, `support`, `conflict` |
-| `temporal`    | 時間関係       | `precedence`, `succession`                  |
-| `meta`        | 参照・メタ情報 | `reference`                                 |
+`axis` は符号付きの座標軸です。`at`、`start`、`end` は、基準原点から軸の正方向に投影した座標単位の値です。`context_ref` を指定する場合は、対応する局所座標の `id` を指定し、時間を使う量の `axis` がその文脈に含まれるようにします。基準原点にはその文脈の `origin` を使い、省略時は世界座標の `[0,0,0]` を使います。+Xと−Xのどちらを選んでも、進行方向に沿う区間は `start < end` です。期間の値と描画規則は[量の描き方](/docs/usage/author-3dss/#量と収支)を参照してください。
 
-`relation` オブジェクトは上記のうち **ちょうど 1 つ**のキーだけを持ち、その値で関係の種類を決定する（`minProperties = 1` / `maxProperties = 1` ＋ `oneOf` により制約）。
+## 4. 作品内の凡例
 
-さらに、`lines.signification.sense` は関係の向きを表す。
+`visual_legend[]` には、作品内で一意の `id`、読者向けの `label`、意味と使用範囲を述べる `description`、一つ以上の `applies_to` を指定します。対象の種類は `point_text`、`point_marker`、`line_caption`、`line`、`surface` です。見本の `sample` には `size`、`writing_mode`、`font`、`font_weight`、`color`、`pose`、`pattern` を指定できます。要素の `meta.legend_refs` は複数の凡例IDを参照できます。描画は各要素の `appearance` に従います。`sample` は凡例を再現するための見本です。
 
-| 値             | 意味                         |
-|----------------|------------------------------|
-| `a_to_b`       | end_a → end_b 方向の関係     |
-| `b_to_a`       | end_b → end_a 方向の関係     |
-| `bidirectional`| 双方向の関係                 |
-| `neutral`      | 向きを持たない関係（対称など）|
+表示の色は `#RGB` または `#RRGGBB`、不透明度は0〜1です。作品で意味を担う色・模様には、その用途と対象を凡例に記録します。例えば、仕訳の借方・貸方、数量の増減、報告範囲での除外は、それぞれ作者が区別して記録する意味です。柄は面に描く表示仕様です。
 
-`relation`と`sense`を記載したlineは、本版の語彙による関係種別と向きを保持できる。端点はpointへの参照または座標であり、必ず二つの意味対象を同定するものではない。この形式への適合は、記述された因果・論理・時間関係の真偽を保証しない。
+## 5. 検証と互換性
 
----
+1. `document_meta.schema_uri` で対応する固定版を選び、JSON Schemaで型・必須項目・列挙値・範囲を検査します。
+2. 文書全体を見てUUIDの一意性、端点と凡例の参照先の存在と種類、局所軸の重複、時間軸の一致、区間の順序を構造検査で確認します。
+3. 作者は、軸・配置・形・文字・表示が題材のどの事実を支えるか、保存した向きと読図結果が一致するかを確認します。制作と公開の基準は[図の制作ガイド](/docs/usage/author-3dss/)に記載します。
 
-### 3.2.1 文脈・時間・表示被覆
+固定版には独自のスキーマと既定値があります。旧版文書を読むときは、その版の契約に従います。新版へ移す場合は変換内容と保持できる情報を確認したうえで、移行済みデータに新版の `schema_uri` を記録します。v1.1.4が許していた文字サイズのうち、v2.0.0の列挙値に含まれないものは、変換時に新しい文字階層を決めてから置き換えます。
 
-appearance.framesは表示選択の識別であり、対象時間、記録時間、解釈文脈そのものではない。
-これらを表示に対応づけ、その違いを問う場合は、対象と時点・区間・読解規約の対応を必要な範囲で保持する。全記録に複数時刻や個別の版フィールドを要求しない。
-文書の作成・改訂日時だけで、個別判断の対象時間や訂正履歴を代替しない。
+## 6. 2点と1本の関係線を持つ例
 
-構造記録の存在は画面上の出現を必須条件としない。表示、取得、検査それぞれの範囲を区別する。
-折畳み・非表示・未読込だけから削除・不存在・不成立を導かない。
-完全被覆を確認し、閉世界規約を宣言した範囲での不存在判定は、当該規約に従う。
-集約は範囲と規則、採用した問い・操作に必要な内訳・元の接続先を保持する。
-
-### 3.2.2 配置と意味の変更
-
-表示だけを変える操作と、意味内容・同定・対応規約を変える操作を区別する。表示だけを変更すると宣言した操作から、対象の属性や関係を暗黙に更新しない。意味の変更を行う場合は、変更した対象と条件、表示との対応を追えるようにする。
-
-規約が未定の配置も、探索の途中経過として扱える。先に配置を試し、後から関係や軸の仮説を与える制作を認める。その配置を、根拠づけられた分類や事実へ自動的に置き換えない。構造化の入力には、文章だけでなく観察・経験・設計・構想も含める。資料を扱う場合は記述と解釈を区別し、仮説や設計値にはその性格に応じた条件を定める。配置から得た見立ては、観察、資料、反例、設計条件へ照らして点検し、食い違いがあればモデルの区別や関係を見直す。
-
-意味値から位置を導出する場合は、両者の対応と更新規則を定め、互いに矛盾する二つの正本を作らない。派生表示が古い場合は、参照している構造を区別できるようにする。確定方法、取消方法、操作単位、保存単位は各製品・用途の契約で定める。本原則から特定の操作方式を一意に導かない。
-
-### 3.2.3 適合と保持の範囲
-
-構造記録、表示記録、対応規約を併用する場合は、それらを混同せず読み戻すために必要な識別と版の対応を保持する。名称や近接だけから同一対象と決めない。内容の一致検査も、対象同一性や記述の真偽の判定とは区別する。
-
-形式適合、参照整合、宣言した読出し・操作での情報保持、領域上の真偽、図による理解可能性を別に評価する。一つの成功を他の達成の証拠として代用しない。これら全ての一般的有効性を証明するまで制作を止めるという条件でもない。
-
-個々の図の評価では、制作時に次を必要な範囲で記述する。これらは読解案内や併用記録に示せる条件であり、v1.1.4へ新しい必須フィールドを追加するものではない。
-
-- 主題と読解課題、および確認できるべき対応。
-- その対応を担う配置・接続・境界と、必要なラベル・凡例・視点または表示状態。
-- 集約・省略・未収録の範囲。非表示、未判定、否定を区別する読み方。
-- 詳細や元情報へ戻れる経路と、その限界。省略により回復できない区別があればその旨。
-
-評価結果は、課題ごとに図の箇所・読出し・操作の証拠と結び付ける。欠落した区別を評価後に不要と扱って合格にせず、問いや範囲を変更する場合は、当初の未達と変更理由を残す。探索で問いが変わる場合も、この記録によって現在の課題への適合と、問い直せる範囲を区別する。制作者の点検だけで利用者の理解や使いやすさまで確認済みとしない。
-
-### 3.2.4 三次元表現とモデル間の対応
-
-三次元を使う設計上の狙いは、複数の観点や層、全体と詳細を同じ空間に併置し、視点を変えて対応を辿れるようにすることである。軸・領域・奥行きに意味を担わせる場合はその規約を、配置上の余白として用いる場合はその範囲を示す。カメラの向きに対象領域の意味を自動付与しない。重なり・奥行き・視点移動の負担も含め、具体的な読解課題で寄与を確認する。この狙いは一般的な有効性の実証や、Viewerの未実装機能の保証ではない。
-
-別モデルの比較・結合では、対応させる対象・関係・軸や区分、対応の根拠と適用条件、保持する区別、対応しない部分を必要な範囲で明示する。尺度・区分・集約粒度を変換する場合は、その規則と失われる区別を示す。各モデルがそれぞれ規約を明示するだけでは、モデル間の対応が成立したとは扱わない。同名・同座標を無条件に同一とせず、未確認の対応は仮説として区別する。
-
-これらは対応づけの原則であり、汎用の意味交換形式や自動変換アルゴリズムを本版で追加するものではない。
-
-### 3.3 設計指針
-
-3DSS v1.1.4 では、スキーマ設計において **論理的一貫性と拡張可能性** を優先し、表現上の自由度はその範囲で確保する。
-
-これにより、スキーマは Viewer の描画負荷から独立して構造定義の安定性を維持しつつ、将来の viewer／modeler 実装に対して中立的な基盤となる。
-
-#### 3.3.1 表現と構造の分離原則
-
-3DSSは、構造を示す図と本版が定める意味情報を記録する形式であり、照明・影・反射・ポストエフェクトなどViewer固有の演出設定は保持しない。  
-ただし、構造定義上の基本的な表示属性（`color`, `opacity`, `emissive` など）は、構造可視化のための最小限の範囲として含まれる。
-
-拡張定義の構造本体は `$defs` に集約し、実体側（例：`aux.appearance.module.extension` など）には識別用のフィールドと、それらへの `$ref` のみを記述する。
-
-v1.1.4 における `$defs` の主な構成は次の通りである。
-
-- `$defs.validator`  
-  - UUID／URI／タグ／言語コード／単位／SemVer／UTCタイムスタンプ／カラーコード／3次元ベクトル／frames などの共通バリデーションを提供する。  
-- `$defs.spatial`  
-  - `position`／`orientation`／`scale`／`rotation`／`offset` など、空間属性の共通定義をまとめる。いずれも `validator.vec3` を参照する。  
-- `$defs.geometry`  
-  - `line_geometry` として、polyline／Bezier／Catmull-Rom 曲線／円弧などの幾何パラメータを定義する。  
-- `$defs.extension`  
-  - `parametric`／`latex` など、外部拡張用の構造を定義する。  
-- `$defs.labels`  
-  - `localized_string` として、`string` または `{ ja, en }` 形式の多言語ラベル構造を定義する。  
-- `$defs.meta`  
-  - `meta.core`：要素共通メタ（`uuid`／`tags`／`creator_memo`）  
-  - `meta.document`：`document_meta` 用メタ（タイトル／要約／バージョン／スキーマURI／author 等）  
-- `$defs.line`／`$defs.point`／`$defs.aux`  
-  - line・pointのsignificationとappearance、auxのappearance、各モジュールのnodeを定義する。ルートの`lines`／`points`／`aux`は、それぞれの`node`を配列要素として参照する。
-
-このように、実体定義側は `$ref` によって意味層と形態層を分離し、構造の再利用と整合性を維持できる。
-
-`orientation`／`rotation` の具体的な角度表現（オイラー角の順序／ラジアン・度単位など）は、3DSS スキーマではあえて固定せず、**実装依存の 3 成分ベクトル** として扱う。  
-これにより、three.js 等の 3D エンジンへのマッピング方針は viewer／modeler 側で選択できる。
-
----
-
-## 第4章　全体構造（Root Structure）
-
-3DSS のスキーマは、**4 つの主要要素（`lines`／`points`／`aux`／`document_meta`）**からなる実体データを中核とし、これらを支える **共通定義群 `$defs`** を内部に保持する。
-
----
-
-### 4.1 ルートオブジェクト
-
-ルートオブジェクトは、次の 4 プロパティのみを持つ。
-
-| プロパティ       | 型            | 必須 | 説明 |
-|------------------|--------------|------|------|
-| `lines`          | array(object)| 任意 | 関係等を表す描画線。各要素は `$defs.line.node` に準拠する。 |
-| `points`         | array(object)| 任意 | 対象等を指し示す表示点。各要素は `$defs.point.node` に準拠する。 |
-| `aux`            | array(object)| 任意 | 補助構造（座標格子・軸・プレート・シェル・HUD 等）。各要素は `$defs.aux.node` に準拠する。 |
-| `document_meta`  | object       | ✅   | 文書全体の管理メタ情報。`$defs.meta.document` に準拠する。 |
-
-> 補足：`lines`／`points`／`aux` はスキーマ上任意だが、実体定義が存在しない場合も空配列として明示することを推奨する。
-
-ルートオブジェクトは `lines`／`points`／`aux`／`document_meta` 以外のプロパティを持たない（`additionalProperties: false`）。  
-将来の拡張は `$defs` 配下、または各モジュールの下位構造として行い、ルート階層には新たなプロパティを追加しない。
-
----
-
-### 4.2 共通定義 `$defs` の構成
-
-v1.1.4 における `$defs` の主要な構成要素と役割を整理する。
-
-| セクション            | 役割の概要 |
-|-----------------------|-----------|
-| `$defs.validator`     | UUID／URI／タグ／言語コード／単位／SemVer／UTCタイムスタンプ／カラーコード／3D ベクトル／`frames` などの共通バリデーション。 |
-| `$defs.spatial`       | `position`／`orientation`／`scale`／`rotation`／`offset` の 3D ベクトル定義。全モジュールで共有される。 |
-| `$defs.geometry`      | `line_geometry` として polyline／Bezier／Catmull-Rom／円弧などの幾何パラメータを定義。 |
-| `$defs.extension`     | `parametric`／`latex` 等、外部拡張モジュール。 |
-| `$defs.labels`        | 多言語ラベル `localized_string` を定義。 |
-| `$defs.meta`          | `meta.core`（UUID・タグ・メモ）／`meta.document`（文書メタ）を定義。 |
-| `$defs.line`          | `relation`／`signification`／`endpoint`／`arrow`／`effect`／`appearance`／`node` 等、line モジュール全体。 |
-| `$defs.point`         | `name`／`signification`／`marker_*`／`marker`／`appearance`／`node` 等、point モジュール全体。 |
-| `$defs.aux`           | `module_*`（grid／axis／plate／shell／hud／extension）／`module`／`appearance`／`node` 等、aux モジュール全体。 |
-
-`lines`／`points`／`aux` の配列要素は、それぞれ `$defs.line.node`／`$defs.point.node`／`$defs.aux.node` を参照することで、
-モジュールごとの内部構造を隠蔽しつつ、一貫した型付けを実現する。
-
----
-
-### 4.3 空間属性の共通フォーマット
-
-各要素の空間属性（`position`／`orientation`／`scale`／`rotation`／`offset`）は、`$defs.spatial` で共通定義される。
-
-- いずれも `$defs.validator.vec3` を参照し、3 要素の数値配列 `[x, y, z]` として表現する。  
-- `position` はワールドまたはローカル座標系における位置を表す。  
-- `orientation`／`rotation` は回転を表すが、その解釈（オイラー角の順序、度／ラジアン）は 3DSS 側では規定せず、viewer／modeler 実装に委ねる。  
-- `scale` はスケール倍率、`offset` はマーカー等に対する相対オフセットとして用いる。
-
-これにより、`lines`／`points`／`aux` 間で同一の型・次元・値域を保証しつつ、
-実装側の 3D エンジン（three.js 等）へのマッピング自由度を確保する。
-
----
-## 第5章　主要要素 (Primary Elements)
-
-### 5.1 lines — 描画線（Line Element）
-
-#### 5.1.1 概要
-
-`lines`は、関係や接続等を示す描画線を定義する。端点はpoint参照または座標で指定する。一本の線から、対象世界の関係の数・参与位置・動的性質が一意に決まるわけではない。
-各lineには任意の`signification`（意味層）、必須の`appearance`（形態層）と`meta`（管理層）を定義する。
-
----
-
-#### 5.1.2 構造図（概念）
-
-```plaintext
-lines
-├─ signification
-│   ├─ relation : 構造・動的・論理・時間・メタ関係の分類
-│   └─ sense    : a_to_b / b_to_a / bidirectional / neutral
-├─ appearance
-│   ├─ end_a / end_b : endpoint
-│   │                 - ref   : points[].meta.uuid を参照
-│   │                 - coord : [x,y,z] 直接座標
-│   ├─ line_type      : straight / polyline / bezier / catmullrom / arc
-│   ├─ geometry       : #/$defs/geometry/line_geometry
-│   ├─ line_style     : solid / dashed / dotted / double / none
-│   ├─ color / opacity / visible / render_order / frames
-│   ├─ arrow          : primitive / length | thickness | radius | height | base /
-│   │                   placement / auto_orient
-│   └─ effect         : effect_type / amplitude / speed / duration / loop /
-│                       phase / easing / width
-└─ meta
-    ├─ uuid
-    ├─ tags
-    └─ creator_memo
-```
-
----
-
-#### 5.1.3 signification 層
-
-意味論層は、関係の種別と方向性を定義する。
-
-| プロパティ                 | 型            | 必須 | デフォルト      | 説明                                                                                                                                               |
-| --------------------- | ------------ | -- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `relation`            | object       | 任意 | –          | 構造的／動的／論理的／時間的／メタ関係の種別を定義。5種類のうちいずれか 1 つだけを持つ。                                                                                                   |
-| `relation.structural` | string(enum) | 任意 | –          | `association`（連結） / `containment`（包含） / `hierarchy`（階層）                                                                                          |
-| `relation.dynamic`    | string(enum) | 任意 | –          | `causal`（因果） / `flow`（流れ） / `influence`（影響） / `derivation`（派生） / `transformation`（変換） / `feedback`（フィードバック） / `recursion`（再帰） / `reflection`（反射） |
-| `relation.logical`    | string(enum) | 任意 | –          | `equivalence`（同値） / `negation`（否定） / `implication`（含意） / `support`（支持） / `conflict`（矛盾）                                                          |
-| `relation.temporal`   | string(enum) | 任意 | –          | `precedence`（先行） / `succession`（後続）                                                                                                              |
-| `relation.meta`       | string(enum) | 任意 | –          | `reference`（参照）                                                                                                                                  |
-| `sense`               | string(enum) | 任意 | `"a_to_b"` | 関係方向性。`a_to_b` / `b_to_a` / `bidirectional` / `neutral`。                                                                                         |
-| `caption`             | localized_string | 任意 | `""`       | 線キャプション（表示文字列）。`string` または `{ja,en}`。 |
-
-スキーマ上、`relation` は次の制約を持つ（`#/$defs/line/relation`）：
-
-* 5 種類のキーのうち、**いずれか 1 つだけ必須**（`oneOf`＋`minProperties:1`＋`maxProperties:1`）
-* 未定義キーは禁止（`additionalProperties:false`）
-
-`required_sets` や `enum_constraint` といった共通制約は v1.1.4 時点では `$defs` に未定義であり、
-各プロパティの `enum` 定義と本仕様書の表で直接規定する。
-
----
-
-#### 5.1.4 appearance 層
-
-形態層は、線の形状・描画特性・端点・付属表現を定義する。
-
-| プロパティ             | 型                        | 必須     | デフォルト             | 説明                                                                          |
-| ----------------- | ------------------------ | ------ | ----------------- | --------------------------------------------------------------------------- |
-| `end_a` / `end_b` | object(oneOf)            | 任意     | –                 | 始端／終端を指定。`{ref}`（uuid参照）または `{coord}`（直接座標指定）のいずれか。`#/$defs/line/endpoint`。 |
-| `line_type`       | string(enum)             | 任意     | `"straight"`      | 線の種類。`straight` / `polyline` / `catmullrom` / `bezier` / `arc`。             |
-| `geometry`        | object                   | 条件付き必須 | –                 | 幾何構造。`#/$defs/geometry/line_geometry`。`line_type !== "straight"` のとき必須。     |
-| `line_style`      | string(enum)             | 任意     | `"solid"`         | 線の描画スタイル。`solid` / `dashed` / `dotted` / `double` / `none`。                 |
-| `color`           | string(#RGB/#RRGGBB)     | 任意     | `#ffffff`         | 線色。`#/$defs/validator/color_hex`。                                           |
-| `opacity`         | number(0–1)              | 任意     | `0.4`             | 不透明度。                                                                       |
-| `render_order`    | number                   | 任意     | `0`               | レンダリング順序ヒント。値が同じときの優先順位は実装依存。                                               |
-| `arrow`           | object                   | 任意     | –                 | 矢印設定。`#/$defs/line/arrow`。                                                  |
-| `effect`          | object                   | 任意     | –                 | 動的表現効果設定。`#/$defs/line/effect`。                                             |
-| `visible`         | boolean                  | 任意     | （スキーマ default なし） | 表示／非表示。実装側 default として `true` を推奨。                                          |
-| `frames`          | integer / array(integer) | 任意     | –                 | 表示フレーム指定。`#/$defs/validator/frames`（-9999〜9999 の整数またはユニーク整数配列）。             |
-| `caption_text`    | object                   | 任意     | –                 | キャプション表示の見た目設定。`font_size` と `pose`。 |
-
-**条件付き必須**：
-
-* `line_type` が `polyline` / `catmullrom` / `bezier` / `arc` のいずれかである場合、
-  スキーマの `allOf` により `geometry` が必須となる。
-
-##### 5.1.4.1 arrow オブジェクト
-
-`arrow` は line の端点に付与される矢印形状を定義する。
-スキーマでは 1 つのオブジェクトとして定義され、`primitive` の値に応じて必須プロパティが変化する。
-
-| プロパティ         | 型                 | デフォルト     | 説明                                                                 |
-| ------------- | ----------------- | --------- | ------------------------------------------------------------------ |
-| `primitive`   | string(enum)      | –         | 矢印形状の種別。`"none"` / `"line"` / `"cone"` / `"pyramid"` のいずれか。必須。     |
-| `length`      | number (≥ 0.0001) | –         | `primitive: "line"` のとき使用する矢印線分の長さ。                                |
-| `thickness`   | number (≥ 0.0001) | –         | `primitive: "line"` のとき使用する線の太さ。                                   |
-| `radius`      | number (≥ 0.0001) | –         | `primitive: "cone"` のとき使用する底面半径。                                   |
-| `height`      | number (≥ 0.0001) | –         | `primitive: "cone"` / `"pyramid"` のとき使用する高さ。                       |
-| `base`        | array(number,2)   | –         | `primitive: "pyramid"` のとき使用する底面サイズ `[width, depth]`。各要素 ≥ 0.0001。 |
-| `placement`   | string(enum)      | `"end_b"` | 矢印を付与する位置。`"end_a"` / `"end_b"` / `"both"` / `"none"`。             |
-| `auto_orient` | boolean           | `true`    | line の向きに合わせて矢印を自動回転させるかどうか。                                       |
-
-`primitive` ごとの有効プロパティと必須条件（スキーマでは `allOf` の `if/then` で表現）：
-
-* `primitive: "none"`
-
-  * 使用可能: `primitive`, `placement`, `auto_orient`
-  * サイズ関連プロパティ（`length` / `thickness` / `radius` / `height` / `base`）は指定しない。
-
-* `primitive: "line"`
-
-  * 使用可能: `primitive`, `length`, `thickness`, `placement`, `auto_orient`
-  * 必須: `primitive`, `length`, `thickness`
-
-* `primitive: "cone"`
-
-  * 使用可能: `primitive`, `radius`, `height`, `placement`, `auto_orient`
-  * 必須: `primitive`, `radius`, `height`
-
-* `primitive: "pyramid"`
-
-  * 使用可能: `primitive`, `base`, `height`, `placement`, `auto_orient`
-  * 必須: `primitive`, `base`, `height`
-
----
-
-##### 5.1.4.2 effect オブジェクト
-
-| プロパティ         | 型            | デフォルト      | 説明                                                         |
-| ------------- | ------------ | ---------- | ---------------------------------------------------------- |
-| `effect_type` | string(enum) | `"none"`   | エフェクト種別。`none` / `pulse` / `flow` / `glow`。                |
-| `amplitude`   | number(≥0)   | `1`        | 効果の強度。                                                     |
-| `speed`       | number(≥0)   | `1`        | 再生速度。                                                      |
-| `duration`    | number(≥0)   | `1`        | 継続時間。                                                      |
-| `loop`        | boolean      | `true`     | 繰り返し再生するか。                                                 |
-| `phase`       | number(0–1)  | `0`        | エフェクトの開始位相。                                                |
-| `easing`      | string(enum) | `"linear"` | イージング曲線。`linear` / `ease-in` / `ease-out` / `ease-in-out`。 |
-| `width`       | number       | `1`        | 効果の見た目上の幅。                                                 |
-
-`effect` プロパティ自体は任意だが、指定された場合は上記フィールドに従って厳密に検証される。
-
----
-
-##### 5.1.4.3 caption_text オブジェクト
-
-`caption_text` は line の `signification.caption` を表示するためのスタイル情報（v1.1.4）。
-
-| プロパティ | 型 | 必須 | デフォルト | 説明 |
-|---|---|---|---|---|
-| `font_size` | number | 任意 | `8` | 表示サイズ（相対）。Viewer は `font_size/8` を倍率として適用する想定。 |
-| `pose`  | object(text_pose) | 任意 | `{ "front": [0,1,0], "up": [0,0,1] }` | テキスト姿勢（6.5 `text_pose`）。`front` はテキスト面の正面方向（法線）、`up` は文字の上方向。 |
-
----
-
-#### 5.1.5 meta 層
-
-lines の meta 層は `$defs.meta.core` に準拠し、次の構造をとる。
-
-| プロパティ          | 型             | 必須 | 説明                                                         |
-| -------------- | ------------- | -- | ---------------------------------------------------------- |
-| `uuid`         | string(uuid)  | ✅  | 一意識別子。`#/$defs/validator/uuid`。                            |
-| `tags`         | array(string) | 任意 | スコープ分類タグ。`#/$defs/validator/tag` のパターン（`s:/m:/x:` 接頭辞）に従う。 |
-| `creator_memo` | string        | 任意 | 制作者の自由メモ。自動的な意味付与は定義しない。読解上の扱いは5.5節を参照。                                     |
-
----
-
-#### 5.1.6 参照整合 (Reference Integrity)
-
-* `end_a.ref` / `end_b.ref` は、`points[].meta.uuid` のみを参照することを前提とする。
-* line 間の直接参照（line → line）は v1.1.4 では未サポート。将来拡張領域とする。
-* 自己参照や循環参照、別ファイルへの越境参照の禁止／許可は、アプリケーション側の検証ポリシで扱う。
-
-JSON Schema v1.1.4 では、UUID 形式のみを検証対象とし、
-参照先の実体存在チェック（参照整合性）は `$defs.validator.ref_integrity` の将来導入候補として仕様レベルで予約しておく。
-
----
-
-#### 5.1.7 幾何情報 (Geometry)
-
-`geometry` は `#/$defs/geometry/line_geometry` に `$ref` される。
-
-| プロパティ                | 型               | デフォルト       | 説明                       |
-| -------------------- | --------------- | ----------- | ------------------------ |
-| `dimension`          | integer(enum)   | –（推奨値: 3）   | 幾何空間の次元。`2` または `3`。     |
-| `polyline_points`    | array(vec3)     | –           | 折線経路を構成する点群。             |
-| `bezier_controls`    | array(vec3,1–2) | –           | ベジェ曲線の制御点群。              |
-| `arc_center`         | vec3            | –           | 円弧中心座標。                  |
-| `arc_radius`         | number(≥0)      | –           | 円弧半径。                    |
-| `arc_angle_start`    | number          | –           | 円弧開始角（rad）。              |
-| `arc_angle_end`      | number          | –           | 円弧終了角（rad）。              |
-| `arc_clockwise`      | boolean         | –           | 円弧の時計回り指定。               |
-| `catmullrom_points`  | array(vec3)     | –           | Catmull-Rom 曲線点群。        |
-| `catmullrom_tension` | number(0–1)     | –（推奨値: 0.5） | Catmull-Rom 曲線の張力（滑らかさ）。 |
-
-* `dimension` を省略した場合の解釈は実装依存だが、Viewer 実装における推奨初期値は `3`。
-* `additionalProperties:false` により、ここに記載されていないプロパティは許可されない。
-
----
-
-#### 5.1.8 整合確認要約
-
-* ✅ `appearance.render_order` へ名称統一（旧 `renderOrder` は使用しない）。
-* ✅ `geometry` の `$ref` は `#/$defs/geometry/line_geometry` に修正。
-* ✅ `arrow` は 1 オブジェクト＋`primitive` による条件付き必須で定義（`oneOf` は使用しない）。
-* ✅ `frames` は `validator.frames`（−9999〜9999、配列時はユニーク）に一本化。
-
----
-
-### 5.2 points — 表示点（Point Occurrence）
-
-#### 5.2.1 概要
-
-`points` は 3DSS における **対象等を指し示す表示上の足場** を表し、
-空間上の基準点・ノード・アンカー等として用いる。表される対象が静的であることや、pointの個数が対象数と一致することは含意しない。
-
-各pointには任意の`signification`（意味層）、必須の`appearance`（形態層）と`meta`（管理層）を定義する。
-
----
-
-#### 5.2.2 構造図（概念）
-
-```plaintext
-points
-├─ signification
-│   └─ name : string / { ja, en }  #/$defs/labels/localized_string
-├─ appearance
-│   ├─ position : [x, y, z]
-│   ├─ marker
-│   │   ├─ common : orientation / scale / color / opacity / emissive / wireframe
-│   │   ├─ primitive : sphere / box / cone / pyramid / corona / none
-│   │   ├─ radius / size / height / base / inner_radius / outer_radius
-│   │   ├─ gltf : url / scale / rotation / offset
-│   │   └─ text : content / font / size / align / pose
-│   ├─ visible : boolean
-│   └─ frames : integer / array(integer)
-└─ meta
-    ├─ uuid
-    ├─ tags
-    └─ creator_memo
-```
-
----
-
-#### 5.2.3 signification 層
-
-| プロパティ  | 型                      | 必須 | デフォルト | 説明                                                 |
-| ------ | ---------------------- | -- | ----- | -------------------------------------------------- |
-| `name` | string / object(ja,en) | 任意 | `""`  | 点の名称。日本語・英語の併記可。`#/$defs/labels/localized_string`。 |
-
-* スキーマ上の `default` は空文字列（`""`）。
-* 意味のある名称を付与するかどうかは Authoring / modeler 側の運用に委ねる。
-
----
-
-#### 5.2.4 appearance 層
-
-| プロパティ      | 型                        | 必須 | デフォルト             | 説明                                            |
-| ---------- | ------------------------ | -- | ----------------- | --------------------------------------------- |
-| `position` | vec3                     | ✅  | –                 | 3次元座標 `[x, y, z]`。`#/$defs/spatial/position`。 |
-| `marker`   | object                   | 任意 | –                 | マーカー形状・色・ラベルなど。`#/$defs/point/marker`。        |
-| `visible`  | boolean                  | 任意 | （スキーマ default なし） | 表示／非表示。実装側 default として `true` を推奨。            |
-| `frames`   | integer / array(integer) | 任意 | –                 | 表示フレーム指定。`#/$defs/validator/frames`。          |
-
----
-
-##### 5.2.4.1 marker.common
-
-`marker.common` はマーカー形状に共通する基本属性を持つ（`#/$defs/point/marker_common`）。
-
-| プロパティ         | 型           | デフォルト     | 説明                                                                        |
-| ------------- | ----------- | --------- | ------------------------------------------------------------------------- |
-| `orientation` | vec3        | `[0,0,0]` | 回転角。推奨解釈は Yaw-Pitch-Roll (Y-X-Z) だが、3DSS としては「3 要素の数値配列」であることのみ保証。単位：rad。 |
-| `scale`       | vec3        | `[1,1,1]` | 各軸スケール。                                                                   |
-| `color`       | #RRGGBB     | `#ffffff` | マーカー色。                                                                    |
-| `opacity`     | number(0–1) | `0.4`     | 不透明度。                                                                     |
-| `emissive`    | boolean     | `false`   | 発光処理を有効にするか。                                                              |
-| `wireframe`   | boolean     | `false`   | ワイヤーフレーム表示モード。                                                            |
-
-`additionalProperties:false` により、ここに記載された属性以外は許可されない。
-
----
-
-##### 5.2.4.2 marker.primitive と形状パラメータ
-
-`marker` 本体は `primitive` と、それに対応する寸法パラメータを持つ（`#/$defs/point/marker`）。
-
-| プロパティ          | 型               | 説明                                                                  |
-| -------------- | --------------- | ------------------------------------------------------------------- |
-| `primitive`    | string(enum)    | `sphere` / `box` / `cone` / `pyramid` / `corona` / `none` のいずれか。必須。 |
-| `radius`       | number(≥0.0001) | 球／円錐の半径。                                                            |
-| `size`         | array(number,3) | 直方体サイズ `[sx,sy,sz]`。各要素 ≥ 0.0001。                                   |
-| `height`       | number(≥0.0001) | 円錐／四角錐の高さ。                                                          |
-| `base`         | array(number,2) | 四角錐底面サイズ `[width, depth]`。各要素 ≥ 0.0001。                             |
-| `inner_radius` | number(≥0.0001) | `corona` の内半径。                                                      |
-| `outer_radius` | number(≥0.0001) | `corona` の外半径。                                                      |
-| `gltf`         | object          | glTF 埋め込みモデル設定。`#/$defs/point/marker_gltf`。                         |
-| `text`         | object          | テキストラベル設定。`#/$defs/point/marker_text`。                              |
-
-`primitive` ごとの必須組み合わせ（スキーマでは `allOf` の `if/then` で表現）：
-
-* `primitive: "sphere"` → `radius` 必須
-* `primitive: "box"` → `size` 必須
-* `primitive: "cone"` → `radius`, `height` 必須
-* `primitive: "pyramid"` → `base`, `height` 必須
-* `primitive: "corona"` → `inner_radius`, `outer_radius` 必須
-* `primitive: "none"` → 寸法パラメータは省略推奨（指定しても意味を持たない実装が多い）
-
----
-
-##### 5.2.4.3 marker.gltf
-
-| プロパティ      | 型      | デフォルト     | 説明                   |
-| ---------- | ------ | --------- | -------------------- |
-| `url`      | string | `""`      | glTF モデル URL。        |
-| `scale`    | vec3   | `[1,1,1]` | モデル拡大率。              |
-| `rotation` | vec3   | `[0,0,0]` | モデル回転角（rad）。         |
-| `offset`   | vec3   | `[0,0,0]` | glTF ローカル原点からのオフセット。 |
-
-* いずれも `additionalProperties:false`。
-* 単位は `document_meta.units` に準拠する。
-
----
-
-##### 5.2.4.4 marker.text
-
-| プロパティ     | 型            | デフォルト                  | 説明                                                       |
-| --------- | ------------ | ---------------------- | -------------------------------------------------------- |
-| `content` | string       | `""`                   | 表示テキスト。                                                  |
-| `font`    | string       | `"helvetiker_regular"` | 使用フォント。                                                  |
-| `size`    | number       | `8`                    | テキストサイズ。                                                 |
-| `align`   | string(enum) | `"center&middle"`      | 水平／垂直アライン。9 通り（left/center/right × top/middle/baseline）。 |
-| `pose`    | object(text_pose) | `{ "front": [0,1,0], "up": [0,0,1] }` | 表示姿勢。6.5 `text_pose` を参照。 |
-
-> `pose` は `text_pose`（6.5）。`front`（正面＝法線）と `up`（文字の上方向）を vec3 で指定する。JSON Schema では `pose` は必須（ただし default あり）なので、Authoring/Importer は省略時にデフォルトを補完してよいが、正規化（保存/Export）では必ず `{front, up}` を明示する。
-**align の表記ルール（v1.1.4）**
-
-`align` は `"<h>&<v>"`（`&` 区切り）で指定する。
-
-- `<h>`: `left` / `center` / `right`
-- `<v>`: `top` / `middle` / `baseline`
-
-許容値（9通り）：
-
-- `left&top` / `left&middle` / `left&baseline`
-- `center&top` / `center&middle` / `center&baseline`
-- `right&top` / `right&middle` / `right&baseline`
-
-旧表記として `"<h> <v>"`（半角スペース区切り）が過去の例・生成物に存在しうる。Importer/Normalizer は互換のためスペース区切りを `&` 区切りに正規化してよい（正規化後は JSON Schema に準拠した `&` 形式で出力する）。
-
----
-
-#### 5.2.5 meta 層
-
-points の meta 層も `$defs.meta.core` を参照し、lines と同一構造をとる。
-
-| プロパティ          | 型             | 必須 | 説明                  |
-| -------------- | ------------- | -- | ------------------- |
-| `uuid`         | string(uuid)  | ✅  | 一意識別子。              |
-| `tags`         | array(string) | 任意 | スコープタグ（`s:/m:/x:`）。 |
-| `creator_memo` | string        | 任意 | 制作者メモ。              |
-
----
-
-#### 5.2.6 整合確認要約
-
-* ✅ `signification.name` は `labels.localized_string`＋`default:""` に合わせて修正。
-* ✅ `marker.common.opacity` の default 0.4 をスキーマと一致。
-* ✅ `primitive "corona"` とそれに対応する `inner_radius` / `outer_radius` を明示。
-* ✅ glTF / text サブ構造の `additionalProperties:false` と default 値を反映。
-* ✅ `frames` は共通定義 `validator.frames` に統一。
-
----
-
-### 5.3 aux — 補助構造（Auxiliary Elements）
-
-#### 5.3.1 概要
-
-`aux` は 3DSS における **空間補助構造（Spatial Auxiliary Structures）** を表す。
-
-`signification`プロパティは持たず、設定は形態層（appearance）と管理層（meta）に記述される。これは補助表示が読解上の意味を担わないという分類ではない。軸・境界・凡例等としての意味は、3.1〜3.2節の対応規約に従う。
-
----
-
-#### 5.3.2 構造図（概念）
-
-```plaintext
-aux
-├─ appearance
-│   ├─ position / orientation / opacity / visible / frames
-│   └─ module
-│       ├─ grid   : cartesian / polar グリッド
-│       ├─ axis   : 3 軸（長さ・ラベル・矢印）
-│       ├─ plate  : xy/yz/zx 平面
-│       ├─ shell  : sphere / box / hemisphere / ...
-│       ├─ hud    : HUD 用補助
-│       └─ extension
-│           ├─ latex     : $ref #/$defs/extension/latex
-│           └─ parametric: $ref #/$defs/extension/parametric
-└─ meta
-    ├─ uuid
-    ├─ creator_memo
-    └─ tags
-```
-
----
-
-#### 5.3.3 appearance 層
-
-| プロパティ         | 型                        | 必須 | デフォルト             | 説明                                |
-| ------------- | ------------------------ | -- | ----------------- | --------------------------------- |
-| `position`    | vec3                     | 任意 | `[0,0,0]`         | 補助構造の基準位置。                        |
-| `orientation` | vec3                     | 任意 | `[0,0,0]`         | 回転（単位: rad）。推奨解釈は Y-X-Z。          |
-| `opacity`     | number(0–1)              | 任意 | `0.4`             | 補助構造全体の透明度。                       |
-| `module`      | object                   | 任意 | –                 | グリッド／軸／プレート／殻／HUD／拡張のいずれか（複数併用可）。 |
-| `visible`     | boolean                  | 任意 | （スキーマ default なし） | 表示可否。実装側 default として `true` を推奨。  |
-| `frames`      | integer / array(integer) | 任意 | –                 | 表示フレーム指定。`validator.frames`。      |
-
----
-
-##### appearance.module.grid（`#/$defs/aux/module_grid`）
-
-| プロパティ          | 型            | デフォルト         | 説明                           |
-| -------------- | ------------ | ------------- | ---------------------------- |
-| `grid_type`    | string(enum) | `"cartesian"` | 格子種別（`cartesian` / `polar`）。 |
-| `subdivisions` | integer      | `8`           | 細分数。                         |
-| `major_step`   | number       | `4`           | 主格子間隔。                       |
-| `minor_step`   | number       | `1`           | 補助格子間隔。                      |
-| `color_major`  | #RRGGBB      | `#666666`     | 主格子線の色。                      |
-| `color_minor`  | #RRGGBB      | `#333333`     | 補助格子線の色。                     |
-
----
-
-##### appearance.module.axis（`#/$defs/aux/module_axis`）
-
-| プロパティ    | 型       | デフォルト  | 説明                                      |
-| -------- | ------- | ------ | --------------------------------------- |
-| `length` | number  | `64`   | 軸の長さ。                                   |
-| `labels` | boolean | `true` | 軸ラベル表示。                                 |
-| `arrow`  | object  | –      | 先端矢印設定。`#/$defs/aux/module_axis_arrow`。 |
-
-###### module_axis_arrow
-
-| プロパティ       | 型               | 説明                                           |
-| ----------- | --------------- | -------------------------------------------- |
-| `primitive` | string(enum)    | `none` / `line` / `cone` / `pyramid`。必須。     |
-| `length`    | number(≥0.0001) | `primitive:"line"` のとき必須。                    |
-| `thickness` | number(≥0.0001) | 同上。                                          |
-| `radius`    | number(≥0.0001) | `primitive:"cone"` のとき必須。                    |
-| `height`    | number(≥0.0001) | `primitive:"cone"` / `"pyramid"` のとき必須。      |
-| `base`      | array(number,2) | `primitive:"pyramid"` のとき必須（[width, depth]）。 |
-
-* 構造は `line.arrow` と同様に、`primitive` の値に応じた条件付き必須として定義される。
-* JSON Schema 上は 1 つのオブジェクトで `allOf` により制約される。
-
----
-
-##### appearance.module.plate（`#/$defs/aux/module_plate`）
-
-| プロパティ          | 型               | デフォルト     | 説明                       |
-| -------------- | --------------- | --------- | ------------------------ |
-| `plane`        | string(enum)    | `"xy"`    | 配置面（`xy` / `yz` / `zx`）。 |
-| `position`     | vec3            | `[0,0,0]` | 平面基準点。                   |
-| `size`         | array(number,2) | `[32,32]` | 平面サイズ `[width, height]`。 |
-| `reflectivity` | number(0–1)     | `0.5`     | 反射率。                     |
-| `opacity`      | number(0–1)     | `0.4`     | 不透明度。                    |
-
----
-
-##### appearance.module.shell（`#/$defs/aux/module_shell`）
-
-| プロパティ          | 型            | デフォルト      | 説明                                                                         |
-| -------------- | ------------ | ---------- | -------------------------------------------------------------------------- |
-| `shell_type`   | string(enum) | `"sphere"` | 外皮構造。`sphere` / `box` / `hemisphere` / `quarter_sphere` / `eighth_sphere`。 |
-| `opacity`      | number(0–1)  | `0.4`      | 透過度。                                                                       |
-| `reflectivity` | number(0–1)  | `0.5`      | 反射率。                                                                       |
-| `effect`       | object       | –          | 境界強調などの効果設定。`#/$defs/aux/module_shell_effect`。                             |
-
-###### module_shell_effect
-
-| プロパティ            | 型           | デフォルト     | 説明       |
-| ---------------- | ----------- | --------- | -------- |
-| `edge_intensity` | number(0–1) | `0.5`     | 境界強調度。   |
-| `rimlight`       | boolean     | `false`   | リムライト有無。 |
-| `glow_color`     | #RRGGBB     | `#ff0000` | 境界発光色。   |
-
----
-
-##### appearance.module.hud（`#/$defs/aux/module_hud`）
-
-| プロパティ                 | 型       | デフォルト  | 説明        |
-| --------------------- | ------- | ------ | --------- |
-| `follow_camera`       | boolean | `true` | カメラ追従。    |
-| `scale_with_distance` | boolean | `true` | 距離スケーリング。 |
-
----
-
-##### appearance.module.extension（`#/$defs/aux/module_extension`）
-
-`aux.appearance.module.extension` は、本版が定める表示・拡張要素を束ねる。数式等を読解の手掛かりとして用いる場合は、その役割と本体との対応を明示する。
-
-| プロパティ        | 型      | 説明                                                |
-| ------------ | ------ | ------------------------------------------------- |
-| `type`       | string | 拡張モジュール種別の識別子（任意文字列）。                             |
-| `latex`      | object | LaTeX 数式拡張。`#/$defs/extension/latex` への $ref。     |
-| `parametric` | object | パラメトリック拡張。`#/$defs/extension/parametric` への $ref。 |
-
-各拡張の詳細は 6.2 節を参照。
-
----
-
-#### 5.3.4 meta 層
-
-aux の meta 層も `$defs.meta.core` に準拠する。
-
-| プロパティ          | 型             | 必須 | 説明      |
-| -------------- | ------------- | -- | ------- |
-| `uuid`         | string(uuid)  | ✅  | 一意識別子。  |
-| `tags`         | array(string) | 任意 | スコープタグ。 |
-| `creator_memo` | string        | 任意 | 制作者メモ。  |
-
----
-
-#### 5.3.5 HUD（Head-Up Display）の用例
-
-`aux.appearance.module.hud`はHUD表示の補助設定を定める。本版のフィールドは`follow_camera`と`scale_with_distance`であり、下表の凡例本文・ラベル内容・参照先をこのモジュールだけで保持するわけではない。以下はアプリ側で組み合わせる表示の用途例であり、全ての既存Viewer／Modelerが実装済みという保証ではない。
-
-| 用途     | 内容例               |
-| ------ | ----------------- |
-| 位置情報表示 | 座標値・スケールのリアルタイム表示 |
-| 凡例表示   | 色・タグ・スコープの凡例説明    |
-| 名称ラベル  | 主要ノードや軸名の恒常ラベル化   |
-| モード表示  | 編集状態や視点モードの簡易表示   |
-
-HUDの表示・非表示だけで、対応する対象・関係の記録を変更しない。一方、HUDが色・タグ・軸などの読み方を担う場合、その省略によって図から読める範囲は変わり得る。解釈に必要な内容と記録・図との対応は、対応する要素、凡例、読解案内等から回復できるようにする。実装がHUDを表示できない場合も、同等の読解経路が確認できなければ、その課題を利用可能とは扱わない。
-
----
-
-### 5.4 document_meta — 文書メタ情報（Document Metadata）
-
-#### 5.4.1 概要
-
-`document_meta` は 3DSS 文書全体を統括する **管理・識別メタ情報** を定義する領域である。
-
-スキーマの参照元、生成ツール、座標系、単位系、バージョン、作者、更新日時などを含み、
-ファイルレベルでの整合性と追跡可能性を担保する。
-
-v1.1.4では、必須フィールドは次の7項目である：
-
-* `document_title`
-* `document_uuid`
-* `created_at`
-* `revised_at`
-* `schema_uri`
-* `author`
-* `version`
-
----
-
-#### 5.4.2 構造図（概念）
-
-```plaintext
-document_meta
-├─ document_title
-├─ document_summary
-├─ document_uuid
-├─ schema_uri
-├─ generator
-├─ reference
-├─ coordinate_system
-├─ units
-├─ i18n
-├─ author
-├─ version
-├─ created_at
-├─ revised_at
-├─ tags
-└─ creator_memo
-```
-
----
-
-#### 5.4.3 プロパティ一覧（`#/$defs/meta/document`）
-
-| プロパティ               | 型                     | 必須 | デフォルト                                   | 説明                                                                                |
-| ------------------- | --------------------- | -- | --------------------------------------- | --------------------------------------------------------------------------------- |
-| `document_title`    | localized_string      | ✅  | –                                       | 文書タイトル。`#/$defs/labels/localized_string`。                                         |
-| `document_summary`  | localized_string      | 任意 | –                                       | 文書の概要・要約。Viewer で説明として利用可能。                                                       |
-| `document_uuid`     | string(uuid)          | ✅  | –                                       | 文書固有の識別子。全 3DSS ファイルで一意であることが望ましい。                                                |
-| `version`           | string(semver)        | ✅  | `"1.0.0"`                               | 文書バージョン（コンテンツ側）。SemVer 形式。                                                        |
-| `created_at`        | string(timestamp_utc) | ✅  | –                                       | 作成日時。`YYYY-MM-DDThh:mm:ssZ` 形式。                                                 |
-| `revised_at`        | string(timestamp_utc) | ✅  | –                                       | 最終更新日時。`YYYY-MM-DDThh:mm:ssZ` 形式。                                                 |
-| `tags`              | array(tag)            | 任意 | `[]`                                    | 文書単位のスコープタグ。`s:/m:/x:` 接頭辞を含む。                                                    |
-| `schema_uri`        | string(uri)           | ✅  | –                                       | 準拠スキーマ URI。例：`https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4` |
-| `generator`         | string(uri-reference) | 任意 | `"https://3dsl.jp/"` | 文書を生成したツールまたはアプリの識別 URI。                                                          |
-| `reference`         | string                | 任意 | `""`                                    | 外部参照・出典・備考など。                                                                     |
-| `coordinate_system` | string(const)         | 任意 | –                                       | 座標系識別子。値は `"Z+up/freeXY"` に限定される（const）。省略時も同一系を前提とする。                            |
-| `units`             | string(enum)          | 任意 | `"non_si:px"`                           | 使用単位。`"m"` / `"cm"` / `"mm"` / `"non_si:px"`。                                     |
-| `i18n`              | string(enum)          | 任意 | `"ja"`                                  | 文書の基本言語コード。`"ja"` / `"en"`。                                                       |
-| `author`            | string(pattern)       | ✅  | –                                       | 作者識別。`^[a-zA-Z0-9._-]+(@[a-zA-Z0-9.-]+)?$`。                                       |
-| `creator_memo`      | string                | 任意 | –                                       | 制作者による自由メモ。自動的な意味付与は定義しない。読解上の扱いは5.5節を参照。                                                           |
-
-* `coordinate_system` は **const** により `"Z+up/freeXY"` のみ許可される。
-  書かれていない場合でも 3DSS 構造層では同一系を前提とする。
-* `units` と `i18n` は default により、未指定時も `"non_si:px"` / `"ja"` が適用される。
-* `JSON Schema` 上では const 指定だが required ではなく、省略時も "Z+up/freeXY" を前提とする。
-
----
-
-#### 5.4.4 整合確認要約
-
-* ✅ `document_summary` を追加し、`labels.localized_string` に準拠。
-* ✅ `units` の default を `"non_si:px"` に更新（旧 `"mm"` から変更）。
-* ✅ `coordinate_system` は const `"Z+up/freeXY"` として固定（default は付与せず）。
-* ✅ `tags` / `author` / `version` / `created_at` / `revised_at` の pattern を `$defs.validator.*` と整合。
-
----
-
-### 5.5 情報提示およびラベル方針
-
-ツールチップの開閉、選択に伴う一時ラベル等の表示動作はViewer／Modeler側の責務であり、本schemaはそのUI動作を定義しない。表示の一時性だけから、内容を意味上不要と判定しない。
-
-名称は`points.signification.name`、描画するテキストは`points.appearance.marker.text`等、本版で定めたフィールドに記述できる。名称の記録と、実装がその名称を画面へ表示することは区別する。ラベル・凡例・注釈が関係の役割、軸、判断条件等を読み分ける手掛かりなら、その内容と対象の対応を保持し、採用する読解課題から辿れる形で提示する。
-
-`meta.creator_memo`および`document_meta.creator_memo`は自由メモであり、本版はその本文から意味関係を自動抽出する規則を定めない。メモを人の読解に用いることはできるが、既存Viewerが表示・解釈するとは限らない。問いに必要な区別をメモだけへ記録しても、図に示したことや交換先で読み戻せることの証拠にはしない。
-
----
-
-## 第6章　共通定義（Common Definition）
-
-本章では、スキーマ全体の整合性を保証する `$defs` 領域の構造を示す。
-
-v1.1.4 では主に次の定義群が用意される：
-
-* `$defs.validator`：UUID／URI／タグ／言語コード／単位／色／ベクトル／フレーム等の共通検証定義
-* `$defs.spatial`：position / orientation / scale / rotation / offset などの空間属性
-* `$defs.geometry`：`line_geometry` など幾何構造の定義
-* `$defs.extension`：parametric / latex 等の拡張領域
-* `$defs.labels`：多言語ラベル（localized_string）
-* `$defs.meta`：core / document メタ属性
-* `$defs.line` / `$defs.point` / `$defs.aux`：各要素の下位構造
-
-本章ではとくに `$defs.validator` と `$defs.extension` を詳細化し、
-`$defs.spatial` / `$defs.meta` については 6.4 節で概念レベルの仕様を記載する。
-
-### 6.1 validator（バリデータ定義群）
-
-`$defs.validator` は、スキーマ全体で再利用する「基本的な値形状」を束ねる領域である。
-v1.1.4 では、以下のキーを持つ（実体はすべて `$defs.validator.*` として定義される）。
-
-* `uuid`, `uuid_v4`
-* `uri`, `uri_http_like`
-* `path_ref`
-* `tag`
-* `language_code`
-* `units`
-* `semver`
-* `timestamp_utc`
-* `author`
-* `color_hex`
-* `vec3`
-* `frames`
-
----
-
-#### 6.1.1 プリミティブ型（ID／URI／色／ベクトル／フレーム）
-
-| キー              | 構造                                                | 用途                                                           |
-| --------------- | ------------------------------------------------- | ------------------------------------------------------------ |
-| `uuid`          | `type:string, format:uuid`                        | `meta.core.uuid` や `document_meta.document_uuid` など、UUID 一般。 |
-| `uuid_v4`       | `type:string, pattern:UUIDv4`                     | UUID v4 形式の厳密検証が必要な場合に使用。                                    |
-| `uri`           | `type:string, format:uri`                         | `schema_uri` などの汎用 URI。                                      |
-| `language_code` | `type:string, enum:["ja","en"]`                   | 文書言語やラベル言語の指定。                                               |
-| `units`         | `type:string, enum:["m","cm","mm","non_si:px"]`   | 長さ単位。`document_meta.units` などに利用。                            |
-| `color_hex`     | `type:string, pattern:^#(?:[0-9a-fA-F]{3}){1,2}$` | 3桁または6桁の 16 進色コード。                                           |
-| `vec3`          | `type:array(number), minItems:3, maxItems:3`      | 3 要素のベクトル（座標・回転・スケール）。                                       |
-| `frames`        | `oneOf:[integer / array(integer)]`                | 表示フレーム指定。整数または整数配列。-9999〜9999、配列時はユニーク。                      |
-
----
-
-#### 6.1.2 パターンベース型（タグ／バージョン／時刻／作者／パス）
-
-| キー              | 正規表現                                                     | 用途                                            |
-| --------------- | -------------------------------------------------------- | --------------------------------------------- |
-| `tag`           | `^(s                                                     | m                                             | x):[\w\-\p{L}\p{N}]+$`             | スコープ分類タグ。`s:/m:/x:` 接頭辞＋識別子。 |
-| `uri_http_like` | `^(https?                                                | ftp                                           | file)://[-\w.]+(/[\w\-./?%&=]*)?$` | HTTP(S) 等の URI 検証に利用可能な補助定義。 |
-| `semver`        | `^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9]+(\\.[a-zA-Z0-9]+)*)?$` | SemVer 準拠バージョン（文書バージョンなど）。                    |                                    |                              |
-| `timestamp_utc` | `^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$`           | ISO8601 UTC 形式のタイムスタンプ。                       |                                    |                              |
-| `author`        | `^[a-zA-Z0-9._-]+(@[a-zA-Z0-9.-]+)?$`                    | 作者識別（任意の ID か、簡易メールアドレス形式）。                   |                                    |                              |
-| `path_ref`      | `^[\\w\\-/\\.]+$`                                        | パス様の参照文字列。`parametric.bindings.target` などで使用。 |                                    |                              |
-
-* `uri` は `format: "uri"` を用いるため、ここでは `uri_http_like` を補助的なパターンとして分離している。
-* `path_ref` の先頭接頭辞（例：`"points::..."`）などの意味づけは 3DSS の外側（ツール／アプリ仕様）で定める。
-
----
-
-#### 6.1.3 enum_constraint（列挙値制約）［v1.1.4 では未使用］
-
-本節は将来版で `$defs.validator.enum_constraint` を導入するための **節番号予約** として残す。
-
-3DSS v1.1.4 の JSON Schema には
-`$defs.validator.enum_constraint` は定義されておらず、
-列挙値は各プロパティ定義の `enum` と本仕様書の表記で直接規定する。
-
----
-
-#### 6.1.4 required_sets（必須項目集合）［v1.1.4 では未使用］
-
-本節は将来版で `$defs.validator.required_sets` を導入するための **節番号予約** として残す。
-
-v1.1.4 では、必須項目は各オブジェクト定義の `required` 配列で直接規定し、
-共通の必須集合を `$defs` 側で束ねることは行わない。
-
----
-
-#### 6.1.5 ref_integrity（参照整合性）［v1.1.4 では未使用］
-
-本節は将来版で `$defs.validator.ref_integrity` を導入するための **節番号予約** として残す。
-
-v1.1.4 の JSON Schema では、参照整合性（`lines` → `points` など）は
-型（UUID）レベルまでしか検証されず、
-実際の存在チェックはアプリケーション側の責務とする。
-
----
-
-### 6.2 geometry（幾何定義）
-
-#### 6.2.1 line_geometry（線形ジオメトリ定義）
-
-`line_geometry` は `$defs.geometry.line_geometry` として定義され、
-5.1.7 で述べたように、非直線系の line の形状を保持する。
-
-| プロパティ                | 型               | デフォルト | 説明              |
-| -------------------- | --------------- | ----- | --------------- |
-| `dimension`          | integer(enum)   | –     | 幾何空間次元（2 or 3）。 |
-| `polyline_points`    | array(vec3)     | –     | 折線経路点群。         |
-| `bezier_controls`    | array(vec3,1–2) | –     | ベジェ制御点。         |
-| `arc_center`         | vec3            | –     | 円弧中心。           |
-| `arc_radius`         | number(≥0)      | –     | 円弧半径。           |
-| `arc_angle_start`    | number          | –     | 円弧開始角（rad）。     |
-| `arc_angle_end`      | number          | –     | 円弧終了角（rad）。     |
-| `arc_clockwise`      | boolean         | –     | 時計回り指定。         |
-| `catmullrom_points`  | array(vec3)     | –     | Catmull-Rom 点群。 |
-| `catmullrom_tension` | number(0–1)     | –     | Catmull-Rom 張力。 |
-
-* `additionalProperties:false` により、余分なプロパティを許容しない。
-* `dimension` が省略されていても JSON Schema 上はエラーにならないが、
-  Viewer 実装の推奨初期値は 3 とする。
-
----
-
-### 6.3 拡張領域（Extension）
-
-`$defs.extension`は、本版で定めた拡張要素の定義を置く領域であり、Authoring層やViewer補助機能との接合点となる。ここでの分類は、拡張の内容が読解上の意味を担うかどうかを一律には定めない。本schemaで許可されないフィールドや値を任意に追加できる領域ではなく、利用可能な記録と保持範囲は各定義・実装の契約に従う。
-
-v1.1.4 では `parametric` と `latex` の 2 種を定義する。
-
-| キー           | 用途                                                |
-| ------------ | ------------------------------------------------- |
-| `parametric` | 幾何拘束・変数・依存関係などの拡張構造。Authoring 層から生成された結果の転写先。     |
-| `latex`      | 数式レンダリング用拡張。`aux.module.extension.latex` から $ref。 |
-
----
-
-#### 6.3.1 parametric（`#/$defs/extension/parametric`）
-
-| プロパティ      | 型                   | 必須 | デフォルト         | 説明                                                        |
-| ---------- | ------------------- | -- | ------------- | --------------------------------------------------------- |
-| `type`     | string(minLength:1) | ✅  | –             | 拡張タイプ識別子。例：`"noise_field"`, `"grid_warp"`, `"LSystem"` 等。 |
-| `version`  | string(semver)      | 任意 | –             | モジュールバージョン。`validator.semver` を使用。                        |
-| `params`   | object              | 任意 | –（運用推奨: `{}`） | パラメータ辞書。値の型のみを制約し、キー名は自由。                                 |
-| `bindings` | array(object)       | 任意 | –（運用推奨: `[]`） | 変数バインディング `{ target, expression }` の配列。                   |
-| `seed`     | integer             | 任意 | –             | 疑似乱数等のシード値。                                               |
-
-`params` の値として許可される型：
-
-* `number`
-* `integer`
-* `boolean`
-* `string`
-* `array<number>`
-
-`bindings` の各要素：
-
-| プロパティ        | 型                | 必須 | 説明                                  |
-| ------------ | ---------------- | -- | ----------------------------------- |
-| `target`     | string(path_ref) | ✅  | 書き換え対象のパス。`validator.path_ref` に従う。 |
-| `expression` | string           | ✅  | 評価式（LLM やスクリプト言語など実装依存）。            |
-
-JSON Schema 上の `default` は定義しないが、
-運用上は `params:{}`・`bindings:[]` を初期値とすることを推奨する。
-
----
-
-#### 6.3.2 latex（`#/$defs/extension/latex`）
-
-| プロパティ         | 型                   | 必須 | デフォルト     | 説明                                        |
-| ------------- | ------------------- | -- | --------- | ----------------------------------------- |
-| `content`     | string(minLength:1) | ✅  | –         | LaTeX ソース。例：`E=mc^2`。                     |
-| `render_mode` | string(enum)        | 任意 | `"math"`  | 表示モード。`math` / `inline` / `block`。        |
-| `font_size`   | number              | 任意 | –         | フォントサイズ。スキーマ上 default 未指定（Renderer 側で決定）。 |
-| `color`       | string(color_hex)   | 任意 | `#ffffff` | 数式色。                                      |
-| `pose`        | object(text_pose)   | ✅  | `{ "front": [0,1,0], "up": [0,0,1] }` | 表示姿勢。6.5 `text_pose` を参照。 |
-| `position`    | vec3                | 任意 | –         | 配置位置。                                     |
-
----
-
-#### 6.3.3 整合確認要約
-
-* ✅ `$defs/extension/parametric` / `$defs/extension/latex` の構造とプロパティを最新スキーマに一致。
-* ✅ いずれも `additionalProperties:false` による厳密検証を維持。
-* ✅ `parametric.params` では値の型のみを制約し、キー名はツール側自由とする設計を明記。
-* ✅ `aux.module.extension` からの `$ref` パスと整合（latex/parametric をぶら下げる構造）。
-
----
-
-### 6.4 spatial / meta（空間属性・メタ属性の共通基盤）
-
-`$defs.spatial` は `position` / `orientation` / `scale` / `rotation` / `offset` などの
-空間属性を共通定義する領域であり、すべて `validator.vec3` を再利用している。
-
-* `position` : 要素の位置 `[x, y, z]`
-* `orientation` : 回転角（推奨解釈：Yaw-Pitch-Roll = Y-X-Z）
-* `scale` : スケール
-* `rotation` : glTF 等、別解釈を必要とする回転
-* `offset` : ローカル原点からのオフセット
-* `axis_signed` : 符号付き軸（`+x`/`-x`/`+y`/`-y`/`+z`/`-z`）。入力ショートハンド／旧表記移行のために利用してよい（`text_pose` の保存形式は vec3 配列）。
-
-3DSS v1.1.4 では座標系は `document_meta.coordinate_system` の const により
-**`"Z+up/freeXY"` に固定**され、
-
-* Z+：絶対的な「上」方向
-* X/Y：Z+ に直交する平面内の自由軸
-
-として解釈する。
-
-`$defs.meta` には次の 2 要素がある：
-
-* `meta.core`：lines / points / aux 共通の最小メタ構造
-* `meta.document`：ファイル全体のメタ情報（5.4章）
-
-#### 6.4.1 meta.core
-
-`meta.core` は各要素ノード（`lines[].meta` / `points[].meta` / `aux[].meta`）で共通に利用される。
-
-| プロパティ          | 型            | 必須 | 説明                          |
-| -------------- | ------------ | -- | --------------------------- |
-| `uuid`         | string(uuid) | ✅  | 要素の一意識別子。                   |
-| `tags`         | array(tag)   | 任意 | スコープタグ。`validator.tag` に従う。 |
-| `creator_memo` | string       | 任意 | 制作者の自由メモ。自動的な意味付与は定義しない。読解上の扱いは5.5節を参照。          |
-
-`uuid`は記録中の要素の識別に用いる。対象世界の同一性や過去の追加・削除・差し替え履歴を、この項目だけで復元できるとは扱わない。
-`tags` は構造を横断する分類（s:system / m:meso / x:external 等）に利用される。
-
-#### 6.4.2 document_meta と座標・単位・言語
-
-文書全体の `coordinate_system` / `units` / `i18n` は
-`meta.document` に一度だけ定義される。
-
-* `coordinate_system` : `"Z+up/freeXY"`（const）
-  構造層における絶対座標系。
-* `units` : `"m"` / `"cm"` / `"mm"` / `"non_si:px"`（default `"non_si:px"`）
-  `position`・長さ・半径・スケール等、**長さ次元**を持つ数値の共通単位。
-* `i18n` : `"ja"` / `"en"`（default `"ja"`）
-  `labels.localized_string` の言語解釈や Viewer/UI の初期表示言語を決めるヒント。
-
-これら 3 つはあくまで **構造データ側の基準値** であり、
-アプリケーション実装が表示単位や UI 言語を変更しても、
-3DSS ファイル内部の値を書き換えてはならない（read-only 原則）。
-
----
-
-## 第7章　拡張・互換性（Extension & Compatibility）
-
-### 6.5 text_pose
-
-テキスト（`marker.text` / `caption_text` / `extension.latex`）の **表示姿勢**を指定するための型（v1.1.4）。
-
-`text_pose` は次の 2 ベクトル（vec3）で姿勢を表す：
-
-- `front` : テキスト面の正面方向（法線）
-- `up` : 文字の上方向
-
-| プロパティ | 型 | 必須 | 説明 |
-|---|---|---|---|
-| `front` | vec3 | ✅ | 正面方向（法線）。`[x,y,z]`。 |
-| `up` | vec3 | ✅ | 文字の上方向。`[x,y,z]`。 |
-
-制約・実装上の注意：
-
-- 保存形式は **常に vec3 配列**（`[x,y,z]`）。`mode` / `roll` などのフィールドは存在しない（`additionalProperties:false`）。
-- `front` と `up` は **ゼロベクトル不可**、かつ平行（同軸／反転軸）を避けることを推奨する（姿勢が定義できないため）。
-- 実装は右手系で `right = up × front` を用いて姿勢（直交基底）を構成してよい（必要に応じて正規直交化）。
-
-#### 6.5.1 旧 `plane` からの移行（参考）
-
-旧：`plane = xy|yz|zx|billboard` を持つデータを取り込む場合、`plane` を次の `{front, up}` に写像してよい（`billboard` は 3DSS の保存形式には含まれないため、UI 状態として扱う）。
-
-- `xy` → `{ "front": [0,0,1], "up": [0,1,0] }`
-- `yz` → `{ "front": [1,0,0], "up": [0,0,1] }`
-- `zx` → `{ "front": [0,1,0], "up": [0,0,1] }`
-
-`billboard` は **ファイル内に保持する姿勢情報ではない**（ランタイム表示モード）。Importer は既定の `pose`（例：`{ "front":[0,1,0], "up":[0,0,1] }`）に落とし込んだ上で、必要なら別途 UI/ツール側（3DSS外）にヒントとして保持してよい。
-
-
-### 7.1 バージョン管理（Version Management）
-
-* 同じスキーマ版の実体は固定の`$id`を持ち、その版を参照する`schema_uri`を維持する。異なるリリースのURIは、対応する凍結スキーマに従う。
-
-* スキーマ版はJSON Schema実体の識別と第9章の変更履歴を対応させる。本文だけの説明改訂は別に日付を記録し、schemaの互換性変更や新規リリースとみなさない。
-
-* 各 3DSS 文書は `document_meta.version` に **文書自身のバージョン** を SemVer 形式で保持する。
-  スキーマバージョンとは別軸で更新される。
-
-* スキーマの安定段階（`stable` / `beta` / `deprecated`）は **仕様書側の管理区分** であり、
-  JSON Schema 本体（`$defs` 等）には定義を持たない。
-
-* 1.0.x 系から 1.1.x 系への更新では、
-
-  * `$defs` 構造の整理（`geometry` / `labels` / `meta` の分離）
-  * `document_meta.document_title` / `document_summary` の localized_string 化
-  * `units` の default 見直し（`"non_si:px"`）
-
-  などが行われるが、基本的なルート構造（`lines` / `points` / `aux` / `document_meta`）は継続して互換を保つ。
-
----
-
-### 7.2 拡張ルール（Extension Policy）
-
-* 新要素や列挙値（enum）の追加は、該当プロパティ定義（第 5 章）に対して直接 `enum` を拡張し、
-  必要に応じて `$defs.validator` 配下の各定義（type や pattern など）を更新する。
-  v1.1.4 時点でも `$defs.validator.enum_constraint` は定義しない。
-
-* 既存プロパティの削除は禁止。
-  非推奨化には `"deprecated": true` フラグを付与して明示できるが、
-  その解釈・UI 上での扱い（警告の表示など）は各実装に委ねる。
-
-* 外部拡張スキーマは `$ref` で連携可能：
-
-  例：`"$ref": "./custom_ext.schema.json"`。
-
-* 拡張は **原則 `$defs.extension.*` に集約** し、
-
-  実体要素側（例：`aux.appearance.module.extension.latex`）では
-
-  `$ref: "#/$defs/extension/latex"` のように参照だけを持つ構造にする。
-
-* `$defs` 内での同名キーの再定義は禁止とし、
-  スキーマ汚染や衝突を避ける。
-
----
-
-### 7.3 互換性維持（Backward Compatibility）
-
-* **旧要素の保持方針**：既存要素・プロパティは最低 2 バージョン分（例：1.0.x → 1.1.x）維持することを原則とする。
-  明示的に削除されるのはメジャーバージョンアップ（1.x → 2.x）に限る。
-
-* **属性互換**：
-
-  * enum への値追加は許可される。
-  * 既存 enum 値の変更・削除は禁止。
-  * どうしても廃止したい値は `"deprecated": true` を付与して残し、実装側で警告表示などに委ねる。
-
-* **構造互換**：
-
-  * `lines`/`points`の`signification`・`appearance`・`meta`、`aux`の`appearance`・`meta`というプロパティ群を維持する。各群の必須性は本版のJSON Schemaに従う。
-  * `document_meta`の必須7項目（`document_title` / `document_uuid` / `created_at` / `revised_at` / `schema_uri` / `author` / `version`）を本版の契約として保持する。
-
-* **スキーマ URI ポリシー**：
-
-  * 各バージョンの `$id` / `schema_uri` は固定し、Git リポジトリ内でバージョン単位にファイルを保持する。
-  * 例：`3DSS.schema.v1.0.3.json`・`3DSS.schema.v1.1.4.json` などの形で履歴管理してもよい（命名規則は運用に委ねる）。
-
----
-
-### 7.4 バリデーション互換性（Validation Compatibility）
-
-* スキーマは **JSON Schema Draft 2020-12** 準拠とし、
-  AJV 等の主要バリデータでの検証通過を前提とする。
-
-* 拡張スキーマも `$defs` 構造および Draft 2020-12 に準拠していれば、
-  同じバリデータ上で一体として検証可能である。
-
-* 互換性を破壊する変更（型変更・必須化・構造変更など）は、
-
-  * メジャーバージョンアップ（1.x → 2.x）時にのみ許可される。
-  * それ以外の変更（マイナー／パッチ）は **追加型（enum 値追加・オプション追加）** を基本とし、
-    既存データが invalid にならないよう設計する。
-
----
-
-### 7.5 廃止要素の扱い（Deprecation Handling）
-
-* 廃止予定要素は仕様書内で明示し、可能であれば JSON Schema 側にも `"deprecated": true` を付与する。
-
-* `deprecated` フラグの付与位置は、
-
-  * 各要素のプロパティ定義（`lines.appearance.*` など）
-  * `$defs` 側の共通定義（例：`$defs.aux.module_shell.shell_type` の特定 enum 値）
-
-  のいずれでもよい。
-
-* 廃止予定要素を含む文書は **バリデーション上は「warning」扱い** とし、
-  strict validation が必要なケースでも「エラー」ではなく警告として取り扱うのが望ましい。
-  （warning を error に昇格させるかどうかは実装ポリシーに委ねる）
-
----
-
-### 7.6 Viewer 設定および表示方針
-
-* Viewer / Modeler における表示設定・テーマ・演出（カメラパラメータ、ライト、シャドウ、ポストプロセス等）は
-  3DSS スキーマの定義範囲外とする。
-
-* 3DSSは、構造を示す図の幾何・基本表示属性と、本版で定義する意味情報を記録する。表される内容が事実として確定済みであることは要件にしない。
-  未判定・仮説等を区別して共有する場合の形式と読出しは、対応する適用規約による。操作性やViewer固有の演出は各実装の契約で定める。
-
-* 将来的に Viewer 設定（例：`viewer_config.schema.json`）を別スキーマとして定義する場合も、
-
-  3DSS 構造層とは `$ref` による **緩やかな関連** にとどめ、
-
-  3DSS 内に Viewer 設定を直接埋め込まない方針とする。
-
----
-
-### 7.7 tags（スコープタグ）の運用規範
-
-`meta.tags` および `document_meta.tags` は次の正規表現に従う：
-
-```regex
-^(s|m|x):[\\w\\-\\p{L}\\p{N}]+$
-```
-
-ボディ部分には英数字・アンダースコア・ハイフンに加え、
-Unicode の文字（\p{L}, \p{N}）も使用できる。
-
-| 接頭辞  | 意味             | 想定用途                  |
-| ---- | -------------- | --------------------- |
-| `s:` | structural（構造） | 幾何・トポロジ・座標に関する分類      |
-| `m:` | meaning（意味）    | 概念・意味論的分類（例：因果・論理・時間） |
-| `x:` | meta（付帯）       | コメント・派生・メモ・出典等の付帯情報   |
-
-* tagsは色分け・フィルタリング等に利用できる。本版はタグの存在だけから、新しい対象同一性・関係・分類付与を自動的に確定する規則を定めない。用途別の規約がタグに分類や読解上の役割を与える場合は、その意味・付与先・図との対応を示す。タグやフィルタの表示状態を変えただけで元の対象・関係の記録を変えないが、見える範囲と読解条件は変わり得る。非表示になった要素を不存在と扱わない。
-
-* 同一 prefix を共有する要素は、レイヤ／グループ選択の単位として活用できる。
-
----
-
-### 7.8 外部仕様との互換（External Compatibility）
-
-* 本スキーマは **JSON Schema Draft 2020-12 (December 2020)** に準拠する。
-
-* 基本型の扱いにおいて、**OpenAPI Schema** および **Schema.org** の設計方針と矛盾しないよう配慮する。
-
-  （ただし直接の互換性を保証するものではない）
-
-* 拡張時には **JSON-LD**, **glTF** など外部仕様との連携を許容し、
-
-  `aux` や `extension` を介して相互参照可能なメタ構造を構築できるようにする。
-
-* glTF 等の外部 3D フォーマットは原則として **appearance 層（とくに gltf 埋め込み）** を通じて参照し、
-  3DSS 自体は幾何・表示の最小限属性だけを保持する。
-
----
-
-#### 整合確認要約
-
-* ✅ SemVer に基づくスキーマ／文書バージョンの分離を明示。
-* ✅ `$defs` 拡張ルールと外部スキーマ参照方針を v1.1.4 構造に合わせて整理。
-* ✅ `enum_constraint` / `required_sets` / `ref_integrity` が予約のみで未定義であることを 6 章と整合。
-* ✅ tags の正規表現を `$defs.validator.tag` と一致。
-* ✅ JSON Schema Draft 2020-12 準拠と、外部仕様との連携方針を再確認。
-
----
-
-## 第8章　例（Example, v1.1.4 準拠）
+次の例は位置・マーカー・方向付きの関係線・補助軸を含みます。`document_meta.version` は作品版1.0.0を、`schema_uri` は形式版2.0.0を指定しています。
 
 ```json
 {
@@ -1629,7 +337,7 @@ Unicode の文字（\p{L}, \p{N}）も使用できる。
     "author": "creator@example.com",
     "created_at": "2025-12-12T12:00:00Z",
     "revised_at": "2025-12-12T12:00:00Z",
-    "schema_uri": "https://3dsl.jp/schemas/release/v1.1.4/3DSS.schema.json#v1.1.4",
+    "schema_uri": "https://3dsl.jp/schemas/release/v2.0.0/3DSS.schema.json#v2.0.0",
     "coordinate_system": "Z+up/freeXY",
     "units": "non_si:px",
     "i18n": "ja",
@@ -1638,30 +346,82 @@ Unicode の文字（\p{L}, \p{N}）も使用できる。
 }
 ```
 
-この例は：
+### 面を参照する例
 
-* `render_order`（旧 `renderOrder`）
-* `document_meta.document_title` / `document_summary` の localized_string
-* `schema_uri` は `$id` + `$anchor`（例：`.../3DSS.schema.json#v1.1.4`）に揃える（anchor で準拠版を明示する方針）。
-* `aux.module.grid/axis` の構造
+乾燥前の試料の保有水20 kgを表す面と、その面を参照する線の最小例です。+Yを実時間の進行方向とし、乾燥開始時点の座標を0とします。
 
-など、v1.1.4 で整理した定義と揃えてある。
+```json
+{
+  "document_meta": {
+    "document_title": "乾燥前の水分",
+    "document_uuid": "4fb711c8-f18b-4a1c-8a0b-5e8401272c11",
+    "schema_uri": "https://3dsl.jp/schemas/release/v2.0.0/3DSS.schema.json#v2.0.0",
+    "version": "1.0.0",
+    "author": "3dsl",
+    "created_at": "2026-11-21T00:00:00Z",
+    "revised_at": "2026-11-21T00:00:00Z"
+  },
+  "surfaces": [
+    {
+      "signification": { "name": "乾燥前の保有水20 kg" },
+      "appearance": { "plane": "xz", "position": [0, 0, 10], "size": [4, 20] },
+      "meta": { "uuid": "4fb711c8-f18b-4a1c-8a0b-5e8401272c12" }
+    }
+  ],
+  "lines": [
+    {
+      "signification": {
+        "relation": { "meta": "reference" },
+        "sense": "a_to_b",
+        "caption": "乾燥前を参照"
+      },
+      "appearance": {
+        "end_a": { "coord": [0, 8, 0] },
+        "end_b": { "surface_ref": "4fb711c8-f18b-4a1c-8a0b-5e8401272c12", "uv": [0.5, 0] },
+        "arrow": { "primitive": "cone", "radius": 0.5, "height": 1 },
+        "caption_text": {
+          "pose": { "front": [1, 0, 0], "up": [0, 1, 0] },
+          "writing_mode": "vertical-rl"
+        }
+      },
+      "meta": { "uuid": "4fb711c8-f18b-4a1c-8a0b-5e8401272c13" }
+    }
+  ],
+  "coordinate_contexts": [
+    {
+      "id": "4fb711c8-f18b-4a1c-8a0b-5e8401272c14",
+      "label": "試料の乾燥",
+      "origin": [0, 0, 0],
+      "axes": [
+        { "direction": "+y", "label": "乾燥開始からの時間", "kind": "measure", "unit": "h", "coordinate_units_per_unit": 4, "value_at_origin": 0 },
+        { "direction": "+z", "label": "保有水量", "kind": "measure", "unit": "kg", "coordinate_units_per_unit": 1, "value_at_origin": 0 }
+      ],
+      "element_refs": ["4fb711c8-f18b-4a1c-8a0b-5e8401272c12", "4fb711c8-f18b-4a1c-8a0b-5e8401272c13"]
+    }
+  ],
+  "quantities": [
+    {
+      "id": "4fb711c8-f18b-4a1c-8a0b-5e8401272c15",
+      "label": "保有水量",
+      "subject": "乾燥試料全体",
+      "unit": "kg",
+      "basis": { "kind": "instant", "axis": "+y", "at": 0 },
+      "status": "recorded",
+      "value": 20,
+      "element_ref": "4fb711c8-f18b-4a1c-8a0b-5e8401272c12",
+      "context_ref": "4fb711c8-f18b-4a1c-8a0b-5e8401272c14"
+    }
+  ]
+}
+```
 
----
+面の下辺中央で線端は `[0,0,0]` になります。名付けた局所尺度では、面の高さ20座標単位は20 kgに当たります。
 
-## 第9章　変更履歴（Change Log）
+## 7. 変更履歴
 
-### 本文改訂 2026年10月4日
-
-対象schemaはv1.1.4のまま。点・線と意味対象の区別、用途に応じた保持範囲、未判定と形式不正の区別、意味軸・時間・境界、配置を通じた探索を整理した。特定の確定・取消方式を思想上の必須条件から分離した。必須項目とプロパティ群の説明は既存schemaへ合わせた。本文改訂v0.2では、HUD・ラベル・タグ・自由メモの記録責務と読解上の役割を分け、主要構造を空間へ担わせる原則、観察等からの構造化と対象との往還、三次元の狙い、モデル間対応の条件、制作時の読解課題と省略範囲の明示を補った。以下は既存のスキーマ版履歴であり、本改訂は新しいschema版を追加しない。
-
-本表の Version は、3DSS.schema.json の設計仕様（このドキュメント）の版数を表し、
-各構造文書の document_meta.version とは別である。
-
-| Version | Date       | Change                                                             | Status |
-| ------- | ---------- | ------------------------------------------------------------------ | ------ |
-| version | date       | note                                                                              | status |
-| ------- | ---------- | --------------------------------------------------------------------------------- | ------ |
+| 版 | 日付 | 変更 | 状態 |
+|---|---|---|---|
+| 2.0.0 | 2026-11-21 | 参照可能な面、文字階層と書字方向、作品内の表示凡例、局所座標・比較・量の記録を規定。形式版は固定URI、作品版は独立したSemVerで表記。 | release |
 | 1.1.4   | 2026-01-12 | text pose SSOT化(front/up vec3配列) 等） | stable |
 | 1.1.2   | 2026-01-11 | `text_pose` 導入：`marker.text.plane` / `caption_text.plane` / `extension.latex.plane` を `pose(front/up vec3配列)` に置換。`marker.text.align` 正規表記を `&` 区切りに統一（互換入力としてスペース区切りはノーマライズ可）。 | stable |
 | 1.1.1   | 2025-12-25 | 実装時に判明した不具合修正 | stable |
@@ -1669,51 +429,3 @@ Unicode の文字（\p{L}, \p{N}）も使用できる。
 | 1.0.2   | 2025-12-03 | 実装時に判明した不具合修正等                                                     | stable |
 | 1.0.1   | 2025-11-23 | 実装時に判明した不具合修正等                                                     | stable |
 | 1.0.0   | 2025-10-21 | 初版確定                                                               | stable |
-
-* 1.1.0 では、スキーマのルート構造を変えずに `$defs` の整理と文書メタ情報の拡張を中心に行う。
-* 1.0.x 系のファイルは v1.1.0 スキーマに対しても基本的に上位互換で解釈できることを目標とする。
-
----
-
-## 第10章　付録（Appendix）
-
-### 10.1 用語索引（Glossary）
-
-* **relation**
-  `lines.signification.relation` における関係種別。`structural` / `dynamic` / `logical` / `temporal` / `meta` の 5 系統を持つ。
-
-* **sense**
-  `lines.signification.sense` における方向性指定。`a_to_b` / `b_to_a` / `bidirectional` / `neutral`。
-
-* **line_type**
-  線の幾何学的種別。`straight` / `polyline` / `catmullrom` / `bezier` / `arc`。
-
-* **line_style**
-  線の描画スタイル。`solid` / `dashed` / `dotted` / `double` / `none`。
-
-* **marker**
-  `points.appearance.marker` における表示点の形状。`primitive` と寸法パラメータ（`radius` / `size` など）、`common`（orientation / scale / color / opacity / emissive / wireframe）を含む。
-
-* **effect**
-  `lines.appearance.effect` や `aux.module.shell.effect` による動的表現・境界強調。`effect_type` / `amplitude` / `speed` / `duration` / `loop` / `phase` / `easing` / `width` など。
-
-### 10.2 参照リンク（References）
-
-* JSON Schema 2020-12 Specification
-* OpenAPI Specification 3.x
-* Schema.org Style Guide
-* glTF 2.0 Specification
-
-（具体的な URL はオンライン版仕様書の脚注にて付与する想定）
-
-
-
-
-
-### 10.3 設計選択と実装範囲
-
-構造記録・図・対応規約を一緒に受け渡すこと、条件を満たす変更の直接確定、必要な過去判断を保つ取消方式は、今回採用済みの設計選択として維持する。これらは構造化一般の唯一の方式ではない。
-
-既存の限定試作の形式・保存・操作・実行可能な語彙は、[A1契約](../docs/docs/contracts/STRUCTURE_PILOT_A1.md)と[D1/U1契約](../docs/docs/contracts/STRUCTURE_PILOT_D1_U1.md)で定める。本書の思想説明を更新しても、これらの契約や通常ModelerのSave・Export・Undoの責務は自動変更されない。
-
-既存JSON Schemaは、上記の構造記録・状態・対応規約を汎用に交換する標準形式を追加していない。未知プロパティを追加すれば既存製品が保持できるとは扱わず、対応する形式と実装の範囲を確認する。記録の保持能力、図の読解、三次元の寄与、大規模探索、一般的な生成精度は、それぞれの証拠で評価する。

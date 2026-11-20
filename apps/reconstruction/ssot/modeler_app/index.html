@@ -194,7 +194,15 @@
                     <div class="prop-pos">
                       <div class="prop-row">
                         <div class="prop-row-key">文字サイズ</div>
-                        <input class="prop-input" type="number" step="0.1" min="0" data-role="prop-text-size" id="modeler-prop-text-size" aria-label="文字サイズ">
+                        <input class="prop-input" type="number" step="any" min="0.125" max="256" data-role="prop-text-size" id="modeler-prop-text-size" aria-label="文字サイズ（2の整数乗）">
+                      </div>
+                      <div class="prop-row">
+                        <div class="prop-row-key">文字組み</div>
+                        <select class="prop-input" data-role="prop-text-writing-mode" aria-label="文字組み">
+                          <option value="">既定（横書き）</option>
+                          <option value="horizontal-tb">横書き</option>
+                          <option value="vertical-rl">縦書き</option>
+                        </select>
                       </div>
                       <div class="prop-row">
                         <div class="prop-row-key">揃え</div>
@@ -272,8 +280,8 @@
                       <div class="prop-row">
                         <div class="prop-row-key">a</div>
                         <div class="prop-inline2">
-                          <input class="prop-input" type="text" data-role="prop-line-end-a" list="prop-points-datalist" placeholder="点のID または x,y,z" id="modeler-prop-line-end-a" aria-label="a">
-                          <button class="prop-mini" type="button" data-role="prop-line-end-a-pick" title="モデル上の点を指定">図から指定</button>
+                          <input class="prop-input" type="text" data-role="prop-line-end-a" list="prop-points-datalist" placeholder="点ID、x,y,z、surface:ID,u,v" id="modeler-prop-line-end-a" aria-label="a">
+                          <button class="prop-mini" type="button" data-role="prop-line-end-a-pick" title="モデル上の点または面を指定">図から指定</button>
                           <button class="prop-mini" type="button" data-role="prop-line-end-a-clear" title="端点 a を空にする">×</button>
                         </div>
                       </div>
@@ -283,8 +291,8 @@
                       <div class="prop-row">
                         <div class="prop-row-key">b</div>
                         <div class="prop-inline2">
-                          <input class="prop-input" type="text" data-role="prop-line-end-b" list="prop-points-datalist" placeholder="点のID または x,y,z" id="modeler-prop-line-end-b" aria-label="b">
-                          <button class="prop-mini" type="button" data-role="prop-line-end-b-pick" title="モデル上の点を指定">図から指定</button>
+                          <input class="prop-input" type="text" data-role="prop-line-end-b" list="prop-points-datalist" placeholder="点ID、x,y,z、surface:ID,u,v" id="modeler-prop-line-end-b" aria-label="b">
+                          <button class="prop-mini" type="button" data-role="prop-line-end-b-pick" title="モデル上の点または面を指定">図から指定</button>
                           <button class="prop-mini" type="button" data-role="prop-line-end-b-clear" title="端点 b を空にする">×</button>
                         </div>
                       </div>
@@ -299,7 +307,15 @@
                   <div class="prop-pos">
                     <div class="prop-row">
                       <div class="prop-row-key">文字サイズ</div>
-                      <input class="prop-input" type="number" step="0.1" min="0" data-role="prop-caption-text-size" id="modeler-prop-caption-text-size" aria-label="文字サイズ">
+                      <input class="prop-input" type="number" step="any" min="0.125" max="256" data-role="prop-caption-text-size" id="modeler-prop-caption-text-size" aria-label="文字サイズ（2の整数乗）">
+                    </div>
+                    <div class="prop-row">
+                      <div class="prop-row-key">文字組み</div>
+                      <select class="prop-input" data-role="prop-caption-text-writing-mode" aria-label="関係キャプションの文字組み">
+                        <option value="">既定（横書き）</option>
+                        <option value="horizontal-tb">横書き</option>
+                        <option value="vertical-rl">縦書き</option>
+                      </select>
                     </div>
                     <details class="prop-details" data-role="prop-caption-text-pose">
                       <summary>向き（front / up） <span class="prop-note" data-role="prop-caption-text-pose-mode"></span>
