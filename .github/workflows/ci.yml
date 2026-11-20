@@ -99,6 +99,7 @@ jobs:
         env:
           VIEWER_ASSET_TRIALS: 1
         run: |
+          node scripts/check/modeler-gltf-browser.mjs
           node scripts/check/save-recovery.mjs
           node scripts/check/viewer-assets.mjs
 
