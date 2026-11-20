@@ -72,7 +72,7 @@ export function renderBrowsingInfo(container,{model,index,state,select,explore,f
             if (!target) continue;
             const button=el('button',target.label,'part-link');
             button.type='button';
-            button.addEventListener('click',()=>explore(target.id));
+            button.addEventListener('click',()=>select(target.id));
             panel.append(button);
           }
         }
