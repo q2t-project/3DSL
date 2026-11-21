@@ -23,6 +23,9 @@
 /library/26111901/read/*
   Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; frame-ancestors 'self'; base-uri 'none'; form-action 'none'
   X-Robots-Tag: noindex
+/library/26112101/read/*
+  Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; frame-ancestors 'self'; base-uri 'none'; form-action 'none'
+  X-Robots-Tag: noindex
 
 # Executable URLs can retain their names across deployments. Require validation
 # even when a zone Browser Cache TTL raises a numeric max-age.
