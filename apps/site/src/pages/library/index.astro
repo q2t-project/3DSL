@@ -29,7 +29,7 @@ const items = getLibraryItems().filter((item) => !item.hidden).map((item) => ({
   date: publishedDate(item),
 })).sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id));
 ---
-<Layout title="作品を読む・作る | Library | 3DSL" description="3DSLの作品を解説と図で読む入口。「知識と問い」の読解、小作品の制作教材と、公開作品の一覧。">
+<Layout title="作品一覧 | Library | 3DSL" description="因果、化学工学、学問体系などの3DSLアトラスを探せます。作品名を選ぶと、その図と読み方が開きます。">
   <section class="library-page">
     <h1>作品一覧</h1>
     <div id="library-controls" class="library-controls" hidden>
@@ -45,7 +45,7 @@ const items = getLibraryItems().filter((item) => !item.hidden).map((item) => ({
             {item.model_url && <WorkPreview model={item.model_url} />}
             <h2 class="site-work-title mt-2">{item.title}</h2>
           </a>
-          <a class="site-link reading-viewer" href={viewerHref(item.viewer_url)}>Viewerで大きく開く</a>
+          <a class="site-link reading-viewer" href={viewerHref(item.viewer_url)} aria-label={`${item.title}のモデルをViewerで開く`}>モデルをViewerで開く</a>
         </article>
       ))}
     </section>
