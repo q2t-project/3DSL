@@ -38,8 +38,9 @@ export async function loadPersonMarker() {
   return { vertices, indices };
 }
 
-export function drawPersonMarker(context, { vertices, indices }, [x, y, z], project) {
-  const projected = vertices.map(([dx, dy, dz]) => project([x + dx, y + dy, z + dz]));
+export function drawPersonMarker(context, { vertices, indices }, [x, y, z], project, scale = 1) {
+  const projected = vertices.map(([dx, dy, dz]) =>
+    project([x + dx * scale, y + dy * scale, z + dz * scale]));
   context.beginPath();
   for (let i = 0; i < indices.length; i += 3) {
     const a = projected[indices[i]];
