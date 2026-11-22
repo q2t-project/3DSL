@@ -157,6 +157,17 @@
 }
 
 /* header brand + navbar: keep layout stable without relying on utility CSS */
+.ui-brand {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+}
+.ui-brand-caption {
+  color: var(--ui-text);
+  font: 500 .75rem/1.25 var(--font-ui);
+  white-space: nowrap;
+}
 .ui-brand-logo{
   display: block;
   height: 54px;

@@ -17,9 +17,10 @@ const overview = [
 
 // Each local view follows a single reader's task, using the original endpoints.
 const textFocus = [
-  '文書を蓄積する', '資料を開ける', '前提を順に読む', '離れた記述を結び直す', '見取りを得る',
+  '順序を編む', '文書を蓄積する', '資料を開ける', '前提を順に読む', '離れた記述を結び直す', '見取りを得る',
 ];
-const structureFocus = [...structuralReading, '結び方をたどる'];
+const structureFocus = [...structuralReading, '眺める', '結び方をたどる'];
+const annotationExchange = ['後で見に来る', '解釈を書き添える', '応答を読む'];
 const sharingFocus = ['根拠と異論を添える', '対象を指す', '後から注を読む', '再び開く'];
 
 export function createReadingViews(model) {
@@ -30,6 +31,11 @@ export function createReadingViews(model) {
     [line.meta.uuid, line.appearance.end_a.ref, line.appearance.end_b.ref]))];
 
   return {
+    annotationExchange: withEndpoints(annotationExchange),
+    annotationPeople: new Set([
+      byCaption.get('解釈を書き添える').appearance.end_a.ref,
+      byCaption.get('応答を読む').appearance.end_b.ref,
+    ]),
     overview: ids(overview),
     phaseBridges: ids(['再構成を分担する', '領域へ展開']),
     text: ids(textReading),
@@ -66,4 +72,16 @@ export function setOverviewSize(label, size, blend) {
   label.viewScale = scale;
   label.object.scale.setScalar(scale * label.size / 64);
   label.object.position.copy(label.position).lerp(label.baseCenter, scale);
+}
+
+
+// A and B denote the same people in later scenes. Name the roles at the introduction.
+export function introductoryRole(point) {
+  const tags = point.meta.tags ?? [];
+  const name = point.signification.name;
+  if (name === '個人 A' && tags.includes('m:sender')) {
+    return tags.includes('m:phase-traditional') ? '書き手 A' : '作り手 A';
+  }
+  if (name === '個人 B' && tags.includes('m:receiver')) return '読み手 B';
+  return null;
 }
