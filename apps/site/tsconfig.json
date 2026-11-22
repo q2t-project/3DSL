@@ -15,6 +15,7 @@
     "astro.config.mjs"
   ],
   "exclude": [
+    "src/works/meta-atlas/**/atlas.js",
     "public/**",
     "dist/**",
     "node_modules/**",
