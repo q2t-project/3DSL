@@ -4,6 +4,7 @@
 
 - 表示方針（ページ構造/SEO/UX）は `packages/docs/docs/library/page-policy.md`（SSOT）
 - `_meta.json` のフィールド意味は `packages/docs/docs/library/meta-fields.md`（SSOT）
+- 改訂の分類・履歴・重要訂正・保存版の扱いは[作品の改訂・訂正の運用](/docs/library/revision-policy/)（SSOT）
 
 ---
 
@@ -11,7 +12,7 @@
 
 - **WIP は repo 外**（別フォルダ/別repo）。repo 内に未完成物を置かない。
 - repo 内の `packages/3dss-content/library/` は **公開SSOT**。ここに入ったものは公開され得る前提で扱う。
-- 表示メタ（title/summary/tags/created/revised）は **`model.3dss.json` の `document_meta` がSSOT**。
+- 表示メタ（title/summary/tags/version/created/revised）は **`model.3dss.json` の `document_meta` がSSOT**。
   - `_meta.json` に同種のキーを重複させるのは禁止（チェックで弾く）。
 - 画像/添付は **フォルダ配置**をSSOTにする（一覧汚染を避け、機械処理しやすくする）。
 
@@ -53,8 +54,10 @@ npm --prefix apps/site run new:library-item -- --title "..."
 - `tags`
 - `created_at`
 - `revised_at`
+- `version`（作品データの版）
+- `schema_uri`（使用する保存形式の固定URI）
 
-※ ここが **一覧カード/詳細ページの表示**に使われるSSOT。
+※ ここが **一覧カード/詳細ページの表示**に使われるSSOT。文書UUID・作者など、使用する[3DSSスキーマ](/docs/schema/latest/)が求める項目も確認する。作品の版と保存形式の版は区別する。
 
 ---
 
@@ -69,6 +72,8 @@ npm --prefix apps/site run new:library-item -- --title "..."
   - `published: true`
   - `published_at: <初回公開日時>`（固定）
   - `republished_at: <更新公開日時>`（更新のたびに更新）
+
+作品データの改訂日時 `document_meta.revised_at` と、掲載内容の更新公開日時は区別する。作品データを変えずに解説だけを更新した場合も、更新公開日時と更新履歴に記録する。初回公開日時は変更しない。
 
 ### 4.2 出典・権利・制作情報
 
@@ -110,6 +115,12 @@ npm --prefix apps/site run new:library-item -- --title "..."
 - 詳細資料: [whitepaper.pdf](./attachments/whitepaper.pdf)
 ```
 
+### 5.4 更新履歴と訂正
+
+主要な改訂・訂正は、`content.md` の「更新履歴」に、更新公開日・作品版・変更内容を記す。本文がなければ、この用途のために用意する。既存の履歴を引き継ぎ、記録のない過去の改訂や日付を推定で埋めない。
+
+重要な誤りの訂正は、更新履歴に詳しい内容を残すとともに、作品情報や解説の冒頭などから気づける案内を付ける。分類と記入内容は[改訂・訂正の運用](/docs/library/revision-policy/)に従う。
+
 ---
 
 ## 6. チェックと反映（必須）
@@ -121,6 +132,9 @@ npm --prefix apps/site run sync:3dss-content
 
 - `check:library` が通ること（コンタミや必須不足をここで止める）
 - sync 後、Site 側のプレビューで `/library/<id>/` を確認
+- 作品の版・改訂日・公開日・更新日が、それぞれの記録と一致することを確認
+- 専用HTMLや配布ファイルがある場合は、その版・解説・最新版への案内も照合
+- 更新履歴と、該当する重要訂正の案内をスマホ幅・PC幅で確認
 
 ---
 
@@ -128,4 +142,5 @@ npm --prefix apps/site run sync:3dss-content
 
 - PR 作成（アイテム追加/更新）
 - Cloudflare Pages preview で確認
+- 必要な旧公開版を保管し、変更履歴と公開する内容を照合
 - merge 後に本番へ反映

@@ -33,6 +33,11 @@ export type LibraryItem = {
   tags?: string[];
   updated_at?: string;
   created_at?: string;
+  // Derived from model.document_meta; publication dates belong to _meta.json.
+  revised_at?: string;
+  document_version?: string;
+  published_at?: string;
+  republished_at?: string;
   entry_points?: string[];
   pairs?: { a: string; b: string }[];
   series?: string;

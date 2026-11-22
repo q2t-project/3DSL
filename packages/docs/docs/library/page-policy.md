@@ -4,6 +4,7 @@
 
 - 登録手順（SSOT）: `packages/docs/docs/library/workflow.md`
 - `_meta.json` フィールド辞書（SSOT）: `packages/docs/docs/library/meta-fields.md`
+- 改訂・履歴・訂正の運用（SSOT）: [作品の改訂・訂正の運用](/docs/library/revision-policy/)
 
 このページは **Library 詳細ページの表示方針**（SEO/UX/ページ構造）を固定する。
 データ定義や運用手順のSSOTは上のドキュメントに集約する。
@@ -24,7 +25,7 @@
 
 ### 表示メタのSSOT（重要）
 
-- **表示に使うタイトル/要約/タグ/created/revised は `model.3dss.json` の `document_meta` がSSOT**。
+- **表示に使うタイトル/要約/タグ/version/created/revised は `model.3dss.json` の `document_meta` がSSOT**。
 - `_meta.json` は「公開台帳（published/published_at/republished_at）」と「出典/権利/制作情報/添付等」を扱う。
 - `_meta.json` に表示メタ（title/summary/tags/created_at/updated_at 等）を重複させるのは **コンタミ** として禁止（チェックで弾く）。
 
@@ -48,6 +49,14 @@
 標準の作品ページは、共通テンプレートにViewerを組み込んで配信する。テーマが固まり、条件を動かした結果を見比べるなど専用HTMLに価値がある作品は、同じ作品URLのモデル表示部分にそのHTMLを採用できる設計とする。作品名、解説、出典、共有URLはページ側が持ち、「Viewerで大きく開く」から同じ版の3DSSも開ける。専用HTMLを最初に載せる際は、その作品で縦画面の選択・拡大・全景復帰を確認する。
 
 単体HTMLの配布は作品ごとに選べる。同じ版の3DSSと必要なテーマ固有情報から生成し、二つの形式を手で同期する負担を避ける。「オフラインで開ける」という配布表示は、通信を切り、ダウンロードした一つのファイルを開いて確認できた作品に付ける。
+
+### 作品の版・更新履歴・訂正の表示
+
+作品情報から、作品の版と改訂日、公開日・更新日を確認できるようにする。作品の版と改訂日は `document_meta.version` / `revised_at`、公開日・更新日は `_meta.json.published_at` / `republished_at` に対応する。保存形式やViewerの版を、作品の版として表示しない。
+
+主要な変更は `content.md` の「更新履歴」から読めるようにし、[作品の更新・訂正について](/docs/usage/updates-and-corrections/)へ案内する。重要な訂正は、作品情報や解説の冒頭など、気づける場所に短く示して詳細な訂正記録へつなぐ。解説が折りたたまれている場合は、その外からも訂正の存在が分かる掲載箇所を用意し、公開前に確認する。操作面に重ねたり、閲覧のたびに確認を要求したりしない。
+
+単体HTMLの作品情報にも、作品名・作品の版・改訂日・正規作品URLを残す。保存版への入口には対象版と最新版への案内を示し、固定した旧版本文を同じ版のまま書き換えない。運用の適用時期、履歴の記入内容と保存の範囲は[改訂・訂正の運用](/docs/library/revision-policy/)に従う。
 
 ## 作品間を行き来するとき
 
@@ -96,6 +105,7 @@
 * `tags`（string[]）
 * `created_at`（timestamp_utc）
 * `revised_at`（timestamp_utc）
+* `version`（作品データの版。使用する3DSSスキーマの形式に従う）
 
 * `_meta.json` は **公開台帳・SEO・権利・参照・添付/導線設定** の SSOT。
   * **禁止キー**：`title` / `summary` / `tags` / `created_at` / `updated_at`

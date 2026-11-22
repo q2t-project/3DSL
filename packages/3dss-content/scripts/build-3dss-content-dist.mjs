@@ -349,6 +349,8 @@ function main() {
       hidden: meta?.hidden === true,
       recommended: meta?.recommended === true,
       created_at,
+      revised_at,
+      document_version: String(dm?.version || ""),
       published_at,
       republished_at,
       tags,
