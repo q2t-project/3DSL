@@ -18,6 +18,7 @@ const {
   ogType = "website",
   twitterCard = "summary_large_image",
   adsenseEligible = true,
+  wideContent = false,
 } = Astro.props;
 const pathname = Astro.url?.pathname ?? "/";
 const isHome = pathname === "/";
@@ -133,7 +134,7 @@ function navCurrent(href: string) {
       </div>
     </header>
 
-    <main id="main-content" tabindex="-1" class:list={["mx-auto w-full max-w-6xl px-4 pb-10", isHome ? "pt-4 sm:pt-10" : "pt-10"]}>
+    <main id="main-content" tabindex="-1" class:list={["mx-auto w-full pb-10", wideContent ? "max-w-[1480px] px-2 sm:px-4" : "max-w-6xl px-4", isHome ? "pt-4 sm:pt-10" : "pt-10"]}>
       <slot />
     </main>
 

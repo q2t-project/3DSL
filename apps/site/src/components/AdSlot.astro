@@ -29,6 +29,8 @@ type Props = {
 
   /** For responsive units. Defaults to true unless fixed size is used. */
   fullWidthResponsive?: boolean;
+  /** Leave this placement unexpanded if the advertising library cannot load. */
+  waitForLibrary?: boolean;
 };
 
 const {
@@ -42,6 +44,7 @@ const {
   width = 0,
   height = 0,
   fullWidthResponsive,
+  waitForLibrary = false,
 } = Astro.props;
 
 const wrapperClass = String(className || classProp || "");
@@ -66,7 +69,7 @@ const useFullWidthResponsive =
 {eligiblePage && (hasSlot || isDev) && (
   <div class={`ad-slot ${wrapperClass}`} style={wrapperStyle} data-ad-slot={slot || "UNSET"}>
     {hasSlot ? (
-      <template data-3dsl-ad-slot>
+      <template data-3dsl-ad-slot data-3dsl-ad-wait-for-library={waitForLibrary ? "" : undefined}>
         <ins
           class="adsbygoogle"
           style={insStyle}

@@ -16,14 +16,21 @@ async function compilePolicy(env) {
   return sandbox.module.exports;
 }
 
-function page(href, { framed = false, eligible = true, visible = true } = {}) {
+function page(href, { framed = false, eligible = true, visible = true, deferred = false, hasSlot = true } = {}) {
   const requests = [];
   const listeners = {};
+  const scriptEvents = {};
+  const reservation = new Set();
   let activeSlots = 0;
   let width = visible ? 300 : 0;
-  let templatePresent = true;
+  let templatePresent = hasSlot;
   const template = {
-    parentElement: { getBoundingClientRect: () => ({ width }) },
+    parentElement: {
+      getBoundingClientRect: () => ({ width }),
+      setAttribute: key => reservation.add(key),
+      removeAttribute: key => reservation.delete(key),
+    },
+    hasAttribute: key => deferred && key === 'data-3dsl-ad-wait-for-library',
     content: { cloneNode: () => ({}) },
     replaceWith() { activeSlots++; templatePresent = false; },
   };
@@ -36,7 +43,10 @@ function page(href, { framed = false, eligible = true, visible = true } = {}) {
       return requests.length ? {} : null;
     },
     querySelectorAll: () => templatePresent ? [template] : [],
-    createElement: () => ({ setAttribute() {} }),
+    createElement: () => ({
+      setAttribute() {},
+      addEventListener(name, callback) { scriptEvents[name] = callback; },
+    }),
     head: { appendChild(script) { requests.push(script.src); } },
   };
   const win = {
@@ -48,6 +58,9 @@ function page(href, { framed = false, eligible = true, visible = true } = {}) {
   return {
     doc, win, requests,
     get activeSlots() { return activeSlots; },
+    get reserved() { return reservation.has('data-3dsl-ad-reserved'); },
+    libraryLoaded() { scriptEvents.load?.(); },
+    libraryFailed() { scriptEvents.error?.(); },
     reveal() { width = 300; listeners.resize?.(); },
   };
 }
@@ -55,6 +68,15 @@ function page(href, { framed = false, eligible = true, visible = true } = {}) {
 const cases = [
   ['concept allowed', '/concept', {}, true],
   ['public work allowed', '/library/26012301/', {}, true],
+  ['academic work allowed', '/library/26112201/', {}, true],
+  ['academic explore allowed', '/library/26112201/explore/', {}, true],
+  ['non-academic explore excluded', '/library/26012301/explore/', {}, false],
+  ['raw reader excluded', '/library/26112201/read/', {}, false],
+  ['academic explore framed', '/library/26112201/explore/', { framed: true }, false],
+  ['academic explore preview flag', '/library/26112201/explore/?swipe=1', {}, false],
+  ['academic explore opt-out', '/library/26112201/explore/', { eligible: false }, false],
+  ['academic explore preview origin', 'https://abc123.3dsl.pages.dev/library/26112201/explore/', {}, false],
+  ['no configured slot', '/library/26112201/explore/', { hasSlot: false }, false],
   ['home excluded', '/', {}, false],
   ['library index excluded', '/library/', {}, false],
   ['docs excluded', '/docs/ops/reconstruction_preview_release', {}, false],
@@ -78,8 +100,12 @@ const cases = [
 
 const disabledPolicy = await compilePolicy({});
 const enabledPolicy = await compilePolicy({ PUBLIC_ADSENSE_SERVING_ENABLED: 'true' });
+const fallbackSlot = await compilePolicy({ PUBLIC_ADSENSE_SLOT_300x250: '12345' });
+const dedicatedSlot = await compilePolicy({ PUBLIC_ADSENSE_SLOT_300x250: '12345', PUBLIC_ADSENSE_SLOT_GUIDED_READER: ' 67890 ' });
 assert.equal(disabledPolicy.ADSENSE_SERVING_ENABLED, false, 'unset opt-in defaults OFF');
 assert.equal(enabledPolicy.ADSENSE_SERVING_ENABLED, true, 'explicit opt-in enables the gate');
+assert.equal(fallbackSlot.ADSENSE_SLOTS.slot_guided_reader, '12345', 'reader uses existing fixed unit by default');
+assert.equal(dedicatedSlot.ADSENSE_SLOTS.slot_guided_reader, '67890', 'dedicated fixed reader unit takes precedence');
 
 for (const [mode, policy, enabled] of [
   ['default OFF', disabledPolicy, false],
@@ -99,10 +125,36 @@ for (const [mode, policy, enabled] of [
 const responsive = page('https://3dsl.jp/concept', { visible: false });
 enabledPolicy.initAdsense(responsive.doc, responsive.win);
 assert.equal(responsive.activeSlots, 0, 'CSS-hidden slot is not requested');
+assert.equal(responsive.requests.length, 0, 'no loader required while the only slot is hidden');
 responsive.reveal();
 responsive.reveal();
 enabledPolicy.initAdsense(responsive.doc, responsive.win);
 assert.equal(responsive.requests.length, 1, 'script requested once');
 assert.equal(responsive.activeSlots, 1, 'responsive slot activated once');
 assert.equal(responsive.win.adsbygoogle.length, 1, 'slot queued once');
+
+const deferred = page('https://3dsl.jp/library/26112201/explore/', { deferred: true, visible: false });
+enabledPolicy.initAdsense(deferred.doc, deferred.win);
+assert.equal(deferred.reserved, false, 'a hidden manual slot cannot reserve space');
+assert.equal(deferred.requests.length, 0, 'a hidden manual slot cannot fetch the library');
+deferred.reveal();
+assert.equal(deferred.reserved, true, 'reserve the final rail before queuing the ad');
+assert.equal(deferred.activeSlots, 0, 'the creative is gated on the library loading');
+assert.equal(deferred.requests.length, 1);
+deferred.libraryLoaded();
+deferred.reveal();
+enabledPolicy.initAdsense(deferred.doc, deferred.win);
+assert.equal(deferred.reserved, true, 'fill retains the same rail');
+assert.equal(deferred.activeSlots, 1, 'activate one manual slot');
+assert.equal(deferred.requests.length, 1, 'library requested once');
+assert.equal(deferred.win.adsbygoogle.length, 1, 'manual slot queued once');
+
+const blocked = page('https://3dsl.jp/library/26112201/', { deferred: true });
+enabledPolicy.initAdsense(blocked.doc, blocked.win);
+assert.equal(blocked.reserved, true);
+blocked.libraryFailed();
+blocked.reveal();
+assert.equal(blocked.reserved, false, 'library failure collapses the rail');
+assert.equal(blocked.activeSlots, 0);
+assert.equal(blocked.win.adsbygoogle?.length ?? 0, 0);
 console.log(`[check:adsense-policy] PASS: default OFF and explicit ON × ${cases.length} routing/query/frame cases + responsive/idempotence; no network used`);
