@@ -1,0 +1,20 @@
+{
+  "published": true,
+  "published_at": "2026-11-22T04:55:43Z",
+  "republished_at": "2026-11-22T04:55:43Z",
+  "page": {
+    "guided": true,
+    "subtitle": "知見はどこへ渡るか",
+    "ads": [
+      "guided_reader"
+    ]
+  },
+  "rights": {
+    "mode": "original",
+    "notice_short": "原本にはサイトのコンテンツ利用条件が適用されます。",
+    "policy": "/policy/content-usage/"
+  },
+  "seo": {
+    "description": "研究の知見はどう設計に生かされ、現場の観察はどんな問いを研究に返すのか。17の学問群を一枚の地図に置き、物理・工学から医療、人文・社会まで、35の知見の受け渡しをたどれます。"
+  }
+}

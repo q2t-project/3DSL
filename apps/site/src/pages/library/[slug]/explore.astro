@@ -1,0 +1,30 @@
+---
+import AcademicAtlasReading from "../../../components/AcademicAtlasReading.astro";
+import Layout from "../../../layouts/Layout.astro";
+import {
+  ACADEMIC_ATLAS_PATH, allowsAcademicAtlasAds, getAcademicAtlasPaths,
+} from "../../../lib/academicAtlas";
+import { ADSENSE_SLOTS } from "../../../lib/adsense";
+
+export function getStaticPaths() {
+  return getAcademicAtlasPaths();
+}
+
+const { item } = Astro.props;
+const adSlot = allowsAcademicAtlasAds(item) ? ADSENSE_SLOTS.slot_guided_reader : "";
+---
+
+<Layout
+  title={item.title}
+  description={item.meta_description || undefined}
+  canonical={new URL(ACADEMIC_ATLAS_PATH, "https://3dsl.jp").href}
+  adsenseEligible={Boolean(adSlot)}
+  wideContent={true}
+>
+  <Fragment slot="head"><meta name="robots" content="noindex" /></Fragment>
+  <div class="mx-auto max-w-[1440px]">
+    <p class="mb-3"><a class="site-link" href={ACADEMIC_ATLAS_PATH + "#atlas-model"}>作品ページに戻る</a></p>
+    <h1>{item.title}</h1>
+    <AcademicAtlasReading title={item.title} adSlot={adSlot} expanded={true} />
+  </div>
+</Layout>

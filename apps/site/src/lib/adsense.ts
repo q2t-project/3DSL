@@ -14,13 +14,15 @@ export const ADSENSE_SERVING_ENABLED = import.meta.env.PUBLIC_ADSENSE_SERVING_EN
 
 export type AdSlotKey = keyof typeof ADSENSE_SLOTS;
 
-// Publication policy: explanatory content and published work detail pages only.
+// Publication policy: explanatory content, published work details and the
+// academic atlas reading shell. Raw readers and embedded pages stay ad-free.
 // Library index, Docs, applications, diagnostics and utility pages stay ad-free.
 // Hidden/test detail pages additionally opt out through Layout.adsenseEligible.
 export function shouldEnableAdsense(pathname: string): boolean {
   const p = (pathname || '/').split('#')[0].split('?')[0];
   return ADSENSE_SERVING_ENABLED
-    && (/^\/concept\/?$/.test(p) || /^\/library\/\d{6}[a-z0-9]{2}\/?$/i.test(p));
+    && (/^\/concept\/?$/.test(p) || /^\/library\/\d{6}[a-z0-9]{2}\/?$/i.test(p)
+      || /^\/library\/26112201\/explore\/?$/.test(p));
 }
 
 export function isNoAdsRequest(url?: URL | null): boolean {
@@ -45,32 +47,60 @@ export function canRequestAdsense(url: URL, isTopLevel: boolean, pageEligible: b
     && !isNoAdsRequest(url);
 }
 
+const initializedDocuments = new WeakSet<Document>();
+
 export function initAdsense(doc: Document = document, win: Window = window): void {
   const pageEligible = doc.querySelector('meta[name="google-adsense-account"]')
     ?.getAttribute('data-3dsl-adsense-eligible') === '1';
   if (!canRequestAdsense(new URL(win.location.href), win.self === win.top, pageEligible)) return;
+  if (initializedDocuments.has(doc)) return;
+  initializedDocuments.add(doc);
 
   const start = () => {
     // Only this initializer may turn the inert slot templates into live ads.
-    if (doc.querySelector('script[data-3dsl-adsense]')) return;
+    const selector = 'template[data-3dsl-ad-slot]';
+    if (doc.querySelector('script[data-3dsl-adsense]') || !doc.querySelectorAll(selector).length) return;
     const script = doc.createElement('script');
     script.async = true;
     script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_PUBLISHER_ID}`;
     script.crossOrigin = 'anonymous';
     script.setAttribute('data-3dsl-adsense', '1');
-    doc.head.appendChild(script);
+    let libraryAdded = false;
+    let libraryStatus: "pending" | "ready" | "failed" = "pending";
 
     const activateVisibleSlots = () => {
-      for (const template of doc.querySelectorAll<HTMLTemplateElement>('template[data-3dsl-ad-slot]')) {
+      for (const template of doc.querySelectorAll<HTMLTemplateElement>(selector)) {
         const wrapper = template.parentElement;
         // Mobile/desktop variants can be hidden by CSS. Never request a hidden slot.
         if (!wrapper || wrapper.getBoundingClientRect().width <= 0) continue;
+        const waitsForLibrary = template.hasAttribute('data-3dsl-ad-wait-for-library');
+        if (waitsForLibrary) {
+          if (libraryStatus === "failed") continue;
+          // Fix the placement before requesting an ad, so rendering the creative
+          // does not resize the reader mid-gesture or move the ad to a new rail.
+          wrapper.setAttribute('data-3dsl-ad-reserved', '');
+        }
+        if (!libraryAdded) {
+          libraryAdded = true;
+          doc.head.appendChild(script);
+        }
+        if (waitsForLibrary && libraryStatus !== "ready") continue;
         template.replaceWith(template.content.cloneNode(true));
         const adWindow = win as Window & { adsbygoogle?: unknown[] };
         adWindow.adsbygoogle = adWindow.adsbygoogle || [];
         adWindow.adsbygoogle.push({});
       }
     };
+    script.addEventListener('load', () => {
+      libraryStatus = "ready";
+      activateVisibleSlots();
+    }, { once: true });
+    script.addEventListener('error', () => {
+      libraryStatus = "failed";
+      for (const template of doc.querySelectorAll<HTMLTemplateElement>(selector)) {
+        template.parentElement?.removeAttribute('data-3dsl-ad-reserved');
+      }
+    }, { once: true });
     activateVisibleSlots();
     // A layout change can reveal the other existing mobile/desktop placement.
     win.addEventListener('resize', activateVisibleSlots, { passive: true });
@@ -86,9 +116,11 @@ export function initAdsense(doc: Document = document, win: Window = window): voi
 // Astro requires the PUBLIC_ prefix to expose env vars to browser code.
 const SLOT_300x250 = (import.meta.env.PUBLIC_ADSENSE_SLOT_300x250 ?? '').trim();
 const SLOT_300x600 = (import.meta.env.PUBLIC_ADSENSE_SLOT_300x600 ?? '').trim();
+const SLOT_GUIDED_READER = (import.meta.env.PUBLIC_ADSENSE_SLOT_GUIDED_READER ?? '').trim();
 
 // These are the ONLY slots referenced in pages for the application-time plan.
 export const ADSENSE_SLOTS = {
   slot_300x250: SLOT_300x250,
   slot_300x600: SLOT_300x600,
+  slot_guided_reader: SLOT_GUIDED_READER || SLOT_300x250,
 } as const;

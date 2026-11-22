@@ -2,6 +2,11 @@
 import Layout from "../../layouts/Layout.astro";
 import AtlasStage from "../../components/AtlasStage.astro";
 import AdSlot from "../../components/AdSlot.astro";
+import AcademicAtlasReading from "../../components/AcademicAtlasReading.astro";
+import {
+  ACADEMIC_ATLAS_EXPLORE, ACADEMIC_ATLAS_SLUG,
+  allowsAcademicAtlasAds, isPublicAcademicAtlas,
+} from "../../lib/academicAtlas";
 import { ADSENSE_SLOTS, shouldEnableAdsense } from "../../lib/adsense";
 import { getLibraryItemBySlug, getLibraryItems } from "../../lib/libraryIndex";
 import { publicDir } from "astro:config/server";
@@ -45,8 +50,13 @@ function firstNonEmptyString(...values: unknown[]): string {
     typeof value === "string" && value.trim().length > 0
   )?.trim() ?? "";
 }
+const isAcademicAtlas = slug === ACADEMIC_ATLAS_SLUG;
+const hasAcademicReader = isPublicAcademicAtlas(item);
+const academicAdSlot = allowsAcademicAtlasAds(item) ? ADSENSE_SLOTS.slot_guided_reader : "";
 const seoTitle = firstNonEmptyString(meta?.seo?.title, item.meta_title, item.title, "3DSL");
-const seoDescription = firstNonEmptyString(meta?.seo?.description, item.meta_description, item.summary);
+const seoDescription = isAcademicAtlas
+  ? firstNonEmptyString(meta?.seo?.description, item.meta_description) || undefined
+  : firstNonEmptyString(meta?.seo?.description, item.meta_description, item.summary);
 
 // Viewer routes
 const appViewerUrl = `/app/viewer/?${new URLSearchParams({
@@ -58,11 +68,11 @@ const appViewerUrl = `/app/viewer/?${new URLSearchParams({
 
 // Per-item page config (optional)
 const pageConf = meta?.page ?? {};
-const guidedUrl = pageConf.guided === true ? pagePath + "read/" : "";
+const guidedUrl = pageConf.guided === true && (!isAcademicAtlas || hasAcademicReader) ? pagePath + "read/" : "";
 const adAllow = new Set<string>(
   Array.isArray(pageConf?.ads) ? pageConf.ads : ["mobile_top", "desktop_rail"]
 );
-const eligiblePage = shouldEnableAdsense(Astro.url.pathname) && item.hidden !== true;
+const eligiblePage = !isAcademicAtlas && shouldEnableAdsense(Astro.url.pathname) && item.hidden !== true;
 const showAdMobileTop = eligiblePage && adAllow.has("mobile_top") && Boolean(ADSENSE_SLOTS.slot_300x250);
 const showAdDesktopRail = eligiblePage && adAllow.has("desktop_rail") && Boolean(ADSENSE_SLOTS.slot_300x600);
 const showAdInline1 = eligiblePage && adAllow.has("inline_1") && Boolean(ADSENSE_SLOTS.slot_300x250);
@@ -305,11 +315,16 @@ const thirdParty = Array.isArray(rights?.third_party)
   : [];
 ---
 
-<Layout title={seoTitle} description={seoDescription} adsenseEligible={item.hidden !== true}>
+<Layout
+  title={seoTitle}
+  description={seoDescription}
+  adsenseEligible={isAcademicAtlas ? Boolean(academicAdSlot) : item.hidden !== true}
+  wideContent={hasAcademicReader}
+>
   <Fragment slot="head">
     {item.hidden === true && <meta name="robots" content="noindex" />}
   </Fragment>
-  <div class="mx-auto max-w-[1200px] px-4 py-6">
+  <div class:list={["mx-auto py-6", hasAcademicReader ? "max-w-[1440px]" : "max-w-[1200px] px-4"]}>
     <div class="text-sm text-neutral-500">
       <a href="/library" class="hover:underline">作品一覧</a>
       <span class="mx-2">/</span>
@@ -320,25 +335,29 @@ const thirdParty = Array.isArray(rights?.third_party)
       <div class="flex flex-wrap items-baseline justify-between gap-2">
         <h1 class="text-3xl font-semibold tracking-tight text-neutral-100">{item.title}</h1>
         {guidedUrl ? (
-          <a class="underline" href={guidedUrl}>ガイドを大きく開く ↗</a>
+          <a class="underline" href={hasAcademicReader ? ACADEMIC_ATLAS_EXPLORE : guidedUrl}>ガイドを大きく開く ↗</a>
         ) : (
           <a class="underline" data-full-viewer data-atlas-expand={modelUrl} href={appViewerUrl}>Viewerで大きく開く ↗</a>
         )}
       </div>
       {hasNonEmptyString(pageConf.subtitle) && <p class="mt-1 text-lg text-neutral-200">{pageConf.subtitle}</p>}
-      {item.summary ? (
+      {item.summary && !hasAcademicReader ? (
         <p class="mt-2 max-w-[75ch] text-base leading-relaxed text-neutral-300">{item.summary}</p>
       ) : null}
     </div>
 
-    <div class="mt-4">
-      {guidedUrl ? (
-        <iframe src={guidedUrl} title={item.title + " 読解ガイド"} sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" data-swipe-ignore
-          class="block h-[78svh] min-h-[26rem] max-h-[53rem] w-full rounded-xl border border-neutral-700" />
-      ) : (
-        <AtlasStage model={modelUrl} title={item.title} />
-      )}
-    </div>
+    {hasAcademicReader ? (
+      <AcademicAtlasReading title={item.title} adSlot={academicAdSlot} />
+    ) : (
+      <div class="mt-4">
+        {guidedUrl ? (
+          <iframe src={guidedUrl} title={item.title + " 読解ガイド"} sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" data-swipe-ignore
+            class="block h-[78svh] min-h-[26rem] max-h-[53rem] w-full rounded-xl border border-neutral-700" />
+        ) : (
+          <AtlasStage model={modelUrl} title={item.title} />
+        )}
+      </div>
+    )}
 
     <div class:list={["mt-4 grid grid-cols-1 gap-6", { "lg:grid-cols-[minmax(0,1fr)_300px]": showAdDesktopRail }]}>
       <div class="min-w-0">
@@ -352,7 +371,7 @@ const thirdParty = Array.isArray(rights?.third_party)
         ) : null}
 
         {guidedUrl && rights?.notice_short && publicLink(rights?.policy) ? (
-          <section aria-label="3DSS原本" class="mb-3 rounded-2xl border border-neutral-800 bg-neutral-950/40 p-5">
+          <section id="work-model-original" aria-label="3DSS原本" class="mb-3 rounded-2xl border border-neutral-800 bg-neutral-950/40 p-5">
             <a href={modelUrl} download={slug + ".3dss.json"} class="inline-block font-semibold underline">3DSS原本をダウンロード</a>
             <p class="mt-2 max-w-[75ch] text-sm leading-relaxed text-neutral-300">{rights.notice_short} <a class="underline" href={rights.policy}>原本の利用条件</a></p>
           </section>

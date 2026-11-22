@@ -127,15 +127,43 @@ for (const file of ['index.html', 'concept/index.html', 'docs/index.html', 'libr
   assert(!links.some(url => url.pathname.replace(/\/$/, '') === retiredGuide ||
     offSiteIds.some(id => url.href.includes(id))), `${file}: link to an off-site work or guide`);
 }
+const academicAtlas = index.items.find(item => item.slug === "26112201" && item.page?.guided === true && !item.hidden);
+if (!academicAtlas) {
+  for (const route of ["read", "explore"]) {
+    await assert.rejects(stat(path.join(dist, "library", "26112201", route, "index.html")), { code: "ENOENT" },
+      "draft or hidden academic atlas has no direct reader route");
+  }
+}
 for (const item of index.items) {
   const detail = await read(`library/${item.slug}/index.html`);
-  if (item.page?.guided === true) {
+  if (item.page?.guided === true && (item.slug !== '26112201' || academicAtlas)) {
     const route = '/library/' + item.slug + '/read/';
-    assert(detail.includes('<iframe src="' + route + '"'), item.id + ': guided work embeds reviewed reader');
-    assert(detail.includes('href="' + route + '"'), item.id + ': reader opens at full size');
+    assert(new RegExp('<iframe\\b[^>]*\\bsrc="' + route + '"').test(detail), item.id + ': guided work embeds reviewed reader');
+    const full = item === academicAtlas ? '/library/26112201/explore/' : route;
+    assert(detail.includes('href="' + full + '"'), item.id + ': reader opens at full size');
     assert(detail.includes('href="' + item.model_url + '" download='), item.id + ': native download');
     const reader = await read(route.slice(1) + 'index.html');
     assert(reader.includes('<script') && reader.includes(item.title), item.id + ': standalone reader is built');
+    if (item === academicAtlas) {
+      assert(!reader.includes('google-adsense-account') && !reader.includes('data-3dsl-ad-slot') &&
+        !reader.includes('googlesyndication.com'), 'raw academic reader has no advertiser markup');
+      assert(detail.includes('id="work-model-original"'), 'academic reader can link to the native model');
+      const explored = await read(full.slice(1) + 'index.html');
+      assert(explored.includes('src="' + route + '"'), 'expanded academic page embeds the same reader');
+      assert.match(explored, /<meta name="robots" content="noindex"/, 'expanded reading is noindex');
+      assert(explored.includes('<link rel="canonical" href="https://3dsl.jp/library/26112201/"'), 'expanded reading canonicalizes to the work');
+      assert(explored.includes('href="/library/26112201/#atlas-model"'), 'expanded reading can return to the model on the work page');
+      assert(!sitemap.includes(full) && !sitemap.includes(route), 'only the academic work page is listed in sitemap');
+      for (const html of [detail, explored]) {
+        const eligible = html.includes('data-3dsl-adsense-eligible="1"');
+        const slots = [...html.matchAll(/<template[^>]*\bdata-3dsl-ad-slot\b/g)];
+        assert.equal(slots.length, eligible ? 1 : 0, 'academic page serves at most one configured slot');
+        assert(!eligible || item.page.ads?.includes("guided_reader"), 'manual academic ad requires a work-level opt-in');
+        const interpretation = html.search(/<p\b[^>]*\bdata-academic-atlas-interpretation\b/);
+        const ad = html.search(/<aside\b[^>]*\bdata-academic-atlas-ad\b/);
+        assert(interpretation > -1 && (!eligible || ad > interpretation), 'academic text follows the model and precedes the ad on mobile');
+      }
+    }
   } else {
     const frame = /<iframe[^>]+src="(\/viewer\/peek\.html\?[^"]+)"/.exec(detail);
     assert(frame, item.id + ': interactive work page');
