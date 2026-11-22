@@ -5,53 +5,24 @@ import AdSlot from "../../components/AdSlot.astro";
 import { ADSENSE_SLOTS, shouldEnableAdsense } from "../../lib/adsense";
 
 const eligiblePage = shouldEnableAdsense(Astro.url.pathname);
-const showAdMobile = eligiblePage && Boolean(ADSENSE_SLOTS.slot_300x250);
-const showAdDesktop = eligiblePage && Boolean(ADSENSE_SLOTS.slot_300x600);
 ---
 
 <Layout
-  title="Concept | 3DSL"
+  title="3DSLの狙い｜図と文章を往復し、知を共有する"
   description="言語化だけでは取り落とされる構造を、関係の図として保持し、拡大縮小しながら理解を往復させるという 3DSL の考え方を説明します。"
 >
-  <section class:list={["grid gap-8", { "lg:grid-cols-[minmax(0,1fr)_300px]": showAdDesktop }]}>
-    <div>
-      <div class="prose prose-invert prose-neutral max-w-3xl">
-        <ConceptText />
-      </div>
-
-      <!-- Mobile/inline: 300x250 -->
-      {showAdMobile && (
-        <div class="mt-8 max-w-3xl lg:hidden">
-          <div class="text-xs text-neutral-500">広告</div>
-          <div class="mt-2">
-            <AdSlot
-              slot={ADSENSE_SLOTS.slot_300x250}
-              width={300}
-              height={250}
-              fullWidthResponsive={false}
-              minHeight={250}
-            />
-          </div>
-        </div>
-      )}
-    </div>
-
-    <!-- Desktop rail: 300x600 -->
-    {showAdDesktop && (
-      <aside class="hidden lg:block">
-        <div class="sticky top-24">
-          <div class="text-xs text-neutral-500">広告</div>
-          <div class="mt-2">
-            <AdSlot
-              slot={ADSENSE_SLOTS.slot_300x600}
-              width={300}
-              height={600}
-              fullWidthResponsive={false}
-              minHeight={600}
-            />
-          </div>
-        </div>
-      </aside>
-    )}
-  </section>
+  <article class="concept-text prose prose-invert prose-neutral max-w-3xl">
+    <ConceptText />
+  </article>
+  {eligiblePage && ADSENSE_SLOTS.slot_300x250 && (
+    <aside class="mt-8" aria-label="広告">
+      <span class="text-xs">広告</span>
+      <AdSlot slot={ADSENSE_SLOTS.slot_300x250} width={300} height={250} waitForLibrary />
+    </aside>
+  )}
 </Layout>
+<style>
+  .concept-text :global(p) { font-family: var(--font-title); }
+  aside:not(:has(:global([data-3dsl-ad-reserved]))) { margin-top: 0; }
+  aside:not(:has(:global([data-3dsl-ad-reserved]))) > span { display: none; }
+</style>
