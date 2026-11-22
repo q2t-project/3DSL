@@ -103,7 +103,7 @@ function navCurrent(href: string) {
     <header class="sticky top-0 z-50 border-b border-white/10 bg-neutral-950/60 backdrop-blur" data-swipe-ignore>
     <div class="mx-auto max-w-6xl px-4 py-2">
       <div class="ui-headerbar flex items-start gap-3">
-          <a href="/" class="flex items-center shrink-0" aria-label="3DSL Home">
+          <a href="/" class="ui-brand" aria-label="3DSL 三次元構造言語 ホーム">
             <!-- Keep logo size stable even if utility CSS is missing -->
             <img
               src="/assets/logo/3DSL.svg"
@@ -114,6 +114,7 @@ function navCurrent(href: string) {
               loading="eager"
               decoding="async"
             />
+            <span class="ui-brand-caption">三次元構造言語</span>
           </a>
 
           <nav class="ui-navbar ui-navbar--mecha" aria-label="Primary">

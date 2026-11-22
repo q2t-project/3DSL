@@ -86,6 +86,11 @@ const metaAtlas = await read('meta-atlas/index.html');
 const edition = /name="atlas-edition" content="([^"]+)"/.exec(metaAtlas)?.[1];
 assert(edition?.startsWith('/meta-atlas/editions/'), 'shared annotations stay under the public reader');
 assert((await read(edition.slice(1) + 'index.html')).includes('id="model-data"'), 'cited edition is published');
+assert(topHtml.includes('class="ui-brand-caption">三次元構造言語'), 'Japanese name is visible under the site logo');
+assert(metaAtlas.includes('data-fit="annotationExchange"'), 'meta atlas offers the annotation exchange view');
+const personAsset = await readFile(path.join(site, '../../packages/3dss-content/parts/outline/v1/person_circle-head_halfellipse-body75_overlap-body-trim_u8_v1.glb'));
+assert.deepEqual(await readFile(path.join(dist, 'meta-atlas/person.glb')), personAsset, 'meta atlas ships the approved person marker');
+
 const listLinks = readerLinks(listHtml);
 // Kept sources may return to library/ when the author resumes publication.
 const heldDir = path.resolve(site, '../../packages/3dss-content/on-hold');
