@@ -287,8 +287,20 @@ const displayTags = (Array.isArray(tags) ? tags : [])
   .map(toDisplayTag)
   .filter((x): x is string => typeof x === "string" && x.length > 0);
 const descriptionLong = meta?.description ?? "";
-const createdAt = item.created_at ?? meta?.created_at ?? "";
-const updatedAt = item.updated_at ?? meta?.updated_at ?? "";
+const createdAt = item.created_at ?? "";
+const revisedAt = item.revised_at ?? "";
+const documentVersion = item.document_version ?? "";
+const publishedAt = item.published_at ?? "";
+const republishedAt = item.republished_at ?? "";
+
+function formatWorkDate(value: string): string {
+  const date = new Date(value);
+  return Number.isFinite(date.getTime())
+    ? new Intl.DateTimeFormat("ja-JP", {
+        timeZone: "Asia/Tokyo", year: "numeric", month: "long", day: "numeric",
+      }).format(date)
+    : value;
+}
 
 function hasNonEmptyString(x: unknown): x is string {
   return typeof x === "string" && x.trim().length > 0;
@@ -359,6 +371,12 @@ const thirdParty = Array.isArray(rights?.third_party)
       </div>
     )}
 
+    <p class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs leading-6 text-neutral-400" aria-label="作品の版と改訂">
+      {hasNonEmptyString(documentVersion) && <span>3DSS原本の版 {documentVersion}</span>}
+      {hasNonEmptyString(revisedAt) && <span>原本改訂日 <time datetime={revisedAt}>{formatWorkDate(revisedAt)}</time></span>}
+      <a class="underline underline-offset-4" href="/docs/usage/updates-and-corrections/">改訂・訂正の案内</a>
+    </p>
+
     <div class:list={["mt-4 grid grid-cols-1 gap-6", { "lg:grid-cols-[minmax(0,1fr)_300px]": showAdDesktopRail }]}>
       <div class="min-w-0">
         {bodyHtml ? (
@@ -377,7 +395,7 @@ const thirdParty = Array.isArray(rights?.third_party)
           </section>
         ) : null}
 
-        <details class="rounded-2xl border border-neutral-800 bg-neutral-950/40 p-4">
+        <details id="work-information" class="rounded-2xl border border-neutral-800 bg-neutral-950/40 p-4">
           <summary class="cursor-pointer font-semibold">作品情報・共有・データ</summary>
           <div class="mt-4 grid grid-cols-1 gap-5 lg:grid-cols-2">
             <div class="min-w-0">
@@ -441,12 +459,22 @@ const thirdParty = Array.isArray(rights?.third_party)
               ) : null}
 
               <div class="mt-5 grid grid-cols-1 gap-2 rounded-xl border border-neutral-800 bg-neutral-950/30 p-3 text-xs text-neutral-400">
+                {hasNonEmptyString(documentVersion) ? (
+                  <div><span class="text-neutral-500">3DSS原本の版</span> {documentVersion}</div>
+                ) : null}
                 {hasNonEmptyString(createdAt) ? (
-                  <div><span class="text-neutral-500">作成日</span> {createdAt}</div>
+                  <div><span class="text-neutral-500">モデル作成日</span> <time datetime={createdAt}>{formatWorkDate(createdAt)}</time></div>
                 ) : null}
-                {hasNonEmptyString(updatedAt) ? (
-                  <div><span class="text-neutral-500">更新日</span> {updatedAt}</div>
+                {hasNonEmptyString(revisedAt) ? (
+                  <div><span class="text-neutral-500">モデル改訂日</span> <time datetime={revisedAt}>{formatWorkDate(revisedAt)}</time></div>
                 ) : null}
+                {hasNonEmptyString(publishedAt) ? (
+                  <div><span class="text-neutral-500">初回公開日</span> <time datetime={publishedAt}>{formatWorkDate(publishedAt)}</time></div>
+                ) : null}
+                {hasNonEmptyString(republishedAt) && republishedAt !== publishedAt ? (
+                  <div><span class="text-neutral-500">掲載更新日</span> <time datetime={republishedAt}>{formatWorkDate(republishedAt)}</time></div>
+                ) : null}
+                <p>モデル改訂日と、参照資料の基準日は異なります。対象範囲と資料の時点は作品の解説をご確認ください。</p>
               </div>
 
               {Array.isArray(authors) && authors.length ? (
