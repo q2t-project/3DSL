@@ -71,6 +71,10 @@ try {
       await configure(page);
       // The tour shares the real home iframe with its controls. A stage counter
       // alone can advance even if fitting the camera throws before focus moves.
+      if (width === 360) {
+        // A portrait phone with browser chrome leaves about 455px for the iframe.
+        await page.cmd('Emulation.setDeviceMetricsOverride', { width, height: 704, deviceScaleFactor: 1, mobile: true });
+      }
       await go(page, '/');
       const tour = expression => page.evaluate(`(() => {
         const frame = document.querySelector('iframe.meta-atlas');
@@ -95,6 +99,7 @@ try {
       }
       assert.equal(cameras.size, 4, 'each tour stop has its own camera');
       assert(await tour('d.querySelector("#atlas-tour").hidden && d.activeElement.id === "tour-start" && !d.querySelector("#status").textContent'));
+      if (width === 360) await configure(page);
       const opened = [];
       page.events.addEventListener('Page.windowOpen', ({detail}) => opened.push({url:detail.url,userGesture:detail.userGesture}));
       const targets = async () => (await (await fetch('http://127.0.0.1:' + page.port + '/json/list')).json()).filter(t => t.type === 'page');
