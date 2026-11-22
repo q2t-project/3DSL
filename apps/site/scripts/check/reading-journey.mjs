@@ -69,6 +69,32 @@ try {
         assert.equal(await p.evaluate('!!document.getElementById("app-viewer-iframe")'), false, 'return leaves the Viewer host');
       }
       await configure(page);
+      // The tour shares the real home iframe with its controls. A stage counter
+      // alone can advance even if fitting the camera throws before focus moves.
+      await go(page, '/');
+      const tour = expression => page.evaluate(`(() => {
+        const frame = document.querySelector('iframe.meta-atlas');
+        const d = frame?.contentDocument, w = frame?.contentWindow;
+        return d && w && (${expression});
+      })()`);
+      await waitFor(() => tour('d.querySelector("#tour-start")?.getClientRects().length && !!w.metaAtlas'), 'home atlas tour');
+      await tour('d.querySelector("#tour-start").click()');
+      const cameras = new Set();
+      for (let step = 1; step <= 4; step++) {
+        const state = await tour(`({
+          error: d.querySelector('#status').textContent,
+          count: d.querySelector('#tour-count').textContent,
+          focus: d.activeElement.id,
+          camera: w.metaAtlas.getCamera()
+        })`);
+        assert.equal(state.error, '', 'tour step ' + step + ' at ' + width + 'px: ' + state.error);
+        assert.equal(state.count, step + ' / 4');
+        assert.equal(state.focus, 'tour-title');
+        cameras.add(JSON.stringify(state.camera));
+        await tour('d.querySelector("#tour-next").click()');
+      }
+      assert.equal(cameras.size, 4, 'each tour stop has its own camera');
+      assert(await tour('d.querySelector("#atlas-tour").hidden && d.activeElement.id === "tour-start" && !d.querySelector("#status").textContent'));
       const opened = [];
       page.events.addEventListener('Page.windowOpen', ({detail}) => opened.push({url:detail.url,userGesture:detail.userGesture}));
       const targets = async () => (await (await fetch('http://127.0.0.1:' + page.port + '/json/list')).json()).filter(t => t.type === 'page');
