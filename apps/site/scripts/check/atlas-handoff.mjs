@@ -26,7 +26,7 @@ assert.equal(readAtlasView(fragment, { ...model, scene: { document_meta: { ...sc
 const fixtures = new Map();
 const server = await serveBuild(fixtures);
 try {
-  for (const [route, width] of [['/', 360], ['/library/26010501/', 1280]]) {
+  for (const [route, width] of [['/library/26010501/', 360], ['/library/26010501/', 1280]]) {
     const html = await (await fetch(server.origin + route)).text();
     const modelPath = html.match(/data-atlas-expand="([^"]+)"/)?.[1];
     assert.ok(modelPath, 'work page has a marked native expansion link');

@@ -79,15 +79,13 @@ function hasWorkLink(links, model, returnTo) {
   return links.some(url => url.pathname === viewerPath && url.searchParams.get('model') === model &&
     url.searchParams.get('return') === returnTo);
 }
-const homeFrame = /<iframe[^>]+src="(\/viewer\/peek\.html\?[^"]+)"/.exec(topHtml);
-assert(homeFrame, 'home embeds the interactive model');
-const homeParams = new URL(homeFrame[1].replaceAll('&amp;', '&'), siteOrigin).searchParams;
-assert.equal(homeParams.get('controls'), 'atlas', 'home exposes focus and overview controls');
-const homeModel = homeParams.get('model');
-const leadItem = index.items.find(item => item.model_url === homeModel);
-if (leadItem) assert(featured.includes(leadItem.slug), 'featured model links to the same permanent work page');
-assert(homeModel && (await stat(path.join(dist, homeModel))).isFile(), 'embedded home model exists');
-assert(hasWorkLink(readerLinks(topHtml), homeModel, '/'), 'full viewer opens the same model and returns home');
+assert.match(leadSection, /<iframe[^>]+src="\/meta-atlas\/"/, 'home embeds the meta atlas');
+assert(topHtml.includes('href="/meta-atlas/"') && topHtml.includes('href="/concept/"'), 'home links to reader and concept article');
+assert(!topHtml.includes('ほかの作品'), 'retired home gallery is absent');
+const metaAtlas = await read('meta-atlas/index.html');
+const edition = /name="atlas-edition" content="([^"]+)"/.exec(metaAtlas)?.[1];
+assert(edition?.startsWith('/meta-atlas/editions/'), 'shared annotations stay under the public reader');
+assert((await read(edition.slice(1) + 'index.html')).includes('id="model-data"'), 'cited edition is published');
 const listLinks = readerLinks(listHtml);
 // Kept sources may return to library/ when the author resumes publication.
 const heldDir = path.resolve(site, '../../packages/3dss-content/on-hold');
