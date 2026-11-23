@@ -80,6 +80,17 @@ body.atlas-tour-open #reading-tools > :not(#atlas-tour){display:none!important}
 #atlas-tour button:disabled{opacity:.5;cursor:default}
 #tour-next{border-color:#78a8a2}
 
+@media (max-width: 600px), (max-height: 480px) {
+  /* The wrapped atlas toolbar and the tour panel otherwise squeeze the
+     overview into a narrow strip. The tour supplies its own navigation. */
+  body.atlas-tour-open header { display: none; }
+  #atlas-tour .tour-actions {
+    position: sticky;
+    bottom: 0;
+    background: #101d26;
+  }
+}
+
 /* Selectable reading text shares a visual treatment across the reading views. */
 .reading-text {
   font-family: "Atlas Reading", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif CJK JP", serif;
