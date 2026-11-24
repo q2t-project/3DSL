@@ -109,7 +109,7 @@
         "max": [
           2.631504774093628,
           0.07999999821186066,
-          8.0
+          8
         ]
       },
       "stroke_diameter": 0.16,
@@ -151,7 +151,7 @@
         "max": [
           3.988284111022949,
           0.07999999821186066,
-          8.0
+          8
         ]
       },
       "stroke_diameter": 0.16,
@@ -303,6 +303,264 @@
         0
       ],
       "sha256": "873aa09e7aff5c040918845c874ea2b377febaaf3727486b951ddc86854e7087"
+    },
+    {
+      "id": "hand_right_three-axis_thick-outline_u8_v1",
+      "label_ja": "右手：三軸・太線（線径 0.16）",
+      "filename": "hand_right_three-axis_thick-outline_u8_v1.glb",
+      "reference_size": 8,
+      "actual_bounds_3dsl": {
+        "min": [
+          -5.618462,
+          -3.561147,
+          -3.772308
+        ],
+        "max": [
+          0.08,
+          8.08,
+          5.618462
+        ]
+      },
+      "stroke_diameter": 0.16,
+      "pivot_3dsl": [
+        0,
+        0,
+        0
+      ],
+      "up_3dsl": [
+        0,
+        0,
+        1
+      ],
+      "front_3dsl": [
+        0,
+        1,
+        0
+      ],
+      "billboard": false,
+      "gltf_rotation_yaw_pitch_roll_radians": [
+        0,
+        1.5707963267948966,
+        0
+      ],
+      "source": "library/26012301/assets/righthand_model.glb",
+      "source_scale": 0.07692307692307693,
+      "sha256": "1f9a0f640a36b383ebf582c9cfe0eecd196fc72e16f69c75ae9970d012a53112"
+    },
+    {
+      "id": "hand_right_three-axis_thick-outline-d024_u8_v1",
+      "label_ja": "右手：三軸・太線（線径 0.24）",
+      "filename": "hand_right_three-axis_thick-outline-d024_u8_v1.glb",
+      "reference_size": 8,
+      "actual_bounds_3dsl": {
+        "min": [
+          -5.658462,
+          -3.601147,
+          -3.812308
+        ],
+        "max": [
+          0.12,
+          8.12,
+          5.658462
+        ]
+      },
+      "stroke_diameter": 0.24,
+      "pivot_3dsl": [
+        0,
+        0,
+        0
+      ],
+      "up_3dsl": [
+        0,
+        0,
+        1
+      ],
+      "front_3dsl": [
+        0,
+        1,
+        0
+      ],
+      "billboard": false,
+      "gltf_rotation_yaw_pitch_roll_radians": [
+        0,
+        1.5707963267948966,
+        0
+      ],
+      "source": "library/26012301/assets/righthand_model.glb",
+      "source_scale": 0.07692307692307693,
+      "sha256": "cb5d7bee42f6d6f0e830e8dae629b6c6cf5b6c1aed9c208cee8698d4433d8b6b"
+    },
+    {
+      "id": "hand_right_three-axis_thick-outline-d032_u8_v1",
+      "label_ja": "右手：三軸・太線（線径 0.32）",
+      "filename": "hand_right_three-axis_thick-outline-d032_u8_v1.glb",
+      "reference_size": 8,
+      "actual_bounds_3dsl": {
+        "min": [
+          -5.698462,
+          -3.641147,
+          -3.852308
+        ],
+        "max": [
+          0.16,
+          8.16,
+          5.698462
+        ]
+      },
+      "stroke_diameter": 0.32,
+      "pivot_3dsl": [
+        0,
+        0,
+        0
+      ],
+      "up_3dsl": [
+        0,
+        0,
+        1
+      ],
+      "front_3dsl": [
+        0,
+        1,
+        0
+      ],
+      "billboard": false,
+      "gltf_rotation_yaw_pitch_roll_radians": [
+        0,
+        1.5707963267948966,
+        0
+      ],
+      "source": "library/26012301/assets/righthand_model.glb",
+      "source_scale": 0.07692307692307693,
+      "sha256": "fe37612e38868e5fadfe86dc86a73aa8db1552d40d9f33ed4d9eb3338dc11cc0"
+    },
+    {
+      "id": "hand_left_three-axis_thick-outline_u8_v1",
+      "label_ja": "左手：三軸・太線（線径 0.16）",
+      "filename": "hand_left_three-axis_thick-outline_u8_v1.glb",
+      "reference_size": 8,
+      "actual_bounds_3dsl": {
+        "min": [
+          -0.08,
+          -3.561147,
+          -3.772308
+        ],
+        "max": [
+          5.618462,
+          8.08,
+          5.618462
+        ]
+      },
+      "stroke_diameter": 0.16,
+      "pivot_3dsl": [
+        0,
+        0,
+        0
+      ],
+      "up_3dsl": [
+        0,
+        0,
+        1
+      ],
+      "front_3dsl": [
+        0,
+        1,
+        0
+      ],
+      "billboard": false,
+      "gltf_rotation_yaw_pitch_roll_radians": [
+        0,
+        1.5707963267948966,
+        0
+      ],
+      "source": "library/26012301/assets/lefthand_model.glb",
+      "source_scale": 0.07692307692307693,
+      "sha256": "6eacdeb6e74ec47271f8cd569bd08dae336c5aa740594da96f138292833ff2c6"
+    },
+    {
+      "id": "hand_left_three-axis_thick-outline-d024_u8_v1",
+      "label_ja": "左手：三軸・太線（線径 0.24）",
+      "filename": "hand_left_three-axis_thick-outline-d024_u8_v1.glb",
+      "reference_size": 8,
+      "actual_bounds_3dsl": {
+        "min": [
+          -0.12,
+          -3.601147,
+          -3.812308
+        ],
+        "max": [
+          5.658462,
+          8.12,
+          5.658462
+        ]
+      },
+      "stroke_diameter": 0.24,
+      "pivot_3dsl": [
+        0,
+        0,
+        0
+      ],
+      "up_3dsl": [
+        0,
+        0,
+        1
+      ],
+      "front_3dsl": [
+        0,
+        1,
+        0
+      ],
+      "billboard": false,
+      "gltf_rotation_yaw_pitch_roll_radians": [
+        0,
+        1.5707963267948966,
+        0
+      ],
+      "source": "library/26012301/assets/lefthand_model.glb",
+      "source_scale": 0.07692307692307693,
+      "sha256": "69e60ead3ed334134dc8bf83d305bf7edbbb7ebd39452150e5f55028eb48f302"
+    },
+    {
+      "id": "hand_left_three-axis_thick-outline-d032_u8_v1",
+      "label_ja": "左手：三軸・太線（線径 0.32）",
+      "filename": "hand_left_three-axis_thick-outline-d032_u8_v1.glb",
+      "reference_size": 8,
+      "actual_bounds_3dsl": {
+        "min": [
+          -0.16,
+          -3.641147,
+          -3.852308
+        ],
+        "max": [
+          5.698462,
+          8.16,
+          5.698462
+        ]
+      },
+      "stroke_diameter": 0.32,
+      "pivot_3dsl": [
+        0,
+        0,
+        0
+      ],
+      "up_3dsl": [
+        0,
+        0,
+        1
+      ],
+      "front_3dsl": [
+        0,
+        1,
+        0
+      ],
+      "billboard": false,
+      "gltf_rotation_yaw_pitch_roll_radians": [
+        0,
+        1.5707963267948966,
+        0
+      ],
+      "source": "library/26012301/assets/lefthand_model.glb",
+      "source_scale": 0.07692307692307693,
+      "sha256": "46f1fae4bc33f02caba9abea2de9adb776fe99481c9c9cd9b48c5770d363af3c"
     }
   ]
 }
